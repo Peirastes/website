@@ -1,5 +1,4 @@
-// Use React from global scope (loaded via CDN)
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 // ============================================================================
 // NUMERICAL INTEGRATORS
