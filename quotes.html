@@ -5,7 +5,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peirastes - Quotes</title>
-    <link rel="stylesheet" href="css/style.css"><script src="js/main.js"></script></head>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/main.js"></script>
+    <style>
+        /* Hide sidebar on quotes page */
+        #archive {
+            display: none;
+        }
+
+        .content {
+            flex-direction: row;
+        }
+
+        main {
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        .quotes-intro {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        body.dark-mode .quotes-intro {
+            color: #ccc;
+        }
+
+        #tag-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        body.dark-mode #tag-filter {
+            border-bottom-color: #444;
+        }
+
+        #tag-filter button {
+            padding: 0.5rem 1rem;
+            background: #f0f0f0;
+            border: 1px solid #0077cc;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        #tag-filter button:hover {
+            background: #0077cc;
+            color: white;
+        }
+
+        body.dark-mode #tag-filter button {
+            background: #333;
+            border-color: #4a9eff;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #tag-filter button:hover {
+            background: #4a9eff;
+            color: #000;
+        }
+
+        .quotes-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .quote-card {
+            background: #f9f9f9;
+            padding: 2rem;
+            border-left: 4px solid #0077cc;
+            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .quote-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode .quote-card {
+            background: #2a2a2a;
+            border-left-color: #4a9eff;
+        }
+
+        .quote-card blockquote {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            font-style: italic;
+            line-height: 1.8;
+            color: #333;
+            quotes: '"' '"' ''' ''';
+        }
+
+        body.dark-mode .quote-card blockquote {
+            color: #e0e0e0;
+        }
+
+        .quote-card cite {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #0077cc;
+            font-style: normal;
+        }
+
+        body.dark-mode .quote-card cite {
+            color: #4a9eff;
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #0077cc;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            z-index: 100;
+        }
+
+        .dark-mode-toggle:hover {
+            background: #005fa3;
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: #4a9eff;
+        }
+
+        body.dark-mode .dark-mode-toggle:hover {
+            background: #2a8fff;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            main {
+                width: 100%;
+            }
+
+            .quotes-container {
+                grid-template-columns: 1fr;
+            }
+
+            .dark-mode-toggle {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+
+            #tag-filter {
+                justify-content: center;
+            }
+
+            #tag-filter button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .quote-card {
+                padding: 1.5rem;
+            }
+
+            .quote-card blockquote {
+                font-size: 0.95rem;
+            }
+        }
+    </style>
 
 <body>
     <header>
@@ -22,68 +204,13 @@
     </header>
 
     <div class="content">
-        <aside id="archive">
-            <div class="sidebar-controls">
-                <div class="search-wrapper">
-                    <input type="text" id="search" placeholder="Search projects...">
-                </div>
-                <div id="categories">
-                    <button class="tag" onclick="filterByTag('All')">All</button>
-                    <button class="tag" onclick="filterByTag('Physics')">Physics</button>
-                    <button data-category="Natural Philosophy">Natural Philosophy</button>
-                    <button data-category="Physique">Physique</button>
-                    <button data-category="Engineering">Engineering</button>
-                    <button data-category="3D Printing">3D Printing</button>
-                </div>
-            </div>
-
-            <button onclick="document.body.classList.toggle('dark-mode')">Toggle Dark Mode</button>
-        
-            <h2>Archive</h2>
-            <div class="year" onclick="toggleYear('2025')">2025</div>
-            <ul id="2025" class="month-list">
-                <li><a href="#project12">Inferential Dynamics</a></li>  
-                <li><a href="#project11">Rebound Pendulum</a></li>
-                <li><a href="#project10">Certainty, Inference, and Comprehension</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2024')">2024</div>
-            <ul id="2024" class="month-list">
-                <li><a href="#project9">Horizontal Frame Centering Algorithm</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2023')">2023</div>
-            <ul id="2023" class="month-list">
-                <li><a href="#project8">A Universe of Proportions</a></li>
-            </ul>
-            
-            <div class="year" onclick="toggleYear('2021')">2021</div>
-            <ul id="2021" class="month-list">
-                <li><a href="#project7">Fundamental Principles - On Analogies (continued)</a></li>
-                <!-- <li><a href="#project6">Simple Environment Sensing System with Microcontroller</a></li> -->
-                <li><a href="#project5">On Physical Analogies</a></li>
-            </ul>
-            
-            <div class="year" onclick="toggleYear('2020')">2020</div>
-            <ul id="2020" class="month-list">
-                <li><a href="#project4">Gravitational Radiation</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2018')">2018</div>
-            <ul id="2018" class="month-list">
-                <li><a href="#project3">Disk Cam Synthesis</a></li>
-                <li><a href="#project2">Nonlinear Human Population Growth Modeling</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2017')">2017</div>
-            <ul id="2017" class="month-list">
-                <li><a href="#project1">Gravitational Wave Detector</a></li>
-            </ul>
-        </aside>
-
-        <main class="project-detail">
+        <main>
             <h1>Quotes</h1>
-        
+            <p class="quotes-intro">
+                A collection of profound insights from philosophers, scientists, and thinkers across the ages.
+                These quotes embody the spirit of critical inquiry, rigorous thinking, and the pursuit of truth that defines peirastic inquiry.
+            </p>
+
             <div id="tag-filter">
               <button onclick="filterQuotes('All')">All</button>
               <button onclick="filterQuotes('philosophy')">Philosophy</button>
@@ -98,7 +225,7 @@
               <button onclick="filterQuotes('love')">Love</button>
           </div>
 
-            <ul class="quote-list">
+            <div class="quotes-container">
                 <div class="quote-card" data-tags="teaching philosophy">
                   <blockquote>“I cannot teach anybody anything. I can only make them think.”</blockquote>
                   <cite>— Socrates</cite>
@@ -608,13 +735,15 @@
                   <blockquote>“You become what you give your attention to.”</blockquote>
                   <cite>— Epictetus</cite>
                 </div>
-            </ul>
+            </div>
         </main>
     </div>
 
     <footer>
-        <p>© 2025 Peirastes</p>
+        <p>© 2025 Cole Prather</p>
     </footer>
+
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
 
     <script>
         function filterQuotes(tag) {

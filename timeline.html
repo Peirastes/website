@@ -5,7 +5,219 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peirastes - Physics Timeline</title>
-    <link rel="stylesheet" href="css/style.css"><script src="js/main.js"></script></head>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/main.js"></script>
+    <style>
+        /* Hide sidebar on timeline page */
+        #archive {
+            display: none;
+        }
+
+        .content {
+            flex-direction: row;
+        }
+
+        main {
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        #tag-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        body.dark-mode #tag-filter {
+            border-bottom-color: #444;
+        }
+
+        #tag-filter button {
+            padding: 0.5rem 1rem;
+            background: #f0f0f0;
+            border: 1px solid #0077cc;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        #tag-filter button:hover {
+            background: #0077cc;
+            color: white;
+        }
+
+        body.dark-mode #tag-filter button {
+            background: #333;
+            border-color: #4a9eff;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #tag-filter button:hover {
+            background: #4a9eff;
+            color: #000;
+        }
+
+        .timeline-card {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: #f9f9f9;
+            border-left: 4px solid #0077cc;
+            border-radius: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .timeline-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode .timeline-card {
+            background: #2a2a2a;
+            border-left-color: #4a9eff;
+        }
+
+        .card-content {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .card-text {
+            flex: 1;
+        }
+
+        .card-text h2 {
+            margin-top: 0;
+            color: #0077cc;
+            font-size: 1.2rem;
+        }
+
+        body.dark-mode .card-text h2 {
+            color: #4a9eff;
+        }
+
+        .card-text ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .card-text li {
+            margin-bottom: 0.4rem;
+            color: #555;
+        }
+
+        body.dark-mode .card-text li {
+            color: #ccc;
+        }
+
+        .card-image {
+            flex-shrink: 0;
+            min-width: 150px;
+        }
+
+        .card-image img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #0077cc;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            z-index: 100;
+        }
+
+        .dark-mode-toggle:hover {
+            background: #005fa3;
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: #4a9eff;
+        }
+
+        body.dark-mode .dark-mode-toggle:hover {
+            background: #2a8fff;
+        }
+
+        main > h1 {
+            margin-bottom: 0.5rem;
+        }
+
+        main > h3 {
+            color: #666;
+            font-weight: normal;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        body.dark-mode main > h3 {
+            color: #aaa;
+        }
+
+        .timeline-intro {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        body.dark-mode .timeline-intro {
+            color: #ccc;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            .card-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .card-image {
+                min-width: auto;
+            }
+
+            .card-image img {
+                width: 100%;
+                height: auto;
+            }
+
+            .dark-mode-toggle {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+
+            #tag-filter {
+                justify-content: center;
+            }
+
+            #tag-filter button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 
 <body>
     <header>
@@ -22,68 +234,14 @@
     </header>
 
     <div class="content">
-      <aside id="archive">
-          <div class="sidebar-controls">
-              <div class="search-wrapper">
-                  <input type="text" id="search" placeholder="Search projects...">
-              </div>
-              <div id="categories">
-                  <button class="tag" onclick="filterByTag('All')">All</button>
-                  <button class="tag" onclick="filterByTag('Physics')">Physics</button>
-                  <button data-category="Natural Philosophy">Natural Philosophy</button>
-                  <button data-category="Physique">Physique</button>
-                  <button data-category="Engineering">Engineering</button>
-                  <button data-category="3D Printing">3D Printing</button>
-              </div>
-          </div>
-
-          <button onclick="document.body.classList.toggle('dark-mode')">Toggle Dark Mode</button>
-      
-          <h2>Archive</h2>
-          <div class="year" onclick="toggleYear('2025')">2025</div>
-          <ul id="2025" class="month-list">
-              <li><a href="#project12">Inferential Dynamics</a></li>  
-              <li><a href="#project11">Rebound Pendulum</a></li>
-              <li><a href="#project10">Certainty, Inference, and Comprehension</a></li>
-          </ul>
-
-          <div class="year" onclick="toggleYear('2024')">2024</div>
-          <ul id="2024" class="month-list">
-              <li><a href="#project9">Horizontal Frame Centering Algorithm</a></li>
-          </ul>
-
-          <div class="year" onclick="toggleYear('2023')">2023</div>
-          <ul id="2023" class="month-list">
-              <li><a href="#project8">A Universe of Proportions</a></li>
-          </ul>
-          
-          <div class="year" onclick="toggleYear('2021')">2021</div>
-          <ul id="2021" class="month-list">
-              <li><a href="#project7">Fundamental Principles - On Analogies (continued)</a></li>
-              <!-- <li><a href="#project6">Simple Environment Sensing System with Microcontroller</a></li> -->
-              <li><a href="#project5">On Physical Analogies</a></li>
-          </ul>
-          
-          <div class="year" onclick="toggleYear('2020')">2020</div>
-          <ul id="2020" class="month-list">
-              <li><a href="#project4">Gravitational Radiation</a></li>
-          </ul>
-
-          <div class="year" onclick="toggleYear('2018')">2018</div>
-          <ul id="2018" class="month-list">
-              <li><a href="#project3">Disk Cam Synthesis</a></li>
-              <li><a href="#project2">Nonlinear Human Population Growth Modeling</a></li>
-          </ul>
-
-          <div class="year" onclick="toggleYear('2017')">2017</div>
-          <ul id="2017" class="month-list">
-              <li><a href="#project1">Gravitational Wave Detector</a></li>
-          </ul>
-      </aside>
-
-      <main class="project-detail">
+      <main>
         <h1>Physics Timeline</h1>
         <h3>We Stand on the Shoulders of Giants</h3>
+        <p class="timeline-intro">
+            This timeline traces the development of physics from ancient natural philosophy through modern quantum mechanics and relativity.
+            Each entry highlights key figures whose insights, discoveries, and innovations built the foundation for our understanding of the physical world.
+            Use the filters below to explore by era or subject matter.
+        </p>
         <div id="tag-filter">
             <button onclick="filterTimeline('All')">All</button>
             <button onclick="filterTimeline('Ancient')">Ancient</button>
@@ -1552,12 +1710,14 @@
                 </div>
             </div>
         </div>
-    </main>
+      </main>
     </div>
 
     <footer>
         <p>© 2025 Cole Prather</p>
     </footer>
+
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
 
     <script>
         const observer = new IntersectionObserver(entries => {
