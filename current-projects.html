@@ -5,102 +5,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peirastes - Current Projects</title>
-    <link rel="stylesheet" href="css/style.css"><script src="js/main.js"></script></head>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/main.js"></script>
+    <style>
+        /* Hide sidebar on this page */
+        #archive {
+            display: none;
+        }
+
+        .content {
+            flex-direction: row;
+        }
+
+        main {
+            width: 100%;
+            flex-grow: 1;
+        }
+
+        .project-section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        body.dark-mode .project-section {
+            border-bottom-color: #444;
+        }
+
+        .project-section h2 {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        body.dark-mode .project-section h2 {
+            color: #e0e0e0;
+        }
+
+        .project-item {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #0077cc;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .project-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode .project-item {
+            background: #2a2a2a;
+            border-left-color: #4a9eff;
+        }
+
+        .project-item h3 {
+            margin-top: 0;
+            color: #0077cc;
+            font-size: 1.1rem;
+        }
+
+        body.dark-mode .project-item h3 {
+            color: #4a9eff;
+        }
+
+        .project-item p {
+            margin: 0.75rem 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        body.dark-mode .project-item p {
+            color: #ccc;
+        }
+
+        .project-status {
+            display: inline-block;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-planning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        body.dark-mode .status-active {
+            background: #1b5e20;
+            color: #81c784;
+        }
+
+        body.dark-mode .status-planning {
+            background: #e65100;
+            color: #fff3e0;
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #0077cc;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            z-index: 100;
+        }
+
+        .dark-mode-toggle:hover {
+            background: #005fa3;
+        }
+
+        body.dark-mode .dark-mode-toggle {
+            background: #4a9eff;
+        }
+
+        body.dark-mode .dark-mode-toggle:hover {
+            background: #2a8fff;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            main {
+                width: 100%;
+            }
+
+            .dark-mode-toggle {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+
+            .project-item {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .project-item h3 {
+                font-size: 1rem;
+            }
+
+            .project-item p {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
 
 <body>
     <header>
         <h1>Peirastes</h1>
         <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
         <nav>
-            <a href="index.html">Home</a> 
-            <a href="about.html">About</a> 
-            <a href="current-projects.html">Current Projects</a> 
-            <a href="previous-work.html">Previous Projects</a> 
-            <a href="timeline.html">Physics Timeline</a> 
-            <a href="quotes.html">Quotes</a></nav>
-        </div>
+            <a href="index.html">Home</a>
+            <a href="about.html">About</a>
+            <a href="current-projects.html">Current Projects</a>
+            <a href="previous-work.html">Previous Projects</a>
+            <a href="timeline.html">Physics Timeline</a>
+            <a href="quotes.html">Quotes</a>
+        </nav>
     </header>
 
     <div class="content">
-        <aside id="archive">
-            <div class="sidebar-controls">
-                <div class="search-wrapper">
-                    <input type="text" id="search" placeholder="Search projects...">
-                </div>
-                <div id="categories">
-                    <button class="tag" onclick="filterByTag('All')">All</button>
-                    <button class="tag" onclick="filterByTag('Physics')">Physics</button>
-                    <button data-category="Natural Philosophy">Natural Philosophy</button>
-                    <button data-category="Physique">Physique</button>
-                    <button data-category="Engineering">Engineering</button>
-                    <button data-category="3D Printing">3D Printing</button>
-                </div>
-            </div>
-
-            <button onclick="document.body.classList.toggle('dark-mode')">Toggle Dark Mode</button>
-        
-            <h2>Archive</h2>
-            <div class="year" onclick="toggleYear('2025')">2025</div>
-            <ul id="2025" class="month-list">
-                <li><a href="#project12">Inferential Dynamics</a></li>  
-                <li><a href="#project11">Rebound Pendulum</a></li>
-                <li><a href="#project10">Certainty, Inference, and Comprehension</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2024')">2024</div>
-            <ul id="2024" class="month-list">
-                <li><a href="#project9">Horizontal Frame Centering Algorithm</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2023')">2023</div>
-            <ul id="2023" class="month-list">
-                <li><a href="#project8">A Universe of Proportions</a></li>
-            </ul>
-            
-            <div class="year" onclick="toggleYear('2021')">2021</div>
-            <ul id="2021" class="month-list">
-                <li><a href="#project7">Fundamental Principles - On Analogies (continued)</a></li>
-                <!-- <li><a href="#project6">Simple Environment Sensing System with Microcontroller</a></li> -->
-                <li><a href="#project5">On Physical Analogies</a></li>
-            </ul>
-            
-            <div class="year" onclick="toggleYear('2020')">2020</div>
-            <ul id="2020" class="month-list">
-                <li><a href="#project4">Gravitational Radiation</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2018')">2018</div>
-            <ul id="2018" class="month-list">
-                <li><a href="#project3">Disk Cam Synthesis</a></li>
-                <li><a href="#project2">Nonlinear Human Population Growth Modeling</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2017')">2017</div>
-            <ul id="2017" class="month-list">
-                <li><a href="#project1">Gravitational Wave Detector</a></li>
-            </ul>
-        </aside>
-
-        <main class="project-detail">
+        <main>
             <h1>Current Projects</h1>
-        
-            <ul class="quote-list">
-                <h3>Academic:</h3>
-                    <li>Geometrical Inference</li>
-                    <li>Manim Animations</li>
-                    <li>Harmonic Oscillators</li>
-                    <li>PID Propendulum</li>
-                    <li>Resonance Structures of Standing Waves in Sound Tubes</li>
-                <h3>Personal:</h3>
-                    <li>Axial Flux Generators</li>
-                    <li>Solar Power System</li>
-            </ul>
+            <p style="font-size: 1.05rem; line-height: 1.8; color: #666; margin-bottom: 2rem;">
+                Below are the projects currently in development or active exploration. These range from pedagogical
+                experiments and educational platform development to advanced research in control systems, energy conversion,
+                and dynamical systems analysis.
+            </p>
+
+            <!-- Academic Projects -->
+            <section class="project-section">
+                <h2>Academic & Educational</h2>
+
+                <div class="project-item">
+                    <h3>Geometrical Inference</h3>
+                    <p>Exploring the intersection of geometry, logic, and inference. Developing frameworks for teaching geometric
+                    reasoning and how spatial relationships can be used to test and falsify claims about mathematical structures.</p>
+                    <span class="project-status status-active">Active</span>
+                </div>
+
+                <div class="project-item">
+                    <h3>Manim Animations</h3>
+                    <p>Creating mathematical animations using Manim (Mathematical Animation Engine) to visualize complex concepts
+                    in physics, dynamical systems, and calculus. Used for educational content and pedagogical demonstrations.</p>
+                    <span class="project-status status-active">Active</span>
+                </div>
+
+                <div class="project-item">
+                    <h3>Harmonic Oscillators</h3>
+                    <p>Comprehensive investigation of harmonic oscillator systems across multiple domains: mechanical pendulums,
+                    electrical circuits, and quantum systems. Exploring resonance, damping, and coupling phenomena.</p>
+                    <span class="project-status status-active">Active</span>
+                </div>
+
+                <div class="project-item">
+                    <h3>Dynamic Control of an Aeropendulum</h3>
+                    <p>Advanced feedback control systems project using a propeller-driven pendulum. Integrating sensor fusion,
+                    real-time control algorithms, and visualization systems for experimental dynamics and control education.</p>
+                    <span class="project-status status-active">Active</span>
+                </div>
+
+                <div class="project-item">
+                    <h3>Resonance Structures in Acoustic Systems</h3>
+                    <p>Theoretical and experimental study of standing waves and resonance phenomena in acoustic tubes and cavities.
+                    Connecting classical wave theory to real-world sound physics and musical acoustics.</p>
+                    <span class="project-status status-active">Active</span>
+                </div>
+            </section>
+
+            <!-- Personal/Research Projects -->
+            <section class="project-section">
+                <h2>Personal Research & Engineering</h2>
+
+                <div class="project-item">
+                    <h3>Axial Flux Generator Design</h3>
+                    <p>Engineering and optimization of axial flux permanent magnet generators for energy conversion applications.
+                    Exploring mechanical design, electromagnetic efficiency, and power output under different operating conditions.</p>
+                    <span class="project-status status-planning">In Development</span>
+                </div>
+
+                <div class="project-item">
+                    <h3>Solar Power System Integration</h3>
+                    <p>Design and implementation of a complete solar power system including panel optimization, charge management,
+                    energy storage, and load balancing. Quantifying efficiency across the entire power conversion chain.</p>
+                    <span class="project-status status-planning">In Development</span>
+                </div>
+            </section>
         </main>
     </div>
 
     <footer>
-        <p>© 2025 Peirastes</p>
+        <p>© 2025 Cole Prather</p>
     </footer>
 
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
 </body>
 </html>
