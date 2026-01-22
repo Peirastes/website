@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import * as THREE from 'three';
+// Use global React hooks and THREE from CDN
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const THREE = window.THREE;
 
 // ============================================================================
 // NUMERICAL INTEGRATORS
@@ -2127,7 +2128,7 @@ function DopplerFrequencyPlot({ frequencies, sourceFreq, theoreticalFreq, width 
 // MAIN COMPONENT
 // ============================================================================
 
-export default function UnifiedPhysicsLab() {
+function UnifiedPhysicsLab() {
   const [selectedSystem, setSelectedSystem] = useState('lorenz');
   const [params, setParams] = useState({});
   const [z0, setZ0] = useState([]);
