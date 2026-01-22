@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PROJECT_TITLE}} - Peirastes</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Peirastes</h1>
+        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
+        <nav>
+            <a href="../index.html">Home</a>
+            <a href="../about.html">About</a>
+            <a href="../current-projects.html">Current Projects</a>
+            <a href="../previous-work.html">Previous Work</a>
+            <a href="../timeline.html">Physics Timeline</a>
+            <a href="../quotes.html">Quotes</a>
+            <button onclick="toggleDarkMode()" style="background: rgba(255,255,255,0.35); color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; font-size: 0.9rem;">Dark Mode</button>
+        </nav>
+    </header>
+
+    <main>
+        <section class="project-detail">
+            <h1>{{PROJECT_TITLE}}</h1>
+
+            <!-- PROJECT CONTENT GOES HERE -->
+            <!-- You can add paragraphs, images, and other content below -->
+            <p>
+                <!-- Project description/abstract goes here -->
+            </p>
+
+            <!-- Example image with lightbox
+            <a href="../images/project_images/example.jpg" class="lightbox-trigger">
+                <img src="../images/project_images/example.jpg" alt="{{PROJECT_TITLE}} Image" class="autoscaled-img">
+            </a>
+            -->
+
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2025 Cole Prather</p>
+    </footer>
+
+    <div id="lightbox-overlay">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Full Image">
+    </div>
+
+    <script>
+        // Toggle dark mode and save preference
+        function toggleDarkMode() {
+            const isDarkMode = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+        }
+
+        // Initialize dark mode on page load
+        function initializeDarkMode() {
+            const savedDarkMode = localStorage.getItem('darkMode');
+            // Default to dark mode if no preference saved
+            if (savedDarkMode === 'true' || savedDarkMode === null) {
+                document.body.classList.add('dark-mode');
+            } else if (savedDarkMode === 'false') {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+
+        // Run initialization as soon as possible
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeDarkMode);
+        } else {
+            initializeDarkMode();
+        }
+
+        // Also initialize when script loads
+        document.addEventListener("DOMContentLoaded", function() {
+
+            // Lightbox functionality
+            const overlay = document.getElementById("lightbox-overlay");
+            const closeBtn = document.getElementById("lightbox-close");
+
+            document.querySelectorAll(".lightbox-trigger").forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const img = document.getElementById("lightbox-img");
+                    img.src = this.getAttribute("href");
+                    overlay.style.display = "flex";
+                });
+            });
+
+            closeBtn.addEventListener("click", function() {
+                overlay.style.display = "none";
+            });
+
+            overlay.addEventListener("click", function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = "none";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
