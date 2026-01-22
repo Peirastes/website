@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import * as THREE from 'three';
+// Use React from global scope (loaded via CDN)
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
 // ============================================================================
 // NUMERICAL INTEGRATORS
@@ -277,9 +277,17 @@ class WaveSolver2D {
     this.obstacle = new Uint8Array(nx * ny);
     this.time = 0;
     
+    // Store container geometry for drawing
+    this.containerGeom = null;
+    
     // Apply boundary type
     if (params.boundaryType === 'box' && params.boxMargin) {
       this.addBoxBoundary(params.boxMargin);
+    }
+    
+    // Apply container with opening (from Python original)
+    if (params.containerOn) {
+      this.addContainerBox(params);
     }
     
     // Apply obstacle type
@@ -325,6 +333,101 @@ class WaveSolver2D {
     this.addObstacle(this.nx - m - 2, m, this.nx - m, this.ny - m);
   }
   
+  // Add container box with opening (matching Python's make_container_box_mask_2d)
+  addContainerBox(params) {
+    const {nx, ny} = this;
+    const boxSize = params.boxSize || 0.6;
+    const boxCx = params.boxCx || 0.5;
+    const boxCy = params.boxCy || 0.5;
+    const wallThickness = params.wallThickness || 1;
+    const holeSide = params.holeSide || 'top';
+    const holeCenter = params.holeCenter || 0.5;
+    const holeWidth = params.holeWidth || 0.12;
+    
+    // Convert normalized coords to grid indices
+    const toI = (x) => Math.round(x * (nx - 1));
+    const toJ = (y) => Math.round(y * (ny - 1));
+    
+    // Box bounds in normalized coords
+    const x0 = Math.max(0, Math.min(1, boxCx - boxSize / 2));
+    const x1 = Math.max(0, Math.min(1, boxCx + boxSize / 2));
+    const y0 = Math.max(0, Math.min(1, boxCy - boxSize / 2));
+    const y1 = Math.max(0, Math.min(1, boxCy + boxSize / 2));
+    
+    let i0 = toI(x0), i1 = toI(x1);
+    let j0 = toJ(y0), j1 = toJ(y1);
+    
+    // Clamp
+    i0 = Math.max(0, Math.min(nx - 1, i0));
+    i1 = Math.max(0, Math.min(nx - 1, i1));
+    j0 = Math.max(0, Math.min(ny - 1, j0));
+    j1 = Math.max(0, Math.min(ny - 1, j1));
+    
+    // If too small, return
+    if (i1 - i0 < 2 || j1 - j0 < 2) return;
+    
+    // Wall thickness (clamped)
+    let w = Math.max(1, Math.min(wallThickness, Math.floor((i1 - i0) / 2), Math.floor((j1 - j0) / 2)));
+    
+    // Draw walls
+    for (let t = 0; t < w; t++) {
+      // Bottom wall
+      for (let i = i0; i <= i1; i++) this.obstacle[this.idx(i, j0 + t)] = 1;
+      // Top wall
+      for (let i = i0; i <= i1; i++) this.obstacle[this.idx(i, j1 - t)] = 1;
+      // Left wall
+      for (let j = j0; j <= j1; j++) this.obstacle[this.idx(i0 + t, j)] = 1;
+      // Right wall
+      for (let j = j0; j <= j1; j++) this.obstacle[this.idx(i1 - t, j)] = 1;
+    }
+    
+    // Carve opening
+    if (holeSide === 'top' || holeSide === 'bottom') {
+      const hx0 = Math.max(0, Math.min(1, holeCenter - holeWidth / 2));
+      const hx1 = Math.max(0, Math.min(1, holeCenter + holeWidth / 2));
+      let hi0 = Math.max(i0, toI(hx0));
+      let hi1 = Math.min(i1, toI(hx1));
+      
+      if (hi1 > hi0) {
+        for (let t = 0; t < w; t++) {
+          const jWall = holeSide === 'top' ? j1 - t : j0 + t;
+          for (let i = hi0; i <= hi1; i++) {
+            if (i >= 0 && i < nx && jWall >= 0 && jWall < ny) {
+              this.obstacle[this.idx(i, jWall)] = 0;
+            }
+          }
+        }
+      }
+    } else if (holeSide === 'left' || holeSide === 'right') {
+      const hy0 = Math.max(0, Math.min(1, holeCenter - holeWidth / 2));
+      const hy1 = Math.max(0, Math.min(1, holeCenter + holeWidth / 2));
+      let hj0 = Math.max(j0, toJ(hy0));
+      let hj1 = Math.min(j1, toJ(hy1));
+      
+      if (hj1 > hj0) {
+        for (let t = 0; t < w; t++) {
+          const iWall = holeSide === 'right' ? i1 - t : i0 + t;
+          for (let j = hj0; j <= hj1; j++) {
+            if (iWall >= 0 && iWall < nx && j >= 0 && j < ny) {
+              this.obstacle[this.idx(iWall, j)] = 0;
+            }
+          }
+        }
+      }
+    }
+    
+    // Store geometry for drawing
+    this.containerGeom = {
+      x0: i0 / (nx - 1),
+      x1: i1 / (nx - 1),
+      y0: j0 / (ny - 1),
+      y1: j1 / (ny - 1),
+      holeSide,
+      holeCenter,
+      holeWidth,
+    };
+  }
+  
   addObstaclePreset(type) {
     const cx = Math.floor(this.nx / 2);
     const cy = Math.floor(this.ny / 2);
@@ -366,6 +469,7 @@ class WaveSolver2D {
   
   clearObstacles() {
     this.obstacle.fill(0);
+    this.containerGeom = null;
   }
   
   step(dt) {
@@ -538,136 +642,6 @@ class LBMSolver {
         vort[idx] = (uy[idx+1] - uy[idx-1])/2 - (ux[idx+nx] - ux[idx-nx])/2;
       }
     return vort;
-  }
-}
-
-// Doppler Effect 3D Engine
-class DopplerEngine {
-  constructor(params = {}) {
-    this.c = params.waveSpeed || 4.0;
-    this.vs = params.sourceSpeed || 1.5;
-    this.fs = params.frequency || 0.5;
-    this.amplitude = params.amplitude || 1.0;
-    this.omega = 2 * Math.PI * this.fs;
-    
-    this.observerPos = new THREE.Vector3(0, 0, 0);
-    this.sourceStartY = params.sourceStartY || -12;
-    
-    this.time = 0;
-    this.wavefronts = [];
-    this.detectionEvents = [];
-    this.measuredFrequencies = [];
-    this.lastEmissionTime = -Infinity;
-    this.lastDetectionTime = -Infinity;
-    this.emissionInterval = 1 / (2 * this.fs);
-    
-    this.detectThreshold = params.detectThreshold || 0.2;
-    this.detectionDebounce = params.detectionDebounce || 0.1;
-    this.maxRadius = params.maxRadius || 25;
-  }
-  
-  getSourcePosition(t) {
-    return new THREE.Vector3(0, this.sourceStartY + this.vs * t, 0);
-  }
-  
-  step(dt) {
-    this.time += dt;
-    const t = this.time;
-    
-    if (t - this.lastEmissionTime >= this.emissionInterval) {
-      const srcPos = this.getSourcePosition(t);
-      this.wavefronts.push({
-        emissionTime: t,
-        emissionPos: srcPos.clone(),
-        detected: false,
-        radius: 0
-      });
-      this.lastEmissionTime = t;
-    }
-    
-    for (let i = this.wavefronts.length - 1; i >= 0; i--) {
-      const wf = this.wavefronts[i];
-      wf.radius = (t - wf.emissionTime) * this.c;
-      
-      if (!wf.detected && t - this.lastDetectionTime > this.detectionDebounce) {
-        const distToObserver = wf.emissionPos.distanceTo(this.observerPos);
-        
-        if (Math.abs(wf.radius - distToObserver) < this.detectThreshold) {
-          wf.detected = true;
-          this.detectionEvents.push(t);
-          this.lastDetectionTime = t;
-          
-          if (this.detectionEvents.length > 1) {
-            const n = this.detectionEvents.length;
-            const period = this.detectionEvents[n - 1] - this.detectionEvents[n - 2];
-            const freq = period > 0 ? 1 / period : 0;
-            this.measuredFrequencies.push({ t, frequency: freq, period });
-          }
-        }
-      }
-      
-      if (wf.radius > this.maxRadius) {
-        this.wavefronts.splice(i, 1);
-      }
-    }
-  }
-  
-  buildSignalWavePoints(numPoints = 200) {
-    const points = [];
-    const srcPos = this.getSourcePosition(this.time);
-    const yMin = -18;
-    const yMax = 18;
-    
-    for (let i = 0; i < numPoints; i++) {
-      const y = yMin + (yMax - yMin) * (i / (numPoints - 1));
-      const delta = y - srcPos.y;
-      
-      let tau;
-      if (delta >= 0) {
-        tau = this.time - delta / (this.c - this.vs);
-      } else {
-        tau = this.time + delta / (this.c + this.vs);
-      }
-      
-      if (tau < 0) tau = 0;
-      
-      const phase = this.omega * tau;
-      const z = this.amplitude * Math.sin(phase);
-      
-      points.push(new THREE.Vector3(0, y, z));
-    }
-    
-    return points;
-  }
-  
-  getTheoreticalFrequency() {
-    const srcPos = this.getSourcePosition(this.time);
-    const dy = this.observerPos.y - srcPos.y;
-    const vRadial = dy > 0 ? this.vs : -this.vs;
-    const denom = this.c - vRadial;
-    if (Math.abs(denom) < 0.01) return this.fs * 10;
-    return this.fs * this.c / denom;
-  }
-  
-  reset() {
-    this.time = 0;
-    this.wavefronts = [];
-    this.detectionEvents = [];
-    this.measuredFrequencies = [];
-    this.lastEmissionTime = -Infinity;
-    this.lastDetectionTime = -Infinity;
-  }
-  
-  updateParams(params) {
-    if (params.waveSpeed !== undefined) this.c = params.waveSpeed;
-    if (params.sourceSpeed !== undefined) this.vs = params.sourceSpeed;
-    if (params.frequency !== undefined) {
-      this.fs = params.frequency;
-      this.omega = 2 * Math.PI * this.fs;
-      this.emissionInterval = 1 / (2 * this.fs);
-    }
-    if (params.amplitude !== undefined) this.amplitude = params.amplitude;
-    if (params.sourceStartY !== undefined) this.sourceStartY = params.sourceStartY;
   }
 }
 
@@ -1134,69 +1108,82 @@ const SYSTEMS = {
     categoryName: 'Waves',
     type: 'pde',
     pdeType: 'wave2d',
-    description: 'Drumhead vibration. Circular wave propagation, interference, reflection from boundaries and obstacles.',
-    equations: '∂²u/∂t² = c²∇²u',
+    description: 'Drumhead vibration. Circular wave propagation, interference, reflection from boundaries and obstacles. Includes container box with configurable opening.',
+    equations: '∂²u/∂t² = c²∇²u - 2γ∂u/∂t',
     defaultParams: { 
       c: 1, 
       damping: 0.01, 
       nx: 80, 
       ny: 80,
+      // Source/tap position
       sourceX: 0.5,  // 0-1 normalized position
       sourceY: 0.5,
       sourceWidth: 5,
+      tapAmplitude: 5.0,  // Tap amplitude A
+      tapTime: 0.5,       // Tap time t0
+      tapTau: 0.05,       // Tap temporal width tau
+      // Probe positions (Tap A & Tap B)
+      tapAx: 0.5,
+      tapAy: 0.5,
+      tapBx: 0.7,
+      tapBy: 0.3,
+      // Boundary / obstacle
       boundaryType: 'fixed',  // 'fixed', 'open', 'box'
-      boxMargin: 10,  // pixels from edge for inner box
+      boxMargin: 10,
       obstacleType: 'none',  // 'none', 'slit', 'double-slit', 'circle', 'random'
+      // Container box with opening (from Python original)
+      containerOn: false,
+      boxSize: 0.6,       // Size of internal box (0-1)
+      boxCx: 0.5,         // Box center X
+      boxCy: 0.5,         // Box center Y
+      wallThickness: 1,   // Wall thickness in grid cells
+      holeSide: 'top',    // Which side has opening: 'top', 'bottom', 'left', 'right'
+      holeCenter: 0.5,    // Position of opening along that side (0-1)
+      holeWidth: 0.12,    // Width of opening (0-1)
     },
     paramLabels: { 
       c: 'Wave speed c', 
-      damping: 'Damping',
+      damping: 'Damping γ',
       sourceX: 'Source X',
       sourceY: 'Source Y',
+      sourceWidth: 'Source width',
+      tapAmplitude: 'Tap amplitude',
+      tapTime: 'Tap time t₀',
+      tapTau: 'Tap width τ',
+      tapAx: 'Probe A X',
+      tapAy: 'Probe A Y',
+      tapBx: 'Probe B X',
+      tapBy: 'Probe B Y',
+      boxSize: 'Box size',
+      boxCx: 'Box center X',
+      boxCy: 'Box center Y',
+      wallThickness: 'Wall thickness',
+      holeCenter: 'Opening center',
+      holeWidth: 'Opening width',
     },
     paramRanges: { 
       c: [0.5, 3], 
-      damping: [0, 0.05],
+      damping: [0, 0.1],
       sourceX: [0.1, 0.9],
       sourceY: [0.1, 0.9],
+      sourceWidth: [2, 15],
+      tapAmplitude: [0.5, 20],
+      tapTime: [0, 2],
+      tapTau: [0.01, 0.3],
+      tapAx: [0.1, 0.9],
+      tapAy: [0.1, 0.9],
+      tapBx: [0.1, 0.9],
+      tapBy: [0.1, 0.9],
+      boxSize: [0.2, 0.95],
+      boxCx: [0.1, 0.9],
+      boxCy: [0.1, 0.9],
+      wallThickness: [1, 5],
+      holeCenter: [0.1, 0.9],
+      holeWidth: [0.02, 0.5],
     },
     boundaryOptions: ['fixed', 'box'],
     obstacleOptions: ['none', 'slit', 'double-slit', 'circle', 'random'],
-  },
-  dopplerEffect: {
-    id: 'dopplerEffect',
-    name: 'Doppler Effect',
-    category: 'J',
-    categoryName: 'Waves',
-    type: 'pde',
-    pdeType: 'doppler',
-    description: '3D visualization of moving source wavefront propagation. Shows frequency shift from retarded-time phase calculation.',
-    equations: 'f_obs = f₀ · c / (c − v_s)',
-    defaultParams: {
-      waveSpeed: 4.0,
-      sourceSpeed: 1.5,
-      frequency: 0.5,
-      amplitude: 1.0,
-      sourceStartY: -12,
-    },
-    paramLabels: {
-      waveSpeed: 'Wave speed c',
-      sourceSpeed: 'Source speed v',
-      frequency: 'Source freq f₀',
-      amplitude: 'Amplitude',
-    },
-    paramRanges: {
-      waveSpeed: [2, 8],
-      sourceSpeed: [0, 7],
-      frequency: [0.2, 1.5],
-      amplitude: [0.5, 2],
-    },
-    presets: [
-      { name: 'Stationary', params: { sourceSpeed: 0, frequency: 0.5 } },
-      { name: 'Slow Approach', params: { sourceSpeed: 1.0, frequency: 0.5 } },
-      { name: 'Fast Approach', params: { sourceSpeed: 2.5, frequency: 0.5 } },
-      { name: 'Near Sonic', params: { sourceSpeed: 3.5, frequency: 0.6 } },
-    ],
+    holeSideOptions: ['top', 'bottom', 'left', 'right'],
   },
   
   // === K: PDEs - Reaction-Diffusion ===
@@ -1581,7 +1568,7 @@ function Plot3D({ z, width = 300, height = 300, rotation = 0 }) {
   return <canvas ref={canvasRef} style={{ width, height }} />;
 }
 
-function FieldPlot({ data, nx, ny, width = 400, height = 400, colormap = 'thermal', vmin, vmax, onClick, frame, obstacle }) {
+function FieldPlot({ data, nx, ny, width = 400, height = 400, colormap = 'thermal', vmin, vmax, onClick, frame, obstacle, markers }) {
   const canvasRef = useRef(null);
   
   useEffect(() => {
@@ -1648,7 +1635,46 @@ function FieldPlot({ data, nx, ny, width = 400, height = 400, colormap = 'therma
       }
     }
     ctx.putImageData(imageData, 0, 0);
-  }, [data, nx, ny, width, height, colormap, vmin, vmax, frame, obstacle]);
+    
+    // Draw markers (source, probe A, probe B)
+    if (markers) {
+      // Source marker (white X)
+      if (markers.source) {
+        const sx = markers.source.x * width;
+        const sy = (1 - markers.source.y) * height;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sx - 6, sy - 6); ctx.lineTo(sx + 6, sy + 6);
+        ctx.moveTo(sx + 6, sy - 6); ctx.lineTo(sx - 6, sy + 6);
+        ctx.stroke();
+      }
+      
+      // Probe A marker (blue filled circle)
+      if (markers.probeA) {
+        const ax = markers.probeA.x * width;
+        const ay = (1 - markers.probeA.y) * height;
+        ctx.fillStyle = '#4a9eff';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(ax, ay, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      
+      // Probe B marker (red hollow circle)
+      if (markers.probeB) {
+        const bx = markers.probeB.x * width;
+        const by = (1 - markers.probeB.y) * height;
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(bx, by, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }, [data, nx, ny, width, height, colormap, vmin, vmax, frame, obstacle, markers]);
   
   return <canvas ref={canvasRef} style={{ width, height, cursor: onClick ? 'crosshair' : 'default' }} onClick={onClick} />;
 }
@@ -1698,324 +1724,7 @@ function WaveformPlot({ data, width = 400, height = 150, frame }) {
   return <canvas ref={canvasRef} style={{ width, height }} />;
 }
 
-// ============================================================================
-// DOPPLER 3D VISUALIZATION
-// ============================================================================
-
-function Doppler3DScene({ engine, isRunning, onStateUpdate, params }) {
-  const containerRef = useRef(null);
-  const sceneRef = useRef(null);
-  const rendererRef = useRef(null);
-  const cameraRef = useRef(null);
-  const animRef = useRef(null);
-  const objectsRef = useRef({
-    wavefrontMeshes: [],
-    signalLine: null,
-    sourceMesh: null,
-    observerMesh: null,
-    pulseRing: null,
-  });
-  
-  const cameraStateRef = useRef({
-    theta: 0.5,
-    phi: 1.2,
-    radius: 35,
-    isDragging: false,
-    lastMouseX: 0,
-    lastMouseY: 0,
-    autoRotate: true
-  });
-  
-  useEffect(() => {
-    if (!containerRef.current) return;
-    
-    const container = containerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05050a);
-    sceneRef.current = scene;
-    
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.up.set(0, 0, 1);
-    cameraRef.current = camera;
-    
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
-    
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 10, 20);
-    scene.add(directionalLight);
-    
-    const gridHelper = new THREE.GridHelper(40, 20, 0x1a1a2e, 0x0f0f1a);
-    gridHelper.rotation.x = Math.PI / 2;
-    scene.add(gridHelper);
-    
-    // Axes
-    const axesGroup = new THREE.Group();
-    const xAxis = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-20, 0, 0), new THREE.Vector3(20, 0, 0)]),
-      new THREE.LineBasicMaterial({ color: 0xff4444 })
-    );
-    const yAxis = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -20, 0), new THREE.Vector3(0, 20, 0)]),
-      new THREE.LineBasicMaterial({ color: 0x44ff44 })
-    );
-    const zAxis = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -2), new THREE.Vector3(0, 0, 5)]),
-      new THREE.LineBasicMaterial({ color: 0x4444ff })
-    );
-    axesGroup.add(xAxis, yAxis, zAxis);
-    scene.add(axesGroup);
-    
-    // Observer
-    const observerMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.3, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0x4a9eff, emissive: 0x2a5e9f, emissiveIntensity: 0.3 })
-    );
-    scene.add(observerMesh);
-    objectsRef.current.observerMesh = observerMesh;
-    
-    // Pulse ring
-    const pulseRing = new THREE.Mesh(
-      new THREE.RingGeometry(0.3, 0.5, 32),
-      new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0, side: THREE.DoubleSide })
-    );
-    scene.add(pulseRing);
-    objectsRef.current.pulseRing = pulseRing;
-    
-    // Source
-    const sourceMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.4, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x8f2222, emissiveIntensity: 0.4 })
-    );
-    scene.add(sourceMesh);
-    objectsRef.current.sourceMesh = sourceMesh;
-    
-    // Signal wave line
-    const signalLine = new THREE.Line(
-      new THREE.BufferGeometry(),
-      new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 2 })
-    );
-    scene.add(signalLine);
-    objectsRef.current.signalLine = signalLine;
-    
-    // Mouse controls
-    const camState = cameraStateRef.current;
-    
-    const handleMouseDown = (e) => {
-      camState.isDragging = true;
-      camState.autoRotate = false;
-      camState.lastMouseX = e.clientX;
-      camState.lastMouseY = e.clientY;
-      container.style.cursor = 'grabbing';
-    };
-    
-    const handleMouseMove = (e) => {
-      if (!camState.isDragging) return;
-      const deltaX = e.clientX - camState.lastMouseX;
-      const deltaY = e.clientY - camState.lastMouseY;
-      camState.theta -= deltaX * 0.008;
-      camState.phi += deltaY * 0.008;
-      camState.phi = Math.max(0.08, Math.min(Math.PI - 0.08, camState.phi));
-      camState.lastMouseX = e.clientX;
-      camState.lastMouseY = e.clientY;
-    };
-    
-    const handleMouseUp = () => {
-      camState.isDragging = false;
-      container.style.cursor = 'grab';
-    };
-    
-    const handleWheel = (e) => {
-      e.preventDefault();
-      camState.radius += e.deltaY * 0.02;
-      camState.radius = Math.max(15, Math.min(80, camState.radius));
-    };
-    
-    const handleDoubleClick = () => {
-      camState.theta = 0.5;
-      camState.phi = 1.2;
-      camState.radius = 35;
-      camState.autoRotate = true;
-    };
-    
-    container.addEventListener('mousedown', handleMouseDown);
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseup', handleMouseUp);
-    container.addEventListener('mouseleave', handleMouseUp);
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    container.addEventListener('dblclick', handleDoubleClick);
-    container.style.cursor = 'grab';
-    
-    const handleResize = () => {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      container.removeEventListener('mousedown', handleMouseDown);
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseup', handleMouseUp);
-      container.removeEventListener('mouseleave', handleMouseUp);
-      container.removeEventListener('wheel', handleWheel);
-      container.removeEventListener('dblclick', handleDoubleClick);
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
-    };
-  }, []);
-  
-  useEffect(() => {
-    const scene = sceneRef.current;
-    const renderer = rendererRef.current;
-    const camera = cameraRef.current;
-    const objects = objectsRef.current;
-    
-    if (!scene || !renderer || !camera || !engine) return;
-    
-    let lastTime = performance.now();
-    
-    const animate = (now) => {
-      const dt = Math.min((now - lastTime) / 1000, 0.05);
-      lastTime = now;
-      
-      if (isRunning) {
-        engine.step(dt);
-      }
-      
-      // Update source position
-      const srcPos = engine.getSourcePosition(engine.time);
-      objects.sourceMesh.position.copy(srcPos);
-      
-      // Update signal wave
-      const wavePoints = engine.buildSignalWavePoints(300);
-      const positions = new Float32Array(wavePoints.length * 3);
-      for (let i = 0; i < wavePoints.length; i++) {
-        positions[i * 3] = wavePoints[i].x;
-        positions[i * 3 + 1] = wavePoints[i].y;
-        positions[i * 3 + 2] = wavePoints[i].z;
-      }
-      objects.signalLine.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      
-      // Update wavefronts
-      const currentWavefronts = engine.wavefronts;
-      const existingMeshes = objects.wavefrontMeshes;
-      
-      while (existingMeshes.length > currentWavefronts.length) {
-        const mesh = existingMeshes.pop();
-        scene.remove(mesh);
-        mesh.geometry.dispose();
-        mesh.material.dispose();
-      }
-      
-      for (let i = 0; i < currentWavefronts.length; i++) {
-        const wf = currentWavefronts[i];
-        let mesh = existingMeshes[i];
-        
-        if (!mesh) {
-          const geom = new THREE.RingGeometry(wf.radius - 0.05, wf.radius + 0.05, 64);
-          const mat = new THREE.MeshBasicMaterial({
-            color: wf.detected ? 0x22c55e : 0x6699ff,
-            transparent: true,
-            opacity: 0.6,
-            side: THREE.DoubleSide
-          });
-          mesh = new THREE.Mesh(geom, mat);
-          scene.add(mesh);
-          existingMeshes.push(mesh);
-        } else {
-          mesh.geometry.dispose();
-          const innerR = Math.max(0, wf.radius - 0.05);
-          mesh.geometry = new THREE.RingGeometry(innerR, wf.radius + 0.05, 64);
-          mesh.material.color.setHex(wf.detected ? 0x22c55e : 0x6699ff);
-          mesh.material.opacity = Math.max(0.1, 0.7 - wf.radius / 30);
-        }
-        
-        mesh.position.set(wf.emissionPos.x, wf.emissionPos.y, 0);
-      }
-      
-      // Pulse effect
-      const timeSinceDetect = engine.time - engine.lastDetectionTime;
-      if (timeSinceDetect < 0.5 && timeSinceDetect >= 0) {
-        objects.pulseRing.material.opacity = 1 - timeSinceDetect * 2;
-        const scale = 1 + timeSinceDetect * 4;
-        objects.pulseRing.scale.set(scale, scale, scale);
-        objects.pulseRing.visible = true;
-      } else {
-        objects.pulseRing.visible = false;
-      }
-      
-      // Update camera
-      const camState = cameraStateRef.current;
-      if (camState.autoRotate && isRunning) {
-        camState.theta += 0.002;
-      }
-      camera.position.x = camState.radius * Math.sin(camState.phi) * Math.cos(camState.theta);
-      camera.position.y = camState.radius * Math.sin(camState.phi) * Math.sin(camState.theta);
-      camera.position.z = camState.radius * Math.cos(camState.phi);
-      camera.lookAt(0, 0, 0);
-      
-      // Report state
-      if (onStateUpdate) {
-        const lastFreq = engine.measuredFrequencies.length > 0 
-          ? engine.measuredFrequencies[engine.measuredFrequencies.length - 1] 
-          : null;
-        onStateUpdate({
-          time: engine.time,
-          detectionCount: engine.detectionEvents.length,
-          measuredFrequencies: engine.measuredFrequencies,
-          lastFrequency: lastFreq?.frequency,
-          lastPeriod: lastFreq?.period,
-          theoreticalFreq: engine.getTheoreticalFrequency(),
-          sourceFreq: engine.fs
-        });
-      }
-      
-      renderer.render(scene, camera);
-      animRef.current = requestAnimationFrame(animate);
-    };
-    
-    animRef.current = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [engine, isRunning, onStateUpdate]);
-  
-  return (
-    <div 
-      ref={containerRef} 
-      style={{ width: '100%', height: '100%', minHeight: 400, borderRadius: 6, overflow: 'hidden', position: 'relative' }}
-    >
-      <div style={{
-        position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6, pointerEvents: 'none'
-      }}>
-        <div style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', borderRadius: 3, fontSize: 9, color: '#666' }}>
-          Drag to orbit
-        </div>
-        <div style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', borderRadius: 3, fontSize: 9, color: '#666' }}>
-          Scroll to zoom
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DopplerFrequencyPlot({ frequencies, sourceFreq, theoreticalFreq, width = 400, height = 150 }) {
+function DualProbeWaveformPlot({ dataA, dataB, width = 400, height = 120, frame }) {
   const canvasRef = useRef(null);
   
   useEffect(() => {
@@ -2028,106 +1737,71 @@ function DopplerFrequencyPlot({ frequencies, sourceFreq, theoreticalFreq, width 
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
     
-    const margin = { top: 20, right: 15, bottom: 25, left: 45 };
-    const w = width - margin.left - margin.right;
-    const h = height - margin.top - margin.bottom;
-    
     ctx.fillStyle = '#0a0a0f';
     ctx.fillRect(0, 0, width, height);
     
-    let tMin = 0, tMax = 12;
-    let fMin = 0, fMax = Math.max(sourceFreq * 2.5, 1.5);
+    if ((!dataA || dataA.length < 2) && (!dataB || dataB.length < 2)) return;
     
-    if (frequencies.length > 0) {
-      tMax = Math.max(12, frequencies[frequencies.length - 1].t + 2);
-      const maxMeasured = Math.max(...frequencies.map(f => f.frequency));
-      fMax = Math.max(fMax, maxMeasured * 1.3);
-    }
+    const all = [...(dataA || []), ...(dataB || [])];
+    let min = Math.min(...all);
+    let max = Math.max(...all);
+    if (!isFinite(min) || !isFinite(max)) { min = -1; max = 1; }
+    if (min === max) { min -= 1; max += 1; }
+    const pad = (max - min) * 0.15;
+    min -= pad; max += pad;
     
-    const sx = (t) => margin.left + (t - tMin) / (tMax - tMin) * w;
-    const sy = (f) => margin.top + h - (f - fMin) / (fMax - fMin) * h;
-    
-    // Grid
-    ctx.strokeStyle = '#151520';
-    for (let i = 0; i <= 4; i++) {
-      const y = margin.top + (h / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(margin.left, y);
-      ctx.lineTo(width - margin.right, y);
-      ctx.stroke();
-    }
-    
-    // Source frequency line
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
-    ctx.setLineDash([5, 4]);
-    ctx.beginPath();
-    ctx.moveTo(margin.left, sy(sourceFreq));
-    ctx.lineTo(width - margin.right, sy(sourceFreq));
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    ctx.fillStyle = '#ef4444';
-    ctx.font = '9px ui-monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(`f₀=${sourceFreq.toFixed(2)}`, width - margin.right - 3, sy(sourceFreq) - 3);
-    
-    // Measured data
-    if (frequencies.length > 0) {
-      ctx.strokeStyle = '#4a9eff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      let started = false;
-      for (const pt of frequencies) {
-        const x = sx(pt.t);
-        const y = sy(pt.frequency);
-        if (isFinite(y) && y > margin.top && y < height - margin.bottom) {
-          if (!started) { ctx.moveTo(x, y); started = true; }
-          else ctx.lineTo(x, y);
-        }
-      }
-      ctx.stroke();
-      
-      ctx.fillStyle = '#4a9eff';
-      for (const pt of frequencies) {
-        const x = sx(pt.t);
-        const y = sy(pt.frequency);
-        if (isFinite(y) && y > margin.top && y < height - margin.bottom) {
-          ctx.beginPath();
-          ctx.arc(x, y, 3, 0, 2 * Math.PI);
-          ctx.fill();
-        }
-      }
-    }
-    
-    // Axes
-    ctx.strokeStyle = '#333';
+    // Zero line
+    const y0 = height - ((0 - min) / (max - min)) * height;
+    ctx.strokeStyle = '#222';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(margin.left, margin.top);
-    ctx.lineTo(margin.left, height - margin.bottom);
-    ctx.lineTo(width - margin.right, height - margin.bottom);
+    ctx.moveTo(0, y0);
+    ctx.lineTo(width, y0);
     ctx.stroke();
     
-    ctx.fillStyle = '#666';
-    ctx.font = '9px ui-monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Time (s)', width / 2, height - 5);
+    // Draw Probe A (blue)
+    if (dataA && dataA.length > 1) {
+      ctx.strokeStyle = '#4a9eff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < dataA.length; i++) {
+        const x = (i / (dataA.length - 1)) * width;
+        const y = height - ((dataA[i] - min) / (max - min)) * height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
     
-    ctx.fillStyle = '#888';
-    ctx.font = 'bold 10px ui-monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('Measured Frequency', margin.left, 12);
+    // Draw Probe B (red)
+    if (dataB && dataB.length > 1) {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let i = 0; i < dataB.length; i++) {
+        const x = (i / (dataB.length - 1)) * width;
+        const y = height - ((dataB[i] - min) / (max - min)) * height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
     
-  }, [frequencies, sourceFreq, theoreticalFreq, width, height]);
+    // Legend
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.fillStyle = '#4a9eff';
+    ctx.fillText('Probe A', 10, 12);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillText('Probe B', 70, 12);
+    
+  }, [dataA, dataB, width, height, frame]);
   
-  return <canvas ref={canvasRef} style={{ width, height, borderRadius: 4 }} />;
+  return <canvas ref={canvasRef} style={{ width, height }} />;
 }
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-export default function UnifiedPhysicsLab() {
+function UnifiedPhysicsLab() {
   const [selectedSystem, setSelectedSystem] = useState('lorenz');
   const [params, setParams] = useState({});
   const [z0, setZ0] = useState([]);
@@ -2143,16 +1817,12 @@ export default function UnifiedPhysicsLab() {
   const [pdeSolver, setPdeSolver] = useState(null);
   const [pdeFrame, setPdeFrame] = useState(0);
   const [selectedPreset, setSelectedPreset] = useState(0);
-  
-  // Doppler state
-  const [dopplerEngine, setDopplerEngine] = useState(null);
-  const [dopplerState, setDopplerState] = useState(null);
+  const [probeHistory, setProbeHistory] = useState({ a: [], b: [] });
   
   const animRef = useRef(null);
   const stepRef = useRef(0);
   
   const system = SYSTEMS[selectedSystem];
-  const isDoppler = system?.pdeType === 'doppler';
   const isPDE = system?.type === 'pde';
   
   // Initialize when system changes
@@ -2162,13 +1832,7 @@ export default function UnifiedPhysicsLab() {
       setIsRunning(false);
       stepRef.current = 0;
       
-      if (system.pdeType === 'doppler') {
-        // Initialize Doppler engine
-        const engine = new DopplerEngine(system.defaultParams);
-        setDopplerEngine(engine);
-        setDopplerState(null);
-        setPdeSolver(null);
-      } else if (system.type === 'pde') {
+      if (system.type === 'pde') {
         // Initialize PDE solver
         const p = system.defaultParams;
         let solver = null;
@@ -2201,10 +1865,8 @@ export default function UnifiedPhysicsLab() {
         
         setPdeSolver(solver);
         setPdeFrame(0);
-        setDopplerEngine(null);
       } else {
         setPdeSolver(null);
-        setDopplerEngine(null);
         setZ0([...system.defaultZ0]);
         setTSpan([...system.defaultTSpan]);
         setDt(system.defaultTSpan[1] > 100 ? 0.1 : 0.01);
@@ -2241,6 +1903,27 @@ export default function UnifiedPhysicsLab() {
           pdeSolver.step(1);
         }
       }
+      
+      // Record probe values for wave2d
+      if (system.pdeType === 'wave2d') {
+        const nx = pdeSolver.nx;
+        const ny = pdeSolver.ny;
+        const tapAx = Math.floor((params.tapAx || 0.5) * nx);
+        const tapAy = Math.floor((params.tapAy || 0.5) * ny);
+        const tapBx = Math.floor((params.tapBx || 0.7) * nx);
+        const tapBy = Math.floor((params.tapBy || 0.3) * ny);
+        
+        const idxA = tapAy * nx + tapAx;
+        const idxB = tapBy * nx + tapBx;
+        const valA = pdeSolver.u[idxA] || 0;
+        const valB = pdeSolver.u[idxB] || 0;
+        
+        setProbeHistory(prev => ({
+          a: [...prev.a.slice(-200), valA],  // Keep last 200 samples
+          b: [...prev.b.slice(-200), valB],
+        }));
+      }
+      
       setPdeFrame(f => f + 1);
       animRef.current = requestAnimationFrame(animate);
     };
@@ -2275,10 +1958,6 @@ export default function UnifiedPhysicsLab() {
     if (pdeSolver) {
       if (key in pdeSolver) pdeSolver[key] = value;
     }
-    // Update Doppler engine params
-    if (dopplerEngine) {
-      dopplerEngine.updateParams({ [key]: value });
-    }
   };
   
   const handleFieldClick = (e) => {
@@ -2301,14 +1980,6 @@ export default function UnifiedPhysicsLab() {
     if (!system || !isPDE) return;
     setIsRunning(false);
     const p = params;
-    
-    if (system.pdeType === 'doppler') {
-      const engine = new DopplerEngine(p);
-      setDopplerEngine(engine);
-      setDopplerState(null);
-      return;
-    }
-    
     let solver = null;
     
     if (system.pdeType === 'heat') {
@@ -2327,10 +1998,19 @@ export default function UnifiedPhysicsLab() {
         boundaryType: p.boundaryType,
         boxMargin: p.boxMargin,
         obstacleType: p.obstacleType,
+        // Container box with opening (from Python original)
+        containerOn: p.containerOn,
+        boxSize: p.boxSize,
+        boxCx: p.boxCx,
+        boxCy: p.boxCy,
+        wallThickness: p.wallThickness,
+        holeSide: p.holeSide,
+        holeCenter: p.holeCenter,
+        holeWidth: p.holeWidth,
       });
       const srcX = Math.floor((p.sourceX || 0.5) * nx);
       const srcY = Math.floor((p.sourceY || 0.5) * ny);
-      solver.tap(srcX, srcY, p.sourceWidth || 5, 1);
+      solver.tap(srcX, srcY, p.sourceWidth || 5, p.tapAmplitude || 5);
     } else if (system.pdeType === 'grayscott') {
       solver = new GrayScottSolver(p.nx || 128, p.ny || 128, { Du: p.Du, Dv: p.Dv, f: p.f, k: p.k });
       solver.seed((p.nx||128)/2, (p.ny||128)/2, 10);
@@ -2341,6 +2021,7 @@ export default function UnifiedPhysicsLab() {
     
     setPdeSolver(solver);
     setPdeFrame(0);
+    setProbeHistory({ a: [], b: [] });  // Reset probe history
   };
   
   const applyPreset = (presetIdx) => {
@@ -2761,133 +2442,8 @@ export default function UnifiedPhysicsLab() {
                   </>
                 )}
                 
-                {/* Doppler Effect 3D Visualization */}
-                {isDoppler && dopplerEngine && (
-                  <>
-                    <div style={{
-                      background: '#0a0a0f',
-                      border: '1px solid #1a1a24',
-                      borderRadius: '6px',
-                      padding: '16px',
-                      flex: 1,
-                      minWidth: 500,
-                    }}>
-                      <div style={{
-                        fontSize: '10px',
-                        color: '#666',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.1em',
-                        marginBottom: '12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}>
-                        <span>3D Wavefront Propagation</span>
-                        <span style={{ color: '#444' }}>
-                          t = {dopplerState?.time?.toFixed(2) || '0.00'} s
-                        </span>
-                      </div>
-                      <div style={{ height: 400 }}>
-                        <Doppler3DScene
-                          engine={dopplerEngine}
-                          isRunning={isRunning}
-                          onStateUpdate={setDopplerState}
-                          params={params}
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Doppler Instrument Panel */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      minWidth: 280,
-                    }}>
-                      {/* Measurements */}
-                      <div style={{
-                        background: '#0a0a0f',
-                        border: '1px solid #1a1a24',
-                        borderRadius: '6px',
-                        padding: '16px',
-                      }}>
-                        <div style={{
-                          fontSize: '10px',
-                          color: '#666',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.1em',
-                          marginBottom: '12px',
-                        }}>
-                          Measurements
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Source f₀</span>
-                            <span style={{ fontSize: 13, color: '#ef4444', fontFamily: 'ui-monospace' }}>
-                              {params.frequency?.toFixed(3) || '0.500'} Hz
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Measured f</span>
-                            <span style={{ fontSize: 13, color: '#4a9eff', fontFamily: 'ui-monospace', fontWeight: 600 }}>
-                              {dopplerState?.lastFrequency?.toFixed(3) || '—'} Hz
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Theoretical</span>
-                            <span style={{ fontSize: 13, color: '#22c55e', fontFamily: 'ui-monospace' }}>
-                              {dopplerState?.theoreticalFreq?.toFixed(3) || '—'} Hz
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Doppler Ratio</span>
-                            <span style={{ 
-                              fontSize: 13, 
-                              color: dopplerState?.lastFrequency > params.frequency ? '#22c55e' : '#f97316',
-                              fontFamily: 'ui-monospace',
-                              fontWeight: 600
-                            }}>
-                              {dopplerState?.lastFrequency 
-                                ? `${(dopplerState.lastFrequency / params.frequency).toFixed(3)}×` 
-                                : '—'}
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Mach Number</span>
-                            <span style={{ fontSize: 13, color: '#a855f7', fontFamily: 'ui-monospace' }}>
-                              {(params.sourceSpeed / params.waveSpeed).toFixed(3)}
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Detections</span>
-                            <span style={{ fontSize: 13, color: '#666', fontFamily: 'ui-monospace' }}>
-                              {dopplerState?.detectionCount || 0}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Frequency Plot */}
-                      <div style={{
-                        background: '#0a0a0f',
-                        border: '1px solid #1a1a24',
-                        borderRadius: '6px',
-                        padding: '12px',
-                      }}>
-                        <DopplerFrequencyPlot
-                          frequencies={dopplerState?.measuredFrequencies || []}
-                          sourceFreq={params.frequency || 0.5}
-                          theoreticalFreq={dopplerState?.theoreticalFreq || params.frequency}
-                          width={256}
-                          height={140}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-                
                 {/* PDE Visualizations */}
-                {isPDE && pdeSolver && !isDoppler && (
+                {isPDE && pdeSolver && (
                   <>
                     {/* Field Plot */}
                     <div style={{
@@ -2954,6 +2510,11 @@ export default function UnifiedPhysicsLab() {
                           onClick={handleFieldClick}
                           frame={pdeFrame}
                           obstacle={system.pdeType === 'wave2d' ? pdeSolver.obstacle : null}
+                          markers={system.pdeType === 'wave2d' ? {
+                            source: { x: params.sourceX || 0.5, y: params.sourceY || 0.5 },
+                            probeA: { x: params.tapAx || 0.5, y: params.tapAy || 0.5 },
+                            probeB: { x: params.tapBx || 0.7, y: params.tapBy || 0.3 },
+                          } : null}
                         />
                       )}
                       
@@ -2965,6 +2526,28 @@ export default function UnifiedPhysicsLab() {
                         {(system.pdeType === 'wave2d' || system.pdeType === 'grayscott' || system.pdeType === 'heat') && 
                           'Click to add perturbation'}
                       </div>
+                      
+                      {/* Probe Time Series for wave2d */}
+                      {system.pdeType === 'wave2d' && (probeHistory.a.length > 1 || probeHistory.b.length > 1) && (
+                        <div style={{ marginTop: '12px' }}>
+                          <div style={{
+                            fontSize: '10px',
+                            color: '#666',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.1em',
+                            marginBottom: '8px',
+                          }}>
+                            Probe Time Series
+                          </div>
+                          <DualProbeWaveformPlot
+                            dataA={probeHistory.a}
+                            dataB={probeHistory.b}
+                            width={400}
+                            height={100}
+                            frame={pdeFrame}
+                          />
+                        </div>
+                      )}
                     </div>
                     
                     {/* Wave2D Configuration Panel */}
@@ -2974,7 +2557,9 @@ export default function UnifiedPhysicsLab() {
                         border: '1px solid #1a1a24',
                         borderRadius: '6px',
                         padding: '16px',
-                        minWidth: '200px',
+                        minWidth: '220px',
+                        maxHeight: '500px',
+                        overflowY: 'auto',
                       }}>
                         <div style={{
                           fontSize: '10px',
@@ -3057,7 +2642,7 @@ export default function UnifiedPhysicsLab() {
                           />
                         </div>
                         
-                        <div style={{ marginBottom: '12px' }}>
+                        <div style={{ marginBottom: '8px' }}>
                           <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
                             Source Y: {((params.sourceY || 0.5) * 100).toFixed(0)}%
                           </div>
@@ -3072,6 +2657,38 @@ export default function UnifiedPhysicsLab() {
                           />
                         </div>
                         
+                        {/* Tap Amplitude */}
+                        <div style={{ marginBottom: '8px' }}>
+                          <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                            Tap Amplitude: {(params.tapAmplitude || 5).toFixed(1)}
+                          </div>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="20"
+                            step="0.5"
+                            value={params.tapAmplitude || 5}
+                            onChange={(e) => setParams(p => ({ ...p, tapAmplitude: parseFloat(e.target.value) }))}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                        
+                        {/* Source Width */}
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                            Source Width: {params.sourceWidth || 5}
+                          </div>
+                          <input
+                            type="range"
+                            min="2"
+                            max="15"
+                            step="1"
+                            value={params.sourceWidth || 5}
+                            onChange={(e) => setParams(p => ({ ...p, sourceWidth: parseInt(e.target.value) }))}
+                            style={{ width: '100%' }}
+                          />
+                        </div>
+                        
                         {/* Tap button */}
                         <button
                           onClick={() => {
@@ -3080,7 +2697,7 @@ export default function UnifiedPhysicsLab() {
                               const ny = pdeSolver.ny;
                               const srcX = Math.floor((params.sourceX || 0.5) * nx);
                               const srcY = Math.floor((params.sourceY || 0.5) * ny);
-                              pdeSolver.tap(srcX, srcY, params.sourceWidth || 5, 1);
+                              pdeSolver.tap(srcX, srcY, params.sourceWidth || 5, params.tapAmplitude || 5);
                               setPdeFrame(f => f + 1);
                             }
                           }}
@@ -3094,10 +2711,252 @@ export default function UnifiedPhysicsLab() {
                             cursor: 'pointer',
                             fontSize: '11px',
                             fontWeight: 500,
+                            marginBottom: '16px',
                           }}
                         >
                           Tap at Source
                         </button>
+                        
+                        {/* Container Box Section */}
+                        <div style={{
+                          borderTop: '1px solid #2a2a34',
+                          paddingTop: '12px',
+                          marginTop: '8px',
+                        }}>
+                          <div style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                            Container Box
+                          </div>
+                          
+                          {/* Container Toggle */}
+                          <div style={{ marginBottom: '12px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={params.containerOn || false}
+                                onChange={(e) => {
+                                  setParams(p => ({ ...p, containerOn: e.target.checked }));
+                                  setTimeout(() => resetPDE(), 50);
+                                }}
+                              />
+                              <span style={{ fontSize: '11px', color: '#aaa' }}>Enable Container</span>
+                            </label>
+                          </div>
+                          
+                          {params.containerOn && (
+                            <>
+                              {/* Box Size */}
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                                  Box Size: {((params.boxSize || 0.6) * 100).toFixed(0)}%
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.2"
+                                  max="0.95"
+                                  step="0.05"
+                                  value={params.boxSize || 0.6}
+                                  onChange={(e) => {
+                                    setParams(p => ({ ...p, boxSize: parseFloat(e.target.value) }));
+                                    setTimeout(() => resetPDE(), 50);
+                                  }}
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              
+                              {/* Box Center X */}
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                                  Box Center X: {((params.boxCx || 0.5) * 100).toFixed(0)}%
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.1"
+                                  max="0.9"
+                                  step="0.05"
+                                  value={params.boxCx || 0.5}
+                                  onChange={(e) => {
+                                    setParams(p => ({ ...p, boxCx: parseFloat(e.target.value) }));
+                                    setTimeout(() => resetPDE(), 50);
+                                  }}
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              
+                              {/* Box Center Y */}
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                                  Box Center Y: {((params.boxCy || 0.5) * 100).toFixed(0)}%
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.1"
+                                  max="0.9"
+                                  step="0.05"
+                                  value={params.boxCy || 0.5}
+                                  onChange={(e) => {
+                                    setParams(p => ({ ...p, boxCy: parseFloat(e.target.value) }));
+                                    setTimeout(() => resetPDE(), 50);
+                                  }}
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              
+                              {/* Wall Thickness */}
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                                  Wall Thickness: {params.wallThickness || 1}
+                                </div>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="5"
+                                  step="1"
+                                  value={params.wallThickness || 1}
+                                  onChange={(e) => {
+                                    setParams(p => ({ ...p, wallThickness: parseInt(e.target.value) }));
+                                    setTimeout(() => resetPDE(), 50);
+                                  }}
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              
+                              {/* Hole Side */}
+                              <div style={{ marginBottom: '12px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '6px' }}>Opening Side</div>
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                  {['top', 'bottom', 'left', 'right'].map(side => (
+                                    <button
+                                      key={side}
+                                      onClick={() => {
+                                        setParams(p => ({ ...p, holeSide: side }));
+                                        setTimeout(() => resetPDE(), 50);
+                                      }}
+                                      style={{
+                                        padding: '4px 8px',
+                                        background: params.holeSide === side ? '#1a1a2e' : 'transparent',
+                                        border: '1px solid #2a2a34',
+                                        borderRadius: '3px',
+                                        color: params.holeSide === side ? '#e8e8f0' : '#666',
+                                        cursor: 'pointer',
+                                        fontSize: '10px',
+                                        textTransform: 'capitalize',
+                                      }}
+                                    >
+                                      {side}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              
+                              {/* Hole Center */}
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                                  Opening Center: {((params.holeCenter || 0.5) * 100).toFixed(0)}%
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.1"
+                                  max="0.9"
+                                  step="0.05"
+                                  value={params.holeCenter || 0.5}
+                                  onChange={(e) => {
+                                    setParams(p => ({ ...p, holeCenter: parseFloat(e.target.value) }));
+                                    setTimeout(() => resetPDE(), 50);
+                                  }}
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                              
+                              {/* Hole Width */}
+                              <div style={{ marginBottom: '8px' }}>
+                                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>
+                                  Opening Width: {((params.holeWidth || 0.12) * 100).toFixed(0)}%
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.02"
+                                  max="0.5"
+                                  step="0.02"
+                                  value={params.holeWidth || 0.12}
+                                  onChange={(e) => {
+                                    setParams(p => ({ ...p, holeWidth: parseFloat(e.target.value) }));
+                                    setTimeout(() => resetPDE(), 50);
+                                  }}
+                                  style={{ width: '100%' }}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        
+                        {/* Probe Points Section */}
+                        <div style={{
+                          borderTop: '1px solid #2a2a34',
+                          paddingTop: '12px',
+                          marginTop: '8px',
+                        }}>
+                          <div style={{ fontSize: '10px', color: '#666', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>
+                            Probe Points
+                          </div>
+                          
+                          {/* Probe A */}
+                          <div style={{ fontSize: '10px', color: '#4a9eff', marginBottom: '4px' }}>Probe A (●)</div>
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px' }}>X: {((params.tapAx || 0.5) * 100).toFixed(0)}%</div>
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="0.9"
+                                step="0.05"
+                                value={params.tapAx || 0.5}
+                                onChange={(e) => setParams(p => ({ ...p, tapAx: parseFloat(e.target.value) }))}
+                                style={{ width: '100%' }}
+                              />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px' }}>Y: {((params.tapAy || 0.5) * 100).toFixed(0)}%</div>
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="0.9"
+                                step="0.05"
+                                value={params.tapAy || 0.5}
+                                onChange={(e) => setParams(p => ({ ...p, tapAy: parseFloat(e.target.value) }))}
+                                style={{ width: '100%' }}
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Probe B */}
+                          <div style={{ fontSize: '10px', color: '#ef4444', marginBottom: '4px' }}>Probe B (○)</div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px' }}>X: {((params.tapBx || 0.7) * 100).toFixed(0)}%</div>
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="0.9"
+                                step="0.05"
+                                value={params.tapBx || 0.7}
+                                onChange={(e) => setParams(p => ({ ...p, tapBx: parseFloat(e.target.value) }))}
+                                style={{ width: '100%' }}
+                              />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '9px', color: '#666', marginBottom: '2px' }}>Y: {((params.tapBy || 0.3) * 100).toFixed(0)}%</div>
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="0.9"
+                                step="0.05"
+                                value={params.tapBy || 0.3}
+                                onChange={(e) => setParams(p => ({ ...p, tapBy: parseFloat(e.target.value) }))}
+                                style={{ width: '100%' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                     
