@@ -1,5 +1,34 @@
-// === Dark Mode Persistence ===
+// === Theme System ===
 console.log('main.js loaded');
+
+// Theme management with CSS variables
+function setTheme(themeName) {
+  document.documentElement.setAttribute('data-theme', themeName);
+  localStorage.setItem('theme', themeName);
+  console.log('Theme set to:', themeName);
+}
+
+function getTheme() {
+  return localStorage.getItem('theme') || 'light';
+}
+
+function initializeTheme() {
+  const savedTheme = getTheme();
+  document.documentElement.setAttribute('data-theme', savedTheme);
+
+  // Update dropdown if it exists
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) {
+    themeSelect.value = savedTheme;
+  }
+  console.log('Theme initialized to:', savedTheme);
+}
+
+// Initialize theme ASAP to prevent flash
+(function() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+})();
 
 // === Archive year toggle ===
 function toggleYear(year) {
@@ -9,33 +38,9 @@ function toggleYear(year) {
   }
 }
 
-function toggleDarkMode() {
-  document.body.classList.toggle('dark-mode');
-  const isDarkMode = document.body.classList.contains('dark-mode');
-  console.log('toggleDarkMode clicked - setting localStorage to:', isDarkMode);
-  localStorage.setItem('darkMode', isDarkMode);
-  console.log('localStorage after set:', localStorage.getItem('darkMode'));
-}
-
-function initializeDarkMode() {
-  const savedDarkMode = localStorage.getItem('darkMode');
-  console.log('initializeDarkMode called - savedDarkMode:', savedDarkMode, 'current class:', document.body.className);
-  console.log('Full localStorage:', JSON.stringify(localStorage));
-  console.log('window.location:', window.location.href);
-  if (savedDarkMode === 'true') {
-    document.body.classList.add('dark-mode');
-    console.log('Added dark-mode class');
-  } else if (savedDarkMode === 'false') {
-    document.body.classList.remove('dark-mode');
-    console.log('Removed dark-mode class');
-  } else {
-    console.log('No saved preference, keeping default');
-  }
-}
-
-// Initialize dark mode preference on page load
+// Initialize theme system and other features on page load
 document.addEventListener("DOMContentLoaded", function () {
-  initializeDarkMode();
+  initializeTheme();
 
   // === Search filtering (only on home page) ===
   const searchInput = document.getElementById("search");
