@@ -1,6 +1,14 @@
 // === Dark Mode Persistence ===
 console.log('main.js loaded');
 
+// === Archive year toggle ===
+function toggleYear(year) {
+  const yearList = document.getElementById(year);
+  if (yearList) {
+    yearList.style.display = yearList.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
 function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
   const isDarkMode = document.body.classList.contains('dark-mode');
