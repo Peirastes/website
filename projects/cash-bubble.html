@@ -160,7 +160,7 @@
 
 <h1>The Cash Bubble Hypothesis: A Physical Theory of Personal Finance</h1>
 
-<p style="text-align: center; color: var(--text-muted);"><strong>Working Paper Draft v0.3</strong></p>
+<p style="text-align: center; color: var(--text-muted);"><strong>Working Paper Draft v0.4</strong></p>
 
 <div class="divider">---</div>
 
@@ -272,7 +272,31 @@ $$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{2
 <li><strong>Investment</strong> (<em>V<sub>3</sub></em>): Brokerage or retirement account; receives transfers from savings (treated as cash for now; Section III introduces compressibility)</li>
 </ul>
 
-<p>These accounts form a network—a topology of reservoirs connected by flow channels. The structure resembles nested pressure vessels, with income entering the checking account, transfers flowing downstream to savings and then to investments.</p>
+<p>These accounts form a network—a topology of reservoirs connected by flow channels. The structure resembles nested pressure vessels, with income entering the checking account, transfers flowing downstream to savings and then to investments. Figure 1 illustrates the structure.</p>
+
+<pre style="background-color: transparent; padding: 1rem; border-left: none; margin: 1.5rem 0; font-family: 'Courier New', monospace; font-size: 0.9rem;">                    ┌─────────────────┐
+    Income ────────►│   CHECKING      │──────► Spending
+    (Q_in)          │   (V₁)          │        (Q_out)
+                    │   Open tank     │
+                    └────────┬────────┘
+                             │ Transfer τ₁₂
+                             ▼
+                    ┌─────────────────┐
+                    │    SAVINGS      │
+                    │    (V₂)         │
+                    │   Pressurized   │
+                    └────────┬────────┘
+                             │ Transfer τ₂₃
+                             ▼
+                    ┌─────────────────┐
+                    │   INVESTMENT    │
+                    │   (V₃)          │
+                    │   Terminal      │
+                    └─────────────────┘
+
+    Figure 1: Multi-tank topology for a three-account system.</pre>
+
+<p>The checking account is "open" in the sense that it interfaces directly with the external world (income, spending). Savings is "pressurized" in the sense that money there earns interest—a slight positive return that might be interpreted as pressure exceeding atmospheric. Investment is "terminal" in this simplified model—money flows in but does not automatically flow back out.</p>
 
 <h3>2.4 The Transfer Matrix</h3>
 
@@ -282,7 +306,9 @@ $$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{2
 $$\mathbf{x}(t) = \begin{bmatrix} V_1(t) \\ V_2(t) \\ V_3(t) \end{bmatrix} \tag{3}$$
 </div>
 
-<p>Internal transfers between accounts occur at rates denoted <em>τ<sub>ij</sub></em> (dollars per month transferred from account <em>i</em> to account <em>j</em>). For the three-account system with transfers τ<sub>12</sub> (checking → savings) and τ<sub>23</sub> (savings → investment):</p>
+<p>Internal transfers between accounts occur at rates denoted <em>τ<sub>ij</sub></em> (dollars per month transferred from account <em>i</em> to account <em>j</em>). These form the <strong>transfer matrix A</strong>, constructed as follows. The entry <em>A<sub>ij</sub></em> (for <em>i ≠ j</em>) represents money flowing <em>into</em> account <em>i</em> <em>from</em> account <em>j</em>. The diagonal entry <em>A<sub>ii</sub></em> is the negative sum of outflows from account <em>i</em>—ensuring that each column sums to zero, which enforces conservation.</p>
+
+<p>For the three-account system with transfers τ<sub>12</sub> (checking → savings) and τ<sub>23</sub> (savings → investment):</p>
 
 <div class="equation-box">
 $$\mathbf{A} = \begin{bmatrix}
@@ -320,6 +346,16 @@ $$\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u} \tag{7}$$
 
 <p>This is the standard <strong>linear time-invariant (LTI) state-space form</strong> familiar from control theory and dynamical systems. It has been derived here from conservation principles applied to a financial account network.</p>
 
+<p>Equation (7) is powerful. It allows:</p>
+<ul>
+<li>Stability analysis via the eigenvalues of <strong>A</strong></li>
+<li>Computation of steady-state balances for constant income/spending</li>
+<li>Design of controllers (spending policies) that achieve desired financial targets</li>
+<li>Simulation of trajectories under various scenarios</li>
+</ul>
+
+<p>These applications are explored in Section IV. First, the elephant in the room must be addressed: investments don't actually behave like incompressible fluid.</p>
+
 <h3>2.6 The Limits of Incompressibility</h3>
 
 <p>The framework developed so far works beautifully for cash accounts. But apply it to a stock portfolio or cryptocurrency holding, and it immediately fails. Here's why.</p>
@@ -349,6 +385,41 @@ $$V = nP \tag{8}$$
 <p>During a holding period (no buying or selling), <em>n</em> remains constant—the same number of shares is still owned. But <em>P</em> fluctuates according to market dynamics beyond the investor's control. The account's dollar value therefore changes even without any "flow" in or out.</p>
 
 <p>Compare this to cash. One dollar in a checking account remains one dollar tomorrow (ignoring negligible interest). The "price" of a dollar is always one dollar. But one share of stock might be worth $50 today and $55 tomorrow. The dollars are <em>compressible</em>—their effective volume depends on external pressure (market conditions).</p>
+
+<p>This observation motivates the following analogy:</p>
+
+<table>
+<tr>
+<th>Fluid/Thermodynamic</th>
+<th>Financial</th>
+<th>Interpretation</th>
+</tr>
+<tr>
+<td>Gas bubble</td>
+<td>Investment position</td>
+<td>Asset holding</td>
+</tr>
+<tr>
+<td>Volume <em>V</em></td>
+<td>Dollar value</td>
+<td>Market value of position</td>
+</tr>
+<tr>
+<td>Quantity <em>n</em></td>
+<td>Shares/coins held</td>
+<td>Conserved during holding</td>
+</tr>
+<tr>
+<td>Pressure <em>P</em></td>
+<td>Price per share</td>
+<td>External market forcing</td>
+</tr>
+<tr>
+<td>Temperature <em>T</em></td>
+<td>Market sentiment</td>
+<td>Volatility environment</td>
+</tr>
+</table>
 
 <h3>3.2 The Ideal Gas Law Analogue</h3>
 
@@ -387,6 +458,14 @@ $$W = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{12}$$
 </div>
 
 <p>This is <em>exactly</em> the form of work done by isobaric (constant-pressure) expansion. Selling investments extracts "work" from the financial system—organized, usable cash that flows into liquid accounts.</p>
+
+<p>More generally, if price varies during the sale:</p>
+
+<div class="equation-box">
+$$W = \int_{n_1}^{n_2} P(n) \, dn \tag{13}$$
+</div>
+
+<p>The analogy is precise: selling investments is thermodynamic work extraction, with realized gains as the net work done.</p>
 
 <h3>3.4 Unrealized Gains as Stored Energy</h3>
 
@@ -479,6 +558,8 @@ $$\eta_{max} = 1 - \frac{P_L}{P_H} \tag{20}$$
 </div>
 
 <p>This states: if a stock oscillates between $50 and $100, the maximum possible efficiency is <em>1 - 50/100 = 50%</em>. No strategy—no matter how clever—can capture more than half of the market's total appreciation as realized gains when operating between those price bounds.</p>
+
+<p>The bound is tight only for idealized cycles. Real investors face irreversibilities (transaction costs, slippage, timing errors) that reduce efficiency below this theoretical maximum. But the existence of a bound—derived from thermodynamic principles—is itself noteworthy.</p>
 
 <h3>3.8 The Bubble in Context</h3>
 
@@ -657,7 +738,11 @@ $$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag
 <li><strong>External inputs</strong> (income <em>I[k]</em>, spending <em>S[k]</em>) are recorded</li>
 <li><strong>Internal transfers</strong> (τ<sub>ij</sub>) redistribute funds between accounts</li>
 <li><strong>Market prices</strong> (<em>P[k]</em>) update investment values</li>
-<li><strong>State vector</strong> <strong>x[k]</strong> is updated via the discrete state equation</li>
+<li><strong>State vector</strong> <strong>x[k]</strong> is updated via the discrete state equation:
+<div class="equation-box">
+$$\mathbf{x}[k+1] = (\mathbf{I} + \Delta t \, \mathbf{A}) \mathbf{x}[k] + \Delta t \, \mathbf{B} \mathbf{u}[k] + \mathbf{w}[k]$$
+</div>
+where <strong>w[k]</strong> captures stochastic market returns for investment accounts</li>
 <li><strong>Signal dynamics</strong> (<em>v[k]</em>, <em>a[k]</em>, <em>j[k]</em>) are computed from finite differences</li>
 <li><strong>Model predictions</strong> are compared to actual balances for validation</li>
 </ol>
@@ -670,9 +755,27 @@ $$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag
 
 <p><strong>Income model</strong>: Base salary plus stochastic variation</p>
 
+<div class="equation-box">
+$$I[k] = I_0 + \sigma_I \cdot \epsilon_I[k]$$
+</div>
+
+<p>with <em>I<sub>0</sub> = $4,000/month</em> and <em>σ<sub>I</sub> = $500</em> (capturing overtime, bonuses, etc.)</p>
+
 <p><strong>Spending model</strong>: Necessary (stable) plus discretionary (variable) components</p>
 
-<p><strong>Market prices</strong>: Geometric Brownian Motion for investment assets, with drift <em>μ = 0.08/year</em> and volatility <em>σ = 0.20/year</em></p>
+<div class="equation-box">
+$$S[k] = S_{nec} + S_{disc}[k]$$
+</div>
+
+<p>with <em>S<sub>nec</sub> = $2,500</em> and <em>S<sub>disc</sub> ~ Gamma(α, β)</em> to capture occasional large expenses</p>
+
+<p><strong>Market prices</strong>: Geometric Brownian Motion for investment assets</p>
+
+<div class="equation-box">
+$$P[k+1] = P[k] \cdot \exp\left( (\mu - \sigma^2/2)\Delta t + \sigma \sqrt{\Delta t} \cdot Z[k] \right)$$
+</div>
+
+<p>with <em>μ = 0.08/year</em> (drift) and <em>σ = 0.20/year</em> (volatility)</p>
 
 <p>These parameters produce trajectories qualitatively similar to real household finances: steady income with occasional variation, necessary expenses forming a floor, discretionary spending producing month-to-month fluctuation, and investments following realistic market dynamics.</p>
 
@@ -680,7 +783,23 @@ $$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag
 
 <p>Several metrics comparing model predictions to "actual" simulated values are tracked:</p>
 
-<p><strong>Percent Error (Accuracy)</strong> and <strong>Percent Difference (Precision)</strong> measure how closely the model tracks ground truth.</p>
+<p><strong>Percent Error (Accuracy)</strong>:</p>
+
+<div class="equation-box">
+$$\epsilon_{acc} = \frac{|V_{model} - V_{actual}|}{V_{actual}} \times 100\%$$
+</div>
+
+<p><strong>Percent Difference (Precision)</strong>:</p>
+
+<div class="equation-box">
+$$\epsilon_{prec} = \frac{|V_{model} - V_{actual}|}{(V_{model} + V_{actual})/2} \times 100\%$$
+</div>
+
+<p><strong>Model Deviation</strong>: For cross-validation, two independent calculation methods compute the same quantity; their difference flags errors:</p>
+
+<div class="equation-box">
+$$\Delta_{model} = V_{method1} - V_{method2}$$
+</div>
 
 <h3>5.4 Results Summary</h3>
 
@@ -723,7 +842,15 @@ $$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag
 <li><strong>Expense spike</strong>: Major unexpected expense (e.g., $5,000 car repair)</li>
 </ul>
 
-<p>In all cases, the model correctly tracks the dynamics: signal dynamics detect the crisis, thermodynamic accounting preserves the First Law, and recovery trajectories follow predicted damping behavior. The stress tests confirm that the framework remains valid under extreme conditions—precisely when financial insights are most needed.</p>
+<p>In all cases, the model correctly tracks the dynamics:</p>
+
+<ul>
+<li>Signal dynamics detect the crisis (trajectory enters Quadrant III)</li>
+<li>Thermodynamic accounting preserves the First Law</li>
+<li>Recovery trajectories follow predicted damping behavior</li>
+</ul>
+
+<p>The stress tests confirm that the framework remains valid under extreme conditions—precisely when financial insights are most needed.</p>
 
 <div class="divider">---</div>
 
@@ -749,21 +876,47 @@ $$RT = P^2 \tag{10, repeated}$$
 
 <p><strong>Cryptocurrency markets</strong>: Bitcoin and other cryptocurrencies show a different pattern. During bull runs, volatility often increases with price—larger absolute swings at higher price levels. This is closer to the model's prediction, though systematic studies are ongoing.</p>
 
+<p><strong>Options markets</strong>: Implied volatility surfaces exhibit complex dependence on the underlying price, with both "volatility smile" and "volatility skew" patterns depending on market conditions.</p>
+
 <p><strong>Honest assessment</strong>: The <em>T ∝ P<sup>2</sup></em> prediction does not universally hold. It may be most applicable to assets in speculative bubbles (where sentiment and price co-move upward) and least applicable to leveraged equities (where the leverage effect dominates).</p>
 
-<p>This does not invalidate the framework. Rather, it suggests that the mapping <em>T ↔ volatility</em> is imperfect, or that the "gas constant" <em>R</em> is not actually constant but varies with market conditions. A more sophisticated model might make <em>R = R(P)</em>, yielding different functional forms for different market regimes.</p>
+<p>This does not invalidate the framework. Rather, it suggests that the mapping <em>T ↔ volatility</em> is imperfect, or that the "gas constant" <em>R</em> is not actually constant but varies with market conditions. A more sophisticated model might make <em>R = R(P)</em>, yielding:</p>
+
+<div class="equation-box">
+$$R(P) \cdot T = P^2$$
+</div>
+
+<p>with different functional forms for <em>R(P)</em> capturing different market regimes.</p>
+
+<p>The development of such extensions is left to future work. The key point is that the consistency requirement <em>makes a testable prediction</em>—a hallmark of a genuine theoretical framework rather than mere analogy.</p>
 
 <h3>6.2 Limitations of the Framework</h3>
 
-<p><strong>Behavioral factors</strong>: The model treats financial decision-making as a control problem but does not capture the full complexity of human psychology. Panic selling, overconfidence, loss aversion, and other behavioral biases are not modeled mechanistically.</p>
+<p><strong>Behavioral factors</strong>: The model treats financial decision-making as a control problem but does not capture the full complexity of human psychology. Panic selling, overconfidence, loss aversion, and other behavioral biases are not modeled mechanistically. The control theory interpretation (Section IV.5) provides a starting point, but a complete treatment would require behavioral economics integration.</p>
 
-<p><strong>Discrete-time approximation</strong>: Real finances evolve continuously; monthly time steps are an approximation. For most purposes this is adequate, but rapid events (flash crashes, sudden job loss) are smoothed out.</p>
+<p><strong>Discrete-time approximation</strong>: Real finances evolve continuously; monthly time steps are an approximation. For most purposes this is adequate, but rapid events (flash crashes, sudden job loss) are smoothed out. Higher-frequency modeling is straightforward but increases data requirements.</p>
 
-<p><strong>Tax and regulatory effects</strong>: Taxes have been ignored entirely. In reality, realized gains are subject to capital gains tax, reducing net "work." A more complete model would include tax drag.</p>
+<p><strong>Tax and regulatory effects</strong>: Taxes have been ignored entirely. In reality, the work extracted from investments (realized gains) is subject to capital gains tax, reducing the net "work" available. A more complete model would include tax drag as a form of friction or dissipation.</p>
 
-<p><strong>Multiple assets</strong>: The bubble model treats investments as a single compressible bubble. A portfolio contains multiple assets with different price dynamics. Extending the framework to a <em>collection</em> of bubbles is an interesting direction for future work.</p>
+<p><strong>Multiple assets</strong>: The bubble model treats investments as a single compressible bubble. A portfolio contains multiple assets with different price dynamics. Extending the framework to a <em>collection</em> of bubbles—each with its own pressure (price) and potential interactions—is an interesting direction for future work.</p>
 
-<h3>6.3 Future Directions</h3>
+<h3>6.3 Statistical Mechanics: A Light Touch</h3>
+
+<p>Throughout this paper, classical thermodynamics has been employed—individual systems, deterministic laws (with stochastic forcing). A natural extension is <em>statistical mechanics</em>, which treats ensembles of systems and derives macroscopic behavior from microscopic statistics.</p>
+
+<p>What would statistical mechanics of personal finance look like?</p>
+
+<p><strong>Ensemble interpretation</strong>: Instead of tracking one household, consider a population of households with a distribution over financial states. The "temperature" of this ensemble would characterize the spread of financial outcomes—high temperature meaning high variance across households.</p>
+
+<p><strong>Fluctuation-dissipation</strong>: The fluctuation-dissipation theorem relates fluctuations (random variations) to dissipation (damping). In financial terms, this might connect market volatility to transaction costs or liquidity constraints.</p>
+
+<p><strong>Boltzmann distribution</strong>: At equilibrium, an ensemble of households might distribute over wealth levels according to a Boltzmann-like distribution, with temperature playing its usual role in setting the spread.</p>
+
+<p>These ideas are speculative but suggestive. They are mentioned to indicate the potential depth of the physics-finance connection, while staying within the stated scope of classical mechanics for the present work.*</p>
+
+<p style="font-size: 0.9rem; color: var(--text-muted);">*The quantum mechanical extension is left as an exercise for the particularly ambitious reader. It is suspected that this involves superposition of buy and sell orders, but no claims are made.</p>
+
+<h3>6.4 Future Directions</h3>
 
 <p>Several concrete extensions merit further development:</p>
 
@@ -774,7 +927,7 @@ $$RT = P^2 \tag{10, repeated}$$
 <li><strong>Network effects</strong>: Extend the framework to <em>networks</em> of financial agents to capture interdependencies.</li>
 </ul>
 
-<h3>6.4 Conclusion</h3>
+<h3>6.5 Conclusion</h3>
 
 <p>A framework has been developed in which personal finance operates as a genuine dynamical system. Cash accounts behave as interconnected reservoirs of incompressible fluid governed by conservation laws. Investment accounts behave as compressible gas bubbles subject to thermodynamic principles. The First Law of Thermodynamics applies directly: unrealized gains are heat absorbed, realized gains are work extracted.</p>
 
@@ -783,6 +936,18 @@ $$RT = P^2 \tag{10, repeated}$$
 <p>The framework makes testable predictions (volatility-price scaling), identifies theoretical bounds (Carnot efficiency for investment returns), and connects to established mathematical machinery (state-space control, eigenvalue stability). It is not merely a suggestive analogy but a working quantitative model.</p>
 
 <p>More broadly, this work demonstrates that the fluid metaphors pervading financial language are not accidental. Money really does <em>flow</em>. Investments really are <em>volatile</em>. The physics of fluids and thermodynamics provides a rigorous language for what intuition has always sensed. By taking the metaphors seriously—and doing the mathematics—a framework is arrived at that is both conceptually illuminating and practically useful.</p>
+
+<div class="divider">---</div>
+
+<h2>Acknowledgments</h2>
+
+<p><em>[To be added]</em></p>
+
+<div class="divider">---</div>
+
+<h2>References</h2>
+
+<p><em>[To be completed]</em></p>
 
 <div class="divider">---</div>
 
