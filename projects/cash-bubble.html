@@ -921,10 +921,25 @@ $$R(P) \cdot T = P^2$$
 <p>Several concrete extensions merit further development:</p>
 
 <ul>
-<li><strong>Linear Quadratic Regulator (LQR)</strong>: Derive the <em>optimal</em> spending policy to minimize a cost function balancing savings goals against lifestyle utility.</li>
-<li><strong>Kalman filtering</strong>: With noisy observations of account balances, use Kalman filtering to estimate true financial state.</li>
-<li><strong>Model Predictive Control (MPC)</strong>: Use the dynamical model to forecast future trajectories and optimize spending decisions over a rolling horizon.</li>
-<li><strong>Network effects</strong>: Extend the framework to <em>networks</em> of financial agents to capture interdependencies.</li>
+<li><strong>Linear Quadratic Regulator (LQR)</strong>: Given the state-space formulation (Eq. 7), optimal control theory can derive the <em>optimal</em> spending policy to minimize a cost function balancing savings goals against lifestyle utility.</li>
+<li><strong>Kalman filtering</strong>: With noisy observations of account balances (rounded values, delayed statements), Kalman filtering can estimate the true financial state from imperfect measurements.</li>
+<li><strong>Model Predictive Control (MPC)</strong>: Using the dynamical model to forecast future trajectories, MPC can optimize spending decisions over a rolling horizon—a financial "autopilot."</li>
+<li><strong>Network effects</strong>: Households interact—borrowing from family, splitting bills with roommates, inheriting from relatives. Extending the framework to <em>networks</em> of financial agents would capture these interdependencies.</li>
+<li><strong>Internal bubble structure and lot-level dynamics</strong>: The present framework treats each investment account as a single compressible bubble. But a portfolio consists of multiple purchase lots—shares acquired at different times and prices. A natural extension would model each lot as a <em>sub-bubble</em> with its own "depth" relative to the current market price:
+
+<div class="equation-box">
+$$d(t) = \ln\frac{P_{entry}}{P(t)}$$
+</div>
+
+where <em>d > 0</em> indicates an underwater position (loss), <em>d = 0</em> is break-even (neutral buoyancy), and <em>d < 0</em> represents profit (positive buoyancy). The portfolio then becomes a <em>distribution of depths</em> rather than a single P&L figure.
+
+This framing invites a stochastic treatment: Brownian motion provides the noise driving price fluctuations, while a mean-reverting drift term captures the "buoyancy" tendency of deeply underwater positions to recover (or overextended profits to normalize):
+
+<div class="equation-box">
+$$dd(t) = -k \cdot d(t) \, dt + \sigma \, dW_t$$
+</div>
+
+Such a model would enable analysis of underwater-time distributions, recovery statistics, and maximum drawdown behavior—connecting the thermodynamic framework developed here to the rich literature on drawdown dynamics and mean reversion. The fluid analogy thus extends naturally from the system level (cash vs. bubbles) down to the position level (depth and buoyancy within each bubble), offering a unified physical language across multiple scales of financial analysis.</li>
 </ul>
 
 <h3>6.5 Conclusion</h3>
