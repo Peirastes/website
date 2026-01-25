@@ -237,8 +237,13 @@ function ECDOWatchDashboard() {
             <p style={{ color: '#7a7a8c', fontSize: 13, margin: 0 }}>Falsification-first geophysics monitor • Tau Point approach detection</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#7a7a8c' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#7a7a8c', marginBottom: 8 }}>
               Updated: {new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
+            </div>
+            <div style={{ fontSize: 11 }}>
+              <a href="https://www.ethical-skeptics.org/master-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
+                ECDO Theory
+              </a>
             </div>
           </div>
         </header>
@@ -530,15 +535,8 @@ function ECDOWatchDashboard() {
         </div>
         
         {/* Footer */}
-        <footer style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ flex: 1 }}>
-            ⚠️ This is an experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines, not probabilities of future events.
-          </div>
-          <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-            <a href="https://www.ethical-skeptics.org/master-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
-              ECDO Theory
-            </a>
-          </div>
+        <footer style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'left' }}>
+          ⚠️ This is an experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines, not probabilities of future events.
         </footer>
       </div>
     </div>
