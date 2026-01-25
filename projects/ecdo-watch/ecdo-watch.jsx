@@ -1,59 +1,60 @@
-// ECDO Watch Dashboard - Browser Version
+// ECDO Watch Dashboard - Browser Version with Chart.js
 // For use with Babel transpilation in browser
-// Requires: React 18, Recharts loaded via CDN
 
-const { useState, useMemo } = React;
-const { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart, Legend } = Recharts;
+const { useState, useEffect, useRef } = React;
 
 // Generate synthetic data
 const generateKpData = () => {
   const data = [];
+  const labels = [];
   const now = new Date();
   for (let i = 13; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      kp: Math.random() * 4 + (Math.random() > 0.85 ? 3 : 0),
-    });
+    labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    data.push(Math.random() * 4 + (Math.random() > 0.85 ? 3 : 0));
   }
-  return data;
+  return { labels, data };
 };
 
 const generateLODData = () => {
   const data = [];
+  const labels = [];
   const now = new Date();
-  for (let i = 364; i >= 0; i--) {
+  for (let i = 89; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
+    labels.push(date.toISOString().split('T')[0]);
     const seasonal = Math.sin((i / 365) * 2 * Math.PI) * 0.8;
     const noise = (Math.random() - 0.5) * 1.5;
-    data.push({
-      date: date.toISOString().split('T')[0],
-      z: seasonal + noise,
-    });
+    data.push(seasonal + noise);
   }
-  return data;
+  return { labels, data };
 };
 
-const generateHistoricalAA = () => {
+const generateHistoricalAA = (years) => {
   const data = [];
-  for (let year = 1868; year <= 2026; year++) {
+  const labels = [];
+  const endYear = 2026;
+  const startYear = endYear - years;
+  for (let year = startYear; year <= endYear; year++) {
+    labels.push(year.toString());
     const centuryTrend = 15 + ((year - 1868) / 150) * 10;
     const solarPhase = ((year - 1868) % 11) / 11 * 2 * Math.PI;
     const solarCycle = Math.sin(solarPhase) * 8;
     const noise = (Math.random() - 0.5) * 6;
-    data.push({
-      year,
-      aa: Math.max(5, centuryTrend + solarCycle + noise),
-    });
+    data.push(Math.max(5, centuryTrend + solarCycle + noise));
   }
-  return data;
+  return { labels, data };
 };
 
-const generateHistoricalPM = () => {
+const generateHistoricalPM = (years) => {
   const data = [];
-  for (let year = 1846; year <= 2026; year++) {
+  const labels = [];
+  const endYear = 2026;
+  const startYear = endYear - years;
+  for (let year = startYear; year <= endYear; year++) {
+    labels.push(year.toString());
     let amplitude = 170;
     if (year >= 1910 && year <= 1915) amplitude = 200;
     if (year >= 1920 && year <= 1940) amplitude = 100;
@@ -61,29 +62,49 @@ const generateHistoricalPM = () => {
     const beatPhase = ((year - 1846) % 6.3) / 6.3 * 2 * Math.PI;
     const beat = Math.sin(beatPhase) * 30;
     const noise = (Math.random() - 0.5) * 20;
-    data.push({
-      year,
-      amplitude: Math.max(50, amplitude + beat + noise),
-    });
+    data.push(Math.max(50, amplitude + beat + noise));
   }
-  return data;
+  return { labels, data };
 };
 
 const generateMagData = () => {
-  const data = [];
+  const composite = [];
+  const labels = [];
   const now = new Date();
-  for (let i = 179; i >= 0; i--) {
+  for (let i = 59; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    data.push({
-      date: date.toISOString().split('T')[0],
-      bou: (Math.random() - 0.5) * 2,
-      hon: (Math.random() - 0.5) * 2,
-      sjg: (Math.random() - 0.5) * 2,
-      composite: (Math.random() - 0.5) * 1.5,
-    });
+    labels.push(date.toISOString().split('T')[0]);
+    composite.push((Math.random() - 0.5) * 1.5);
   }
-  return data;
+  return { labels, composite };
+};
+
+// Chart component wrapper
+const ChartComponent = ({ type, data, options, height }) => {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+  
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+    
+    const ctx = canvasRef.current.getContext('2d');
+    chartRef.current = new Chart(ctx, {
+      type: type,
+      data: data,
+      options: options
+    });
+    
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [type, data, options]);
+  
+  return <canvas ref={canvasRef} style={{ height: height || 150, width: '100%' }} />;
 };
 
 const StatusBanner = ({ level }) => {
@@ -144,7 +165,7 @@ const Card = ({ step, title, status, children, span }) => {
         <span style={{
           fontFamily: 'monospace', fontSize: 10, fontWeight: 600,
           padding: '4px 8px', borderRadius: 4, textTransform: 'uppercase',
-          background: statusColors[status] + '22', color: statusColors[status]
+          background: (statusColors[status] || '#6b7280') + '22', color: statusColors[status] || '#6b7280'
         }}>{status}</span>
       </div>
       <div style={{ padding: 16 }}>{children}</div>
@@ -162,14 +183,41 @@ const Metric = ({ label, value, status }) => {
   );
 };
 
+// Chart.js default options for dark theme
+const darkThemeOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#16161f',
+      borderColor: '#252532',
+      borderWidth: 1,
+      titleColor: '#e8e8ed',
+      bodyColor: '#7a7a8c'
+    }
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: { color: '#7a7a8c', font: { size: 9 } }
+    },
+    y: {
+      grid: { color: '#1e1e2a' },
+      ticks: { color: '#7a7a8c', font: { size: 9 } }
+    }
+  }
+};
+
 function ECDOWatchDashboard() {
-  const kpData = useMemo(function() { return generateKpData(); }, []);
-  const lodData = useMemo(function() { return generateLODData(); }, []);
-  const aaData = useMemo(function() { return generateHistoricalAA(); }, []);
-  const pmData = useMemo(function() { return generateHistoricalPM(); }, []);
-  const magData = useMemo(function() { return generateMagData(); }, []);
-  
   const [timeRange, setTimeRange] = useState(50);
+  
+  // Generate data
+  const kpData = generateKpData();
+  const lodData = generateLODData();
+  const magData = generateMagData();
+  const aaData = generateHistoricalAA(timeRange);
+  const pmData = generateHistoricalPM(timeRange);
   
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -204,14 +252,25 @@ function ECDOWatchDashboard() {
               </div>
             </div>
             <div style={{ height: 120 }}>
-              <ResponsiveContainer>
-                <BarChart data={kpData}>
-                  <XAxis dataKey="date" tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                  <YAxis domain={[0, 9]} tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                  <ReferenceLine y={4} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <Bar dataKey="kp" fill="#4a9eff" radius={[2, 2, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartComponent
+                type="bar"
+                height={120}
+                data={{
+                  labels: kpData.labels,
+                  datasets: [{
+                    data: kpData.data,
+                    backgroundColor: '#4a9eff',
+                    borderRadius: 2
+                  }]
+                }}
+                options={{
+                  ...darkThemeOptions,
+                  scales: {
+                    ...darkThemeOptions.scales,
+                    y: { ...darkThemeOptions.scales.y, min: 0, max: 9 }
+                  }
+                }}
+              />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <Metric label="Kp Max" value="2.3" status="positive" />
@@ -222,21 +281,28 @@ function ECDOWatchDashboard() {
           {/* Step 2: EOP */}
           <Card step={2} title="Earth Orientation (LOD)" status="NOMINAL" span={4}>
             <div style={{ height: 140 }}>
-              <ResponsiveContainer>
-                <AreaChart data={lodData.slice(-90)}>
-                  <defs>
-                    <linearGradient id="lodGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4a9eff" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#4a9eff" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" tick={false} />
-                  <YAxis domain={[-3, 3]} tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                  <ReferenceLine y={2.5} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <ReferenceLine y={-2.5} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <Area type="monotone" dataKey="z" stroke="#4a9eff" fill="url(#lodGrad)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              <ChartComponent
+                type="line"
+                height={140}
+                data={{
+                  labels: lodData.labels,
+                  datasets: [{
+                    data: lodData.data,
+                    borderColor: '#4a9eff',
+                    backgroundColor: 'rgba(74, 158, 255, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0
+                  }]
+                }}
+                options={{
+                  ...darkThemeOptions,
+                  scales: {
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
+                  }
+                }}
+              />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <Metric label="LOD z" value="0.82" status="positive" />
@@ -250,15 +316,26 @@ function ECDOWatchDashboard() {
               📡 GRACE-FO data age: <strong style={{ color: '#e8e8ed' }}>47 days</strong>
             </div>
             <div style={{ height: 100 }}>
-              <ResponsiveContainer>
-                <LineChart data={lodData.slice(-60)}>
-                  <XAxis dataKey="date" tick={false} />
-                  <YAxis domain={[-3, 3]} tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                  <ReferenceLine y={2.5} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <ReferenceLine y={-2.5} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <Line type="monotone" dataKey="z" stroke="#10b981" dot={false} strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartComponent
+                type="line"
+                height={100}
+                data={{
+                  labels: lodData.labels.slice(-60),
+                  datasets: [{
+                    data: lodData.data.slice(-60),
+                    borderColor: '#10b981',
+                    tension: 0.3,
+                    pointRadius: 0
+                  }]
+                }}
+                options={{
+                  ...darkThemeOptions,
+                  scales: {
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
+                  }
+                }}
+              />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <Metric label="C20 z" value="0.31" status="positive" />
@@ -272,19 +349,28 @@ function ECDOWatchDashboard() {
           {/* Step 4: Magnetometer */}
           <Card step={4} title="Ground Magnetic (Multi-Station)" status="NOMINAL" span={8}>
             <div style={{ height: 180 }}>
-              <ResponsiveContainer>
-                <LineChart data={magData.slice(-60)}>
-                  <XAxis dataKey="date" tick={false} />
-                  <YAxis domain={[-3, 3]} tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                  <ReferenceLine y={2} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <ReferenceLine y={-2} stroke="#f59e0b" strokeDasharray="3 3" />
-                  <Line type="monotone" dataKey="bou" stroke="#4a9eff" dot={false} strokeWidth={1} opacity={0.5} name="Boulder" />
-                  <Line type="monotone" dataKey="hon" stroke="#8b5cf6" dot={false} strokeWidth={1} opacity={0.5} name="Honolulu" />
-                  <Line type="monotone" dataKey="sjg" stroke="#10b981" dot={false} strokeWidth={1} opacity={0.5} name="San Juan" />
-                  <Line type="monotone" dataKey="composite" stroke="#fff" dot={false} strokeWidth={2} name="Composite" />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartComponent
+                type="line"
+                height={180}
+                data={{
+                  labels: magData.labels,
+                  datasets: [{
+                    label: 'Composite',
+                    data: magData.composite,
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 0
+                  }]
+                }}
+                options={{
+                  ...darkThemeOptions,
+                  scales: {
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
+                  }
+                }}
+              />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <Metric label="Composite z" value="0.56" status="positive" />
@@ -329,40 +415,56 @@ function ECDOWatchDashboard() {
               <div>
                 <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Geomagnetic aa Index (since 1868)</h4>
                 <div style={{ height: 200 }}>
-                  <ResponsiveContainer>
-                    <AreaChart data={aaData.slice(-timeRange)}>
-                      <defs>
-                        <linearGradient id="aaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="year" tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                      <YAxis domain={[0, 40]} tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                      <Tooltip contentStyle={{ background: '#16161f', border: '1px solid #252532', borderRadius: 6 }} />
-                      <Area type="monotone" dataKey="aa" stroke="#f59e0b" fill="url(#aaGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <ChartComponent
+                    type="line"
+                    height={200}
+                    data={{
+                      labels: aaData.labels,
+                      datasets: [{
+                        data: aaData.data,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                      }]
+                    }}
+                    options={{
+                      ...darkThemeOptions,
+                      scales: {
+                        ...darkThemeOptions.scales,
+                        y: { ...darkThemeOptions.scales.y, min: 0, max: 40 }
+                      }
+                    }}
+                  />
                 </div>
               </div>
               
               <div>
                 <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Polar Motion Amplitude (since 1846)</h4>
                 <div style={{ height: 200 }}>
-                  <ResponsiveContainer>
-                    <AreaChart data={pmData.slice(-timeRange)}>
-                      <defs>
-                        <linearGradient id="pmGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="year" tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                      <YAxis domain={[0, 250]} tick={{ fontSize: 9, fill: '#7a7a8c' }} />
-                      <Tooltip contentStyle={{ background: '#16161f', border: '1px solid #252532', borderRadius: 6 }} />
-                      <Area type="monotone" dataKey="amplitude" stroke="#10b981" fill="url(#pmGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <ChartComponent
+                    type="line"
+                    height={200}
+                    data={{
+                      labels: pmData.labels,
+                      datasets: [{
+                        data: pmData.data,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                      }]
+                    }}
+                    options={{
+                      ...darkThemeOptions,
+                      scales: {
+                        ...darkThemeOptions.scales,
+                        y: { ...darkThemeOptions.scales.y, min: 0, max: 250 }
+                      }
+                    }}
+                  />
                 </div>
               </div>
             </div>
