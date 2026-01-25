@@ -275,9 +275,9 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now):
     for range_name, days in time_ranges.items():
         cutoff = now - timedelta(days=days)
 
-        # Kp data
+        # Kp data (filter by date range, not beyond "now")
         if not kp_history.empty:
-            kp_subset = kp_history[kp_history["date"] >= cutoff].copy()
+            kp_subset = kp_history[(kp_history["date"] >= cutoff) & (kp_history["date"] <= now)].copy()
             if not kp_subset.empty:
                 kp_json = {
                     "labels": kp_subset["date"].dt.strftime("%Y-%m-%d").tolist(),
@@ -285,9 +285,9 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now):
                 }
                 results[f"kp_{range_name}"] = kp_json
 
-        # EOP data
+        # EOP data (filter by date range, not beyond "now")
         if not eop_all.empty:
-            eop_subset = eop_all[eop_all["date"] >= cutoff].copy()
+            eop_subset = eop_all[(eop_all["date"] >= cutoff) & (eop_all["date"] <= now)].copy()
             if not eop_subset.empty:
                 lod_json = {
                     "labels": eop_subset["date"].dt.strftime("%Y-%m-%d").tolist(),
