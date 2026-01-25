@@ -437,6 +437,7 @@ def main():
         except Exception as e:
             print(f"    Warning: {station} failed: {e}")
 
+    normalized_mag_data = {}
     if mag_data_by_station:
         # Normalize magnetometer data: convert to z-scores
         date_range = [str(d.date()) for d in pd.date_range(start_time.date(), end_time.date(), freq="D")]
@@ -459,8 +460,9 @@ def main():
                 z_scores = [0] * len(clean_values)
 
             normalized_data[station] = z_scores
+            normalized_mag_data[station] = z_scores  # Store normalized data for time-range generation
 
-        # Composite is median of z-scores
+        # Composite is average of z-scores
         composite = []
         for i in range(len(date_range)):
             station_z_scores = [normalized_data[s][i] for s in normalized_data.keys()]
@@ -478,7 +480,7 @@ def main():
 
     # 6. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
-    time_range_data = generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now)
+    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now)
 
     for dataset_name, dataset in time_range_data.items():
         filepath = assets_dir / f"{dataset_name}.json"
