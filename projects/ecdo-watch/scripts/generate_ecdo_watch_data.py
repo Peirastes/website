@@ -272,8 +272,17 @@ def main():
 
     # Load data
     print("  Fetching EOP...")
-    eop_daily = load_iers_eop_daily_json()
-    eop_all = load_iers_eop_all_csv()
+    try:
+        eop_daily = load_iers_eop_daily_json()
+    except Exception as e:
+        print(f"    Warning: Daily EOP failed: {e}, trying all-time CSV...")
+        eop_daily = pd.DataFrame()
+
+    try:
+        eop_all = load_iers_eop_all_csv()
+    except Exception as e:
+        print(f"    Warning: All-time EOP failed: {e}")
+        eop_all = pd.DataFrame()
 
     print("  Fetching Kp history...")
     kp_history = load_gfz_kp_daily_since_1932(cache_dir)
@@ -293,15 +302,18 @@ def main():
         (assets_dir / "kp_data.json").write_text(json.dumps(kp_json))
         print("    [OK] kp_data.json")
 
-    # 2. LOD data (last 90 days)
-    if not eop_daily.empty:
-        eop_recent = eop_daily.tail(90).copy()
+    # 2. LOD data (last 90 days, prefer daily, fallback to all-time)
+    lod_source = eop_daily if not eop_daily.empty else eop_all
+    if not lod_source.empty:
+        eop_recent = lod_source.tail(90).copy()
         lod_json = {
             "labels": eop_recent["date"].dt.strftime("%Y-%m-%d").tolist(),
             "data": eop_recent["lod_ms"].fillna(0).tolist()
         }
         (assets_dir / "lod_data.json").write_text(json.dumps(lod_json))
         print("    [OK] lod_data.json")
+    else:
+        print("    [WARN] lod_data.json - no data available")
 
     # 3. Historical AA index (last 50 years)
     if not kp_history.empty:
