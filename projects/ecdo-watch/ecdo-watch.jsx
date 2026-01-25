@@ -287,7 +287,7 @@ function ECDOWatchDashboard() {
               Updated: {new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
             </div>
             <div style={{ fontSize: 11 }}>
-              <a href="https://www.ethical-skeptics.org/master-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
+              <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
                 ECDO Theory
               </a>
             </div>
