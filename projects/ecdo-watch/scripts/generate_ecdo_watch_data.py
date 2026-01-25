@@ -22,7 +22,7 @@ TIMEOUT_S = 20
 # Dashboard windows
 SPACE_DAYS = 45          # gate window for quiet-day logic
 EOP_DAYS = 180           # EOP anomaly window (plot)
-MAG_DAYS = 90            # magnetometer window (plot + composites)
+MAG_DAYS = 3650          # magnetometer window - fetch ~10 years (plot + composites)
 BASELINE_YEARS_EOP = 10  # EOP baseline for z-scores
 BASELINE_YEARS_KP = 5    # long baseline context (GFZ daily Kp max)
 
@@ -421,10 +421,10 @@ def main():
         (assets_dir / "historical_pm.json").write_text(json.dumps(pm_json))
         print("    [OK] historical_pm.json")
 
-    # 5. Magnetometer data (last 60 days)
+    # 5. Magnetometer data (last 10 years, or as much as available)
     print("  Fetching magnetometer data...")
     end_time = now
-    start_time = end_time - timedelta(days=60)
+    start_time = end_time - timedelta(days=3650)  # ~10 years
 
     mag_data_by_station = {}
     for station, label in MAG_STATIONS:
