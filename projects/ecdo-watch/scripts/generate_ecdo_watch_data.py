@@ -291,7 +291,7 @@ def main():
             "data": kp_recent["kp_max"].fillna(0).tolist()
         }
         (assets_dir / "kp_data.json").write_text(json.dumps(kp_json))
-        print("    ✓ kp_data.json")
+        print("    [OK] kp_data.json")
 
     # 2. LOD data (last 90 days)
     if not eop_daily.empty:
@@ -301,11 +301,11 @@ def main():
             "data": eop_recent["lod_ms"].fillna(0).tolist()
         }
         (assets_dir / "lod_data.json").write_text(json.dumps(lod_json))
-        print("    ✓ lod_data.json")
+        print("    [OK] lod_data.json")
 
     # 3. Historical AA index (last 50 years)
     if not kp_history.empty:
-        kp_annual = kp_history.set_index("date").resample("Y")["kp_max"].mean()
+        kp_annual = kp_history.set_index("date").resample("YE")["kp_max"].mean()
         end_year = kp_annual.index[-1].year
         start_year = end_year - 50
         aa_subset = kp_annual[str(start_year):str(end_year)]
@@ -314,11 +314,11 @@ def main():
             "data": aa_subset.fillna(0).tolist()
         }
         (assets_dir / "historical_aa.json").write_text(json.dumps(aa_json))
-        print("    ✓ historical_aa.json")
+        print("    [OK] historical_aa.json")
 
     # 4. Historical PM (last 50 years)
     if not eop_all.empty:
-        eop_annual = eop_all.set_index("date").resample("Y")["pm_r_arcsec"].mean()
+        eop_annual = eop_all.set_index("date").resample("YE")["pm_r_arcsec"].mean()
         end_year = eop_annual.index[-1].year
         start_year = end_year - 50
         pm_subset = eop_annual[str(start_year):str(end_year)]
@@ -327,7 +327,7 @@ def main():
             "data": pm_subset.fillna(0).tolist()
         }
         (assets_dir / "historical_pm.json").write_text(json.dumps(pm_json))
-        print("    ✓ historical_pm.json")
+        print("    [OK] historical_pm.json")
 
     # 5. Magnetometer data (last 60 days)
     print("  Fetching magnetometer data...")
@@ -354,7 +354,7 @@ def main():
             "composite": [sum(vals) / len([v for v in vals if v]) for vals in zip(*mag_data_by_station.values())]
         }
         (assets_dir / "mag_data.json").write_text(json.dumps(mag_json))
-        print("    ✓ mag_data.json")
+        print("    [OK] mag_data.json")
 
     print(f"[{utcnow().isoformat()}] Complete!")
 
