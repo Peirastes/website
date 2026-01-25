@@ -87,26 +87,43 @@ const generateMagData = () => {
   return { labels, bou, hon, sjg, composite };
 };
 
-// Fetch real data from JSON files
-const fetchDataFromJSON = async () => {
+// Fetch real data from JSON files for a given time range
+const fetchDataFromJSON = async (timeRange = '90d') => {
   try {
-    const kpRes = await fetch('./assets/kp_data.json');
-    const lodRes = await fetch('./assets/lod_data.json');
+    const kpRes = await fetch(`./assets/kp_${timeRange}.json`);
+    const lodRes = await fetch(`./assets/lod_${timeRange}.json`);
     const aaRes = await fetch('./assets/historical_aa.json');
     const pmRes = await fetch('./assets/historical_pm.json');
-    const magRes = await fetch('./assets/mag_data.json');
+    const magRes = await fetch(`./assets/mag_${timeRange}.json`);
 
-    if (!kpRes.ok || !lodRes.ok || !aaRes.ok || !pmRes.ok || !magRes.ok) {
-      throw new Error('One or more data files not found');
+    // Fallback to default files if specific range not found
+    let kpData, lodData, magData;
+
+    if (kpRes.ok) {
+      kpData = await kpRes.json();
+    } else {
+      const fallback = await fetch('./assets/kp_data.json');
+      kpData = await fallback.json();
     }
 
-    const kpData = await kpRes.json();
-    const lodData = await lodRes.json();
-    const aaData = await aaRes.json();
-    const pmData = await pmRes.json();
-    const magData = await magRes.json();
+    if (lodRes.ok) {
+      lodData = await lodRes.json();
+    } else {
+      const fallback = await fetch('./assets/lod_data.json');
+      lodData = await fallback.json();
+    }
 
-    return { kpData, lodData, aaData, pmData, magData };
+    if (magRes.ok) {
+      magData = await magRes.json();
+    } else {
+      const fallback = await fetch('./assets/mag_data.json');
+      magData = await fallback.json();
+    }
+
+    const aaData = await (aaRes.ok ? aaRes.json() : null);
+    const pmData = await (pmRes.ok ? pmRes.json() : null);
+
+    return { kpData, lodData, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData };
   } catch (error) {
     console.warn('Could not load real data, using fallback:', error);
     return null;
@@ -280,19 +297,20 @@ const alignRecentData = (kpData, lodData, magData) => {
 };
 
 function ECDOWatchDashboard() {
-  const [timeRange, setTimeRange] = useState(50);
+  const [selectedTimeRange, setSelectedTimeRange] = useState('90d');
+  const [historicalTimeRange, setHistoricalTimeRange] = useState(50);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [kpData, setKpData] = useState(() => generateKpData());
   const [lodData, setLodData] = useState(() => generateLODData());
   const [magData, setMagData] = useState(() => generateMagData());
-  const [aaData, setAaData] = useState(() => generateHistoricalAA(timeRange));
-  const [pmData, setPmData] = useState(() => generateHistoricalPM(timeRange));
+  const [aaData, setAaData] = useState(() => generateHistoricalAA(historicalTimeRange));
+  const [pmData, setPmData] = useState(() => generateHistoricalPM(historicalTimeRange));
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
 
-  // Load real data from JSON files on mount
+  // Load real data from JSON files when time range changes
   useEffect(() => {
-    fetchDataFromJSON().then(data => {
+    fetchDataFromJSON(selectedTimeRange).then(data => {
       if (data) {
         setKpData(data.kpData);
         setLodData(data.lodData);
@@ -302,7 +320,7 @@ function ECDOWatchDashboard() {
       }
       setDataLoaded(true);
     });
-  }, []);
+  }, [selectedTimeRange]);
 
   // Recalculate aligned data whenever individual datasets change
   useEffect(() => {
@@ -311,9 +329,9 @@ function ECDOWatchDashboard() {
 
   // Update historical data when time range changes
   useEffect(() => {
-    setAaData(generateHistoricalAA(timeRange));
-    setPmData(generateHistoricalPM(timeRange));
-  }, [timeRange]);
+    setAaData(generateHistoricalAA(historicalTimeRange));
+    setPmData(generateHistoricalPM(historicalTimeRange));
+  }, [historicalTimeRange]);
 
   // Calculate composite z-score metrics dynamically
   useEffect(() => {
@@ -341,19 +359,45 @@ function ECDOWatchDashboard() {
       
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
         {/* Header */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid #252532', flexWrap: 'wrap', gap: 16 }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid #252532', flexWrap: 'wrap', gap: 16 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>🌍 ECDO Watch</h1>
             <p style={{ color: '#7a7a8c', fontSize: 13, margin: 0 }}>Falsification-first geophysics monitor • Tau Point approach detection</p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#7a7a8c', marginBottom: 8 }}>
-              Updated: {new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
+          <div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: '#7a7a8c', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Range</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['30d', '90d', '1y', '5y', '10y'].map(range => (
+                  <button
+                    key={range}
+                    onClick={() => setSelectedTimeRange(range)}
+                    style={{
+                      background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
+                      border: '1px solid #252532',
+                      color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
+                      padding: '4px 10px',
+                      borderRadius: 4,
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {range}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ fontSize: 11 }}>
-              <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
-                ECDO Theory
-              </a>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#7a7a8c', marginBottom: 8 }}>
+                Updated: {new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
+              </div>
+              <div style={{ fontSize: 11 }}>
+                <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
+                  ECDO Theory
+                </a>
+              </div>
             </div>
           </div>
         </header>
