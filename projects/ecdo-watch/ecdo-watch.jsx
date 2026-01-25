@@ -326,8 +326,8 @@ function ECDOWatchDashboard() {
   // Recalculate aligned data whenever individual datasets change
   useEffect(() => {
     const aligned = alignRecentData(kpData, lodData, magData);
-    const magNonNull = aligned.magData.bou ? aligned.magData.bou.filter(x => x !== null).length : 0;
-    console.log('Aligned data:', { magLabels: aligned.magData.labels.length, magBouNonNull, magNonNull });
+    const magBouNonNull = aligned.magData.bou ? aligned.magData.bou.filter(x => x !== null).length : 0;
+    console.log('Aligned data:', { magLabels: aligned.magData.labels.length, magBouNonNull });
     setAlignedData(aligned);
   }, [kpData, lodData, magData]);
 
