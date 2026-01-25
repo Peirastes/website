@@ -530,8 +530,15 @@ function ECDOWatchDashboard() {
         </div>
         
         {/* Footer */}
-        <footer style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'center' }}>
-          ⚠️ This is an experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines, not probabilities of future events.
+        <footer style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            ⚠️ This is an experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines, not probabilities of future events.
+          </div>
+          <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+            <a href="https://www.ethical-skeptics.org/master-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
+              ECDO Theory
+            </a>
+          </div>
         </footer>
       </div>
     </div>
