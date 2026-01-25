@@ -312,6 +312,7 @@ function ECDOWatchDashboard() {
   useEffect(() => {
     fetchDataFromJSON(selectedTimeRange).then(data => {
       if (data) {
+        console.log(`Loaded data for ${selectedTimeRange}:`, { kpLabels: data.kpData.labels.length, lodLabels: data.lodData.labels.length, magLabels: data.magData.labels.length, magBouNonNull: data.magData.bou.filter(x => x !== null).length });
         setKpData(data.kpData);
         setLodData(data.lodData);
         setAaData(data.aaData);
@@ -319,12 +320,15 @@ function ECDOWatchDashboard() {
         setMagData(data.magData);
       }
       setDataLoaded(true);
-    });
+    }).catch(err => console.error('Error loading data:', err));
   }, [selectedTimeRange]);
 
   // Recalculate aligned data whenever individual datasets change
   useEffect(() => {
-    setAlignedData(alignRecentData(kpData, lodData, magData));
+    const aligned = alignRecentData(kpData, lodData, magData);
+    const magNonNull = aligned.magData.bou ? aligned.magData.bou.filter(x => x !== null).length : 0;
+    console.log('Aligned data:', { magLabels: aligned.magData.labels.length, magBouNonNull, magNonNull });
+    setAlignedData(aligned);
   }, [kpData, lodData, magData]);
 
   // Update historical data when time range changes
