@@ -280,14 +280,28 @@ const alignRecentData = (kpData, lodData, magData) => {
   // Align Mag to LOD time axis
   const magAligned = { labels: baseLabels, bou: Array(baseLength).fill(null), hon: Array(baseLength).fill(null), sjg: Array(baseLength).fill(null), composite: Array(baseLength).fill(null) };
   if (magData && magData.labels) {
-    const magStartIdx = baseLength - magData.labels.length;
+    const magLen = magData.labels.length;
+    const magStartIdx = baseLength - magLen;
+
     if (magStartIdx >= 0) {
+      // Mag data fits within range - place at the end
       const stations = ['bou', 'hon', 'sjg', 'composite'];
       stations.forEach(station => {
         if (magData[station]) {
           magData[station].forEach((val, i) => {
             magAligned[station][magStartIdx + i] = val;
           });
+        }
+      });
+    } else {
+      // Mag data is longer than range - take the most recent baseLength days
+      const offset = magLen - baseLength;
+      const stations = ['bou', 'hon', 'sjg', 'composite'];
+      stations.forEach(station => {
+        if (magData[station]) {
+          for (let i = 0; i < baseLength; i++) {
+            magAligned[station][i] = magData[station][offset + i];
+          }
         }
       });
     }
