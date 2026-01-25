@@ -177,11 +177,9 @@ const Card = ({ step, title, status, children, span }) => {
     CLOSED: '#ef4444', SUPPRESSED: '#ef4444',
     ELEVATED: '#f59e0b',
   };
-  const spanVal = span || 6;
-  
+
   return (
     <div style={{
-      gridColumn: 'span ' + spanVal,
       background: '#0f0f15', border: '1px solid #252532', borderRadius: 10, overflow: 'hidden'
     }}>
       <div style={{
@@ -242,6 +240,45 @@ const darkThemeOptions = {
   }
 };
 
+// Helper: Align all recent datasets to common time axis (uses LOD as reference)
+const alignRecentData = (kpData, lodData, magData) => {
+  if (!lodData || !lodData.labels || lodData.labels.length === 0) {
+    return { kpData, lodData, magData };
+  }
+
+  const baseLabels = lodData.labels; // 90-day baseline
+  const baseLength = baseLabels.length;
+
+  // Align Kp to LOD time axis
+  const kpAligned = { labels: baseLabels, data: Array(baseLength).fill(null) };
+  if (kpData && kpData.data) {
+    const kpStartIdx = baseLength - kpData.labels.length;
+    if (kpStartIdx >= 0) {
+      kpData.data.forEach((val, i) => {
+        kpAligned.data[kpStartIdx + i] = val;
+      });
+    }
+  }
+
+  // Align Mag to LOD time axis
+  const magAligned = { labels: baseLabels, bou: Array(baseLength).fill(null), hon: Array(baseLength).fill(null), sjg: Array(baseLength).fill(null), composite: Array(baseLength).fill(null) };
+  if (magData && magData.labels) {
+    const magStartIdx = baseLength - magData.labels.length;
+    if (magStartIdx >= 0) {
+      const stations = ['bou', 'hon', 'sjg', 'composite'];
+      stations.forEach(station => {
+        if (magData[station]) {
+          magData[station].forEach((val, i) => {
+            magAligned[station][magStartIdx + i] = val;
+          });
+        }
+      });
+    }
+  }
+
+  return { kpData: kpAligned, lodData, magData: magAligned };
+};
+
 function ECDOWatchDashboard() {
   const [timeRange, setTimeRange] = useState(50);
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -251,6 +288,7 @@ function ECDOWatchDashboard() {
   const [aaData, setAaData] = useState(() => generateHistoricalAA(timeRange));
   const [pmData, setPmData] = useState(() => generateHistoricalPM(timeRange));
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
+  const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
 
   // Load real data from JSON files on mount
   useEffect(() => {
@@ -266,6 +304,11 @@ function ECDOWatchDashboard() {
     });
   }, []);
 
+  // Recalculate aligned data whenever individual datasets change
+  useEffect(() => {
+    setAlignedData(alignRecentData(kpData, lodData, magData));
+  }, [kpData, lodData, magData]);
+
   // Update historical data when time range changes
   useEffect(() => {
     setAaData(generateHistoricalAA(timeRange));
@@ -274,20 +317,23 @@ function ECDOWatchDashboard() {
 
   // Calculate composite z-score metrics dynamically
   useEffect(() => {
-    if (magData && magData.composite && magData.composite.length > 0) {
-      const composite = magData.composite;
-      const recentValues = composite.slice(-14); // Last 14 days
-      const maxAbsZ = Math.max(...recentValues.map(v => Math.abs(v)));
-      const currentZ = composite[composite.length - 1];
-      const flagged = maxAbsZ >= 2.5; // Flag if any recent value >= 2.5 sigma
+    if (alignedData.magData && alignedData.magData.composite && alignedData.magData.composite.length > 0) {
+      const composite = alignedData.magData.composite;
+      const validValues = composite.filter(v => v !== null);
+      const recentValues = validValues.slice(-14); // Last 14 days with data
+      if (recentValues.length > 0) {
+        const maxAbsZ = Math.max(...recentValues.map(v => Math.abs(v)));
+        const currentZ = composite[composite.length - 1];
+        const flagged = maxAbsZ >= 2.5; // Flag if any recent value >= 2.5 sigma
 
-      setCompositeMetrics({
-        z: currentZ.toFixed(2),
-        flag: flagged,
-        maxZ: maxAbsZ.toFixed(2)
-      });
+        setCompositeMetrics({
+          z: currentZ !== null ? currentZ.toFixed(2) : "—",
+          flag: flagged,
+          maxZ: maxAbsZ.toFixed(2)
+        });
+      }
     }
-  }, [magData]);
+  }, [alignedData]);
   
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -314,11 +360,11 @@ function ECDOWatchDashboard() {
         
         <StatusBanner level="NOMINAL" />
         
-        {/* Main Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 16 }}>
+        {/* Main Stack */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           
           {/* Step 1: Gate */}
-          <Card step={1} title="External Forcing Gate" status="OPEN" span={4}>
+          <Card step={1} title="External Forcing Gate (Kp Index)" status="OPEN">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 16, background: '#16161f', borderRadius: 6, marginBottom: 12 }}>
               <span style={{ fontSize: 32 }}>🛡️</span>
               <div>
@@ -331,9 +377,9 @@ function ECDOWatchDashboard() {
                 type="bar"
                 height={120}
                 data={{
-                  labels: kpData.labels,
+                  labels: alignedData.kpData.labels,
                   datasets: [{
-                    data: kpData.data,
+                    data: alignedData.kpData.data,
                     backgroundColor: '#4a9eff',
                     borderRadius: 2
                   }]
@@ -355,15 +401,15 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 2: EOP */}
-          <Card step={2} title="Earth Orientation (LOD)" status="NOMINAL" span={4}>
+          <Card step={2} title="Earth Orientation (LOD)" status="NOMINAL">
             <div style={{ height: 140 }}>
               <ChartComponent
                 type="line"
                 height={140}
                 data={{
-                  labels: lodData.labels,
+                  labels: alignedData.lodData.labels,
                   datasets: [{
-                    data: lodData.data,
+                    data: alignedData.lodData.data,
                     borderColor: '#4a9eff',
                     backgroundColor: 'rgba(74, 158, 255, 0.1)',
                     fill: true,
@@ -381,13 +427,13 @@ function ECDOWatchDashboard() {
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="LOD z (recent)" value={lodData.data.length > 0 ? lodData.data[lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
+              <Metric label="LOD z (recent)" value={alignedData.lodData.data.length > 0 && alignedData.lodData.data[alignedData.lodData.data.length - 1] !== null ? alignedData.lodData.data[alignedData.lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
               <Metric label="PM Drift z" value="0.41" status="positive" />
             </div>
           </Card>
           
           {/* Step 3: C20 */}
-          <Card step={3} title="Mass Distribution (C20)" status="OK" span={4}>
+          <Card step={3} title="Mass Distribution (C20)" status="OK">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#16161f', borderRadius: 6, marginBottom: 12, fontSize: 11, color: '#7a7a8c' }}>
               📡 GRACE-FO data age: <strong style={{ color: '#e8e8ed' }}>47 days</strong>
             </div>
@@ -396,9 +442,9 @@ function ECDOWatchDashboard() {
                 type="line"
                 height={100}
                 data={{
-                  labels: lodData.labels.slice(-60),
+                  labels: alignedData.lodData.labels,
                   datasets: [{
-                    data: lodData.data.slice(-60),
+                    data: alignedData.lodData.data,
                     borderColor: '#10b981',
                     tension: 0.3,
                     pointRadius: 0
@@ -414,7 +460,7 @@ function ECDOWatchDashboard() {
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="C20 z (recent)" value={lodData.data.length > 0 ? lodData.data[lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
+              <Metric label="C20 z (recent)" value={alignedData.lodData.data.length > 0 && alignedData.lodData.data[alignedData.lodData.data.length - 1] !== null ? alignedData.lodData.data[alignedData.lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
               <Metric label="vs GIA" value="Normal" status="positive" />
             </div>
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'center' }}>
@@ -423,17 +469,17 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 4: Magnetometer */}
-          <Card step={4} title="Ground Magnetic (Multi-Station)" status="NOMINAL" span={8}>
+          <Card step={4} title="Ground Magnetic (Multi-Station)" status="NOMINAL">
             <div style={{ height: 180 }}>
               <ChartComponent
                 type="line"
                 height={180}
                 data={{
-                  labels: magData.labels,
+                  labels: alignedData.magData.labels,
                   datasets: [
                     {
                       label: 'Boulder',
-                      data: magData.bou,
+                      data: alignedData.magData.bou,
                       borderColor: '#4a9eff',
                       borderWidth: 1,
                       tension: 0.3,
@@ -442,7 +488,7 @@ function ECDOWatchDashboard() {
                     },
                     {
                       label: 'Honolulu',
-                      data: magData.hon,
+                      data: alignedData.magData.hon,
                       borderColor: '#8b5cf6',
                       borderWidth: 1,
                       tension: 0.3,
@@ -450,7 +496,7 @@ function ECDOWatchDashboard() {
                     },
                     {
                       label: 'San Juan',
-                      data: magData.sjg,
+                      data: alignedData.magData.sjg,
                       borderColor: '#10b981',
                       borderWidth: 1,
                       tension: 0.3,
@@ -458,7 +504,7 @@ function ECDOWatchDashboard() {
                     },
                     {
                       label: 'Composite',
-                      data: magData.composite,
+                      data: alignedData.magData.composite,
                       borderColor: '#ffffff',
                       borderWidth: 2,
                       tension: 0.3,
@@ -496,7 +542,7 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 5: Coherence */}
-          <Card step={5} title="Cross-Channel Coherence" status="NOMINAL" span={4}>
+          <Card step={5} title="Cross-Channel Coherence" status="NOMINAL">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
               <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>QUIET DAYS</div>
@@ -514,7 +560,7 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Historical Section */}
-          <Card title="📊 Century-Scale Historical Context" span={12}>
+          <Card title="📊 Century-Scale Historical Context">
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {[10, 50, 100, 150].map(function(y) {
                 return (
