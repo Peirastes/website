@@ -358,12 +358,40 @@ def main():
             print(f"    Warning: {station} failed: {e}")
 
     if mag_data_by_station:
+        # Normalize magnetometer data: convert to z-scores
+        date_range = [str(d.date()) for d in pd.date_range(start_time.date(), end_time.date(), freq="D")]
+
+        normalized_data = {}
+        for station, values in mag_data_by_station.items():
+            # Remove bad data (99999 is USGS missing data marker)
+            clean_values = [v if v < 90000 else None for v in values]
+
+            # Convert to z-scores
+            valid_values = [v for v in clean_values if v is not None]
+            if valid_values:
+                mean = sum(valid_values) / len(valid_values)
+                std_dev = (sum((v - mean) ** 2 for v in valid_values) / len(valid_values)) ** 0.5
+                if std_dev > 0:
+                    z_scores = [(v - mean) / std_dev if v is not None else 0 for v in clean_values]
+                else:
+                    z_scores = [0 for _ in clean_values]
+            else:
+                z_scores = [0] * len(clean_values)
+
+            normalized_data[station] = z_scores
+
+        # Composite is median of z-scores
+        composite = []
+        for i in range(len(date_range)):
+            station_z_scores = [normalized_data[s][i] for s in normalized_data.keys()]
+            composite.append(sum(station_z_scores) / len(station_z_scores))
+
         mag_json = {
-            "labels": [str(d.date()) for d in pd.date_range(start_time.date(), end_time.date(), freq="D")],
-            "bou": mag_data_by_station.get("BOU", []),
-            "hon": mag_data_by_station.get("HON", []),
-            "sjg": mag_data_by_station.get("BRW", []),  # Use BRW as sjg for now
-            "composite": [sum(vals) / len([v for v in vals if v]) for vals in zip(*mag_data_by_station.values())]
+            "labels": date_range,
+            "bou": normalized_data.get("BOU", []),
+            "hon": normalized_data.get("HON", []),
+            "sjg": normalized_data.get("BRW", []),
+            "composite": composite
         }
         (assets_dir / "mag_data.json").write_text(json.dumps(mag_json))
         print("    [OK] mag_data.json")
