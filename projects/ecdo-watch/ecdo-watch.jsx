@@ -608,9 +608,9 @@ function ECDOWatchDashboard() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {[10, 50, 100, 150].map(function(y) {
                 return (
-                  <button key={y} onClick={function() { setTimeRange(y); }} style={{
-                    background: timeRange === y ? '#4a9eff' : '#16161f',
-                    border: '1px solid #252532', color: timeRange === y ? '#fff' : '#7a7a8c',
+                  <button key={y} onClick={function() { setHistoricalTimeRange(y); }} style={{
+                    background: historicalTimeRange === y ? '#4a9eff' : '#16161f',
+                    border: '1px solid #252532', color: historicalTimeRange === y ? '#fff' : '#7a7a8c',
                     padding: '4px 12px', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', cursor: 'pointer'
                   }}>{y}Y</button>
                 );
