@@ -304,11 +304,22 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now):
             for station, values in mag_data_by_station.items():
                 # Align magnetometer to this time range
                 full_values = [None] * len(mag_labels)
-                if len(values) == 60:  # Current 60-day mag data
-                    start_idx = len(mag_labels) - 60
+
+                # Magnetometer data is 60 days long, align to the end (most recent)
+                if values and len(values) > 0:
+                    mag_len = len(values)
+                    start_idx = len(mag_labels) - mag_len
+
                     if start_idx >= 0:
+                        # Data fits within range - place at the end
                         for i, val in enumerate(values):
                             full_values[start_idx + i] = val
+                    else:
+                        # More data than range length - take the most recent (last) values
+                        num_to_use = len(mag_labels)
+                        offset = mag_len - num_to_use
+                        for i in range(num_to_use):
+                            full_values[i] = values[offset + i]
 
                 normalized_data[station] = full_values
 
