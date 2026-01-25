@@ -250,6 +250,7 @@ function ECDOWatchDashboard() {
   const [magData, setMagData] = useState(() => generateMagData());
   const [aaData, setAaData] = useState(() => generateHistoricalAA(timeRange));
   const [pmData, setPmData] = useState(() => generateHistoricalPM(timeRange));
+  const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
 
   // Load real data from JSON files on mount
   useEffect(() => {
@@ -270,6 +271,23 @@ function ECDOWatchDashboard() {
     setAaData(generateHistoricalAA(timeRange));
     setPmData(generateHistoricalPM(timeRange));
   }, [timeRange]);
+
+  // Calculate composite z-score metrics dynamically
+  useEffect(() => {
+    if (magData && magData.composite && magData.composite.length > 0) {
+      const composite = magData.composite;
+      const recentValues = composite.slice(-14); // Last 14 days
+      const maxAbsZ = Math.max(...recentValues.map(v => Math.abs(v)));
+      const currentZ = composite[composite.length - 1];
+      const flagged = maxAbsZ >= 2.5; // Flag if any recent value >= 2.5 sigma
+
+      setCompositeMetrics({
+        z: currentZ.toFixed(2),
+        flag: flagged,
+        maxZ: maxAbsZ.toFixed(2)
+      });
+    }
+  }, [magData]);
   
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -324,6 +342,7 @@ function ECDOWatchDashboard() {
                   ...darkThemeOptions,
                   scales: {
                     ...darkThemeOptions.scales,
+                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
                     y: { ...darkThemeOptions.scales.y, min: 0, max: 9 }
                   }
                 }}
@@ -355,14 +374,14 @@ function ECDOWatchDashboard() {
                 options={{
                   ...darkThemeOptions,
                   scales: {
-                    x: { ...darkThemeOptions.scales.x, display: false },
+                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
                     y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
                   }
                 }}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="LOD z" value="0.82" status="positive" />
+              <Metric label="LOD z (recent)" value={lodData.data.length > 0 ? lodData.data[lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
               <Metric label="PM Drift z" value="0.41" status="positive" />
             </div>
           </Card>
@@ -388,14 +407,14 @@ function ECDOWatchDashboard() {
                 options={{
                   ...darkThemeOptions,
                   scales: {
-                    x: { ...darkThemeOptions.scales.x, display: false },
+                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
                     y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
                   }
                 }}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="C20 z" value="0.31" status="positive" />
+              <Metric label="C20 z (recent)" value={lodData.data.length > 0 ? lodData.data[lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
               <Metric label="vs GIA" value="Normal" status="positive" />
             </div>
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'center' }}>
@@ -451,28 +470,28 @@ function ECDOWatchDashboard() {
                   ...darkThemeOptions,
                   plugins: {
                     ...darkThemeOptions.plugins,
-                    legend: { 
-                      display: true, 
+                    legend: {
+                      display: true,
                       position: 'top',
-                      labels: { 
-                        color: '#7a7a8c', 
-                        boxWidth: 12, 
+                      labels: {
+                        color: '#7a7a8c',
+                        boxWidth: 12,
                         padding: 8,
                         font: { size: 10 }
                       }
                     }
                   },
                   scales: {
-                    x: { ...darkThemeOptions.scales.x, display: false },
+                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
                     y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
                   }
                 }}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="Composite z" value="0.56" status="positive" />
-              <Metric label="Stations" value="4/4" status="positive" />
-              <Metric label="Flag" value="✓ No" status="positive" />
+              <Metric label="Composite z" value={compositeMetrics.z} status={Math.abs(parseFloat(compositeMetrics.z)) >= 2.5 ? "negative" : "positive"} />
+              <Metric label="Max z (14d)" value={compositeMetrics.maxZ} status={compositeMetrics.flag ? "warning" : "positive"} />
+              <Metric label="Flag" value={compositeMetrics.flag ? "⚠ YES" : "✓ No"} status={compositeMetrics.flag ? "warning" : "positive"} />
             </div>
           </Card>
           
@@ -530,6 +549,7 @@ function ECDOWatchDashboard() {
                       ...darkThemeOptions,
                       scales: {
                         ...darkThemeOptions.scales,
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
                         y: { ...darkThemeOptions.scales.y, min: 0, max: 40 }
                       }
                     }}
@@ -558,6 +578,7 @@ function ECDOWatchDashboard() {
                       ...darkThemeOptions,
                       scales: {
                         ...darkThemeOptions.scales,
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
                         y: { ...darkThemeOptions.scales.y, min: 0, max: 250 }
                       }
                     }}
