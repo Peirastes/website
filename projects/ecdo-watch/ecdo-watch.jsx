@@ -68,6 +68,9 @@ const generateHistoricalPM = (years) => {
 };
 
 const generateMagData = () => {
+  const bou = [];
+  const hon = [];
+  const sjg = [];
   const composite = [];
   const labels = [];
   const now = new Date();
@@ -75,9 +78,12 @@ const generateMagData = () => {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     labels.push(date.toISOString().split('T')[0]);
+    bou.push((Math.random() - 0.5) * 2);
+    hon.push((Math.random() - 0.5) * 2);
+    sjg.push((Math.random() - 0.5) * 2);
     composite.push((Math.random() - 0.5) * 1.5);
   }
-  return { labels, composite };
+  return { labels, bou, hon, sjg, composite };
 };
 
 // Chart component wrapper
@@ -354,17 +360,57 @@ function ECDOWatchDashboard() {
                 height={180}
                 data={{
                   labels: magData.labels,
-                  datasets: [{
-                    label: 'Composite',
-                    data: magData.composite,
-                    borderColor: '#ffffff',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 0
-                  }]
+                  datasets: [
+                    {
+                      label: 'Boulder',
+                      data: magData.bou,
+                      borderColor: '#4a9eff',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0,
+                      opacity: 0.5
+                    },
+                    {
+                      label: 'Honolulu',
+                      data: magData.hon,
+                      borderColor: '#8b5cf6',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0
+                    },
+                    {
+                      label: 'San Juan',
+                      data: magData.sjg,
+                      borderColor: '#10b981',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0
+                    },
+                    {
+                      label: 'Composite',
+                      data: magData.composite,
+                      borderColor: '#ffffff',
+                      borderWidth: 2,
+                      tension: 0.3,
+                      pointRadius: 0
+                    }
+                  ]
                 }}
                 options={{
                   ...darkThemeOptions,
+                  plugins: {
+                    ...darkThemeOptions.plugins,
+                    legend: { 
+                      display: true, 
+                      position: 'top',
+                      labels: { 
+                        color: '#7a7a8c', 
+                        boxWidth: 12, 
+                        padding: 8,
+                        font: { size: 10 }
+                      }
+                    }
+                  },
                   scales: {
                     x: { ...darkThemeOptions.scales.x, display: false },
                     y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
