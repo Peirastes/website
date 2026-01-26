@@ -436,14 +436,18 @@ function ECDOWatchDashboard() {
             </div>
             <div style={{ height: 120 }}>
               <ChartComponent
-                type="bar"
+                type="line"
                 height={120}
                 data={{
                   labels: alignedData.kpData.labels,
                   datasets: [{
                     data: alignedData.kpData.data,
-                    backgroundColor: '#4a9eff',
-                    borderRadius: 2
+                    borderColor: '#4a9eff',
+                    backgroundColor: 'rgba(74, 158, 255, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#4a9eff'
                   }]
                 }}
                 options={{
