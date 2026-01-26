@@ -446,8 +446,7 @@ function ECDOWatchDashboard() {
                     backgroundColor: 'rgba(74, 158, 255, 0.1)',
                     fill: true,
                     tension: 0.3,
-                    pointRadius: 2,
-                    pointBackgroundColor: '#4a9eff'
+                    pointRadius: 0
                   }]
                 }}
                 options={{
