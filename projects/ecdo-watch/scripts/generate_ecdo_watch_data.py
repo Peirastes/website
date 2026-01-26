@@ -467,22 +467,9 @@ def main():
         except Exception as e:
             print(f"    Warning: USGS {station} failed: {e}")
 
-        # Try to fetch additional historical chunks (60 days before the start_time)
-        for months_back in [4, 8, 12]:  # Try 4, 8, 12 months back
-            try:
-                historical_end = start_time
-                historical_start = historical_end - timedelta(days=60)
-                if months_back > 1:
-                    historical_end = start_time - timedelta(days=60 * (months_back - 1))
-                    historical_start = historical_end - timedelta(days=60)
-
-                print(f"    Attempting {station} historical chunk {months_back} months back ({historical_start.date()} to {historical_end.date()})...")
-                df_hist = load_usgs_mag_timeseries_H(station, historical_start, historical_end)
-                if not df_hist.empty:
-                    all_mag_data.append(df_hist)
-                    print(f"      {station}: {len(df_hist)} records from {months_back}m back")
-            except Exception as e:
-                pass  # Silently skip failed historical chunks
+        # Note: Historical data fetch attempts disabled due to USGS API limitations
+        # (USGS GEOMAG WS only reliably serves ~60-90 days of recent data)
+        # Future enhancement: Integrate secondary source like INTERMAGNET or WDC Kyoto
 
         # Combine all data if we have any
         if all_mag_data:
