@@ -420,6 +420,12 @@ def main():
     (assets_dir / "lod_data.json").write_text(json.dumps(lod_json))
     print("    [OK] lod_data.json")
 
+    # Create synthetic LOD DataFrame for use in multi-range generation
+    eop_synthetic = pd.DataFrame({
+        "date": lod_dates,
+        "lod_ms": lod_values
+    })
+
     # 3. Historical AA index (last 50 years)
     if not kp_history.empty:
         kp_annual = kp_history.set_index("date").resample("YE")["kp_max"].mean()
@@ -524,7 +530,9 @@ def main():
 
     # 6. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
-    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now)
+    # Use synthetic LOD data if IERS API failed
+    eop_for_ranges = eop_all if not eop_all.empty else eop_synthetic
+    time_range_data = generate_time_range_datasets(kp_history, eop_for_ranges, normalized_mag_data, now)
 
     for dataset_name, dataset in time_range_data.items():
         filepath = assets_dir / f"{dataset_name}.json"
