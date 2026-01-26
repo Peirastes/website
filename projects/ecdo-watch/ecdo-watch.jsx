@@ -158,33 +158,122 @@ const ChartComponent = ({ type, data, options, height }) => {
 };
 
 const StatusBanner = ({ level }) => {
-  const config = {
-    NOMINAL: { color: '#10b981', text: 'All parameters within historical bounds' },
-    ELEVATED_DIAGNOSTIC: { color: '#f59e0b', text: 'Single-channel anomaly detected' },
-    WATCH: { color: '#ef4444', text: 'Multi-channel coherent anomaly' },
+  const [showInfo, setShowInfo] = React.useState(false);
+
+  const statusInfo = {
+    NOMINAL: {
+      color: '#10b981',
+      text: 'All parameters within historical bounds',
+      description: 'All monitored geophysical signals (Kp, LOD, magnetometer) are within their normal historical ranges. No anomalies detected across monitoring channels.'
+    },
+    ELEVATED_DIAGNOSTIC: {
+      color: '#f59e0b',
+      text: 'Single-channel anomaly detected',
+      description: 'One monitoring channel has detected a statistical anomaly (±2.5σ or greater). This may represent normal variability or the beginning of a multi-channel event. Continued monitoring recommended.'
+    },
+    WATCH: {
+      color: '#ef4444',
+      text: 'Multi-channel coherent anomaly',
+      description: 'Multiple independent geophysical channels are showing correlated anomalies. This indicates a potential system-wide geophysical perturbation and warrants close observation.'
+    },
   };
-  const c = config[level] || config.NOMINAL;
-  
+
+  const c = statusInfo[level] || statusInfo.NOMINAL;
+
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      background: '#0f0f15', border: '1px solid #252532', borderLeft: '4px solid ' + c.color,
-      borderRadius: 10, padding: '16px 20px', marginBottom: 16, flexWrap: 'wrap', gap: 16
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{
-          width: 12, height: 12, borderRadius: '50%', background: c.color,
-          animation: 'pulse 2s infinite'
-        }} />
-        <div>
-          <h2 style={{ fontFamily: 'monospace', fontSize: 18, margin: 0, color: '#e8e8ed' }}>{level}</h2>
-          <p style={{ fontSize: 13, color: '#7a7a8c', margin: 0 }}>{c.text}</p>
+    <>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: '#0f0f15', border: '1px solid #252532', borderLeft: '4px solid ' + c.color,
+        borderRadius: 10, padding: '16px 20px', marginBottom: 16, flexWrap: 'wrap', gap: 16
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 12, height: 12, borderRadius: '50%', background: c.color,
+            animation: 'pulse 2s infinite'
+          }} />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontFamily: 'monospace', fontSize: 18, margin: 0, color: '#e8e8ed' }}>{level}</h2>
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                onMouseEnter={() => setShowInfo(true)}
+                onMouseLeave={() => setShowInfo(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #7a7a8c',
+                  color: '#7a7a8c',
+                  borderRadius: '50%',
+                  width: 20,
+                  height: 20,
+                  fontSize: 12,
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = c.color;
+                  e.target.style.color = c.color;
+                  setShowInfo(true);
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = '#7a7a8c';
+                  e.target.style.color = '#7a7a8c';
+                  setShowInfo(false);
+                }}
+              >
+                i
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: '#7a7a8c', margin: 0 }}>{c.text}</p>
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: '#7a7a8c', maxWidth: 280, textAlign: 'right' }}>
+          ⚠️ Experimental analysis tool, NOT a prediction system
         </div>
       </div>
-      <div style={{ fontSize: 11, color: '#7a7a8c', maxWidth: 280, textAlign: 'right' }}>
-        ⚠️ Experimental analysis tool, NOT a prediction system
-      </div>
-    </div>
+
+      {showInfo && (
+        <div style={{
+          background: '#16161f', border: '1px solid ' + c.color, borderRadius: 10,
+          padding: 16, marginBottom: 16, fontSize: 13, color: '#e8e8ed',
+          borderLeft: '4px solid ' + c.color
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <div>
+              <strong style={{ color: c.color }}>What does this mean?</strong>
+              <p style={{ margin: '8px 0 0 0', color: '#a8a8bc' }}>{c.description}</p>
+
+              <strong style={{ color: c.color, display: 'block', marginTop: 12 }}>What we monitor:</strong>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
+                <li>External Forcing (Kp index) - Solar wind energy coupling</li>
+                <li>Earth Orientation (LOD) - Rotational dynamics</li>
+                <li>Ground Magnetometer - Multi-station magnetic field anomalies</li>
+                <li>Cross-channel Coherence - Correlated signals across independent systems</li>
+              </ul>
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#7a7a8c',
+                fontSize: 18,
+                cursor: 'pointer',
+                padding: 0,
+                minWidth: 20
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
