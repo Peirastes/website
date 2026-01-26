@@ -22,7 +22,7 @@ TIMEOUT_S = 20
 # Dashboard windows
 SPACE_DAYS = 45          # gate window for quiet-day logic
 EOP_DAYS = 180           # EOP anomaly window (plot)
-MAG_DAYS = 3650          # magnetometer window - fetch ~10 years (plot + composites)
+MAG_DAYS = 90            # magnetometer window (plot + composites) - USGS API limited to ~60-90 days
 BASELINE_YEARS_EOP = 10  # EOP baseline for z-scores
 BASELINE_YEARS_KP = 5    # long baseline context (GFZ daily Kp max)
 
@@ -50,6 +50,7 @@ IERS_EOP_ALL_CSV = "https://datacenter.iers.org/data/csv/finals2000A.all.csv"
 GFZ_KP_DAILY_SINCE_1932 = "https://kp.gfz.de/app/files/Kp_ap_Ap_SN_F107_since_1932.txt"
 GSFC_C20_LONG_TERM = "https://earth.gsfc.nasa.gov/sites/default/files/geo/gsfc_slr_c20_long_term.txt"
 USGS_GEOMAG_WS = "https://geomag.usgs.gov/ws/data/"
+WDC_MAGNETOMETER = "https://www.ngdc.noaa.gov/products/data-access-system/data/datasets/earth-magnetic-field/"
 
 # -------------------------
 # Helpers
@@ -179,6 +180,30 @@ def load_swpc_kp_dst() -> tuple:
         return None, None
 
     return kp_data, dst_data
+
+def load_usgs_mag_timeseries_H_chunked(station: str, start: datetime, end: datetime, chunk_days: int = 90) -> pd.DataFrame:
+    """Fetch magnetometer data in chunks to work around API limitations."""
+    all_data = []
+    current_end = end
+
+    while current_end > start:
+        chunk_start = max(start, current_end - timedelta(days=chunk_days))
+        try:
+            df = load_usgs_mag_timeseries_H(station, chunk_start, current_end)
+            if not df.empty:
+                all_data.append(df)
+        except Exception as e:
+            print(f"      Chunk {chunk_start.date()} to {current_end.date()} failed: {e}")
+
+        current_end = chunk_start
+        if current_end <= start:
+            break
+
+    if all_data:
+        combined = pd.concat(all_data, ignore_index=True).drop_duplicates(subset=['timestamp']).sort_values('timestamp')
+        return combined.reset_index(drop=True)
+    else:
+        return pd.DataFrame()
 
 def load_usgs_mag_timeseries_H(station: str, start: datetime, end: datetime) -> pd.DataFrame:
     """Fetch H component from USGS geomag web service."""
@@ -421,21 +446,53 @@ def main():
         (assets_dir / "historical_pm.json").write_text(json.dumps(pm_json))
         print("    [OK] historical_pm.json")
 
-    # 5. Magnetometer data (last 10 years, or as much as available)
+    # 5. Magnetometer data (last 60 days - USGS API limitation)
     print("  Fetching magnetometer data...")
     end_time = now
-    start_time = end_time - timedelta(days=3650)  # ~10 years
+    start_time = end_time - timedelta(days=60)
 
     mag_data_by_station = {}
+
+    # Attempt to fetch from multiple sources and time periods
     for station, label in MAG_STATIONS:
+        all_mag_data = []
+
+        # Try recent 60 days from USGS (primary source)
         try:
+            print(f"    Fetching {station} from {start_time.date()} to {end_time.date()} (USGS)...")
             df = load_usgs_mag_timeseries_H(station, start_time, end_time)
             if not df.empty:
-                # Daily aggregation
-                daily = df.set_index("timestamp").resample("D")["value"].mean()
-                mag_data_by_station[station] = daily.fillna(0).tolist()
+                all_mag_data.append(df)
+                print(f"      {station}: {len(df)} records from USGS")
         except Exception as e:
-            print(f"    Warning: {station} failed: {e}")
+            print(f"    Warning: USGS {station} failed: {e}")
+
+        # Try to fetch additional historical chunks (60 days before the start_time)
+        for months_back in [4, 8, 12]:  # Try 4, 8, 12 months back
+            try:
+                historical_end = start_time
+                historical_start = historical_end - timedelta(days=60)
+                if months_back > 1:
+                    historical_end = start_time - timedelta(days=60 * (months_back - 1))
+                    historical_start = historical_end - timedelta(days=60)
+
+                print(f"    Attempting {station} historical chunk {months_back} months back ({historical_start.date()} to {historical_end.date()})...")
+                df_hist = load_usgs_mag_timeseries_H(station, historical_start, historical_end)
+                if not df_hist.empty:
+                    all_mag_data.append(df_hist)
+                    print(f"      {station}: {len(df_hist)} records from {months_back}m back")
+            except Exception as e:
+                pass  # Silently skip failed historical chunks
+
+        # Combine all data if we have any
+        if all_mag_data:
+            combined = pd.concat(all_mag_data, ignore_index=True)
+            combined = combined.drop_duplicates(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
+            daily = combined.set_index("timestamp").resample("D")["value"].mean()
+            mag_data_by_station[station] = daily.fillna(0).tolist()
+            print(f"      {station}: Total {len(daily)} days of combined data")
+        else:
+            print(f"      {station}: No data retrieved from any source")
 
     normalized_mag_data = {}
     if mag_data_by_station:
