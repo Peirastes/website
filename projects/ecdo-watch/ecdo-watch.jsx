@@ -277,7 +277,8 @@ const StatusBanner = ({ level }) => {
   );
 };
 
-const Card = ({ step, title, status, children, span }) => {
+const Card = ({ step, title, status, children, info }) => {
+  const [showInfo, setShowInfo] = React.useState(false);
   const statusColors = {
     OPEN: '#10b981', NOMINAL: '#10b981', OK: '#10b981',
     CLOSED: '#ef4444', SUPPRESSED: '#ef4444',
@@ -285,28 +286,107 @@ const Card = ({ step, title, status, children, span }) => {
   };
 
   return (
-    <div style={{
-      background: '#0f0f15', border: '1px solid #252532', borderRadius: 10, overflow: 'hidden'
-    }}>
+    <>
       <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '12px 16px', borderBottom: '1px solid #252532', background: '#16161f'
+        background: '#0f0f15', border: '1px solid #252532', borderRadius: 10, overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {step && <span style={{
-            fontFamily: 'monospace', fontSize: 10, color: '#7a7a8c',
-            background: '#252532', padding: '2px 6px', borderRadius: 3
-          }}>STEP {step}</span>}
-          <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>{title}</h3>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '12px 16px', borderBottom: '1px solid #252532', background: '#16161f'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {step && <span style={{
+              fontFamily: 'monospace', fontSize: 10, color: '#7a7a8c',
+              background: '#252532', padding: '2px 6px', borderRadius: 3
+            }}>STEP {step}</span>}
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>{title}</h3>
+            {info && (
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                onMouseEnter={() => setShowInfo(true)}
+                onMouseLeave={() => setShowInfo(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #7a7a8c',
+                  color: '#7a7a8c',
+                  borderRadius: '50%',
+                  width: 18,
+                  height: 18,
+                  fontSize: 11,
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = '#4a9eff';
+                  e.target.style.color = '#4a9eff';
+                  setShowInfo(true);
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = '#7a7a8c';
+                  e.target.style.color = '#7a7a8c';
+                  setShowInfo(false);
+                }}
+              >
+                i
+              </button>
+            )}
+          </div>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 10, fontWeight: 600,
+            padding: '4px 8px', borderRadius: 4, textTransform: 'uppercase',
+            background: (statusColors[status] || '#6b7280') + '22', color: statusColors[status] || '#6b7280'
+          }}>{status}</span>
         </div>
-        <span style={{
-          fontFamily: 'monospace', fontSize: 10, fontWeight: 600,
-          padding: '4px 8px', borderRadius: 4, textTransform: 'uppercase',
-          background: (statusColors[status] || '#6b7280') + '22', color: statusColors[status] || '#6b7280'
-        }}>{status}</span>
+        <div style={{ padding: 16 }}>{children}</div>
       </div>
-      <div style={{ padding: 16 }}>{children}</div>
-    </div>
+
+      {showInfo && info && (
+        <div style={{
+          background: '#16161f', border: '1px solid #252532', borderRadius: 10,
+          padding: 16, marginTop: 12, fontSize: 13, color: '#e8e8ed'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <div>
+              <strong style={{ color: '#4a9eff', fontSize: 14 }}>Step {step}: {title}</strong>
+              <p style={{ margin: '8px 0', color: '#a8a8bc', lineHeight: 1.5 }}>{info.description}</p>
+
+              <strong style={{ color: '#4a9eff', display: 'block', marginTop: 12, fontSize: 12 }}>What we're looking for:</strong>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
+                {info.lookingFor.map((item, idx) => (
+                  <li key={idx} style={{ marginBottom: 4 }}>{item}</li>
+                ))}
+              </ul>
+
+              {info.dataSource && (
+                <>
+                  <strong style={{ color: '#4a9eff', display: 'block', marginTop: 12, fontSize: 12 }}>Data source:</strong>
+                  <p style={{ margin: '4px 0 0 0', color: '#a8a8bc' }}>{info.dataSource}</p>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#7a7a8c',
+                fontSize: 18,
+                cursor: 'pointer',
+                padding: 0,
+                minWidth: 20
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -515,7 +595,16 @@ function ECDOWatchDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           
           {/* Step 1: Gate */}
-          <Card step={1} title="External Forcing Gate (Kp Index)" status="OPEN">
+          <Card step={1} title="External Forcing Gate (Kp Index)" status="OPEN" info={{
+            description: "The Kp (planetary K-index) measures solar wind energy input to Earth's magnetosphere. High Kp values indicate strong geomagnetic storms driven by external solar forcing. This step acts as a 'gate' to distinguish internal Earth dynamics from external solar influences.",
+            lookingFor: [
+              "Kp ≤ 4 on most days (quiet geomagnetic conditions)",
+              "Low Dst values (< -50 nT indicates suppressed disturbance)",
+              "Absence of sustained high-amplitude fluctuations",
+              "When gate is OPEN: Internal anomalies are more meaningful"
+            ],
+            dataSource: "NOAA SWPC (3-hour Kp) and GFZ (daily historical records since 1932)"
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 16, background: '#16161f', borderRadius: 6, marginBottom: 12 }}>
               <span style={{ fontSize: 32 }}>🛡️</span>
               <div>
@@ -555,7 +644,16 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 2: EOP */}
-          <Card step={2} title="Earth Orientation (LOD)" status="NOMINAL">
+          <Card step={2} title="Earth Orientation (LOD)" status="NOMINAL" info={{
+            description: "Length of Day (LOD) measures variations in Earth's rotation rate. Changes in LOD reflect mass redistribution and angular momentum exchange within Earth's core, mantle, and atmosphere. It's a sensitive indicator of internal Earth dynamics independent of external solar forcing.",
+            lookingFor: [
+              "LOD anomalies within ±2 milliseconds (normal range)",
+              "Low z-score values (< 2σ from baseline)",
+              "Smooth seasonal variation pattern",
+              "Sudden spikes or persistent deviations suggest internal perturbations"
+            ],
+            dataSource: "IERS (International Earth Rotation Service) daily rapid estimates"
+          }}>
             <div style={{ height: 140 }}>
               <ChartComponent
                 type="line"
@@ -587,7 +685,16 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 3: C20 */}
-          <Card step={3} title="Mass Distribution (C20)" status="OK">
+          <Card step={3} title="Mass Distribution (C20)" status="OK" info={{
+            description: "C20 (degree-2, order-0 spherical harmonic coefficient) represents Earth's oblateness and mass distribution. Changes in C20 reflect deep mass movements in the core-mantle system and glacial isostatic adjustment (GIA). This is a slow-changing but highly significant indicator of internal Earth structure.",
+            lookingFor: [
+              "C20 trending within GIA predictions (accounting for post-glacial rebound)",
+              "Z-score anomalies isolated to this channel (not corroborated by faster channels)",
+              "This is a confirmatory (lagged) channel, not a leading indicator",
+              "Large deviations from GIA model suggest unusual deep mantle activity"
+            ],
+            dataSource: "NASA GSFC SLR (Satellite Laser Ranging) long-term C20 record"
+          }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#16161f', borderRadius: 6, marginBottom: 12, fontSize: 11, color: '#7a7a8c' }}>
               📡 GRACE-FO data age: <strong style={{ color: '#e8e8ed' }}>47 days</strong>
             </div>
@@ -623,7 +730,16 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 4: Magnetometer */}
-          <Card step={4} title="Ground Magnetic (Multi-Station)" status="NOMINAL">
+          <Card step={4} title="Ground Magnetic (Multi-Station)" status="NOMINAL" info={{
+            description: "Ground-based magnetometer observations measure horizontal magnetic field perturbations at four USGS stations (Boulder, Fredericksburg, Barrow, Honolulu). Multi-station coherence filters out local/instrumental noise and identifies true geomagnetic signals. High z-scores across multiple stations indicate significant internal magnetic anomalies.",
+            lookingFor: [
+              "Composite z-score within ±2σ (normal baseline range)",
+              "Coherent signals across 3+ stations (not isolated single-site noise)",
+              "Spikes ≥ 2.5σ warrant attention if sustained or multi-channel correlated",
+              "Recent observation: 7.7σ spike on 2026-01-25 (observed across multiple stations)"
+            ],
+            dataSource: "USGS Geomagnetic Monitoring Program (4 monitoring stations, 60-day window)"
+          }}>
             <div style={{ height: 180 }}>
               <ChartComponent
                 type="line"
@@ -696,7 +812,16 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 5: Coherence */}
-          <Card step={5} title="Cross-Channel Coherence" status="NOMINAL">
+          <Card step={5} title="Cross-Channel Coherence" status="NOMINAL" info={{
+            description: "Cross-channel coherence analyzes whether anomalies detected in independent monitoring systems (EOP/LOD and magnetometer) are correlated in time. True geophysical events show up across multiple independent channels. Coherence filters out spurious single-channel anomalies and identifies system-level perturbations.",
+            lookingFor: [
+              "Low correlation (< 0.3) is normal: independent systems track different phenomena",
+              "Elevated correlation during quiet days suggests genuine coherent signal",
+              "EOP↔MAG correlation ≥ 0.5 during gate-open conditions = WATCH-level event",
+              "Quiet day count should be high when external forcing (Kp) is suppressed"
+            ],
+            dataSource: "Derived from Steps 2 and 4 using rolling correlation analysis (14-day window)"
+          }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
               <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>QUIET DAYS</div>
