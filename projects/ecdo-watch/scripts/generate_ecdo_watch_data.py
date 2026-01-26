@@ -285,7 +285,7 @@ def load_usgs_mag_timeseries_H(station: str, start: datetime, end: datetime) -> 
 # -------------------------
 # Main Script
 # -------------------------
-def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now):
+def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, lod_json=None, mag_json=None):
     """Generate JSON files for multiple time ranges."""
     time_ranges = {
         "30d": 30,
@@ -310,58 +310,40 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now):
                 }
                 results[f"kp_{range_name}"] = kp_json
 
-        # EOP data (filter by date range, not beyond "now")
-        if not eop_all.empty:
+        # EOP data - slice from main lod_json data if available
+        if lod_json and "labels" in lod_json and "data" in lod_json:
+            labels = lod_json["labels"]
+            data = lod_json["data"]
+            # Slice to requested range (most recent N days)
+            cutoff_idx = max(0, len(labels) - days)
+            sliced_json = {
+                "labels": labels[cutoff_idx:],
+                "data": data[cutoff_idx:]
+            }
+            results[f"lod_{range_name}"] = sliced_json
+        elif not eop_all.empty:
+            # Fallback to filtering eop_all if available
             eop_subset = eop_all[(eop_all["date"] >= cutoff) & (eop_all["date"] <= now)].copy()
             if not eop_subset.empty:
-                lod_json = {
+                lod_data_json = {
                     "labels": eop_subset["date"].dt.strftime("%Y-%m-%d").tolist(),
                     "data": eop_subset["lod_ms"].fillna(0).tolist()
                 }
-                results[f"lod_{range_name}"] = lod_json
+                results[f"lod_{range_name}"] = lod_data_json
 
-        # Magnetometer data
-        if mag_data_by_station and len(mag_data_by_station) > 0:
-            date_range = pd.date_range(cutoff.date(), now.date(), freq="D")
-            mag_labels = [str(d.date()) for d in date_range]
-
-            normalized_data = {}
-            for station, values in mag_data_by_station.items():
-                # Align magnetometer to this time range
-                full_values = [None] * len(mag_labels)
-
-                # Magnetometer data is 60 days long, align to the end (most recent)
-                if values and len(values) > 0:
-                    mag_len = len(values)
-                    start_idx = len(mag_labels) - mag_len
-
-                    if start_idx >= 0:
-                        # Data fits within range - place at the end
-                        for i, val in enumerate(values):
-                            full_values[start_idx + i] = val
-                    else:
-                        # More data than range length - take the most recent (last) values
-                        num_to_use = len(mag_labels)
-                        offset = mag_len - num_to_use
-                        for i in range(num_to_use):
-                            full_values[i] = values[offset + i]
-
-                normalized_data[station] = full_values
-
-            if normalized_data:
-                mag_json = {
-                    "labels": mag_labels,
-                    "bou": normalized_data.get("BOU", [None] * len(mag_labels)),
-                    "hon": normalized_data.get("HON", [None] * len(mag_labels)),
-                    "sjg": normalized_data.get("BRW", [None] * len(mag_labels)),
-                    "composite": [
-                        sum([normalized_data[s][i] for s in normalized_data.keys() if normalized_data[s][i] is not None]) /
-                        len([normalized_data[s][i] for s in normalized_data.keys() if normalized_data[s][i] is not None])
-                        if any(normalized_data[s][i] is not None for s in normalized_data.keys()) else None
-                        for i in range(len(mag_labels))
-                    ]
-                }
-                results[f"mag_{range_name}"] = mag_json
+        # Magnetometer data - slice from main mag_json if available
+        if mag_json and "labels" in mag_json:
+            labels = mag_json["labels"]
+            # Slice to requested range (most recent N days)
+            cutoff_idx = max(0, len(labels) - days)
+            mag_range_json = {
+                "labels": labels[cutoff_idx:],
+                "bou": mag_json.get("bou", [])[cutoff_idx:],
+                "hon": mag_json.get("hon", [])[cutoff_idx:],
+                "sjg": mag_json.get("sjg", [])[cutoff_idx:],
+                "composite": mag_json.get("composite", [])[cutoff_idx:]
+            }
+            results[f"mag_{range_name}"] = mag_range_json
 
     return results
 
@@ -530,9 +512,8 @@ def main():
 
     # 6. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
-    # Use synthetic LOD data if IERS API failed
-    eop_for_ranges = eop_all if not eop_all.empty else eop_synthetic
-    time_range_data = generate_time_range_datasets(kp_history, eop_for_ranges, normalized_mag_data, now)
+    # Pass main LOD and Mag JSON data for clean slicing
+    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, lod_json, mag_json)
 
     for dataset_name, dataset in time_range_data.items():
         filepath = assets_dir / f"{dataset_name}.json"
