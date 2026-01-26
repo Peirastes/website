@@ -390,17 +390,32 @@ def main():
         (assets_dir / "kp_data.json").write_text(json.dumps(kp_json))
         print("    [OK] kp_data.json")
 
-    # 2. LOD data (last 90 days) - generate realistic data
+    # 2. LOD data (10+ years historical) - generate realistic data
     print("    [WARN] IERS LOD API unavailable, generating realistic LOD data")
-    lod_dates = pd.date_range(end=now.date(), periods=90, freq="D")
-    lod_values = [0.5 * math.sin((i / 90) * 2 * math.pi) + (np.random.random() - 0.5) * 0.3
-                  for i in range(90)]
+    # Generate 10 years of synthetic LOD data for time-range support
+    lod_dates = pd.date_range(end=now.date(), periods=3650, freq="D")
+    lod_values = [
+        0.5 * math.sin((i / 3650) * 10 * math.pi) +  # Long cycle
+        0.3 * math.sin((i / 365) * 2 * math.pi) +     # Annual cycle
+        0.1 * math.sin((i / 30) * 2 * math.pi) +      # Monthly noise
+        (np.random.random() - 0.5) * 0.2              # Random jitter
+        for i in range(3650)
+    ]
+
+    # Store full 10-year dataset for multi-range generation
     lod_json = {
         "labels": lod_dates.strftime("%Y-%m-%d").tolist(),
         "data": lod_values
     }
-    (assets_dir / "lod_data.json").write_text(json.dumps(lod_json))
-    print("    [OK] lod_data.json")
+
+    # For display, keep only recent 90 days in main file
+    recent_idx = max(0, len(lod_dates) - 90)
+    lod_recent_json = {
+        "labels": lod_json["labels"][recent_idx:],
+        "data": lod_json["data"][recent_idx:]
+    }
+    (assets_dir / "lod_data.json").write_text(json.dumps(lod_recent_json))
+    print("    [OK] lod_data.json (90-day recent view)")
 
     # Create synthetic LOD DataFrame for use in multi-range generation
     eop_synthetic = pd.DataFrame({
