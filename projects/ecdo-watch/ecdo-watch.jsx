@@ -489,6 +489,7 @@ function ECDOWatchDashboard() {
   const [aaData, setAaData] = useState(() => generateHistoricalAA(historicalTimeRange));
   const [pmData, setPmData] = useState(() => generateHistoricalPM(historicalTimeRange));
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
+  const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
 
   // Load real data from JSON files when time range changes
@@ -539,7 +540,16 @@ function ECDOWatchDashboard() {
       }
     }
   }, [alignedData]);
-  
+
+  // Calculate watch status level dynamically
+  useEffect(() => {
+    if (compositeMetrics.flag) {
+      setStatusLevel('ELEVATED_DIAGNOSTIC');
+    } else {
+      setStatusLevel('NOMINAL');
+    }
+  }, [compositeMetrics]);
+
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <style dangerouslySetInnerHTML={{__html: '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }'}} />
@@ -588,8 +598,8 @@ function ECDOWatchDashboard() {
             </div>
           </div>
         </header>
-        
-        <StatusBanner level="NOMINAL" />
+
+        <StatusBanner level={statusLevel} />
         
         {/* Main Stack */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
