@@ -8,11 +8,7 @@ const EisenhowerTaskManager = () => {
     return sessionStorage.getItem('eisenhower-unlocked') === 'true';
   });
 
-  // Show PIN modal if not unlocked
-  if (!isUnlocked) {
-    return <PINModal onUnlock={() => setIsUnlocked(true)} />;
-  }
-
+  // All state must be declared before any conditional rendering
   const [tasks, setTasks] = useState([]);
   const [settings, setSettings] = useState({
     categories: ['Career', 'Personal'],
@@ -40,6 +36,11 @@ const EisenhowerTaskManager = () => {
   });
   const [sortBy, setSortBy] = useState('priority');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Show PIN modal if not unlocked (after all state is declared)
+  if (!isUnlocked) {
+    return <PINModal onUnlock={() => setIsUnlocked(true)} />;
+  }
 
   // Sample seed data with all recurrence types
   const sampleTasks = [
