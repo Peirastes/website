@@ -1951,10 +1951,10 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
           <div className="overflow-x-auto">
             {/* Timeline Header */}
             <div className="flex">
-              <div className="w-64 border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-sm text-slate-700 flex-shrink-0">
+              <div className="w-48 border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-sm text-slate-700 flex-shrink-0">
                 Task
               </div>
-              <div className="flex-1 border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative">
+              <div className="border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative" style={{ minWidth: '1200px' }}>
                 {/* Weekend shading */}
                 {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
                   const date = new Date(minDate);
@@ -2033,7 +2033,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                 <div key={lane}>
                   {/* Lane Header */}
                   <div className={`flex ${getQuadrantBg(groupBy === 'quadrant' ? lane : 'schedule')} border-b border-slate-200`}>
-                    <div className="w-64 border-r border-slate-200 px-4 py-3 flex-shrink-0">
+                    <div className="w-48 border-r border-slate-200 px-4 py-3 flex-shrink-0">
                       <div className="font-semibold text-sm text-slate-700">
                         {laneLabel}
                       </div>
@@ -2041,7 +2041,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                         {grouped[lane].length} task{grouped[lane].length !== 1 ? 's' : ''}
                       </div>
                     </div>
-                    <div className="flex-1"></div>
+                    <div style={{ minWidth: '1200px' }}></div>
                   </div>
 
                   {/* Tasks in lane */}
@@ -2057,7 +2057,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                       <div key={task.id} className="flex border-b border-slate-100 hover:bg-indigo-50 transition-colors relative">
                         {/* Task name - clickable to open context menu */}
                         <div
-                          className="w-64 border-r border-slate-200 px-4 py-3 flex-shrink-0 cursor-pointer hover:bg-indigo-100 transition-colors"
+                          className="w-48 border-r border-slate-200 px-4 py-3 flex-shrink-0 cursor-pointer hover:bg-indigo-100 transition-colors"
                           onClick={() => setActiveContextMenu(activeContextMenu === task.id ? null : task.id)}
                         >
                           <div className={`text-sm font-medium ${isCompleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>
@@ -2069,7 +2069,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                         </div>
 
                         {/* Timeline bar */}
-                        <div className="flex-1 relative py-3 px-2">
+                        <div className="relative py-3 px-2" style={{ minWidth: '1200px' }}>
                           {/* Gridlines and today indicator for task row */}
                           {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
                             const date = new Date(minDate);
@@ -2164,10 +2164,11 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                             />
 
                             {/* Context Menu */}
-                            <div className="fixed bg-white border border-slate-200 rounded-lg shadow-xl z-50 min-w-max" style={{
+                            <div className="fixed bg-white border border-slate-200 rounded-lg shadow-xl z-50" style={{
                               top: '50%',
                               left: '50%',
-                              transform: 'translate(-50%, -50%)'
+                              transform: 'translate(-50%, -50%)',
+                              minWidth: 'max-content'
                             }}>
                               <button
                                 onClick={() => {
