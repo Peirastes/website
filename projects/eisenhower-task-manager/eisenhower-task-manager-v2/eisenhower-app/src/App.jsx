@@ -2164,7 +2164,11 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                             />
 
                             {/* Context Menu */}
-                            <div className="absolute top-12 left-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-max">
+                            <div className="fixed bg-white border border-slate-200 rounded-lg shadow-xl z-50 min-w-max" style={{
+                              top: '50%',
+                              left: '50%',
+                              transform: 'translate(-50%, -50%)'
+                            }}>
                               <button
                                 onClick={() => {
                                   toggleComplete(task.id);
