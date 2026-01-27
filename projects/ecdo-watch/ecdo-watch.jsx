@@ -632,7 +632,7 @@ function ECDOWatchDashboard() {
                   scales: {
                     ...darkThemeOptions.scales,
                     x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y, min: 0, max: 9 }
+                    y: { ...darkThemeOptions.scales.y }
                   }
                 }}
               />
@@ -673,7 +673,7 @@ function ECDOWatchDashboard() {
                   ...darkThemeOptions,
                   scales: {
                     x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
+                    y: { ...darkThemeOptions.scales.y }
                   }
                 }}
               />
@@ -715,7 +715,7 @@ function ECDOWatchDashboard() {
                   ...darkThemeOptions,
                   scales: {
                     x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
+                    y: { ...darkThemeOptions.scales.y }
                   }
                 }}
               />
@@ -799,7 +799,7 @@ function ECDOWatchDashboard() {
                   },
                   scales: {
                     x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y, min: -3, max: 3 }
+                    y: { ...darkThemeOptions.scales.y }
                   }
                 }}
               />
@@ -875,7 +875,7 @@ function ECDOWatchDashboard() {
                       scales: {
                         ...darkThemeOptions.scales,
                         x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
-                        y: { ...darkThemeOptions.scales.y, min: 0, max: 40 }
+                        y: { ...darkThemeOptions.scales.y }
                       }
                     }}
                   />
@@ -904,7 +904,7 @@ function ECDOWatchDashboard() {
                       scales: {
                         ...darkThemeOptions.scales,
                         x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
-                        y: { ...darkThemeOptions.scales.y, min: 0, max: 250 }
+                        y: { ...darkThemeOptions.scales.y }
                       }
                     }}
                   />
