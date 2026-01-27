@@ -1726,6 +1726,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   const [groupBy, setGroupBy] = useState('quadrant');
   const [zoomLevel, setZoomLevel] = useState('monthly');
   const [tooltip, setTooltip] = useState(null);
+  const [activeContextMenu, setActiveContextMenu] = useState(null);
 
   // Timeline calculation functions
   const calculateTaskTimeline = (task) => {
@@ -2053,9 +2054,12 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                     const quadrant = getQuadrant(task);
 
                     return (
-                      <div key={task.id} className="flex border-b border-slate-100 hover:bg-indigo-50 transition-colors">
-                        {/* Task name */}
-                        <div className="w-64 border-r border-slate-200 px-4 py-3 flex-shrink-0">
+                      <div key={task.id} className="flex border-b border-slate-100 hover:bg-indigo-50 transition-colors relative">
+                        {/* Task name - clickable to open context menu */}
+                        <div
+                          className="w-64 border-r border-slate-200 px-4 py-3 flex-shrink-0 cursor-pointer hover:bg-indigo-100 transition-colors"
+                          onClick={() => setActiveContextMenu(activeContextMenu === task.id ? null : task.id)}
+                        >
                           <div className={`text-sm font-medium ${isCompleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>
                             {task.task}
                           </div>
@@ -2150,37 +2154,57 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                           )}
                         </div>
 
-                        {/* Actions */}
-                        <div className="w-24 border-l border-slate-200 px-3 py-3 flex items-center gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => toggleComplete(task.id)}
-                            className={`p-1.5 rounded transition-colors ${
-                              isCompleted
-                                ? 'text-emerald-600 hover:bg-emerald-50'
-                                : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
-                            }`}
-                            title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingTask(task);
-                              setShowForm(true);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => deleteTask(task.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                        {/* Context Menu - appears when task is clicked */}
+                        {activeContextMenu === task.id && (
+                          <>
+                            {/* Backdrop to close menu on click outside */}
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setActiveContextMenu(null)}
+                            />
+
+                            {/* Context Menu */}
+                            <div className="absolute top-12 left-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50 min-w-max">
+                              <button
+                                onClick={() => {
+                                  toggleComplete(task.id);
+                                  setActiveContextMenu(null);
+                                }}
+                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${
+                                  isCompleted
+                                    ? 'text-emerald-600 hover:bg-emerald-50'
+                                    : 'text-slate-700 hover:bg-indigo-50'
+                                }`}
+                              >
+                                <CheckCircle size={16} />
+                                <span>{isCompleted ? 'Mark incomplete' : 'Mark complete'}</span>
+                              </button>
+                              <div className="border-t border-slate-200" />
+                              <button
+                                onClick={() => {
+                                  setEditingTask(task);
+                                  setShowForm(true);
+                                  setActiveContextMenu(null);
+                                }}
+                                className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                              >
+                                <Edit2 size={16} />
+                                <span>Edit</span>
+                              </button>
+                              <div className="border-t border-slate-200" />
+                              <button
+                                onClick={() => {
+                                  deleteTask(task.id);
+                                  setActiveContextMenu(null);
+                                }}
+                                className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                              >
+                                <Trash2 size={16} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     );
                   })}
