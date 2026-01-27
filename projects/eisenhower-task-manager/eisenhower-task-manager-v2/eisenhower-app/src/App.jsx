@@ -1765,9 +1765,9 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
     // Set default range based on zoom level
     const zoomRanges = {
-      daily: 7,
-      weekly: 30,
-      monthly: 90,
+      daily: 3,
+      weekly: 28,
+      monthly: 84,
       quarterly: 365,
       yearly: 730
     };
