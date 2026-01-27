@@ -507,19 +507,9 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
                 }
                 results[f"kp_{range_name}"] = kp_json
 
-        # EOP data - slice from main lod_json data if available
-        if lod_json and "labels" in lod_json and "data" in lod_json:
-            labels = lod_json["labels"]
-            data = lod_json["data"]
-            # Slice to requested range (most recent N days)
-            cutoff_idx = max(0, len(labels) - days)
-            sliced_json = {
-                "labels": labels[cutoff_idx:],
-                "data": data[cutoff_idx:]
-            }
-            results[f"lod_{range_name}"] = sliced_json
-        elif not eop_all.empty:
-            # Fallback to filtering eop_all if available
+        # EOP data - use full eop_all for proper time-range slicing
+        if not eop_all.empty:
+            # Filter eop_all to requested date range (proper time-range selection)
             eop_subset = eop_all[(eop_all["date"] >= cutoff) & (eop_all["date"] <= now)].copy()
             if not eop_subset.empty:
                 lod_data_json = {
