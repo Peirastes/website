@@ -481,6 +481,8 @@ def main():
             print(f"      {station}: No data retrieved from any source")
 
     normalized_mag_data = {}
+    mag_json = None  # Initialize to None in case magnetometer data is unavailable
+
     if mag_data_by_station:
         # Normalize magnetometer data: convert to z-scores
         date_range = [str(d.date()) for d in pd.date_range(start_time.date(), end_time.date(), freq="D")]
@@ -520,6 +522,8 @@ def main():
         }
         (assets_dir / "mag_data.json").write_text(json.dumps(mag_json))
         print("    [OK] mag_data.json")
+    else:
+        print("    WARNING: No magnetometer data available")
 
     # 6. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
