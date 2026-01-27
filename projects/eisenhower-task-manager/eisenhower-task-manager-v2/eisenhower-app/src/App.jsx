@@ -1768,9 +1768,9 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     return 'yearly';
   };
 
-  // Handle mouse wheel zoom (Ctrl+scroll)
+  // Handle mouse wheel zoom (Alt+scroll)
   const handleChartWheel = (e) => {
-    if (!e.ctrlKey) return;
+    if (!e.altKey) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.85 : 1.15; // scroll down = zoom out
     const newScale = timelineScale * delta;
@@ -1958,7 +1958,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
-                  title="Click to set, or use Ctrl+Scroll to zoom"
+                  title="Click to set, or use Alt+Scroll to zoom"
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                 </button>
