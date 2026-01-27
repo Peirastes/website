@@ -6,28 +6,31 @@
 
 const spriteCache = {};
 const assetCache = {}; // Cache loaded PNG assets
-const SPRITE_BASE_PATH = '/assets/sprites/kenney/';
 
 /**
- * Unit ID to sprite file mapping
+ * Unit ID to sprite file mapping (OpenHV 90s pixel art assets)
  */
 const UNIT_SPRITE_MAP = {
-  'trooper': 'scifiUnit_01.png',
-  'heavyGunner': 'scifiUnit_02.png',
-  'commando': 'scifiUnit_03.png',
-  'juggernaut': 'scifiUnit_04.png',
-  'scoutBike': 'scifiUnit_05.png',
-  'lightTank': 'scifiUnit_06.png',
-  'battleTank': 'scifiUnit_07.png',
-  'siegeWalker': 'scifiUnit_08.png',
-  'drone': 'scifiUnit_09.png',
-  'interceptor': 'scifiUnit_10.png',
-  'gunship': 'scifiUnit_11.png',
-  'bomber': 'scifiUnit_12.png',
-  'swarmling': 'scifiUnit_13.png',
-  'stalker': 'scifiUnit_14.png',
-  'ravager': 'scifiUnit_15.png',
-  'leviathan': 'scifiUnit_16.png',
+  // Infantry
+  'trooper': '/assets/sprites/infantry/trooper.png',
+  'heavyGunner': '/assets/sprites/infantry/heavy-gunner.png',
+  'commando': '/assets/sprites/infantry/commando.png',
+  'juggernaut': '/assets/sprites/infantry/juggernaut.png',
+  // Mobile
+  'scoutBike': '/assets/sprites/mobile/scout-bike.png',
+  'lightTank': '/assets/sprites/mobile/light-tank.png',
+  'battleTank': '/assets/sprites/mobile/battle-tank.png',
+  'siegeWalker': '/assets/sprites/mobile/siege-walker.png',
+  // Aviation
+  'drone': '/assets/sprites/aviation/drone.png',
+  'interceptor': '/assets/sprites/aviation/interceptor.png',
+  'gunship': '/assets/sprites/aviation/gunship.png',
+  'bomber': '/assets/sprites/aviation/bomber.png',
+  // Organic
+  'swarmling': '/assets/sprites/organic/swarmling.png',
+  'stalker': '/assets/sprites/organic/stalker.png',
+  'ravager': '/assets/sprites/organic/ravager.png',
+  'leviathan': '/assets/sprites/organic/leviathan.png',
 };
 
 /**
@@ -46,6 +49,14 @@ const loadImage = async (imagePath) => {
  * Get or create a sprite for a unit
  */
 export const getUnitSprite = (unitData, faction, size = 32) => {
+  if (!unitData || !faction) {
+    // Return a blank canvas if data is missing
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    return canvas;
+  }
+
   const cacheKey = `${unitData.id}-${faction.id}-${size}`;
 
   if (spriteCache[cacheKey]) {
@@ -58,9 +69,8 @@ export const getUnitSprite = (unitData, faction, size = 32) => {
   const ctx = canvas.getContext('2d');
 
   // Try to load asset sprite, fall back to procedural
-  const spriteFile = UNIT_SPRITE_MAP[unitData.id];
-  if (spriteFile) {
-    loadAssetSpriteWithOverlay(ctx, spriteFile, unitData, faction, size)
+  if (UNIT_SPRITE_MAP[unitData.id]) {
+    loadAssetSpriteWithOverlay(ctx, unitData.id, unitData, faction, size)
       .then(() => {
         spriteCache[cacheKey] = canvas;
       })
@@ -83,23 +93,31 @@ export const getUnitSprite = (unitData, faction, size = 32) => {
 /**
  * Load asset sprite and apply faction color overlay
  */
-const loadAssetSpriteWithOverlay = async (ctx, spriteFile, unitData, faction, size) => {
+const loadAssetSpriteWithOverlay = async (ctx, unitId, unitData, faction, size) => {
   try {
+    const imagePath = UNIT_SPRITE_MAP[unitId];
+
     // Check cache first
-    if (!assetCache[spriteFile]) {
-      const imagePath = SPRITE_BASE_PATH + spriteFile;
-      assetCache[spriteFile] = await loadImage(imagePath);
+    if (!assetCache[imagePath]) {
+      assetCache[imagePath] = await loadImage(imagePath);
     }
 
-    const img = assetCache[spriteFile];
+    const img = assetCache[imagePath];
 
-    // Draw the base sprite scaled to size
-    ctx.drawImage(img, 0, 0, size, size);
+    // Use pixel-perfect rendering for retro look
+    ctx.imageSmoothingEnabled = false;
+
+    // Calculate center position
+    const x = (size - img.width) / 2;
+    const y = (size - img.height) / 2;
+
+    // Draw the base sprite centered on canvas
+    ctx.drawImage(img, x, y);
 
     // Apply faction color overlay
     applyFactionColorOverlay(ctx, faction, size);
   } catch (error) {
-    console.warn(`Could not load sprite ${spriteFile}: ${error.message}`);
+    console.warn(`Could not load sprite for unit ${unitId}: ${error.message}`);
     throw error;
   }
 };

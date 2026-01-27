@@ -245,3 +245,81 @@ export function CRTOverlay() {
     </div>
   )
 }
+
+// ============================================
+// UNIT SPRITE
+// ============================================
+export function UnitSprite({ unit, size = 48, showLabel = false, style }) {
+  const [imageError, setImageError] = useState(false)
+
+  const spriteUrl = unit?.sprite
+  const hasSpriteAsset = spriteUrl && !imageError
+
+  if (hasSpriteAsset) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', ...style }}>
+        <img
+          src={spriteUrl}
+          alt={unit?.name}
+          style={{
+            width: size,
+            height: size,
+            imageRendering: 'pixelated',
+            filter: 'drop-shadow(0 0 8px rgba(0, 255, 159, 0.3))',
+            borderRadius: '2px',
+          }}
+          onError={() => setImageError(true)}
+        />
+        {showLabel && (
+          <span
+            style={{
+              fontSize: '12px',
+              fontFamily: 'Orbitron',
+              color: '#8899aa',
+              textAlign: 'center',
+              maxWidth: size + 20,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}
+          >
+            {unit?.name}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  // Fallback to icon if sprite fails to load
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', ...style }}>
+      <div
+        style={{
+          fontSize: size * 0.8,
+          width: size,
+          height: size,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          filter: 'drop-shadow(0 0 8px rgba(0, 255, 159, 0.3))',
+        }}
+      >
+        {unit?.icon}
+      </div>
+      {showLabel && (
+        <span
+          style={{
+            fontSize: '12px',
+            fontFamily: 'Orbitron',
+            color: '#8899aa',
+            textAlign: 'center',
+            maxWidth: size + 20,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}
+        >
+          {unit?.name}
+        </span>
+      )}
+    </div>
+  )
+}

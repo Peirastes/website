@@ -1,6 +1,50 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { HoloPanel, Button, ProgressBar } from '../ui/index.jsx'
-import { UNIT_CHASSIS, DIVISIONS } from '../../data/gameData.js'
+import { UNIT_CHASSIS, DIVISIONS, FACTIONS } from '../../data/gameData.js'
+import { getUnitSprite } from '../../utils/spriteGenerator.js'
+
+/**
+ * Helper function to get faction object by ID or key
+ */
+const getFactionObject = (factionInput) => {
+  if (!factionInput) return FACTIONS.CRIMSON_DOMINION // default
+
+  // If it's already an object with an id, return it
+  if (factionInput.id) return factionInput
+
+  // If it's a string ID, find the matching faction
+  const factionId = factionInput.toLowerCase()
+  return Object.values(FACTIONS).find(f => f.id === factionId) || FACTIONS.CRIMSON_DOMINION
+}
+
+/**
+ * Sprite Preview Component - renders unit sprite canvas
+ */
+const SpritePreview = ({ unit, faction, size = 120 }) => {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !unit) return
+
+    const factionObj = getFactionObject(faction)
+    const sprite = getUnitSprite(unit, factionObj, size)
+    const ctx = canvasRef.current.getContext('2d')
+    ctx.drawImage(sprite, 0, 0)
+  }, [unit, faction, size])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      style={{
+        imageRendering: 'auto',
+        border: '1px solid #00ff9f40',
+        borderRadius: '2px',
+      }}
+    />
+  )
+}
 
 export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
   const [viewMode, setViewMode] = useState('squad')
@@ -33,7 +77,7 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
       if (unit) {
         totalHP += unit.hp
         totalDamage += unit.damage
-        totalSpeed += unit.speed
+        totalSpeed += unit.baseSpeed
       }
     })
 
@@ -179,6 +223,7 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
 
   const renderUnitList = () => {
     const units = player.loadouts[player.activeLoadout].units
+    const playerFaction = getFactionObject(player.faction)
 
     if (units.length === 0) {
       return (
@@ -198,7 +243,7 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {units.map((unitId) => {
           const unit = getUnitById(unitId)
           if (!unit) return null
@@ -208,46 +253,44 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
               key={unitId + Math.random()}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '50px 1fr auto 1fr auto',
-                gap: '15px',
+                gridTemplateColumns: '120px 1fr auto',
+                gap: '20px',
                 alignItems: 'center',
-                padding: '12px',
+                padding: '15px',
                 background: 'rgba(0, 255, 159, 0.05)',
                 border: '1px solid #00ff9f30',
                 borderRadius: '2px',
               }}
             >
-              {/* Icon */}
-              <div style={{ fontSize: '40px', textAlign: 'center' }}>{unit.icon}</div>
+              {/* Sprite Preview */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <SpritePreview unit={unit} faction={playerFaction} size={160} />
+              </div>
 
-              {/* Name and Level */}
+              {/* Name, Level, and Stats */}
               <div>
-                <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#00ff9f' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#00ff9f' }}>
                   {unit.name}
                 </div>
-                <div style={{ fontSize: '12px', color: '#8899aa' }}>LEVEL 1</div>
+                <div style={{ fontSize: '12px', color: '#8899aa', marginBottom: '8px' }}>LEVEL 1</div>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    color: '#8899aa',
+                    fontFamily: 'monospace',
+                    lineHeight: '1.6',
+                  }}
+                >
+                  <div>HP: {unit.hp} | DMG: {unit.damage}</div>
+                  <div>SPD: {unit.baseSpeed} | TIER: {unit.tier}</div>
+                </div>
               </div>
-
-              {/* Stats */}
-              <div
-                style={{
-                  fontSize: '12px',
-                  color: '#8899aa',
-                  fontFamily: 'monospace',
-                  textAlign: 'right',
-                }}
-              >
-                HP: {unit.hp} | DMG: {unit.damage} | SPD: {unit.speed}
-              </div>
-
-              {/* Spacer */}
-              <div />
 
               {/* Remove Button */}
               <Button
                 variant="danger"
                 onClick={() => handleRemoveUnit(unitId)}
-                style={{ padding: '8px 12px', fontSize: '12px' }}
+                style={{ padding: '8px 12px', fontSize: '12px', height: 'fit-content' }}
               >
                 Remove
               </Button>
@@ -343,6 +386,7 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
   const renderUnitCards = () => {
     const maxCapacity = calculateMaxCapacity()
     const currentCount = calculateCurrentCount()
+    const playerFaction = getFactionObject(player.faction)
 
     const units = Object.values(UNIT_CHASSIS).filter(
       (unit) => unit.division === activeFilter
@@ -367,20 +411,22 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
               glow="#00ff9f"
               style={{
                 flex: '1 1 calc(25% - 15px)',
-                minWidth: '200px',
-                maxWidth: '280px',
+                minWidth: '220px',
+                maxWidth: '300px',
                 padding: '15px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
               }}
             >
-              {/* Header */}
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <div style={{ fontSize: '40px' }}>{unit.icon}</div>
-                <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#00ff9f' }}>
-                  {unit.name}
-                </div>
+              {/* Sprite Preview */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
+                <SpritePreview unit={unit} faction={playerFaction} size={180} />
+              </div>
+
+              {/* Name */}
+              <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#00ff9f', textAlign: 'center' }}>
+                {unit.name}
               </div>
 
               {/* Stats */}
@@ -392,8 +438,11 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
                   lineHeight: '1.6',
                 }}
               >
-                <div>HP: {unit.hp} | DMG: {unit.damage} | SPD: {unit.speed}</div>
-                <div>TIER: {unit.tier} | COST: {unit.cost} CR</div>
+                <div>HP: {unit.hp} | DMG: {unit.damage}</div>
+                <div>SPD: {unit.baseSpeed} | TIER: {unit.tier}</div>
+                <div style={{ marginTop: '6px', fontWeight: 'bold', color: '#ffc93b' }}>
+                  COST: {unit.cost} CR
+                </div>
               </div>
 
               {/* Recruit Button */}
@@ -412,9 +461,9 @@ export default function ArmyLoadout({ player, updatePlayer, addNotification }) {
 
               {/* Status Messages */}
               {!canRecruit && (
-                <div style={{ fontSize: '10px', color: '#ff3b3b', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: '#ff3b3b', textAlign: 'center' }}>
                   {player.credits < unit.cost && 'Insufficient credits'}
-                  {isAtCapacity && !( player.credits < unit.cost) && 'Squad at capacity'}
+                  {isAtCapacity && !(player.credits < unit.cost) && 'Squad at capacity'}
                 </div>
               )}
             </HoloPanel>

@@ -59,25 +59,25 @@ export const STATS = {
 // ============================================
 export const UNIT_CHASSIS = {
   // Infantry
-  TROOPER: { id: 'trooper', name: 'Trooper', division: 'infantry', tier: 1, hp: 100, damage: 15, baseSpeed: 120, cost: 50, icon: '🎖️', size: 18, combatRange: 35 },
-  HEAVY_GUNNER: { id: 'heavyGunner', name: 'Heavy Gunner', division: 'infantry', tier: 2, hp: 150, damage: 25, baseSpeed: 80, cost: 120, icon: '🔫', size: 20, combatRange: 32 },
-  COMMANDO: { id: 'commando', name: 'Commando', division: 'infantry', tier: 3, hp: 120, damage: 35, baseSpeed: 140, cost: 200, icon: '🥷', size: 16, combatRange: 38 },
-  JUGGERNAUT: { id: 'juggernaut', name: 'Juggernaut', division: 'infantry', tier: 4, hp: 300, damage: 20, baseSpeed: 70, cost: 350, icon: '🛡️', size: 26, combatRange: 28 },
+  TROOPER: { id: 'trooper', name: 'Trooper', division: 'infantry', tier: 1, hp: 100, damage: 15, baseSpeed: 120, cost: 50, icon: '🎖️', sprite: '/assets/sprites/infantry/trooper.png', size: 18, combatRange: 35 },
+  HEAVY_GUNNER: { id: 'heavyGunner', name: 'Heavy Gunner', division: 'infantry', tier: 2, hp: 150, damage: 25, baseSpeed: 80, cost: 120, icon: '🔫', sprite: '/assets/sprites/infantry/heavy-gunner.png', size: 20, combatRange: 32 },
+  COMMANDO: { id: 'commando', name: 'Commando', division: 'infantry', tier: 3, hp: 120, damage: 35, baseSpeed: 140, cost: 200, icon: '🥷', sprite: '/assets/sprites/infantry/commando.png', size: 16, combatRange: 38 },
+  JUGGERNAUT: { id: 'juggernaut', name: 'Juggernaut', division: 'infantry', tier: 4, hp: 300, damage: 20, baseSpeed: 70, cost: 350, icon: '🛡️', sprite: '/assets/sprites/infantry/juggernaut.png', size: 26, combatRange: 28 },
   // Mobile
-  SCOUT_BIKE: { id: 'scoutBike', name: 'Scout Bike', division: 'mobile', tier: 1, hp: 60, damage: 10, baseSpeed: 160, cost: 40, icon: '🏍️', size: 16, combatRange: 40 },
-  LIGHT_TANK: { id: 'lightTank', name: 'Light Tank', division: 'mobile', tier: 2, hp: 180, damage: 30, baseSpeed: 110, cost: 150, icon: '🛻', size: 22, combatRange: 35 },
-  BATTLE_TANK: { id: 'battleTank', name: 'Battle Tank', division: 'mobile', tier: 3, hp: 280, damage: 45, baseSpeed: 90, cost: 280, icon: '🚛', size: 28, combatRange: 30 },
-  SIEGE_WALKER: { id: 'siegeWalker', name: 'Siege Walker', division: 'mobile', tier: 4, hp: 400, damage: 60, baseSpeed: 60, cost: 450, icon: '🤖', size: 32, combatRange: 25 },
+  SCOUT_BIKE: { id: 'scoutBike', name: 'Scout Bike', division: 'mobile', tier: 1, hp: 60, damage: 10, baseSpeed: 160, cost: 40, icon: '🏍️', sprite: '/assets/sprites/mobile/scout-bike.png', size: 16, combatRange: 40 },
+  LIGHT_TANK: { id: 'lightTank', name: 'Light Tank', division: 'mobile', tier: 2, hp: 180, damage: 30, baseSpeed: 110, cost: 150, icon: '🛻', sprite: '/assets/sprites/mobile/light-tank.png', size: 22, combatRange: 35 },
+  BATTLE_TANK: { id: 'battleTank', name: 'Battle Tank', division: 'mobile', tier: 3, hp: 280, damage: 45, baseSpeed: 90, cost: 280, icon: '🚛', sprite: '/assets/sprites/mobile/battle-tank.png', size: 28, combatRange: 30 },
+  SIEGE_WALKER: { id: 'siegeWalker', name: 'Siege Walker', division: 'mobile', tier: 4, hp: 400, damage: 60, baseSpeed: 60, cost: 450, icon: '🤖', sprite: '/assets/sprites/mobile/siege-walker.png', size: 32, combatRange: 25 },
   // Aviation
-  DRONE: { id: 'drone', name: 'Recon Drone', division: 'aviation', tier: 1, hp: 40, damage: 8, baseSpeed: 180, cost: 35, icon: '🛸', size: 14, combatRange: 45 },
-  INTERCEPTOR: { id: 'interceptor', name: 'Interceptor', division: 'aviation', tier: 2, hp: 80, damage: 35, baseSpeed: 160, cost: 130, icon: '🛩️', size: 16, combatRange: 42 },
-  GUNSHIP: { id: 'gunship', name: 'Gunship', division: 'aviation', tier: 3, hp: 150, damage: 50, baseSpeed: 130, cost: 260, icon: '🚁', size: 20, combatRange: 40 },
-  BOMBER: { id: 'bomber', name: 'Bomber', division: 'aviation', tier: 4, hp: 200, damage: 80, baseSpeed: 100, cost: 400, icon: '✈️', size: 24, combatRange: 38 },
+  DRONE: { id: 'drone', name: 'Recon Drone', division: 'aviation', tier: 1, hp: 40, damage: 8, baseSpeed: 180, cost: 35, icon: '🛸', sprite: '/assets/sprites/aviation/drone.png', size: 14, combatRange: 45 },
+  INTERCEPTOR: { id: 'interceptor', name: 'Interceptor', division: 'aviation', tier: 2, hp: 80, damage: 35, baseSpeed: 160, cost: 130, icon: '🛩️', sprite: '/assets/sprites/aviation/interceptor.png', size: 16, combatRange: 42 },
+  GUNSHIP: { id: 'gunship', name: 'Gunship', division: 'aviation', tier: 3, hp: 150, damage: 50, baseSpeed: 130, cost: 260, icon: '🚁', sprite: '/assets/sprites/aviation/gunship.png', size: 20, combatRange: 40 },
+  BOMBER: { id: 'bomber', name: 'Bomber', division: 'aviation', tier: 4, hp: 200, damage: 80, baseSpeed: 100, cost: 400, icon: '✈️', sprite: '/assets/sprites/aviation/bomber.png', size: 24, combatRange: 38 },
   // Organic
-  SWARMLING: { id: 'swarmling', name: 'Swarmling', division: 'organic', tier: 1, hp: 30, damage: 12, baseSpeed: 150, cost: 25, icon: '🐛', size: 12, combatRange: 30 },
-  STALKER: { id: 'stalker', name: 'Stalker', division: 'organic', tier: 2, hp: 90, damage: 28, baseSpeed: 130, cost: 100, icon: '🦎', size: 18, combatRange: 35 },
-  RAVAGER: { id: 'ravager', name: 'Ravager', division: 'organic', tier: 3, hp: 180, damage: 40, baseSpeed: 110, cost: 220, icon: '🦖', size: 24, combatRange: 32 },
-  LEVIATHAN: { id: 'leviathan', name: 'Leviathan', division: 'organic', tier: 4, hp: 500, damage: 55, baseSpeed: 80, cost: 500, icon: '🐉', size: 30, combatRange: 28 },
+  SWARMLING: { id: 'swarmling', name: 'Swarmling', division: 'organic', tier: 1, hp: 30, damage: 12, baseSpeed: 150, cost: 25, icon: '🐛', sprite: '/assets/sprites/organic/swarmling.png', size: 12, combatRange: 30 },
+  STALKER: { id: 'stalker', name: 'Stalker', division: 'organic', tier: 2, hp: 90, damage: 28, baseSpeed: 130, cost: 100, icon: '🦎', sprite: '/assets/sprites/organic/stalker.png', size: 18, combatRange: 35 },
+  RAVAGER: { id: 'ravager', name: 'Ravager', division: 'organic', tier: 3, hp: 180, damage: 40, baseSpeed: 110, cost: 220, icon: '🦖', sprite: '/assets/sprites/organic/ravager.png', size: 24, combatRange: 32 },
+  LEVIATHAN: { id: 'leviathan', name: 'Leviathan', division: 'organic', tier: 4, hp: 500, damage: 55, baseSpeed: 80, cost: 500, icon: '🐉', sprite: '/assets/sprites/organic/leviathan.png', size: 30, combatRange: 28 },
 };
 
 // ============================================
