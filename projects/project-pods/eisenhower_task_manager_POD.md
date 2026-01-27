@@ -1,7 +1,7 @@
 # Eisenhower Task Manager - Project Overview Document (POD)
 
 **Last Updated:** January 27, 2026
-**Current Version:** 2.0.1
+**Current Version:** 2.0.2
 **Status:** ✅ Production Ready
 **License:** MIT
 
@@ -19,9 +19,9 @@ The **Eisenhower Task Manager** is a fully-featured productivity application imp
 
 | Metric | Value |
 |--------|-------|
-| **Current Version** | 2.0.1 |
+| **Current Version** | 2.0.2 |
 | **Status** | Production Ready |
-| **Lines of Code (App)** | 2,284 (src/App.jsx) |
+| **Lines of Code (App)** | 2,320 (src/App.jsx) |
 | **Lines of Code (PIN)** | 114 (src/components/PINModal.jsx) |
 | **Backend (Server)** | 117 lines (Express.js) |
 | **Build Size** | ~202 KB (gzipped: ~60 KB) |
@@ -37,6 +37,9 @@ The **Eisenhower Task Manager** is a fully-featured productivity application imp
 - ✅ **Eisenhower Matrix View** - 4-quadrant prioritization (Urgent/Important)
 - ✅ **List View** - Sortable, filterable table interface
 - ✅ **Gantt Chart View** - Timeline visualization with time estimates
+  - ✅ **History Toggle** - Switch between "Today Forward" and full historical timeline
+  - ✅ **Timeline Controls** - Zoom levels (daily, weekly, monthly, quarterly, yearly)
+  - ✅ **Grouping Options** - View tasks grouped by Quadrant or Category
 - ✅ **Task Recurrence** - Once, Daily, Weekly, Monthly, Yearly patterns
 - ✅ **Task Categories & Subcategories** - Customizable organization
 - ✅ **Progress Tracking** - Percentage completion for long-running tasks
@@ -195,7 +198,14 @@ eisenhower-task-manager-v2/
 
 ---
 
-## 📋 Recent Changes (v2.0 → v2.0.1)
+## 📋 Recent Changes (v2.0 → v2.0.2)
+
+### v2.0.2 (January 27, 2026)
+- ✅ **Gantt Chart History Toggle** - Switch between "Today Forward" and full historical timeline
+- ✅ **Enhanced Timeline Controls** - Better visibility of task history and project scope
+- ✅ Smart date range calculation for historical data
+- ✅ Integrated with existing filters and zoom controls
+- ✅ Production build deployed to live website
 
 ### v2.0.1 (January 2026)
 - ✅ Planning/Execution Score feature finalized
@@ -501,6 +511,9 @@ CSS Size:      27 KB
 - ✅ Completion ratings modal appears
 - ✅ Export generates JSON file
 - ✅ Import loads JSON file correctly
+- ✅ Gantt chart History toggle button works
+- ✅ Timeline switches between "Today Forward" and full history
+- ✅ Zoom and grouping controls functional in Gantt view
 
 **Data Persistence:**
 - ✅ localStorage mode: Tasks persist in browser storage
@@ -518,7 +531,7 @@ CSS Size:      27 KB
 
 ## 📝 Conclusion
 
-The **Eisenhower Task Manager v2.0.1** is a fully-featured, production-ready productivity application. It successfully implements the Eisenhower Decision Matrix with powerful analytics, multiple visualization modes, and flexible data management.
+The **Eisenhower Task Manager v2.0.2** is a fully-featured, production-ready productivity application. It successfully implements the Eisenhower Decision Matrix with powerful analytics, multiple visualization modes, and flexible data management.
 
 **Status:** ✅ **Complete and Stable**
 **Quality:** ✅ **Production Ready**
@@ -535,5 +548,5 @@ The application is ready for:
 ---
 
 **Last Updated:** January 27, 2026
-**Version:** 2.0.1
+**Version:** 2.0.2
 **Next Review:** Q2 2026
