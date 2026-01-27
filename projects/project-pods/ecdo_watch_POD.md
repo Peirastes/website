@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-27
 **Status:** Production System (All 7 Implementation Phases Complete)
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-27 (Recent fixes deployed)
 
 ---
 
@@ -11,6 +11,27 @@
 ECDO Watch is a **real-time geophysics monitoring system** that tracks Earth-system anomalies across three independent channels: external forcing (Kp index), internal dynamics (Earth Orientation), and magnetic fields. The system implements a **falsification-first methodology** requiring quiet-day gating, baseline-normalized z-scores, and multi-channel coherence before escalating alert levels.
 
 **Current State:** Production system with daily automation. All 7 implementation phases complete and tested. Ready for deployment with no additional development needed.
+
+---
+
+## Recent Updates (2026-01-27)
+
+### Bug Fixes Deployed
+1. **Fixed Time Range Selector** (commit: 5b4bdbf)
+   - Issue: Clicking time range buttons (30d, 1y, 5y, 10y) had no effect
+   - Root Cause: Failed C20 data file fetch caused `fetchDataFromJSON` to return null
+   - Solution: Removed failed C20 fetch; C20 now uses LOD data as fallback (acceptable since C20 is confirmatory channel only)
+   - Impact: All time ranges now load correctly with real data
+
+2. **Fixed Kp Index Data Display** (commit: f5ff1b5)
+   - Issue: Kp Index chart remained empty/invisible despite data loading
+   - Root Cause: Missing else clause in `alignRecentData` function when Kp had more data points than LOD baseline
+   - Solution: Added proper handling for longer data arrays (mirrors magnetometer alignment logic)
+   - Impact: Kp Index now displays on all time ranges regardless of data length
+
+**Commits:**
+- `5b4bdbf` - Fix ECDO Watch time range selector not updating
+- `f5ff1b5` - Fix Kp Index data not displaying - handle longer data arrays
 
 ---
 
@@ -495,7 +516,7 @@ Get-Content logs/ecdo_watch_*.log -Tail 50
 - All APIs responding normally
 - Safe defaults in place
 
-**Last Verified:** 2026-01-27 14:50 UTC
+**Last Verified:** 2026-01-27 23:45 UTC (after bug fixes deployed)
 
 ---
 
