@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/eisenhower-task-manager/eisenhower-task-manager-v2/eisenhower-app/dist/',
+  base: '/projects/eisenhower-task-manager/eisenhower-task-manager-v2/eisenhower-app/dist/',
   server: {
     port: 5173
   }
