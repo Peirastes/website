@@ -92,7 +92,6 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
   try {
     const kpRes = await fetch(`./assets/kp_${timeRange}.json`);
     const lodRes = await fetch(`./assets/lod_${timeRange}.json`);
-    const c20Res = await fetch(`./assets/c20_${timeRange}.json`);
     const aaRes = await fetch('./assets/historical_aa.json');
     const pmRes = await fetch('./assets/historical_pm.json');
     const magRes = await fetch(`./assets/mag_${timeRange}.json`);
@@ -114,12 +113,8 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       lodData = await fallback.json();
     }
 
-    if (c20Res.ok) {
-      c20Data = await c20Res.json();
-    } else {
-      const fallback = await fetch('./assets/c20_data.json');
-      c20Data = await fallback.json();
-    }
+    // C20 uses LOD data (same shape)
+    c20Data = lodData;
 
     if (magRes.ok) {
       magData = await magRes.json();
