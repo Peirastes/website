@@ -567,8 +567,11 @@ const alignRecentData = (kpData, lodData, magData) => {
   // Align Kp to LOD time axis
   const kpAligned = { labels: baseLabels, data: Array(baseLength).fill(null), is_quiet: Array(baseLength).fill(null) };
   if (kpData && kpData.data) {
-    const kpStartIdx = baseLength - kpData.labels.length;
+    const kpLen = kpData.labels.length;
+    const kpStartIdx = baseLength - kpLen;
+
     if (kpStartIdx >= 0) {
+      // Kp data fits within range - place at the end
       kpData.data.forEach((val, i) => {
         kpAligned.data[kpStartIdx + i] = val;
       });
@@ -577,6 +580,17 @@ const alignRecentData = (kpData, lodData, magData) => {
         kpData.is_quiet.forEach((val, i) => {
           kpAligned.is_quiet[kpStartIdx + i] = val;
         });
+      }
+    } else {
+      // Kp data is longer than range - take the most recent baseLength days
+      const offset = kpLen - baseLength;
+      for (let i = 0; i < baseLength; i++) {
+        kpAligned.data[i] = kpData.data[offset + i];
+      }
+      if (kpData.is_quiet) {
+        for (let i = 0; i < baseLength; i++) {
+          kpAligned.is_quiet[i] = kpData.is_quiet[offset + i];
+        }
       }
     }
   }
