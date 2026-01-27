@@ -1,0 +1,60 @@
+{
+  "alerts_enabled": false,
+  "email": {
+    "enabled": false,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "from_address": "your-email@example.com",
+    "to_addresses": [
+      "admin@example.com"
+    ],
+    "use_tls": true,
+    "username": "your-email@example.com",
+    "password": "your-app-password"
+  },
+  "webhooks": {
+    "slack": {
+      "enabled": false,
+      "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      "channel": "#alerts",
+      "username": "ECDO Watch"
+    },
+    "discord": {
+      "enabled": false,
+      "url": "https://discordapp.com/api/webhooks/YOUR/WEBHOOK/URL"
+    }
+  },
+  "alert_types": {
+    "script_failure": {
+      "enabled": true,
+      "email": true,
+      "webhook": true,
+      "template": "ECDO Watch: Data generation FAILED at {timestamp} UTC. Error: {error_message}"
+    },
+    "data_stale": {
+      "enabled": true,
+      "email": true,
+      "webhook": true,
+      "threshold_hours": 26,
+      "template": "ECDO Watch: Data is STALE (last update {age_hours}h ago). Check task scheduler or logs."
+    },
+    "magnetometer_down": {
+      "enabled": true,
+      "email": false,
+      "webhook": true,
+      "template": "ECDO Watch: Magnetometer data unavailable for {failed_stations}. Status: {status}"
+    },
+    "watch_level_triggered": {
+      "enabled": true,
+      "email": true,
+      "webhook": true,
+      "template": "ECDO Watch: WATCH level detected. Multi-channel coherent anomaly detected."
+    }
+  },
+  "quiet_hours": {
+    "enabled": false,
+    "start_utc": 22,
+    "end_utc": 6,
+    "description": "Do not send alerts during these hours (UTC)"
+  }
+}

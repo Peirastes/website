@@ -1727,6 +1727,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   const [timelineScale, setTimelineScale] = useState(30); // pixels per day
   const [tooltip, setTooltip] = useState(null);
   const [activeContextMenu, setActiveContextMenu] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Timeline calculation functions
   const calculateTaskTimeline = (task) => {
@@ -1778,7 +1779,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   };
 
   const getVisibleDateRange = () => {
-    let minDate = new Date();
+    let minDate = showHistory ? null : new Date();
     let maxDate = new Date();
 
     // Set default range based on current zoom level
@@ -1794,10 +1795,24 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
         const dueDate = new Date(task.dueDate);
         const timeline = calculateTaskTimeline(task);
 
-        if (timeline.start < minDate) minDate = timeline.start;
+        if (showHistory) {
+          // Include historical dates: use assignedDate if available
+          const startDate = task.assignedDate ? new Date(task.assignedDate) : timeline.start;
+          if (!minDate || startDate < minDate) minDate = startDate;
+        } else {
+          // Only adjust minDate if tasks start before today
+          const today = new Date();
+          if (timeline.start < today && timeline.start < minDate) {
+            minDate = timeline.start;
+          }
+        }
+
         if (dueDate > maxDate) maxDate = dueDate;
       }
     });
+
+    // Ensure minDate is set (fallback to today if no tasks)
+    if (!minDate) minDate = new Date();
 
     minDate.setDate(minDate.getDate() - 2);
     maxDate.setDate(maxDate.getDate() + 2);
@@ -1946,6 +1961,21 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
             </select>
           </div>
 
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-600 font-medium">Timeline:</span>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className={`px-4 py-2 border rounded-lg font-medium text-sm transition-all ${
+                showHistory
+                  ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+              }`}
+              title={showHistory ? 'Showing all historical data' : 'Showing from today forward'}
+            >
+              {showHistory ? '📜 History ON' : '📅 Today Forward'}
+            </button>
+          </div>
+
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-sm text-slate-600 font-medium">Zoom:</span>
             <div className="flex bg-slate-100 rounded-lg p-1 overflow-x-auto">
@@ -1969,6 +1999,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
         <div className="text-xs text-slate-600">
           Showing {filteredTasks.length} of {tasks.filter(t => t.dueDate).length} tasks with due dates
+          {showHistory && ' • Viewing full history'}
         </div>
       </div>
 

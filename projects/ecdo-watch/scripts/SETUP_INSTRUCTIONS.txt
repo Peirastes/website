@@ -1,0 +1,201 @@
+================================================================================
+  ECDO WATCH - AUTOMATED DAILY UPDATE SETUP
+  Quick Instructions for Windows
+================================================================================
+
+Your system is Windows, so follow the steps below.
+
+================================================================================
+OPTION 1: EASIEST - Use the Batch Setup Script
+================================================================================
+
+1. Open Command Prompt as Administrator:
+   - Press: Windows Key + R
+   - Type: cmd
+   - Right-click the result and click "Run as Administrator"
+
+2. Navigate to the scripts folder:
+   - Paste this command:
+   cd "C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\scripts"
+
+3. Run the setup script:
+   - Type this command:
+   schedule_windows_task.bat
+
+4. Confirm the task was created (you'll see a success message)
+
+5. Your system will now run the update automatically every day at 06:00 AM
+
+Done! Logs will be saved to: C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\logs\
+
+================================================================================
+OPTION 2: MORE FLEXIBLE - Use PowerShell
+================================================================================
+
+1. Open PowerShell as Administrator:
+   - Press: Windows Key + X
+   - Select: Windows PowerShell (Admin)
+
+2. Allow scripts to run (one-time):
+   - Paste this command:
+   Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+3. Navigate to scripts folder:
+   - Paste this command:
+   cd "C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\scripts"
+
+4. Run with custom time (replace 06:00 with your preferred time):
+   - Paste this command:
+   .\schedule_windows_task.ps1 -ScheduleTime "06:00"
+
+5. Task is now scheduled!
+
+Done! Logs will be saved to: C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\logs\
+
+================================================================================
+VERIFY THE TASK WAS CREATED
+================================================================================
+
+1. Open Task Scheduler:
+   - Press: Windows Key + R
+   - Type: taskschd.msc
+   - Click OK
+
+2. Look for "ECDO Watch Daily Update" in the list
+
+3. Right-click it and select "Run" to test immediately
+
+4. Monitor the task for 2-3 minutes - it should complete with no errors
+
+5. Check the logs folder to verify output was created
+
+================================================================================
+TEST THE SETUP (MANUAL RUN)
+================================================================================
+
+To test without waiting for the scheduled time:
+
+1. Open Command Prompt as Administrator
+
+2. Navigate to the scripts folder:
+   cd "C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\scripts"
+
+3. Run the wrapper directly:
+   python run_daily_update.py
+
+4. Wait 2-5 minutes for completion
+
+5. Check the logs folder for the output file
+
+6. If successful, you'll see: "✓ ECDO Watch Update SUCCESSFUL"
+
+================================================================================
+CHECK THE LOGS
+================================================================================
+
+To see what happened during the last update:
+
+1. Open File Explorer
+
+2. Navigate to:
+   C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\logs\
+
+3. Open the most recent file (named like: ecdo_watch_20260126_060015.log)
+
+4. Look for any error messages or warnings
+
+5. To check the status summary:
+   - Open: last_run_status.json
+   - It should contain: "success": true
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PROBLEM: "Python not found" or "Python is not recognized"
+SOLUTION:
+   - Ensure Python 3 is installed
+   - Type "python --version" in Command Prompt to verify
+   - If not found, install from https://www.python.org/downloads/
+
+PROBLEM: "Access Denied" when running setup scripts
+SOLUTION:
+   - Make sure you opened Command Prompt "As Administrator"
+   - Right-click, select "Run as Administrator"
+
+PROBLEM: Task doesn't appear in Task Scheduler
+SOLUTION:
+   - Check the Command Prompt output for error messages
+   - Try running the PowerShell version instead
+   - Try creating the task manually (see QUICKSTART_AUTOMATION.md)
+
+PROBLEM: Task runs but data doesn't update
+SOLUTION:
+   - Check the log file for error messages
+   - Verify your internet connection
+   - Check if IERS/USGS data sources are online:
+     https://www.noaa.gov/space-weather/swpc
+     https://datacenter.iers.org
+     https://geomag.usgs.gov
+
+PROBLEM: Logs folder doesn't exist or is empty
+SOLUTION:
+   - Create the logs folder manually:
+     mkdir C:\Users\Cole\Dropbox\Website\projects\ecdo-watch\logs
+   - Ensure the account running the task has write permissions
+   - Try running the wrapper script manually to test
+
+================================================================================
+WHAT HAPPENS NEXT
+================================================================================
+
+1. The wrapper script (run_daily_update.py) runs at the scheduled time
+2. It calls the main data generator script
+3. It validates the generated data files
+4. It creates a timestamped log file
+5. It updates the web dashboard JSON files
+6. All logs are saved to the "logs" folder
+
+You can check the logs anytime to see what happened.
+
+================================================================================
+SCHEDULE ADJUSTMENTS
+================================================================================
+
+To change the time from 06:00 to something else (e.g., 12:30 PM):
+
+Method 1 (Easiest):
+   - Open Task Scheduler (taskschd.msc)
+   - Right-click the task > "Properties"
+   - Click "Triggers" tab
+   - Double-click the daily trigger
+   - Change the time
+   - Click OK
+
+Method 2 (Command Line):
+   - Open Command Prompt as Administrator
+   - Type: schtasks /change /tn "ECDO Watch Daily Update" /st 12:30
+   - Replace 12:30 with your desired time (24-hour format)
+
+================================================================================
+FURTHER HELP
+================================================================================
+
+For detailed help and troubleshooting:
+   - Read: QUICKSTART_AUTOMATION.md (in the parent directory)
+   - Read: OPERATIONS_MAINTENANCE_PLAN.md (full ops guide)
+
+Questions? Check those files for detailed step-by-step instructions.
+
+================================================================================
+NEXT STEP
+================================================================================
+
+After verifying the setup works for a few days:
+   - Read: OPERATIONS_MAINTENANCE_PLAN.md
+   - Start Phase 1 improvements (integrate real IERS data)
+   - Monitor logs weekly
+
+Good luck! 🚀
+
+================================================================================

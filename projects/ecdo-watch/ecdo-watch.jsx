@@ -92,12 +92,13 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
   try {
     const kpRes = await fetch(`./assets/kp_${timeRange}.json`);
     const lodRes = await fetch(`./assets/lod_${timeRange}.json`);
+    const c20Res = await fetch(`./assets/c20_${timeRange}.json`);
     const aaRes = await fetch('./assets/historical_aa.json');
     const pmRes = await fetch('./assets/historical_pm.json');
     const magRes = await fetch(`./assets/mag_${timeRange}.json`);
 
     // Fallback to default files if specific range not found
-    let kpData, lodData, magData;
+    let kpData, lodData, c20Data, magData;
 
     if (kpRes.ok) {
       kpData = await kpRes.json();
@@ -113,6 +114,13 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       lodData = await fallback.json();
     }
 
+    if (c20Res.ok) {
+      c20Data = await c20Res.json();
+    } else {
+      const fallback = await fetch('./assets/c20_data.json');
+      c20Data = await fallback.json();
+    }
+
     if (magRes.ok) {
       magData = await magRes.json();
     } else {
@@ -123,7 +131,7 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
     const aaData = await (aaRes.ok ? aaRes.json() : null);
     const pmData = await (pmRes.ok ? pmRes.json() : null);
 
-    return { kpData, lodData, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData };
+    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData };
   } catch (error) {
     console.warn('Could not load real data, using fallback:', error);
     return null;
@@ -131,30 +139,128 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
 };
 
 // Chart component wrapper
-const ChartComponent = ({ type, data, options, height }) => {
+const ChartComponent = ({ type, data, options, height, quietFlags }) => {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
-  
+
   useEffect(() => {
     if (chartRef.current) {
       chartRef.current.destroy();
     }
-    
+
     const ctx = canvasRef.current.getContext('2d');
+    const chartData = { ...data, quietFlags };
+    const plugins = options.plugins ? { ...options.plugins } : {};
+
+    // Add quiet day plugin if quiet flags are provided
+    const chartOptions = { ...options };
+    if (quietFlags && quietFlags.length > 0) {
+      chartOptions.plugins = { ...plugins, [quietDayPlugin.id]: true };
+    }
+
     chartRef.current = new Chart(ctx, {
       type: type,
-      data: data,
-      options: options
+      data: chartData,
+      options: chartOptions,
+      plugins: quietFlags && quietFlags.length > 0 ? [quietDayPlugin] : []
     });
-    
+
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
       }
     };
-  }, [type, data, options]);
-  
+  }, [type, data, options, quietFlags]);
+
   return <canvas ref={canvasRef} style={{ height: height || 150, width: '100%' }} />;
+};
+
+const DataFreshnessIndicator = ({ metadata }) => {
+  if (!metadata || !metadata.generated_at) {
+    return null;
+  }
+
+  const generatedAt = new Date(metadata.generated_at);
+  const now = new Date();
+  const ageMs = now - generatedAt;
+  const ageMinutes = Math.floor(ageMs / 60000);
+  const ageHours = Math.floor(ageMs / 3600000);
+  const ageDays = Math.floor(ageMs / 86400000);
+
+  let ageText = "";
+  let ageColor = "#10b981"; // Green
+
+  if (ageMinutes < 60) {
+    ageText = `${ageMinutes} minute${ageMinutes !== 1 ? "s" : ""} ago`;
+  } else if (ageHours < 24) {
+    ageText = `${ageHours} hour${ageHours !== 1 ? "s" : ""} ago`;
+    ageColor = ageHours > 12 ? "#f59e0b" : "#10b981"; // Yellow if > 12 hours
+  } else {
+    ageText = `${ageDays} day${ageDays !== 1 ? "s" : ""} ago`;
+    ageColor = "#ef4444"; // Red if > 24 hours
+  }
+
+  return (
+    <div style={{
+      display: 'inline-block',
+      background: ageColor + '15',
+      border: `1px solid ${ageColor}`,
+      borderRadius: 4,
+      padding: '4px 8px',
+      fontSize: 11,
+      color: ageColor,
+      fontFamily: 'monospace'
+    }}>
+      {metadata.source_status === 'ok' ? '✓' : '⚠'} {ageText}
+    </div>
+  );
+};
+
+const DataSourceFooter = ({ kpMetadata, lodMetadata, magMetadata }) => {
+  const sources = [];
+
+  if (kpMetadata && kpMetadata.source) {
+    sources.push({
+      name: kpMetadata.source,
+      status: kpMetadata.source_status || 'ok'
+    });
+  }
+  if (lodMetadata && lodMetadata.source) {
+    sources.push({
+      name: lodMetadata.source,
+      status: lodMetadata.source_status || 'ok'
+    });
+  }
+  if (magMetadata && magMetadata.source) {
+    sources.push({
+      name: magMetadata.source,
+      status: magMetadata.source_status || 'ok'
+    });
+  }
+
+  if (sources.length === 0) return null;
+
+  return (
+    <div style={{
+      fontSize: 11,
+      color: '#7a7a8c',
+      marginTop: 20,
+      paddingTop: 16,
+      borderTop: '1px solid #252532',
+      display: 'flex',
+      gap: 16,
+      flexWrap: 'wrap'
+    }}>
+      {sources.map((source, idx) => (
+        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ color: source.status === 'ok' ? '#10b981' : source.status === 'partial' ? '#f59e0b' : '#ef4444' }}>
+            {source.status === 'ok' ? '✓' : source.status === 'partial' ? '⚠' : '✕'}
+          </span>
+          <span>{source.name}</span>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const StatusBanner = ({ level }) => {
@@ -400,6 +506,34 @@ const Metric = ({ label, value, status }) => {
   );
 };
 
+// Plugin to draw background colors for quiet days
+const quietDayPlugin = {
+  id: 'quietDayBackground',
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+    const xScale = chart.scales.x;
+    const yScale = chart.scales.y;
+
+    // Get quiet-day flags from chart data
+    const quietFlags = chart.data.quietFlags;
+    if (!quietFlags || quietFlags.length === 0) return;
+
+    const chartWidth = xScale.width;
+    const chartHeight = yScale.height;
+    const startX = xScale.left;
+    const startY = yScale.top;
+    const barWidth = chartWidth / quietFlags.length;
+
+    quietFlags.forEach((isQuiet, idx) => {
+      if (isQuiet) {
+        const x = startX + (idx * barWidth);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.05)'; // Green tint for quiet days
+        ctx.fillRect(x, startY, barWidth, chartHeight);
+      }
+    });
+  }
+};
+
 // Chart.js default options for dark theme
 const darkThemeOptions = {
   responsive: true,
@@ -436,13 +570,19 @@ const alignRecentData = (kpData, lodData, magData) => {
   const baseLength = baseLabels.length;
 
   // Align Kp to LOD time axis
-  const kpAligned = { labels: baseLabels, data: Array(baseLength).fill(null) };
+  const kpAligned = { labels: baseLabels, data: Array(baseLength).fill(null), is_quiet: Array(baseLength).fill(null) };
   if (kpData && kpData.data) {
     const kpStartIdx = baseLength - kpData.labels.length;
     if (kpStartIdx >= 0) {
       kpData.data.forEach((val, i) => {
         kpAligned.data[kpStartIdx + i] = val;
       });
+      // Also align quiet-day flags if available
+      if (kpData.is_quiet) {
+        kpData.is_quiet.forEach((val, i) => {
+          kpAligned.is_quiet[kpStartIdx + i] = val;
+        });
+      }
     }
   }
 
@@ -485,12 +625,16 @@ function ECDOWatchDashboard() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [kpData, setKpData] = useState(() => generateKpData());
   const [lodData, setLodData] = useState(() => generateLODData());
+  const [c20Data, setC20Data] = useState(() => generateLODData());  // Uses same shape as LOD
   const [magData, setMagData] = useState(() => generateMagData());
   const [aaData, setAaData] = useState(() => generateHistoricalAA(historicalTimeRange));
   const [pmData, setPmData] = useState(() => generateHistoricalPM(historicalTimeRange));
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
+  const [kpMetadata, setKpMetadata] = useState({});
+  const [lodMetadata, setLodMetadata] = useState({});
+  const [magMetadata, setMagMetadata] = useState({});
 
   // Load real data from JSON files when time range changes
   useEffect(() => {
@@ -499,9 +643,15 @@ function ECDOWatchDashboard() {
         console.log(`Loaded data for ${selectedTimeRange}:`, { kpLabels: data.kpData.labels.length, lodLabels: data.lodData.labels.length, magLabels: data.magData.labels.length, magBouNonNull: data.magData.bou.filter(x => x !== null).length });
         setKpData(data.kpData);
         setLodData(data.lodData);
+        setC20Data(data.c20Data);
         setAaData(data.aaData);
         setPmData(data.pmData);
         setMagData(data.magData);
+
+        // Extract and store metadata
+        setKpMetadata(data.kpData.metadata || {});
+        setLodMetadata(data.lodData.metadata || {});
+        setMagMetadata(data.magData.metadata || {});
       }
       setDataLoaded(true);
     }).catch(err => console.error('Error loading data:', err));
@@ -587,8 +737,8 @@ function ECDOWatchDashboard() {
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#7a7a8c', marginBottom: 8 }}>
-                Updated: {new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC
+              <div style={{ marginBottom: 8 }}>
+                <DataFreshnessIndicator metadata={kpMetadata} />
               </div>
               <div style={{ fontSize: 11 }}>
                 <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
@@ -626,6 +776,7 @@ function ECDOWatchDashboard() {
               <ChartComponent
                 type="line"
                 height={120}
+                quietFlags={alignedData.kpData.is_quiet}
                 data={{
                   labels: alignedData.kpData.labels,
                   datasets: [{
@@ -647,9 +798,14 @@ function ECDOWatchDashboard() {
                 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <Metric label="Kp Max" value="2.3" status="positive" />
               <Metric label="Dst" value="-12 nT" status="positive" />
+              <Metric
+                label="Quiet Days"
+                value={kpData && kpData.is_quiet ? `${kpData.is_quiet.filter(x => x).length}/${kpData.is_quiet.length}` : "—"}
+                status="positive"
+              />
             </div>
           </Card>
           
@@ -706,16 +862,16 @@ function ECDOWatchDashboard() {
             dataSource: "NASA GSFC SLR (Satellite Laser Ranging) long-term C20 record"
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#16161f', borderRadius: 6, marginBottom: 12, fontSize: 11, color: '#7a7a8c' }}>
-              📡 GRACE-FO data age: <strong style={{ color: '#e8e8ed' }}>47 days</strong>
+              📡 C20 data: <strong style={{ color: '#e8e8ed' }}>{c20Data && c20Data.labels ? `${c20Data.labels.length} days` : 'Loading...'}</strong>
             </div>
             <div style={{ height: 100 }}>
               <ChartComponent
                 type="line"
                 height={100}
                 data={{
-                  labels: alignedData.lodData.labels,
+                  labels: c20Data && c20Data.labels ? c20Data.labels : [],
                   datasets: [{
-                    data: alignedData.lodData.data,
+                    data: c20Data && c20Data.data ? c20Data.data : [],
                     borderColor: '#10b981',
                     tension: 0.3,
                     pointRadius: 0
@@ -731,7 +887,7 @@ function ECDOWatchDashboard() {
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="C20 z (recent)" value={alignedData.lodData.data.length > 0 && alignedData.lodData.data[alignedData.lodData.data.length - 1] !== null ? alignedData.lodData.data[alignedData.lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
+              <Metric label="C20 z (recent)" value={c20Data && c20Data.data && c20Data.data.length > 0 && c20Data.data[c20Data.data.length - 1] !== null ? c20Data.data[c20Data.data.length - 1].toFixed(2) : "—"} status="positive" />
               <Metric label="vs GIA" value="Normal" status="positive" />
             </div>
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'center' }}>
@@ -935,7 +1091,9 @@ function ECDOWatchDashboard() {
           </Card>
           
         </div>
-        
+
+        <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
+
         {/* Footer */}
         <footer style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'left' }}>
           ⚠️ This is an experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines, not probabilities of future events.

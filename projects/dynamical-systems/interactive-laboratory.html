@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patterns of Change: Interactive Laboratory</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+            min-height: 800px;
+        }
+
+        .system-panel {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .system-panel h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: grid;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: bold;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .control-value {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.85em;
+        }
+
+        .value-display {
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .phase-portrait {
+            width: 100%;
+            height: 300px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .comparison-section {
+            grid-column: 1 / -1;
+            background: #f0f7ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .comparison-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .comparison-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .comparison-item h4 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .comparison-item p {
+            color: #666;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid #0288d1;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #01579b;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-reset {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-reset:hover { background: #f57c00; }
+
+        .btn-toggle {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-toggle:hover { background: #5568d3; }
+
+        .status-bar {
+            background: #f5f5f5;
+            padding: 15px 30px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .tutorial-panel {
+            background: #fffacd;
+            border-left: 4px solid #ffd700;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .tutorial-panel h4 {
+            color: #ff8c00;
+            margin-bottom: 8px;
+        }
+
+        .preset-button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .preset-button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .metric-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .metric-box {
+            background: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.8em;
+        }
+
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin: 5px 0;
+        }
+
+        .damping-regime-indicator {
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .regime-underdamped { background: #e8f5e9; color: #2e7d32; }
+        .regime-critical { background: #fff3e0; color: #e65100; }
+        .regime-overdamped { background: #f3e5f5; color: #6a1b9a; }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .mechanical { background: #e74c3c; }
+        .electrical { background: #3498db; }
+
+        .frequency-display {
+            font-size: 0.85em;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-section {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Patterns of Change: Interactive Laboratory</h1>
+            <p>Explore the mathematical unity of dynamical systems across mechanical and electrical domains</p>
+        </div>
+
+        <!-- TUTORIAL SECTION -->
+        <div style="padding: 20px 30px; background: #f9f9f9; border-bottom: 1px solid #ddd;">
+            <div class="tutorial-panel">
+                <h4>🎓 Getting Started with the Lab</h4>
+                <p><strong>What you'll see:</strong> Two side-by-side systems (mechanical and electrical) that behave identically when parameters match.</p>
+                <p><strong>How to use it:</strong> Adjust sliders and watch how ω₀ and ζ synchronize. Try the preset scenarios below to explore different behaviors.</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <strong>📋 Preset Scenarios:</strong><br>
+                <button class="preset-button" onclick="loadPreset('underdamped')">Underdamped (ζ < 1)</button>
+                <button class="preset-button" onclick="loadPreset('critical')">Critically Damped (ζ ≈ 1)</button>
+                <button class="preset-button" onclick="loadPreset('overdamped')">Overdamped (ζ > 1)</button>
+                <button class="preset-button" onclick="loadPreset('resonance')">Near Resonance</button>
+                <button class="preset-button" onclick="loadPreset('fast')">Fast Oscillator</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- MECHANICAL SYSTEM -->
+            <div class="system-panel">
+                <h2>🔧 Mechanical System</h2>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">Mass-Spring-Damper Oscillator</p>
+
+                <div class="canvas-container">
+                    <canvas id="mechanicalCanvas"></canvas>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="mechanicalMass">Mass (m): <span id="massValue">1.0</span> kg</label>
+                        <input type="range" id="mechanicalMass" min="0.5" max="5" step="0.1" value="1.0">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="mechanicalStiffness">Stiffness (k): <span id="stiffValue">100</span> N/m</label>
+                        <input type="range" id="mechanicalStiffness" min="10" max="300" step="10" value="100">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="mechanicalDamping">Damping (b): <span id="dampValue">10</span> N·s/m</label>
+                        <input type="range" id="mechanicalDamping" min="0" max="100" step="2" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="mechanicalForce">Drive Force: <span id="forceValue">5</span> N</label>
+                        <input type="range" id="mechanicalForce" min="0" max="20" step="0.5" value="5">
+                    </div>
+                </div>
+
+                <div class="frequency-display">
+                    <strong>ω₀ =</strong> <span id="mechOmega">10.00</span> rad/s |
+                    <strong>ζ =</strong> <span id="mechZeta">0.316</span> |
+                    <strong>τ =</strong> <span id="mechTau">0.100</span> s
+                </div>
+
+                <div class="metric-display">
+                    <div class="metric-box">
+                        <div>Period (T)</div>
+                        <div class="metric-value"><span id="mechPeriod">0.628</span> s</div>
+                    </div>
+                    <div class="metric-box">
+                        <div>f (Hz)</div>
+                        <div class="metric-value"><span id="mechFreqHz">1.59</span> Hz</div>
+                    </div>
+                    <div class="metric-box">
+                        <div>Quality Factor (Q)</div>
+                        <div class="metric-value"><span id="mechQ">1.58</span></div>
+                    </div>
+                </div>
+
+                <div id="mechDampingRegime" class="damping-regime-indicator regime-underdamped">
+                    ↩️ Underdamped: Oscillates with decay
+                </div>
+
+                <canvas id="mechanicalPhasePortrait" class="phase-portrait"></canvas>
+            </div>
+
+            <!-- ELECTRICAL SYSTEM -->
+            <div class="system-panel">
+                <h2>⚡ Electrical System</h2>
+                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">RLC Circuit (Series)</p>
+
+                <div class="canvas-container">
+                    <canvas id="electricalCanvas"></canvas>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="electricalInductance">Inductance (L): <span id="inductValue">1.0</span> H</label>
+                        <input type="range" id="electricalInductance" min="0.5" max="5" step="0.1" value="1.0">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="electricalResistance">Resistance (R): <span id="resistValue">10</span> Ω</label>
+                        <input type="range" id="electricalResistance" min="0" max="100" step="2" value="10">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="electricalCapacitance">Capacitance (C): <span id="capacValue">0.01</span> F</label>
+                        <input type="range" id="electricalCapacitance" min="0.001" max="0.1" step="0.005" value="0.01">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="electricalVoltage">Drive Voltage: <span id="voltageValue">5</span> V</label>
+                        <input type="range" id="electricalVoltage" min="0" max="20" step="0.5" value="5">
+                    </div>
+                </div>
+
+                <div class="frequency-display">
+                    <strong>ω₀ =</strong> <span id="elecOmega">10.00</span> rad/s |
+                    <strong>ζ =</strong> <span id="elecZeta">0.316</span> |
+                    <strong>τ =</strong> <span id="elecTau">0.100</span> s
+                </div>
+
+                <div class="metric-display">
+                    <div class="metric-box">
+                        <div>Period (T)</div>
+                        <div class="metric-value"><span id="elecPeriod">0.628</span> s</div>
+                    </div>
+                    <div class="metric-box">
+                        <div>f (Hz)</div>
+                        <div class="metric-value"><span id="elecFreqHz">1.59</span> Hz</div>
+                    </div>
+                    <div class="metric-box">
+                        <div>Quality Factor (Q)</div>
+                        <div class="metric-value"><span id="elecQ">1.58</span></div>
+                    </div>
+                </div>
+
+                <div id="elecDampingRegime" class="damping-regime-indicator regime-underdamped">
+                    ↩️ Underdamped: Oscillates with decay
+                </div>
+
+                <canvas id="electricalPhasePortrait" class="phase-portrait"></canvas>
+            </div>
+
+            <!-- COMPARISON SECTION -->
+            <div class="comparison-section">
+                <h3>📊 Cross-Domain Analogy Verification</h3>
+
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <h4>Parameter Correspondence</h4>
+                        <p>
+                            <strong>m ↔ L</strong> (inertia)<br>
+                            <strong>k ↔ 1/C</strong> (stiffness)<br>
+                            <strong>b ↔ R</strong> (dissipation)
+                        </p>
+                    </div>
+
+                    <div class="comparison-item">
+                        <h4>Natural Frequency</h4>
+                        <p>
+                            Mechanical: ω₀ = √(k/m)<br>
+                            Electrical: ω₀ = 1/√(LC)<br>
+                            <strong style="color: #667eea;">Match: <span id="freqMatch">✓</span></strong>
+                        </p>
+                    </div>
+
+                    <div class="comparison-item">
+                        <h4>Damping Ratio</h4>
+                        <p>
+                            Mechanical: ζ = b/(2√(km))<br>
+                            Electrical: ζ = R/(2)√(C/L)<br>
+                            <strong style="color: #667eea;">Match: <span id="zetaMatch">✓</span></strong>
+                        </p>
+                    </div>
+
+                    <div class="comparison-item">
+                        <h4>Universal Equation</h4>
+                        <p>
+                            Both satisfy:<br>
+                            ü + 2ζω₀u̇ + ω₀²u = f(t)<br>
+                            <strong style="color: #667eea;">Proof: Part XI.8.1</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color mechanical"></div>
+                        <span>Mechanical (Red)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color electrical"></div>
+                        <span>Electrical (Blue)</span>
+                    </div>
+                    <div class="legend-item">
+                        <strong style="color: #667eea;">Identical when parameters correspond</strong>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>🎓 Key Insight (Theorem XI.8.1):</strong> The mechanical and electrical systems obey <strong>identical differential equations</strong>
+                    under the parameter correspondence m↔L, k↔1/C, b↔R. This is not an analogy or approximation—it is exact mathematical identity.
+                    Change the parameters in one panel, observe the natural frequency (ω₀) and damping ratio (ζ) update in real-time.
+                    They match exactly because the systems are mathematically identical.
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <strong>💡 Interactive Learning:</strong> Adjust the sliders to explore how parameters affect system behavior.
+            Observe that ω₀ and ζ remain synchronized across domains. Try underdamped (ζ &lt; 1), critically damped (ζ ≈ 1), and overdamped (ζ &gt; 1) regimes.
+        </div>
+
+        <div style="padding: 20px 30px; background: #f5f5f5; border-top: 1px solid #ddd;">
+            <h3 style="color: #333; margin-bottom: 15px;">📚 What to Look For in Each Regime</h3>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #2e7d32;">
+                    <h4 style="color: #2e7d32; margin-bottom: 10px;">↩️ Underdamped (ζ &lt; 1)</h4>
+                    <p style="font-size: 0.9em; line-height: 1.5; color: #666;">
+                        <strong>Animation:</strong> Mass/charge oscillates with decreasing amplitude.
+                        <br><strong>Phase Portrait:</strong> Spiral trajectory curving inward toward origin.
+                        <br><strong>Why:</strong> Restoring force (spring/capacitor) dominates. Damping is weak.
+                        <br><strong>Application:</strong> RLC circuits for filtering, shock absorbers.
+                    </p>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #e65100;">
+                    <h4 style="color: #e65100; margin-bottom: 10px;">➡️ Critically Damped (ζ ≈ 1)</h4>
+                    <p style="font-size: 0.9em; line-height: 1.5; color: #666;">
+                        <strong>Animation:</strong> Mass/charge returns smoothly to rest WITHOUT overshooting.
+                        <br><strong>Phase Portrait:</strong> Smooth curve approaching origin, no spiral.
+                        <br><strong>Why:</strong> Damping perfectly balances spring stiffness.
+                        <br><strong>Application:</strong> Door closers, car suspensions (ideal comfort).
+                    </p>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #6a1b9a;">
+                    <h4 style="color: #6a1b9a; margin-bottom: 10px;">🐢 Overdamped (ζ &gt; 1)</h4>
+                    <p style="font-size: 0.9em; line-height: 1.5; color: #666;">
+                        <strong>Animation:</strong> Mass/charge drifts slowly back without any oscillation.
+                        <br><strong>Phase Portrait:</strong> Slow exponential approach along velocity axis.
+                        <br><strong>Why:</strong> Damping is so strong it suppresses all oscillation.
+                        <br><strong>Application:</strong> Viscous brakes, heavy damped isolation mounts.
+                    </p>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; background: white; padding: 15px; border-radius: 4px; border-left: 4px solid #0288d1;">
+                <h4 style="color: #0288d1; margin-bottom: 10px;">🔬 Key Experiment: Parameter Correspondence</h4>
+                <ol style="font-size: 0.9em; line-height: 1.6; color: #666; margin-left: 20px;">
+                    <li><strong>Start with "Underdamped" preset.</strong> Notice both systems oscillate identically.</li>
+                    <li><strong>Adjust mechanical mass (m)</strong> upward. Then adjust electrical inductance (L) by the same ratio.</li>
+                    <li><strong>Observe:</strong> Natural frequency ω₀ stays synchronized. Theorem XI.8.1 verified!</li>
+                    <li><strong>Now increase mechanical damping (b).</strong> Increase electrical resistance (R) by the same ratio.</li>
+                    <li><strong>Notice:</strong> Both systems show identical damping behavior. The analogy is exact, not approximate.</li>
+                    <li><strong>Try changing drive (F or V).</strong> Magnitude of response scales identically—because Power = F·v = p·Q!</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulation parameters
+        const simulation = {
+            time: 0,
+            dt: 0.01,
+            maxTime: 5,
+            running: true
+        };
+
+        // Mechanical system state
+        const mechanical = {
+            m: 1.0, k: 100, b: 10, F: 5,
+            x: 0, v: 0, a: 0,
+            history: []
+        };
+
+        // Electrical system state
+        const electrical = {
+            L: 1.0, R: 10, C: 0.01, V: 5,
+            q: 0, i: 0, v_l: 0,
+            history: []
+        };
+
+        // Canvas contexts
+        const mechCanvas = document.getElementById('mechanicalCanvas').getContext('2d');
+        const elecCanvas = document.getElementById('electricalCanvas').getContext('2d');
+        const mechPhaseCanvas = document.getElementById('mechanicalPhasePortrait').getContext('2d');
+        const elecPhaseCanvas = document.getElementById('electricalPhasePortrait').getContext('2d');
+
+        // Update parameter displays
+        function updateDisplays() {
+            document.getElementById('massValue').textContent = mechanical.m.toFixed(1);
+            document.getElementById('stiffValue').textContent = mechanical.k.toFixed(0);
+            document.getElementById('dampValue').textContent = mechanical.b.toFixed(1);
+            document.getElementById('forceValue').textContent = mechanical.F.toFixed(1);
+
+            document.getElementById('inductValue').textContent = electrical.L.toFixed(1);
+            document.getElementById('resistValue').textContent = electrical.R.toFixed(0);
+            document.getElementById('capacValue').textContent = electrical.C.toFixed(3);
+            document.getElementById('voltageValue').textContent = electrical.V.toFixed(1);
+
+            // Calculate parameters
+            const mechOmega = Math.sqrt(mechanical.k / mechanical.m);
+            const mechZeta = mechanical.b / (2 * Math.sqrt(mechanical.k * mechanical.m));
+            const mechTau = 1 / mechOmega;
+            const mechPeriod = 2 * Math.PI / mechOmega;
+            const mechFreqHz = mechOmega / (2 * Math.PI);
+            const mechQ = 1 / (2 * mechZeta);
+
+            const elecOmega = 1 / Math.sqrt(electrical.L * electrical.C);
+            const elecZeta = electrical.R / (2 * Math.sqrt(electrical.L / electrical.C));
+            const elecTau = 1 / elecOmega;
+            const elecPeriod = 2 * Math.PI / elecOmega;
+            const elecFreqHz = elecOmega / (2 * Math.PI);
+            const elecQ = 1 / (2 * elecZeta);
+
+            document.getElementById('mechOmega').textContent = mechOmega.toFixed(2);
+            document.getElementById('mechZeta').textContent = mechZeta.toFixed(3);
+            document.getElementById('mechTau').textContent = mechTau.toFixed(3);
+            document.getElementById('mechPeriod').textContent = mechPeriod.toFixed(3);
+            document.getElementById('mechFreqHz').textContent = mechFreqHz.toFixed(2);
+            document.getElementById('mechQ').textContent = mechQ.toFixed(2);
+
+            document.getElementById('elecOmega').textContent = elecOmega.toFixed(2);
+            document.getElementById('elecZeta').textContent = elecZeta.toFixed(3);
+            document.getElementById('elecTau').textContent = elecTau.toFixed(3);
+            document.getElementById('elecPeriod').textContent = elecPeriod.toFixed(3);
+            document.getElementById('elecFreqHz').textContent = elecFreqHz.toFixed(2);
+            document.getElementById('elecQ').textContent = elecQ.toFixed(2);
+
+            // Update damping regime indicator
+            updateDampingRegime(mechZeta, 'mechDampingRegime');
+            updateDampingRegime(elecZeta, 'elecDampingRegime');
+
+            // Check if frequencies match
+            const freqDiff = Math.abs(mechOmega - elecOmega);
+            document.getElementById('freqMatch').textContent = freqDiff < 0.5 ? '✓' : '✗';
+            document.getElementById('zetaMatch').textContent = Math.abs(mechZeta - elecZeta) < 0.05 ? '✓' : '✗';
+        }
+
+        // Update damping regime display
+        function updateDampingRegime(zeta, elementId) {
+            const elem = document.getElementById(elementId);
+            if (zeta < 0.99) {
+                elem.textContent = '↩️  Underdamped (ζ < 1): Oscillates with exponential decay';
+                elem.className = 'damping-regime-indicator regime-underdamped';
+            } else if (zeta <= 1.01) {
+                elem.textContent = '➡️  Critically Damped (ζ ≈ 1): Fastest return without overshoot';
+                elem.className = 'damping-regime-indicator regime-critical';
+            } else {
+                elem.textContent = '🐢 Overdamped (ζ > 1): Slow exponential decay';
+                elem.className = 'damping-regime-indicator regime-overdamped';
+            }
+        }
+
+        // Preset loading
+        function loadPreset(preset) {
+            switch(preset) {
+                case 'underdamped':
+                    mechanical.m = 1.0; mechanical.k = 100; mechanical.b = 5;
+                    electrical.L = 1.0; electrical.R = 5; electrical.C = 0.01;
+                    break;
+                case 'critical':
+                    mechanical.m = 1.0; mechanical.k = 100; mechanical.b = 20;
+                    electrical.L = 1.0; electrical.R = 20; electrical.C = 0.01;
+                    break;
+                case 'overdamped':
+                    mechanical.m = 1.0; mechanical.k = 100; mechanical.b = 50;
+                    electrical.L = 1.0; electrical.R = 50; electrical.C = 0.01;
+                    break;
+                case 'resonance':
+                    mechanical.m = 1.0; mechanical.k = 100; mechanical.b = 2;
+                    electrical.L = 1.0; electrical.R = 2; electrical.C = 0.01;
+                    break;
+                case 'fast':
+                    mechanical.m = 0.5; mechanical.k = 300; mechanical.b = 10;
+                    electrical.L = 0.5; electrical.R = 10; electrical.C = 0.0033;
+                    break;
+            }
+            // Update sliders to match preset
+            document.getElementById('mechanicalMass').value = mechanical.m;
+            document.getElementById('mechanicalStiffness').value = mechanical.k;
+            document.getElementById('mechanicalDamping').value = mechanical.b;
+            document.getElementById('electricalInductance').value = electrical.L;
+            document.getElementById('electricalResistance').value = electrical.R;
+            document.getElementById('electricalCapacitance').value = electrical.C;
+            // Reset history
+            mechanical.history = [];
+            electrical.history = [];
+            simulation.time = 0;
+            updateDisplays();
+        }
+
+        // Get input values
+        function updateInputs() {
+            mechanical.m = parseFloat(document.getElementById('mechanicalMass').value);
+            mechanical.k = parseFloat(document.getElementById('mechanicalStiffness').value);
+            mechanical.b = parseFloat(document.getElementById('mechanicalDamping').value);
+            mechanical.F = parseFloat(document.getElementById('mechanicalForce').value);
+
+            electrical.L = parseFloat(document.getElementById('electricalInductance').value);
+            electrical.R = parseFloat(document.getElementById('electricalResistance').value);
+            electrical.C = parseFloat(document.getElementById('electricalCapacitance').value);
+            electrical.V = parseFloat(document.getElementById('electricalVoltage').value);
+
+            updateDisplays();
+        }
+
+        // Simulation step with improved numerical stability
+        function step() {
+            // Mechanical: m*a + b*v + k*x = F
+            // Using semi-implicit Euler for better stability
+            const mechF = mechanical.F - mechanical.b * mechanical.v - mechanical.k * mechanical.x;
+            mechanical.a = mechF / mechanical.m;
+
+            // Clamp acceleration to prevent instability with extreme parameters
+            const maxAccel = 1000;
+            if (Math.abs(mechanical.a) > maxAccel) mechanical.a = Math.sign(mechanical.a) * maxAccel;
+
+            mechanical.v += mechanical.a * simulation.dt;
+            mechanical.x += mechanical.v * simulation.dt;
+
+            // Electrical: L*di/dt + R*i + q/C = V
+            const elecForce = electrical.V - electrical.R * electrical.i - electrical.q / electrical.C;
+            const elecA = elecForce / electrical.L;
+
+            // Clamp acceleration for stability
+            if (Math.abs(elecA) > maxAccel) electrical.i = Math.sign(elecA) * maxAccel * electrical.L;
+            else {
+                electrical.i += elecA * simulation.dt;
+            }
+
+            electrical.q += electrical.i * simulation.dt;
+
+            // Store history (limit to avoid memory issues)
+            if (simulation.time % 5 < simulation.dt) {
+                mechanical.history.push({x: mechanical.x, v: mechanical.v});
+                electrical.history.push({q: electrical.q, i: electrical.i});
+
+                if (mechanical.history.length > 500) mechanical.history.shift();
+                if (electrical.history.length > 500) electrical.history.shift();
+            }
+
+            simulation.time += simulation.dt;
+            if (simulation.time > simulation.maxTime) {
+                simulation.time = 0;
+                mechanical.history = [];
+                electrical.history = [];
+            }
+        }
+
+        // Draw mechanical system
+        function drawMechanical() {
+            const canvas = document.getElementById('mechanicalCanvas');
+            const ctx = mechCanvas;
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            ctx.fillStyle = '#f9f9f9';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw spring
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const springStart = centerX - 60;
+            const springEnd = centerX + mechanical.x * 50;
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 7) * Math.PI;
+                const y = centerY - 10 * Math.sin(angle * 4);
+                const x = springStart + (i / 7) * (springEnd - springStart);
+                if (i === 0) ctx.moveTo(x, centerY);
+                else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(springEnd, centerY);
+            ctx.stroke();
+
+            // Draw mass
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(springEnd - 15, centerY - 15, 30, 30);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('m', springEnd, centerY);
+
+            // Draw ground
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(springStart - 30, centerY + 40);
+            ctx.lineTo(springStart + 20, centerY + 40);
+            for (let i = 0; i < 5; i++) {
+                ctx.moveTo(springStart - 30 + i * 10, centerY + 40);
+                ctx.lineTo(springStart - 30 + i * 10 - 5, centerY + 50);
+            }
+            ctx.stroke();
+
+            // Draw info
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`x = ${mechanical.x.toFixed(2)} m`, 10, 20);
+            ctx.fillText(`v = ${mechanical.v.toFixed(2)} m/s`, 10, 40);
+        }
+
+        // Draw electrical system
+        function drawElectrical() {
+            const canvas = document.getElementById('electricalCanvas');
+            const ctx = elecCanvas;
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            ctx.fillStyle = '#f9f9f9';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw simple circuit diagram
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 2;
+
+            // Voltage source
+            ctx.beginPath();
+            ctx.arc(centerX - 80, centerY, 15, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.fillStyle = '#3498db';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('V', centerX - 80, centerY);
+
+            // Inductor
+            ctx.strokeStyle = '#3498db';
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX - 20 + i * 15, centerY - 30, 6, 0, Math.PI);
+                ctx.stroke();
+            }
+
+            // Resistor
+            ctx.strokeStyle = '#3498db';
+            ctx.beginPath();
+            ctx.moveTo(centerX + 20, centerY);
+            ctx.lineTo(centerX + 60, centerY);
+            ctx.stroke();
+
+            // Capacitor
+            ctx.strokeStyle = '#3498db';
+            ctx.beginPath();
+            ctx.moveTo(centerX + 60, centerY - 20);
+            ctx.lineTo(centerX + 60, centerY + 20);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX + 70, centerY - 20);
+            ctx.lineTo(centerX + 70, centerY + 20);
+            ctx.stroke();
+
+            // Draw info
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`q = ${electrical.q.toFixed(2)} C`, 10, 20);
+            ctx.fillText(`i = ${electrical.i.toFixed(2)} A`, 10, 40);
+        }
+
+        // Draw phase portrait
+        function drawPhasePortrait(ctx, history, color, maxX, maxY) {
+            const canvas = ctx.canvas;
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 30;
+            const plotW = w - 2 * margin;
+            const plotH = h - 2 * margin;
+            const centerX = margin + plotW / 2;
+            const centerY = margin + plotH / 2;
+            const scale = Math.min(plotW, plotH) / 2;
+
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, w, h);
+
+            // Plot area background
+            ctx.fillStyle = '#f9f9f9';
+            ctx.fillRect(margin, margin, plotW, plotH);
+
+            // Grid
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            for (let i = -3; i <= 3; i++) {
+                if (i !== 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + i * scale / 3, margin);
+                    ctx.lineTo(centerX + i * scale / 3, margin + plotH);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(margin, centerY + i * scale / 3);
+                    ctx.lineTo(margin + plotW, centerY + i * scale / 3);
+                    ctx.stroke();
+                }
+            }
+
+            // Axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, centerY);
+            ctx.lineTo(margin + plotW, centerY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX, margin);
+            ctx.lineTo(centerX, margin + plotH);
+            ctx.stroke();
+
+            // Arrow heads
+            const arrowSize = 8;
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.moveTo(margin + plotW, centerY);
+            ctx.lineTo(margin + plotW - arrowSize, centerY - arrowSize/2);
+            ctx.lineTo(margin + plotW - arrowSize, centerY + arrowSize/2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(centerX, margin);
+            ctx.lineTo(centerX - arrowSize/2, margin + arrowSize);
+            ctx.lineTo(centerX + arrowSize/2, margin + arrowSize);
+            ctx.closePath();
+            ctx.fill();
+
+            // Trajectory with gradient
+            if (history.length > 1) {
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                const firstPoint = history[0];
+                const x0 = centerX + (firstPoint.x || firstPoint.q) * scale / (maxX || 1);
+                const y0 = centerY - (firstPoint.v || firstPoint.i) * scale / (maxY || 1);
+
+                // Clamp to plot area
+                ctx.moveTo(Math.max(margin, Math.min(margin + plotW, x0)),
+                          Math.max(margin, Math.min(margin + plotH, y0)));
+
+                for (let i = 1; i < history.length; i++) {
+                    const point = history[i];
+                    const x = centerX + (point.x || point.q) * scale / (maxX || 1);
+                    const y = centerY - (point.v || point.i) * scale / (maxY || 1);
+                    ctx.lineTo(Math.max(margin, Math.min(margin + plotW, x)),
+                              Math.max(margin, Math.min(margin + plotH, y)));
+                }
+                ctx.stroke();
+            }
+
+            // Origin point
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 4, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            // Axis labels
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            // X-axis label
+            ctx.fillText('Position (m) / Charge (C)', margin + plotW / 2, margin + plotH + 12);
+
+            // Y-axis label
+            ctx.save();
+            ctx.translate(8, centerY);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Velocity (m/s) / Current (A)', 0, 0);
+            ctx.restore();
+
+            // Scale indicators
+            ctx.font = '8px Arial';
+            ctx.fillStyle = '#999';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            const xScale = maxX > 0 ? maxX.toFixed(1) : '1.0';
+            const yScale = maxY > 0 ? maxY.toFixed(1) : '1.0';
+            ctx.fillText(xScale, margin + plotW - 3, margin + plotH + 3);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(yScale, margin + 3, margin + 3);
+        }
+
+        // Animation loop
+        function animate() {
+            updateInputs();
+            step();
+
+            drawMechanical();
+            drawElectrical();
+
+            const mechOmega = Math.sqrt(mechanical.k / mechanical.m);
+            const elecOmega = 1 / Math.sqrt(electrical.L * electrical.C);
+
+            drawPhasePortrait(mechPhaseCanvas, mechanical.history, '#e74c3c', 2, 5);
+            drawPhasePortrait(elecPhaseCanvas, electrical.history, '#3498db',
+                             electrical.V / (elecOmega * electrical.L),
+                             electrical.V / electrical.R);
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('mechanicalMass').addEventListener('input', updateDisplays);
+        document.getElementById('mechanicalStiffness').addEventListener('input', updateDisplays);
+        document.getElementById('mechanicalDamping').addEventListener('input', updateDisplays);
+        document.getElementById('mechanicalForce').addEventListener('input', updateDisplays);
+
+        document.getElementById('electricalInductance').addEventListener('input', updateDisplays);
+        document.getElementById('electricalResistance').addEventListener('input', updateDisplays);
+        document.getElementById('electricalCapacitance').addEventListener('input', updateDisplays);
+        document.getElementById('electricalVoltage').addEventListener('input', updateDisplays);
+
+        // Start animation
+        updateDisplays();
+        animate();
+    </script>
+</body>
+</html>

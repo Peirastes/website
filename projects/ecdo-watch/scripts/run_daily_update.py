@@ -12,6 +12,10 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import subprocess
 import traceback
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import requests
 
 # ===== CONFIG =====
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -45,6 +49,115 @@ logger = logging.getLogger(__name__)
 
 def utcnow():
     return datetime.now(timezone.utc)
+
+def load_alert_config():
+    """Load alert configuration."""
+    config_file = SCRIPTS_DIR / "alert_config.json"
+    if config_file.exists():
+        try:
+            return json.loads(config_file.read_text(encoding='utf-8'))
+        except Exception as e:
+            logger.warning(f"Failed to load alert config: {e}")
+    return {}
+
+def send_email_alert(subject: str, message: str, alert_config: dict):
+    """Send email alert."""
+    if not alert_config or not alert_config.get("email", {}).get("enabled"):
+        return False
+
+    try:
+        email_config = alert_config["email"]
+        recipients = email_config.get("to_addresses", [])
+        if not recipients:
+            logger.warning("No email recipients configured")
+            return False
+
+        msg = MIMEMultipart()
+        msg["From"] = email_config["from_address"]
+        msg["To"] = ", ".join(recipients)
+        msg["Subject"] = subject
+        msg.attach(MIMEText(message, "plain"))
+
+        with smtplib.SMTP(email_config["smtp_server"], email_config["smtp_port"]) as server:
+            if email_config.get("use_tls"):
+                server.starttls()
+            server.login(email_config["username"], email_config["password"])
+            server.send_message(msg)
+
+        logger.info(f"Email alert sent to {len(recipients)} recipient(s)")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email alert: {e}")
+        return False
+
+def send_webhook_alert(message: str, alert_config: dict):
+    """Send webhook alerts (Slack/Discord)."""
+    if not alert_config:
+        return False
+
+    success = False
+
+    # Slack webhook
+    slack_config = alert_config.get("webhooks", {}).get("slack", {})
+    if slack_config.get("enabled") and slack_config.get("url"):
+        try:
+            payload = {
+                "channel": slack_config.get("channel", "#alerts"),
+                "username": slack_config.get("username", "ECDO Watch"),
+                "text": message,
+                "icon_emoji": ":warning:"
+            }
+            resp = requests.post(slack_config["url"], json=payload, timeout=10)
+            if resp.status_code == 200:
+                logger.info("Slack webhook sent successfully")
+                success = True
+        except Exception as e:
+            logger.error(f"Failed to send Slack webhook: {e}")
+
+    # Discord webhook
+    discord_config = alert_config.get("webhooks", {}).get("discord", {})
+    if discord_config.get("enabled") and discord_config.get("url"):
+        try:
+            payload = {
+                "content": message,
+                "username": "ECDO Watch"
+            }
+            resp = requests.post(discord_config["url"], json=payload, timeout=10)
+            if resp.status_code in [200, 204]:
+                logger.info("Discord webhook sent successfully")
+                success = True
+        except Exception as e:
+            logger.error(f"Failed to send Discord webhook: {e}")
+
+    return success
+
+def send_alerts(alert_type: str, error_message: str = "", alert_config: dict = None):
+    """Send alerts based on type and configuration."""
+    if alert_config is None:
+        alert_config = load_alert_config()
+
+    if not alert_config.get("alerts_enabled"):
+        return
+
+    alert_types = alert_config.get("alert_types", {})
+    alert_def = alert_types.get(alert_type, {})
+
+    if not alert_def.get("enabled"):
+        return
+
+    # Format message
+    message = alert_def.get("template", "ECDO Watch Alert").format(
+        timestamp=utcnow().isoformat(),
+        error_message=error_message[:200] if error_message else "Unknown error"
+    )
+
+    # Send email
+    if alert_def.get("email"):
+        send_email_alert(f"ECDO Watch Alert: {alert_type}", message, alert_config)
+
+    # Send webhooks
+    if alert_def.get("webhook"):
+        send_webhook_alert(f"*ECDO Watch*: {message}", alert_config)
 
 def is_data_healthy():
     """Check if essential data files are fresh (< 24 hours old)."""
@@ -198,6 +311,7 @@ def check_data_freshness():
 def main():
     """Main entry point."""
     start_time = utcnow()
+    alert_config = load_alert_config()
 
     try:
         # 1. Run data generation
@@ -205,21 +319,27 @@ def main():
 
         if not success:
             logger.error("Data generation FAILED")
+            error_msg = "Data generation script failed - see logs for details"
             save_status({
                 "success": False,
-                "error": "Data generation script failed",
+                "error": error_msg,
                 "duration_seconds": (utcnow() - start_time).total_seconds()
             })
+            # Send alert
+            send_alerts("script_failure", error_msg, alert_config)
             return 1
 
         # 2. Validate output
         if not validate_output():
             logger.error("Output validation FAILED")
+            error_msg = "Output validation failed - generated files are incomplete or malformed"
             save_status({
                 "success": False,
-                "error": "Output validation failed",
+                "error": error_msg,
                 "duration_seconds": (utcnow() - start_time).total_seconds()
             })
+            # Send alert
+            send_alerts("script_failure", error_msg, alert_config)
             return 1
 
         # 3. Check data health
