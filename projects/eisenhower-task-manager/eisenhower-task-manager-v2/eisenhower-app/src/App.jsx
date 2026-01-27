@@ -1724,6 +1724,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     status: 'active'
   });
   const [groupBy, setGroupBy] = useState('quadrant');
+  const [zoomLevel, setZoomLevel] = useState('month');
   const [tooltip, setTooltip] = useState(null);
 
   // Timeline calculation functions
@@ -1760,7 +1761,15 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   const getVisibleDateRange = () => {
     let minDate = new Date();
     let maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 30);
+
+    // Set default range based on zoom level
+    const zoomRanges = {
+      week: 14,
+      month: 60,
+      quarter: 120
+    };
+    const defaultDays = zoomRanges[zoomLevel] || 60;
+    maxDate.setDate(maxDate.getDate() + defaultDays);
 
     tasks.forEach(task => {
       if (task.dueDate) {
@@ -1880,7 +1889,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
             <option value="Personal">Personal</option>
           </select>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2">
             <span className="text-sm text-slate-600 font-medium">Group by:</span>
             <select
               value={groupBy}
@@ -1890,6 +1899,42 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
               <option value="quadrant">Quadrant</option>
               <option value="category">Category</option>
             </select>
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm text-slate-600 font-medium">Zoom:</span>
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setZoomLevel('week')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                  zoomLevel === 'week'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setZoomLevel('month')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                  zoomLevel === 'month'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Month
+              </button>
+              <button
+                onClick={() => setZoomLevel('quarter')}
+                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                  zoomLevel === 'quarter'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Quarter
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1913,13 +1958,19 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
               </div>
               <div className="flex-1 border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative">
                 {/* Date ticks */}
-                {Array.from({ length: Math.min(totalDays, 90) }).map((_, i) => {
+                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
                   const date = new Date(minDate);
                   date.setDate(date.getDate() + i);
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                   const x = dateToX(date);
 
-                  return i % 7 === 0 ? (
+                  // Determine tick frequency based on zoom level
+                  const tickFrequency = {
+                    week: 2,
+                    month: 7,
+                    quarter: 14
+                  }[zoomLevel] || 7;
+
+                  return i % tickFrequency === 0 ? (
                     <div
                       key={i}
                       className="absolute text-xs text-slate-500 font-medium"
@@ -1942,7 +1993,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                 />
 
                 {/* Weekend shading */}
-                {Array.from({ length: Math.min(totalDays, 90) }).map((_, i) => {
+                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
                   const date = new Date(minDate);
                   date.setDate(date.getDate() + i);
                   const isWeekend = date.getDay() === 0 || date.getDay() === 6;
