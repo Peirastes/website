@@ -390,38 +390,34 @@ def main():
         (assets_dir / "kp_data.json").write_text(json.dumps(kp_json))
         print("    [OK] kp_data.json")
 
-    # 2. LOD data (10+ years historical) - generate realistic data
-    print("    [WARN] IERS LOD API unavailable, generating realistic LOD data")
-    # Generate 10 years of synthetic LOD data for time-range support
-    lod_dates = pd.date_range(end=now.date(), periods=3650, freq="D")
-    lod_values = [
-        0.5 * math.sin((i / 3650) * 10 * math.pi) +  # Long cycle
-        0.3 * math.sin((i / 365) * 2 * math.pi) +     # Annual cycle
-        0.1 * math.sin((i / 30) * 2 * math.pi) +      # Monthly noise
-        (np.random.random() - 0.5) * 0.2              # Random jitter
-        for i in range(3650)
-    ]
+    # 2. LOD data (10+ years historical) - fetch real IERS data
+    # Use all-time CSV as primary source for historic data
+    if not eop_all.empty:
+        print("    [OK] Using IERS all-time LOD data")
+        eop_synthetic = eop_all
 
-    # Store full 10-year dataset for multi-range generation
-    lod_json = {
-        "labels": lod_dates.strftime("%Y-%m-%d").tolist(),
-        "data": lod_values
-    }
+        # Generate JSON with all available history
+        lod_json = {
+            "labels": eop_all["date"].dt.strftime("%Y-%m-%d").tolist(),
+            "data": eop_all["lod_ms"].fillna(0).tolist()
+        }
 
-    # For display, keep only recent 90 days in main file
-    recent_idx = max(0, len(lod_dates) - 90)
-    lod_recent_json = {
-        "labels": lod_json["labels"][recent_idx:],
-        "data": lod_json["data"][recent_idx:]
-    }
-    (assets_dir / "lod_data.json").write_text(json.dumps(lod_recent_json))
-    print("    [OK] lod_data.json (90-day recent view)")
+        # For display, keep only recent 90 days in main file
+        recent_idx = max(0, len(lod_json["labels"]) - 90)
+        lod_recent_json = {
+            "labels": lod_json["labels"][recent_idx:],
+            "data": lod_json["data"][recent_idx:]
+        }
+    else:
+        print("    [ERROR] IERS LOD data unavailable and no fallback available")
+        print("    Please check IERS data source or manually provide data")
+        eop_synthetic = pd.DataFrame()
+        lod_json = {"labels": [], "data": []}
+        lod_recent_json = {"labels": [], "data": []}
 
-    # Create synthetic LOD DataFrame for use in multi-range generation
-    eop_synthetic = pd.DataFrame({
-        "date": lod_dates,
-        "lod_ms": lod_values
-    })
+    if lod_json["labels"]:
+        (assets_dir / "lod_data.json").write_text(json.dumps(lod_recent_json))
+        print("    [OK] lod_data.json (90-day recent view from real IERS data)")
 
     # 3. Historical AA index (last 50 years)
     if not kp_history.empty:
