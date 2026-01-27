@@ -1957,6 +1957,48 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                 Task
               </div>
               <div className="flex-1 border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative">
+                {/* Weekend shading */}
+                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
+                  const date = new Date(minDate);
+                  date.setDate(date.getDate() + i);
+                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                  return isWeekend ? (
+                    <div
+                      key={`weekend-${i}`}
+                      className="absolute bg-slate-100 opacity-20 h-full"
+                      style={{
+                        left: `${dateToX(date)}%`,
+                        width: `${dateToX(new Date(date.getTime() + oneDay)) - dateToX(date)}%`
+                      }}
+                    />
+                  ) : null;
+                })}
+
+                {/* Vertical gridlines at date ticks */}
+                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
+                  const date = new Date(minDate);
+                  date.setDate(date.getDate() + i);
+                  const x = dateToX(date);
+
+                  // Determine tick frequency based on zoom level
+                  const tickFrequency = {
+                    week: 2,
+                    month: 7,
+                    quarter: 14
+                  }[zoomLevel] || 7;
+
+                  return i % tickFrequency === 0 ? (
+                    <div
+                      key={`gridline-${i}`}
+                      className="absolute w-px bg-slate-300 h-full opacity-40"
+                      style={{
+                        left: `${x}%`
+                      }}
+                    />
+                  ) : null;
+                })}
+
                 {/* Date ticks */}
                 {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
                   const date = new Date(minDate);
@@ -1973,7 +2015,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                   return i % tickFrequency === 0 ? (
                     <div
                       key={i}
-                      className="absolute text-xs text-slate-500 font-medium"
+                      className="absolute text-xs text-slate-600 font-semibold"
                       style={{
                         left: `${x}%`,
                         top: '4px'
@@ -1984,31 +2026,14 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                   ) : null;
                 })}
 
-                {/* Today line */}
+                {/* Today line - prominent indicator */}
                 <div
-                  className="absolute w-0.5 bg-red-500 h-full opacity-50"
+                  className="absolute w-1 bg-red-500 h-full opacity-80 shadow-lg"
                   style={{
-                    left: `${dateToX(new Date())}%`
+                    left: `${dateToX(new Date())}%`,
+                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)'
                   }}
                 />
-
-                {/* Weekend shading */}
-                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
-                  const date = new Date(minDate);
-                  date.setDate(date.getDate() + i);
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-                  return isWeekend ? (
-                    <div
-                      key={`weekend-${i}`}
-                      className="absolute bg-slate-100 opacity-30 h-full"
-                      style={{
-                        left: `${dateToX(date)}%`,
-                        width: `${dateToX(new Date(date.getTime() + oneDay)) - dateToX(date)}%`
-                      }}
-                    />
-                  ) : null;
-                })}
               </div>
             </div>
 
@@ -2056,10 +2081,41 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
                         {/* Timeline bar */}
                         <div className="flex-1 relative py-3 px-2">
+                          {/* Gridlines and today indicator for task row */}
+                          {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
+                            const date = new Date(minDate);
+                            date.setDate(date.getDate() + i);
+                            const x = dateToX(date);
+                            const tickFrequency = {
+                              week: 2,
+                              month: 7,
+                              quarter: 14
+                            }[zoomLevel] || 7;
+
+                            return i % tickFrequency === 0 ? (
+                              <div
+                                key={`gridline-task-${i}`}
+                                className="absolute w-px bg-slate-300 h-full opacity-30 z-0"
+                                style={{
+                                  left: `${x}%`
+                                }}
+                              />
+                            ) : null;
+                          })}
+
+                          {/* Today line for task row */}
+                          <div
+                            className="absolute w-1 h-full bg-red-500 opacity-70 z-10"
+                            style={{
+                              left: `${dateToX(new Date())}%`,
+                              boxShadow: '0 0 4px rgba(239, 68, 68, 0.3)'
+                            }}
+                          />
+
                           {timeline.isMilestone ? (
                             // Diamond for milestone
                             <div
-                              className="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 w-4 h-4 rounded-full"
+                              className="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 w-4 h-4 rounded-full z-20"
                               style={{
                                 left: `${endX}%`,
                                 backgroundColor: getQuadrantColor(quadrant),
@@ -2071,7 +2127,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                           ) : (
                             // Bar
                             <div
-                              className={`absolute h-8 rounded cursor-pointer transition-opacity ${isCompleted ? 'opacity-50' : 'opacity-90 hover:opacity-100'}`}
+                              className={`absolute h-8 rounded cursor-pointer transition-opacity z-20 ${isCompleted ? 'opacity-50' : 'opacity-90 hover:opacity-100'}`}
                               style={{
                                 left: `${startX}%`,
                                 width: `${Math.max(width, 2)}%`,
