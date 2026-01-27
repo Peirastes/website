@@ -1724,7 +1724,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     status: 'active'
   });
   const [groupBy, setGroupBy] = useState('quadrant');
-  const [zoomLevel, setZoomLevel] = useState('month');
+  const [zoomLevel, setZoomLevel] = useState('monthly');
   const [tooltip, setTooltip] = useState(null);
 
   // Timeline calculation functions
@@ -1764,11 +1764,13 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
     // Set default range based on zoom level
     const zoomRanges = {
-      week: 14,
-      month: 60,
-      quarter: 120
+      daily: 7,
+      weekly: 30,
+      monthly: 90,
+      quarterly: 365,
+      yearly: 730
     };
-    const defaultDays = zoomRanges[zoomLevel] || 60;
+    const defaultDays = zoomRanges[zoomLevel] || 90;
     maxDate.setDate(maxDate.getDate() + defaultDays);
 
     tasks.forEach(task => {
@@ -1849,6 +1851,18 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     return colors[quadrant] || 'bg-gray-50';
   };
 
+  // Get gridline and label frequencies based on zoom level
+  const getGridlineFrequency = () => {
+    const frequencies = {
+      daily: { gridline: 1, label: 1 },      // Every day
+      weekly: { gridline: 7, label: 7 },     // Every week
+      monthly: { gridline: 30, label: 30 },  // Every month
+      quarterly: { gridline: 90, label: 90 },// Every 3 months
+      yearly: { gridline: 365, label: 365 }  // Every year
+    };
+    return frequencies[zoomLevel] || frequencies.monthly;
+  };
+
   const grouped = groupedTasks();
   const lanes = Object.keys(grouped).filter(key => grouped[key].length > 0);
 
@@ -1903,37 +1917,20 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-sm text-slate-600 font-medium">Zoom:</span>
-            <div className="flex bg-slate-100 rounded-lg p-1">
-              <button
-                onClick={() => setZoomLevel('week')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                  zoomLevel === 'week'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setZoomLevel('month')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                  zoomLevel === 'month'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Month
-              </button>
-              <button
-                onClick={() => setZoomLevel('quarter')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                  zoomLevel === 'quarter'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Quarter
-              </button>
+            <div className="flex bg-slate-100 rounded-lg p-1 overflow-x-auto">
+              {['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].map(level => (
+                <button
+                  key={level}
+                  onClick={() => setZoomLevel(level)}
+                  className={`px-2.5 py-1 rounded text-sm font-medium transition-all whitespace-nowrap ${
+                    zoomLevel === level
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -1976,19 +1973,13 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                 })}
 
                 {/* Vertical gridlines at date ticks */}
-                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
+                {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
                   const date = new Date(minDate);
                   date.setDate(date.getDate() + i);
                   const x = dateToX(date);
+                  const freq = getGridlineFrequency();
 
-                  // Determine tick frequency based on zoom level
-                  const tickFrequency = {
-                    week: 2,
-                    month: 7,
-                    quarter: 14
-                  }[zoomLevel] || 7;
-
-                  return i % tickFrequency === 0 ? (
+                  return i % freq.gridline === 0 ? (
                     <div
                       key={`gridline-${i}`}
                       className="absolute w-px bg-slate-300 h-full opacity-40"
@@ -1999,20 +1990,14 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                   ) : null;
                 })}
 
-                {/* Date ticks */}
-                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
+                {/* Date labels */}
+                {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
                   const date = new Date(minDate);
                   date.setDate(date.getDate() + i);
                   const x = dateToX(date);
+                  const freq = getGridlineFrequency();
 
-                  // Determine tick frequency based on zoom level
-                  const tickFrequency = {
-                    week: 2,
-                    month: 7,
-                    quarter: 14
-                  }[zoomLevel] || 7;
-
-                  return i % tickFrequency === 0 ? (
+                  return i % freq.label === 0 ? (
                     <div
                       key={i}
                       className="absolute text-xs text-slate-600 font-semibold"
@@ -2082,17 +2067,13 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                         {/* Timeline bar */}
                         <div className="flex-1 relative py-3 px-2">
                           {/* Gridlines and today indicator for task row */}
-                          {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
+                          {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
                             const date = new Date(minDate);
                             date.setDate(date.getDate() + i);
                             const x = dateToX(date);
-                            const tickFrequency = {
-                              week: 2,
-                              month: 7,
-                              quarter: 14
-                            }[zoomLevel] || 7;
+                            const freq = getGridlineFrequency();
 
-                            return i % tickFrequency === 0 ? (
+                            return i % freq.gridline === 0 ? (
                               <div
                                 key={`gridline-task-${i}`}
                                 className="absolute w-px bg-slate-300 h-full opacity-30 z-0"
