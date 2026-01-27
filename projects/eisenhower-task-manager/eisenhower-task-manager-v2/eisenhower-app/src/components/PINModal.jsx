@@ -12,7 +12,7 @@ export const PINModal = ({ onUnlock }) => {
   const [error, setError] = useState('');
   const [attempts, setAttempts] = useState(0);
 
-  const CORRECT_PIN = '1234';
+  const CORRECT_PIN = '2401';
   const MAX_ATTEMPTS = 5;
 
   const handleSubmit = (e) => {
