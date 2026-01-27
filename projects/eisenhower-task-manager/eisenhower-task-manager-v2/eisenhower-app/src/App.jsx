@@ -1724,7 +1724,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     status: 'active'
   });
   const [groupBy, setGroupBy] = useState('quadrant');
-  const [zoomLevel, setZoomLevel] = useState('monthly');
+  const [timelineScale, setTimelineScale] = useState(30); // pixels per day
   const [tooltip, setTooltip] = useState(null);
   const [activeContextMenu, setActiveContextMenu] = useState(null);
 
@@ -1759,19 +1759,34 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     };
   };
 
+  // Determine which zoom level matches current scale
+  const getNearestZoomLevel = () => {
+    if (timelineScale >= 120) return 'daily';
+    if (timelineScale >= 40) return 'weekly';
+    if (timelineScale >= 12) return 'monthly';
+    if (timelineScale >= 2.5) return 'quarterly';
+    return 'yearly';
+  };
+
+  // Handle mouse wheel zoom (Ctrl+scroll)
+  const handleChartWheel = (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.85 : 1.15; // scroll down = zoom out
+    const newScale = timelineScale * delta;
+    setTimelineScale(Math.max(1, Math.min(300, newScale)));
+  };
+
   const getVisibleDateRange = () => {
     let minDate = new Date();
     let maxDate = new Date();
 
-    // Set default range based on zoom level
-    const zoomRanges = {
-      daily: 3,
-      weekly: 28,
-      monthly: 84,
-      quarterly: 365,
-      yearly: 730
-    };
-    const defaultDays = zoomRanges[zoomLevel] || 90;
+    // Set default range based on current zoom level
+    const defaultDays = (() => {
+      const level = getNearestZoomLevel();
+      const ranges = { daily: 3, weekly: 28, monthly: 84, quarterly: 365, yearly: 730 };
+      return ranges[level] || 90;
+    })();
     maxDate.setDate(maxDate.getDate() + defaultDays);
 
     tasks.forEach(task => {
@@ -1852,16 +1867,31 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     return colors[quadrant] || 'bg-gray-50';
   };
 
-  // Get gridline and label frequencies based on zoom level
+  // Get gridline and label frequencies based on timeline scale
   const getGridlineFrequency = () => {
-    const frequencies = {
-      daily: { gridline: 1, label: 1 },      // Every day
-      weekly: { gridline: 7, label: 7 },     // Every week
-      monthly: { gridline: 30, label: 30 },  // Every month
-      quarterly: { gridline: 90, label: 90 },// Every 3 months
-      yearly: { gridline: 365, label: 365 }  // Every year
+    if (timelineScale >= 120) {
+      return { gridline: 1, label: 1 }; // Daily
+    } else if (timelineScale >= 40) {
+      return { gridline: 7, label: 7 }; // Weekly
+    } else if (timelineScale >= 12) {
+      return { gridline: 30, label: 30 }; // Monthly
+    } else if (timelineScale >= 2.5) {
+      return { gridline: 90, label: 90 }; // Quarterly
+    } else {
+      return { gridline: 365, label: 365 }; // Yearly
+    }
+  };
+
+  // Button handler - set predefined scale for zoom level
+  const handleZoomButtonClick = (level) => {
+    const scales = {
+      daily: 150,
+      weekly: 40,
+      monthly: 12,
+      quarterly: 3,
+      yearly: 1
     };
-    return frequencies[zoomLevel] || frequencies.monthly;
+    setTimelineScale(scales[level]);
   };
 
   const grouped = groupedTasks();
@@ -1922,12 +1952,13 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
               {['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].map(level => (
                 <button
                   key={level}
-                  onClick={() => setZoomLevel(level)}
+                  onClick={() => handleZoomButtonClick(level)}
                   className={`px-2.5 py-1 rounded text-sm font-medium transition-all whitespace-nowrap ${
-                    zoomLevel === level
+                    getNearestZoomLevel() === level
                       ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
+                  title="Click to set, or use Ctrl+Scroll to zoom"
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
                 </button>
@@ -1947,14 +1978,14 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
           <div className="text-slate-400 font-medium">No tasks found matching your filters</div>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm" onWheel={handleChartWheel}>
           <div className="overflow-x-auto">
             {/* Timeline Header */}
             <div className="flex">
               <div className="w-48 border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-sm text-slate-700 flex-shrink-0">
                 Task
               </div>
-              <div className="border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative" style={{ minWidth: '1200px' }}>
+              <div className="border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative" style={{ minWidth: `${totalDays * timelineScale}px` }}>
                 {/* Weekend shading */}
                 {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
                   const date = new Date(minDate);
@@ -2041,7 +2072,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                         {grouped[lane].length} task{grouped[lane].length !== 1 ? 's' : ''}
                       </div>
                     </div>
-                    <div style={{ minWidth: '1200px' }}></div>
+                    <div style={{ minWidth: `${totalDays * timelineScale}px` }}></div>
                   </div>
 
                   {/* Tasks in lane */}
@@ -2069,7 +2100,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                         </div>
 
                         {/* Timeline bar */}
-                        <div className="relative py-3 px-2" style={{ minWidth: '1200px' }}>
+                        <div className="relative py-3 px-2" style={{ minWidth: `${totalDays * timelineScale}px` }}>
                           {/* Gridlines and today indicator for task row */}
                           {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
                             const date = new Date(minDate);
