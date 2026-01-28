@@ -92,6 +92,7 @@ export const getUnitSprite = (unitData, faction, size = 32) => {
 
 /**
  * Load asset sprite and apply faction color overlay
+ * OpenHV spritesheets contain multiple directional/animation frames
  */
 const loadAssetSpriteWithOverlay = async (ctx, unitId, unitData, faction, size) => {
   try {
@@ -107,15 +108,34 @@ const loadAssetSpriteWithOverlay = async (ctx, unitId, unitData, faction, size) 
     // Use pixel-perfect rendering for retro look
     ctx.imageSmoothingEnabled = false;
 
-    // Scale image to fit canvas while maintaining aspect ratio
-    const scale = Math.min(size / img.width, size / img.height);
-    const scaledWidth = img.width * scale;
-    const scaledHeight = img.height * scale;
+    // OpenHV spritesheets: Detect if this is a multi-frame spritesheet
+    // If width is much larger than height, it's likely arranged horizontally
+    const isWideSheet = img.width > img.height * 1.5;
+
+    let sourceWidth = img.width;
+    let sourceHeight = img.height;
+    let sourceX = 0;
+    let sourceY = 0;
+
+    if (isWideSheet) {
+      // Likely arranged as 8 sprites in a horizontal strip
+      // Extract width for one frame
+      sourceWidth = Math.round(img.width / 8);
+    }
+
+    // Scale to fit canvas while maintaining aspect ratio
+    const scale = Math.min(size / sourceWidth, size / sourceHeight);
+    const scaledWidth = sourceWidth * scale;
+    const scaledHeight = sourceHeight * scale;
     const drawX = (size - scaledWidth) / 2;
     const drawY = (size - scaledHeight) / 2;
 
-    // Draw the sprite centered and scaled
-    ctx.drawImage(img, drawX, drawY, scaledWidth, scaledHeight);
+    // Draw only the first sprite from the sheet, scaled and centered
+    ctx.drawImage(
+      img,
+      sourceX, sourceY, sourceWidth, sourceHeight,  // Source: first frame
+      drawX, drawY, scaledWidth, scaledHeight        // Destination: centered on canvas
+    );
 
     // Apply faction color overlay
     applyFactionColorOverlay(ctx, faction, size);
