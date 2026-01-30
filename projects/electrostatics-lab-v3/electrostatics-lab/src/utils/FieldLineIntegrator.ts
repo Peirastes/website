@@ -306,6 +306,7 @@ export class FieldLineIntegrator {
   }
 
   // Generate grid of seeds: numDirections (azimuthal) × numShells (radial)
+  // Shells are distributed symmetrically both inward and outward from the source
   private generateGridSeeds(
     center: THREE.Vector3,
     numDirections: number,
@@ -317,34 +318,53 @@ export class FieldLineIntegrator {
   ): THREE.Vector3[] {
     const seeds: THREE.Vector3[] = [];
 
-    // Generate shells at different distances
-    for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
-      let distance: number;
+    // Distribute shells symmetrically: some pointing inward, some pointing outward
+    const numPositiveShells = Math.ceil(numShells / 2);
+    const numNegativeShells = Math.floor(numShells / 2);
 
-      if (spacingMode === 'linear') {
-        // Linear spacing: uniform distance between shells
-        distance = baseOffset * (1 + shellIdx);
-      } else {
-        // Logarithmic spacing: exponential distance growth
-        distance = baseOffset * Math.pow(1.5, shellIdx);
-      }
+    // Generate inward-pointing shells (negative distances)
+    for (let i = numNegativeShells; i >= 1; i--) {
+      const distance = this.calculateShellDistance(spacingMode, baseOffset, i);
+      this.addShellSeeds(seeds, center, -distance, numDirections, u, v);
+    }
 
-      // Generate points evenly distributed around this shell (circle)
-      for (let dirIdx = 0; dirIdx < numDirections; dirIdx++) {
-        // Azimuthal angle around the symmetry axis
-        const azimuth = (2 * Math.PI * dirIdx) / numDirections;
-
-        // Position on circle: center + distance * (cos(azimuth) * u + sin(azimuth) * v)
-        const seed = center
-          .clone()
-          .addScaledVector(u, distance * Math.cos(azimuth))
-          .addScaledVector(v, distance * Math.sin(azimuth));
-
-        seeds.push(seed);
-      }
+    // Generate outward-pointing shells (positive distances)
+    for (let i = 1; i <= numPositiveShells; i++) {
+      const distance = this.calculateShellDistance(spacingMode, baseOffset, i);
+      this.addShellSeeds(seeds, center, distance, numDirections, u, v);
     }
 
     return seeds;
+  }
+
+  // Calculate the distance for a shell based on spacing mode
+  private calculateShellDistance(spacingMode: 'linear' | 'logarithmic', baseOffset: number, shellIndex: number): number {
+    if (spacingMode === 'linear') {
+      return baseOffset * shellIndex;
+    } else {
+      return baseOffset * Math.pow(1.5, shellIndex);
+    }
+  }
+
+  // Add seeds for a shell at a specific distance
+  private addShellSeeds(
+    seeds: THREE.Vector3[],
+    center: THREE.Vector3,
+    distance: number,
+    numDirections: number,
+    u: THREE.Vector3,
+    v: THREE.Vector3
+  ): void {
+    for (let dirIdx = 0; dirIdx < numDirections; dirIdx++) {
+      const azimuth = (2 * Math.PI * dirIdx) / numDirections;
+
+      const seed = center
+        .clone()
+        .addScaledVector(u, distance * Math.cos(azimuth))
+        .addScaledVector(v, distance * Math.sin(azimuth));
+
+      seeds.push(seed);
+    }
   }
   // Generate field lines for extended objects (like rods, disks)
   generateFromExtendedSource(
