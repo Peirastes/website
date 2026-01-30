@@ -183,31 +183,37 @@ export class FieldLineIntegrator {
       ];
 
       for (const layer of offsetDistances) {
-        // Generate evenly-spaced seeds around the charge at this distance
-        let seeds = this.generateSeedsAroundPoint(source.position, linesPerSource, layer.distance);
+        // Collect field lines for this layer, trying multiple strategies if needed
         let validLines: FieldLine[] = [];
         let attemptCount = 0;
-        const maxAttempts = 3;
+        const maxAttempts = 5;
 
-        // Try to get the target number of valid field lines
-        // If some seeds fail, generate more seeds and try again
         while (validLines.length < linesPerSource && attemptCount < maxAttempts) {
+          // Generate seeds at varying offsets to find successful configurations
+          // Vary offset on each attempt to explore different regions
+          const offsetVariation = layer.distance * (0.8 + 0.2 * attemptCount);
+          const seedCount = linesPerSource * (1 + attemptCount); // More seeds on retry
+
+          const seeds = this.generateSeedsAroundPoint(
+            source.position,
+            seedCount,
+            offsetVariation
+          );
+
+          // Trace all seeds and collect valid lines
           for (const seed of seeds) {
-            const line = this.trace(seed, 1); // Trace in positive direction
-            if (line.points.length >= 2 && validLines.length < linesPerSource) {
+            const line = this.trace(seed, 1);
+            // Collect ALL valid lines without limiting - we'll use what we get
+            if (line.points.length >= 2) {
               validLines.push(line);
             }
           }
 
-          // If we didn't get enough valid lines, generate more seeds at slightly different offset
-          if (validLines.length < linesPerSource) {
-            attemptCount++;
-            const offsetVariation = layer.distance * (0.9 + 0.1 * attemptCount);
-            seeds = this.generateSeedsAroundPoint(source.position, linesPerSource * 2, offsetVariation);
-          }
+          attemptCount++;
         }
 
-        // Add all collected lines from this layer
+        // Use all collected lines (don't limit to target count)
+        // This ensures we get whatever valid lines are possible for each layer
         lines.push(...validLines);
       }
     }
