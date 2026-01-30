@@ -318,8 +318,8 @@ export class FieldLineIntegrator {
   ): THREE.Vector3[] {
     const seeds: THREE.Vector3[] = [];
 
-    // Center shell is fixed at 0.15, baseOffset controls additional shells
-    const FIXED_CENTER_DISTANCE = 0.15;
+    // Center shell is fixed at distance 0 (at the source), baseOffset controls additional shells
+    const FIXED_CENTER_DISTANCE = 0;
     const centerIdx = (numShells - 1) / 2;
 
     for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
