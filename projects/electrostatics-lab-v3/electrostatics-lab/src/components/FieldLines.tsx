@@ -10,6 +10,7 @@ interface FieldLinesProps {
   numDirections: number;
   numShells: number;
   spacingMode: 'linear' | 'logarithmic';
+  offset?: number;
   stepSize?: number;
   maxSteps?: number;
 }
@@ -20,6 +21,7 @@ export function FieldLines({
   numDirections,
   numShells,
   spacingMode,
+  offset = 0.15,
   stepSize = 0.05,
   maxSteps = 500,
 }: FieldLinesProps) {
@@ -36,8 +38,8 @@ export function FieldLines({
       terminationRadius: 0.12,
     });
 
-    return integrator.generateFromSources(numDirections, numShells, spacingMode, 0.15);
-  }, [model, bounds, numDirections, numShells, spacingMode, stepSize, maxSteps]);
+    return integrator.generateFromSources(numDirections, numShells, spacingMode, offset);
+  }, [model, bounds, numDirections, numShells, spacingMode, offset, stepSize, maxSteps]);
   
   return (
     <group>

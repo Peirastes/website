@@ -127,6 +127,7 @@ export default function App() {
     fieldLineDirections,
     fieldLineShells,
     fieldLineSpacing,
+    fieldLineOffset,
     equipotentialLevels,
     vectorScale,
     logScale,
@@ -140,6 +141,7 @@ export default function App() {
     fieldLineDirections: { value: 6, min: 4, max: 16, step: 1, label: 'Field Line Directions' },
     fieldLineShells: { value: 3, min: 2, max: 8, step: 1, label: 'Field Line Shells' },
     fieldLineSpacing: { value: 'linear', options: { linear: 'linear', logarithmic: 'logarithmic' }, label: 'Shell Spacing' },
+    fieldLineOffset: { value: 0.15, min: 0.05, max: 0.5, step: 0.05, label: 'Shell Distance' },
     equipotentialLevels: { value: 5, min: 1, max: 10, step: 1, label: 'Equipotential Levels' },
     vectorScale: { value: 0.3, min: 0.1, max: 1, step: 0.05, label: 'Vector Scale' },
     logScale: { value: false, label: 'Log Scale |E|' },
@@ -269,6 +271,7 @@ export default function App() {
               numDirections={fieldLineDirections}
               numShells={fieldLineShells}
               spacingMode={fieldLineSpacing as 'linear' | 'logarithmic'}
+              offset={fieldLineOffset}
             />
           )}
           
