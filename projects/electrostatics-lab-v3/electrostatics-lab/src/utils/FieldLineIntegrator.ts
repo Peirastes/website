@@ -168,54 +168,76 @@ export class FieldLineIntegrator {
     return inside.clone().addScaledVector(dir, t);
   }
   
-  // Generate field lines from source positions with multi-layer seeding for density
+  // Generate field lines from both positive sources (outward) and negative sinks (inward)
   generateFromSources(linesPerSource: number = 8, offset: number = 0.2): FieldLine[] {
-    const sources = this.model.getSourcePositions().filter(s => s.charge > 0);
+    const allSources = this.model.getSourcePositions();
+    const positiveSources = allSources.filter(s => s.charge > 0);
+    const negativeSources = allSources.filter(s => s.charge < 0);
     const lines: FieldLine[] = [];
 
-    for (const source of sources) {
-      // Generate seeds at multiple offset distances to create concentric shells
-      // Each layer gets the same target count to ensure equal distribution
-      const offsetDistances = [
-        { distance: offset * 0.5, name: 'inner' },      // Inner shell (50% of base offset)
-        { distance: offset, name: 'middle' },            // Middle shell (base offset)
-        { distance: offset * 1.5, name: 'outer' },      // Outer shell (150% of base offset)
-      ];
+    // Generate field lines FROM positive charges (outward)
+    for (const source of positiveSources) {
+      lines.push(...this.generateFieldLinesFromSource(source.position, linesPerSource, offset, 1));
+    }
 
-      for (const layer of offsetDistances) {
-        // Collect field lines for this layer, trying multiple strategies if needed
-        let validLines: FieldLine[] = [];
-        let attemptCount = 0;
-        const maxAttempts = 5;
+    // Generate field lines TO negative charges (inward)
+    for (const source of negativeSources) {
+      lines.push(...this.generateFieldLinesFromSource(source.position, linesPerSource, offset, -1));
+    }
 
-        while (validLines.length < linesPerSource && attemptCount < maxAttempts) {
-          // Generate seeds at varying offsets to find successful configurations
-          // Vary offset on each attempt to explore different regions
-          const offsetVariation = layer.distance * (0.8 + 0.2 * attemptCount);
-          const seedCount = linesPerSource * (1 + attemptCount); // More seeds on retry
+    return lines;
+  }
 
-          const seeds = this.generateSeedsAroundPoint(
-            source.position,
-            seedCount,
-            offsetVariation
-          );
+  // Helper method to generate field lines from a source in a given direction
+  private generateFieldLinesFromSource(
+    sourcePosition: THREE.Vector3,
+    linesPerSource: number,
+    offset: number,
+    direction: number
+  ): FieldLine[] {
+    const lines: FieldLine[] = [];
 
-          // Trace all seeds and collect valid lines
-          for (const seed of seeds) {
-            const line = this.trace(seed, 1);
-            // Collect ALL valid lines without limiting - we'll use what we get
-            if (line.points.length >= 2) {
-              validLines.push(line);
-            }
+    // Generate seeds at multiple offset distances to create concentric shells
+    // Each layer gets the same target count to ensure equal distribution
+    const offsetDistances = [
+      { distance: offset * 0.5, name: 'inner' },      // Inner shell (50% of base offset)
+      { distance: offset, name: 'middle' },            // Middle shell (base offset)
+      { distance: offset * 1.5, name: 'outer' },      // Outer shell (150% of base offset)
+    ];
+
+    for (const layer of offsetDistances) {
+      // Collect field lines for this layer, trying multiple strategies if needed
+      let validLines: FieldLine[] = [];
+      let attemptCount = 0;
+      const maxAttempts = 5;
+
+      while (validLines.length < linesPerSource && attemptCount < maxAttempts) {
+        // Generate seeds at varying offsets to find successful configurations
+        // Vary offset on each attempt to explore different regions
+        const offsetVariation = layer.distance * (0.8 + 0.2 * attemptCount);
+        const seedCount = linesPerSource * (1 + attemptCount); // More seeds on retry
+
+        const seeds = this.generateSeedsAroundPoint(
+          sourcePosition,
+          seedCount,
+          offsetVariation
+        );
+
+        // Trace all seeds and collect valid lines
+        for (const seed of seeds) {
+          const line = this.trace(seed, direction);
+          // Collect ALL valid lines without limiting - we'll use what we get
+          if (line.points.length >= 2) {
+            validLines.push(line);
           }
-
-          attemptCount++;
         }
 
-        // Use all collected lines (don't limit to target count)
-        // This ensures we get whatever valid lines are possible for each layer
-        lines.push(...validLines);
+        attemptCount++;
       }
+
+      // Use all collected lines (don't limit to target count)
+      // This ensures we get whatever valid lines are possible for each layer
+      lines.push(...validLines);
     }
 
     return lines;
