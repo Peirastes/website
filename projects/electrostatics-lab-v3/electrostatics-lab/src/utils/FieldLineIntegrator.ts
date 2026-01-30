@@ -322,14 +322,17 @@ export class FieldLineIntegrator {
     const FIXED_CENTER_DISTANCE = 0.15;
     const centerIdx = (numShells - 1) / 2;
 
+    // Calculate step size: scale inversely with number of shells to maintain even spacing
+    const step = baseOffset / Math.max(1, Math.ceil(numShells / 2));
+
     for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
       const indexOffset = shellIdx - centerIdx;
       let distance: number;
 
       if (spacingMode === 'linear') {
         // Center shell (indexOffset=0) always at FIXED_CENTER_DISTANCE
-        // Other shells offset from it by baseOffset
-        distance = FIXED_CENTER_DISTANCE + indexOffset * baseOffset;
+        // Other shells evenly spaced by step size
+        distance = FIXED_CENTER_DISTANCE + indexOffset * step;
       } else {
         // Logarithmic: exponential spacing relative to fixed center
         if (indexOffset === 0) {
