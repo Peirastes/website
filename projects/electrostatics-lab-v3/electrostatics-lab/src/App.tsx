@@ -124,7 +124,9 @@ export default function App() {
     showFieldLines,
     showEquipotentials,
     vectorDensity,
-    fieldLineCount,
+    fieldLineDirections,
+    fieldLineShells,
+    fieldLineSpacing,
     equipotentialLevels,
     vectorScale,
     logScale,
@@ -135,7 +137,9 @@ export default function App() {
     showFieldLines: { value: true, label: 'Field Lines' },
     showEquipotentials: { value: true, label: 'Equipotentials' },
     vectorDensity: { value: 8, min: 4, max: 15, step: 1, label: 'Vector Density' },
-    fieldLineCount: { value: 12, min: 4, max: 32, step: 1, label: 'Field Lines/Source' },
+    fieldLineDirections: { value: 6, min: 4, max: 16, step: 1, label: 'Field Line Directions' },
+    fieldLineShells: { value: 3, min: 2, max: 8, step: 1, label: 'Field Line Shells' },
+    fieldLineSpacing: { value: 'linear', options: { linear: 'linear', logarithmic: 'logarithmic' }, label: 'Shell Spacing' },
     equipotentialLevels: { value: 5, min: 1, max: 10, step: 1, label: 'Equipotential Levels' },
     vectorScale: { value: 0.3, min: 0.1, max: 1, step: 0.05, label: 'Vector Scale' },
     logScale: { value: false, label: 'Log Scale |E|' },
@@ -262,7 +266,9 @@ export default function App() {
             <FieldLines
               model={model}
               bounds={domainBounds}
-              linesPerSource={fieldLineCount}
+              numDirections={fieldLineDirections}
+              numShells={fieldLineShells}
+              spacingMode={fieldLineSpacing as 'linear' | 'logarithmic'}
             />
           )}
           

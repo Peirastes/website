@@ -169,134 +169,183 @@ export class FieldLineIntegrator {
   }
   
   // Generate field lines from both positive sources (outward) and negative sinks (inward)
-  generateFromSources(linesPerSource: number = 8, offset: number = 0.2): FieldLine[] {
+  // Uses grid-based seeding: numDirections × numShells seeds per source
+  generateFromSources(
+    numDirections: number = 6,
+    numShells: number = 3,
+    spacingMode: 'linear' | 'logarithmic' = 'linear',
+    offset: number = 0.2
+  ): FieldLine[] {
     const allSources = this.model.getSourcePositions();
     const positiveSources = allSources.filter(s => s.charge > 0);
     const negativeSources = allSources.filter(s => s.charge < 0);
     const lines: FieldLine[] = [];
 
+    // Determine symmetry axis (for grid orientation)
+    const symmetryAxis = this.getSymmetryAxis(allSources);
+
     // Generate field lines FROM positive charges (outward)
     for (const source of positiveSources) {
-      lines.push(...this.generateFieldLinesFromSource(source.position, linesPerSource, offset, 1));
+      lines.push(
+        ...this.generateFieldLinesOnGrid(
+          source.position,
+          numDirections,
+          numShells,
+          spacingMode,
+          offset,
+          symmetryAxis,
+          1
+        )
+      );
     }
 
     // Generate field lines TO negative charges (inward)
     for (const source of negativeSources) {
-      lines.push(...this.generateFieldLinesFromSource(source.position, linesPerSource, offset, -1));
+      lines.push(
+        ...this.generateFieldLinesOnGrid(
+          source.position,
+          numDirections,
+          numShells,
+          spacingMode,
+          offset,
+          symmetryAxis,
+          -1
+        )
+      );
     }
 
     return lines;
   }
 
-  // Helper method to generate field lines from a source in a given direction
-  private generateFieldLinesFromSource(
+  // Generate field lines on a grid of directions × shells
+  private generateFieldLinesOnGrid(
     sourcePosition: THREE.Vector3,
-    linesPerSource: number,
+    numDirections: number,
+    numShells: number,
+    spacingMode: 'linear' | 'logarithmic',
     offset: number,
+    symmetryAxis: THREE.Vector3,
     direction: number
   ): FieldLine[] {
     const lines: FieldLine[] = [];
 
-    // Generate seeds at multiple offset distances to create concentric shells
-    // Each layer gets the same target count to ensure equal distribution
-    const offsetDistances = [
-      { distance: offset * 0.5, name: 'inner' },      // Inner shell (50% of base offset)
-      { distance: offset, name: 'middle' },            // Middle shell (base offset)
-      { distance: offset * 1.5, name: 'outer' },      // Outer shell (150% of base offset)
-    ];
+    // Create orthonormal basis with symmetry axis as primary direction
+    const { u, v } = this.createOrthonormalBasis(symmetryAxis);
 
-    for (const layer of offsetDistances) {
-      // Collect field lines for this layer, trying multiple strategies if needed
-      let validLines: FieldLine[] = [];
-      let attemptCount = 0;
-      const maxAttempts = 5;
+    // Generate grid seeds: numDirections around the axis, numShells at different distances
+    const seeds = this.generateGridSeeds(
+      sourcePosition,
+      numDirections,
+      numShells,
+      spacingMode,
+      offset,
+      u,
+      v
+    );
 
-      while (validLines.length < linesPerSource && attemptCount < maxAttempts) {
-        // Generate seeds at varying offsets to find successful configurations
-        // Vary offset on each attempt to explore different regions
-        const offsetVariation = layer.distance * (0.8 + 0.2 * attemptCount);
-        const seedCount = linesPerSource * (1 + attemptCount); // More seeds on retry
+    // Trace each seed
+    for (const seed of seeds) {
+      const line = this.trace(seed, direction);
 
-        const seeds = this.generateSeedsAroundPoint(
-          sourcePosition,
-          seedCount,
-          offsetVariation
-        );
-
-        // Trace all seeds and collect valid lines
-        for (const seed of seeds) {
-          const line = this.trace(seed, direction);
-          // For negative charges (direction = -1), reverse points so they appear as incoming
-          // This ensures arrows point inward toward the charge
-          if (direction === -1 && line.points.length > 0) {
-            line.points.reverse();
-          }
-          // Collect ALL valid lines without limiting - we'll use what we get
-          if (line.points.length >= 2) {
-            validLines.push(line);
-          }
-        }
-
-        attemptCount++;
+      // For negative charges (direction = -1), reverse points so they appear as incoming
+      if (direction === -1 && line.points.length > 0) {
+        line.points.reverse();
       }
 
-      // Use all collected lines (don't limit to target count)
-      // This ensures we get whatever valid lines are possible for each layer
-      lines.push(...validLines);
+      // Add line if it has enough points
+      if (line.points.length >= 2) {
+        lines.push(line);
+      }
     }
 
     return lines;
   }
-  
-  // Generate seed positions in a spherical pattern around a point
-  // Uses equally-spaced angular distribution for guaranteed symmetric coverage
-  private generateSeedsAroundPoint(
+
+  // Determine symmetry axis from charge configuration
+  private getSymmetryAxis(sources: Array<{ position: THREE.Vector3; charge: number }>): THREE.Vector3 {
+    if (sources.length === 0) {
+      return new THREE.Vector3(0, 0, 1); // Default to Z-axis
+    }
+
+    if (sources.length === 1) {
+      return new THREE.Vector3(0, 0, 1); // Single charge: use Z-axis
+    }
+
+    // For multiple charges, use the first two to define the axis
+    const pos1 = sources[0].position;
+    const pos2 = sources[1].position;
+    const axis = pos2.clone().sub(pos1).normalize();
+
+    // Ensure non-zero axis
+    if (axis.length() < 1e-6) {
+      return new THREE.Vector3(0, 0, 1);
+    }
+
+    return axis;
+  }
+
+  // Create orthonormal basis with given primary direction
+  private createOrthonormalBasis(
+    primary: THREE.Vector3
+  ): { u: THREE.Vector3; v: THREE.Vector3 } {
+    const primaryNorm = primary.clone().normalize();
+
+    // Find a vector not parallel to primary
+    let other: THREE.Vector3;
+    if (Math.abs(primaryNorm.x) < 0.9) {
+      other = new THREE.Vector3(1, 0, 0);
+    } else {
+      other = new THREE.Vector3(0, 1, 0);
+    }
+
+    // Create orthonormal basis
+    const u = new THREE.Vector3().crossVectors(primaryNorm, other).normalize();
+    const v = new THREE.Vector3().crossVectors(primaryNorm, u).normalize();
+
+    return { u, v };
+  }
+
+  // Generate grid of seeds: numDirections (azimuthal) × numShells (radial)
+  private generateGridSeeds(
     center: THREE.Vector3,
-    count: number,
-    offset: number
+    numDirections: number,
+    numShells: number,
+    spacingMode: 'linear' | 'logarithmic',
+    baseOffset: number,
+    u: THREE.Vector3,
+    v: THREE.Vector3
   ): THREE.Vector3[] {
     const seeds: THREE.Vector3[] = [];
 
-    // Create a grid of equally-spaced points on a sphere surface
-    // This guarantees symmetric distribution unlike random or Fibonacci approaches
+    // Generate shells at different distances
+    for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
+      let distance: number;
 
-    // Determine grid dimensions to approximate count
-    const rings = Math.max(2, Math.ceil(Math.sqrt(count / Math.PI)));
-    const pointsPerRing = Math.max(1, Math.round(count / rings));
+      if (spacingMode === 'linear') {
+        // Linear spacing: uniform distance between shells
+        distance = baseOffset * (1 + shellIdx);
+      } else {
+        // Logarithmic spacing: exponential distance growth
+        distance = baseOffset * Math.pow(1.5, shellIdx);
+      }
 
-    let seedCount = 0;
-    for (let ring = 0; ring < rings && seedCount < count; ring++) {
-      // Latitude (phi): distribute evenly from pole to pole
-      const phi = Math.PI * (ring + 0.5) / rings;
+      // Generate points evenly distributed around this shell (circle)
+      for (let dirIdx = 0; dirIdx < numDirections; dirIdx++) {
+        // Azimuthal angle around the symmetry axis
+        const azimuth = (2 * Math.PI * dirIdx) / numDirections;
 
-      // How many points in this ring
-      const ringsInThisRing = Math.min(pointsPerRing, count - seedCount);
-
-      for (let i = 0; i < ringsInThisRing; i++) {
-        // Longitude (theta): distribute evenly around the circle
-        const theta = (2 * Math.PI * i) / ringsInThisRing;
-
-        // Convert spherical to Cartesian coordinates
-        const x = Math.sin(phi) * Math.cos(theta);
-        const y = Math.cos(phi);
-        const z = Math.sin(phi) * Math.sin(theta);
-
-        const seed = new THREE.Vector3(
-          center.x + offset * x,
-          center.y + offset * y,
-          center.z + offset * z
-        );
+        // Position on circle: center + distance * (cos(azimuth) * u + sin(azimuth) * v)
+        const seed = center
+          .clone()
+          .addScaledVector(u, distance * Math.cos(azimuth))
+          .addScaledVector(v, distance * Math.sin(azimuth));
 
         seeds.push(seed);
-        seedCount++;
-
-        if (seedCount >= count) break;
       }
     }
 
     return seeds;
   }
-  
   // Generate field lines for extended objects (like rods, disks)
   generateFromExtendedSource(
     seedPositions: THREE.Vector3[],
