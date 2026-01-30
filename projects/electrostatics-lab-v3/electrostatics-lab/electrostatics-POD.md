@@ -1,7 +1,8 @@
 # Electrostatics Lab — Project Overview Document (POD)
 
 **Date Created:** January 29, 2026
-**Status:** Production-Ready (Core Objectives Complete)
+**Last Updated:** January 30, 2026
+**Status:** ✅ Production-Ready & Deployed (Core Objectives Complete)
 **Project Repository:** `electrostatics-lab-v3/electrostatics-lab/`
 **Technology Stack:** React 18 + Three.js + TypeScript + Vite
 **License:** MIT (Free for educational use)
@@ -18,17 +19,19 @@
 
 ### Current Status
 
-**✓ Production-Ready & Feature-Complete for Core Educational Objectives**
+**✅ DEPLOYED TO PRODUCTION | Live at: https://www.peirastes.com/projects/electrostatics-lab.html**
 
-The electrostatics-lab project has achieved all primary development goals:
+The electrostatics-lab project has achieved all primary development goals and is now live:
 - All 11 charge configurations fully implemented and validated
 - Physics calculations verified against analytical formulas
 - Multiple visualization modes operational and optimized
 - Teacher preset system in place for pedagogical guidance
 - Performance targets met (≥30 FPS on typical laptops)
 - Comprehensive documentation and validation complete
+- **Live deployment completed January 30, 2026**
+- **Critical Leva dropdown issue identified and fixed (see LEVA-DROPDOWN-FIX.md)**
 
-The application is ready for classroom use, student self-study, and institutional deployment.
+The application is actively deployed for classroom use, student self-study, and institutional access.
 
 ### Technology Stack Summary
 
@@ -177,7 +180,8 @@ All limitations are documented in the roadmap and planned for future phases base
 - **Visualization suite (2024):** Field lines, equipotentials, 2D slices, heat maps
 - **Camera slice innovation (Early 2025):** Real-time camera-aligned slice with contours
 - **Validation and documentation (Jan 2025):** Comprehensive physics validation, pedagogical design documentation
-- **Production release (Jan 2026):** Feature-complete, validated, ready for classroom use
+- **Production release (Jan 29, 2026):** Feature-complete, validated, deployed to live website
+- **Critical Bug Fix (Jan 30, 2026):** Leva dropdown options inversion fix (see Section 3.5)
 
 **Key milestones:**
 - All 11 charge configurations implemented and working
@@ -185,6 +189,29 @@ All limitations are documented in the roadmap and planned for future phases base
 - Performance targets achieved (≥30 FPS)
 - Teacher preset system operational
 - Complete documentation suite in place
+- **Live deployment to https://www.peirastes.com/projects/electrostatics-lab.html**
+- **Leva dropdown UI issue identified and resolved**
+
+### 3.5 Critical Bug Fix: Leva Dropdown Options
+
+**Issue:** After initial deployment, the case selection dropdown menu was displaying correctly but returning incorrect values, causing all non-dipole cases to fail.
+
+**Root Cause:** Leva's dropdown control was returning the display label values (e.g., "Electric Dipole") instead of the case type keys (e.g., "dipole"), preventing the createModel() switch statement from matching cases.
+
+**Solution:** Inverted the options object passed to Leva so that:
+- Display shows labels: "Electric Dipole", "Single Positive Charge", etc. ✓
+- Control returns keys: "dipole", "single_positive", etc. ✓
+
+**Code Fix (src/App.tsx):**
+```typescript
+options: Object.fromEntries(
+  Object.entries(CASE_LABELS).map(([k, v]) => [v, k])
+)
+```
+
+**Status:** ✅ Fixed and deployed (Commit `cab1256`)
+**Reference:** See `LEVA-DROPDOWN-FIX.md` for complete documentation and revert instructions
+**Testing:** All 11 cases now functional and selectable on live website
 
 ---
 
