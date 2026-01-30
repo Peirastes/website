@@ -139,7 +139,7 @@ export default function App() {
     showEquipotentials: { value: true, label: 'Equipotentials' },
     vectorDensity: { value: 8, min: 4, max: 15, step: 1, label: 'Vector Density' },
     fieldLineDirections: { value: 6, min: 4, max: 16, step: 1, label: 'Field Line Directions' },
-    fieldLineShells: { value: 3, min: 2, max: 8, step: 1, label: 'Field Line Shells' },
+    fieldLineShells: { value: 3, min: 1, max: 8, step: 1, label: 'Field Line Shells' },
     fieldLineSpacing: { value: 'linear', options: { linear: 'linear', logarithmic: 'logarithmic' }, label: 'Shell Spacing' },
     fieldLineOffset: { value: 0.15, min: 0.05, max: 2.0, step: 0.05, label: 'Shell Distance' },
     equipotentialLevels: { value: 5, min: 1, max: 10, step: 1, label: 'Equipotential Levels' },
