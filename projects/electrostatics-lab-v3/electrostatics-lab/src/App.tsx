@@ -99,7 +99,7 @@ export default function App() {
   const { caseType, charge, separation, length, radius, width, height } = useControls('Configuration', {
     caseType: {
       value: 'dipole',
-      options: CASE_LABELS,
+      options: Object.fromEntries(Object.entries(CASE_LABELS).map(([k, v]) => [v, k])),
       label: 'Case',
     },
     charge: { value: 1, min: 0.1, max: 3, step: 0.1, label: 'Charge (Q)' },
