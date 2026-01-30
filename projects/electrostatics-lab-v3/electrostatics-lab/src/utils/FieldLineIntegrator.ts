@@ -306,7 +306,7 @@ export class FieldLineIntegrator {
   }
 
   // Generate grid of seeds: numDirections (azimuthal) × numShells (radial)
-  // Shells are distributed symmetrically both inward and outward from the source
+  // Shells are centered symmetrically around baseOffset, keeping the innermost shell fixed
   private generateGridSeeds(
     center: THREE.Vector3,
     numDirections: number,
@@ -318,32 +318,33 @@ export class FieldLineIntegrator {
   ): THREE.Vector3[] {
     const seeds: THREE.Vector3[] = [];
 
-    // Distribute shells symmetrically: some pointing inward, some pointing outward
-    const numPositiveShells = Math.ceil(numShells / 2);
-    const numNegativeShells = Math.floor(numShells / 2);
+    // Center shells around baseOffset with symmetric distribution
+    const centerIdx = (numShells - 1) / 2;
+    const stepScale = 0.25; // Controls spacing between shells
 
-    // Generate inward-pointing shells (negative distances)
-    for (let i = numNegativeShells; i >= 1; i--) {
-      const distance = this.calculateShellDistance(spacingMode, baseOffset, i);
-      this.addShellSeeds(seeds, center, -distance, numDirections, u, v);
-    }
+    for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
+      const indexOffset = shellIdx - centerIdx;
+      let distance: number;
 
-    // Generate outward-pointing shells (positive distances)
-    for (let i = 1; i <= numPositiveShells; i++) {
-      const distance = this.calculateShellDistance(spacingMode, baseOffset, i);
+      if (spacingMode === 'linear') {
+        // Linear: center on baseOffset, spread by stepScale
+        const scale = 1 + indexOffset * stepScale;
+        distance = baseOffset * scale;
+      } else {
+        // Logarithmic: exponential spacing centered on baseOffset
+        if (indexOffset === 0) {
+          distance = baseOffset;
+        } else if (indexOffset > 0) {
+          distance = baseOffset * Math.pow(1.5, indexOffset);
+        } else {
+          distance = baseOffset / Math.pow(1.5, -indexOffset);
+        }
+      }
+
       this.addShellSeeds(seeds, center, distance, numDirections, u, v);
     }
 
     return seeds;
-  }
-
-  // Calculate the distance for a shell based on spacing mode
-  private calculateShellDistance(spacingMode: 'linear' | 'logarithmic', baseOffset: number, shellIndex: number): number {
-    if (spacingMode === 'linear') {
-      return baseOffset * shellIndex;
-    } else {
-      return baseOffset * Math.pow(1.5, shellIndex);
-    }
   }
 
   // Add seeds for a shell at a specific distance
