@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { Leva, useControls, folder, button } from 'leva';
@@ -99,7 +99,7 @@ export default function App() {
   const { caseType, charge, separation, length, radius, width, height } = useControls('Configuration', {
     caseType: {
       value: 'dipole' as CaseType,
-      options: CASE_LABELS,
+      options: CASE_LABELS as unknown as Record<string, string>,
       label: 'Case',
     },
     charge: { value: 1, min: 0.1, max: 3, step: 0.1, label: 'Charge (Q)' },
@@ -109,6 +109,11 @@ export default function App() {
     width: { value: 2.5, min: 1, max: 4, step: 0.1, label: 'Width' },
     height: { value: 2.5, min: 1, max: 4, step: 0.1, label: 'Height' },
   });
+
+  // Log when case changes
+  useEffect(() => {
+    console.log('🔄 Case changed to:', caseType, '(' + CASE_LABELS[caseType as CaseType] + ')');
+  }, [caseType]);
   
   // Visualization controls
   const {
