@@ -226,6 +226,11 @@ export class FieldLineIntegrator {
         // Trace all seeds and collect valid lines
         for (const seed of seeds) {
           const line = this.trace(seed, direction);
+          // For negative charges (direction = -1), reverse points so they appear as incoming
+          // This ensures arrows point inward toward the charge
+          if (direction === -1 && line.points.length > 0) {
+            line.points.reverse();
+          }
           // Collect ALL valid lines without limiting - we'll use what we get
           if (line.points.length >= 2) {
             validLines.push(line);
