@@ -191,30 +191,51 @@ export class FieldLineIntegrator {
   }
   
   // Generate seed positions in a spherical pattern around a point
+  // Uses equally-spaced angular distribution for guaranteed symmetric coverage
   private generateSeedsAroundPoint(
     center: THREE.Vector3,
     count: number,
     offset: number
   ): THREE.Vector3[] {
     const seeds: THREE.Vector3[] = [];
-    
-    // Use Fibonacci sphere distribution for more even coverage
-    const phi = Math.PI * (3 - Math.sqrt(5)); // Golden angle
-    
-    for (let i = 0; i < count; i++) {
-      const y = 1 - (i / (count - 1)) * 2; // y goes from 1 to -1
-      const radius = Math.sqrt(1 - y * y);
-      const theta = phi * i;
-      
-      const seed = new THREE.Vector3(
-        center.x + offset * radius * Math.cos(theta),
-        center.y + offset * y,
-        center.z + offset * radius * Math.sin(theta)
-      );
-      
-      seeds.push(seed);
+
+    // Create a grid of equally-spaced points on a sphere surface
+    // This guarantees symmetric distribution unlike random or Fibonacci approaches
+
+    // Determine grid dimensions to approximate count
+    const rings = Math.max(2, Math.ceil(Math.sqrt(count / Math.PI)));
+    const pointsPerRing = Math.max(1, Math.round(count / rings));
+
+    let seedCount = 0;
+    for (let ring = 0; ring < rings && seedCount < count; ring++) {
+      // Latitude (phi): distribute evenly from pole to pole
+      const phi = Math.PI * (ring + 0.5) / rings;
+
+      // How many points in this ring
+      const ringsInThisRing = Math.min(pointsPerRing, count - seedCount);
+
+      for (let i = 0; i < ringsInThisRing; i++) {
+        // Longitude (theta): distribute evenly around the circle
+        const theta = (2 * Math.PI * i) / ringsInThisRing;
+
+        // Convert spherical to Cartesian coordinates
+        const x = Math.sin(phi) * Math.cos(theta);
+        const y = Math.cos(phi);
+        const z = Math.sin(phi) * Math.sin(theta);
+
+        const seed = new THREE.Vector3(
+          center.x + offset * x,
+          center.y + offset * y,
+          center.z + offset * z
+        );
+
+        seeds.push(seed);
+        seedCount++;
+
+        if (seedCount >= count) break;
+      }
     }
-    
+
     return seeds;
   }
   
