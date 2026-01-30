@@ -124,10 +124,7 @@ export default function App() {
     showFieldLines,
     showEquipotentials,
     vectorDensity,
-    fieldLineDirections,
-    fieldLineShells,
-    fieldLineSpacing,
-    fieldLineOffset,
+    azimuthalDensity,
     equipotentialLevels,
     vectorScale,
     logScale,
@@ -138,10 +135,7 @@ export default function App() {
     showFieldLines: { value: true, label: 'Field Lines' },
     showEquipotentials: { value: true, label: 'Equipotentials' },
     vectorDensity: { value: 8, min: 4, max: 15, step: 1, label: 'Vector Density' },
-    fieldLineDirections: { value: 6, min: 4, max: 16, step: 1, label: 'Radial Field Line Density' },
-    fieldLineShells: { value: 3, min: 1, max: 8, step: 1, label: 'Field Line Shells' },
-    fieldLineSpacing: { value: 'linear', options: { linear: 'linear', logarithmic: 'logarithmic' }, label: 'Shell Spacing' },
-    fieldLineOffset: { value: 0.15, min: 0.05, max: 2.0, step: 0.05, label: 'Shell Distance' },
+    azimuthalDensity: { value: 6, min: 1, max: 16, step: 1, label: 'Azimuthal Field Line Density' },
     equipotentialLevels: { value: 5, min: 1, max: 10, step: 1, label: 'Equipotential Levels' },
     vectorScale: { value: 0.3, min: 0.1, max: 1, step: 0.05, label: 'Vector Scale' },
     logScale: { value: false, label: 'Log Scale |E|' },
@@ -268,10 +262,7 @@ export default function App() {
             <FieldLines
               model={model}
               bounds={domainBounds}
-              numDirections={fieldLineDirections}
-              numShells={fieldLineShells}
-              spacingMode={fieldLineSpacing as 'linear' | 'logarithmic'}
-              offset={fieldLineOffset}
+              azimuthalDensity={azimuthalDensity}
             />
           )}
           

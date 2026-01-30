@@ -34,7 +34,7 @@ export function SliceView({ model, bounds, onClose, logScale }: SliceViewProps) 
       terminationRadius: 0.1,
     });
     
-    const lines = integrator.generateFromSources(8, 0.12);
+    const lines = integrator.generateFromSources(8);
     
     // Project lines onto the slice plane
     return lines.map(line => ({

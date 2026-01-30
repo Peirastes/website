@@ -168,91 +168,87 @@ export class FieldLineIntegrator {
     return inside.clone().addScaledVector(dir, t);
   }
   
-  // Generate field lines from both positive sources (outward) and negative sinks (inward)
-  // Uses grid-based seeding: numDirections × numShells seeds per source
-  generateFromSources(
-    numDirections: number = 6,
-    numShells: number = 3,
-    spacingMode: 'linear' | 'logarithmic' = 'linear',
-    offset: number = 0.2
-  ): FieldLine[] {
+  // Generate field lines with axial + azimuthal structure
+  // 2 axial field lines (along symmetry axis) + N azimuthal field lines (revolved around axis)
+  generateFromSources(azimuthalDensity: number = 6): FieldLine[] {
     const allSources = this.model.getSourcePositions();
     const positiveSources = allSources.filter(s => s.charge > 0);
     const negativeSources = allSources.filter(s => s.charge < 0);
     const lines: FieldLine[] = [];
 
-    // Determine symmetry axis (for grid orientation)
+    // Determine symmetry axis
     const symmetryAxis = this.getSymmetryAxis(allSources);
+    const { u, v } = this.createOrthonormalBasis(symmetryAxis);
 
     // Generate field lines FROM positive charges (outward)
     for (const source of positiveSources) {
-      lines.push(
-        ...this.generateFieldLinesOnGrid(
-          source.position,
-          numDirections,
-          numShells,
-          spacingMode,
-          offset,
-          symmetryAxis,
-          1
-        )
-      );
+      lines.push(...this.generateAxialFieldLines(source.position, symmetryAxis, 1));
+      lines.push(...this.generateAzimuthalFieldLines(source.position, azimuthalDensity, u, v, 1));
     }
 
     // Generate field lines TO negative charges (inward)
     for (const source of negativeSources) {
-      lines.push(
-        ...this.generateFieldLinesOnGrid(
-          source.position,
-          numDirections,
-          numShells,
-          spacingMode,
-          offset,
-          symmetryAxis,
-          -1
-        )
-      );
+      lines.push(...this.generateAxialFieldLines(source.position, symmetryAxis, -1));
+      lines.push(...this.generateAzimuthalFieldLines(source.position, azimuthalDensity, u, v, -1));
     }
 
     return lines;
   }
 
-  // Generate field lines on a grid of directions × shells
-  private generateFieldLinesOnGrid(
+  // Generate 2 axial field lines: one toward opposite charge, one away
+  private generateAxialFieldLines(sourcePosition: THREE.Vector3, axis: THREE.Vector3, direction: number): FieldLine[] {
+    const lines: FieldLine[] = [];
+    const axisNorm = axis.clone().normalize();
+    const axialOffset = 0.1; // Small offset from source along axis
+
+    // Axial line 1: toward the other charge (along axis direction)
+    const seed1 = sourcePosition.clone().addScaledVector(axisNorm, axialOffset * direction);
+    const line1 = this.trace(seed1, direction);
+    if (direction === -1 && line1.points.length > 0) {
+      line1.points.reverse();
+    }
+    if (line1.points.length >= 2) {
+      lines.push(line1);
+    }
+
+    // Axial line 2: away from the other charge (opposite axis direction)
+    const seed2 = sourcePosition.clone().addScaledVector(axisNorm, axialOffset * -direction);
+    const line2 = this.trace(seed2, direction);
+    if (direction === -1 && line2.points.length > 0) {
+      line2.points.reverse();
+    }
+    if (line2.points.length >= 2) {
+      lines.push(line2);
+    }
+
+    return lines;
+  }
+
+  // Generate N azimuthal field lines, revolved around the symmetry axis
+  private generateAzimuthalFieldLines(
     sourcePosition: THREE.Vector3,
     numDirections: number,
-    numShells: number,
-    spacingMode: 'linear' | 'logarithmic',
-    offset: number,
-    symmetryAxis: THREE.Vector3,
+    u: THREE.Vector3,
+    v: THREE.Vector3,
     direction: number
   ): FieldLine[] {
     const lines: FieldLine[] = [];
+    const azimuthalRadius = 0.15; // Distance from axis for azimuthal seeds
 
-    // Create orthonormal basis with symmetry axis as primary direction
-    const { u, v } = this.createOrthonormalBasis(symmetryAxis);
+    // Generate numDirections azimuthal field lines, evenly distributed around the axis
+    for (let i = 0; i < numDirections; i++) {
+      const azimuth = (2 * Math.PI * i) / numDirections;
 
-    // Generate grid seeds: numDirections around the axis, numShells at different distances
-    const seeds = this.generateGridSeeds(
-      sourcePosition,
-      numDirections,
-      numShells,
-      spacingMode,
-      offset,
-      u,
-      v
-    );
+      // Seed at 90° to the axis (perpendicular)
+      const seed = sourcePosition
+        .clone()
+        .addScaledVector(u, azimuthalRadius * Math.cos(azimuth))
+        .addScaledVector(v, azimuthalRadius * Math.sin(azimuth));
 
-    // Trace each seed
-    for (const seed of seeds) {
       const line = this.trace(seed, direction);
-
-      // For negative charges (direction = -1), reverse points so they appear as incoming
       if (direction === -1 && line.points.length > 0) {
         line.points.reverse();
       }
-
-      // Add line if it has enough points
       if (line.points.length >= 2) {
         lines.push(line);
       }
@@ -306,68 +302,7 @@ export class FieldLineIntegrator {
   }
 
   // Generate grid of seeds: numDirections (azimuthal) × numShells (radial)
-  // The center shell is fixed at 0.15, baseOffset controls spacing of ADDITIONAL shells only
-  private generateGridSeeds(
-    center: THREE.Vector3,
-    numDirections: number,
-    numShells: number,
-    spacingMode: 'linear' | 'logarithmic',
-    baseOffset: number,
-    u: THREE.Vector3,
-    v: THREE.Vector3
-  ): THREE.Vector3[] {
-    const seeds: THREE.Vector3[] = [];
-
-    // Center shell is fixed at distance 0 (at the source), baseOffset controls additional shells
-    const FIXED_CENTER_DISTANCE = 0;
-    const centerIdx = (numShells - 1) / 2;
-
-    for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
-      const indexOffset = shellIdx - centerIdx;
-      let distance: number;
-
-      if (spacingMode === 'linear') {
-        // Center shell (indexOffset=0) always at FIXED_CENTER_DISTANCE
-        // Additional shells offset by baseOffset (not scaled by number of shells)
-        distance = FIXED_CENTER_DISTANCE + indexOffset * baseOffset;
-      } else {
-        // Logarithmic: exponential spacing relative to fixed center
-        if (indexOffset === 0) {
-          distance = FIXED_CENTER_DISTANCE;
-        } else if (indexOffset > 0) {
-          distance = FIXED_CENTER_DISTANCE * Math.pow(1.5, indexOffset);
-        } else {
-          distance = FIXED_CENTER_DISTANCE / Math.pow(1.5, -indexOffset);
-        }
-      }
-
-      this.addShellSeeds(seeds, center, distance, numDirections, u, v);
-    }
-
-    return seeds;
-  }
-
-  // Add seeds for a shell at a specific distance
-  private addShellSeeds(
-    seeds: THREE.Vector3[],
-    center: THREE.Vector3,
-    distance: number,
-    numDirections: number,
-    u: THREE.Vector3,
-    v: THREE.Vector3
-  ): void {
-    for (let dirIdx = 0; dirIdx < numDirections; dirIdx++) {
-      const azimuth = (2 * Math.PI * dirIdx) / numDirections;
-
-      const seed = center
-        .clone()
-        .addScaledVector(u, distance * Math.cos(azimuth))
-        .addScaledVector(v, distance * Math.sin(azimuth));
-
-      seeds.push(seed);
-    }
-  }
-  // Generate field lines for extended objects (like rods, disks)
+// Generate field lines for extended objects (like rods, disks)
   generateFromExtendedSource(
     seedPositions: THREE.Vector3[],
     normalOffset: number = 0.1

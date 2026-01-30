@@ -7,10 +7,7 @@ import { FieldLineIntegrator } from '../utils/FieldLineIntegrator';
 interface FieldLinesProps {
   model: FieldModel;
   bounds: { min: THREE.Vector3; max: THREE.Vector3 };
-  numDirections: number;
-  numShells: number;
-  spacingMode: 'linear' | 'logarithmic';
-  offset?: number;
+  azimuthalDensity: number;
   stepSize?: number;
   maxSteps?: number;
 }
@@ -18,10 +15,7 @@ interface FieldLinesProps {
 export function FieldLines({
   model,
   bounds,
-  numDirections,
-  numShells,
-  spacingMode,
-  offset = 0.15,
+  azimuthalDensity,
   stepSize = 0.05,
   maxSteps = 500,
 }: FieldLinesProps) {
@@ -38,8 +32,8 @@ export function FieldLines({
       terminationRadius: 0.12,
     });
 
-    return integrator.generateFromSources(numDirections, numShells, spacingMode, offset);
-  }, [model, bounds, numDirections, numShells, spacingMode, offset, stepSize, maxSteps]);
+    return integrator.generateFromSources(azimuthalDensity);
+  }, [model, bounds, azimuthalDensity, stepSize, maxSteps]);
   
   return (
     <group>
