@@ -175,24 +175,40 @@ export class FieldLineIntegrator {
 
     for (const source of sources) {
       // Generate seeds at multiple offset distances to create concentric shells
-      // This provides denser coverage and shows field structure at different scales
+      // Each layer gets the same target count to ensure equal distribution
       const offsetDistances = [
-        offset * 0.5,      // Inner shell (50% of base offset)
-        offset,            // Middle shell (base offset)
-        offset * 1.5,      // Outer shell (150% of base offset)
+        { distance: offset * 0.5, name: 'inner' },      // Inner shell (50% of base offset)
+        { distance: offset, name: 'middle' },            // Middle shell (base offset)
+        { distance: offset * 1.5, name: 'outer' },      // Outer shell (150% of base offset)
       ];
 
-      for (const offsetDist of offsetDistances) {
+      for (const layer of offsetDistances) {
         // Generate evenly-spaced seeds around the charge at this distance
-        const seeds = this.generateSeedsAroundPoint(source.position, linesPerSource, offsetDist);
+        let seeds = this.generateSeedsAroundPoint(source.position, linesPerSource, layer.distance);
+        let validLines: FieldLine[] = [];
+        let attemptCount = 0;
+        const maxAttempts = 3;
 
-        for (const seed of seeds) {
-          const line = this.trace(seed, 1); // Trace in positive direction
-          // Include all field lines to ensure symmetric coverage at all layers
-          if (line.points.length >= 2) {
-            lines.push(line);
+        // Try to get the target number of valid field lines
+        // If some seeds fail, generate more seeds and try again
+        while (validLines.length < linesPerSource && attemptCount < maxAttempts) {
+          for (const seed of seeds) {
+            const line = this.trace(seed, 1); // Trace in positive direction
+            if (line.points.length >= 2 && validLines.length < linesPerSource) {
+              validLines.push(line);
+            }
+          }
+
+          // If we didn't get enough valid lines, generate more seeds at slightly different offset
+          if (validLines.length < linesPerSource) {
+            attemptCount++;
+            const offsetVariation = layer.distance * (0.9 + 0.1 * attemptCount);
+            seeds = this.generateSeedsAroundPoint(source.position, linesPerSource * 2, offsetVariation);
           }
         }
+
+        // Add all collected lines from this layer
+        lines.push(...validLines);
       }
     }
 
