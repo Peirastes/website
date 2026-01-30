@@ -99,7 +99,19 @@ export default function App() {
   const { caseType, charge, separation, length, radius, width, height } = useControls('Configuration', {
     caseType: {
       value: 'dipole' as CaseType,
-      options: CASE_LABELS as unknown as Record<string, string>,
+      options: {
+        'single_positive': 'Single Positive Charge',
+        'single_negative': 'Single Negative Charge',
+        'dipole': 'Electric Dipole',
+        'like_charges': 'Two Like Charges',
+        'quadrupole': 'Quadrupole',
+        'triangle': 'Triangle Configuration',
+        'finite_rod': 'Finite Rod (Line Charge)',
+        'ring': 'Charged Ring',
+        'disk': 'Charged Disk',
+        'finite_plate': 'Finite Rectangular Plate',
+        'parallel_plates': 'Parallel Plates (Capacitor)',
+      },
       label: 'Case',
     },
     charge: { value: 1, min: 0.1, max: 3, step: 0.1, label: 'Charge (Q)' },
