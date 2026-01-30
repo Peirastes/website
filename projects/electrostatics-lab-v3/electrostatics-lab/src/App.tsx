@@ -96,22 +96,28 @@ export default function App() {
   const [showSlice, setShowSlice] = useState(false);
   
   // Main controls
+  // Create case options array with proper values
+  const caseOptions: CaseType[] = [
+    'single_positive',
+    'single_negative',
+    'dipole',
+    'like_charges',
+    'quadrupole',
+    'triangle',
+    'finite_rod',
+    'ring',
+    'disk',
+    'finite_plate',
+    'parallel_plates',
+  ];
+
   const { caseType, charge, separation, length, radius, width, height } = useControls('Configuration', {
     caseType: {
       value: 'dipole' as CaseType,
-      options: {
-        'single_positive': 'Single Positive Charge',
-        'single_negative': 'Single Negative Charge',
-        'dipole': 'Electric Dipole',
-        'like_charges': 'Two Like Charges',
-        'quadrupole': 'Quadrupole',
-        'triangle': 'Triangle Configuration',
-        'finite_rod': 'Finite Rod (Line Charge)',
-        'ring': 'Charged Ring',
-        'disk': 'Charged Disk',
-        'finite_plate': 'Finite Rectangular Plate',
-        'parallel_plates': 'Parallel Plates (Capacitor)',
-      },
+      options: caseOptions.reduce((acc, key) => {
+        acc[key] = CASE_LABELS[key];
+        return acc;
+      }, {} as Record<string, string>),
       label: 'Case',
     },
     charge: { value: 1, min: 0.1, max: 3, step: 0.1, label: 'Charge (Q)' },
@@ -124,7 +130,10 @@ export default function App() {
 
   // Log when case changes
   useEffect(() => {
-    console.log('🔄 Case changed to:', caseType, '(' + CASE_LABELS[caseType as CaseType] + ')');
+    console.log('🔄 Case changed to:', caseType);
+    console.log('   Type of caseType:', typeof caseType);
+    console.log('   CASE_LABELS[caseType]:', CASE_LABELS[caseType as CaseType]);
+    console.log('   Available cases:', Object.keys(CASE_LABELS));
   }, [caseType]);
   
   // Visualization controls
