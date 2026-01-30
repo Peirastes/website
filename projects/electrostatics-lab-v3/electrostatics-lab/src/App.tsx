@@ -166,7 +166,15 @@ export default function App() {
   
   // Create model
   const model = useMemo(() => {
-    return createModel(caseType as CaseType, { charge, separation, length, radius, width, height });
+    const createdModel = createModel(caseType as CaseType, { charge, separation, length, radius, width, height });
+    console.log('📊 Model created:', {
+      caseType,
+      charge,
+      separation,
+      model: createdModel.name,
+      geometry: createdModel.getGeometry()
+    });
+    return createdModel;
   }, [caseType, charge, separation, length, radius, width, height]);
   
   // Compute bounds
