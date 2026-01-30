@@ -306,7 +306,7 @@ export class FieldLineIntegrator {
   }
 
   // Generate grid of seeds: numDirections (azimuthal) × numShells (radial)
-  // Shells are centered symmetrically around baseOffset, keeping the innermost shell fixed
+  // The first/center shell is fixed at 0.15, baseOffset controls spacing of additional shells
   private generateGridSeeds(
     center: THREE.Vector3,
     numDirections: number,
@@ -318,26 +318,26 @@ export class FieldLineIntegrator {
   ): THREE.Vector3[] {
     const seeds: THREE.Vector3[] = [];
 
-    // Center shells around baseOffset with symmetric distribution
+    // Keep the first shell at a fixed distance (0.15), use baseOffset to control spacing
+    const FIXED_CENTER_DISTANCE = 0.15;
     const centerIdx = (numShells - 1) / 2;
-    const stepScale = 0.25; // Controls spacing between shells
 
     for (let shellIdx = 0; shellIdx < numShells; shellIdx++) {
       const indexOffset = shellIdx - centerIdx;
       let distance: number;
 
       if (spacingMode === 'linear') {
-        // Linear: center on baseOffset, spread by stepScale
-        const scale = 1 + indexOffset * stepScale;
-        distance = baseOffset * scale;
+        // Center shell (indexOffset=0) always at FIXED_CENTER_DISTANCE
+        // Other shells offset from it by baseOffset
+        distance = FIXED_CENTER_DISTANCE + indexOffset * baseOffset;
       } else {
-        // Logarithmic: exponential spacing centered on baseOffset
+        // Logarithmic: exponential spacing relative to fixed center
         if (indexOffset === 0) {
-          distance = baseOffset;
+          distance = FIXED_CENTER_DISTANCE;
         } else if (indexOffset > 0) {
-          distance = baseOffset * Math.pow(1.5, indexOffset);
+          distance = FIXED_CENTER_DISTANCE * Math.pow(1.5, indexOffset);
         } else {
-          distance = baseOffset / Math.pow(1.5, -indexOffset);
+          distance = FIXED_CENTER_DISTANCE / Math.pow(1.5, -indexOffset);
         }
       }
 
