@@ -96,28 +96,16 @@ export default function App() {
   const [showSlice, setShowSlice] = useState(false);
   
   // Main controls
-  // Create case options array with proper values
-  const caseOptions: CaseType[] = [
-    'single_positive',
-    'single_negative',
-    'dipole',
-    'like_charges',
-    'quadrupole',
-    'triangle',
-    'finite_rod',
-    'ring',
-    'disk',
-    'finite_plate',
-    'parallel_plates',
-  ];
+  // Create inverted options: Leva needs {label: caseKey} format
+  const caseOptionsInverted = Object.entries(CASE_LABELS).reduce((acc, [key, label]) => {
+    acc[label] = key;
+    return acc;
+  }, {} as Record<string, string>);
 
   const { caseType, charge, separation, length, radius, width, height } = useControls('Configuration', {
     caseType: {
       value: 'dipole' as CaseType,
-      options: caseOptions.reduce((acc, key) => {
-        acc[key] = CASE_LABELS[key];
-        return acc;
-      }, {} as Record<string, string>),
+      options: caseOptionsInverted,
       label: 'Case',
     },
     charge: { value: 1, min: 0.1, max: 3, step: 0.1, label: 'Charge (Q)' },
