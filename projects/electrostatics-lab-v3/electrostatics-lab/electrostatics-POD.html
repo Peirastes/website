@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>electrostatics-POD</title>
+  <style>
+    html {
+      line-height: 1.7;
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 40em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      word-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 1em;
+      }
+    }
+    @media print {
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin-top: 1.7em;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.7em;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1.7em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1.7em 0 1.7em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      font-style: italic;
+    }
+    code {
+      font-family: Menlo, Monaco, 'Lucida Console', Consolas, monospace;
+      background-color: #f0f0f0;
+      font-size: 85%;
+      margin: 0;
+      padding: .2em .4em;
+    }
+    pre {
+      line-height: 1.5em;
+      padding: 1em;
+      background-color: #f0f0f0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin-top: 1.7em;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+    }
+    th, td {
+      border-bottom: 1px solid lightgray;
+      padding: 1em 3em 1em 0;
+    }
+    header {
+      margin-bottom: 6em;
+      text-align: center;
+    }
+    nav a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#electrostatics-lab-project-overview-document-pod">Electrostatics Lab — Project Overview Document (POD)</a>
+<ul>
+<li><a href="#section-1-executive-summary">Section 1: Executive Summary</a>
+<ul>
+<li><a href="#project-overview-and-mission">Project Overview and Mission</a></li>
+<li><a href="#current-status">Current Status</a></li>
+<li><a href="#technology-stack-summary">Technology Stack Summary</a></li>
+<li><a href="#key-innovation-camera-aligned-slice-view">Key Innovation: Camera-Aligned Slice View</a></li>
+</ul></li>
+<li><a href="#section-2-main-objectives">Section 2: Main Objectives</a>
+<ul>
+<li><a href="#core-development-objectives-all-complete">Core Development Objectives — All Complete ✓</a></li>
+</ul></li>
+<li><a href="#section-3-current-status">Section 3: Current Status</a>
+<ul>
+<li><a href="#overall-assessment">3.1 Overall Assessment</a></li>
+<li><a href="#whats-working">3.2 What’s Working</a></li>
+<li><a href="#known-limitations">3.3 Known Limitations</a></li>
+<li><a href="#recent-progress">3.4 Recent Progress</a></li>
+</ul></li>
+<li><a href="#section-4-future-enhancement-roadmap">Section 4: Future Enhancement Roadmap</a>
+<ul>
+<li><a href="#phase-1-enhanced-visualization-export-2-4-weeks-priority-high">Phase 1: Enhanced Visualization &amp; Export (2-4 weeks) | Priority: HIGH</a></li>
+<li><a href="#phase-2-interactive-extensions-4-8-weeks-priority-medium">Phase 2: Interactive Extensions (4-8 weeks) | Priority: MEDIUM</a></li>
+<li><a href="#phase-3-magnetic-fields-dynamics-8-12-weeks-priority-medium">Phase 3: Magnetic Fields &amp; Dynamics (8-12 weeks) | Priority: MEDIUM</a></li>
+<li><a href="#phase-4-platform-integration-advanced-features-12-20-weeks-priority-low">Phase 4: Platform Integration &amp; Advanced Features (12-20 weeks) | Priority: LOW</a></li>
+</ul></li>
+<li><a href="#section-5-technical-architecture-impacts">Section 5: Technical Architecture Impacts</a>
+<ul>
+<li><a href="#phase-1-enhanced-visualization-export">Phase 1: Enhanced Visualization &amp; Export</a></li>
+<li><a href="#phase-2-interactive-extensions">Phase 2: Interactive Extensions</a></li>
+<li><a href="#phase-3-magnetic-fields-dynamics">Phase 3: Magnetic Fields &amp; Dynamics</a></li>
+<li><a href="#phase-4-platform-integration-advanced-features">Phase 4: Platform Integration &amp; Advanced Features</a></li>
+</ul></li>
+<li><a href="#section-6-risk-assessment-mitigation">Section 6: Risk Assessment &amp; Mitigation</a></li>
+<li><a href="#section-7-success-metrics">Section 7: Success Metrics</a>
+<ul>
+<li><a href="#phase-1-enhanced-visualization-export-1">Phase 1: Enhanced Visualization &amp; Export</a></li>
+<li><a href="#phase-2-interactive-extensions-1">Phase 2: Interactive Extensions</a></li>
+<li><a href="#phase-3-magnetic-fields-dynamics-1">Phase 3: Magnetic Fields &amp; Dynamics</a></li>
+<li><a href="#phase-4-platform-integration-advanced-features-1">Phase 4: Platform Integration &amp; Advanced Features</a></li>
+</ul></li>
+<li><a href="#section-8-timeline-milestones">Section 8: Timeline &amp; Milestones</a>
+<ul>
+<li><a href="#overall-project-timeline">Overall Project Timeline</a></li>
+<li><a href="#detailed-milestones">Detailed Milestones</a></li>
+</ul></li>
+<li><a href="#section-9-open-questions-design-decisions">Section 9: Open Questions &amp; Design Decisions</a>
+<ul>
+<li><a href="#magnetic-field-visualization-integrated-vs.-separate">1. Magnetic Field Visualization: Integrated vs. Separate?</a></li>
+<li><a href="#export-format-priorities-pnggifmp43d">2. Export Format Priorities: PNG/GIF/MP4/3D?</a></li>
+<li><a href="#mobile-performance-approach-adaptive-rendering-vs.-manual-tuning">3. Mobile Performance Approach: Adaptive Rendering vs. Manual Tuning?</a></li>
+<li><a href="#vr-mode-webxr-vs.-native-app">4. VR Mode: WebXR vs. Native App?</a></li>
+<li><a href="#educational-effectiveness-validation-how-do-we-measure-learning-gains">5. Educational Effectiveness Validation: How Do We Measure Learning Gains?</a></li>
+<li><a href="#lms-integration-level-iframeltideep-integration">6. LMS Integration Level: Iframe/LTI/Deep Integration?</a></li>
+</ul></li>
+<li><a href="#section-10-resource-requirements">Section 10: Resource Requirements</a>
+<ul>
+<li><a href="#phase-1-enhanced-visualization-export-2">Phase 1: Enhanced Visualization &amp; Export</a></li>
+<li><a href="#phase-2-interactive-extensions-2">Phase 2: Interactive Extensions</a></li>
+<li><a href="#phase-3-magnetic-fields-dynamics-2">Phase 3: Magnetic Fields &amp; Dynamics</a></li>
+<li><a href="#phase-4-platform-integration-advanced-features-2">Phase 4: Platform Integration &amp; Advanced Features</a></li>
+<li><a href="#overall-resource-summary">Overall Resource Summary</a></li>
+</ul></li>
+<li><a href="#section-11-implementation-readiness-checklist">Section 11: Implementation Readiness Checklist</a>
+<ul>
+<li><a href="#phase-1-readiness-ready-to-begin-immediately">Phase 1 Readiness (Ready to begin immediately)</a></li>
+<li><a href="#phase-2-readiness-ready-when-phase-1-complete">Phase 2 Readiness (Ready when Phase 1 complete)</a></li>
+<li><a href="#phase-3-readiness-ready-when-phase-2-complete">Phase 3 Readiness (Ready when Phase 2 complete)</a></li>
+<li><a href="#phase-4.1-readiness-ready-when-phase-3-complete">Phase 4.1 Readiness (Ready when Phase 3 complete)</a></li>
+<li><a href="#phase-4.2-readiness-can-start-in-parallel">Phase 4.2 Readiness (Can start in parallel)</a></li>
+<li><a href="#phase-4.3-readiness-ready-after-phase-3">Phase 4.3 Readiness (Ready after Phase 3)</a></li>
+<li><a href="#phase-4.4-readiness-ready-after-phase-4.1">Phase 4.4 Readiness (Ready after Phase 4.1)</a></li>
+</ul></li>
+<li><a href="#section-12-approval-sign-off">Section 12: Approval &amp; Sign-Off</a></li>
+<li><a href="#references-additional-resources">References &amp; Additional Resources</a>
+<ul>
+<li><a href="#physics-references">Physics References</a></li>
+<li><a href="#technical-documentation">Technical Documentation</a></li>
+<li><a href="#related-projects">Related Projects</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="electrostatics-lab-project-overview-document-pod">Electrostatics Lab — Project Overview Document (POD)</h1>
+<p><strong>Date Created:</strong> January 29, 2026 <strong>Status:</strong> Production-Ready (Core Objectives Complete) <strong>Project Repository:</strong> <code>electrostatics-lab-v3/electrostatics-lab/</code> <strong>Technology Stack:</strong> React 18 + Three.js + TypeScript + Vite <strong>License:</strong> MIT (Free for educational use)</p>
+<hr />
+<h2 id="section-1-executive-summary">Section 1: Executive Summary</h2>
+<h3 id="project-overview-and-mission">Project Overview and Mission</h3>
+<p><strong>Electrostatics Lab</strong> is an interactive 3D web-based visualization tool designed to make abstract electrostatic concepts tangible and explorable for physics students. The application renders electric fields, equipotential surfaces, and field lines in real-time, allowing students to develop spatial intuition about electromagnetic phenomena that textbook diagrams alone cannot convey.</p>
+<p><strong>Primary Mission:</strong> Transform physics education by enabling students to <em>see</em> and <em>interact with</em> electric fields, bridging the gap between mathematical formulas (E = kQ/r²) and physical reality.</p>
+<h3 id="current-status">Current Status</h3>
+<p><strong>✓ Production-Ready &amp; Feature-Complete for Core Educational Objectives</strong></p>
+<p>The electrostatics-lab project has achieved all primary development goals: - All 11 charge configurations fully implemented and validated - Physics calculations verified against analytical formulas - Multiple visualization modes operational and optimized - Teacher preset system in place for pedagogical guidance - Performance targets met (≥30 FPS on typical laptops) - Comprehensive documentation and validation complete</p>
+<p>The application is ready for classroom use, student self-study, and institutional deployment.</p>
+<h3 id="technology-stack-summary">Technology Stack Summary</h3>
+<table>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 35%" />
+<col style="width: 29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Technology</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Frontend Framework</strong></td>
+<td>React 18</td>
+<td>Component architecture, state management</td>
+</tr>
+<tr class="even">
+<td><strong>3D Graphics Engine</strong></td>
+<td>Three.js via React Three Fiber</td>
+<td>WebGL rendering, GPU acceleration</td>
+</tr>
+<tr class="odd">
+<td><strong>Language</strong></td>
+<td>TypeScript</td>
+<td>Type safety, IDE support, maintainability</td>
+</tr>
+<tr class="even">
+<td><strong>Build &amp; Dev</strong></td>
+<td>Vite</td>
+<td>Fast development, optimized production builds</td>
+</tr>
+<tr class="odd">
+<td><strong>UI Controls</strong></td>
+<td>Leva</td>
+<td>Interactive parameter panels</td>
+</tr>
+<tr class="even">
+<td><strong>Physics</strong></td>
+<td>Custom implementations</td>
+<td>Field calculations, RK4 integration, marching cubes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Codebase Size:</strong> ~3,300 LOC across models, components, and utilities</p>
+<h3 id="key-innovation-camera-aligned-slice-view">Key Innovation: Camera-Aligned Slice View</h3>
+<p>The <strong>camera slice</strong> feature solves a critical visualization problem: how to represent 3D equipotential “layers” clearly when semi-transparent 3D surfaces become muddy and overlapped.</p>
+<p><strong>Solution:</strong> A live 2D heat map cross-section that automatically rotates to stay perpendicular to the viewing direction. As you rotate the camera, the slice rotates with you, always presenting a clear, artifact-free view of the field structure.</p>
+<p>This innovation exemplifies the pedagogical design principle of <strong>multiple representations</strong> — the same physical system can be viewed as: - Vector arrows (direction and magnitude) - Field lines (flux visualization) - 3D equipotential surfaces (nested structure) - 2D heat map slice (clean cross-section)</p>
+<hr />
+<h2 id="section-2-main-objectives">Section 2: Main Objectives</h2>
+<h3 id="core-development-objectives-all-complete">Core Development Objectives — All Complete ✓</h3>
+<table>
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 27%" />
+<col style="width: 45%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Objective</th>
+<th>Success Criteria</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>Implement physics-accurate field calculations</td>
+<td>E(x,y,z) and V(x,y,z) match analytical formulas within 2%</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>Support 11 diverse charge configurations</td>
+<td>Point charges, extended objects, plates all working</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>Render real-time 3D vector field</td>
+<td>≥30 FPS with 8+ vector density on laptops</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>Integrate field line visualization</td>
+<td>RK4 integration, proper seeding and termination</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>Generate 3D equipotential surfaces</td>
+<td>Marching cubes algorithm, multiple levels, smooth rendering</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>Develop interactive 2D slice views</td>
+<td>XY, XZ, YZ planes with heat maps and contours</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>Create camera-aligned slice innovation</td>
+<td>Live camera-perpendicular heat map with contours</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>Validate against known physics</td>
+<td>All 10 validation tests passed (see VALIDATION.md)</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>Optimize for classroom use</td>
+<td>Teacher presets, clean UI, responsive controls</td>
+<td>✓ Complete</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>Document pedagogical value</td>
+<td>Overview document, teacher guide, formula references</td>
+<td>✓ Complete</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="section-3-current-status">Section 3: Current Status</h2>
+<h3 id="overall-assessment">3.1 Overall Assessment</h3>
+<p><strong>Status: Production-Ready and Validated</strong></p>
+<p>The electrostatics-lab application is <strong>fully functional, physics-validated, and suitable for immediate deployment</strong> in classroom and self-study environments. All core learning objectives have been achieved. The codebase is clean, well-structured, and maintainable for future enhancement.</p>
+<h3 id="whats-working">3.2 What’s Working</h3>
+<h4 id="comprehensive-charge-library-11-configurations">Comprehensive Charge Library (11 Configurations)</h4>
+<p><strong>Point Charges (6 configurations):</strong> - Single positive and negative charges (Coulomb’s law demonstration) - Electric dipole (field line curvature, near/far field behavior) - Two like charges (null point, field line repulsion) - Quadrupole (higher-order multipole moment, 1/r³ falloff) - Triangle arrangement (three-body superposition)</p>
+<p><strong>Extended Objects (3 configurations):</strong> - Finite rod / line charge (perpendicular bisector symmetry, off-axis behavior) - Charged ring (on-axis singularity, axial field formula) - Charged disk (near-field plate approximation, far-field point charge transition)</p>
+<p><strong>Plates (2 configurations):</strong> - Finite rectangular plate (edge effects, central uniformity) - Parallel plates / capacitor (uniform field demonstration, device principle)</p>
+<h4 id="accurate-physics">Accurate Physics</h4>
+<ul>
+<li><strong>Field calculations:</strong> Direct summation/integration methods validated numerically</li>
+<li><strong>Singularity handling:</strong> Softened distance r → √(r² + ε²) with ε = 0.05 prevents infinities while maintaining accuracy</li>
+<li><strong>Symmetry verification:</strong> Dipole bisector, ring axis, disk transitions all match analytical expectations</li>
+<li><strong>Validation coverage:</strong> 10 comprehensive tests (dipole symmetry, far-field scaling, on-axis formulas, perpendicularity, field line conservation)</li>
+</ul>
+<h4 id="real-time-interactivity">Real-Time Interactivity</h4>
+<ul>
+<li><strong>Live parameter adjustment:</strong> Change charge magnitude, position, dimensions instantly</li>
+<li><strong>Smooth camera controls:</strong> Rotate (left-drag), pan (right-drag), zoom (scroll)</li>
+<li><strong>Responsive visualization:</strong> All rendering modes update in real-time (no delays or re-computation waits)</li>
+<li><strong>Performance:</strong> 35-60 FPS across all configurations with default settings</li>
+</ul>
+<h4 id="multiple-visualization-modes">Multiple Visualization Modes</h4>
+<ul>
+<li><strong>Vector field glyphs:</strong> 3D arrows with color-mapped magnitudes</li>
+<li><strong>Electric field lines:</strong> Properly seeded from positive charges, follow RK4 integration</li>
+<li><strong>Equipotential surfaces:</strong> 3D isosurfaces via marching cubes, semi-transparent rendering</li>
+<li><strong>2D slice views:</strong> XY, XZ, YZ planes with heat maps and contour overlays</li>
+<li><strong>Camera slice:</strong> Live camera-aligned heat map with dynamic rotation</li>
+</ul>
+<h4 id="gpu-accelerated-rendering">GPU-Accelerated Rendering</h4>
+<ul>
+<li><strong>Instanced geometry:</strong> Vector glyphs use GPU instancing for efficient rendering of thousands of arrows</li>
+<li><strong>WebGL pipeline:</strong> Three.js handles modern shader technology across browsers</li>
+<li><strong>Optimized transforms:</strong> Lazy computation of expensive surfaces (field lines, isosurfaces)</li>
+<li><strong>Configurable resolution:</strong> Users can trade accuracy for performance on slower machines</li>
+</ul>
+<h4 id="teacher-presets-system">Teacher Presets System</h4>
+<ul>
+<li>Pre-configured scenarios in <code>src/presets/teacher-presets.json</code></li>
+<li>Pedagogical notes and “What to Notice” annotations</li>
+<li>One-click loading for classroom demonstrations</li>
+<li>Foundation for preset sharing and community building</li>
+</ul>
+<h4 id="clean-maintainable-codebase">Clean, Maintainable Codebase</h4>
+<ul>
+<li><strong>Type-safe:</strong> TypeScript throughout eliminates entire classes of runtime errors</li>
+<li><strong>Modular architecture:</strong> Clear separation of concerns (models, components, utilities)</li>
+<li><strong>Extensible design:</strong> New charge configurations can be added by implementing <code>FieldModel</code> interface</li>
+<li><strong>Well-documented:</strong> Inline comments explain numerical methods and physics principles</li>
+</ul>
+<h4 id="high-quality-documentation">High-Quality Documentation</h4>
+<ul>
+<li><code>README.md</code> with quick-start guide and feature overview</li>
+<li><code>electrostatics-lab-overview.md</code> explaining educational objectives and pedagogical design</li>
+<li><code>VALIDATION.md</code> demonstrating physics accuracy with test results</li>
+<li>Inline code comments for numerical methods and algorithms</li>
+</ul>
+<h3 id="known-limitations">3.3 Known Limitations</h3>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 33%" />
+<col style="width: 24%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Limitation</th>
+<th>Impact</th>
+<th>Workaround</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>Mobile experience suboptimal</strong></td>
+<td>Touch controls limited, screen small, performance degraded</td>
+<td>Use on desktop/laptop for best experience; touch optimization planned Phase 1</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>No export functionality</strong></td>
+<td>Can’t save visualizations for presentations/homework</td>
+<td>Phase 1 enhancement: PNG screenshots, GIF animations</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>No magnetic fields</strong></td>
+<td>Can’t visualize Lorentz force, current-carrying wires</td>
+<td>Phase 3 enhancement: B-field visualization, particle trajectories</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>No time-varying fields</strong></td>
+<td>Can’t show AC sources, EM radiation, field oscillations</td>
+<td>Phase 4 enhancement: Parametric time-dependent fields</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>No LMS integration</strong></td>
+<td>Can’t embed in Canvas, Blackboard, or Moodle</td>
+<td>Phase 4 enhancement: LTI standard implementation</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>No VR/AR capability</strong></td>
+<td>Can’t use immersive headsets for exploration</td>
+<td>Phase 4 enhancement: WebXR API support</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td><strong>No assessment features</strong></td>
+<td>Can’t auto-grade student predictions or measurements</td>
+<td>Phase 4 enhancement: Quiz integration, validation engine</td>
+</tr>
+</tbody>
+</table>
+<p>All limitations are documented in the roadmap and planned for future phases based on educational priority and technical complexity.</p>
+<h3 id="recent-progress">3.4 Recent Progress</h3>
+<p><strong>Development Timeline:</strong></p>
+<ul>
+<li><strong>Initial implementation (2024):</strong> Core physics engine, point charge models, basic visualization</li>
+<li><strong>Extended objects phase (2024):</strong> Rod, ring, disk, plate geometries with validation</li>
+<li><strong>Visualization suite (2024):</strong> Field lines, equipotentials, 2D slices, heat maps</li>
+<li><strong>Camera slice innovation (Early 2025):</strong> Real-time camera-aligned slice with contours</li>
+<li><strong>Validation and documentation (Jan 2025):</strong> Comprehensive physics validation, pedagogical design documentation</li>
+<li><strong>Production release (Jan 2026):</strong> Feature-complete, validated, ready for classroom use</li>
+</ul>
+<p><strong>Key milestones:</strong> - All 11 charge configurations implemented and working - 10/10 physics validation tests passing - Performance targets achieved (≥30 FPS) - Teacher preset system operational - Complete documentation suite in place</p>
+<hr />
+<h2 id="section-4-future-enhancement-roadmap">Section 4: Future Enhancement Roadmap</h2>
+<p>The electrostatics-lab project is production-ready for its core educational mission. Future enhancements follow a <strong>4-phase development plan</strong> organized by priority, educational value, and technical complexity.</p>
+<h3 id="phase-1-enhanced-visualization-export-2-4-weeks-priority-high">Phase 1: Enhanced Visualization &amp; Export (2-4 weeks) | Priority: HIGH</h3>
+<p><strong>Objective:</strong> Increase usability and reach by enabling easy content sharing and mobile accessibility.</p>
+<h4 id="features">Features</h4>
+<h5 id="image-animation-export">1.1 Image &amp; Animation Export</h5>
+<ul>
+<li><strong>PNG export:</strong> Canvas.toDataURL() to save current view as screenshot</li>
+<li><strong>GIF export:</strong> CCapture.js library for recording and encoding field line animations</li>
+<li><strong>MP4 export:</strong> Optional, for higher quality presentations</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Students include visualizations in lab reports</li>
+<li>Instructors add to lecture slides</li>
+<li>Textbook authors generate accurate field diagrams</li>
+<li>Social media/blog sharing of interesting configurations</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> LOW</p>
+<h5 id="preset-importexport">1.2 Preset Import/Export</h5>
+<ul>
+<li><strong>Export current configuration:</strong> Save all parameters (charges, positions, visualization settings) as JSON</li>
+<li><strong>Import presets:</strong> Load community presets or custom saved configurations</li>
+<li><strong>Shareable links:</strong> Generate URL with encoded parameters for direct sharing</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Teachers create problem sets with specific configurations</li>
+<li>Students share interesting “what-if” scenarios</li>
+<li>Community library of pedagogically useful setups</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> LOW</p>
+<h5 id="mobile-touch-optimization">1.3 Mobile Touch Optimization</h5>
+<ul>
+<li><strong>Gesture support:</strong> Pinch to zoom, two-finger rotation, tap and hold for long-press menu</li>
+<li><strong>Responsive layout:</strong> Compact control panels for small screens</li>
+<li><strong>Touch event handlers:</strong> Replace mouse-based orbit controls with touch-native implementation</li>
+<li><strong>Performance adaptive:</strong> Auto-reduce vector density on mobile for smooth experience</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Students explore with tablets in study groups</li>
+<li>Classroom iPad sharing during discussions</li>
+<li>Self-paced learning on personal devices</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> MEDIUM</p>
+<h4 id="technical-requirements">Technical Requirements</h4>
+<p><strong>New files/modules:</strong> - <code>src/utils/ExportManager.ts</code> — Handle PNG/GIF export logic - <code>src/components/PresetPanel.tsx</code> — UI for import/export - <code>src/utils/PresetSerializer.ts</code> — Serialize/deserialize configuration state - Enhanced CSS media queries in <code>App.css</code> for mobile responsiveness</p>
+<p><strong>Dependencies:</strong> - CCapture.js (already optional in most Three.js projects) - Browser Canvas API (built-in) - No additional npm packages required</p>
+<p><strong>Browser compatibility:</strong> - Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ - Mobile browsers: iOS Safari 14+, Android Chrome 90+</p>
+<h4 id="success-metrics">Success Metrics</h4>
+<ul>
+<li><strong>Export usage:</strong> &gt;50% of monthly active users export at least once</li>
+<li><strong>Mobile performance:</strong> Maintain ≥20 FPS on iPad Air 2 and Android tablets</li>
+<li><strong>Community engagement:</strong> Preset sharing library established with 20+ community presets</li>
+<li><strong>User feedback:</strong> &gt;4.0/5.0 rating on ease-of-use surveys</li>
+</ul>
+<hr />
+<h3 id="phase-2-interactive-extensions-4-8-weeks-priority-medium">Phase 2: Interactive Extensions (4-8 weeks) | Priority: MEDIUM</h3>
+<p><strong>Objective:</strong> Transition from passive observation to active experimentation by enabling students to create and measure custom configurations.</p>
+<h4 id="features-1">Features</h4>
+<h5 id="interactive-charge-placement-tool">2.1 Interactive Charge Placement Tool</h5>
+<ul>
+<li><strong>Click-to-place:</strong> Click in 3D space (with raycasting) to add new charges</li>
+<li><strong>Drag to move:</strong> Move existing charges by clicking and dragging</li>
+<li><strong>Charge adjustment:</strong> Right-click on charge to adjust magnitude</li>
+<li><strong>Delete:</strong> Delete charges by selection or keyboard shortcut</li>
+<li><strong>Persistent custom configs:</strong> Save and load student-created configurations</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Students build configurations matching given field line patterns</li>
+<li>Predict field shape before revealing visualization</li>
+<li>Explore “what if I move this charge?” without UI controls</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> MEDIUM</p>
+<p><strong>Implementation details:</strong> - Use Three.js Raycaster for 3D picking - State management for mutable charge array - Undo/redo stack for exploration comfort - Validation to prevent unphysical placements (optional constraint)</p>
+<h5 id="measurement-tool-e-field-potential-probe">2.2 Measurement Tool (E-field &amp; Potential Probe)</h5>
+<ul>
+<li><strong>Click to probe:</strong> Click at any point to read E and V values</li>
+<li><strong>Real-time display:</strong>
+<ul>
+<li>Field magnitude |E| in N/C</li>
+<li>Components E_x, E_y, E_z</li>
+<li>Electric potential V in volts</li>
+<li>Position coordinates</li>
+</ul></li>
+<li><strong>Trajectory tracing:</strong> Option to trace field line from probe point</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Verify that E is strongest near charges</li>
+<li>Confirm perpendicularity (dV/dn ∝ E_n)</li>
+<li>Build quantitative understanding beyond qualitative visualization</li>
+<li>Compare measurements across configurations</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> MEDIUM</p>
+<p><strong>Implementation details:</strong> - New component: <code>src/components/ProbeTool.tsx</code> - Extend FieldModel interface to provide precise E and V at arbitrary positions - 3D text labels for on-screen value display - History panel to compare measurements across multiple probes</p>
+<h5 id="field-comparison-mode">2.3 Field Comparison Mode</h5>
+<ul>
+<li><strong>Side-by-side rendering:</strong> Two viewports, one configuration per side</li>
+<li><strong>Synchronized rotation:</strong> Rotate one view automatically rotates the other</li>
+<li><strong>Toggle difference:</strong> Option to show field difference (E1 - E2)</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Compare dipole orientation effects</li>
+<li>Show how moving a charge affects overall field pattern</li>
+<li>Demonstrate linear superposition by comparing (Config A + Config B) vs (Config A+B combined)</li>
+<li>Explore symmetry breaking</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> MEDIUM</p>
+<p><strong>Implementation details:</strong> - Canvas split into two Three.js renderers - Shared lighting/camera logic for consistency - New state variable for comparison configuration</p>
+<h4 id="technical-requirements-1">Technical Requirements</h4>
+<p><strong>New files/modules:</strong> - <code>src/components/ChargePlacementTool.tsx</code> — Interactive placement UI - <code>src/components/ProbeTool.tsx</code> — Measurement interface - <code>src/components/ComparisonMode.tsx</code> — Side-by-side view - <code>src/models/CustomConfiguration.ts</code> — User-created charge arrangements - Enhanced <code>src/utils/FieldLineIntegrator.ts</code> for precision measurements</p>
+<p><strong>Dependencies:</strong> - Three.js Raycaster (built-in) - No new npm packages</p>
+<p><strong>Browser compatibility:</strong> - Same as Phase 1 (Chrome 90+, Firefox 88+, Safari 14+)</p>
+<h4 id="success-metrics-1">Success Metrics</h4>
+<ul>
+<li><strong>Custom configs created:</strong> Average user creates 3+ custom configurations per session</li>
+<li><strong>Measurement tool usage:</strong> &gt;40% of users perform at least one measurement</li>
+<li><strong>Learning gains:</strong> Students who use interactive tools show 15% higher quiz scores on field concepts</li>
+<li><strong>Engagement:</strong> Average session length increases 25% with Phase 2 features</li>
+</ul>
+<hr />
+<h3 id="phase-3-magnetic-fields-dynamics-8-12-weeks-priority-medium">Phase 3: Magnetic Fields &amp; Dynamics (8-12 weeks) | Priority: MEDIUM</h3>
+<p><strong>Objective:</strong> Extend to full electromagnetism by visualizing magnetic fields and charged particle dynamics in combined E+B fields.</p>
+<h4 id="features-2">Features</h4>
+<h5 id="magnetic-field-visualization">3.1 Magnetic Field Visualization</h5>
+<ul>
+<li><strong>Biot-Savart law:</strong> Compute B from moving charges and current distributions</li>
+<li><strong>Current-carrying wires:</strong>
+<ul>
+<li>Straight wire: B ∝ 1/r (circulating field)</li>
+<li>Circular loop: Dipole-like field pattern</li>
+<li>Solenoid: Uniform interior field, dipole exterior</li>
+</ul></li>
+<li><strong>Visualization modes:</strong>
+<ul>
+<li>Vector glyphs (like E-field)</li>
+<li>Field lines (right-hand rule orientation)</li>
+<li>Equipotential surfaces (isosurfaces of magnetic scalar potential in field-free regions)</li>
+</ul></li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Visualize EM generator operation (moving charges → B-field)</li>
+<li>Understand Ampere’s law through symmetry</li>
+<li>Show coupling between E and B in moving charge scenarios</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> HIGH</p>
+<p><strong>Implementation details:</strong> - New interface: <code>MagneticFieldModel</code> in <code>src/models/types.ts</code> - New directory: <code>src/models/magnetic/</code> - New models: - <code>StraightWire.ts</code> — Semi-infinite or finite current-carrying wire - <code>CircularLoop.ts</code> — Biot-Savart from closed loop - <code>Solenoid.ts</code> — Simplified solenoid approximation - Reuse visualization components (vector glyphs, field lines, isosurfaces) with B-field pipeline</p>
+<h5 id="lorentz-force-particle-trajectories">3.2 Lorentz Force &amp; Particle Trajectories</h5>
+<ul>
+<li><strong>Force calculation:</strong> F = q(E + v × B)</li>
+<li><strong>ODE integration:</strong> RK4 integration of equations of motion: m dv/dt = q(E + v × B)</li>
+<li><strong>Trajectory visualization:</strong>
+<ul>
+<li>Animated particle motion through E+B fields</li>
+<li>Configurable initial conditions (position, velocity)</li>
+<li>Trail rendering showing historical path</li>
+</ul></li>
+<li><strong>Quantitative output:</strong> Particle energy, cyclotron frequency, radius of curvature</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Cyclotron motion in pure B-field (circle at ω_c = qB/m)</li>
+<li>Drift in crossed E⊥B fields</li>
+<li>Mass spectrometer operation</li>
+<li>Magnetron and other particle devices</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> HIGH</p>
+<p><strong>Implementation details:</strong> - New component: <code>src/components/ParticleDynamics.tsx</code> - New utility: <code>src/utils/ParticleIntegrator.ts</code> (RK4 solver for charged particle) - Configurable particle properties: mass, charge, initial position/velocity - Animation loop for trajectory playback - Energy conservation validation</p>
+<h5 id="combined-em-visualization">3.3 Combined EM Visualization</h5>
+<ul>
+<li><strong>Unified display:</strong> Show E and B fields simultaneously with different color schemes</li>
+<li><strong>Coupling visualization:</strong> How E and B interact to produce motion</li>
+<li><strong>Pedagogical modes:</strong>
+<ul>
+<li>“Generator mode” — show B-field produced by moving charges in E-field</li>
+<li>“Accelerator mode” — show force and acceleration in crossed fields</li>
+<li>“Collision mode” — particle-particle interactions in E+B</li>
+</ul></li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Understand relativistic E↔︎B transformation concepts</li>
+<li>Visualize electromagnetic induction</li>
+<li>Explore plasma physics basics</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> MEDIUM <strong>Technical complexity:</strong> HIGH</p>
+<h4 id="technical-requirements-2">Technical Requirements</h4>
+<p><strong>New files/modules:</strong> - <code>src/models/types.ts</code> — Add <code>MagneticFieldModel</code> interface - <code>src/models/magnetic/StraightWire.ts</code> — Biot-Savart for straight wire - <code>src/models/magnetic/CircularLoop.ts</code> — Magnetic dipole from loop - <code>src/models/magnetic/Solenoid.ts</code> — Solenoid approximation - <code>src/components/MagneticFieldGlyphs.tsx</code> — Render B-field arrows - <code>src/components/ParticleDynamics.tsx</code> — Particle visualization - <code>src/utils/ParticleIntegrator.ts</code> — RK4 solver for motion - <code>src/App.tsx</code> — Add magnetic cases to CaseType union</p>
+<p><strong>Dependencies:</strong> - No new npm packages (all physics is custom-implemented) - Optional: numeric.js for matrix operations (if needed for relativistic transforms)</p>
+<p><strong>Browser compatibility:</strong> - Chrome 90+, Firefox 88+, Safari 14+ (same as current) - No new API requirements</p>
+<h4 id="success-metrics-2">Success Metrics</h4>
+<ul>
+<li><strong>B-field accuracy:</strong> Matches Biot-Savart law within 3% at test points</li>
+<li><strong>Trajectory validation:</strong> Cyclotron frequency and radius match analytical formula</li>
+<li><strong>Visualization quality:</strong> Field line density and smoothness equivalent to E-field</li>
+<li><strong>Performance:</strong> ≥25 FPS with B-field visualization (acceptable reduction from E-field baseline)</li>
+<li><strong>Educational impact:</strong> E&amp;M physics courses adopt tool for EM induction and dynamics units</li>
+</ul>
+<hr />
+<h3 id="phase-4-platform-integration-advanced-features-12-20-weeks-priority-low">Phase 4: Platform Integration &amp; Advanced Features (12-20 weeks) | Priority: LOW</h3>
+<p><strong>Objective:</strong> Integrate into educational platforms and add cutting-edge immersive/adaptive features for maximum reach and effectiveness.</p>
+<h4 id="features-3">Features</h4>
+<h5 id="lms-integration-canvasblackboardmoodle">4.1 LMS Integration (Canvas/Blackboard/Moodle)</h5>
+<ul>
+<li><strong>LTI 1.3 standard implementation:</strong>
+<ul>
+<li>OAuth 2.0 authentication</li>
+<li>Tool Launch protocol</li>
+<li>Assignment submission integration</li>
+<li>Grade passback (if assessment is included)</li>
+</ul></li>
+<li><strong>Embedding:</strong> Embed tool directly in course modules</li>
+<li><strong>Data integration:</strong> Link to student identity for personalized progress tracking</li>
+<li><strong>Backend requirements:</strong>
+<ul>
+<li>Node.js/Express server for LTI handshake</li>
+<li>Database (PostgreSQL) for user and usage data</li>
+<li>HTTPS only (LTI requirement)</li>
+</ul></li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Students access tool from course shell (no separate app)</li>
+<li>Assignments tied to specific configurations</li>
+<li>Usage analytics for instructors</li>
+<li>Integration with course gradebooks</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> MEDIUM <strong>Technical complexity:</strong> HIGH</p>
+<p><strong>Implementation details:</strong> - New backend: <code>server/lti/</code> directory - LTI provider implementation (openid4java or custom Node library) - Token validation and session management - User provisioning and syncing - Frontend: Add session/user context to React app - Database schema for tracking assignments and attempts - Deployment: Containerize with Docker, deploy to institutional server</p>
+<h5 id="vrar-immersive-mode">4.2 VR/AR Immersive Mode</h5>
+<ul>
+<li><strong>WebXR API integration:</strong> Use WebXR standard for VR/AR headsets</li>
+<li><strong>VR mode:</strong>
+<ul>
+<li>Full 6-DOF head tracking</li>
+<li>Hand controllers for interaction</li>
+<li>Walk around field in 3D space</li>
+<li>Grab and rotate charge objects</li>
+<li>Teleportation for navigation</li>
+</ul></li>
+<li><strong>AR mode (mobile):</strong>
+<ul>
+<li>Place field visualization in physical space</li>
+<li>View from multiple angles using device motion</li>
+<li>Overlay measurements on real world</li>
+</ul></li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Immersive lab experience without expensive equipment</li>
+<li>Group exploration in VR lab spaces</li>
+<li>Remote collaboration via shared VR</li>
+<li>Accessibility: students with mobility limitations can explore hands-free</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> MEDIUM <strong>Technical complexity:</strong> HIGH</p>
+<p><strong>Implementation details:</strong> - WebXR API (Mozilla, Khronos standards) - Three.js WebXR examples as reference - Input handling for hand controllers - Spatial UI for parameter adjustment in VR - Cross-browser support: Meta Quest (Android), HTC Vive, PlayStation VR, others</p>
+<h5 id="time-varying-fields">4.3 Time-Varying Fields</h5>
+<ul>
+<li><strong>AC source modulation:</strong> E = E_0 sin(ωt)</li>
+<li><strong>Field oscillation:</strong> Real-time animation of oscillating E-field</li>
+<li><strong>Wave propagation:</strong> Traveling EM wave visualization</li>
+<li><strong>Parametric time-dependence:</strong> Any field model can be multiplied by f(t)</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>AC circuit visualization</li>
+<li>Electromagnetic wave introduction</li>
+<li>Radiation pattern from oscillating dipole</li>
+<li>Phase relationships in EM fields</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> MEDIUM</p>
+<p><strong>Implementation details:</strong> - Extend <code>FieldModel</code> interface with optional time parameter: <code>E(pos, t)</code> - Animation loop with time parameter - Visualization of wave fronts via phase coloring - Frequency controls in parameter panel</p>
+<h5 id="assessment-quiz-integration">4.4 Assessment &amp; Quiz Integration</h5>
+<ul>
+<li><strong>Prediction challenges:</strong> “What shape will this field have?” → student predicts → reveal visualization</li>
+<li><strong>Quantitative questions:</strong> “At which point is |E| maximum?” → student places probe → score feedback</li>
+<li><strong>Field line tracing:</strong> “Sketch the field line starting here” → compare to computed line</li>
+<li><strong>Concept validation:</strong> Auto-check student understanding against physics rules</li>
+<li><strong>Grading integration:</strong> Submit answers to gradebook via LTI</li>
+<li><strong>Use cases:</strong>
+<ul>
+<li>Homework and quiz assignments</li>
+<li>Pre-lecture concept checks</li>
+<li>Post-lab validation</li>
+<li>Formative assessment throughout course</li>
+</ul></li>
+</ul>
+<p><strong>Educational value:</strong> HIGH <strong>Technical complexity:</strong> HIGH</p>
+<p><strong>Implementation details:</strong> - New component: <code>src/components/AssessmentMode.tsx</code> - Question types: multiple choice, free response, interactive placement - Answer validation against physics (e.g., checking symmetry properties) - Backend: question repository and scoring engine - Integration with Phase 4.1 LMS for submission</p>
+<h4 id="technical-requirements-3">Technical Requirements</h4>
+<p><strong>New files/modules:</strong> - <code>server/</code> directory (Node.js backend): - <code>server/lti/LTIProvider.ts</code> — LTI handshake and validation - <code>server/auth/AuthManager.ts</code> — Session management - <code>server/db/</code> — Database models and queries - <code>server/api/</code> — REST endpoints for usage tracking - <code>src/contexts/UserContext.tsx</code> — User/session state in React - <code>src/components/AssessmentMode.tsx</code> — Quiz interface - Enhanced WebXR support (already built into Three.js)</p>
+<p><strong>Dependencies:</strong> - Backend: <code>express</code>, <code>passport</code> (OAuth), <code>pg</code> (PostgreSQL), <code>jsonwebtoken</code> - Frontend: <code>zustand</code> or <code>recoil</code> for complex state management (optional upgrade from current Leva) - WebXR: WebXR Emulator browser extension for testing (development only)</p>
+<p><strong>Infrastructure:</strong> - Backend server hosting (institutional or cloud) - PostgreSQL database - HTTPS certificate (required for LTI and WebXR) - Optional: Redis for session caching</p>
+<h4 id="success-metrics-3">Success Metrics</h4>
+<ul>
+<li><strong>LMS deployment:</strong> Tool integrated at 3+ institutions via LTI</li>
+<li><strong>VR/AR validation:</strong> Tested and working on 2+ headset platforms</li>
+<li><strong>Time-varying fields:</strong> Wave visualization validated against EM theory</li>
+<li><strong>Assessment coverage:</strong> 50+ question templates for various physics topics</li>
+<li><strong>Usage analytics:</strong> 80%+ of enrolled students complete at least one assignment</li>
+<li><strong>Learning outcomes:</strong> Students using assessment features score 20% higher on final exams</li>
+</ul>
+<hr />
+<h2 id="section-5-technical-architecture-impacts">Section 5: Technical Architecture Impacts</h2>
+<p>This section details codebase changes and architectural decisions required for each phase.</p>
+<h3 id="phase-1-enhanced-visualization-export">Phase 1: Enhanced Visualization &amp; Export</h3>
+<p><strong>File Structure Changes:</strong></p>
+<pre><code>src/
+├── utils/
+│   ├── ExportManager.ts          [NEW]
+│   └── PresetSerializer.ts       [NEW]
+├── components/
+│   └── PresetPanel.tsx           [NEW]
+└── App.css                       [MODIFIED - mobile media queries]</code></pre>
+<p><strong>Module Details:</strong></p>
+<p><strong><code>src/utils/ExportManager.ts</code>:</strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Handle PNG and GIF export</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>export class ExportManager {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">exportPNG</span>(canvas<span class="op">:</span> HTMLCanvasElement<span class="op">,</span> filename<span class="op">:</span> <span class="dt">string</span>)<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">exportGIF</span>(frameBuffer<span class="op">:</span> Uint8Array[]<span class="op">,</span> filename<span class="op">:</span> <span class="dt">string</span>)<span class="op">:</span> <span class="dt">void</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">recordFrames</span>(callback<span class="op">:</span> (frames<span class="op">:</span> Uint8Array[]) <span class="kw">=&gt;</span> <span class="dt">void</span>)<span class="op">:</span> FrameRecorder</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong><code>src/utils/PresetSerializer.ts</code>:</strong></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Serialize/deserialize application state</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>export interface SerializedPreset {</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  caseType<span class="op">:</span> CaseType</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  parameters<span class="op">:</span> <span class="bu">Record</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">number</span><span class="op">&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  visualizationSettings<span class="op">:</span> <span class="bu">Record</span><span class="op">&lt;</span><span class="dt">string</span><span class="op">,</span> <span class="dt">boolean</span> <span class="op">|</span> <span class="dt">number</span><span class="op">&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  metadata<span class="op">:</span> { name<span class="op">:</span> <span class="dt">string</span><span class="op">;</span> description<span class="op">:</span> <span class="dt">string</span><span class="op">;</span> date<span class="op">:</span> <span class="dt">string</span> }</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>CSS Responsive Changes:</strong> - Add media query breakpoints for tablets (768px) and phones (480px) - Responsive Leva panel: collapse to hamburger menu on mobile - Touch-friendly button sizes (min 44x44px) - Viewport meta tag handling for mobile browsers</p>
+<p><strong>Performance Considerations:</strong> - GIF encoding is CPU-intensive; offer quality/compression options - Export operates off main thread (Web Worker) to maintain 60 FPS - Stream large GIFs to disk incrementally (avoid memory spikes)</p>
+<hr />
+<h3 id="phase-2-interactive-extensions">Phase 2: Interactive Extensions</h3>
+<p><strong>File Structure Changes:</strong></p>
+<pre><code>src/
+├── models/
+│   └── CustomConfiguration.ts    [NEW]
+├── components/
+│   ├── ChargePlacementTool.tsx   [NEW]
+│   ├── ProbeTool.tsx             [NEW]
+│   └── ComparisonMode.tsx        [NEW]
+├── utils/
+│   └── FieldLineIntegrator.ts    [MODIFIED - add precision mode]
+└── App.tsx                       [MODIFIED - add interaction modes]</code></pre>
+<p><strong>Raycasting Implementation:</strong></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In ChargePlacementTool.tsx</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>const raycaster <span class="op">=</span> <span class="kw">new</span> THREE<span class="op">.</span><span class="fu">Raycaster</span>()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>const mouse <span class="op">=</span> <span class="kw">new</span> THREE<span class="op">.</span><span class="fu">Vector2</span>()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">onMouseDown</span>(event<span class="op">:</span> MouseEvent) {</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  mouse<span class="op">.</span><span class="at">x</span> <span class="op">=</span> (event<span class="op">.</span><span class="at">clientX</span> <span class="op">/</span> window<span class="op">.</span><span class="at">innerWidth</span>) <span class="op">*</span> <span class="dv">2</span> <span class="op">-</span> <span class="dv">1</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  mouse<span class="op">.</span><span class="at">y</span> <span class="op">=</span> <span class="op">-</span>(event<span class="op">.</span><span class="at">clientY</span> <span class="op">/</span> window<span class="op">.</span><span class="at">innerHeight</span>) <span class="op">*</span> <span class="dv">2</span> <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  raycaster<span class="op">.</span><span class="fu">setFromCamera</span>(mouse<span class="op">,</span> camera)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  const intersects <span class="op">=</span> raycaster<span class="op">.</span><span class="fu">intersectObjects</span>([groundPlane<span class="op">,</span> <span class="op">...</span>chargeGeometries])</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">if</span> (intersects<span class="op">.</span><span class="at">length</span> <span class="op">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    selectedCharge <span class="op">=</span> <span class="fu">getChargeAtPoint</span>(intersects[<span class="dv">0</span>]<span class="op">.</span><span class="at">point</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>State Management for Mutable Charges:</strong> - Use <code>useState</code> hook in App component to manage custom charge array - Extend FieldModel to support dynamic charge repositioning - Implement undo/redo via state history stack</p>
+<p><strong>Measurement Tool Logic:</strong></p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In ProbeTool.tsx</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">measureAt</span>(position<span class="op">:</span> THREE<span class="op">.</span><span class="at">Vector3</span>) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  const E <span class="op">=</span> fieldModel<span class="op">.</span><span class="fu">E</span>(position)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  const V <span class="op">=</span> fieldModel<span class="op">.</span><span class="fu">V</span>(position)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  return {</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    position<span class="op">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    magnitude<span class="op">:</span> E<span class="op">.</span><span class="fu">length</span>()<span class="op">,</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    components<span class="op">:</span> { Ex<span class="op">:</span> E<span class="op">.</span><span class="at">x</span><span class="op">,</span> Ey<span class="op">:</span> E<span class="op">.</span><span class="at">y</span><span class="op">,</span> Ez<span class="op">:</span> E<span class="op">.</span><span class="at">z</span> }<span class="op">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    potential<span class="op">:</span> V</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="phase-3-magnetic-fields-dynamics">Phase 3: Magnetic Fields &amp; Dynamics</h3>
+<p><strong>File Structure Changes:</strong></p>
+<pre><code>src/
+├── models/
+│   ├── types.ts                  [MODIFIED - add MagneticFieldModel]
+│   ├── magnetic/
+│   │   ├── StraightWire.ts       [NEW]
+│   │   ├── CircularLoop.ts       [NEW]
+│   │   └── Solenoid.ts           [NEW]
+│   ├── combined/
+│   │   └── EMInteraction.ts      [NEW]
+├── components/
+│   ├── MagneticFieldGlyphs.tsx   [NEW]
+│   ├── ParticleDynamics.tsx      [NEW]
+│   └── FieldLines.tsx            [MODIFIED - add B-field support]
+├── utils/
+│   └── ParticleIntegrator.ts     [NEW]
+└── App.tsx                       [MODIFIED - add magnetic cases]</code></pre>
+<p><strong>New Interface in <code>src/models/types.ts</code>:</strong></p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>export interface MagneticFieldModel {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  name<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  description<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">B</span>(pos<span class="op">:</span> Vec3)<span class="op">:</span> Vec3  <span class="co">// Magnetic field</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Optional: scalar potential (for field-free regions)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Phi</span>(pos<span class="op">:</span> Vec3)<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Source geometry (current loops, wires)</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">getSources</span>()<span class="op">:</span> MagneticSource[]</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>export interface MagneticSource {</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  type<span class="op">:</span> <span class="st">&#39;wire&#39;</span> <span class="op">|</span> <span class="st">&#39;loop&#39;</span> <span class="op">|</span> <span class="st">&#39;solenoid&#39;</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  position<span class="op">:</span> Vec3</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  current<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  geometry<span class="op">:</span> <span class="dt">any</span> <span class="co">// Wire path, loop radius, solenoid dimensions</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Biot-Savart Implementation:</strong></p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In StraightWire.ts</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">B_straightWire</span>(pos<span class="op">:</span> Vec3<span class="op">,</span> wireStart<span class="op">:</span> Vec3<span class="op">,</span> wireEnd<span class="op">:</span> Vec3<span class="op">,</span> I<span class="op">:</span> <span class="dt">number</span>)<span class="op">:</span> Vec3 {</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">// B = (μ₀I/4π) * ∫(dl × r̂)/r² ds</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Discretize wire into segments and sum contributions</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  const mu0 <span class="op">=</span> <span class="dv">4</span> <span class="op">*</span> <span class="bu">Math</span><span class="op">.</span><span class="at">PI</span> <span class="op">*</span> <span class="fl">1e-7</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  const segmentCount <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  const direction <span class="op">=</span> wireEnd<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">sub</span>(wireStart)<span class="op">.</span><span class="fu">normalize</span>()</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  let B <span class="op">=</span> <span class="kw">new</span> <span class="fu">Vec3</span>()</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">for</span> (let i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> segmentCount<span class="op">;</span> i<span class="op">++</span>) {</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    const param <span class="op">=</span> i <span class="op">/</span> segmentCount</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    const dl_pos <span class="op">=</span> wireStart<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">addScaledVector</span>(direction<span class="op">,</span> param <span class="op">*</span> length)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    const dl <span class="op">=</span> direction<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">multiplyScalar</span>(length <span class="op">/</span> segmentCount)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    const r <span class="op">=</span> pos<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">sub</span>(dl_pos)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    const r_mag <span class="op">=</span> r<span class="op">.</span><span class="fu">length</span>()</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// dl × r̂</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    const cross <span class="op">=</span> dl<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">cross</span>(r<span class="op">.</span><span class="fu">normalize</span>())</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    B<span class="op">.</span><span class="fu">addScaledVector</span>(cross<span class="op">,</span> (mu0 <span class="op">*</span> I) <span class="op">/</span> (<span class="dv">4</span> <span class="op">*</span> <span class="bu">Math</span><span class="op">.</span><span class="at">PI</span> <span class="op">*</span> r_mag <span class="op">*</span> r_mag))</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  return B</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Particle Integration:</strong></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In ParticleIntegrator.ts using RK4</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">integrateStep</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  particle<span class="op">:</span> Particle<span class="op">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  E<span class="op">:</span> (pos<span class="op">:</span> Vec3) <span class="kw">=&gt;</span> Vec3<span class="op">,</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  B<span class="op">:</span> (pos<span class="op">:</span> Vec3) <span class="kw">=&gt;</span> Vec3<span class="op">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  dt<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>) {</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">// F = q(E + v × B)</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="co">// a = F/m</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  const q_over_m <span class="op">=</span> particle<span class="op">.</span><span class="at">charge</span> <span class="op">/</span> particle<span class="op">.</span><span class="at">mass</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  const force <span class="op">=</span> (pos<span class="op">:</span> Vec3<span class="op">,</span> vel<span class="op">:</span> Vec3) <span class="kw">=&gt;</span> {</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    const E_field <span class="op">=</span> <span class="fu">E</span>(pos)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    const B_field <span class="op">=</span> <span class="fu">B</span>(pos)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    const lorentz <span class="op">=</span> E_field<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">addScaledVector</span>(B_field<span class="op">.</span><span class="fu">clone</span>()<span class="op">.</span><span class="fu">cross</span>(vel)<span class="op">,</span> <span class="dv">1</span>)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    return lorentz<span class="op">.</span><span class="fu">multiplyScalar</span>(q_over_m)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Standard RK4: update position and velocity</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>  <span class="co">// ... (standard ODE integration code)</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="phase-4-platform-integration-advanced-features">Phase 4: Platform Integration &amp; Advanced Features</h3>
+<p><strong>Backend File Structure:</strong></p>
+<pre><code>server/
+├── src/
+│   ├── lti/
+│   │   ├── LTIProvider.ts
+│   │   ├── TokenValidator.ts
+│   │   └── LaunchHandler.ts
+│   ├── auth/
+│   │   └── SessionManager.ts
+│   ├── db/
+│   │   ├── models/
+│   │   │   ├── User.ts
+│   │   │   ├── Assignment.ts
+│   │   │   └── Submission.ts
+│   │   └── migrations/
+│   ├── api/
+│   │   ├── users.ts
+│   │   ├── assignments.ts
+│   │   └── analytics.ts
+│   ├── types/
+│   │   └── lti.ts
+│   └── app.ts
+├── config/
+│   └── database.ts
+└── package.json</code></pre>
+<p><strong>Frontend WebXR Integration:</strong></p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In App.tsx or new VRMode component</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>async <span class="kw">function</span> <span class="fu">enterVRMode</span>() {</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">if</span> (<span class="op">!</span>navigator<span class="op">.</span><span class="at">xr</span>) {</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">console</span><span class="op">.</span><span class="fu">error</span>(<span class="st">&#39;WebXR not supported&#39;</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    return</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  const session <span class="op">=</span> await navigator<span class="op">.</span><span class="at">xr</span><span class="op">.</span><span class="fu">requestSession</span>(<span class="st">&#39;immersive-vr&#39;</span><span class="op">,</span> {</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    requiredFeatures<span class="op">:</span> [<span class="st">&#39;local&#39;</span><span class="op">,</span> <span class="st">&#39;dom-overlay&#39;</span>]<span class="op">,</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    domOverlayConfig<span class="op">:</span> { root<span class="op">:</span> document<span class="op">.</span><span class="at">body</span> }</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Setup VR rendering with Three.js XRManager</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  renderer<span class="op">.</span><span class="at">xr</span><span class="op">.</span><span class="at">enabled</span> <span class="op">=</span> true</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  renderer<span class="op">.</span><span class="at">xr</span><span class="op">.</span><span class="fu">setSession</span>(session)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Assessment Framework:</strong></p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Question type system</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>export interface Question {</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  id<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  type<span class="op">:</span> <span class="st">&#39;prediction&#39;</span> <span class="op">|</span> <span class="st">&#39;measurement&#39;</span> <span class="op">|</span> <span class="st">&#39;tracing&#39;</span> <span class="op">|</span> <span class="st">&#39;multiple-choice&#39;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  title<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  description<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  configuration<span class="op">:</span> SerializedPreset</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  expectedAnswer<span class="op">:</span> Answer</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  hint<span class="op">?:</span> <span class="dt">string</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>export interface Answer {</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  type<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">validate</span>(studentAnswer<span class="op">:</span> <span class="dt">any</span><span class="op">,</span> expected<span class="op">:</span> Answer)<span class="op">:</span> { correct<span class="op">:</span> <span class="dt">boolean</span><span class="op">;</span> score<span class="op">:</span> <span class="dt">number</span> }</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="section-6-risk-assessment-mitigation">Section 6: Risk Assessment &amp; Mitigation</h2>
+<table>
+<colgroup>
+<col style="width: 6%" />
+<col style="width: 12%" />
+<col style="width: 25%" />
+<col style="width: 16%" />
+<col style="width: 39%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Risk</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Mitigation Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><strong>Mobile performance degradation</strong></td>
+<td>HIGH</td>
+<td>MEDIUM</td>
+<td>Implement adaptive rendering: auto-reduce vector density on mobile; use performance monitoring API to track FPS; provide “performance mode” toggle</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><strong>Magnetic field calculation performance</strong></td>
+<td>HIGH</td>
+<td>HIGH</td>
+<td>Implement B-field caching for static configurations; use approximations (dipole model) for far-field; test on target hardware early in Phase 3</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><strong>LMS integration blocked by IT policies</strong></td>
+<td>MEDIUM</td>
+<td>HIGH</td>
+<td>Engage with institutional IT early; provide deployment options (self-hosted vs cloud); offer standalone version as fallback</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><strong>Low VR/AR adoption</strong></td>
+<td>MEDIUM</td>
+<td>MEDIUM</td>
+<td>Start with AR (mobile WebXR) as easier entry point; build compelling demo experiences; partner with progressive institutions</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>Export browser compatibility issues</strong></td>
+<td>MEDIUM</td>
+<td>LOW</td>
+<td>Test export on all supported browsers; provide graceful degradation (export PNG if GIF fails); document browser requirements clearly</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><strong>Unphysical configurations from interactive placement</strong></td>
+<td>LOW</td>
+<td>MEDIUM</td>
+<td>Implement optional validation rules; provide visual feedback for unphysical states; include “physics check” button with warnings</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td><strong>Scope creep on Phase 4 features</strong></td>
+<td>HIGH</td>
+<td>MEDIUM</td>
+<td>Define clear MVP for each phase; implement feature flags; prioritize LMS integration over VR/AR initially; track and adjust timeline based on complexity</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Overall Risk Level: MEDIUM-LOW</strong></p>
+<p>The project has low technical risk (all core algorithms proven), medium integration risk (LMS/VR dependencies), and manageable scope risk (phase-based approach with clear checkpoints).</p>
+<hr />
+<h2 id="section-7-success-metrics">Section 7: Success Metrics</h2>
+<p>Success will be measured through quantitative metrics aligned with educational objectives.</p>
+<h3 id="phase-1-enhanced-visualization-export-1">Phase 1: Enhanced Visualization &amp; Export</h3>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Target</th>
+<th>Measurement Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Export feature adoption</td>
+<td>&gt;50% monthly active users</td>
+<td>Analytics tracking</td>
+</tr>
+<tr class="even">
+<td>Mobile session usage</td>
+<td>&gt;20% of total sessions</td>
+<td>Browser user agent + analytics</td>
+</tr>
+<tr class="odd">
+<td>Mobile FPS maintained</td>
+<td>≥20 FPS on iPad Air 2</td>
+<td>Real device testing, browser profiler</td>
+</tr>
+<tr class="even">
+<td>Preset sharing activity</td>
+<td>20+ community presets created</td>
+<td>Preset library database count</td>
+</tr>
+<tr class="odd">
+<td>User satisfaction</td>
+<td>&gt;4.0/5.0 on usability</td>
+<td>Post-use survey (10-question Likert scale)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-2-interactive-extensions-1">Phase 2: Interactive Extensions</h3>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Target</th>
+<th>Measurement Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Custom configurations per session</td>
+<td>Average 3+ per user</td>
+<td>State tracking in app</td>
+</tr>
+<tr class="even">
+<td>Measurement tool engagement</td>
+<td>&gt;40% of users take probe measurements</td>
+<td>Event logging</td>
+</tr>
+<tr class="odd">
+<td>Learning outcome improvement</td>
+<td>+15% on field concept quiz</td>
+<td>Pre/post assessment comparison</td>
+</tr>
+<tr class="even">
+<td>Session length increase</td>
+<td>+25% average session duration</td>
+<td>Analytics timing</td>
+</tr>
+<tr class="odd">
+<td>Interaction error rate</td>
+<td>&lt;5% invalid placements</td>
+<td>Input validation logging</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-3-magnetic-fields-dynamics-1">Phase 3: Magnetic Fields &amp; Dynamics</h3>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Target</th>
+<th>Measurement Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>B-field numerical accuracy</td>
+<td>≤3% error vs Biot-Savart</td>
+<td>Validation test suite</td>
+</tr>
+<tr class="even">
+<td>Cyclotron motion validation</td>
+<td>Frequency matches ω_c = qB/m to 2%</td>
+<td>Trajectory analysis</td>
+</tr>
+<tr class="odd">
+<td>Field line quality parity</td>
+<td>B-field lines as smooth as E-field lines</td>
+<td>Visual comparison + metric</td>
+</tr>
+<tr class="even">
+<td>Trajectory FPS target</td>
+<td>≥25 FPS with particle dynamics</td>
+<td>Real-time performance profiling</td>
+</tr>
+<tr class="odd">
+<td>Course adoption</td>
+<td>E&amp;M courses use Phase 3 features</td>
+<td>Instructor survey / LMS logs</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-4-platform-integration-advanced-features-1">Phase 4: Platform Integration &amp; Advanced Features</h3>
+<table>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Target</th>
+<th>Measurement Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LMS deployment count</td>
+<td>3+ institutional deployments</td>
+<td>Institution signup tracking</td>
+</tr>
+<tr class="even">
+<td>VR/AR platform coverage</td>
+<td>Working on 2+ headset platforms</td>
+<td>Testing on Meta Quest, HTC Vive</td>
+</tr>
+<tr class="odd">
+<td>Assessment question coverage</td>
+<td>50+ validated question templates</td>
+<td>Question repository count</td>
+</tr>
+<tr class="even">
+<td>Student engagement via LMS</td>
+<td>80%+ of students complete assignments</td>
+<td>LMS grade passback data</td>
+</tr>
+<tr class="odd">
+<td>Learning outcome gain</td>
+<td>+20% on EM concepts (vs non-users)</td>
+<td>Institutional outcome assessment</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="section-8-timeline-milestones">Section 8: Timeline &amp; Milestones</h2>
+<h3 id="overall-project-timeline">Overall Project Timeline</h3>
+<p><strong>Current Status (Jan 2026):</strong> Core product complete, validation done, ready for enhancement phases.</p>
+<p><strong>Phase 1 (Enhanced Export) Expected Completion:</strong> April 2026 <strong>Phase 2 (Interactive) Expected Completion:</strong> August 2026 <strong>Phase 3 (Magnetic Fields) Expected Completion:</strong> December 2026 <strong>Phase 4 (Integration) Expected Completion:</strong> August 2027 (ongoing based on adoption)</p>
+<h3 id="detailed-milestones">Detailed Milestones</h3>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 20%" />
+<col style="width: 39%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Milestone</th>
+<th>Estimated Completion</th>
+<th>Dependencies</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Phase 1</strong></td>
+<td>Implement PNG export</td>
+<td>Week 2 (Feb 2026)</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Implement GIF export with CCapture.js</td>
+<td>Week 3</td>
+<td>Canvas API, CCapture library</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Mobile touch controls &amp; responsive CSS</td>
+<td>Week 4</td>
+<td>Touch event API</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Preset serialization/deserialization</td>
+<td>Week 2</td>
+<td>JSON parsing</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Testing &amp; optimization on mobile devices</td>
+<td>Week 5</td>
+<td>iPad/Android test devices</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 1 Release</strong></td>
+<td><strong>All Phase 1 features complete</strong></td>
+<td><strong>Week 5 (Feb 2026)</strong></td>
+<td>All above milestones</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 2</strong></td>
+<td>Implement raycasting &amp; charge placement</td>
+<td>Week 3 (Mar 2026)</td>
+<td>Three.js Raycaster</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Build probe/measurement tool UI</td>
+<td>Week 4</td>
+<td>FieldModel interface finalized</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Implement side-by-side comparison mode</td>
+<td>Week 5</td>
+<td>Canvas rendering optimization</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Add undo/redo for custom configs</td>
+<td>Week 6</td>
+<td>State history management</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Comprehensive testing &amp; user feedback</td>
+<td>Week 7</td>
+<td>Pilot user group</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 2 Release</strong></td>
+<td><strong>All Phase 2 features complete</strong></td>
+<td><strong>Week 7 (May 2026)</strong></td>
+<td>All above milestones</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 3</strong></td>
+<td>Design MagneticFieldModel interface</td>
+<td>Week 2 (June 2026)</td>
+<td>Review with physics advisor</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Implement Biot-Savart for straight wire</td>
+<td>Week 3-4</td>
+<td>Numerical validation</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Implement circular loop &amp; solenoid models</td>
+<td>Week 5</td>
+<td>Numerical validation</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Build particle trajectory integrator</td>
+<td>Week 6-7</td>
+<td>Trajectory validation suite</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Visualize B-field glyphs &amp; field lines</td>
+<td>Week 7-8</td>
+<td>Reuse component templates</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Performance optimization &amp; testing</td>
+<td>Week 9-10</td>
+<td>Real hardware testing</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 3 Release</strong></td>
+<td><strong>All Phase 3 features complete</strong></td>
+<td><strong>Week 10 (Sept 2026)</strong></td>
+<td>All above milestones</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4.1</strong></td>
+<td>Design LTI implementation &amp; plan backend</td>
+<td>Week 2 (Oct 2026)</td>
+<td>Requirements gathering</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Build Express server &amp; LTI provider</td>
+<td>Week 3-5</td>
+<td>OAuth2, JWT libraries</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Implement database models (User, Assignment)</td>
+<td>Week 6</td>
+<td>PostgreSQL setup, migration tools</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Frontend session/user context integration</td>
+<td>Week 7</td>
+<td>React context or state lib</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Testing with Canvas/Moodle sandboxes</td>
+<td>Week 8-9</td>
+<td>LMS test instances</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 4.1 Release</strong></td>
+<td><strong>LMS integration complete</strong></td>
+<td><strong>Week 9 (Jan 2027)</strong></td>
+<td>All above milestones</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4.2</strong></td>
+<td>WebXR API research &amp; prototyping</td>
+<td>Week 2 (Jan 2027)</td>
+<td>Headset access (if available)</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Implement VR mode with hand controls</td>
+<td>Week 3-5</td>
+<td>WebXR, controller input handling</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Implement AR mode (mobile WebXR)</td>
+<td>Week 6</td>
+<td>Mobile WebXR polyfill</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Testing on available hardware</td>
+<td>Week 7</td>
+<td>Test device access</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4.2 Release</strong></td>
+<td><strong>VR/AR mode complete</strong></td>
+<td><strong>Week 7 (Mar 2027)</strong></td>
+<td>All above milestones</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 4.3</strong></td>
+<td>Implement time-varying field interface</td>
+<td>Week 2 (Mar 2027)</td>
+<td>None (extension of existing)</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Build EM wave visualization</td>
+<td>Week 3</td>
+<td>Phase 3 complete</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Add oscillating field animations</td>
+<td>Week 4</td>
+<td>Animation framework</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4.3 Release</strong></td>
+<td><strong>Time-varying fields complete</strong></td>
+<td><strong>Week 4 (Apr 2027)</strong></td>
+<td>All above milestones</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 4.4</strong></td>
+<td>Design assessment question framework</td>
+<td>Week 2 (Apr 2027)</td>
+<td>Educational research input</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Build prediction challenge UI</td>
+<td>Week 3-4</td>
+<td>Component development</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Implement measurement &amp; validation scoring</td>
+<td>Week 5</td>
+<td>Answer validation engine</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Create 50+ question templates</td>
+<td>Week 6-8</td>
+<td>Content creation (may be iterative)</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 4.4 Release</strong></td>
+<td><strong>Assessment features complete</strong></td>
+<td><strong>Week 8 (June 2027)</strong></td>
+<td>All above milestones</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Critical Path Analysis:</strong> - Phase 1 is self-contained, lowest risk - Phase 2 depends on Phase 1 (preset system helps testing) - Phase 3 can proceed in parallel with Phase 2 (independent models) - Phase 4.1 (LMS) blocks Phase 4.3 (assessment integration) and Phase 4.4 effectively - Phase 4.2 (VR/AR) is independent, can run in parallel with Phase 4.1</p>
+<hr />
+<h2 id="section-9-open-questions-design-decisions">Section 9: Open Questions &amp; Design Decisions</h2>
+<p>Key questions requiring resolution before full roadmap commitment:</p>
+<h3 id="magnetic-field-visualization-integrated-vs.-separate">1. Magnetic Field Visualization: Integrated vs. Separate?</h3>
+<p><strong>Question:</strong> Should B-field models be tightly integrated into the existing E-field UI, or presented as a separate mode?</p>
+<p><strong>Options:</strong> - <strong>Integrated:</strong> Add B-field toggle to existing visualizations, combined E+B rendering - Pro: Unified interface, immediate E↔︎B relationship visible - Con: More complex UI, potential visual clutter - <strong>Separate:</strong> Dedicated “Magnetic Fields” section with distinct models (wire, loop, solenoid) - Pro: Cleaner interface, natural pedagogical progression - Con: Less direct coupling, students might miss E-B relationship</p>
+<p><strong>Decision needed:</strong> Curriculum architect + UX designer review. Recommend <strong>separate mode</strong> for pedagogical clarity, but with linking features.</p>
+<hr />
+<h3 id="export-format-priorities-pnggifmp43d">2. Export Format Priorities: PNG/GIF/MP4/3D?</h3>
+<p><strong>Question:</strong> Which export formats provide highest educational value vs. development effort?</p>
+<p><strong>Format analysis:</strong> - <strong>PNG:</strong> Quick screenshots, low effort, high use frequency - <strong>GIF:</strong> Animated sequences, moderate effort, good for showing dynamics - <strong>MP4:</strong> High quality, high effort, less browser support - <strong>3D (glTF/STL):</strong> Exotic, high effort, limited student use cases</p>
+<p><strong>Decision needed:</strong> Phase 1 MVP should prioritize PNG + GIF. MP4/3D deferred to Phase 1.2 if demand demonstrated.</p>
+<hr />
+<h3 id="mobile-performance-approach-adaptive-rendering-vs.-manual-tuning">3. Mobile Performance Approach: Adaptive Rendering vs. Manual Tuning?</h3>
+<p><strong>Question:</strong> How should mobile devices maintain performance?</p>
+<p><strong>Options:</strong> - <strong>Adaptive:</strong> Auto-detect FPS, reduce vector density automatically to maintain ≥20 FPS - Pro: Seamless user experience - Con: Complex to implement, unpredictable on edge cases - <strong>Manual presets:</strong> “Performance Mode” button, users select quality level - Pro: Simple, predictable - Con: Requires user education, some devices over/underpowered for preset</p>
+<p><strong>Decision needed:</strong> Implement <strong>adaptive system in Phase 1</strong>, with manual override for power users.</p>
+<hr />
+<h3 id="vr-mode-webxr-vs.-native-app">4. VR Mode: WebXR vs. Native App?</h3>
+<p><strong>Question:</strong> For Phase 4.2 VR support, should we use WebXR or build native apps?</p>
+<p><strong>Options:</strong> - <strong>WebXR:</strong> Web standard, works across headsets (Meta, HTC, Valve) - Pro: Single codebase, easy distribution - Con: Browser VR still emerging, performance concerns - <strong>Native:</strong> SteamVR SDK or Unreal Engine integration - Pro: Maximum performance - Con: Multiple codebases, complex distribution, licensing</p>
+<p><strong>Decision needed:</strong> <strong>WebXR as primary (2027+)</strong>, native as optional if performance insufficient. Test early with prototype.</p>
+<hr />
+<h3 id="educational-effectiveness-validation-how-do-we-measure-learning-gains">5. Educational Effectiveness Validation: How Do We Measure Learning Gains?</h3>
+<p><strong>Question:</strong> How will we validate that enhanced features actually improve student learning?</p>
+<p><strong>Measurement approaches:</strong> - <strong>Pre/post assessment:</strong> Concept inventories before and after using tool - <strong>Comparison groups:</strong> Control group (textbook only) vs. treatment (with tool) - <strong>LMS integration analytics:</strong> Track usage patterns vs. quiz performance - <strong>Faculty feedback:</strong> Instructor reports on student conceptual understanding</p>
+<p><strong>Decision needed:</strong> Plan formal study with institutional partners (university physics dept) for Phase 3 completion. Budget 2-3 months for IRB approval and data collection. Work with assessment specialist to design valid studies.</p>
+<hr />
+<h3 id="lms-integration-level-iframeltideep-integration">6. LMS Integration Level: Iframe/LTI/Deep Integration?</h3>
+<p><strong>Question:</strong> How deeply should the tool integrate with LMS platforms?</p>
+<p><strong>Integration levels:</strong> - <strong>Iframe embed:</strong> Simple, minimal data sharing - Pro: Easiest to implement - Con: Limited LMS integration, no single sign-on - <strong>LTI 1.3:</strong> Standards-based, includes authentication and assignment integration - Pro: Professional, works with Canvas/Blackboard/Moodle - Con: More backend complexity, OAuth2 required - <strong>Deep integration:</strong> Custom Canvas/Blackboard plugins with grade passback, analytics - Pro: Maximum institutional integration - Con: Significant development effort, platform-specific code</p>
+<p><strong>Decision needed:</strong> <strong>LTI 1.3 as MVP for Phase 4.1</strong>, defer deep integration to Phase 4.2+ based on institutional demand.</p>
+<hr />
+<h2 id="section-10-resource-requirements">Section 10: Resource Requirements</h2>
+<h3 id="phase-1-enhanced-visualization-export-2">Phase 1: Enhanced Visualization &amp; Export</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Developer time</td>
+<td>120-160 hours</td>
+<td>~3-4 weeks at 40 hrs/week</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Testing &amp; QA</td>
+<td>40 hours</td>
+<td>Mobile device testing, browser compatibility</td>
+</tr>
+<tr class="odd">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>CCapture.js</td>
+<td>Free (open source)</td>
+<td>GIF encoding library</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Testing devices</td>
+<td>~$500 (one-time)</td>
+<td>iPad + Android tablet for mobile testing</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Deployment</td>
+<td>Included</td>
+<td>No new server needed</td>
+</tr>
+<tr class="even">
+<td><strong>Documentation</strong></td>
+<td>Feature guides, user docs</td>
+<td>20 hours</td>
+<td>Export/preset tutorials</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>~$5,000-6,000</td>
+<td>Mostly developer labor</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-2-interactive-extensions-2">Phase 2: Interactive Extensions</h3>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Developer time</td>
+<td>200-280 hours</td>
+<td>~5-7 weeks at 40 hrs/week</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>UX design &amp; prototyping</td>
+<td>40 hours</td>
+<td>Interactive feature flows</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>User testing (pilot group)</td>
+<td>30 hours</td>
+<td>Observe students using tool</td>
+</tr>
+<tr class="even">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>None additional</td>
+<td>$0</td>
+<td>Raycasting built into Three.js</td>
+</tr>
+<tr class="odd">
+<td><strong>Testing &amp; Validation</strong></td>
+<td>Physics validation suite</td>
+<td>30 hours</td>
+<td>Ensure measurements accurate</td>
+</tr>
+<tr class="even">
+<td><strong>Documentation</strong></td>
+<td>Tutorials, feature guides</td>
+<td>30 hours</td>
+<td>Measurement tool training</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>$10,000-12,000</td>
+<td>Higher complexity justifies more testing</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-3-magnetic-fields-dynamics-2">Phase 3: Magnetic Fields &amp; Dynamics</h3>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Developer time</td>
+<td>300-420 hours</td>
+<td>~8-10 weeks at 40 hrs/week</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Physics expertise consultation</td>
+<td>40 hours</td>
+<td>Review Biot-Savart implementation</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Numerical validation testing</td>
+<td>80 hours</td>
+<td>Comprehensive algorithm testing</td>
+</tr>
+<tr class="even">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>None additional</td>
+<td>$0</td>
+<td>Custom implementation</td>
+</tr>
+<tr class="odd">
+<td><strong>Performance</strong></td>
+<td>Hardware profiling</td>
+<td>30 hours</td>
+<td>GPU testing on target devices</td>
+</tr>
+<tr class="even">
+<td><strong>Documentation</strong></td>
+<td>Physics background, formulas</td>
+<td>40 hours</td>
+<td>Biot-Savart and Lorentz force</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>$15,000-18,000</td>
+<td>Most complex phase, high testing burden</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="phase-4-platform-integration-advanced-features-2">Phase 4: Platform Integration &amp; Advanced Features</h3>
+<h4 id="phase-4.1-lms-integration">Phase 4.1: LMS Integration</h4>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Backend developer (full-time)</td>
+<td>480-640 hours</td>
+<td>12-16 weeks</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Frontend developer</td>
+<td>120 hours</td>
+<td>User context, session mgmt</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>DevOps/deployment</td>
+<td>80 hours</td>
+<td>Server setup, HTTPS, database</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>LMS integration testing</td>
+<td>100 hours</td>
+<td>Canvas, Moodle, Blackboard sandboxes</td>
+</tr>
+<tr class="odd">
+<td><strong>Infrastructure</strong></td>
+<td>Server hosting</td>
+<td>$500-1000/month</td>
+<td>Cloud VPS or institutional server</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>PostgreSQL database</td>
+<td>$100-200/month</td>
+<td>Database service (or self-hosted)</td>
+</tr>
+<tr class="odd">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>OAuth libraries, JWT</td>
+<td>Free (open source)</td>
+<td>passport.js, jsonwebtoken</td>
+</tr>
+<tr class="even">
+<td><strong>Legal/Admin</strong></td>
+<td>Institutional agreements</td>
+<td>Variable</td>
+<td>Security review, data handling agreements</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>$25,000-35,000</td>
+<td>Significant backend investment</td>
+</tr>
+</tbody>
+</table>
+<h4 id="phase-4.2-vrar-integration">Phase 4.2: VR/AR Integration</h4>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 27%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Frontend developer</td>
+<td>160-240 hours</td>
+<td>4-6 weeks</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>VR UX designer</td>
+<td>80 hours</td>
+<td>Interaction design for headsets</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Testing on hardware</td>
+<td>60 hours</td>
+<td>Meta Quest, HTC Vive testing</td>
+</tr>
+<tr class="even">
+<td><strong>Hardware for testing</strong></td>
+<td>VR headset (if not available)</td>
+<td>$500-2000 (one-time)</td>
+<td>Meta Quest 3 or HTC Vive</td>
+</tr>
+<tr class="odd">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>WebXR polyfills</td>
+<td>Free (open source)</td>
+<td>webxr-polyfill</td>
+</tr>
+<tr class="even">
+<td><strong>Documentation</strong></td>
+<td>VR user guide</td>
+<td>20 hours</td>
+<td>Controller mapping, comfort guidelines</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>$8,000-12,000</td>
+<td>Moderate effort, hardware-dependent</td>
+</tr>
+</tbody>
+</table>
+<h4 id="phase-4.3-time-varying-fields">Phase 4.3: Time-Varying Fields</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Developer time</td>
+<td>100-140 hours</td>
+<td>2.5-3.5 weeks</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Physics validation</td>
+<td>30 hours</td>
+<td>EM wave accuracy testing</td>
+</tr>
+<tr class="odd">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>None additional</td>
+<td>$0</td>
+<td>Extension of existing framework</td>
+</tr>
+<tr class="even">
+<td><strong>Documentation</strong></td>
+<td>EM wave physics guide</td>
+<td>20 hours</td>
+<td>Radiation, wave propagation</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>$3,000-4,500</td>
+<td>Low complexity, reuses existing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="phase-4.4-assessment-quiz-integration">Phase 4.4: Assessment &amp; Quiz Integration</h4>
+<table>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Resource</th>
+<th>Estimate</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Development</strong></td>
+<td>Full-stack developer</td>
+<td>240-320 hours</td>
+<td>6-8 weeks</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Educational designer</td>
+<td>100 hours</td>
+<td>Question design, learning objectives</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Content creation</td>
+<td>200-300 hours</td>
+<td>50+ validated question templates</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Testing &amp; validation</td>
+<td>80 hours</td>
+<td>Student pilot testing</td>
+</tr>
+<tr class="odd">
+<td><strong>Tools &amp; Dependencies</strong></td>
+<td>LMS integration (Phase 4.1)</td>
+<td>Depends</td>
+<td>LTI grade passback</td>
+</tr>
+<tr class="even">
+<td><strong>Documentation</strong></td>
+<td>Assessment user guide</td>
+<td>30 hours</td>
+<td>Instructor and student guides</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Cost</strong></td>
+<td></td>
+<td>$15,000-20,000</td>
+<td>Content creation significant</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="overall-resource-summary">Overall Resource Summary</h3>
+<table>
+<colgroup>
+<col style="width: 13%" />
+<col style="width: 19%" />
+<col style="width: 33%" />
+<col style="width: 13%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Dev Cost</th>
+<th>Infrastructure</th>
+<th>Total</th>
+<th>Timeline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Phase 1</strong></td>
+<td>$5,000-6,000</td>
+<td>Minimal</td>
+<td>$5,000-6,000</td>
+<td>5 weeks</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 2</strong></td>
+<td>$10,000-12,000</td>
+<td>Minimal</td>
+<td>$10,000-12,000</td>
+<td>7 weeks</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 3</strong></td>
+<td>$15,000-18,000</td>
+<td>Minimal</td>
+<td>$15,000-18,000</td>
+<td>10 weeks</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4.1</strong></td>
+<td>$25,000-35,000</td>
+<td>$6,000-14,400/yr</td>
+<td>$31,000-49,400</td>
+<td>16 weeks</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 4.2</strong></td>
+<td>$8,000-12,000</td>
+<td>Minimal</td>
+<td>$8,000-12,000</td>
+<td>6 weeks</td>
+</tr>
+<tr class="even">
+<td><strong>Phase 4.3</strong></td>
+<td>$3,000-4,500</td>
+<td>Minimal</td>
+<td>$3,000-4,500</td>
+<td>3.5 weeks</td>
+</tr>
+<tr class="odd">
+<td><strong>Phase 4.4</strong></td>
+<td>$15,000-20,000</td>
+<td>Minimal</td>
+<td>$15,000-20,000</td>
+<td>8 weeks</td>
+</tr>
+<tr class="even">
+<td><strong>TOTAL (All Phases)</strong></td>
+<td>$81,000-107,500</td>
+<td>$6,000-14,400/yr</td>
+<td><strong>$87,000-121,900</strong></td>
+<td><strong>~12 months</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Team Composition Recommendation:</strong> - 1 senior full-stack developer (React/Node.js) — primary contributor across all phases - 1 mid-level frontend developer — Phase 1-2 focus, VR support Phase 4.2 - 1 DevOps/backend specialist — Phase 4.1 LMS integration - 1 physics/education advisor — consultation (part-time, 10-15 hrs/month) - 1 QA tester — mobile and cross-platform testing (shared across phases)</p>
+<p><strong>Cost can be reduced by:</strong> - Leveraging open-source contributions - Partnering with university (faculty involvement, student developer time) - Phased rollout with community feedback</p>
+<hr />
+<h2 id="section-11-implementation-readiness-checklist">Section 11: Implementation Readiness Checklist</h2>
+<h3 id="phase-1-readiness-ready-to-begin-immediately">Phase 1 Readiness (Ready to begin immediately)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+CCapture.js library integrated into build</li>
+<li><input type="checkbox" disabled="" />
+Mobile testing devices procured or accessed</li>
+<li><input type="checkbox" disabled="" />
+Responsive CSS framework reviewed</li>
+<li><input type="checkbox" disabled="" />
+Export feature design finalized</li>
+<li><input type="checkbox" disabled="" />
+Preset serialization format documented</li>
+</ul>
+<h3 id="phase-2-readiness-ready-when-phase-1-complete">Phase 2 Readiness (Ready when Phase 1 complete)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+Three.js Raycaster examples reviewed</li>
+<li><input type="checkbox" disabled="" />
+UX mockups for interactive tools approved</li>
+<li><input type="checkbox" disabled="" />
+Physics validation test suite prepared</li>
+<li><input type="checkbox" disabled="" />
+Pilot user group recruited</li>
+<li><input type="checkbox" disabled="" />
+Measurement accuracy requirements specified</li>
+</ul>
+<h3 id="phase-3-readiness-ready-when-phase-2-complete">Phase 3 Readiness (Ready when Phase 2 complete)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+Biot-Savart algorithm references collected</li>
+<li><input type="checkbox" disabled="" />
+Magnetic field physics advisor assigned</li>
+<li><input type="checkbox" disabled="" />
+Numerical validation plan documented</li>
+<li><input type="checkbox" disabled="" />
+Particle integrator prototype written</li>
+<li><input type="checkbox" disabled="" />
+Hardware profiling tools available</li>
+</ul>
+<h3 id="phase-4.1-readiness-ready-when-phase-3-complete">Phase 4.1 Readiness (Ready when Phase 3 complete)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+LTI standard documentation reviewed</li>
+<li><input type="checkbox" disabled="" />
+Database schema designed</li>
+<li><input type="checkbox" disabled="" />
+OAuth2 flow diagrammed</li>
+<li><input type="checkbox" disabled="" />
+Target LMS platforms (Canvas, Moodle) sandboxes accessed</li>
+<li><input type="checkbox" disabled="" />
+Institutional partnerships established</li>
+</ul>
+<h3 id="phase-4.2-readiness-can-start-in-parallel">Phase 4.2 Readiness (Can start in parallel)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+WebXR browser support verified</li>
+<li><input type="checkbox" disabled="" />
+VR/AR UX patterns researched</li>
+<li><input type="checkbox" disabled="" />
+VR headset access confirmed (if available)</li>
+<li><input type="checkbox" disabled="" />
+Hand controller mapping documented</li>
+<li><input type="checkbox" disabled="" />
+Comfort/motion sickness guidelines prepared</li>
+</ul>
+<h3 id="phase-4.3-readiness-ready-after-phase-3">Phase 4.3 Readiness (Ready after Phase 3)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+Time-dependent field interface designed</li>
+<li><input type="checkbox" disabled="" />
+EM wave visualization algorithms prototyped</li>
+<li><input type="checkbox" disabled="" />
+Animation performance tested</li>
+<li><input type="checkbox" disabled="" />
+Wave propagation validation cases identified</li>
+</ul>
+<h3 id="phase-4.4-readiness-ready-after-phase-4.1">Phase 4.4 Readiness (Ready after Phase 4.1)</h3>
+<ul class="task-list">
+<li><input type="checkbox" disabled="" />
+Assessment question taxonomy defined</li>
+<li><input type="checkbox" disabled="" />
+Learning objective mapping completed</li>
+<li><input type="checkbox" disabled="" />
+Question bank structure designed</li>
+<li><input type="checkbox" disabled="" />
+Instructor pilot group organized</li>
+<li><input type="checkbox" disabled="" />
+Validation rubric prepared</li>
+</ul>
+<hr />
+<h2 id="section-12-approval-sign-off">Section 12: Approval &amp; Sign-Off</h2>
+<p>This Project Overview Document establishes the development roadmap for electrostatics-lab through 2027.</p>
+<p><strong>Current Status:</strong> ✓ Core product complete and validated (January 2026)</p>
+<p><strong>Next Steps:</strong> 1. <strong>Immediate:</strong> Begin Phase 1 (Enhanced Export) — 5-week sprint 2. <strong>Quarterly reviews:</strong> Assess progress, gather user feedback, adjust priorities 3. <strong>Phase gate meetings:</strong> Before starting each major phase, review success metrics and adjust scope if needed 4. <strong>Community engagement:</strong> Share roadmap with instructors and educators for feedback</p>
+<p><strong>Stakeholder Sign-Off:</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Role</th>
+<th>Name</th>
+<th>Date</th>
+<th>Comments</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Project Lead</td>
+<td>[Signature]</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Physics Advisor</td>
+<td>[Signature]</td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Education Partner</td>
+<td>[Signature]</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="references-additional-resources">References &amp; Additional Resources</h2>
+<h3 id="physics-references">Physics References</h3>
+<ul>
+<li>Griffiths, D. J. (2013). <em>Introduction to Electrodynamics</em> (4th ed.). Pearson.</li>
+<li>Serway, R. A., &amp; Jewett, J. W. (2019). <em>Physics for Scientists and Engineers</em> (10th ed.). Cengage Learning.</li>
+<li>Jackson, J. D. (1998). <em>Classical Electrodynamics</em> (3rd ed.). Wiley.</li>
+</ul>
+<h3 id="technical-documentation">Technical Documentation</h3>
+<ul>
+<li><a href="https://threejs.org/docs/">Three.js Documentation</a></li>
+<li><a href="https://docs.pmnd.rs/react-three-fiber/">React Three Fiber Docs</a></li>
+<li><a href="https://www.w3.org/TR/webxr/">WebXR API Specification</a></li>
+<li><a href="https://www.imsglobal.org/spec/lti/v1p3/">LTI 1.3 Standard</a></li>
+</ul>
+<h3 id="related-projects">Related Projects</h3>
+<ul>
+<li>PhET Interactive Simulations: https://phet.colorado.edu/</li>
+<li>Falstad Vector Field Simulator: https://www.falstad.com/vector/</li>
+<li>GeoGebra Applets: https://www.geogebra.org/</li>
+</ul>
+<hr />
+<p><strong>Document Version:</strong> 1.0 <strong>Last Updated:</strong> January 29, 2026 <strong>Next Review:</strong> April 30, 2026 (after Phase 1 completion) <strong>Maintainer:</strong> [Project Lead Name] <strong>License:</strong> CC-BY-4.0 (Share and adapt freely with attribution)</p>
+<hr />
+<p><em>“Physics is best learned by doing — not just solving equations, but seeing how those equations shape the invisible world around us.” — Electrostatics Lab Mission</em></p>
+</body>
+</html>
