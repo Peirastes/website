@@ -168,21 +168,30 @@ export class FieldLineIntegrator {
     return inside.clone().addScaledVector(dir, t);
   }
   
-  // Generate field lines from source positions
+  // Generate field lines from source positions with multi-layer seeding for density
   generateFromSources(linesPerSource: number = 8, offset: number = 0.2): FieldLine[] {
     const sources = this.model.getSourcePositions().filter(s => s.charge > 0);
     const lines: FieldLine[] = [];
 
     for (const source of sources) {
-      // Generate seed positions around the source using Fibonacci sphere for symmetric distribution
-      const seeds = this.generateSeedsAroundPoint(source.position, linesPerSource, offset);
+      // Generate seeds at multiple offset distances to create concentric shells
+      // This provides denser coverage and shows field structure at different scales
+      const offsetDistances = [
+        offset * 0.5,      // Inner shell (50% of base offset)
+        offset,            // Middle shell (base offset)
+        offset * 1.5,      // Outer shell (150% of base offset)
+      ];
 
-      for (const seed of seeds) {
-        const line = this.trace(seed, 1); // Trace in positive direction
-        // Include all field lines, even very short ones, to ensure symmetric coverage
-        // A field line with only start+end point is still valid
-        if (line.points.length >= 2) {
-          lines.push(line);
+      for (const offsetDist of offsetDistances) {
+        // Generate evenly-spaced seeds around the charge at this distance
+        const seeds = this.generateSeedsAroundPoint(source.position, linesPerSource, offsetDist);
+
+        for (const seed of seeds) {
+          const line = this.trace(seed, 1); // Trace in positive direction
+          // Include all field lines to ensure symmetric coverage at all layers
+          if (line.points.length >= 2) {
+            lines.push(line);
+          }
         }
       }
     }
