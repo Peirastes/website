@@ -169,22 +169,24 @@ export class FieldLineIntegrator {
   }
   
   // Generate field lines from source positions
-  generateFromSources(linesPerSource: number = 8, offset: number = 0.15): FieldLine[] {
+  generateFromSources(linesPerSource: number = 8, offset: number = 0.2): FieldLine[] {
     const sources = this.model.getSourcePositions().filter(s => s.charge > 0);
     const lines: FieldLine[] = [];
-    
+
     for (const source of sources) {
-      // Generate seed positions around the source
+      // Generate seed positions around the source using Fibonacci sphere for symmetric distribution
       const seeds = this.generateSeedsAroundPoint(source.position, linesPerSource, offset);
-      
+
       for (const seed of seeds) {
         const line = this.trace(seed, 1); // Trace in positive direction
-        if (line.points.length > 2) {
+        // Include all field lines, even very short ones, to ensure symmetric coverage
+        // A field line with only start+end point is still valid
+        if (line.points.length >= 2) {
           lines.push(line);
         }
       }
     }
-    
+
     return lines;
   }
   
