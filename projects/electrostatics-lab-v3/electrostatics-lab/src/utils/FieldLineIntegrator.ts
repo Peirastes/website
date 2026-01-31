@@ -273,7 +273,7 @@ export class FieldLineIntegrator {
     return lines;
   }
 
-  // Helper to generate all azimuthal field lines (primary + intermediate meridians)
+  // Helper to generate all azimuthal field lines (concentric shells at different radii)
   private generateAllAzimuthalFieldLines(
     sourcePosition: THREE.Vector3,
     radialDensity: number,
@@ -283,28 +283,35 @@ export class FieldLineIntegrator {
     direction: number
   ): FieldLine[] {
     const lines: FieldLine[] = [];
-    const azimuthalRadius = 0.15;
 
-    // Total meridians = radialDensity × 2^azimuthalDensity
-    // This fills in intermediate meridians between the primary ones
-    const totalMeridians = radialDensity * Math.pow(2, azimuthalDensity);
-    const meridianSpacing = (2 * Math.PI) / totalMeridians;
+    // Azimuthal Density controls the number of concentric shells
+    // Total shells = azimuthalDensity + 1
+    const totalShells = azimuthalDensity + 1;
+    const minRadius = 0.08;
+    const maxRadius = 0.15;
 
-    for (let i = 0; i < totalMeridians; i++) {
-      const azimuth = i * meridianSpacing;
+    // Generate concentric shells, each with radialDensity meridians
+    for (let shellIdx = 0; shellIdx < totalShells; shellIdx++) {
+      // Interpolate radius between minRadius and maxRadius
+      const shellRadius = minRadius + (maxRadius - minRadius) * (shellIdx / (totalShells - 1 || 1));
 
-      // Seed at 90° to the axis (perpendicular)
-      const seed = sourcePosition
-        .clone()
-        .addScaledVector(u, azimuthalRadius * Math.cos(azimuth))
-        .addScaledVector(v, azimuthalRadius * Math.sin(azimuth));
+      // For each shell, generate radialDensity field lines distributed around the axis
+      for (let i = 0; i < radialDensity; i++) {
+        const azimuth = (2 * Math.PI * i) / radialDensity;
 
-      const line = this.trace(seed, direction);
-      if (direction === -1 && line.points.length > 0) {
-        line.points.reverse();
-      }
-      if (line.points.length >= 2) {
-        lines.push(line);
+        // Seed at 90° to the axis (perpendicular) at this shell's radius
+        const seed = sourcePosition
+          .clone()
+          .addScaledVector(u, shellRadius * Math.cos(azimuth))
+          .addScaledVector(v, shellRadius * Math.sin(azimuth));
+
+        const line = this.trace(seed, direction);
+        if (direction === -1 && line.points.length > 0) {
+          line.points.reverse();
+        }
+        if (line.points.length >= 2) {
+          lines.push(line);
+        }
       }
     }
 
