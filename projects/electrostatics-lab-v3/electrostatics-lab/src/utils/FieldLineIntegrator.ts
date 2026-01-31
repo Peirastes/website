@@ -227,6 +227,7 @@ export class FieldLineIntegrator {
   }
 
   // Generate intermediate field lines filling the region between axial and azimuthal
+  // Uses FIXED intermediate angles; Azimuthal Density selects which ones to include
   private generateIntermediateFieldLines(
     sourcePosition: THREE.Vector3,
     radialDensity: number,
@@ -239,11 +240,21 @@ export class FieldLineIntegrator {
     const axisNorm = this.getSymmetryAxis([{ position: sourcePosition, charge: 1 }]).normalize();
     const intermediateRadius = 0.15; // Distance from axis for intermediate seeds
 
-    // Generate M intermediate angle layers between 0° and 90°
-    // Where M = azimuthalDensity
-    for (let layer = 1; layer <= azimuthalDensity; layer++) {
-      // Angle from 0° (axial) to 90° (azimuthal)
-      const theta = (Math.PI / 2) * (layer / (azimuthalDensity + 1));
+    // Fixed set of intermediate angles between 0° and 90°
+    const intermediateAngles = [
+      Math.PI / 8,   // 22.5°
+      Math.PI / 4,   // 45°
+      3 * Math.PI / 8, // 67.5°
+      7 * Math.PI / 16, // 78.75°
+      15 * Math.PI / 32, // 84.375°
+      31 * Math.PI / 64, // 87.1875°
+      63 * Math.PI / 128, // 88.59375°
+      127 * Math.PI / 256, // 89.296875°
+    ];
+
+    // Select the first azimuthalDensity angles from the fixed set
+    for (let layer = 0; layer < Math.min(azimuthalDensity, intermediateAngles.length); layer++) {
+      const theta = intermediateAngles[layer];
 
       // For this angle, generate radially-distributed field lines
       for (let i = 0; i < radialDensity; i++) {
