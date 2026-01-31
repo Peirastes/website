@@ -38,9 +38,26 @@ function toggleYear(year) {
   }
 }
 
+// === Active nav link indicator ===
+function markActiveNavLink() {
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const navLinks = document.querySelectorAll('nav a');
+
+  navLinks.forEach(link => {
+    const href = link.getAttribute('href');
+    // Check if the link matches the current page
+    if (href === currentPage || (currentPage === '' && href === 'index.html')) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
+}
+
 // Initialize theme system and other features on page load
 document.addEventListener("DOMContentLoaded", function () {
   initializeTheme();
+  markActiveNavLink();
 
   // === Search filtering (only on home page) ===
   const searchInput = document.getElementById("search");
