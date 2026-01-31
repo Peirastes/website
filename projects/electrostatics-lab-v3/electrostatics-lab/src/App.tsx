@@ -124,6 +124,7 @@ export default function App() {
     showFieldLines,
     showEquipotentials,
     vectorDensity,
+    radialDensity,
     azimuthalDensity,
     equipotentialLevels,
     vectorScale,
@@ -135,7 +136,8 @@ export default function App() {
     showFieldLines: { value: true, label: 'Field Lines' },
     showEquipotentials: { value: true, label: 'Equipotentials' },
     vectorDensity: { value: 8, min: 4, max: 15, step: 1, label: 'Vector Density' },
-    azimuthalDensity: { value: 6, min: 1, max: 16, step: 1, label: 'Radial Field Line Density' },
+    radialDensity: { value: 6, min: 1, max: 16, step: 1, label: 'Radial Field Line Density' },
+    azimuthalDensity: { value: 2, min: 0, max: 8, step: 1, label: 'Azimuthal Density' },
     equipotentialLevels: { value: 5, min: 1, max: 10, step: 1, label: 'Equipotential Levels' },
     vectorScale: { value: 0.3, min: 0.1, max: 1, step: 0.05, label: 'Vector Scale' },
     logScale: { value: false, label: 'Log Scale |E|' },
@@ -262,6 +264,7 @@ export default function App() {
             <FieldLines
               model={model}
               bounds={domainBounds}
+              radialDensity={radialDensity}
               azimuthalDensity={azimuthalDensity}
             />
           )}

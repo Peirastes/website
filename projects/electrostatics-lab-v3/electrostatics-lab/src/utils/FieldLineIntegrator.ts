@@ -168,9 +168,9 @@ export class FieldLineIntegrator {
     return inside.clone().addScaledVector(dir, t);
   }
   
-  // Generate field lines with axial + azimuthal structure
-  // 2 axial field lines (along symmetry axis) + N azimuthal field lines (revolved around axis)
-  generateFromSources(azimuthalDensity: number = 6): FieldLine[] {
+  // Generate field lines with axial + intermediate + azimuthal structure
+  // 2 axial field lines (along symmetry axis) + M intermediate layers + N azimuthal field lines (revolved around axis)
+  generateFromSources(radialDensity: number = 6, azimuthalDensity: number = 2): FieldLine[] {
     const allSources = this.model.getSourcePositions();
     const positiveSources = allSources.filter(s => s.charge > 0);
     const negativeSources = allSources.filter(s => s.charge < 0);
@@ -183,13 +183,15 @@ export class FieldLineIntegrator {
     // Generate field lines FROM positive charges (outward)
     for (const source of positiveSources) {
       lines.push(...this.generateAxialFieldLines(source.position, symmetryAxis, 1));
-      lines.push(...this.generateAzimuthalFieldLines(source.position, azimuthalDensity, u, v, 1));
+      lines.push(...this.generateIntermediateFieldLines(source.position, radialDensity, azimuthalDensity, u, v, 1));
+      lines.push(...this.generateAzimuthalFieldLines(source.position, radialDensity, u, v, 1));
     }
 
     // Generate field lines TO negative charges (inward)
     for (const source of negativeSources) {
       lines.push(...this.generateAxialFieldLines(source.position, symmetryAxis, -1));
-      lines.push(...this.generateAzimuthalFieldLines(source.position, azimuthalDensity, u, v, -1));
+      lines.push(...this.generateIntermediateFieldLines(source.position, radialDensity, azimuthalDensity, u, v, -1));
+      lines.push(...this.generateAzimuthalFieldLines(source.position, radialDensity, u, v, -1));
     }
 
     return lines;
@@ -224,10 +226,53 @@ export class FieldLineIntegrator {
     return lines;
   }
 
-  // Generate N azimuthal field lines, revolved around the symmetry axis
+  // Generate intermediate field lines filling the region between axial and azimuthal
+  private generateIntermediateFieldLines(
+    sourcePosition: THREE.Vector3,
+    radialDensity: number,
+    azimuthalDensity: number,
+    u: THREE.Vector3,
+    v: THREE.Vector3,
+    direction: number
+  ): FieldLine[] {
+    const lines: FieldLine[] = [];
+    const axisNorm = this.getSymmetryAxis([{ position: sourcePosition, charge: 1 }]).normalize();
+    const intermediateRadius = 0.15; // Distance from axis for intermediate seeds
+
+    // Generate M intermediate angle layers between 0° and 90°
+    // Where M = azimuthalDensity
+    for (let layer = 1; layer <= azimuthalDensity; layer++) {
+      // Angle from 0° (axial) to 90° (azimuthal)
+      const theta = (Math.PI / 2) * (layer / (azimuthalDensity + 1));
+
+      // For this angle, generate radially-distributed field lines
+      for (let i = 0; i < radialDensity; i++) {
+        const azimuth = (2 * Math.PI * i) / radialDensity;
+
+        // Seed position at angle theta from axis, revolved by azimuth around axis
+        const seed = sourcePosition
+          .clone()
+          .addScaledVector(axisNorm, intermediateRadius * Math.cos(theta) * direction)
+          .addScaledVector(u, intermediateRadius * Math.sin(theta) * Math.cos(azimuth))
+          .addScaledVector(v, intermediateRadius * Math.sin(theta) * Math.sin(azimuth));
+
+        const line = this.trace(seed, direction);
+        if (direction === -1 && line.points.length > 0) {
+          line.points.reverse();
+        }
+        if (line.points.length >= 2) {
+          lines.push(line);
+        }
+      }
+    }
+
+    return lines;
+  }
+
+  // Generate N azimuthal field lines (at 90° to axis), revolved around the symmetry axis
   private generateAzimuthalFieldLines(
     sourcePosition: THREE.Vector3,
-    numDirections: number,
+    radialDensity: number,
     u: THREE.Vector3,
     v: THREE.Vector3,
     direction: number
@@ -235,9 +280,9 @@ export class FieldLineIntegrator {
     const lines: FieldLine[] = [];
     const azimuthalRadius = 0.15; // Distance from axis for azimuthal seeds
 
-    // Generate numDirections azimuthal field lines, evenly distributed around the axis
-    for (let i = 0; i < numDirections; i++) {
-      const azimuth = (2 * Math.PI * i) / numDirections;
+    // Generate radialDensity azimuthal field lines, evenly distributed around the axis
+    for (let i = 0; i < radialDensity; i++) {
+      const azimuth = (2 * Math.PI * i) / radialDensity;
 
       // Seed at 90° to the axis (perpendicular)
       const seed = sourcePosition
