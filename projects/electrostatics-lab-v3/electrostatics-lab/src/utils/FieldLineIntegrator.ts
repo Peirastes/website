@@ -273,7 +273,7 @@ export class FieldLineIntegrator {
     return lines;
   }
 
-  // Helper to generate azimuthal field lines (revolved around symmetry axis)
+  // Helper to generate field lines at intermediate latitudes (using spherical coordinates)
   private generateAllAzimuthalFieldLines(
     sourcePosition: THREE.Vector3,
     radialDensity: number,
@@ -283,31 +283,38 @@ export class FieldLineIntegrator {
     direction: number
   ): FieldLine[] {
     const lines: FieldLine[] = [];
+    const axisNorm = direction === 1 ? this.getSymmetryAxis(this.model.getSourcePositions()).normalize() : this.getSymmetryAxis(this.model.getSourcePositions()).normalize();
+    const seedDistance = 0.15;
 
-    // Radial Density: controls the number of meridians (field lines around the axis)
-    // Azimuthal Density: controls the distance/radius of the shell from the axis
-    const minRadius = 0.08;
-    const maxRadius = 0.15;
+    // Azimuthal Density controls the number of latitude bands (intermediate polar angles)
+    // Total number of latitude bands (including equator) = azimuthalDensity + 1
+    const numLatitudes = azimuthalDensity + 1;
 
-    // Map azimuthalDensity (0-8) to shell radius
-    const shellRadius = minRadius + (maxRadius - minRadius) * (azimuthalDensity / 8);
+    // Generate field lines at intermediate latitudes between poles and equator
+    // Distribute latitudes evenly from just above north pole to just below south pole
+    for (let latIdx = 0; latIdx < numLatitudes; latIdx++) {
+      // Polar angle θ (0 = north pole, π/2 = equator, π = south pole)
+      // Distribute evenly, skipping the actual poles (those are axial lines)
+      const theta = (Math.PI / (numLatitudes + 1)) * (latIdx + 1);
 
-    // Generate radialDensity field lines distributed around the axis at the specified radius
-    for (let i = 0; i < radialDensity; i++) {
-      const azimuth = (2 * Math.PI * i) / radialDensity;
+      // For each latitude, generate radialDensity meridians around the axis (azimuthal angle φ)
+      for (let meridianIdx = 0; meridianIdx < radialDensity; meridianIdx++) {
+        const phi = (2 * Math.PI * meridianIdx) / radialDensity;
 
-      // Seed at 90° to the axis (perpendicular) at this radius
-      const seed = sourcePosition
-        .clone()
-        .addScaledVector(u, shellRadius * Math.cos(azimuth))
-        .addScaledVector(v, shellRadius * Math.sin(azimuth));
+        // Convert spherical to Cartesian coordinates
+        // Seed position = sourcePos + distance * [cos(θ) * axis + sin(θ) * (cos(φ) * u + sin(φ) * v)]
+        const seed = sourcePosition.clone();
+        seed.addScaledVector(axisNorm, seedDistance * Math.cos(theta));
+        seed.addScaledVector(u, seedDistance * Math.sin(theta) * Math.cos(phi));
+        seed.addScaledVector(v, seedDistance * Math.sin(theta) * Math.sin(phi));
 
-      const line = this.trace(seed, direction);
-      if (direction === -1 && line.points.length > 0) {
-        line.points.reverse();
-      }
-      if (line.points.length >= 2) {
-        lines.push(line);
+        const line = this.trace(seed, direction);
+        if (direction === -1 && line.points.length > 0) {
+          line.points.reverse();
+        }
+        if (line.points.length >= 2) {
+          lines.push(line);
+        }
       }
     }
 
