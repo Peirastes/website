@@ -1,8 +1,8 @@
 # Electrostatics Lab — Project Overview Document (POD)
 
 **Date Created:** January 29, 2026
-**Last Updated:** January 30, 2026
-**Status:** ✅ Production-Ready & Deployed (Core Objectives Complete)
+**Last Updated:** January 30, 2026 (Field Line Visualization Enhanced)
+**Status:** ✅ Production-Ready & Deployed (Core Objectives Complete + Visualization Enhancements)
 **Project Repository:** `electrostatics-lab-v3/electrostatics-lab/`
 **Technology Stack:** React 18 + Three.js + TypeScript + Vite
 **License:** MIT (Free for educational use)
@@ -124,7 +124,12 @@ The electrostatics-lab application is **fully functional, physics-validated, and
 #### Multiple Visualization Modes
 
 - **Vector field glyphs:** 3D arrows with color-mapped magnitudes
-- **Electric field lines:** Properly seeded from positive charges, follow RK4 integration
+- **Electric field lines:** Advanced spherical coordinate seeding with independent controls:
+  - **Radial Density (1-16):** Controls meridian distribution (field lines around the symmetry axis)
+  - **Azimuthal Density (0-8):** Controls intermediate latitude bands between poles and equator
+  - Field lines emanate from poles (axial), equator (azimuthal), and intermediate latitudes
+  - Seeded using proper spherical-to-Cartesian conversion: `seed = source + distance × [cos(θ)·axis + sin(θ)·(cos(φ)·u + sin(φ)·v)]`
+  - Each seed traced using RK4 integration with proper termination detection
 - **Equipotential surfaces:** 3D isosurfaces via marching cubes, semi-transparent rendering
 - **2D slice views:** XY, XZ, YZ planes with heat maps and contour overlays
 - **Camera slice:** Live camera-aligned heat map with dynamic rotation
@@ -183,6 +188,7 @@ All limitations are documented in the roadmap and planned for future phases base
 - **Validation and documentation (Jan 2025):** Comprehensive physics validation, pedagogical design documentation
 - **Production release (Jan 29, 2026):** Feature-complete, validated, deployed to live website
 - **Critical Bug Fix (Jan 30, 2026):** Leva dropdown options inversion fix (see Section 3.5)
+- **Field Line Seeding Enhancement (Jan 30, 2026):** Implemented spherical coordinate approach with independent Radial/Azimuthal controls
 
 **Key milestones:**
 - All 11 charge configurations implemented and working
@@ -192,6 +198,10 @@ All limitations are documented in the roadmap and planned for future phases base
 - Complete documentation suite in place
 - **Live deployment to https://www.peirastes.com/projects/electrostatics-lab.html**
 - **Leva dropdown UI issue identified and resolved**
+- **Field line visualization enhanced with spherical coordinate seeding** (Commits 2356686 → 68e67e2 → 33d027d)
+  - Radial Density control: Meridian distribution around symmetry axis
+  - Azimuthal Density control: Intermediate latitude bands between poles and equator
+  - Field lines now properly represent emission from all charge surface regions
 
 ### 3.5 Critical Bug Fix: Leva Dropdown Options
 
