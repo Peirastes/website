@@ -1,29 +1,165 @@
-# Project Overview Document: Fractured Universe
+# Project Overview Document (POD)
 
-## Project Overview
-
-Fractured Universe is a web-based multiplayer RTS (Real-Time Strategy) game built with React and Vite. It is a spiritual successor to Shattered Galaxy (2001), featuring 88 tactical sectors, three factions, four military divisions, squad-based combat, and a 3D battle visualization system. The project is feature-complete through Phase 6, with all core gameplay loops implemented and tested.
-
-**Project Location:** `C:\Users\Cole\Dropbox\Website\projects\fractured-universe\`
-
-**Technology Stack:**
-- React 18.2 (UI framework)
-- Vite 5.0 (build tool)
-- Three.js 0.158 (3D rendering)
-- React Three Fiber 8.13 (React + Three.js integration)
-- CSS3 (styling with custom properties)
-
-**Current Phase:** 6 of 7 ✓ (Core game complete)
-
-**Build Size:** ~1029 KB
+**Project Title:** Fractured Universe
+**Date:** January 30, 2026 | **Version:** 1.0
+**Lead:** Cole Prather
 
 ---
 
-## Project Summary
+## 1. Purpose
 
-### Vision
+### What is this project?
+A browser-based multiplayer real-time strategy (RTS) game where players command military factions competing for territorial control across an 88-sector war map. Players recruit and manage squads from four military divisions (Infantry, Mobile, Aviation, Organic), engage in real-time tactical battles with 3D visualization, manage character progression with stat allocation, and form clans with other players. The game combines squad management, resource economics, and real-time combat mechanics in a spirit-successor to the 2001 MMORTS *Shattered Galaxy*.
 
-Fractured Universe is a browser-based MMO-style RTS where players control military factions competing for territorial control across 88 procedurally-placed sectors. The game emphasizes squad-based tactics, resource management, character progression, and faction warfare. The 3D battle system provides immersive real-time visualization of Point-of-Contention (PoC) capture mechanics.
+### Why does it matter?
+Browser-based RTS games are rare in modern gaming; most focus on turn-based or card-based strategy. Fractured Universe revives the genre with modern web technologies (React + Three.js), emphasizing tactical decision-making in real-time combat, squad composition optimization, and faction cooperation. The 3D battle system provides immersive visualization of Point-of-Contention (PoC) capture mechanics where units must occupy territory to earn points.
+
+### What is the driving question?
+How can modern web technologies deliver a feature-rich RTS game with real-time squad tactics, character progression, and factional warfare comparable to classic MMORTS experiences?
+
+---
+
+## 2. Objectives & Goals
+
+### Primary Objective
+Deliver a production-ready browser-based RTS game with 88 tactical sectors, 3 competing factions, 4 military divisions, squad-based combat mechanics, character progression, clan systems, and 3D battle visualization for multiplayer gameplay.
+
+### Supporting Goals
+1. **Implement 88-sector war map** with faction control, resource generation, and sector-level diplomacy
+2. **Create character progression system** with 4 attributes (Tactics, Clout, Education, Mech Aptitude) affecting gameplay
+3. **Develop 16 unit types** across 4 divisions with distinct HP, damage, speed, cost, and tier requirements
+4. **Build squad management interface** with recruitment, equipment, and tactical loadout customization
+5. **Create real-time 3D battle system** with PoC capture mechanics and unit movement visualization
+6. **Implement clan/alliance system** for player cooperation and factional organization
+7. **Design economic system** with resource generation, unit costs, and strategic trade-offs
+
+---
+
+## 3. Value & Novelty
+
+| Dimension | Description |
+|-----------|-------------|
+| **Novelty** | Modern web-based RTS with real-time 3D battles and squad-level tactics. Browser-native deployment removes installation friction. Three-faction asymmetry (Crimson +HP, Azure +Damage, Golden +Resources) creates strategic differentiation. |
+| **Utility** | Solo play with campaign progression, multiplayer competitive battles, clan cooperation, and territory control loops. 88 sectors provide rich tactical map with diverse strategic positions. |
+| **Gap Addressed** | Browser RTS games are rare; most modern strategy games are turn-based or CCG-style. Fractured Universe fills demand for real-time tactical action in browser environment. |
+
+---
+
+## 4. Scope & Boundaries
+
+### In Scope
+- 88 tactical sectors with faction ownership and control mechanics
+- 3 asymmetric factions (Crimson Dominion, Azure Coalition, Golden Sovereignty)
+- 4 military divisions (Infantry, Mobile, Aviation, Organic)
+- 16 unit types (4 per division, varying costs and stats)
+- Character creation with 4 customizable attributes
+- Squad recruitment, equipment, and composition management
+- Real-time 3D battle system with PoC capture mechanics
+- Clan/alliance system with player cooperation
+- Character progression with XP and skill advancement
+- Multiple time-range faction statistics and leaderboards
+- Responsive design (desktop-primary, mobile-supported)
+
+### Out of Scope
+- Persistent MMO server with true multiplayer real-time battles (Phase 7)
+- PvP ranking system or competitive ladder (Phase 7)
+- Economic trading between players (Phase 7)
+- User accounts and progress persistence across devices (Phase 7)
+- Mobile app native wrapper (web-only in Phase 6)
+- Voice chat or guild communication (Phase 7)
+
+### Key Assumptions
+1. Modern browser with WebGL support (Chrome 90+, Firefox 88+, Safari 14+)
+2. Single-player game mode suitable for Phase 6; multiplayer contingent on backend infrastructure
+3. Players familiar with RTS genre conventions (unit production, tech trees, map control)
+
+---
+
+## 5. Current Status
+
+### Phase
+☑️ Complete / Operational (Phase 6 of 7)
+
+### Progress Summary
+Fractured Universe Phase 6 is **feature-complete with all core gameplay loops implemented and tested**. Character creation, squad management, war map navigation, faction mechanics, real-time 3D battles, clan systems, and notification system are all operational. The game is deployed and playable through Phase 6 scope. Phase 7 (persistent MMO server with true multiplayer) is deferred as a future enhancement requiring backend infrastructure. Current implementation supports single-player campaign mode with all tactical gameplay mechanics.
+
+### Key Achievements
+- ✅ 88-sector war map with faction control and diplomacy
+- ✅ Character creation and progression system (4 attributes)
+- ✅ 16 unit types across 4 military divisions
+- ✅ Squad recruitment, equipment, and composition management
+- ✅ Real-time 3D battle system with PoC capture mechanics
+- ✅ Clan/alliance system for player cooperation
+- ✅ Faction asymmetry (HP, Damage, Resource bonuses)
+- ✅ Notification system for events and alerts
+- ✅ CRT overlay aesthetic with scanline effects
+- ✅ Responsive UI with all game screens operational
+
+### Open Items
+- Persistent MMO server infrastructure (Phase 7)
+- PvP ranking system and competitive ladder (Phase 7)
+- Player account system and cross-device persistence (Phase 7)
+- Economic player-to-player trading (Phase 7)
+- Voice chat and guild communication (Phase 7)
+
+---
+
+## 6. Path Forward
+
+### Near-Term Priorities
+
+| Priority | Target Timeframe |
+|----------|------------------|
+| Gather player feedback on balance and UI usability | Q1 2026 |
+| Monitor performance on various hardware (mobile, laptop, desktop) | Ongoing |
+| Document campaign progression and faction advantages | February 2026 |
+
+### Success Criteria
+- ✅ All 88 sectors rendering on war map
+- ✅ Character progression tracking XP correctly
+- ✅ Real-time battles resolving PoC mechanics accurately
+- ✅ Squad composition affecting battle outcomes
+- ✅ Clan system enabling player cooperation
+
+### Risks & Considerations
+
+| Risk | Impact | Notes |
+|------|--------|-------|
+| Performance on lower-end hardware | Medium | 3D rendering can be demanding. Mitigation: graphics settings, resolution scaling, optimization continues. |
+| Single-player limitations | Low | Phase 7 multiplayer planned. Current scope is appropriate for campaign mode. |
+| Game balance between factions | Medium | Asymmetric bonuses require tuning. Mitigation: playtesting, stat adjustments, community feedback. |
+
+---
+
+## 7. Resources & Context
+
+### Key Resources
+- React 18.2, Three.js 0.158, React Three Fiber 8.13
+- Vite build tool for development and production bundling
+- CSS3 with custom properties for theming and animations
+- Game design philosophy: real-time tactics + strategic squad composition
+
+### Dependencies
+- Modern JavaScript browser with WebGL support
+- Node.js 16+ and npm (for development)
+- Internet connectivity (for CDN resources)
+
+### Related Work / References
+- Shattered Galaxy (2001 original MMORTS inspiration)
+- StarCraft real-time strategy mechanics (squad composition, asymmetric races)
+- Three.js documentation for 3D rendering
+- React patterns for game state management
+
+---
+
+*Revision History:*
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.0 | 2026-01-30 | Cole Prather | Converted to 2-page template format; Phase 6 feature-complete |
+| 1.0 | 2026-01-28 | Cole Prather | Phase 6 all systems operational |
+
+---
 
 ### High-Level Architecture
 

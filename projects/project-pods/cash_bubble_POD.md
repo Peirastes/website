@@ -1,28 +1,75 @@
-# Project Overview Document (POD): The Cash Bubble Hypothesis
+# Project Overview Document (POD)
 
-> *"The ubiquity of cash flow language without the physics."*
-> — The Cash Bubble Hypothesis Introduction
-
----
-
-**Project:** The Cash Bubble Hypothesis: A Physical Theory of Personal Finance
-**Owner:** Cole Prather
-**Last Updated:** 2026-01-27
-**Status:** Active (Advanced Draft Stage)
+**Project Title:** The Cash Bubble Hypothesis: A Physical Theory of Personal Finance
+**Date:** January 30, 2026 | **Version:** 1.0
+**Lead:** Cole Prather
 
 ---
 
-## 1. What This Project Is
+## 1. Purpose
 
-The Cash Bubble Hypothesis is an ambitious interdisciplinary research project that applies rigorous mathematical frameworks from fluid mechanics, thermodynamics, and control theory to personal finance. Rather than treating these as metaphors, the project develops a complete mathematical model in which personal financial accounts literally behave as interconnected fluid reservoirs governed by conservation laws, and volatile investments function as compressible gas bubbles suspended within the financial liquid.
+### What is this project?
+An ambitious interdisciplinary research project developing a complete mathematical theory of personal finance based on fluid mechanics, thermodynamics, and control theory. The framework models personal financial accounts as interconnected fluid reservoirs governed by conservation of mass (money), treats volatile investments as compressible gas bubbles suspended in the financial liquid, and applies signal dynamics (velocity, acceleration, jerk) as diagnostic indicators of financial stability. The working paper (~46,000 words) combines five intellectual domains into a coherent, falsifiable model suitable for academic publication.
 
-The central insight emerged from an unexpected source: classical fluid dynamics problems (tank drainage, interconnected reservoirs) exhibit mathematically identical structure to personal financial tracking systems. This observation, combined with the linguistic saturation of finance with fluid metaphors (cash "flow," liquid "assets," financial "liquidity"), prompted a deeper question: What if these metaphors were not merely poetic but physically exact?
+### Why does it matter?
+Personal finance education typically relies on heuristic rules and accounting conventions. The Cash Bubble Hypothesis provides theoretical foundations grounded in physics, enabling rigorous stability analysis, early-warning signal design, and understanding of implicit control mechanisms in financial decision-making. The framework bridges a gap between macro-scale MONIAC analog computers (1950s) and personal-scale financial management—no previous work has applied this rigorous mathematical approach to individual finances.
 
-The framework is presented as a working paper suitable for academic publication, with full mathematical rigor in the main text and deeper derivations in appendices. The project combines five intellectual domains—fluid mechanics, thermodynamics, control theory, discrete dynamical systems, and personal finance—into a coherent, falsifiable model. Rather than claiming to predict market behavior, the work aims to establish theoretical foundations for understanding financial dynamics as a physical process, with implications for early-warning indicators, stability analysis, and implicit control mechanisms embedded in financial decision-making.
+### What is the driving question?
+Can personal financial dynamics be modeled with the same mathematical rigor as physical systems, revealing stability structures, signal patterns, and control mechanisms that remain hidden in conventional financial accounting?
 
 ---
 
-## 2. Main Objectives
+## 2. Objectives & Goals
+
+### Primary Objective
+Produce a publication-ready working paper developing a complete mathematical theory of personal finance using fluid mechanics, thermodynamics, and control theory, with falsifiable predictions, simulated validation, and educational implications.
+
+### Supporting Goals
+1. **Develop state-space formulation** with conservation of mass, multi-tank topology, and transfer matrices for account structure
+2. **Formalize signal dynamics** (velocity=net flow, acceleration=flow rate change, jerk=trend inflection) as diagnostic tools
+3. **Establish cash bubble hypothesis** with full thermodynamic work-energy framework (W=∫PdV, adiabatic/isothermal processes)
+4. **Connect to control theory** with PID control interpretation and stability analysis via eigenvalues
+5. **Generate simulated validation** with Monte Carlo scenarios (income shocks, market crashes, gradual recovery)
+6. **Create publication-quality figures** (tank schematics, P-V diagrams, signal plots, phase diagrams)
+7. **Identify peer-review venues** and prepare submission-ready manuscript
+
+---
+
+## 3. Value & Novelty
+
+| Dimension | Description |
+|-----------|-------------|
+| **Novelty** | First rigorous mathematical application of fluid mechanics and thermodynamics to personal finance. Cash bubble hypothesis as compressible gas analogue for volatility. Signal dynamics (velocity, acceleration, jerk) as early-warning indicators. |
+| **Utility** | Enables rigorous stability analysis of personal finances. Identifies signal patterns predictive of financial distress. Provides theoretical foundation for financial planning. Applicable to household budgeting, business cash flow, and economic policy. |
+| **Gap Addressed** | Personal finance education lacks theoretical foundations. MONIAC computers (macro) were never scaled to personal level. Conventional accounting lacks signal dynamics framework. Cash Bubble Hypothesis fills this gap with physics-based rigor. |
+
+---
+
+## 4. Scope & Boundaries
+
+### In Scope
+- State-space formulation with conservation laws and transfer matrices
+- Multi-account topology with input/output vectors
+- Signal dynamics (velocity, acceleration, jerk) fully operationalized
+- Cash bubble thermodynamic development (work-energy, adiabatic/isothermal)
+- Stability analysis via eigenvalue decomposition
+- Simulated validation with Monte Carlo scenarios
+- Publication-quality figures and visualizations
+- Complete mathematical appendices with rigorous derivations
+- Target venues identified (Journal of Economic Dynamics and Control, Physica A, PLOS ONE)
+
+### Out of Scope
+- Prediction of market timing or asset selection (theory-only, no forecasting claims)
+- Encrypted data storage or financial API integration (standalone mathematical framework)
+- Software implementation or web app deployment (academic paper focus)
+- Behavioral finance extensions (classical mechanics only)
+- Policy recommendations (implications section only, not prescriptive)
+
+### Key Assumptions
+1. Readers have background in mathematics (differential equations, linear algebra, thermodynamics)
+2. Target audience: physics, engineering, applied mathematics, economics researchers
+3. Personal finance data used is simulated/hypothetical (no real financial data disclosed)
+4. Framework applies to deterministic dynamics; stochastic extensions deferred
 
 | Objective | Success Looks Like | Status |
 |-----------|-------------------|--------|
@@ -33,6 +80,91 @@ The framework is presented as a working paper suitable for academic publication,
 | Generate simulated validation datasets demonstrating framework across realistic scenarios | Synthetic data architecture designed; Monte Carlo methodology documented; examples partially implemented | In Progress (40%) |
 | Produce publication-quality working paper with accessible rigor and complete mathematical appendices | v0.4 of main paper complete (45,000+ words); detailed outline and section structure finalized | In Progress (70%) |
 | Identify peer-review venue and prepare submission-ready format | Target venues identified; format adaptable; peer review step pending | Planning (0%) |
+
+---
+
+## 5. Current Status
+
+### Phase
+⚠️ Advanced Draft Stage (70% toward publication-ready)
+
+### Progress Summary
+The Cash Bubble Hypothesis is in **advanced draft stage** with core theoretical framework solidified. The working paper (v0.4, ~46,000 words) is complete with Sections I–III substantially developed. Signal dynamics section (IV) is finalized. Implementation/validation section (V) drafted. Mathematical appendices are comprehensive. Main gaps are full thermodynamic development of the cash bubble model (Section III incomplete), comprehensive simulated validation examples, and publication-quality figures. Current trajectory suggests submission-ready manuscript achievable by Q2 2026.
+
+### Key Achievements
+- ✅ State-space formulation with conservation laws fully developed
+- ✅ Signal dynamics (velocity, acceleration, jerk) fully operationalized
+- ✅ Stability analysis framework with eigenvalue criterion
+- ✅ Comprehensive mathematical appendices with rigorous derivations
+- ✅ Publication outline and section targets established
+- ✅ Working paper v0.4 completed (~46,000 words)
+- ✅ Target peer-review venues identified
+- ✅ Conceptual clarity of central analogy (cash incompressible, investments compressible)
+
+### Open Items
+- Thermodynamic development of cash bubble hypothesis (W=∫PdV framework incomplete)
+- Comprehensive simulated validation scenarios (3-5 detailed examples needed)
+- Publication-quality figures (6 planned: tank schematics, P-V diagrams, signal plots, phase diagrams, validation metrics)
+- Control theory mapping formalization (PID control interpretation needs rigorous derivation)
+- Peer-review submission (targets identified but not approached yet)
+
+---
+
+## 6. Path Forward
+
+### Near-Term Priorities
+
+| Priority | Target Timeframe |
+|----------|------------------|
+| Complete thermodynamic cash bubble development | February 2026 |
+| Generate 3-5 comprehensive simulated validation scenarios | February 2026 |
+| Create 6 publication-quality figures | March 2026 |
+| Finalize manuscript and prepare for peer review | March 2026 |
+
+### Success Criteria
+- ✅ Complete thermodynamic framework for cash bubble (Section III)
+- ✅ Simulated validation demonstrating framework across realistic scenarios
+- ✅ Publication-quality figures with consistent style
+- ✅ Manuscript ready for submission to peer-reviewed venue
+
+### Risks & Considerations
+
+| Risk | Impact | Notes |
+|------|--------|-------|
+| Thermodynamic analogy stretching | Medium | W=∫PdV mapping to finance must be rigorous. Mitigation: careful derivation, clarity on limitations, peer feedback. |
+| Simulated data realism | Medium | Synthetic scenarios must be believable. Mitigation: reference real financial patterns, stress-test against historical crises. |
+| Peer review skepticism | Medium | Interdisciplinary work may face resistance from finance or physics reviewers. Mitigation: clear scope, acknowledge limitations, emphasize theoretical contribution. |
+
+---
+
+## 7. Resources & Context
+
+### Key Resources
+- Mathematical foundation: Fluid mechanics, thermodynamics, control theory, linear algebra
+- Writing: LaTeX for academic paper, supporting Python/NumPy for figures and validation
+- References: Classical thermodynamics texts, control theory, fluid mechanics, personal finance literature
+- Computational tools: Python for data generation and visualization (matplotlib)
+
+### Dependencies
+- Academic writing tools (LaTeX, reference management)
+- Python 3.8+ with NumPy, Pandas for simulated data generation
+- Graphics software (Python matplotlib or equivalent) for publication figures
+
+### Related Work / References
+- Serway & Jewett, *Physics for Scientists and Engineers* (fluid mechanics foundation)
+- Strogatz, *Nonlinear Dynamics and Chaos* (control theory, stability analysis)
+- MONIAC Computer (1950s analog financial computer—historical precedent)
+- Journal of Economic Dynamics and Control (target venue)
+- Personal finance literature (reference for realistic scenarios)
+
+---
+
+*Revision History:*
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.0 | 2026-01-30 | Cole Prather | Converted to 2-page template format; 70% toward publication-ready |
+| 0.4 | 2026-01-27 | Cole Prather | Working paper v0.4 complete; advanced draft stage |
 
 ---
 

@@ -1,17 +1,163 @@
-# Eisenhower Task Manager - Project Overview Document (POD)
+# Project Overview Document (POD)
 
-**Last Updated:** January 27, 2026
-**Current Version:** 2.0.2
-**Status:** ✅ Production Ready
-**License:** MIT
+**Project Title:** Eisenhower Task Manager
+**Date:** January 30, 2026 | **Version:** 2.0.2
+**Lead:** Cole Prather
 
 ---
 
-## 🎯 Executive Summary
+## 1. Purpose
 
-The **Eisenhower Task Manager** is a fully-featured productivity application implementing the Eisenhower Decision Matrix (Urgent/Important framework). It provides an intuitive interface for task planning, tracking, and analysis with powerful visualization and scoring capabilities.
+### What is this project?
+A web-based productivity application implementing the Eisenhower Decision Matrix—a 2×2 prioritization framework dividing tasks into four quadrants: Do First (Urgent+Important), Schedule (Not Urgent+Important), Delegate (Urgent+Not Important), and Eliminate (Not Urgent+Not Important). Users create tasks, assign urgency and importance, and use multiple visualization modes (matrix, list, Gantt timeline) to manage workload strategically.
 
-**Current State:** Fully functional, feature-complete v2 application running on React 18 + Vite with local file-based or localStorage persistence.
+### Why does it matter?
+Task management without prioritization leads to reactive firefighting rather than strategic work. The Eisenhower framework helps users distinguish between urgent-but-trivial tasks and important-but-not-yet-urgent strategic work. By visualizing all tasks across these quadrants simultaneously, users make intentional prioritization decisions and achieve better work-life balance. The Gantt timeline tracks task history, enabling learning about estimation accuracy (Planning/Execution Score).
+
+### What is the driving question?
+How can interactive visualization of the Eisenhower Matrix transform reactive task management into strategic prioritization with data-driven insights about execution accuracy?
+
+---
+
+## 2. Objectives & Goals
+
+### Primary Objective
+Deliver a production-ready task management application implementing the Eisenhower Decision Matrix with multiple visualization modes, recurrence patterns, analytics scoring, and persistent storage for personal and team productivity workflows.
+
+### Supporting Goals
+1. **Implement 4-quadrant matrix view** with color-coded task cards and drag-and-drop prioritization
+2. **Support task recurrence** (Once, Daily, Weekly, Monthly, Yearly) for routine and cyclical work
+3. **Develop Gantt timeline visualization** with zoom controls and historical view toggle
+4. **Create Planning/Execution Score** measuring estimation accuracy (due date vs. completion date)
+5. **Add persistent storage** with both localStorage and file-based modes for single-device and cloud-sync scenarios
+6. **Provide filtering, sorting, and search** across multiple task attributes (quadrant, category, recurrence, status)
+7. **Support task completion ratings** (quality 1-5, ease 1-5) for retrospective learning
+
+---
+
+## 3. Value & Novelty
+
+| Dimension | Description |
+|-----------|-------------|
+| **Novelty** | Combines Eisenhower Matrix with Gantt timeline visualization and Planning/Execution Score—enabling users to see both current prioritization and historical accuracy trends simultaneously. The score metric measures estimation skill development over time. |
+| **Utility** | Provides three complementary views (Matrix for strategy, List for rapid task entry, Gantt for timeline planning). Session-based PIN protection enables casual access control without cryptographic overhead. Cloud-friendly via cloud storage folder integration. |
+| **Gap Addressed** | Most prioritization apps focus on list/kanban views; Eisenhower frameworks are underutilized in commercial tools. Timeline analytics (estimation accuracy) are rare in productivity apps but valuable for personal development. |
+
+---
+
+## 4. Scope & Boundaries
+
+### In Scope
+- 4-quadrant Eisenhower Matrix with color-coded cards
+- List view with sorting, filtering, search
+- Gantt chart with zoom controls (daily to yearly) and history toggle
+- Task recurrence (5 patterns) with independent instance tracking
+- Planning/Execution Score with visual progress bars
+- Quality and Ease ratings on task completion
+- localStorage and file-based persistence modes
+- Export/Import JSON for backup and data portability
+- PIN protection (session-based, courtesy-level security)
+- Responsive design (desktop-primary, mobile-supported)
+
+### Out of Scope
+- Multi-user collaboration or team sharing (single-user focus)
+- Cloud sync with conflict resolution (manual file-sharing recommended)
+- Calendar integration (Google Calendar, Outlook) in v2.x
+- Mobile app native wrapper (web-only in v2.x)
+- AI-powered task suggestions or auto-categorization
+- Time tracking or focus timer integration
+
+### Key Assumptions
+1. Users have basic familiarity with the Eisenhower Decision Matrix concept
+2. Single-device or manual cloud-folder sync is acceptable (no built-in multi-device sync)
+3. Tasks are manageable in JSON format (scalable to ~500 tasks without performance issues)
+4. Users accept file-based persistence (no database backend required)
+
+---
+
+## 5. Current Status
+
+### Phase
+☑️ Complete / Operational
+
+### Progress Summary
+Eisenhower Task Manager v2.0.2 is **production-ready and deployed**. All core functionality is implemented: Matrix, List, and Gantt views; task recurrence; Planning/Execution Score; and persistent storage (both localStorage and file-based modes). The application is live at https://www.peirastes.com/projects/eisenhower-task-manager.html. Recent enhancements (January 2026) added Gantt history toggle and refined timeline controls. The application is stable with mature feature set and no blocking issues.
+
+### Key Achievements
+- ✅ All 4-quadrant matrix visualization with color-coded cards
+- ✅ List view with comprehensive filtering and sorting
+- ✅ Gantt chart with zoom controls (5 levels) and history toggle
+- ✅ Planning/Execution Score tracking estimation accuracy
+- ✅ Task recurrence patterns (5 types) fully implemented
+- ✅ Dual persistence modes (localStorage and file-based)
+- ✅ PIN protection with session-based access control
+- ✅ Export/Import JSON functionality for data portability
+- ✅ Live deployment to production website
+- ✅ Quality and Ease ratings on task completion
+
+### Open Items
+- Recurrence automation (auto-create next occurrence) deferred to v2.1
+- Dark mode theme pending user feedback
+- Mobile app wrapper (Electron/Capacitor) deferred to v3.0
+- Keyboard shortcuts and vi keybindings under consideration
+
+---
+
+## 6. Path Forward
+
+### Near-Term Priorities
+
+| Priority | Target Timeframe |
+|----------|------------------|
+| Collect user feedback on Matrix/List/Gantt usability | Q1 2026 |
+| Monitor Planning/Execution Score utility and refinement | Ongoing |
+| Document workflow best practices for Eisenhower methodology | February 2026 |
+
+### Success Criteria
+- ✅ All three views (Matrix, List, Gantt) fully functional
+- ✅ Data persists correctly across browser sessions
+- ✅ Planning/Execution Score accurately measures estimation accuracy
+- ✅ No data loss from export/import cycle
+- ✅ Performance stable with 100+ tasks
+
+### Risks & Considerations
+
+| Risk | Impact | Notes |
+|------|--------|-------|
+| Single-user limitation concerns | Low | Clearly documented scope; v3.0 will address multi-user needs. |
+| localStorage quota exceeded | Low | File-based mode recommended for >500 tasks; current limit ~50MB per browser. |
+| Task categorization complexity | Medium | Flexible subcategory system mitigates. User education needed for custom organization. |
+
+---
+
+## 7. Resources & Context
+
+### Key Resources
+- React 18, Vite build tool, Tailwind CSS, Lucide Icons
+- localStorage API and Express.js (file-based backend)
+- Eisenhower Decision Matrix methodology (Time Management foundational concept)
+- Zod schema validation library
+
+### Dependencies
+- Modern JavaScript browser (ES2020+)
+- Node.js 16+ (for file-based server mode)
+- npm package manager
+
+### Related Work / References
+- Eisenhower Matrix (Wikipedia article on Time Management)
+- Getting Things Done (David Allen, foundational reference)
+- React 18 documentation and Tailwind CSS styling guide
+- Gantt chart implementations in visualization libraries
+
+---
+
+*Revision History:*
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 2.0.2 | 2026-01-30 | Cole Prather | Updated to 2-page template format with current v2.0.2 status |
+| 2.0.2 | 2026-01-27 | Cole Prather | Gantt history toggle and refined controls |
+| 2.0 | 2026-01-01 | Cole Prather | Initial v2 release with all features |
 
 ---
 

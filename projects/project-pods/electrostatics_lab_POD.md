@@ -1,13 +1,154 @@
-# Electrostatics Lab — Project Overview Document (POD)
+# Project Overview Document (POD)
 
-**Date Created:** January 29, 2026
-**Last Updated:** January 30, 2026 (Field Line Visualization Enhanced)
-**Status:** ✅ Production-Ready & Deployed (Core Objectives Complete + Visualization Enhancements)
-**Project Repository:** `electrostatics-lab-v3/electrostatics-lab/`
-**Technology Stack:** React 18 + Three.js + TypeScript + Vite
-**License:** MIT (Free for educational use)
+**Project Title:** Electrostatics Lab
+**Date:** January 30, 2026 | **Version:** 2.0
+**Lead:** Cole Prather
 
 ---
+
+## 1. Purpose
+
+### What is this project?
+An interactive 3D web-based visualization application for exploring electric fields and potentials from diverse charge configurations. Students manipulate charge magnitudes, positions, and geometries while observing real-time field lines, equipotential surfaces, vector fields, and 2D cross-sections. The application bridges the gap between mathematical formulas (E = kQ/r²) and physical intuition through interactive visualization.
+
+### Why does it matter?
+Physics education typically relies on textbook diagrams and hand sketches of electric fields—static, 2D representations of inherently 3D phenomena. Electrostatics Lab transforms abstract mathematics into tangible, explorable visualizations. Students develop spatial intuition about symmetry, superposition, field line density, and the E = −∇V relationship. The pedagogical impact: students retain concepts better when they can see and experiment with them interactively.
+
+### What is the driving question?
+How can interactive 3D visualization transform electrostatics education from formula memorization to conceptual mastery through hands-on exploration?
+
+---
+
+## 2. Objectives & Goals
+
+### Primary Objective
+Deliver a production-ready interactive 3D physics visualization tool suitable for classroom use and student self-study, with physics-accurate calculations, multiple visualization modes, and intuitive controls.
+
+### Supporting Goals
+1. **Implement 11 diverse charge configurations** spanning point charges, extended objects (rods, disks, rings), and plates to cover syllabus fundamentals
+2. **Validate physics calculations** against analytical formulas (Coulomb's law, on-axis formulas, far-field behavior) with <2% error tolerance
+3. **Develop multiple visualization modes** (vector glyphs, field lines with RK4 integration, marching cubes equipotentials, camera-aligned slice view) for different learning modalities
+4. **Optimize for classroom deployment** with teacher presets, responsive design, and accessible documentation
+5. **Achieve performance targets** (≥30 FPS on typical laptops) for smooth real-time interactivity
+
+---
+
+## 3. Value & Novelty
+
+| Dimension | Description |
+|-----------|-------------|
+| **Novelty** | Camera-aligned slice view—a live 2D heat map that rotates with the viewer's perspective. Solves the "muddy 3D surfaces" problem with a novel visualization approach not found in competing tools. |
+| **Utility** | Enables visualization of 11 charge configurations with multiple simultaneous representations (vectors, field lines, equipotentials, slices). Supports exploration-based learning where students ask "what if?" questions. |
+| **Gap Addressed** | Existing physics simulations (PhET, VPython demos) lack the interactive 3D visualization depth and pedagogical scaffolding of Electrostatics Lab. Teachers have limited resources for teaching spatial field concepts. |
+
+---
+
+## 4. Scope & Boundaries
+
+### In Scope
+- All 11 charge configurations (6 point charge, 3 extended object, 2 plate)
+- Real-time vector field, field line, equipotential, and slice visualizations
+- Full parameter controls (magnitude, separation, dimensions)
+- Physics validation against analytical benchmarks
+- Teacher preset system
+- Responsive design (desktop/tablet; mobile suboptimal)
+- Complete documentation (README, VALIDATION.md, pedagogical guide)
+
+### Out of Scope
+- Magnetic fields or Lorentz force visualization (Phase 3)
+- Time-varying fields or electromagnetic radiation (Phase 4)
+- LMS integration (Canvas, Blackboard, Moodle) or WebXR/VR support (Phase 4)
+- Export/animation features (Phase 1 future enhancement)
+- Mobile-optimized touch interactions (Phase 1 future enhancement)
+
+### Key Assumptions
+1. Teachers and students have access to desktop/laptop with modern browsers (Chrome 90+, Firefox 88+, Safari 14+)
+2. Students have basic calculus (∇, ·, ×) and vector algebra
+3. Learning occurs through iterative exploration and parameter manipulation
+
+---
+
+## 5. Current Status
+
+### Phase
+☑️ Complete / Operational
+
+### Progress Summary
+Electrostatics Lab is **production-ready and deployed**. All core development objectives are complete (11 charge configurations implemented, physics validated, all visualization modes operational). The application is live at https://www.peirastes.com/projects/electrostatics-lab.html and actively used in educational settings. Recent deployment fixes (Leva dropdown handling, field line seeding with spherical coordinates) resolved critical UI and visualization issues. The project is stable with no known blocking issues.
+
+### Key Achievements
+- ✅ All 11 charge configurations fully implemented and tested
+- ✅ Physics calculations validated against analytical benchmarks (10/10 tests passing)
+- ✅ 4 visualization modes + innovative camera-aligned slice feature operational
+- ✅ Performance optimization complete (35-60 FPS across all configurations)
+- ✅ Teacher preset system in place with pedagogical annotations
+- ✅ Comprehensive documentation suite (README, VALIDATION.md, pedagogical overview)
+- ✅ Live deployment to production website (January 30, 2026)
+- ✅ Critical Leva dropdown bug fixed; all 11 cases now selectable
+- ✅ Field line visualization enhanced with spherical coordinate seeding
+
+### Open Items
+- Mobile optimization pending (touch controls, responsive layout refinements)
+- Export/animation features deferred to Phase 1 enhancement
+- Magnetic field visualization contingent on Phase 3 approval
+
+---
+
+## 6. Path Forward
+
+### Near-Term Priorities
+
+| Priority | Target Timeframe |
+|----------|------------------|
+| Monitor production deployment; collect educator feedback | Ongoing (Q1 2026) |
+| Document pedagogical outcomes (student comprehension surveys) | March 2026 |
+| Phase 1 enhancement: Export and animation features | Q2 2026 |
+
+### Success Criteria
+- ✅ All 11 charge configurations functioning on live deployment
+- ✅ Physics calculations accurate (<2% error vs. analytical formulas)
+- ✅ Performance stable (≥30 FPS on reference hardware)
+- ✅ Documentation complete and accessible
+- ✅ Educator feedback positive (qualitative assessment)
+
+### Risks & Considerations
+
+| Risk | Impact | Notes |
+|------|--------|-------|
+| Browser compatibility issues | High | Older browsers may lack WebGL support. Mitigation: published browser requirements; user education. |
+| Mobile performance degradation | Medium | 3D rendering on mobile slower. Mitigation: performance presets; note in documentation. |
+| Teacher adoption lag | Medium | Educators unfamiliar with interactive tools. Mitigation: classroom demo materials, quick-start guide. |
+
+---
+
+## 7. Resources & Context
+
+### Key Resources
+- React 18, Three.js, TypeScript, Vite (technology stack)
+- Leva UI library (parameter controls)
+- Physics models: Coulomb's law, RK4 field line integration, marching cubes isosurfaces
+- Educational partner: PSEII course at institution
+
+### Dependencies
+- Modern web browsers with WebGL and ES2020 support
+- HTTPS deployment (required for security policy)
+- External documentation (Serway & Jewett physics text as reference)
+
+### Related Work / References
+- PhET Interactive Simulations (electrostatics module)
+- VPython educational demonstrations
+- Griffiths, *Introduction to Electrodynamics* (theoretical foundation)
+- Three.js documentation and React Three Fiber tutorials
+
+---
+
+*Revision History:*
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 2.0 | 2026-01-30 | Cole Prather | Reformatted to 2-page template; added current deployment status |
+| 1.1 | 2026-01-30 | Cole Prather | Updated with deployment status and Leva bug fix |
+| 1.0 | 2026-01-29 | Cole Prather | Initial comprehensive POD |
 
 ## Section 1: Executive Summary
 
