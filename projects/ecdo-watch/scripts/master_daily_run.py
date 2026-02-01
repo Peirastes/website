@@ -70,19 +70,19 @@ def run_command(name, script_path, timeout_seconds=600):
         )
 
         if result.returncode == 0:
-            logger.info(f"✓ {name} completed successfully")
+            logger.info(f"[OK] {name} completed successfully")
             return True
         else:
-            logger.warning(f"⚠ {name} exited with code {result.returncode}")
+            logger.warning(f"[WARN] {name} exited with code {result.returncode}")
             if result.stderr:
                 logger.warning(f"  Error: {result.stderr[:200]}")
             return False
 
     except subprocess.TimeoutExpired:
-        logger.error(f"✗ {name} timed out after {timeout_seconds}s")
+        logger.error(f"[ERROR] {name} timed out after {timeout_seconds}s")
         return False
     except Exception as e:
-        logger.error(f"✗ {name} failed: {str(e)}")
+        logger.error(f"[ERROR] {name} failed: {str(e)}")
         return False
 
 def check_data_freshness():
@@ -108,9 +108,9 @@ def check_data_freshness():
         age_hours = (now - datetime.fromtimestamp(filepath.stat().st_mtime, tz=timezone.utc)).total_seconds() / 3600
 
         if age_hours < max_age_hours:
-            logger.info(f"  ✓ {filepath.name} is {age_hours:.1f}h old")
+            logger.info(f"  [OK] {filepath.name} is {age_hours:.1f}h old")
         else:
-            logger.warning(f"  ⚠ {filepath.name} is {age_hours:.1f}h old (threshold: {max_age_hours}h)")
+            logger.warning(f"  [WARN] {filepath.name} is {age_hours:.1f}h old (threshold: {max_age_hours}h)")
             all_fresh = False
 
     return all_fresh
@@ -162,7 +162,7 @@ def run_master_cycle(skip_validation=False):
     results['steps']['data_generation'] = step1_success
 
     if not step1_success:
-        logger.error("✗ Data generation failed - aborting")
+        logger.error("[ERROR] Data generation failed - aborting")
         results['summary']['status'] = 'FAILED'
         return results
 
@@ -173,7 +173,7 @@ def run_master_cycle(skip_validation=False):
     results['steps']['data_freshness'] = freshness_ok
 
     if not freshness_ok:
-        logger.warning("⚠ Some data files are stale or missing")
+        logger.warning("[WARN] Some data files are stale or missing")
 
     # Step 3: Optional - Validation Study Analysis (Phase 2+)
     if not skip_validation:
@@ -201,8 +201,8 @@ def run_master_cycle(skip_validation=False):
     overall_success = step1_success and freshness_ok
     results['summary']['status'] = 'SUCCESS' if overall_success else 'PARTIAL'
     results['summary']['message'] = (
-        '✓ All systems nominal' if overall_success
-        else '⚠ Completed with warnings - check logs'
+        '[OK] All systems nominal' if overall_success
+        else '[WARN] Completed with warnings - check logs'
     )
 
     logger.info(f"Status: {results['summary']['message']}")
