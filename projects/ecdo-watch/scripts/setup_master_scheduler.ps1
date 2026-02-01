@@ -59,7 +59,7 @@ $Task = Register-ScheduledTask `
     -Force
 
 Write-Host ""
-Write-Host "✓ Task created successfully!" -ForegroundColor Green
+Write-Host "SUCCESS! Task created." -ForegroundColor Green
 Write-Host ""
 Write-Host "Task Details:" -ForegroundColor Cyan
 Write-Host "  Name: $TaskName"
@@ -67,12 +67,12 @@ Write-Host "  Schedule: Daily at 06:00 UTC"
 Write-Host "  Command: python.exe $MasterScript"
 Write-Host "  Working Dir: $ScriptDir"
 Write-Host ""
-Write-Host "Run manually to test:" -ForegroundColor Cyan
-Write-Host "  python $MasterScript" -ForegroundColor White
+Write-Host "Test it manually:" -ForegroundColor Cyan
+Write-Host "  python $MasterScript"
 Write-Host ""
 Write-Host "View task status:" -ForegroundColor Cyan
-Write-Host "  Get-ScheduledTask -TaskName '$TaskName' | Select State, LastRunTime" -ForegroundColor White
+Write-Host "  Get-ScheduledTask -TaskName `'$TaskName`'"
 Write-Host ""
-Write-Host "View detailed logs:" -ForegroundColor Cyan
-Write-Host "  Get-ChildItem $ProjectRoot\logs | Sort LastWriteTime -Desc | Select -First 5" -ForegroundColor White
+Write-Host "View logs:" -ForegroundColor Cyan
+Write-Host "  Get-ChildItem -Path $ProjectRoot\logs -Filter master_daily_*.log | Sort-Object LastWriteTime -Descending | Select-Object -First 1"
 Write-Host ""
