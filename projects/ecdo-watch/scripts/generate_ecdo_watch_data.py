@@ -149,6 +149,59 @@ def add_metadata(json_obj: Dict[str, Any], source: str, data_age_hours: float = 
     json_obj["metadata"]["source_status"] = source_status
     return json_obj
 
+def load_mag_history(cache_dir: Path) -> pd.DataFrame:
+    """Load accumulated magnetometer history from cache."""
+    history_file = cache_dir / "mag_history.csv"
+    if history_file.exists():
+        try:
+            df = pd.read_csv(history_file, parse_dates=["date"])
+            df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+            print(f"    Loaded {len(df)} days of magnetometer history")
+            return df
+        except Exception as e:
+            print(f"    Warning: Could not load mag history: {e}")
+    return pd.DataFrame(columns=["date", "BOU", "FRD", "BRW", "HON"])
+
+def save_mag_history(cache_dir: Path, history_df: pd.DataFrame) -> None:
+    """Save accumulated magnetometer history to cache."""
+    history_file = cache_dir / "mag_history.csv"
+    # Ensure date column is datetime and sort
+    history_df = history_df.copy()
+    history_df["date"] = pd.to_datetime(history_df["date"])
+    history_df = history_df.sort_values("date").drop_duplicates(subset=["date"], keep="last")
+    history_df.to_csv(history_file, index=False, date_format="%Y-%m-%d")
+    print(f"    Saved {len(history_df)} days of magnetometer history")
+
+def merge_mag_history(existing: pd.DataFrame, new_data: Dict[str, List], date_range: List[str]) -> pd.DataFrame:
+    """Merge newly fetched magnetometer data with existing history."""
+    # Create DataFrame from new data
+    new_df = pd.DataFrame({"date": pd.to_datetime(date_range)})
+    for station in ["BOU", "FRD", "BRW", "HON"]:
+        if station in new_data and len(new_data[station]) == len(date_range):
+            new_df[station] = new_data[station]
+        else:
+            new_df[station] = None
+
+    if existing.empty:
+        return new_df
+
+    # Combine: prefer new data for overlapping dates
+    existing["date"] = pd.to_datetime(existing["date"])
+    combined = pd.concat([existing, new_df], ignore_index=True)
+    combined = combined.sort_values("date")
+
+    # For duplicate dates, keep the last (newer) value if it's not null
+    result_rows = []
+    for date, group in combined.groupby("date"):
+        row = {"date": date}
+        for station in ["BOU", "FRD", "BRW", "HON"]:
+            # Take the last non-null value for each station
+            values = group[station].dropna()
+            row[station] = values.iloc[-1] if len(values) > 0 else None
+        result_rows.append(row)
+
+    return pd.DataFrame(result_rows)
+
 def calculate_quiet_days(kp_data: pd.DataFrame, dst_data: Optional[pd.DataFrame] = None) -> Dict[str, List[bool]]:
     """
     Calculate quiet-day flags based on Kp and Dst thresholds.
@@ -518,19 +571,35 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
                 }
                 results[f"lod_{range_name}"] = lod_data_json
 
-        # Magnetometer data - slice from main mag_json if available
-        if mag_json and "labels" in mag_json:
-            labels = mag_json["labels"]
-            # Slice to requested range (most recent N days)
-            cutoff_idx = max(0, len(labels) - days)
-            mag_range_json = {
-                "labels": labels[cutoff_idx:],
-                "bou": mag_json.get("bou", [])[cutoff_idx:],
-                "hon": mag_json.get("hon", [])[cutoff_idx:],
-                "sjg": mag_json.get("sjg", [])[cutoff_idx:],
-                "composite": mag_json.get("composite", [])[cutoff_idx:]
-            }
-            results[f"mag_{range_name}"] = mag_range_json
+        # Magnetometer data - use full history with date-based filtering
+        if mag_data_by_station and "_labels" in mag_data_by_station:
+            labels = mag_data_by_station["_labels"]
+            cutoff_str = cutoff.strftime("%Y-%m-%d")
+
+            # Find indices within the date range
+            indices = [i for i, lbl in enumerate(labels) if lbl >= cutoff_str]
+
+            if indices:
+                start_idx = indices[0]
+                mag_range_json = {
+                    "labels": labels[start_idx:],
+                    "bou": mag_data_by_station.get("BOU", [])[start_idx:],
+                    "hon": mag_data_by_station.get("HON", [])[start_idx:],
+                    "sjg": mag_data_by_station.get("BRW", [])[start_idx:],
+                }
+                # Compute composite for this range
+                composite = []
+                for i in range(len(mag_range_json["labels"])):
+                    z_scores = []
+                    for key in ["bou", "hon", "sjg"]:
+                        if i < len(mag_range_json.get(key, [])):
+                            z_scores.append(mag_range_json[key][i])
+                    if z_scores:
+                        composite.append(sum(z_scores) / len(z_scores))
+                    else:
+                        composite.append(0)
+                mag_range_json["composite"] = composite
+                results[f"mag_{range_name}"] = mag_range_json
 
     return results
 
@@ -685,12 +754,16 @@ def main():
     except Exception as e:
         print(f"    Warning: C20 fetch failed: {e}")
 
-    # 5. Magnetometer data (last 60 days - USGS API limitation)
+    # 5. Magnetometer data (last 60 days fetch + accumulated history)
     print("  Fetching magnetometer data...")
     end_time = now
     start_time = end_time - timedelta(days=60)
 
-    mag_data_by_station = {}
+    # Load existing magnetometer history
+    mag_history = load_mag_history(cache_dir)
+
+    # Dictionary to store newly fetched raw daily means (with dates)
+    new_mag_data = {}  # station -> {date: value}
     mag_station_status = {}  # Track which stations succeeded
     mag_station_sources = {}  # Track which source was used
 
@@ -765,15 +838,17 @@ def main():
             except Exception as e2:
                 print(f"      {station}: INTERMAGNET fallback also failed")
 
-        # Combine all data if we have any
+        # Combine all data and compute daily means with dates
         if all_mag_data:
             combined = pd.concat(all_mag_data, ignore_index=True)
             combined = combined.drop_duplicates(subset=['timestamp']).sort_values('timestamp').reset_index(drop=True)
             daily = combined.set_index("timestamp").resample("D")["value"].mean()
-            mag_data_by_station[station] = daily.fillna(0).tolist()
+            # Store as dict of date -> value (raw means, not cleaned yet)
+            new_mag_data[station] = {str(d.date()): v for d, v in daily.items() if pd.notna(v)}
             print(f"      {station}: Total {len(daily)} days of combined data")
         else:
             print(f"      {station}: No data retrieved from any source")
+            new_mag_data[station] = {}
 
         mag_station_status[station] = station_status
         mag_station_sources[station] = station_source
@@ -783,48 +858,77 @@ def main():
     total_stations = len(MAG_STATIONS)
     print(f"    Magnetometer: {successful_stations}/{total_stations} stations successful")
 
+    # Merge new data with history
+    fetch_date_range = [str(d.date()) for d in pd.date_range(start_time.date(), end_time.date(), freq="D")]
+    new_data_for_merge = {}
+    for station in ["BOU", "FRD", "BRW", "HON"]:
+        station_data = new_mag_data.get(station, {})
+        new_data_for_merge[station] = [station_data.get(d) for d in fetch_date_range]
+
+    mag_history = merge_mag_history(mag_history, new_data_for_merge, fetch_date_range)
+
+    # Save accumulated history
+    save_mag_history(cache_dir, mag_history)
+
+    # Now process the full history for normalization and output
     normalized_mag_data = {}
-    mag_json = None  # Initialize to None in case magnetometer data is unavailable
+    mag_json = None
 
-    if mag_data_by_station:
-        # Normalize magnetometer data: convert to z-scores
-        date_range = [str(d.date()) for d in pd.date_range(start_time.date(), end_time.date(), freq="D")]
+    if not mag_history.empty and len(mag_history) > 0:
+        # Sort history by date
+        mag_history = mag_history.sort_values("date").reset_index(drop=True)
+        full_date_range = [str(d.date()) for d in mag_history["date"]]
 
+        # Normalize using full history (z-scores computed over entire dataset)
         normalized_data = {}
-        for station, values in mag_data_by_station.items():
-            # Remove bad data (99999 is USGS missing data marker)
-            clean_values = [v if v < 90000 else None for v in values]
+        for station in ["BOU", "FRD", "BRW", "HON"]:
+            if station in mag_history.columns:
+                values = mag_history[station].tolist()
+                # Remove bad data (99999 is USGS missing data marker)
+                clean_values = [v if v is not None and v < 90000 else None for v in values]
 
-            # Convert to z-scores
-            valid_values = [v for v in clean_values if v is not None]
-            if valid_values:
-                mean = sum(valid_values) / len(valid_values)
-                std_dev = (sum((v - mean) ** 2 for v in valid_values) / len(valid_values)) ** 0.5
-                if std_dev > 0:
-                    z_scores = [(v - mean) / std_dev if v is not None else 0 for v in clean_values]
+                # Convert to z-scores using full history statistics
+                valid_values = [v for v in clean_values if v is not None]
+                if valid_values:
+                    mean = sum(valid_values) / len(valid_values)
+                    std_dev = (sum((v - mean) ** 2 for v in valid_values) / len(valid_values)) ** 0.5
+                    if std_dev > 0:
+                        z_scores = [(v - mean) / std_dev if v is not None else 0 for v in clean_values]
+                    else:
+                        z_scores = [0 for _ in clean_values]
                 else:
-                    z_scores = [0 for _ in clean_values]
-            else:
-                z_scores = [0] * len(clean_values)
+                    z_scores = [0] * len(clean_values)
 
-            normalized_data[station] = z_scores
-            normalized_mag_data[station] = z_scores  # Store normalized data for time-range generation
+                normalized_data[station] = z_scores
+            else:
+                normalized_data[station] = [0] * len(full_date_range)
+
+        # Store for time-range generation (uses full history)
+        normalized_mag_data = normalized_data.copy()
+        normalized_mag_data["_labels"] = full_date_range  # Include labels for time-range slicing
 
         # Composite is average of z-scores
         composite = []
-        for i in range(len(date_range)):
-            station_z_scores = [normalized_data[s][i] for s in normalized_data.keys()]
-            composite.append(sum(station_z_scores) / len(station_z_scores))
+        for i in range(len(full_date_range)):
+            station_z_scores = [normalized_data[s][i] for s in ["BOU", "FRD", "BRW", "HON"] if s in normalized_data]
+            if station_z_scores:
+                composite.append(sum(station_z_scores) / len(station_z_scores))
+            else:
+                composite.append(0)
 
-        # Determine overall status
+        # Determine overall status (based on this fetch, not history)
         mag_status = "ok" if successful_stations == total_stations else "partial" if successful_stations > 0 else "failed"
 
+        # For mag_data.json, use recent 90 days from the full history
+        recent_idx = max(0, len(full_date_range) - 90)
+        recent_date_range = full_date_range[recent_idx:]
+
         mag_json = {
-            "labels": date_range,
-            "bou": normalized_data.get("BOU", []),
-            "hon": normalized_data.get("HON", []),
-            "sjg": normalized_data.get("BRW", []),
-            "composite": composite
+            "labels": recent_date_range,
+            "bou": normalized_data.get("BOU", [])[recent_idx:],
+            "hon": normalized_data.get("HON", [])[recent_idx:],
+            "sjg": normalized_data.get("BRW", [])[recent_idx:],
+            "composite": composite[recent_idx:]
         }
         # Add metadata with station info and sources
         mag_json = add_metadata(
@@ -835,9 +939,10 @@ def main():
         )
         mag_json["metadata"]["station_statuses"] = mag_station_status
         mag_json["metadata"]["station_sources"] = mag_station_sources
+        mag_json["metadata"]["history_days"] = len(full_date_range)
 
         (assets_dir / "mag_data.json").write_text(json.dumps(mag_json))
-        print("    [OK] mag_data.json")
+        print(f"    [OK] mag_data.json (90-day view from {len(full_date_range)} days of history)")
     else:
         print("    WARNING: No magnetometer data available")
 
