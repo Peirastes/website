@@ -37,7 +37,7 @@ You now have a **rigorous, self-aware, publication-ready mathematical framework*
 ## Files Created During This Project
 
 ### PRIMARY DOCUMENT
-**`sources-fields-v2-rigorous.qmd`** (12,700 lines)
+**`on-dynamical-systems.qmd`** (12,700 lines)
 - Parts I-XIV (foundational to failure analysis)
 - Appendices M-O (identifiability, functional analysis, notation)
 - 57+ theorems with proofs
@@ -89,10 +89,10 @@ You now have a **rigorous, self-aware, publication-ready mathematical framework*
 **Why it matters:** Proves mechanical, electrical, thermal, hydraulic systems are mathematically identical
 
 **Contains:**
-- Theorem XI.5.1: Force-voltage analogy via power conjugacy
-- Theorem XI.6.1: R-type, L-type, C-type passive element correspondence
-- Theorem XI.8.1: Universal oscillator equation (all 2nd-order systems identical)
-- Theorem XI.9.1: Design translatability (design in one domain, implement in another)
+- Theorem XII.5.1: Force-voltage analogy via power conjugacy
+- Theorem XIII.6.1: R-type, L-type, C-type passive element correspondence
+- Theorem XII.8.1: Universal oscillator equation (all 2nd-order systems identical)
+- Theorem XII.9.1: Design translatability (design in one domain, implement in another)
 
 **Impact:** Design engineers can work in preferred domain, translate to others
 
@@ -100,10 +100,10 @@ You now have a **rigorous, self-aware, publication-ready mathematical framework*
 **Why it matters:** Shows feedback can effectively change intrinsic structure via $\mathbf{A}_{CL} = \mathbf{A} - \mathbf{BK}$
 
 **Contains:**
-- Theorem XII.3.2: Controllability criterion
-- Theorem XII.3.4: Observability criterion
-- Theorem XII.4.1: Pole placement (place eigenvalues anywhere if controllable)
-- Theorem XII.6.1: LQR optimality (Riccati equation for optimal control)
+- Theorem XIII.3.2: Controllability criterion
+- Theorem XIII.3.4: Observability criterion
+- Theorem XIII.4.1: Pole placement (place eigenvalues anywhere if controllable)
+- Theorem XIII.6.1: LQR optimality (Riccati equation for optimal control)
 - Worked example: Inverted pendulum stabilization
 
 **Impact:** Rigorous control synthesis; connects to modern control theory
@@ -166,7 +166,7 @@ Systems, 7 Domains)          (Part XI: Analogies)
     └─────────────────────────────┘
             ↓
     UNIVERSAL PRINCIPLES
-    (Theorem XI.8.1: Universal Oscillator)
+    (Theorem XII.8.1: Universal Oscillator)
             ↓
     ┌─────────────────────────────────────────────┐
     │                                             │

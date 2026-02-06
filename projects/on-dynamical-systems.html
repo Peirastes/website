@@ -1,434 +1,60 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sources, Fields, and the Architecture of Change - Peirastes</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <!-- Quarto/Bootstrap styles for injected content -->
+    <link href="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+    <link href="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+    <link href="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/tippy.css" rel="stylesheet">
+    <link href="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+    <!-- MathJax -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+    <script src="../js/main.js"></script>
+    <!-- Quarto scripts for injected content -->
+    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/quarto.js" type="module"></script>
+    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/popper.min.js"></script>
+    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/tippy.umd.min.js"></script>
+    <script src="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap.min.js"></script>
+    <style>
+        /* Styles for injected Quarto content */
+        .content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
 
-<meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.26">
+        /* Ensure Quarto's page-columns layout works within our template */
+        #quarto-content {
+            margin-top: 1rem;
+        }
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-<meta name="author" content="Cole Prather">
-<meta name="dcterms.date" content="2026-01-27">
-
-<title>Sources, Fields, and the Architecture of Change</title>
-<style>
-code{white-space: pre-wrap;}
-span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
-div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
-ul.task-list li input[type="checkbox"] {
-  width: 0.8em;
-  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
-  vertical-align: middle;
-}
-</style>
-
-
-<script src="sources-fields-v2-rigorous_files/libs/clipboard/clipboard.min.js"></script>
-<script src="sources-fields-v2-rigorous_files/libs/quarto-html/quarto.js" type="module"></script>
-<script src="sources-fields-v2-rigorous_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="sources-fields-v2-rigorous_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="sources-fields-v2-rigorous_files/libs/quarto-html/popper.min.js"></script>
-<script src="sources-fields-v2-rigorous_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="sources-fields-v2-rigorous_files/libs/quarto-html/anchor.min.js"></script>
-<link href="sources-fields-v2-rigorous_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="sources-fields-v2-rigorous_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="sources-fields-v2-rigorous_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="sources-fields-v2-rigorous_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="sources-fields-v2-rigorous_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
-
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
-
+        /* Style tweaks for integration with site theme */
+        .quarto-title-meta {
+            margin-bottom: 2rem;
+        }
+    </style>
 </head>
 
-<body class="quarto-light">
+<body>
+    <header>
+        <h1>Peirastes</h1>
+        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
+    </header>
 
-<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-  <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul>
-  <li><a href="#abstract" id="toc-abstract" class="nav-link active" data-scroll-target="#abstract">Abstract</a></li>
-  <li><a href="#part-i-the-primordial-pattern" id="toc-part-i-the-primordial-pattern" class="nav-link" data-scroll-target="#part-i-the-primordial-pattern"><span class="header-section-number">1</span> Part I: The Primordial Pattern</a>
-  <ul class="collapse">
-  <li><a href="#why-change-matters" id="toc-why-change-matters" class="nav-link" data-scroll-target="#why-change-matters"><span class="header-section-number">1.1</span> Why Change Matters</a></li>
-  <li><a href="#two-laws-one-pattern" id="toc-two-laws-one-pattern" class="nav-link" data-scroll-target="#two-laws-one-pattern"><span class="header-section-number">1.2</span> Two Laws, One Pattern</a></li>
-  <li><a href="#intrinsic-and-extrinsic" id="toc-intrinsic-and-extrinsic" class="nav-link" data-scroll-target="#intrinsic-and-extrinsic"><span class="header-section-number">1.3</span> Intrinsic and Extrinsic</a></li>
-  <li><a href="#the-birth-of-field-thinking" id="toc-the-birth-of-field-thinking" class="nav-link" data-scroll-target="#the-birth-of-field-thinking"><span class="header-section-number">1.4</span> The Birth of Field Thinking</a></li>
-  <li><a href="#the-universality-hint-mass-and-charge-as-interchangeable" id="toc-the-universality-hint-mass-and-charge-as-interchangeable" class="nav-link" data-scroll-target="#the-universality-hint-mass-and-charge-as-interchangeable"><span class="header-section-number">1.5</span> The Universality Hint: Mass and Charge as Interchangeable</a></li>
-  </ul></li>
-  <li><a href="#part-ii-potential-energy-and-potential" id="toc-part-ii-potential-energy-and-potential" class="nav-link" data-scroll-target="#part-ii-potential-energy-and-potential"><span class="header-section-number">2</span> Part II: Potential Energy and Potential</a>
-  <ul class="collapse">
-  <li><a href="#spatial-energy" id="toc-spatial-energy" class="nav-link" data-scroll-target="#spatial-energy"><span class="header-section-number">2.1</span> Spatial Energy</a></li>
-  <li><a href="#potential-energy-per-unit-source" id="toc-potential-energy-per-unit-source" class="nav-link" data-scroll-target="#potential-energy-per-unit-source"><span class="header-section-number">2.2</span> Potential: Energy per Unit Source</a></li>
-  <li><a href="#work-and-kinetic-energy" id="toc-work-and-kinetic-energy" class="nav-link" data-scroll-target="#work-and-kinetic-energy"><span class="header-section-number">2.3</span> Work and Kinetic Energy</a></li>
-  <li><a href="#energy-conservation" id="toc-energy-conservation" class="nav-link" data-scroll-target="#energy-conservation"><span class="header-section-number">2.4</span> Energy Conservation</a></li>
-  </ul></li>
-  <li><a href="#part-iii-the-three-energy-modes" id="toc-part-iii-the-three-energy-modes" class="nav-link" data-scroll-target="#part-iii-the-three-energy-modes"><span class="header-section-number">3</span> Part III: The Three Energy Modes</a>
-  <ul class="collapse">
-  <li><a href="#classification-of-energy-storage-and-dissipation" id="toc-classification-of-energy-storage-and-dissipation" class="nav-link" data-scroll-target="#classification-of-energy-storage-and-dissipation"><span class="header-section-number">3.1</span> Classification of Energy Storage and Dissipation</a></li>
-  <li><a href="#rlc-circuit" id="toc-rlc-circuit" class="nav-link" data-scroll-target="#rlc-circuit"><span class="header-section-number">3.2</span> RLC Circuit</a></li>
-  <li><a href="#mass-spring-damper" id="toc-mass-spring-damper" class="nav-link" data-scroll-target="#mass-spring-damper"><span class="header-section-number">3.3</span> Mass-Spring-Damper</a></li>
-  <li><a href="#hydraulic-analog" id="toc-hydraulic-analog" class="nav-link" data-scroll-target="#hydraulic-analog"><span class="header-section-number">3.4</span> Hydraulic Analog</a></li>
-  <li><a href="#constitutive-laws" id="toc-constitutive-laws" class="nav-link" data-scroll-target="#constitutive-laws"><span class="header-section-number">3.5</span> Constitutive Laws</a></li>
-  </ul></li>
-  <li><a href="#part-iv-effort-flow-and-power" id="toc-part-iv-effort-flow-and-power" class="nav-link" data-scroll-target="#part-iv-effort-flow-and-power"><span class="header-section-number">4</span> Part IV: Effort, Flow, and Power</a>
-  <ul class="collapse">
-  <li><a href="#terminal-pairs" id="toc-terminal-pairs" class="nav-link" data-scroll-target="#terminal-pairs"><span class="header-section-number">4.1</span> Terminal Pairs</a></li>
-  <li><a href="#power-accounting" id="toc-power-accounting" class="nav-link" data-scroll-target="#power-accounting"><span class="header-section-number">4.2</span> Power Accounting</a></li>
-  <li><a href="#bond-graph-variables" id="toc-bond-graph-variables" class="nav-link" data-scroll-target="#bond-graph-variables"><span class="header-section-number">4.3</span> Bond-Graph Variables</a>
-  <ul class="collapse">
-  <li><a href="#terminal-pairs-and-the-three-passive-roles" id="toc-terminal-pairs-and-the-three-passive-roles" class="nav-link" data-scroll-target="#terminal-pairs-and-the-three-passive-roles"><span class="header-section-number">4.3.1</span> Terminal Pairs and the Three Passive Roles</a></li>
-  </ul></li>
-  </ul></li>
-  <li><a href="#part-v-the-complete-cross-domain-analogy" id="toc-part-v-the-complete-cross-domain-analogy" class="nav-link" data-scroll-target="#part-v-the-complete-cross-domain-analogy"><span class="header-section-number">5</span> Part V: The Complete Cross-Domain Analogy</a></li>
-  <li><a href="#part-vi-mathematical-framework" id="toc-part-vi-mathematical-framework" class="nav-link" data-scroll-target="#part-vi-mathematical-framework"><span class="header-section-number">6</span> Part VI: Mathematical Framework</a>
-  <ul class="collapse">
-  <li><a href="#finite-dimensional-dynamical-systems" id="toc-finite-dimensional-dynamical-systems" class="nav-link" data-scroll-target="#finite-dimensional-dynamical-systems"><span class="header-section-number">6.1</span> Finite-Dimensional Dynamical Systems</a>
-  <ul class="collapse">
-  <li><a href="#state-space-formulation" id="toc-state-space-formulation" class="nav-link" data-scroll-target="#state-space-formulation"><span class="header-section-number">6.1.1</span> State-Space Formulation</a></li>
-  </ul></li>
-  <li><a href="#chains-of-coupled-oscillators" id="toc-chains-of-coupled-oscillators" class="nav-link" data-scroll-target="#chains-of-coupled-oscillators"><span class="header-section-number">6.2</span> Chains of Coupled Oscillators</a>
-  <ul class="collapse">
-  <li><a href="#matrix-formulation" id="toc-matrix-formulation" class="nav-link" data-scroll-target="#matrix-formulation"><span class="header-section-number">6.2.1</span> Matrix Formulation</a></li>
-  </ul></li>
-  <li><a href="#the-continuum-limit" id="toc-the-continuum-limit" class="nav-link" data-scroll-target="#the-continuum-limit"><span class="header-section-number">6.3</span> The Continuum Limit</a></li>
-  <li><a href="#field-evolution-as-operator-equation" id="toc-field-evolution-as-operator-equation" class="nav-link" data-scroll-target="#field-evolution-as-operator-equation"><span class="header-section-number">6.4</span> Field Evolution as Operator Equation</a></li>
-  </ul></li>
-  <li><a href="#part-vii-conservation-laws-and-constitutive-relations" id="toc-part-vii-conservation-laws-and-constitutive-relations" class="nav-link" data-scroll-target="#part-vii-conservation-laws-and-constitutive-relations"><span class="header-section-number">7</span> Part VII: Conservation Laws and Constitutive Relations</a>
-  <ul class="collapse">
-  <li><a href="#the-generic-pattern" id="toc-the-generic-pattern" class="nav-link" data-scroll-target="#the-generic-pattern"><span class="header-section-number">7.1</span> The Generic Pattern</a></li>
-  <li><a href="#heat-conduction" id="toc-heat-conduction" class="nav-link" data-scroll-target="#heat-conduction"><span class="header-section-number">7.2</span> Heat Conduction</a></li>
-  <li><a href="#mass-diffusion" id="toc-mass-diffusion" class="nav-link" data-scroll-target="#mass-diffusion"><span class="header-section-number">7.3</span> Mass Diffusion</a></li>
-  <li><a href="#charge-transport" id="toc-charge-transport" class="nav-link" data-scroll-target="#charge-transport"><span class="header-section-number">7.4</span> Charge Transport</a></li>
-  <li><a href="#linear-elasticity" id="toc-linear-elasticity" class="nav-link" data-scroll-target="#linear-elasticity"><span class="header-section-number">7.5</span> Linear Elasticity</a></li>
-  </ul></li>
-  <li><a href="#part-viii-manifolds-and-trajectories-rigorous-formulation" id="toc-part-viii-manifolds-and-trajectories-rigorous-formulation" class="nav-link" data-scroll-target="#part-viii-manifolds-and-trajectories-rigorous-formulation"><span class="header-section-number">8</span> Part VIII: Manifolds and Trajectories — Rigorous Formulation</a>
-  <ul class="collapse">
-  <li><a href="#pdes-as-infinite-dimensional-odes" id="toc-pdes-as-infinite-dimensional-odes" class="nav-link" data-scroll-target="#pdes-as-infinite-dimensional-odes"><span class="header-section-number">8.1</span> PDEs as Infinite-Dimensional ODEs</a>
-  <ul class="collapse">
-  <li><a href="#the-operator-determines-the-geometry" id="toc-the-operator-determines-the-geometry" class="nav-link" data-scroll-target="#the-operator-determines-the-geometry"><span class="header-section-number">8.1.1</span> The Operator Determines the Geometry</a></li>
-  <li><a href="#example-heat-equation-on-01" id="toc-example-heat-equation-on-01" class="nav-link" data-scroll-target="#example-heat-equation-on-01"><span class="header-section-number">8.1.2</span> Example: Heat Equation on <span class="math inline">\([0,1]\)</span></a></li>
-  </ul></li>
-  <li><a href="#trajectories-as-realized-histories" id="toc-trajectories-as-realized-histories" class="nav-link" data-scroll-target="#trajectories-as-realized-histories"><span class="header-section-number">8.2</span> Trajectories as Realized Histories</a></li>
-  </ul></li>
-  <li><a href="#part-ix-causal-attribution-and-product-structure" id="toc-part-ix-causal-attribution-and-product-structure" class="nav-link" data-scroll-target="#part-ix-causal-attribution-and-product-structure"><span class="header-section-number">9</span> Part IX: Causal Attribution and Product Structure</a>
-  <ul class="collapse">
-  <li><a href="#the-fundamental-problem" id="toc-the-fundamental-problem" class="nav-link" data-scroll-target="#the-fundamental-problem"><span class="header-section-number">9.1</span> The Fundamental Problem</a></li>
-  <li><a href="#physical-interpretation" id="toc-physical-interpretation" class="nav-link" data-scroll-target="#physical-interpretation"><span class="header-section-number">9.2</span> Physical Interpretation</a></li>
-  <li><a href="#the-matrix-case" id="toc-the-matrix-case" class="nav-link" data-scroll-target="#the-matrix-case"><span class="header-section-number">9.3</span> The Matrix Case</a></li>
-  <li><a href="#resolving-ambiguity" id="toc-resolving-ambiguity" class="nav-link" data-scroll-target="#resolving-ambiguity"><span class="header-section-number">9.4</span> Resolving Ambiguity</a></li>
-  <li><a href="#the-nature-nurture-parallel" id="toc-the-nature-nurture-parallel" class="nav-link" data-scroll-target="#the-nature-nurture-parallel"><span class="header-section-number">9.5</span> The Nature-Nurture Parallel</a></li>
-  <li><a href="#epistemological-implications" id="toc-epistemological-implications" class="nav-link" data-scroll-target="#epistemological-implications"><span class="header-section-number">9.6</span> Epistemological Implications</a></li>
-  </ul></li>
-  <li><a href="#part-x-electrical-systems-and-cross-domain-analogies" id="toc-part-x-electrical-systems-and-cross-domain-analogies" class="nav-link" data-scroll-target="#part-x-electrical-systems-and-cross-domain-analogies"><span class="header-section-number">10</span> Part X: Electrical Systems and Cross-Domain Analogies</a>
-  <ul class="collapse">
-  <li><a href="#x.1-motivation-and-structure" id="toc-x.1-motivation-and-structure" class="nav-link" data-scroll-target="#x.1-motivation-and-structure"><span class="header-section-number">10.1</span> X.1 Motivation and Structure</a></li>
-  <li><a href="#x.2-foundations-circuit-laws-and-constitutive-relations" id="toc-x.2-foundations-circuit-laws-and-constitutive-relations" class="nav-link" data-scroll-target="#x.2-foundations-circuit-laws-and-constitutive-relations"><span class="header-section-number">10.2</span> X.2 Foundations: Circuit Laws and Constitutive Relations</a>
-  <ul class="collapse">
-  <li><a href="#kirchhoffs-current-law-kcl" id="toc-kirchhoffs-current-law-kcl" class="nav-link" data-scroll-target="#kirchhoffs-current-law-kcl"><span class="header-section-number">10.2.1</span> Kirchhoff’s Current Law (KCL)</a></li>
-  <li><a href="#kirchhoffs-voltage-law-kvl" id="toc-kirchhoffs-voltage-law-kvl" class="nav-link" data-scroll-target="#kirchhoffs-voltage-law-kvl"><span class="header-section-number">10.2.2</span> Kirchhoff’s Voltage Law (KVL)</a></li>
-  <li><a href="#ohms-law-resistor" id="toc-ohms-law-resistor" class="nav-link" data-scroll-target="#ohms-law-resistor"><span class="header-section-number">10.2.3</span> Ohm’s Law (Resistor)</a></li>
-  <li><a href="#faradays-law-inductor" id="toc-faradays-law-inductor" class="nav-link" data-scroll-target="#faradays-law-inductor"><span class="header-section-number">10.2.4</span> Faraday’s Law (Inductor)</a></li>
-  <li><a href="#constitutive-relation-capacitor" id="toc-constitutive-relation-capacitor" class="nav-link" data-scroll-target="#constitutive-relation-capacitor"><span class="header-section-number">10.2.5</span> Constitutive Relation (Capacitor)</a></li>
-  </ul></li>
-  <li><a href="#x.3-the-rc-circuit-charging-and-discharging" id="toc-x.3-the-rc-circuit-charging-and-discharging" class="nav-link" data-scroll-target="#x.3-the-rc-circuit-charging-and-discharging"><span class="header-section-number">10.3</span> X.3 The RC Circuit: Charging and Discharging</a>
-  <ul class="collapse">
-  <li><a href="#setup-and-governing-equation" id="toc-setup-and-governing-equation" class="nav-link" data-scroll-target="#setup-and-governing-equation"><span class="header-section-number">10.3.1</span> Setup and Governing Equation</a></li>
-  <li><a href="#solution-exponential-approach-to-steady-state" id="toc-solution-exponential-approach-to-steady-state" class="nav-link" data-scroll-target="#solution-exponential-approach-to-steady-state"><span class="header-section-number">10.3.2</span> Solution: Exponential Approach to Steady State</a></li>
-  <li><a href="#example-charging-an-leds-smoothing-capacitor" id="toc-example-charging-an-leds-smoothing-capacitor" class="nav-link" data-scroll-target="#example-charging-an-leds-smoothing-capacitor"><span class="header-section-number">10.3.3</span> Example: Charging an LED’s Smoothing Capacitor</a></li>
-  <li><a href="#the-identification-problem-applied-to-rc-charging" id="toc-the-identification-problem-applied-to-rc-charging" class="nav-link" data-scroll-target="#the-identification-problem-applied-to-rc-charging"><span class="header-section-number">10.3.4</span> The Identification Problem Applied to RC Charging</a></li>
-  </ul></li>
-  <li><a href="#x.4-the-rl-circuit-current-building-through-inductance" id="toc-x.4-the-rl-circuit-current-building-through-inductance" class="nav-link" data-scroll-target="#x.4-the-rl-circuit-current-building-through-inductance"><span class="header-section-number">10.4</span> X.4 The RL Circuit: Current Building Through Inductance</a>
-  <ul class="collapse">
-  <li><a href="#setup-and-governing-equation-1" id="toc-setup-and-governing-equation-1" class="nav-link" data-scroll-target="#setup-and-governing-equation-1"><span class="header-section-number">10.4.1</span> Setup and Governing Equation</a></li>
-  <li><a href="#solution-current-building-to-steady-state" id="toc-solution-current-building-to-steady-state" class="nav-link" data-scroll-target="#solution-current-building-to-steady-state"><span class="header-section-number">10.4.2</span> Solution: Current Building to Steady State</a></li>
-  <li><a href="#example-energizing-a-relay-coil" id="toc-example-energizing-a-relay-coil" class="nav-link" data-scroll-target="#example-energizing-a-relay-coil"><span class="header-section-number">10.4.3</span> Example: Energizing a Relay Coil</a></li>
-  </ul></li>
-  <li><a href="#x.5-the-lc-circuit-harmonic-oscillations" id="toc-x.5-the-lc-circuit-harmonic-oscillations" class="nav-link" data-scroll-target="#x.5-the-lc-circuit-harmonic-oscillations"><span class="header-section-number">10.5</span> X.5 The LC Circuit: Harmonic Oscillations</a>
-  <ul class="collapse">
-  <li><a href="#setup-and-governing-equation-2" id="toc-setup-and-governing-equation-2" class="nav-link" data-scroll-target="#setup-and-governing-equation-2"><span class="header-section-number">10.5.1</span> Setup and Governing Equation</a></li>
-  <li><a href="#solution-harmonic-oscillation" id="toc-solution-harmonic-oscillation" class="nav-link" data-scroll-target="#solution-harmonic-oscillation"><span class="header-section-number">10.5.2</span> Solution: Harmonic Oscillation</a></li>
-  <li><a href="#example-tuning-circuit-in-a-radio" id="toc-example-tuning-circuit-in-a-radio" class="nav-link" data-scroll-target="#example-tuning-circuit-in-a-radio"><span class="header-section-number">10.5.3</span> Example: Tuning Circuit in a Radio</a></li>
-  <li><a href="#mechanical-analog-mass-spring-system" id="toc-mechanical-analog-mass-spring-system" class="nav-link" data-scroll-target="#mechanical-analog-mass-spring-system"><span class="header-section-number">10.5.4</span> Mechanical Analog: Mass-Spring System</a></li>
-  </ul></li>
-  <li><a href="#x.6-the-rlc-circuit-three-damping-regimes" id="toc-x.6-the-rlc-circuit-three-damping-regimes" class="nav-link" data-scroll-target="#x.6-the-rlc-circuit-three-damping-regimes"><span class="header-section-number">10.6</span> X.6 The RLC Circuit: Three Damping Regimes</a>
-  <ul class="collapse">
-  <li><a href="#setup-and-governing-equation-3" id="toc-setup-and-governing-equation-3" class="nav-link" data-scroll-target="#setup-and-governing-equation-3"><span class="header-section-number">10.6.1</span> Setup and Governing Equation</a></li>
-  <li><a href="#three-regimes-based-on-damping-ratio" id="toc-three-regimes-based-on-damping-ratio" class="nav-link" data-scroll-target="#three-regimes-based-on-damping-ratio"><span class="header-section-number">10.6.2</span> Three Regimes Based on Damping Ratio</a></li>
-  <li><a href="#example-switch-closure-in-an-audio-amplifier" id="toc-example-switch-closure-in-an-audio-amplifier" class="nav-link" data-scroll-target="#example-switch-closure-in-an-audio-amplifier"><span class="header-section-number">10.6.3</span> Example: Switch Closure in an Audio Amplifier</a></li>
-  <li><a href="#mechanical-analog-mass-spring-damper" id="toc-mechanical-analog-mass-spring-damper" class="nav-link" data-scroll-target="#mechanical-analog-mass-spring-damper"><span class="header-section-number">10.6.4</span> Mechanical Analog: Mass-Spring-Damper</a></li>
-  </ul></li>
-  <li><a href="#x.7-the-driven-rlc-circuit-resonance" id="toc-x.7-the-driven-rlc-circuit-resonance" class="nav-link" data-scroll-target="#x.7-the-driven-rlc-circuit-resonance"><span class="header-section-number">10.7</span> X.7 The Driven RLC Circuit: Resonance</a>
-  <ul class="collapse">
-  <li><a href="#setup-and-forcing" id="toc-setup-and-forcing" class="nav-link" data-scroll-target="#setup-and-forcing"><span class="header-section-number">10.7.1</span> Setup and Forcing</a></li>
-  <li><a href="#steady-state-solution-and-impedance" id="toc-steady-state-solution-and-impedance" class="nav-link" data-scroll-target="#steady-state-solution-and-impedance"><span class="header-section-number">10.7.2</span> Steady-State Solution and Impedance</a></li>
-  <li><a href="#resonance-frequency-of-maximum-current" id="toc-resonance-frequency-of-maximum-current" class="nav-link" data-scroll-target="#resonance-frequency-of-maximum-current"><span class="header-section-number">10.7.3</span> Resonance: Frequency of Maximum Current</a></li>
-  <li><a href="#example-am-radio-tuning" id="toc-example-am-radio-tuning" class="nav-link" data-scroll-target="#example-am-radio-tuning"><span class="header-section-number">10.7.4</span> Example: AM Radio Tuning</a></li>
-  <li><a href="#mechanical-analog-driven-mass-spring-damper" id="toc-mechanical-analog-driven-mass-spring-damper" class="nav-link" data-scroll-target="#mechanical-analog-driven-mass-spring-damper"><span class="header-section-number">10.7.5</span> Mechanical Analog: Driven Mass-Spring-Damper</a></li>
-  </ul></li>
-  <li><a href="#x.8-frequency-response-and-transfer-functions" id="toc-x.8-frequency-response-and-transfer-functions" class="nav-link" data-scroll-target="#x.8-frequency-response-and-transfer-functions"><span class="header-section-number">10.8</span> X.8 Frequency Response and Transfer Functions</a>
-  <ul class="collapse">
-  <li><a href="#transfer-function-representation" id="toc-transfer-function-representation" class="nav-link" data-scroll-target="#transfer-function-representation"><span class="header-section-number">10.8.1</span> Transfer Function Representation</a></li>
-  <li><a href="#magnitude-and-phase-response" id="toc-magnitude-and-phase-response" class="nav-link" data-scroll-target="#magnitude-and-phase-response"><span class="header-section-number">10.8.2</span> Magnitude and Phase Response</a></li>
-  <li><a href="#bandwidth-and-rolloff" id="toc-bandwidth-and-rolloff" class="nav-link" data-scroll-target="#bandwidth-and-rolloff"><span class="header-section-number">10.8.3</span> Bandwidth and Rolloff</a></li>
-  <li><a href="#example-anti-aliasing-filter-design" id="toc-example-anti-aliasing-filter-design" class="nav-link" data-scroll-target="#example-anti-aliasing-filter-design"><span class="header-section-number">10.8.4</span> Example: Anti-Aliasing Filter Design</a></li>
-  </ul></li>
-  <li><a href="#x.9-thermal-systems-rc-analogy" id="toc-x.9-thermal-systems-rc-analogy" class="nav-link" data-scroll-target="#x.9-thermal-systems-rc-analogy"><span class="header-section-number">10.9</span> X.9 Thermal Systems: RC Analogy</a>
-  <ul class="collapse">
-  <li><a href="#thermal-circuit-analogy" id="toc-thermal-circuit-analogy" class="nav-link" data-scroll-target="#thermal-circuit-analogy"><span class="header-section-number">10.9.1</span> Thermal Circuit Analogy</a></li>
-  <li><a href="#example-electronics-cooling" id="toc-example-electronics-cooling" class="nav-link" data-scroll-target="#example-electronics-cooling"><span class="header-section-number">10.9.2</span> Example: Electronics Cooling</a></li>
-  <li><a href="#transient-heat-flow-identification-problem" id="toc-transient-heat-flow-identification-problem" class="nav-link" data-scroll-target="#transient-heat-flow-identification-problem"><span class="header-section-number">10.9.3</span> Transient Heat Flow Identification Problem</a></li>
-  </ul></li>
-  <li><a href="#x.10-hydraulic-systems-pressure-flow-analogy" id="toc-x.10-hydraulic-systems-pressure-flow-analogy" class="nav-link" data-scroll-target="#x.10-hydraulic-systems-pressure-flow-analogy"><span class="header-section-number">10.10</span> X.10 Hydraulic Systems: Pressure-Flow Analogy</a>
-  <ul class="collapse">
-  <li><a href="#hydraulic-circuit-laws" id="toc-hydraulic-circuit-laws" class="nav-link" data-scroll-target="#hydraulic-circuit-laws"><span class="header-section-number">10.10.1</span> Hydraulic Circuit Laws</a></li>
-  <li><a href="#rlc-hydraulic-analogy" id="toc-rlc-hydraulic-analogy" class="nav-link" data-scroll-target="#rlc-hydraulic-analogy"><span class="header-section-number">10.10.2</span> RLC Hydraulic Analogy</a></li>
-  <li><a href="#example-hydraulic-shock-absorber" id="toc-example-hydraulic-shock-absorber" class="nav-link" data-scroll-target="#example-hydraulic-shock-absorber"><span class="header-section-number">10.10.3</span> Example: Hydraulic Shock Absorber</a></li>
-  </ul></li>
-  <li><a href="#x.11-cross-domain-power-and-energy-efficiency" id="toc-x.11-cross-domain-power-and-energy-efficiency" class="nav-link" data-scroll-target="#x.11-cross-domain-power-and-energy-efficiency"><span class="header-section-number">10.11</span> X.11 Cross-Domain Power and Energy Efficiency</a>
-  <ul class="collapse">
-  <li><a href="#universal-power-formula" id="toc-universal-power-formula" class="nav-link" data-scroll-target="#universal-power-formula"><span class="header-section-number">10.11.1</span> Universal Power Formula</a></li>
-  <li><a href="#energy-storage-efficiency-at-resonance" id="toc-energy-storage-efficiency-at-resonance" class="nav-link" data-scroll-target="#energy-storage-efficiency-at-resonance"><span class="header-section-number">10.11.2</span> Energy Storage Efficiency at Resonance</a></li>
-  <li><a href="#example-minimizing-power-loss-in-an-electrical-distribution-network" id="toc-example-minimizing-power-loss-in-an-electrical-distribution-network" class="nav-link" data-scroll-target="#example-minimizing-power-loss-in-an-electrical-distribution-network"><span class="header-section-number">10.11.3</span> Example: Minimizing Power Loss in an Electrical Distribution Network</a></li>
-  </ul></li>
-  <li><a href="#the-hidden-revelation-awaiting" id="toc-the-hidden-revelation-awaiting" class="nav-link" data-scroll-target="#the-hidden-revelation-awaiting"><span class="header-section-number">10.12</span> The Hidden Revelation Awaiting</a></li>
-  </ul></li>
-  <li><a href="#part-xi-the-universal-structuregravity-electromagnetism-and-cross-domain-analogies" id="toc-part-xi-the-universal-structuregravity-electromagnetism-and-cross-domain-analogies" class="nav-link" data-scroll-target="#part-xi-the-universal-structuregravity-electromagnetism-and-cross-domain-analogies"><span class="header-section-number">11</span> Part XI: The Universal Structure—Gravity, Electromagnetism, and Cross-Domain Analogies</a>
-  <ul class="collapse">
-  <li><a href="#introduction-to-part-xi" id="toc-introduction-to-part-xi" class="nav-link" data-scroll-target="#introduction-to-part-xi"><span class="header-section-number">11.1</span> Introduction to Part XI</a></li>
-  <li><a href="#xi.1-the-unremarked-analogy" id="toc-xi.1-the-unremarked-analogy" class="nav-link" data-scroll-target="#xi.1-the-unremarked-analogy"><span class="header-section-number">11.2</span> XI.1 The Unremarked Analogy</a></li>
-  <li><a href="#xi.2-dimensional-analysis-unmasking-the-gravitational-volt" id="toc-xi.2-dimensional-analysis-unmasking-the-gravitational-volt" class="nav-link" data-scroll-target="#xi.2-dimensional-analysis-unmasking-the-gravitational-volt"><span class="header-section-number">11.3</span> XI.2 Dimensional Analysis: Unmasking the Gravitational Volt</a>
-  <ul class="collapse">
-  <li><a href="#electrical-potential-voltage" id="toc-electrical-potential-voltage" class="nav-link" data-scroll-target="#electrical-potential-voltage"><span class="header-section-number">11.3.1</span> Electrical Potential (Voltage)</a></li>
-  <li><a href="#gravitational-potential-the-gravitational-volt" id="toc-gravitational-potential-the-gravitational-volt" class="nav-link" data-scroll-target="#gravitational-potential-the-gravitational-volt"><span class="header-section-number">11.3.2</span> Gravitational Potential (The Gravitational Volt)</a></li>
-  <li><a href="#the-stunning-symmetry" id="toc-the-stunning-symmetry" class="nav-link" data-scroll-target="#the-stunning-symmetry"><span class="header-section-number">11.3.3</span> The Stunning Symmetry</a></li>
-  </ul></li>
-  <li><a href="#xi.3-newtons-law-of-universal-gravitation-and-coulombs-lawthe-perfect-parallel" id="toc-xi.3-newtons-law-of-universal-gravitation-and-coulombs-lawthe-perfect-parallel" class="nav-link" data-scroll-target="#xi.3-newtons-law-of-universal-gravitation-and-coulombs-lawthe-perfect-parallel"><span class="header-section-number">11.4</span> XI.3 Newton’s Law of Universal Gravitation and Coulomb’s Law—The Perfect Parallel</a>
-  <ul class="collapse">
-  <li><a href="#coulombs-law-electric-force-between-charges" id="toc-coulombs-law-electric-force-between-charges" class="nav-link" data-scroll-target="#coulombs-law-electric-force-between-charges"><span class="header-section-number">11.4.1</span> Coulomb’s Law (Electric Force Between Charges)</a></li>
-  <li><a href="#newtons-law-of-universal-gravitation" id="toc-newtons-law-of-universal-gravitation" class="nav-link" data-scroll-target="#newtons-law-of-universal-gravitation"><span class="header-section-number">11.4.2</span> Newton’s Law of Universal Gravitation</a></li>
-  <li><a href="#structural-identity-except-for-sign-and-coupling-type" id="toc-structural-identity-except-for-sign-and-coupling-type" class="nav-link" data-scroll-target="#structural-identity-except-for-sign-and-coupling-type"><span class="header-section-number">11.4.3</span> Structural Identity (Except for Sign and Coupling Type)</a></li>
-  <li><a href="#the-mathematical-structure" id="toc-the-mathematical-structure" class="nav-link" data-scroll-target="#the-mathematical-structure"><span class="header-section-number">11.4.4</span> The Mathematical Structure</a></li>
-  </ul></li>
-  <li><a href="#xi.4-gausss-law-and-the-poisson-equationperfect-duality" id="toc-xi.4-gausss-law-and-the-poisson-equationperfect-duality" class="nav-link" data-scroll-target="#xi.4-gausss-law-and-the-poisson-equationperfect-duality"><span class="header-section-number">11.5</span> XI.4 Gauss’s Law and the Poisson Equation—Perfect Duality</a>
-  <ul class="collapse">
-  <li><a href="#gausss-law-electrostatics" id="toc-gausss-law-electrostatics" class="nav-link" data-scroll-target="#gausss-law-electrostatics"><span class="header-section-number">11.5.1</span> Gauss’s Law (Electrostatics)</a></li>
-  <li><a href="#gausss-law-for-gravity" id="toc-gausss-law-for-gravity" class="nav-link" data-scroll-target="#gausss-law-for-gravity"><span class="header-section-number">11.5.2</span> Gauss’s Law for Gravity</a></li>
-  <li><a href="#side-by-side-comparison" id="toc-side-by-side-comparison" class="nav-link" data-scroll-target="#side-by-side-comparison"><span class="header-section-number">11.5.3</span> Side-by-Side Comparison</a></li>
-  </ul></li>
-  <li><a href="#xi.5-power-conjugacy-in-gravitational-and-electromagnetic-fields" id="toc-xi.5-power-conjugacy-in-gravitational-and-electromagnetic-fields" class="nav-link" data-scroll-target="#xi.5-power-conjugacy-in-gravitational-and-electromagnetic-fields"><span class="header-section-number">11.6</span> XI.5 Power Conjugacy in Gravitational and Electromagnetic Fields</a>
-  <ul class="collapse">
-  <li><a href="#electrical-power-in-field-form" id="toc-electrical-power-in-field-form" class="nav-link" data-scroll-target="#electrical-power-in-field-form"><span class="header-section-number">11.6.1</span> Electrical Power in Field Form</a></li>
-  <li><a href="#gravitational-power-in-field-form" id="toc-gravitational-power-in-field-form" class="nav-link" data-scroll-target="#gravitational-power-in-field-form"><span class="header-section-number">11.6.2</span> Gravitational Power in Field Form</a></li>
-  </ul></li>
-  <li><a href="#xi.6-worked-example-earths-gravitational-potential-as-a-function-of-altitude" id="toc-xi.6-worked-example-earths-gravitational-potential-as-a-function-of-altitude" class="nav-link" data-scroll-target="#xi.6-worked-example-earths-gravitational-potential-as-a-function-of-altitude"><span class="header-section-number">11.7</span> XI.6 Worked Example: Earth’s Gravitational Potential as a Function of Altitude</a></li>
-  <li><a href="#xi.7-maxwell-equations-and-the-gravitational-field-equations-the-complete-theory" id="toc-xi.7-maxwell-equations-and-the-gravitational-field-equations-the-complete-theory" class="nav-link" data-scroll-target="#xi.7-maxwell-equations-and-the-gravitational-field-equations-the-complete-theory"><span class="header-section-number">11.8</span> XI.7 Maxwell Equations and the Gravitational Field Equations — The Complete Theory</a>
-  <ul class="collapse">
-  <li><a href="#xi.7.1-four-foundational-assumptions-of-gravitoelectromagnetism" id="toc-xi.7.1-four-foundational-assumptions-of-gravitoelectromagnetism" class="nav-link" data-scroll-target="#xi.7.1-four-foundational-assumptions-of-gravitoelectromagnetism"><span class="header-section-number">11.8.1</span> XI.7.1 Four Foundational Assumptions of Gravitoelectromagnetism</a></li>
-  <li><a href="#xi.7.2-derivation-from-einsteins-field-equations" id="toc-xi.7.2-derivation-from-einsteins-field-equations" class="nav-link" data-scroll-target="#xi.7.2-derivation-from-einsteins-field-equations"><span class="header-section-number">11.8.2</span> XI.7.2 Derivation from Einstein’s Field Equations</a></li>
-  <li><a href="#xi.7.3-liénard-wiechert-potentials-for-gravity" id="toc-xi.7.3-liénard-wiechert-potentials-for-gravity" class="nav-link" data-scroll-target="#xi.7.3-liénard-wiechert-potentials-for-gravity"><span class="header-section-number">11.8.3</span> XI.7.3 Liénard-Wiechert Potentials for Gravity</a></li>
-  <li><a href="#xi.7.4-gravitational-larmor-formula-and-radiation" id="toc-xi.7.4-gravitational-larmor-formula-and-radiation" class="nav-link" data-scroll-target="#xi.7.4-gravitational-larmor-formula-and-radiation"><span class="header-section-number">11.8.4</span> XI.7.4 Gravitational Larmor Formula and Radiation</a></li>
-  <li><a href="#xi.7.5-experimental-validation-of-gravitoelectromagnetism" id="toc-xi.7.5-experimental-validation-of-gravitoelectromagnetism" class="nav-link" data-scroll-target="#xi.7.5-experimental-validation-of-gravitoelectromagnetism"><span class="header-section-number">11.8.5</span> XI.7.5 Experimental Validation of Gravitoelectromagnetism</a></li>
-  <li><a href="#xi.7.6-limitations-and-breakdown-of-gravitoelectromagnetism" id="toc-xi.7.6-limitations-and-breakdown-of-gravitoelectromagnetism" class="nav-link" data-scroll-target="#xi.7.6-limitations-and-breakdown-of-gravitoelectromagnetism"><span class="header-section-number">11.8.6</span> XI.7.6 Limitations and Breakdown of Gravitoelectromagnetism</a></li>
-  </ul></li>
-  <li><a href="#xi.8-why-this-analogy-is-almost-never-taught" id="toc-xi.8-why-this-analogy-is-almost-never-taught" class="nav-link" data-scroll-target="#xi.8-why-this-analogy-is-almost-never-taught"><span class="header-section-number">11.9</span> XI.8 Why This Analogy Is Almost Never Taught</a></li>
-  <li><a href="#xi.9-implications-for-the-patterns-of-change-framework" id="toc-xi.9-implications-for-the-patterns-of-change-framework" class="nav-link" data-scroll-target="#xi.9-implications-for-the-patterns-of-change-framework"><span class="header-section-number">11.10</span> XI.9 Implications for the Patterns-of-Change Framework</a>
-  <ul class="collapse">
-  <li><a href="#the-gravity-electricity-isomorphism-as-the-ultimate-test" id="toc-the-gravity-electricity-isomorphism-as-the-ultimate-test" class="nav-link" data-scroll-target="#the-gravity-electricity-isomorphism-as-the-ultimate-test"><span class="header-section-number">11.10.1</span> The Gravity-Electricity Isomorphism as the Ultimate Test</a></li>
-  <li><a href="#framework-robustness-against-deep-physics-changes" id="toc-framework-robustness-against-deep-physics-changes" class="nav-link" data-scroll-target="#framework-robustness-against-deep-physics-changes"><span class="header-section-number">11.10.2</span> Framework Robustness Against Deep Physics Changes</a></li>
-  <li><a href="#causal-implications-of-the-gravity-electricity-symmetry" id="toc-causal-implications-of-the-gravity-electricity-symmetry" class="nav-link" data-scroll-target="#causal-implications-of-the-gravity-electricity-symmetry"><span class="header-section-number">11.10.3</span> Causal Implications of the Gravity-Electricity Symmetry</a></li>
-  </ul></li>
-  <li><a href="#from-revelation-to-proof" id="toc-from-revelation-to-proof" class="nav-link" data-scroll-target="#from-revelation-to-proof"><span class="header-section-number">11.11</span> From Revelation to Proof</a></li>
-  </ul></li>
-  <li><a href="#part-xii-the-bond-graph-framework-and-rigorous-proof-of-cross-domain-analogies" id="toc-part-xii-the-bond-graph-framework-and-rigorous-proof-of-cross-domain-analogies" class="nav-link" data-scroll-target="#part-xii-the-bond-graph-framework-and-rigorous-proof-of-cross-domain-analogies"><span class="header-section-number">12</span> Part XII: The Bond-Graph Framework and Rigorous Proof of Cross-Domain Analogies</a>
-  <ul class="collapse">
-  <li><a href="#xii.1-motivation-why-does-the-analogy-work" id="toc-xii.1-motivation-why-does-the-analogy-work" class="nav-link" data-scroll-target="#xii.1-motivation-why-does-the-analogy-work"><span class="header-section-number">12.1</span> XII.1 Motivation: Why Does the Analogy Work?</a></li>
-  <li><a href="#xii.2-power-conjugacy-and-effort-flow-pairs" id="toc-xii.2-power-conjugacy-and-effort-flow-pairs" class="nav-link" data-scroll-target="#xii.2-power-conjugacy-and-effort-flow-pairs"><span class="header-section-number">12.2</span> XII.2 Power Conjugacy and Effort-Flow Pairs</a>
-  <ul class="collapse">
-  <li><a href="#definition-power-conjugate-variables" id="toc-definition-power-conjugate-variables" class="nav-link" data-scroll-target="#definition-power-conjugate-variables"><span class="header-section-number">12.2.1</span> Definition: Power-Conjugate Variables</a></li>
-  <li><a href="#examples-across-domains" id="toc-examples-across-domains" class="nav-link" data-scroll-target="#examples-across-domains"><span class="header-section-number">12.2.2</span> Examples Across Domains</a></li>
-  </ul></li>
-  <li><a href="#xii.3-passive-elements-and-their-constitutive-relations" id="toc-xii.3-passive-elements-and-their-constitutive-relations" class="nav-link" data-scroll-target="#xii.3-passive-elements-and-their-constitutive-relations"><span class="header-section-number">12.3</span> XII.3 Passive Elements and Their Constitutive Relations</a>
-  <ul class="collapse">
-  <li><a href="#r-type-elements-dissipation" id="toc-r-type-elements-dissipation" class="nav-link" data-scroll-target="#r-type-elements-dissipation"><span class="header-section-number">12.3.1</span> R-Type Elements (Dissipation)</a></li>
-  <li><a href="#c-type-elements-potential-storage" id="toc-c-type-elements-potential-storage" class="nav-link" data-scroll-target="#c-type-elements-potential-storage"><span class="header-section-number">12.3.2</span> C-Type Elements (Potential Storage)</a></li>
-  <li><a href="#i-type-elements-kinetic-storage" id="toc-i-type-elements-kinetic-storage" class="nav-link" data-scroll-target="#i-type-elements-kinetic-storage"><span class="header-section-number">12.3.3</span> I-Type Elements (Kinetic Storage)</a></li>
-  </ul></li>
-  <li><a href="#xii.4-the-bond-graph-framework-as-rigorous-theorem" id="toc-xii.4-the-bond-graph-framework-as-rigorous-theorem" class="nav-link" data-scroll-target="#xii.4-the-bond-graph-framework-as-rigorous-theorem"><span class="header-section-number">12.4</span> XII.4 The Bond-Graph Framework as Rigorous Theorem</a>
-  <ul class="collapse">
-  <li><a href="#single-port-1-port-elements" id="toc-single-port-1-port-elements" class="nav-link" data-scroll-target="#single-port-1-port-elements"><span class="header-section-number">12.4.1</span> Single-Port (1-Port) Elements</a></li>
-  <li><a href="#multi-port-networks-and-kirchhoff-analogs" id="toc-multi-port-networks-and-kirchhoff-analogs" class="nav-link" data-scroll-target="#multi-port-networks-and-kirchhoff-analogs"><span class="header-section-number">12.4.2</span> Multi-Port Networks and Kirchhoff Analogs</a></li>
-  <li><a href="#the-bond-graph-node-causality-and-power-flow" id="toc-the-bond-graph-node-causality-and-power-flow" class="nav-link" data-scroll-target="#the-bond-graph-node-causality-and-power-flow"><span class="header-section-number">12.4.3</span> The Bond-Graph Node: Causality and Power Flow</a></li>
-  </ul></li>
-  <li><a href="#xii.5-the-force-voltage-analogy-rigorous-proof" id="toc-xii.5-the-force-voltage-analogy-rigorous-proof" class="nav-link" data-scroll-target="#xii.5-the-force-voltage-analogy-rigorous-proof"><span class="header-section-number">12.5</span> XII.5 The Force-Voltage Analogy: Rigorous Proof</a>
-  <ul class="collapse">
-  <li><a href="#intuitive-foundation-why-power-conjugacy-matters" id="toc-intuitive-foundation-why-power-conjugacy-matters" class="nav-link" data-scroll-target="#intuitive-foundation-why-power-conjugacy-matters"><span class="header-section-number">12.5.1</span> Intuitive Foundation: Why Power Conjugacy Matters</a></li>
-  <li><a href="#theorem-xi.5.1-force-voltage-analogy-via-power-conjugacy" id="toc-theorem-xi.5.1-force-voltage-analogy-via-power-conjugacy" class="nav-link" data-scroll-target="#theorem-xi.5.1-force-voltage-analogy-via-power-conjugacy"><span class="header-section-number">12.5.2</span> Theorem XI.5.1 (Force-Voltage Analogy via Power Conjugacy)</a></li>
-  <li><a href="#concrete-demonstration-session-2-examples" id="toc-concrete-demonstration-session-2-examples" class="nav-link" data-scroll-target="#concrete-demonstration-session-2-examples"><span class="header-section-number">12.5.3</span> Concrete Demonstration: Session 2 Examples</a></li>
-  <li><a href="#why-the-analogy-is-perfect-power-preservation" id="toc-why-the-analogy-is-perfect-power-preservation" class="nav-link" data-scroll-target="#why-the-analogy-is-perfect-power-preservation"><span class="header-section-number">12.5.4</span> Why the Analogy is Perfect: Power Preservation</a></li>
-  </ul></li>
-  <li><a href="#xii.6-passive-element-correspondence-complete-mapping" id="toc-xii.6-passive-element-correspondence-complete-mapping" class="nav-link" data-scroll-target="#xii.6-passive-element-correspondence-complete-mapping"><span class="header-section-number">12.6</span> XII.6 Passive Element Correspondence: Complete Mapping</a></li>
-  <li><a href="#xii.7-energy-conservation-equivalence" id="toc-xii.7-energy-conservation-equivalence" class="nav-link" data-scroll-target="#xii.7-energy-conservation-equivalence"><span class="header-section-number">12.7</span> XII.7 Energy Conservation Equivalence</a>
-  <ul class="collapse">
-  <li><a href="#theorem-xi.7.1-total-mechanical-energy-in-mass-spring-damper" id="toc-theorem-xi.7.1-total-mechanical-energy-in-mass-spring-damper" class="nav-link" data-scroll-target="#theorem-xi.7.1-total-mechanical-energy-in-mass-spring-damper"><span class="header-section-number">12.7.1</span> Theorem XI.7.1 (Total Mechanical Energy in Mass-Spring-Damper)</a></li>
-  <li><a href="#theorem-xi.7.2-total-electrical-energy-in-series-rlc" id="toc-theorem-xi.7.2-total-electrical-energy-in-series-rlc" class="nav-link" data-scroll-target="#theorem-xi.7.2-total-electrical-energy-in-series-rlc"><span class="header-section-number">12.7.2</span> Theorem XI.7.2 (Total Electrical Energy in Series RLC)</a></li>
-  <li><a href="#theorem-xi.7.3-energy-conservation-equivalence" id="toc-theorem-xi.7.3-energy-conservation-equivalence" class="nav-link" data-scroll-target="#theorem-xi.7.3-energy-conservation-equivalence"><span class="header-section-number">12.7.3</span> Theorem XI.7.3 (Energy Conservation Equivalence)</a></li>
-  </ul></li>
-  <li><a href="#xii.8-the-universal-oscillator-equation" id="toc-xii.8-the-universal-oscillator-equation" class="nav-link" data-scroll-target="#xii.8-the-universal-oscillator-equation"><span class="header-section-number">12.8</span> XII.8 The Universal Oscillator Equation</a>
-  <ul class="collapse">
-  <li><a href="#intuitive-foundation-why-one-equation-governs-everything" id="toc-intuitive-foundation-why-one-equation-governs-everything" class="nav-link" data-scroll-target="#intuitive-foundation-why-one-equation-governs-everything"><span class="header-section-number">12.8.1</span> Intuitive Foundation: Why One Equation Governs Everything</a></li>
-  <li><a href="#theorem-xi.8.1-universal-second-order-dynamics" id="toc-theorem-xi.8.1-universal-second-order-dynamics" class="nav-link" data-scroll-target="#theorem-xi.8.1-universal-second-order-dynamics"><span class="header-section-number">12.8.2</span> Theorem XI.8.1 (Universal Second-Order Dynamics)</a></li>
-  <li><a href="#concrete-demonstration-session-2-examples-1" id="toc-concrete-demonstration-session-2-examples-1" class="nav-link" data-scroll-target="#concrete-demonstration-session-2-examples-1"><span class="header-section-number">12.8.3</span> Concrete Demonstration: Session 2 Examples</a></li>
-  <li><a href="#consequence-three-damping-regimes-are-universal" id="toc-consequence-three-damping-regimes-are-universal" class="nav-link" data-scroll-target="#consequence-three-damping-regimes-are-universal"><span class="header-section-number">12.8.4</span> Consequence: Three Damping Regimes are Universal</a></li>
-  </ul></li>
-  <li><a href="#xii.9-practical-implication-design-by-analogy" id="toc-xii.9-practical-implication-design-by-analogy" class="nav-link" data-scroll-target="#xii.9-practical-implication-design-by-analogy"><span class="header-section-number">12.9</span> XII.9 Practical Implication: Design by Analogy</a>
-  <ul class="collapse">
-  <li><a href="#theorem-xi.9.1-translatability-of-designs" id="toc-theorem-xi.9.1-translatability-of-designs" class="nav-link" data-scroll-target="#theorem-xi.9.1-translatability-of-designs"><span class="header-section-number">12.9.1</span> Theorem XI.9.1 (Translatability of Designs)</a></li>
-  </ul></li>
-  </ul></li>
-  <li><a href="#part-xiii-control-theory-and-the-intrinsic-extrinsic-boundary" id="toc-part-xiii-control-theory-and-the-intrinsic-extrinsic-boundary" class="nav-link" data-scroll-target="#part-xiii-control-theory-and-the-intrinsic-extrinsic-boundary"><span class="header-section-number">13</span> Part XIII: Control Theory and the Intrinsic-Extrinsic Boundary</a>
-  <ul class="collapse">
-  <li><a href="#xiii.1-motivation-feedback-as-deliberate-extrinsic-intervention" id="toc-xiii.1-motivation-feedback-as-deliberate-extrinsic-intervention" class="nav-link" data-scroll-target="#xiii.1-motivation-feedback-as-deliberate-extrinsic-intervention"><span class="header-section-number">13.1</span> XIII.1 Motivation: Feedback as Deliberate Extrinsic Intervention</a></li>
-  <li><a href="#xiii.2-the-standard-control-configuration" id="toc-xiii.2-the-standard-control-configuration" class="nav-link" data-scroll-target="#xiii.2-the-standard-control-configuration"><span class="header-section-number">13.2</span> XIII.2 The Standard Control Configuration</a>
-  <ul class="collapse">
-  <li><a href="#state-space-system-and-feedback" id="toc-state-space-system-and-feedback" class="nav-link" data-scroll-target="#state-space-system-and-feedback"><span class="header-section-number">13.2.1</span> State-Space System and Feedback</a></li>
-  <li><a href="#key-observation" id="toc-key-observation" class="nav-link" data-scroll-target="#key-observation"><span class="header-section-number">13.2.2</span> Key Observation</a></li>
-  </ul></li>
-  <li><a href="#xiii.3-fundamental-concepts-controllability-and-observability" id="toc-xiii.3-fundamental-concepts-controllability-and-observability" class="nav-link" data-scroll-target="#xiii.3-fundamental-concepts-controllability-and-observability"><span class="header-section-number">13.3</span> XIII.3 Fundamental Concepts: Controllability and Observability</a>
-  <ul class="collapse">
-  <li><a href="#controllability-can-we-steer-the-system" id="toc-controllability-can-we-steer-the-system" class="nav-link" data-scroll-target="#controllability-can-we-steer-the-system"><span class="header-section-number">13.3.1</span> Controllability: Can We Steer the System?</a></li>
-  <li><a href="#observability-can-we-infer-the-state" id="toc-observability-can-we-infer-the-state" class="nav-link" data-scroll-target="#observability-can-we-infer-the-state"><span class="header-section-number">13.3.2</span> Observability: Can We Infer the State?</a></li>
-  </ul></li>
-  <li><a href="#xiii.4-pole-placement-and-state-feedback" id="toc-xiii.4-pole-placement-and-state-feedback" class="nav-link" data-scroll-target="#xiii.4-pole-placement-and-state-feedback"><span class="header-section-number">13.4</span> XIII.4 Pole Placement and State Feedback</a>
-  <ul class="collapse">
-  <li><a href="#the-pole-placement-problem" id="toc-the-pole-placement-problem" class="nav-link" data-scroll-target="#the-pole-placement-problem"><span class="header-section-number">13.4.1</span> The Pole Placement Problem</a></li>
-  <li><a href="#worked-example-stabilizing-an-unstable-system" id="toc-worked-example-stabilizing-an-unstable-system" class="nav-link" data-scroll-target="#worked-example-stabilizing-an-unstable-system"><span class="header-section-number">13.4.2</span> Worked Example: Stabilizing an Unstable System</a></li>
-  <li><a href="#mechanical-interpretation-position-control-via-force-feedback" id="toc-mechanical-interpretation-position-control-via-force-feedback" class="nav-link" data-scroll-target="#mechanical-interpretation-position-control-via-force-feedback"><span class="header-section-number">13.4.3</span> Mechanical Interpretation: Position Control via Force Feedback</a></li>
-  </ul></li>
-  <li><a href="#xiii.5-pid-control-proportional-integral-derivative" id="toc-xiii.5-pid-control-proportional-integral-derivative" class="nav-link" data-scroll-target="#xiii.5-pid-control-proportional-integral-derivative"><span class="header-section-number">13.5</span> XIII.5 PID Control: Proportional, Integral, Derivative</a>
-  <ul class="collapse">
-  <li><a href="#the-three-modes-of-control" id="toc-the-three-modes-of-control" class="nav-link" data-scroll-target="#the-three-modes-of-control"><span class="header-section-number">13.5.1</span> The Three Modes of Control</a></li>
-  <li><a href="#passive-element-analogy-p-as-spring-i-as-capacitor-d-as-damper" id="toc-passive-element-analogy-p-as-spring-i-as-capacitor-d-as-damper" class="nav-link" data-scroll-target="#passive-element-analogy-p-as-spring-i-as-capacitor-d-as-damper"><span class="header-section-number">13.5.2</span> Passive Element Analogy: P as Spring, I as Capacitor, D as Damper</a></li>
-  <li><a href="#example-temperature-control-with-pid" id="toc-example-temperature-control-with-pid" class="nav-link" data-scroll-target="#example-temperature-control-with-pid"><span class="header-section-number">13.5.3</span> Example: Temperature Control with PID</a></li>
-  </ul></li>
-  <li><a href="#xiii.6-linear-quadratic-regulator-lqr-control" id="toc-xiii.6-linear-quadratic-regulator-lqr-control" class="nav-link" data-scroll-target="#xiii.6-linear-quadratic-regulator-lqr-control"><span class="header-section-number">13.6</span> XIII.6 Linear Quadratic Regulator (LQR) Control</a>
-  <ul class="collapse">
-  <li><a href="#optimal-control-problem" id="toc-optimal-control-problem" class="nav-link" data-scroll-target="#optimal-control-problem"><span class="header-section-number">13.6.1</span> Optimal Control Problem</a></li>
-  <li><a href="#effort-flow-interpretation-of-lqr" id="toc-effort-flow-interpretation-of-lqr" class="nav-link" data-scroll-target="#effort-flow-interpretation-of-lqr"><span class="header-section-number">13.6.2</span> Effort-Flow Interpretation of LQR</a></li>
-  <li><a href="#solution-via-riccati-equation" id="toc-solution-via-riccati-equation" class="nav-link" data-scroll-target="#solution-via-riccati-equation"><span class="header-section-number">13.6.3</span> Solution via Riccati Equation</a></li>
-  <li><a href="#worked-example-speed-control-trade-off" id="toc-worked-example-speed-control-trade-off" class="nav-link" data-scroll-target="#worked-example-speed-control-trade-off"><span class="header-section-number">13.6.4</span> Worked Example: Speed Control Trade-Off</a></li>
-  </ul></li>
-  <li><a href="#xiii.7-the-inverted-pendulum-unstable-system-control" id="toc-xiii.7-the-inverted-pendulum-unstable-system-control" class="nav-link" data-scroll-target="#xiii.7-the-inverted-pendulum-unstable-system-control"><span class="header-section-number">13.7</span> XIII.7 The Inverted Pendulum: Unstable System Control</a>
-  <ul class="collapse">
-  <li><a href="#physics-of-the-inverted-pendulum" id="toc-physics-of-the-inverted-pendulum" class="nav-link" data-scroll-target="#physics-of-the-inverted-pendulum"><span class="header-section-number">13.7.1</span> Physics of the Inverted Pendulum</a></li>
-  <li><a href="#stabilization-via-lqr" id="toc-stabilization-via-lqr" class="nav-link" data-scroll-target="#stabilization-via-lqr"><span class="header-section-number">13.7.2</span> Stabilization via LQR</a></li>
-  </ul></li>
-  <li><a href="#xiii.8-the-intrinsic-extrinsic-boundary-and-control" id="toc-xiii.8-the-intrinsic-extrinsic-boundary-and-control" class="nav-link" data-scroll-target="#xiii.8-the-intrinsic-extrinsic-boundary-and-control"><span class="header-section-number">13.8</span> XIII.8 The Intrinsic-Extrinsic Boundary and Control</a>
-  <ul class="collapse">
-  <li><a href="#philosophical-implication" id="toc-philosophical-implication" class="nav-link" data-scroll-target="#philosophical-implication"><span class="header-section-number">13.8.1</span> Philosophical Implication</a></li>
-  <li><a href="#theorem-controllability-and-stabilizability" id="toc-theorem-controllability-and-stabilizability" class="nav-link" data-scroll-target="#theorem-controllability-and-stabilizability"><span class="header-section-number">13.8.2</span> Theorem: Controllability and Stabilizability</a></li>
-  </ul></li>
-  </ul></li>
-  <li><a href="#part-xiv-bifurcations-stability-and-the-geometry-of-phase-space" id="toc-part-xiv-bifurcations-stability-and-the-geometry-of-phase-space" class="nav-link" data-scroll-target="#part-xiv-bifurcations-stability-and-the-geometry-of-phase-space"><span class="header-section-number">14</span> Part XIV: Bifurcations, Stability, and the Geometry of Phase Space</a>
-  <ul class="collapse">
-  <li><a href="#xiv.1-motivation-why-systems-behave-differently-at-different-parameters" id="toc-xiv.1-motivation-why-systems-behave-differently-at-different-parameters" class="nav-link" data-scroll-target="#xiv.1-motivation-why-systems-behave-differently-at-different-parameters"><span class="header-section-number">14.1</span> XIV.1 Motivation: Why Systems Behave Differently at Different Parameters</a></li>
-  <li><a href="#xiv.2-fixed-points-and-equilibria" id="toc-xiv.2-fixed-points-and-equilibria" class="nav-link" data-scroll-target="#xiv.2-fixed-points-and-equilibria"><span class="header-section-number">14.2</span> XIV.2 Fixed Points and Equilibria</a></li>
-  <li><a href="#xiv.3-bifurcations-when-stability-changes" id="toc-xiv.3-bifurcations-when-stability-changes" class="nav-link" data-scroll-target="#xiv.3-bifurcations-when-stability-changes"><span class="header-section-number">14.3</span> XIV.3 Bifurcations: When Stability Changes</a>
-  <ul class="collapse">
-  <li><a href="#saddle-node-bifurcation" id="toc-saddle-node-bifurcation" class="nav-link" data-scroll-target="#saddle-node-bifurcation"><span class="header-section-number">14.3.1</span> Saddle-Node Bifurcation</a></li>
-  <li><a href="#hopf-bifurcation" id="toc-hopf-bifurcation" class="nav-link" data-scroll-target="#hopf-bifurcation"><span class="header-section-number">14.3.2</span> Hopf Bifurcation</a></li>
-  </ul></li>
-  <li><a href="#xiv.4-bifurcation-diagrams" id="toc-xiv.4-bifurcation-diagrams" class="nav-link" data-scroll-target="#xiv.4-bifurcation-diagrams"><span class="header-section-number">14.4</span> XIV.4 Bifurcation Diagrams</a></li>
-  <li><a href="#xiv.5-lyapunov-stability-a-rigorous-approach" id="toc-xiv.5-lyapunov-stability-a-rigorous-approach" class="nav-link" data-scroll-target="#xiv.5-lyapunov-stability-a-rigorous-approach"><span class="header-section-number">14.5</span> XIV.5 Lyapunov Stability: A Rigorous Approach</a>
-  <ul class="collapse">
-  <li><a href="#example-spring-damper-system" id="toc-example-spring-damper-system" class="nav-link" data-scroll-target="#example-spring-damper-system"><span class="header-section-number">14.5.1</span> Example: Spring-Damper System</a></li>
-  </ul></li>
-  <li><a href="#xiv.6-connection-to-control-and-feedback" id="toc-xiv.6-connection-to-control-and-feedback" class="nav-link" data-scroll-target="#xiv.6-connection-to-control-and-feedback"><span class="header-section-number">14.6</span> XIV.6 Connection to Control and Feedback</a></li>
-  </ul></li>
-  <li><a href="#part-xv-limits-and-breakdown-of-the-framework" id="toc-part-xv-limits-and-breakdown-of-the-framework" class="nav-link" data-scroll-target="#part-xv-limits-and-breakdown-of-the-framework"><span class="header-section-number">15</span> Part XV: Limits and Breakdown of the Framework</a>
-  <ul class="collapse">
-  <li><a href="#xiv.1-intellectual-honesty-where-does-this-framework-fail" id="toc-xiv.1-intellectual-honesty-where-does-this-framework-fail" class="nav-link" data-scroll-target="#xiv.1-intellectual-honesty-where-does-this-framework-fail"><span class="header-section-number">15.1</span> XIV.1 Intellectual Honesty: Where Does This Framework Fail?</a></li>
-  <li><a href="#xiv.2-failure-case-1-chaotic-and-stochastic-systems" id="toc-xiv.2-failure-case-1-chaotic-and-stochastic-systems" class="nav-link" data-scroll-target="#xiv.2-failure-case-1-chaotic-and-stochastic-systems"><span class="header-section-number">15.2</span> XIV.2 Failure Case 1: Chaotic and Stochastic Systems</a>
-  <ul class="collapse">
-  <li><a href="#the-problem" id="toc-the-problem" class="nav-link" data-scroll-target="#the-problem"><span class="header-section-number">15.2.1</span> The Problem</a></li>
-  <li><a href="#framework-limitation" id="toc-framework-limitation" class="nav-link" data-scroll-target="#framework-limitation"><span class="header-section-number">15.2.2</span> Framework Limitation</a></li>
-  <li><a href="#when-the-framework-still-works" id="toc-when-the-framework-still-works" class="nav-link" data-scroll-target="#when-the-framework-still-works"><span class="header-section-number">15.2.3</span> When the Framework Still Works</a></li>
-  </ul></li>
-  <li><a href="#xiv.3-failure-case-2-nonlinear-responses-with-amplitude-dependence" id="toc-xiv.3-failure-case-2-nonlinear-responses-with-amplitude-dependence" class="nav-link" data-scroll-target="#xiv.3-failure-case-2-nonlinear-responses-with-amplitude-dependence"><span class="header-section-number">15.3</span> XIV.3 Failure Case 2: Nonlinear Responses with Amplitude Dependence</a>
-  <ul class="collapse">
-  <li><a href="#the-problem-1" id="toc-the-problem-1" class="nav-link" data-scroll-target="#the-problem-1"><span class="header-section-number">15.3.1</span> The Problem</a></li>
-  <li><a href="#when-this-matters" id="toc-when-this-matters" class="nav-link" data-scroll-target="#when-this-matters"><span class="header-section-number">15.3.2</span> When This Matters</a></li>
-  <li><a href="#when-the-framework-still-works-1" id="toc-when-the-framework-still-works-1" class="nav-link" data-scroll-target="#when-the-framework-still-works-1"><span class="header-section-number">15.3.3</span> When the Framework Still Works</a></li>
-  </ul></li>
-  <li><a href="#xiv.4-failure-case-3-time-delay-systems-and-memory-effects" id="toc-xiv.4-failure-case-3-time-delay-systems-and-memory-effects" class="nav-link" data-scroll-target="#xiv.4-failure-case-3-time-delay-systems-and-memory-effects"><span class="header-section-number">15.4</span> XIV.4 Failure Case 3: Time-Delay Systems and Memory Effects</a>
-  <ul class="collapse">
-  <li><a href="#the-problem-2" id="toc-the-problem-2" class="nav-link" data-scroll-target="#the-problem-2"><span class="header-section-number">15.4.1</span> The Problem</a></li>
-  <li><a href="#delayed-feedback" id="toc-delayed-feedback" class="nav-link" data-scroll-target="#delayed-feedback"><span class="header-section-number">15.4.2</span> Delayed Feedback</a></li>
-  <li><a href="#when-the-framework-still-works-2" id="toc-when-the-framework-still-works-2" class="nav-link" data-scroll-target="#when-the-framework-still-works-2"><span class="header-section-number">15.4.3</span> When the Framework Still Works</a></li>
-  </ul></li>
-  <li><a href="#xiv.5-failure-case-4-strongly-coupled-multi-body-systems" id="toc-xiv.5-failure-case-4-strongly-coupled-multi-body-systems" class="nav-link" data-scroll-target="#xiv.5-failure-case-4-strongly-coupled-multi-body-systems"><span class="header-section-number">15.5</span> XIV.5 Failure Case 4: Strongly Coupled Multi-Body Systems</a>
-  <ul class="collapse">
-  <li><a href="#the-problem-3" id="toc-the-problem-3" class="nav-link" data-scroll-target="#the-problem-3"><span class="header-section-number">15.5.1</span> The Problem</a></li>
-  <li><a href="#when-this-breaks-the-framework" id="toc-when-this-breaks-the-framework" class="nav-link" data-scroll-target="#when-this-breaks-the-framework"><span class="header-section-number">15.5.2</span> When This Breaks the Framework</a></li>
-  <li><a href="#when-the-framework-still-works-3" id="toc-when-the-framework-still-works-3" class="nav-link" data-scroll-target="#when-the-framework-still-works-3"><span class="header-section-number">15.5.3</span> When the Framework Still Works</a></li>
-  </ul></li>
-  <li><a href="#xiv.6-critical-connection-identifiability-controllability-relationship" id="toc-xiv.6-critical-connection-identifiability-controllability-relationship" class="nav-link" data-scroll-target="#xiv.6-critical-connection-identifiability-controllability-relationship"><span class="header-section-number">15.6</span> XIV.6 Critical Connection: Identifiability ↔︎ Controllability Relationship</a>
-  <ul class="collapse">
-  <li><a href="#theorem-xiv.6.1-identifiability-observability-duality" id="toc-theorem-xiv.6.1-identifiability-observability-duality" class="nav-link" data-scroll-target="#theorem-xiv.6.1-identifiability-observability-duality"><span class="header-section-number">15.6.1</span> Theorem XIV.6.1 (Identifiability-Observability Duality)</a></li>
-  <li><a href="#theorem-xiv.6.2-controllability-stabilizability-via-feedback" id="toc-theorem-xiv.6.2-controllability-stabilizability-via-feedback" class="nav-link" data-scroll-target="#theorem-xiv.6.2-controllability-stabilizability-via-feedback"><span class="header-section-number">15.6.2</span> Theorem XIV.6.2 (Controllability-Stabilizability via Feedback)</a></li>
-  <li><a href="#theorem-xiv.6.3-bifurcation-loss-of-identifiability" id="toc-theorem-xiv.6.3-bifurcation-loss-of-identifiability" class="nav-link" data-scroll-target="#theorem-xiv.6.3-bifurcation-loss-of-identifiability"><span class="header-section-number">15.6.3</span> Theorem XIV.6.3 (Bifurcation Loss of Identifiability)</a></li>
-  </ul></li>
-  <li><a href="#xiv.7-summary-where-the-framework-is-robust-vs.-fragile" id="toc-xiv.7-summary-where-the-framework-is-robust-vs.-fragile" class="nav-link" data-scroll-target="#xiv.7-summary-where-the-framework-is-robust-vs.-fragile"><span class="header-section-number">15.7</span> XIV.7 Summary: Where the Framework is Robust vs.&nbsp;Fragile</a></li>
-  </ul></li>
-  
-  
-  
-  
-  
-  <li><a href="#part-xvi-synthesis-and-future-directions" id="toc-part-xvi-synthesis-and-future-directions" class="nav-link" data-scroll-target="#part-xvi-synthesis-and-future-directions"><span class="header-section-number">21</span> Part XVI: Synthesis and Future Directions</a>
-  <ul class="collapse">
-  <li><a href="#xvi.1-what-we-have-accomplished" id="toc-xvi.1-what-we-have-accomplished" class="nav-link" data-scroll-target="#xvi.1-what-we-have-accomplished"><span class="header-section-number">21.1</span> XVI.1 What We Have Accomplished</a></li>
-  <li><a href="#xvi.2-the-deep-unity-of-physical-law" id="toc-xvi.2-the-deep-unity-of-physical-law" class="nav-link" data-scroll-target="#xvi.2-the-deep-unity-of-physical-law"><span class="header-section-number">21.2</span> XVI.2 The Deep Unity of Physical Law</a></li>
-  <li><a href="#xvi.3-outstanding-questions-and-future-directions" id="toc-xvi.3-outstanding-questions-and-future-directions" class="nav-link" data-scroll-target="#xvi.3-outstanding-questions-and-future-directions"><span class="header-section-number">21.3</span> XVI.3 Outstanding Questions and Future Directions</a></li>
-  <li><a href="#xvi.4-implications-for-scientific-practice" id="toc-xvi.4-implications-for-scientific-practice" class="nav-link" data-scroll-target="#xvi.4-implications-for-scientific-practice"><span class="header-section-number">21.4</span> XVI.4 Implications for Scientific Practice</a></li>
-  <li><a href="#xvi.5-closing-reflections" id="toc-xvi.5-closing-reflections" class="nav-link" data-scroll-target="#xvi.5-closing-reflections"><span class="header-section-number">21.5</span> XVI.5 Closing Reflections</a></li>
-  <li><a href="#recommended-further-reading-by-topic" id="toc-recommended-further-reading-by-topic" class="nav-link" data-scroll-target="#recommended-further-reading-by-topic"><span class="header-section-number">21.6</span> Recommended Further Reading by Topic</a></li>
-  </ul></li>
-  </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="sources-fields-v2-rigorous.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
-</div>
-<main class="content" id="quarto-document-content">
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Work</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
+
+    <div class="content">
+        <!-- QMD_CONTENT_START -->
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -450,7 +76,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">January 27, 2026</p>
+      <p class="date">February 5, 2026</p>
     </div>
   </div>
   
@@ -476,10 +102,7 @@ window.Quarto = {
 <h1 data-number="1"><span class="header-section-number">1</span> Part I: The Primordial Pattern</h1>
 <section id="why-change-matters" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="why-change-matters"><span class="header-section-number">1.1</span> Why Change Matters</h2>
-<p>At a fundamental level, no system is truly static and nothing happens for no reason. The nature of a dynamical system is that it changes—for some reason. The study of dynamical systems seeks to describe the behavior of systems as they change.</p>
-<p>Of specific interest is that which encourages or discourages a system to change. What motivations or hesitations, attractions or repulsions influence its behavior? Are these influences governed by the nature of the system itself or the environment in which the system evolves? Or both? If so, which has a dominant effect? This is a question of “how?” not of “why?”</p>
-<p>It is not merely that change is interesting, but that it is essential to life and survival—it is the driving force. When surveying for a target or prey, it is optimal for a predator to scan the scene with their eyes rather than staring in one direction. Focusing attention in one location creates a central bias which tends to ignore the periphery—where change is more likely to occur. Scanning attention across locations creates a peripheral bias, attending to where change is more likely. When confined to a static environment of solitude, the human mind will begin to hallucinate as it seeks a sign of change—something that says there is still life in the system.</p>
-<p>The nature of change is fundamental to physics and philosophy. All physical laws depend on a description of change (or lack thereof), and dynamical systems provide a rigorous mathematical framework to describe these changes.</p>
+<p>All physical laws describe change (or its absence). Dynamical systems provide a rigorous mathematical framework for these descriptions. The central question: what encourages or discourages a system to change? Is the influence intrinsic to the system or imposed by its environment?</p>
 </section>
 <section id="two-laws-one-pattern" class="level2" data-number="1.2">
 <h2 data-number="1.2" class="anchored" data-anchor-id="two-laws-one-pattern"><span class="header-section-number">1.2</span> Two Laws, One Pattern</h2>
@@ -1038,13 +661,13 @@ Note
 <h1 data-number="8"><span class="header-section-number">8</span> Part VIII: Manifolds and Trajectories — Rigorous Formulation</h1>
 <section id="pdes-as-infinite-dimensional-odes" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="pdes-as-infinite-dimensional-odes"><span class="header-section-number">8.1</span> PDEs as Infinite-Dimensional ODEs</h2>
-<p>Here is a profound <strong>mathematical reframing</strong> of PDEs: a PDE like <span class="math inline">\(\frac{\partial u}{\partial t} = \mathcal{L}_\theta[u] + S\)</span> is <strong>rigorously equivalent</strong> to an ODE on an infinite-dimensional Hilbert space. At each instant <span class="math inline">\(t\)</span>, the state of the system is not a finite vector in <span class="math inline">\(\mathbb{R}^n\)</span> but an entire field configuration <span class="math inline">\(u(\cdot, t)\)</span>—a point on an infinite-dimensional Hilbert manifold of possible field shapes.</p>
+<p>A PDE like <span class="math inline">\(\frac{\partial u}{\partial t} = \mathcal{L}_\theta[u] + S\)</span> is <strong>rigorously equivalent</strong> to an ODE on an infinite-dimensional Hilbert space <span class="citation" data-cites="Pazy_1983">(<a href="#ref-Pazy_1983" role="doc-biblioref">Pazy 1983</a>)</span>. At each instant <span class="math inline">\(t\)</span>, the state is not a finite vector in <span class="math inline">\(\mathbb{R}^n\)</span> but an entire field configuration <span class="math inline">\(u(\cdot, t)\)</span>—a point in an infinite-dimensional function space.</p>
 <p><strong>Formal Statement:</strong> Let <span class="math inline">\(H = L^2(\Omega)\)</span> be the Hilbert space of square-integrable functions on spatial domain <span class="math inline">\(\Omega\)</span>. A PDE of the form</p>
 <p><span class="math display">\[\frac{\partial u}{\partial t} = \mathcal{L}_\theta[u] + S(x,t)\]</span></p>
 <p>with boundary conditions can be written <strong>rigorously</strong> as the abstract evolution equation</p>
 <p><span class="math display">\[\frac{d\mathbf{u}}{dt} = \mathbf{A}\mathbf{u} + \mathbf{S}(t), \quad \mathbf{u}(0) = \mathbf{u}_0\]</span></p>
 <p>where: - <span class="math inline">\(\mathbf{u}(t) \in H\)</span> is the state (field configuration at time <span class="math inline">\(t\)</span>) - <span class="math inline">\(\mathbf{A}: D(\mathbf{A}) \subset H \to H\)</span> is a densely-defined linear operator with domain <span class="math inline">\(D(\mathbf{A})\)</span> - <span class="math inline">\(\mathbf{S}(t) \in H\)</span> is the external forcing (extrinsic source)</p>
-<p><strong>This equivalence is rigorous</strong>, not metaphorical. To work with it requires functional analysis (Section IV below details the necessary mathematical machinery).</p>
+<p>The functional-analytic machinery is developed in Appendix N.</p>
 <section id="the-operator-determines-the-geometry" class="level3" data-number="8.1.1">
 <h3 data-number="8.1.1" class="anchored" data-anchor-id="the-operator-determines-the-geometry"><span class="header-section-number">8.1.1</span> The Operator Determines the Geometry</h3>
 <p>The intrinsic operator <span class="math inline">\(\mathcal{L}_\theta\)</span> (equivalently, <span class="math inline">\(\mathbf{A}\)</span>) determines the <strong>geometry</strong> of the infinite-dimensional state space:</p>
@@ -1079,20 +702,7 @@ Note
 <li><p><strong>Initial conditions <span class="math inline">\(\mathbf{u}_0 \in H\)</span></strong> determine the starting point on the manifold. The Fourier expansion <span class="math inline">\(\mathbf{u}_0 = \sum_n c_n \phi_n\)</span> shows how much weight the initial condition places in each mode.</p></li>
 <li><p><strong>Boundary conditions</strong> constrain which modes can be active and restrict the accessible region of the manifold. Dirichlet boundaries force <span class="math inline">\(u = 0\)</span> at the boundary; Neumann boundaries allow <span class="math inline">\(\partial u/\partial n = 0\)</span>, affecting which eigenfunctions are admissible.</p></li>
 </ul>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span>Division of Labor (Rigorous)
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p><strong>The operator <span class="math inline">\(\mathbf{A}\)</span> (encoded in <span class="math inline">\(\mathcal{L}_\theta\)</span> and boundary conditions) describes the infinite-dimensional manifold of possibilities (modes, decay rates, stability); the solution <span class="math inline">\(\mathbf{u}(t)\)</span> traces the unique trajectory determined by <span class="math inline">\(\mathbf{A}\)</span>, initial data <span class="math inline">\(\mathbf{u}_0\)</span>, and forcing <span class="math inline">\(\mathbf{S}(t)\)</span>.</strong></p>
-</div>
-</div>
-<p>This reframing is not merely poetic—<strong>it is mathematically rigorous</strong> and enables precise analysis of PDEs as infinite-dimensional dynamical systems (developed in Appendix N).</p>
+<p>In summary: the operator <span class="math inline">\(\mathbf{A}\)</span> defines the geometry (modes, decay rates, stability); the trajectory <span class="math inline">\(\mathbf{u}(t)\)</span> is uniquely determined by <span class="math inline">\(\mathbf{A}\)</span>, initial data <span class="math inline">\(\mathbf{u}_0\)</span>, and forcing <span class="math inline">\(\mathbf{S}(t)\)</span>.</p>
 <hr>
 </section>
 </section>
@@ -2254,7 +1864,7 @@ Note
 <h2 data-number="12.2" class="anchored" data-anchor-id="xii.2-power-conjugacy-and-effort-flow-pairs"><span class="header-section-number">12.2</span> XII.2 Power Conjugacy and Effort-Flow Pairs</h2>
 <section id="definition-power-conjugate-variables" class="level3" data-number="12.2.1">
 <h3 data-number="12.2.1" class="anchored" data-anchor-id="definition-power-conjugate-variables"><span class="header-section-number">12.2.1</span> Definition: Power-Conjugate Variables</h3>
-<p><strong>Definition XI.2.1:</strong> Two variables <span class="math inline">\((e, f)\)</span> are <strong>power-conjugate</strong> if their product has units of power (energy per unit time):</p>
+<p><strong>Definition XII.2.1:</strong> Two variables <span class="math inline">\((e, f)\)</span> are <strong>power-conjugate</strong> if their product has units of power (energy per unit time):</p>
 <p><span class="math display">\[P = e(t) \cdot f(t) \quad \text{[Watts]}\]</span></p>
 <p>where <span class="math inline">\(e\)</span> is the <strong>effort</strong> (potential-like variable) and <span class="math inline">\(f\)</span> is the <strong>flow</strong> (rate-like variable).</p>
 </section>
@@ -2323,7 +1933,7 @@ Note
 <p>In every domain, three types of passive elements appear, each with a specific constitutive relation relating effort to flow.</p>
 <section id="r-type-elements-dissipation" class="level3" data-number="12.3.1">
 <h3 data-number="12.3.1" class="anchored" data-anchor-id="r-type-elements-dissipation"><span class="header-section-number">12.3.1</span> R-Type Elements (Dissipation)</h3>
-<p><strong>Definition XI.3.1:</strong> An <strong>R-type</strong> (resistive) element has a constitutive relation of the form:</p>
+<p><strong>Definition XII.3.1:</strong> An <strong>R-type</strong> (resistive) element has a constitutive relation of the form:</p>
 <p><span class="math display">\[e = R_{\text{element}} \cdot f\]</span></p>
 <p>where <span class="math inline">\(R_{\text{element}}\)</span> is a resistance parameter (could be electrical, mechanical, hydraulic, etc.) and the product <span class="math inline">\(ef\)</span> is strictly positive, meaning energy is dissipated (converted to heat).</p>
 <p><strong>Examples:</strong></p>
@@ -2369,12 +1979,12 @@ Note
 </tr>
 </tbody>
 </table>
-<p><strong>Theorem XI.3.2 (R-Type Passivity):</strong> For any R-type element with positive resistance <span class="math inline">\(R_{\text{element}} &gt; 0\)</span> and positive power input <span class="math inline">\(P = ef &gt; 0\)</span>, the element always <strong>dissipates</strong> energy (converts it to heat). No energy is stored.</p>
+<p><strong>Theorem XII.3.2 (R-Type Passivity):</strong> For any R-type element with positive resistance <span class="math inline">\(R_{\text{element}} &gt; 0\)</span> and positive power input <span class="math inline">\(P = ef &gt; 0\)</span>, the element always <strong>dissipates</strong> energy (converts it to heat). No energy is stored.</p>
 <p><em>Proof:</em> By definition, <span class="math inline">\(e\)</span> and <span class="math inline">\(f\)</span> have the same sign (both positive in a physically driven system), so <span class="math inline">\(P = ef &gt; 0\)</span>. Since the relation is <span class="math inline">\(e = R_{\text{element}} \cdot f\)</span> with <span class="math inline">\(R_{\text{element}} &gt; 0\)</span>, any power input must flow out as heat, with none stored internally. Therefore, <span class="math inline">\(dE/dt = -P &lt; 0\)</span>, confirming energy is always lost. □</p>
 </section>
 <section id="c-type-elements-potential-storage" class="level3" data-number="12.3.2">
 <h3 data-number="12.3.2" class="anchored" data-anchor-id="c-type-elements-potential-storage"><span class="header-section-number">12.3.2</span> C-Type Elements (Potential Storage)</h3>
-<p><strong>Definition XI.3.3:</strong> A <strong>C-type</strong> (capacitive) element has a constitutive relation of the form:</p>
+<p><strong>Definition XII.3.3:</strong> A <strong>C-type</strong> (capacitive) element has a constitutive relation of the form:</p>
 <p><span class="math display">\[q_C = C_{\text{element}} \cdot e\]</span></p>
 <p>where <span class="math inline">\(q_C\)</span> is the <strong>C-state</strong> (generalized displacement, i.e., <span class="math inline">\(\int f\,dt\)</span>) and <span class="math inline">\(C_{\text{element}}\)</span> is the capacitance parameter. The element stores energy proportional to <span class="math inline">\(e^2\)</span>.</p>
 <p><strong>Examples:</strong></p>
@@ -2423,7 +2033,7 @@ Note
 <p><span class="math display">\[\frac{dq_C}{dt} = C_{\text{element}} \frac{de}{dt}\]</span></p>
 <p><span class="math display">\[f = C_{\text{element}} \frac{de}{dt}\]</span></p>
 <p>This is the <strong>rate-equation</strong> for C-type elements: flow is proportional to the rate of change of effort.</p>
-<p><strong>Theorem XI.3.4 (C-Type Energy Storage):</strong> A C-type element with positive capacitance <span class="math inline">\(C_{\text{element}} &gt; 0\)</span> stores energy that depends only on the current effort level, not on the history:</p>
+<p><strong>Theorem XII.3.4 (C-Type Energy Storage):</strong> A C-type element with positive capacitance <span class="math inline">\(C_{\text{element}} &gt; 0\)</span> stores energy that depends only on the current effort level, not on the history:</p>
 <p><span class="math display">\[E_C(e) = \int_0^e e' \cdot f\,de' = \int_0^e e' \cdot C_{\text{element}} \frac{de'}{dt} dt = \frac{1}{2}C_{\text{element}} e^2\]</span></p>
 <p>This energy is recoverable (lossless storage).</p>
 <p><em>Proof:</em> By the work-energy theorem, energy stored equals the integral of power:</p>
@@ -2432,7 +2042,7 @@ Note
 </section>
 <section id="i-type-elements-kinetic-storage" class="level3" data-number="12.3.3">
 <h3 data-number="12.3.3" class="anchored" data-anchor-id="i-type-elements-kinetic-storage"><span class="header-section-number">12.3.3</span> I-Type Elements (Kinetic Storage)</h3>
-<p><strong>Definition XI.3.5:</strong> An <strong>I-type</strong> (inductive) element has a constitutive relation of the form:</p>
+<p><strong>Definition XII.3.5:</strong> An <strong>I-type</strong> (inductive) element has a constitutive relation of the form:</p>
 <p><span class="math display">\[p_I = I_{\text{element}} \cdot f\]</span></p>
 <p>where <span class="math inline">\(p_I\)</span> is the <strong>I-state</strong> (generalized momentum, i.e., <span class="math inline">\(\int e\,dt\)</span>) and <span class="math inline">\(I_{\text{element}}\)</span> is the inductance parameter. The element stores energy proportional to <span class="math inline">\(f^2\)</span>.</p>
 <p><strong>Examples:</strong></p>
@@ -2481,10 +2091,10 @@ Note
 <p><span class="math display">\[\frac{dp_I}{dt} = I_{\text{element}} \frac{df}{dt}\]</span></p>
 <p><span class="math display">\[e = I_{\text{element}} \frac{df}{dt}\]</span></p>
 <p>This is the <strong>effort-equation</strong> for I-type elements: effort is proportional to the rate of change of flow.</p>
-<p><strong>Theorem XI.3.6 (I-Type Energy Storage):</strong> An I-type element with positive inductance <span class="math inline">\(I_{\text{element}} &gt; 0\)</span> stores energy that depends only on the current flow level:</p>
+<p><strong>Theorem XII.3.6 (I-Type Energy Storage):</strong> An I-type element with positive inductance <span class="math inline">\(I_{\text{element}} &gt; 0\)</span> stores energy that depends only on the current flow level:</p>
 <p><span class="math display">\[E_I(f) = \int_0^f e \cdot f'\,df' = \int_0^f I_{\text{element}} \frac{df'}{dt} \cdot f'\,df' = \frac{1}{2}I_{\text{element}} f^2\]</span></p>
 <p>This energy is recoverable (lossless storage).</p>
-<p><em>Proof:</em> Analogous to Theorem XI.3.4, by the work-energy theorem:</p>
+<p><em>Proof:</em> Analogous to Theorem XII.3.4, by the work-energy theorem:</p>
 <p><span class="math display">\[E_I = \int P\,dt = \int e \cdot f\,dt = \int I_{\text{element}} \frac{df}{dt} \cdot f\,dt = \int_0^f I_{\text{element}} f'\,df' = \frac{1}{2}I_{\text{element}} f^2\]</span></p>
 <p>Path-independent, confirming lossless storage. □</p>
 </section>
@@ -2493,12 +2103,12 @@ Note
 <h2 data-number="12.4" class="anchored" data-anchor-id="xii.4-the-bond-graph-framework-as-rigorous-theorem"><span class="header-section-number">12.4</span> XII.4 The Bond-Graph Framework as Rigorous Theorem</h2>
 <section id="single-port-1-port-elements" class="level3" data-number="12.4.1">
 <h3 data-number="12.4.1" class="anchored" data-anchor-id="single-port-1-port-elements"><span class="header-section-number">12.4.1</span> Single-Port (1-Port) Elements</h3>
-<p><strong>Definition XI.4.1:</strong> A <strong>1-port element</strong> is a system component with one pair of power-conjugate terminals <span class="math inline">\((e_{\text{port}}, f_{\text{port}})\)</span> where power flows in or out.</p>
+<p><strong>Definition XII.4.1:</strong> A <strong>1-port element</strong> is a system component with one pair of power-conjugate terminals <span class="math inline">\((e_{\text{port}}, f_{\text{port}})\)</span> where power flows in or out.</p>
 <p>Every passive 1-port falls into one of three categories: R-type, C-type, or I-type, as defined above.</p>
 </section>
 <section id="multi-port-networks-and-kirchhoff-analogs" class="level3" data-number="12.4.2">
 <h3 data-number="12.4.2" class="anchored" data-anchor-id="multi-port-networks-and-kirchhoff-analogs"><span class="header-section-number">12.4.2</span> Multi-Port Networks and Kirchhoff Analogs</h3>
-<p><strong>Theorem XI.4.2 (Effort Conservation in Series Networks):</strong> Consider <span class="math inline">\(n\)</span> 1-port elements connected in <strong>series</strong> (same flow through all):</p>
+<p><strong>Theorem XII.4.2 (Effort Conservation in Series Networks):</strong> Consider <span class="math inline">\(n\)</span> 1-port elements connected in <strong>series</strong> (same flow through all):</p>
 <p><span class="math display">\[f_1 = f_2 = \cdots = f_n = f_{\text{common}}\]</span></p>
 <p>The total effort is the <strong>sum</strong> of individual efforts:</p>
 <p><span class="math display">\[e_{\text{total}} = e_1 + e_2 + \cdots + e_n\]</span></p>
@@ -2507,7 +2117,7 @@ Note
 <p><span class="math display">\[= e_1 f_{\text{common}} + e_2 f_{\text{common}} + \cdots + e_n f_{\text{common}} = P_1 + P_2 + \cdots + P_n\]</span></p>
 <p><em>Proof:</em> Direct algebra. □</p>
 <p><strong>Interpretation:</strong> This is the effort-analog of Kirchhoff’s voltage law (KVL) for electrical circuits: voltages sum around a loop. In mechanical systems: forces sum at a point (Newton’s Second Law). In hydraulics: pressures add in series.</p>
-<p><strong>Theorem XI.4.3 (Flow Conservation in Parallel Networks):</strong> Consider <span class="math inline">\(n\)</span> 1-port elements connected in <strong>parallel</strong> (same effort across all):</p>
+<p><strong>Theorem XII.4.3 (Flow Conservation in Parallel Networks):</strong> Consider <span class="math inline">\(n\)</span> 1-port elements connected in <strong>parallel</strong> (same effort across all):</p>
 <p><span class="math display">\[e_1 = e_2 = \cdots = e_n = e_{\text{common}}\]</span></p>
 <p>The total flow is the <strong>sum</strong> of individual flows:</p>
 <p><span class="math display">\[f_{\text{total}} = f_1 + f_2 + \cdots + f_n\]</span></p>
@@ -2519,8 +2129,8 @@ Note
 </section>
 <section id="the-bond-graph-node-causality-and-power-flow" class="level3" data-number="12.4.3">
 <h3 data-number="12.4.3" class="anchored" data-anchor-id="the-bond-graph-node-causality-and-power-flow"><span class="header-section-number">12.4.3</span> The Bond-Graph Node: Causality and Power Flow</h3>
-<p><strong>Definition XI.4.4:</strong> A <strong>bond-graph 0-junction</strong> (series/effort-sum node) connects elements where effort sums but flow is common. A <strong>bond-graph 1-junction</strong> (parallel/flow-sum node) connects elements where flow sums but effort is common.</p>
-<p><strong>Theorem XI.4.5 (Bond-Graph Power Consistency):</strong> In any bond-graph network (composed of 0-junctions, 1-junctions, and 1-port elements), the total power entering equals the total power dissipated, stored, or converted:</p>
+<p><strong>Definition XII.4.4:</strong> A <strong>bond-graph 0-junction</strong> (series/effort-sum node) connects elements where effort sums but flow is common. A <strong>bond-graph 1-junction</strong> (parallel/flow-sum node) connects elements where flow sums but effort is common.</p>
+<p><strong>Theorem XII.4.5 (Bond-Graph Power Consistency):</strong> In any bond-graph network (composed of 0-junctions, 1-junctions, and 1-port elements), the total power entering equals the total power dissipated, stored, or converted:</p>
 <p><span class="math display">\[\sum_{\text{external sources}} P_{\text{in}} = \sum_{\text{R-type}} P_{\text{dissipated}} + \frac{d}{dt}\sum_{\text{C-type}} E_C + \frac{d}{dt}\sum_{\text{I-type}} E_I\]</span></p>
 <p><em>Proof:</em> By Theorems XI.4.2 and XI.4.3, power is conserved at every junction (sum of input powers equals sum of output powers). Integrating over all junctions and elements yields the global energy balance. □</p>
 </section>
@@ -2534,8 +2144,8 @@ Note
 <p><strong>Why does force correspond to voltage?</strong> Because both are “effort” variables driving flow through resistance. <strong>Why is the analogy exact, not just approximate?</strong> Because power conjugacy is a rigorous mathematical principle: if <span class="math inline">\(P_{\text{mech}} = Fv\)</span> and <span class="math inline">\(P_{\text{elec}} = VI\)</span> are both manifestations of the same physics (effort × flow = power), then any system built from R, L, C elements in series or parallel has identical dynamics regardless of domain.</p>
 <p><strong>Practical implication:</strong> Any circuit design (filter, amplifier, oscillator) can be directly implemented as a mechanical system. An electrical engineer’s pole-placement calculations apply directly to a mechanical engineer’s damping design.</p>
 </section>
-<section id="theorem-xi.5.1-force-voltage-analogy-via-power-conjugacy" class="level3" data-number="12.5.2">
-<h3 data-number="12.5.2" class="anchored" data-anchor-id="theorem-xi.5.1-force-voltage-analogy-via-power-conjugacy"><span class="header-section-number">12.5.2</span> Theorem XI.5.1 (Force-Voltage Analogy via Power Conjugacy)</h3>
+<section id="theorem-xii.5.1-force-voltage-analogy-via-power-conjugacy" class="level3" data-number="12.5.2">
+<h3 data-number="12.5.2" class="anchored" data-anchor-id="theorem-xii.5.1-force-voltage-analogy-via-power-conjugacy"><span class="header-section-number">12.5.2</span> Theorem XII.5.1 (Force-Voltage Analogy via Power Conjugacy)</h3>
 <p><strong>Statement:</strong> Consider two systems: 1. <strong>Mechanical:</strong> A mass <span class="math inline">\(m\)</span> with applied force <span class="math inline">\(F_{\text{app}}\)</span> and damper <span class="math inline">\(b\)</span> 2. <strong>Electrical:</strong> An inductor <span class="math inline">\(L\)</span> with applied voltage <span class="math inline">\(V_{\text{app}}\)</span> and resistor <span class="math inline">\(R\)</span></p>
 <p>If the parameters satisfy: <span class="math display">\[m \leftrightarrow L, \quad b \leftrightarrow R, \quad F \leftrightarrow V, \quad v \leftrightarrow I\]</span></p>
 <p>then the two systems obey <strong>identical</strong> differential equations:</p>
@@ -2555,16 +2165,16 @@ Note
 <h3 data-number="12.5.3" class="anchored" data-anchor-id="concrete-demonstration-session-2-examples"><span class="header-section-number">12.5.3</span> Concrete Demonstration: Session 2 Examples</h3>
 <p>This power-conjugacy correspondence is not theoretical—<strong>Part X verifies it with explicit worked examples across all domains:</strong></p>
 <ul>
-<li><p><strong>Theorem XI.5.1 applied to RC Circuits</strong> (Part X.3): An RC circuit with time constant <span class="math inline">\(\tau_{RC} = RC\)</span> exhibits exponential charging <span class="math inline">\(V(t) = V_{\text{source}}(1 - e^{-t/\tau_{RC}})\)</span>. The <strong>identical equation</strong> governs a mechanical damper with applied force: <span class="math inline">\(v(t) = F_{\text{app}}/b \cdot (1 - e^{-t/\tau_m})\)</span> where <span class="math inline">\(\tau_m = m/b\)</span>. The equation is <strong>mathematically identical</strong> under the correspondence force ↔︎ voltage, with <span class="math inline">\(\tau_m \leftrightarrow \tau_{RC}\)</span>.</p></li>
-<li><p><strong>Theorem XI.5.1 applied to RL Circuits</strong> (Part X.4): An RL circuit responds to a step voltage with <span class="math inline">\(I(t) = V_{\text{app}}/R (1 - e^{-Rt/L})\)</span>. The <strong>same mathematics</strong> governs how a mass accelerates under constant force with drag: <span class="math inline">\(v(t) = F_{\text{app}}/b (1 - e^{-bt/m})\)</span>. This is not an analogy—it is <strong>mathematical identity</strong> under the substitution.</p></li>
-<li><p><strong>Theorem XI.5.1 applied to Thermal Systems</strong> (Part X.8): Heat diffusion through a resistor into a thermal mass obeys <span class="math inline">\(T(t) = T_{\text{ambient}} + \Delta T(1 - e^{-t/\tau_{th}})\)</span> where <span class="math inline">\(\tau_{th} = R_{\text{th}} C_{\text{th}}\)</span>. The form is <strong>identical</strong> to electrical RC charging: the time constant <span class="math inline">\(\tau_{th}\)</span> plays the role that <span class="math inline">\(\tau_{RC}\)</span> plays in electricity, confirming that power conjugacy transcends domain.</p></li>
-<li><p><strong>Theorem XI.5.1 applied to Hydraulic Systems</strong> (Part X.10): Fluid pressure building in a tank through a valve follows <span class="math inline">\(p(t) = p_{\text{source}}(1 - e^{-t/\tau_h})\)</span> with <span class="math inline">\(\tau_h = R_h C_h\)</span> (restriction × compliance). <strong>Same structure, same equation, same physics.</strong></p></li>
+<li><p><strong>Theorem XII.5.1 applied to RC Circuits</strong> (Part X.3): An RC circuit with time constant <span class="math inline">\(\tau_{RC} = RC\)</span> exhibits exponential charging <span class="math inline">\(V(t) = V_{\text{source}}(1 - e^{-t/\tau_{RC}})\)</span>. The <strong>identical equation</strong> governs a mechanical damper with applied force: <span class="math inline">\(v(t) = F_{\text{app}}/b \cdot (1 - e^{-t/\tau_m})\)</span> where <span class="math inline">\(\tau_m = m/b\)</span>. The equation is <strong>mathematically identical</strong> under the correspondence force ↔︎ voltage, with <span class="math inline">\(\tau_m \leftrightarrow \tau_{RC}\)</span>.</p></li>
+<li><p><strong>Theorem XII.5.1 applied to RL Circuits</strong> (Part X.4): An RL circuit responds to a step voltage with <span class="math inline">\(I(t) = V_{\text{app}}/R (1 - e^{-Rt/L})\)</span>. The <strong>same mathematics</strong> governs how a mass accelerates under constant force with drag: <span class="math inline">\(v(t) = F_{\text{app}}/b (1 - e^{-bt/m})\)</span>. This is not an analogy—it is <strong>mathematical identity</strong> under the substitution.</p></li>
+<li><p><strong>Theorem XII.5.1 applied to Thermal Systems</strong> (Part X.8): Heat diffusion through a resistor into a thermal mass obeys <span class="math inline">\(T(t) = T_{\text{ambient}} + \Delta T(1 - e^{-t/\tau_{th}})\)</span> where <span class="math inline">\(\tau_{th} = R_{\text{th}} C_{\text{th}}\)</span>. The form is <strong>identical</strong> to electrical RC charging: the time constant <span class="math inline">\(\tau_{th}\)</span> plays the role that <span class="math inline">\(\tau_{RC}\)</span> plays in electricity, confirming that power conjugacy transcends domain.</p></li>
+<li><p><strong>Theorem XII.5.1 applied to Hydraulic Systems</strong> (Part X.10): Fluid pressure building in a tank through a valve follows <span class="math inline">\(p(t) = p_{\text{source}}(1 - e^{-t/\tau_h})\)</span> with <span class="math inline">\(\tau_h = R_h C_h\)</span> (restriction × compliance). <strong>Same structure, same equation, same physics.</strong></p></li>
 </ul>
-<p>These are not demonstrations of analogy—they are <strong>direct verification</strong> that the force-voltage correspondence predicted by Theorem XI.5.1 holds precisely across domains. The power-conjugacy principle is universal.</p>
+<p>These are not demonstrations of analogy—they are <strong>direct verification</strong> that the force-voltage correspondence predicted by Theorem XII.5.1 holds precisely across domains. The power-conjugacy principle is universal.</p>
 </section>
 <section id="why-the-analogy-is-perfect-power-preservation" class="level3" data-number="12.5.4">
 <h3 data-number="12.5.4" class="anchored" data-anchor-id="why-the-analogy-is-perfect-power-preservation"><span class="header-section-number">12.5.4</span> Why the Analogy is Perfect: Power Preservation</h3>
-<p><strong>Theorem XI.5.2 (Power Equivalence of Analogs):</strong></p>
+<p><strong>Theorem XII.5.2 (Power Equivalence of Analogs):</strong></p>
 <p>Under the correspondence <span class="math inline">\(F \leftrightarrow V\)</span> and <span class="math inline">\(v \leftrightarrow I\)</span>, the <strong>instantaneous power</strong> is identical in corresponding systems:</p>
 <p><span class="math display">\[P_{\text{mech}} = Fv \leftrightarrow P_{\text{elec}} = VI\]</span></p>
 <p>Moreover, the energy dissipated in the damper equals the energy dissipated in the resistor:</p>
@@ -2575,7 +2185,7 @@ Note
 </section>
 <section id="xii.6-passive-element-correspondence-complete-mapping" class="level2" data-number="12.6">
 <h2 data-number="12.6" class="anchored" data-anchor-id="xii.6-passive-element-correspondence-complete-mapping"><span class="header-section-number">12.6</span> XII.6 Passive Element Correspondence: Complete Mapping</h2>
-<p><strong>Theorem XI.6.1 (R-Type, L-Type, C-Type Correspondence):</strong></p>
+<p><strong>Theorem XII.6.1 (R-Type, L-Type, C-Type Correspondence):</strong></p>
 <p>The three types of passive elements correspond exactly across domains:</p>
 <table class="caption-top table">
 <colgroup>
@@ -2623,8 +2233,8 @@ Note
 </section>
 <section id="xii.7-energy-conservation-equivalence" class="level2" data-number="12.7">
 <h2 data-number="12.7" class="anchored" data-anchor-id="xii.7-energy-conservation-equivalence"><span class="header-section-number">12.7</span> XII.7 Energy Conservation Equivalence</h2>
-<section id="theorem-xi.7.1-total-mechanical-energy-in-mass-spring-damper" class="level3" data-number="12.7.1">
-<h3 data-number="12.7.1" class="anchored" data-anchor-id="theorem-xi.7.1-total-mechanical-energy-in-mass-spring-damper"><span class="header-section-number">12.7.1</span> Theorem XI.7.1 (Total Mechanical Energy in Mass-Spring-Damper)</h3>
+<section id="theorem-xii.7.1-total-mechanical-energy-in-mass-spring-damper" class="level3" data-number="12.7.1">
+<h3 data-number="12.7.1" class="anchored" data-anchor-id="theorem-xii.7.1-total-mechanical-energy-in-mass-spring-damper"><span class="header-section-number">12.7.1</span> Theorem XII.7.1 (Total Mechanical Energy in Mass-Spring-Damper)</h3>
 <p>Consider a mass <span class="math inline">\(m\)</span> connected to a spring (stiffness <span class="math inline">\(k\)</span>) and damper (<span class="math inline">\(b\)</span>), subject to applied force <span class="math inline">\(F(t)\)</span>:</p>
 <p><span class="math display">\[m\ddot{x} + b\dot{x} + kx = F(t)\]</span></p>
 <p><strong>Total mechanical energy:</strong> <span class="math display">\[E_{\text{mech}}(t) = \frac{1}{2}m\dot{x}^2 + \frac{1}{2}kx^2\]</span></p>
@@ -2637,8 +2247,8 @@ Note
 <p>From the equation of motion: <span class="math inline">\(m\ddot{x} = F(t) - b\dot{x} - kx\)</span>, so:</p>
 <p><span class="math display">\[\frac{dE_{\text{mech}}}{dt} = \dot{x}[F(t) - b\dot{x} - kx + kx] = \dot{x}[F(t) - b\dot{x}] = F(t)\dot{x} - b\dot{x}^2\]</span> □</p>
 </section>
-<section id="theorem-xi.7.2-total-electrical-energy-in-series-rlc" class="level3" data-number="12.7.2">
-<h3 data-number="12.7.2" class="anchored" data-anchor-id="theorem-xi.7.2-total-electrical-energy-in-series-rlc"><span class="header-section-number">12.7.2</span> Theorem XI.7.2 (Total Electrical Energy in Series RLC)</h3>
+<section id="theorem-xii.7.2-total-electrical-energy-in-series-rlc" class="level3" data-number="12.7.2">
+<h3 data-number="12.7.2" class="anchored" data-anchor-id="theorem-xii.7.2-total-electrical-energy-in-series-rlc"><span class="header-section-number">12.7.2</span> Theorem XII.7.2 (Total Electrical Energy in Series RLC)</h3>
 <p>Consider a series RLC circuit with applied voltage <span class="math inline">\(V_{\text{source}}(t)\)</span>:</p>
 <p><span class="math display">\[L\frac{dI}{dt} + RI + \frac{Q}{C} = V_{\text{source}}(t)\]</span></p>
 <p><strong>Total electrical energy:</strong> <span class="math display">\[E_{\text{elec}}(t) = \frac{1}{2}LI^2 + \frac{1}{2C}Q^2\]</span></p>
@@ -2651,8 +2261,8 @@ Note
 <p>From the circuit equation: <span class="math inline">\(L\frac{dI}{dt} = V_{\text{source}} - RI - \frac{Q}{C}\)</span>, so:</p>
 <p><span class="math display">\[\frac{dE_{\text{elec}}}{dt} = I\left[V_{\text{source}} - RI - \frac{Q}{C} + \frac{Q}{C}\right] = I[V_{\text{source}} - RI] = V_{\text{source}}(t) I - RI^2\]</span> □</p>
 </section>
-<section id="theorem-xi.7.3-energy-conservation-equivalence" class="level3" data-number="12.7.3">
-<h3 data-number="12.7.3" class="anchored" data-anchor-id="theorem-xi.7.3-energy-conservation-equivalence"><span class="header-section-number">12.7.3</span> Theorem XI.7.3 (Energy Conservation Equivalence)</h3>
+<section id="theorem-xii.7.3-energy-conservation-equivalence" class="level3" data-number="12.7.3">
+<h3 data-number="12.7.3" class="anchored" data-anchor-id="theorem-xii.7.3-energy-conservation-equivalence"><span class="header-section-number">12.7.3</span> Theorem XII.7.3 (Energy Conservation Equivalence)</h3>
 <p>The mechanical energy balance</p>
 <p><span class="math display">\[\frac{dE_{\text{mech}}}{dt} = F(t)\dot{x} - b\dot{x}^2\]</span></p>
 <p>is <strong>mathematically identical</strong> to the electrical energy balance</p>
@@ -2667,11 +2277,11 @@ Note
 <h3 data-number="12.8.1" class="anchored" data-anchor-id="intuitive-foundation-why-one-equation-governs-everything"><span class="header-section-number">12.8.1</span> Intuitive Foundation: Why One Equation Governs Everything</h3>
 <p>Here is the profound payoff of the bond-graph framework: <strong>any system built from one dissipative (R), one kinetic storage (L), and one potential storage (C) element obeys the identical second-order differential equation, regardless of whether it’s a mechanical oscillator, electrical filter, hydraulic shock absorber, or thermal system.</strong></p>
 <p>No mechanical engineer needs to learn a different stability analysis for hydraulics. No electrical engineer’s Bode plot theory becomes invalid when applied to mechanical systems. The differential equation is the same.</p>
-<p><strong>Why?</strong> By Theorem XI.5.1, systems with identical power-conjugate structure have identical dynamics. Since effort and flow pair universally—voltage/current in electricity, force/velocity in mechanics, pressure/flow in hydraulics—any second-order system with the same R-L-C topology generates the same differential equation.</p>
+<p><strong>Why?</strong> By Theorem XII.5.1, systems with identical power-conjugate structure have identical dynamics. Since effort and flow pair universally—voltage/current in electricity, force/velocity in mechanics, pressure/flow in hydraulics—any second-order system with the same R-L-C topology generates the same differential equation.</p>
 <p><strong>What does this mean for design?</strong> The two parameters <span class="math inline">\(\omega_0\)</span> (natural frequency) and <span class="math inline">\(\zeta\)</span> (damping ratio) completely characterize the transient response. Whether you’re tuning a shock absorber, designing a filter, or stabilizing a system, the same design principles apply: choose <span class="math inline">\(\omega_0\)</span> for speed, choose <span class="math inline">\(\zeta\)</span> for oscillation vs.&nbsp;overdamping.</p>
 </section>
-<section id="theorem-xi.8.1-universal-second-order-dynamics" class="level3" data-number="12.8.2">
-<h3 data-number="12.8.2" class="anchored" data-anchor-id="theorem-xi.8.1-universal-second-order-dynamics"><span class="header-section-number">12.8.2</span> Theorem XI.8.1 (Universal Second-Order Dynamics)</h3>
+<section id="theorem-xii.8.1-universal-second-order-dynamics" class="level3" data-number="12.8.2">
+<h3 data-number="12.8.2" class="anchored" data-anchor-id="theorem-xii.8.1-universal-second-order-dynamics"><span class="header-section-number">12.8.2</span> Theorem XII.8.1 (Universal Second-Order Dynamics)</h3>
 <p>Consider any mechanical, electrical, or hydraulic system composed of <strong>one storage element of each type</strong> (R, L, C) arranged in series or parallel. Regardless of domain, the system obeys the <strong>universal second-order differential equation</strong>:</p>
 <p><span class="math display">\[\boxed{\ddot{u} + 2\zeta\omega_0\dot{u} + \omega_0^2 u = \omega_0^2 u_{\text{drive}}}\]</span></p>
 <p>where: - <span class="math inline">\(u\)</span> is the primary state variable (displacement, voltage, pressure, etc.) - <span class="math inline">\(\omega_0 = 1/\sqrt{LC}\)</span> is the <strong>natural frequency</strong> (in any domain) - <span class="math inline">\(\zeta = \frac{R}{2}\sqrt{\frac{C}{L}}\)</span> is the <strong>damping ratio</strong> (in any domain) - <span class="math inline">\(u_{\text{drive}}\)</span> is the applied driving effort</p>
@@ -2720,7 +2330,7 @@ Note
 </section>
 <section id="concrete-demonstration-session-2-examples-1" class="level3" data-number="12.8.3">
 <h3 data-number="12.8.3" class="anchored" data-anchor-id="concrete-demonstration-session-2-examples-1"><span class="header-section-number">12.8.3</span> Concrete Demonstration: Session 2 Examples</h3>
-<p>Theorem XI.8.1 is not an abstract generalization—<strong>Part X demonstrates this equation directly in every domain:</strong></p>
+<p>Theorem XII.8.1 is not an abstract generalization—<strong>Part X demonstrates this equation directly in every domain:</strong></p>
 <ul>
 <li><p><strong>Mechanical Oscillators</strong> (Part X.6, Mass-Spring-Damper): The equation <span class="math inline">\(m\ddot{x} + b\dot{x} + kx = F(t)\)</span> is our universal oscillator with <span class="math inline">\(\omega_0 = \sqrt{k/m}\)</span> and <span class="math inline">\(\zeta = \frac{b}{2\sqrt{km}}\)</span>. Standard undergraduate physics.</p></li>
 <li><p><strong>Electrical RLC Circuits</strong> (Part X.6, Series RLC): The equation <span class="math inline">\(L\ddot{q} + R\dot{q} + \frac{q}{C} = V(t)\)</span> is <strong>exactly the same form</strong> with <span class="math inline">\(\omega_0 = \frac{1}{\sqrt{LC}}\)</span> and <span class="math inline">\(\zeta = \frac{R}{2}\sqrt{\frac{C}{L}}\)</span>. When <span class="math inline">\(L\)</span> plays the role of mass, <span class="math inline">\(R\)</span> the role of damping, and <span class="math inline">\(1/C\)</span> the role of spring stiffness, the equations become <strong>identical</strong>.</p></li>
@@ -2728,7 +2338,7 @@ Note
 <li><p><strong>Thermal Systems</strong> (Part X.8): Heat diffusion with resistance and capacitance (thermal inertia) obeys <span class="math inline">\(RC_{\text{thermal}}\ddot{T} + \dot{T} + T = T_{\text{input}}\)</span> (rearranged). This is the universal oscillator equation in thermal form. Though thermal systems rarely exhibit damped oscillation (because <span class="math inline">\(\zeta\)</span> is typically large), the underlying mathematics is identical.</p></li>
 <li><p><strong>Hydraulic Oscillators</strong> (Part X.10, U-Tube Manometer): A fluid in a U-tube with inertance <span class="math inline">\(I_h\)</span>, resistance (via valve restriction) <span class="math inline">\(R_h\)</span>, and compliance <span class="math inline">\(C_h\)</span> obeys <span class="math inline">\(I_h\ddot{h} + R_h\dot{h} + \frac{h}{C_h} = 0\)</span> for free oscillation. Same structure, same three damping regimes.</p></li>
 </ul>
-<p><strong>The profound implication:</strong> Any engineer’s stability analysis, filter design, or control system developed in one domain applies <strong>directly and without modification</strong> to any other domain. This is not engineering intuition or useful analogy—it is <strong>mathematical theorem</strong>: Theorem XI.8.1 guarantees that the same equation governs all.</p>
+<p><strong>The profound implication:</strong> Any engineer’s stability analysis, filter design, or control system developed in one domain applies <strong>directly and without modification</strong> to any other domain. This is not engineering intuition or useful analogy—it is <strong>mathematical theorem</strong>: Theorem XII.8.1 guarantees that the same equation governs all.</p>
 </section>
 <section id="consequence-three-damping-regimes-are-universal" class="level3" data-number="12.8.4">
 <h3 data-number="12.8.4" class="anchored" data-anchor-id="consequence-three-damping-regimes-are-universal"><span class="header-section-number">12.8.4</span> Consequence: Three Damping Regimes are Universal</h3>
@@ -2743,13 +2353,13 @@ Note
 </section>
 <section id="xii.9-practical-implication-design-by-analogy" class="level2" data-number="12.9">
 <h2 data-number="12.9" class="anchored" data-anchor-id="xii.9-practical-implication-design-by-analogy"><span class="header-section-number">12.9</span> XII.9 Practical Implication: Design by Analogy</h2>
-<section id="theorem-xi.9.1-translatability-of-designs" class="level3" data-number="12.9.1">
-<h3 data-number="12.9.1" class="anchored" data-anchor-id="theorem-xi.9.1-translatability-of-designs"><span class="header-section-number">12.9.1</span> Theorem XI.9.1 (Translatability of Designs)</h3>
+<section id="theorem-xii.9.1-translatability-of-designs" class="level3" data-number="12.9.1">
+<h3 data-number="12.9.1" class="anchored" data-anchor-id="theorem-xii.9.1-translatability-of-designs"><span class="header-section-number">12.9.1</span> Theorem XII.9.1 (Translatability of Designs)</h3>
 <p>A design problem solved in one domain <strong>immediately translates</strong> to any other domain under the parameter correspondence.</p>
 <p><strong>Example:</strong> An engineer designs a mechanical shock absorber to suppress vibrations at 3 Hz with 0.7 damping ratio. The design uses: - Mass <span class="math inline">\(m = 100\)</span> kg - Spring constant <span class="math inline">\(k = (2\pi \times 3)^2 \times 100 = 35,568\)</span> N/m ≈ 36 kN/m - Damping coefficient <span class="math inline">\(b = 2\zeta\sqrt{km} = 1.4\sqrt{3.56 \times 10^6} = 2652\)</span> N·s/m</p>
 <p>An electrical engineer can <strong>directly apply this design</strong> to an anti-vibration electrical filter: - Inductance <span class="math inline">\(L = 100\)</span> H (plays the role of <span class="math inline">\(m\)</span>) - Inverse capacitance <span class="math inline">\(1/C = 36\)</span> kV/F (plays the role of <span class="math inline">\(k\)</span>) - Resistance <span class="math inline">\(R = 2652\)</span> Ω (plays the role of <span class="math inline">\(b\)</span>)</p>
 <p>Both systems will exhibit identical transient response to disturbances—not because of any miraculous coincidence, but because they obey the <strong>same differential equations</strong>.</p>
-<p><em>Proof:</em> By Theorem XI.8.1, if <span class="math inline">\(\omega_0\)</span> and <span class="math inline">\(\zeta\)</span> are identical, the systems are dynamically equivalent. The engineering design is a function of these two parameters (natural frequency and damping). Therefore, any design principle in one domain translates directly to another. □</p>
+<p><em>Proof:</em> By Theorem XII.8.1, if <span class="math inline">\(\omega_0\)</span> and <span class="math inline">\(\zeta\)</span> are identical, the systems are dynamically equivalent. The engineering design is a function of these two parameters (natural frequency and damping). Therefore, any design principle in one domain translates directly to another. □</p>
 <hr>
 </section>
 </section>
@@ -2797,17 +2407,17 @@ Note
 <h2 data-number="13.3" class="anchored" data-anchor-id="xiii.3-fundamental-concepts-controllability-and-observability"><span class="header-section-number">13.3</span> XIII.3 Fundamental Concepts: Controllability and Observability</h2>
 <section id="controllability-can-we-steer-the-system" class="level3" data-number="13.3.1">
 <h3 data-number="13.3.1" class="anchored" data-anchor-id="controllability-can-we-steer-the-system"><span class="header-section-number">13.3.1</span> Controllability: Can We Steer the System?</h3>
-<p><strong>Definition XII.3.1:</strong> A system <span class="math inline">\((\mathbf{A}, \mathbf{B})\)</span> is <strong>controllable</strong> if, starting from any initial state <span class="math inline">\(\mathbf{z}_0\)</span>, we can reach any desired final state <span class="math inline">\(\mathbf{z}_f\)</span> in finite time using an appropriate control input <span class="math inline">\(u(t)\)</span>.</p>
-<p><strong>Theorem XII.3.2 (Controllability Criterion):</strong> The system is controllable if and only if the <strong>controllability matrix</strong></p>
+<p><strong>Definition XIII.3.1:</strong> A system <span class="math inline">\((\mathbf{A}, \mathbf{B})\)</span> is <strong>controllable</strong> if, starting from any initial state <span class="math inline">\(\mathbf{z}_0\)</span>, we can reach any desired final state <span class="math inline">\(\mathbf{z}_f\)</span> in finite time using an appropriate control input <span class="math inline">\(u(t)\)</span>.</p>
+<p><strong>Theorem XIII.3.2 (Controllability Criterion):</strong> The system is controllable if and only if the <strong>controllability matrix</strong></p>
 <p><span class="math display">\[\mathcal{C} = [\mathbf{B}, \mathbf{A}\mathbf{B}, \mathbf{A}^2\mathbf{B}, \ldots, \mathbf{A}^{n-1}\mathbf{B}]\]</span></p>
 <p>has full rank (rank <span class="math inline">\(n\)</span>).</p>
-<p><em>Proof sketch:</em> The controllability matrix characterizes the span of all state directions reachable by repeated application of the input through the dynamics. Full rank means all <span class="math inline">\(n\)</span> dimensions are reachable. □</p>
+<p><em>Proof sketch <span class="citation" data-cites="Kalman_1960">(<a href="#ref-Kalman_1960" role="doc-biblioref">Kalman 1960</a>)</span>:</em> The controllability matrix characterizes the span of all state directions reachable by repeated application of the input through the dynamics. Full rank means all <span class="math inline">\(n\)</span> dimensions are reachable. □</p>
 <p><strong>Implication:</strong> If the system is controllable, we can design a feedback law <span class="math inline">\(\mathbf{K}\)</span> that places the closed-loop eigenvalues (poles) anywhere in the complex plane.</p>
 </section>
 <section id="observability-can-we-infer-the-state" class="level3" data-number="13.3.2">
 <h3 data-number="13.3.2" class="anchored" data-anchor-id="observability-can-we-infer-the-state"><span class="header-section-number">13.3.2</span> Observability: Can We Infer the State?</h3>
-<p><strong>Definition XII.3.3:</strong> A system <span class="math inline">\((\mathbf{C}, \mathbf{A})\)</span> is <strong>observable</strong> if, from knowledge of the output sequence <span class="math inline">\(\mathbf{y}(t)\)</span> and input <span class="math inline">\(u(t)\)</span> over a finite time interval, we can uniquely determine the initial state <span class="math inline">\(\mathbf{z}_0\)</span>.</p>
-<p><strong>Theorem XII.3.4 (Observability Criterion):</strong> The system is observable if and only if the <strong>observability matrix</strong></p>
+<p><strong>Definition XIII.3.3:</strong> A system <span class="math inline">\((\mathbf{C}, \mathbf{A})\)</span> is <strong>observable</strong> if, from knowledge of the output sequence <span class="math inline">\(\mathbf{y}(t)\)</span> and input <span class="math inline">\(u(t)\)</span> over a finite time interval, we can uniquely determine the initial state <span class="math inline">\(\mathbf{z}_0\)</span>.</p>
+<p><strong>Theorem XIII.3.4 (Observability Criterion):</strong> The system is observable if and only if the <strong>observability matrix</strong></p>
 <p><span class="math display">\[\mathcal{O} = \begin{bmatrix} \mathbf{C} \\ \mathbf{CA} \\ \mathbf{CA}^2 \\ \vdots \\ \mathbf{CA}^{n-1} \end{bmatrix}\]</span></p>
 <p>has full rank (rank <span class="math inline">\(n\)</span>).</p>
 <p><em>Proof sketch:</em> Similar to controllability. The observability matrix characterizes which state directions are visible in the output. Full rank means all <span class="math inline">\(n\)</span> dimensions are observable. □</p>
@@ -2823,7 +2433,7 @@ Note
 <div class="callout-info">
 <p><strong>Connection to Part VIII:</strong> The rigorous relationship between eigenvalues and system stability is developed in Part VIII (Manifolds and Trajectories), where the spectrum <span class="math inline">\(\sigma(\mathbf{A})\)</span> characterizes which modes decay, oscillate, or grow. Pole placement is the practical application of this theory: by choosing <span class="math inline">\(\lambda_1, \ldots, \lambda_n\)</span>, we design which modes survive (decay slowly), which oscillate (complex parts), and which die out (negative real parts).</p>
 </div>
-<p><strong>Theorem XII.4.1 (Pole Placement):</strong> If the system <span class="math inline">\((\mathbf{A}, \mathbf{B})\)</span> is controllable, then for any desired set of eigenvalues <span class="math inline">\(\{\lambda_1, \ldots, \lambda_n\}\)</span>, there exists a unique feedback gain <span class="math inline">\(\mathbf{K}\)</span> such that</p>
+<p><strong>Theorem XIII.4.1 (Pole Placement):</strong> If the system <span class="math inline">\((\mathbf{A}, \mathbf{B})\)</span> is controllable, then for any desired set of eigenvalues <span class="math inline">\(\{\lambda_1, \ldots, \lambda_n\}\)</span>, there exists a unique feedback gain <span class="math inline">\(\mathbf{K}\)</span> such that</p>
 <p><span class="math display">\[\text{eig}(\mathbf{A} - \mathbf{BK}) = \{\lambda_1, \ldots, \lambda_n\}\]</span></p>
 <p><em>Proof:</em> By controllability, the input matrix <span class="math inline">\(\mathbf{B}\)</span> can influence all directions in state space. Thus, we can design <span class="math inline">\(\mathbf{K}\)</span> to move the eigenvalues arbitrarily. The construction uses the Ackermann formula or eigenvalue assignment algorithms. □</p>
 </section>
@@ -2847,7 +2457,7 @@ Note
 </section>
 <section id="mechanical-interpretation-position-control-via-force-feedback" class="level3" data-number="13.4.3">
 <h3 data-number="13.4.3" class="anchored" data-anchor-id="mechanical-interpretation-position-control-via-force-feedback"><span class="header-section-number">13.4.3</span> Mechanical Interpretation: Position Control via Force Feedback</h3>
-<p>To see how Theorem XII.4.1 applies to mechanical systems, consider a <strong>cart of mass <span class="math inline">\(m = 1\)</span> kg</strong> that we want to position precisely using an actuator (electric motor delivering force). The position and velocity are the state <span class="math inline">\(\mathbf{z} = [x, v]^T\)</span>.</p>
+<p>To see how Theorem XIII.4.1 applies to mechanical systems, consider a <strong>cart of mass <span class="math inline">\(m = 1\)</span> kg</strong> that we want to position precisely using an actuator (electric motor delivering force). The position and velocity are the state <span class="math inline">\(\mathbf{z} = [x, v]^T\)</span>.</p>
 <p><strong>Open-loop dynamics:</strong> No damping, no spring constraint: <span class="math display">\[\dot{\mathbf{z}} = \begin{pmatrix} 0 &amp; 1 \\ 0 &amp; 0 \end{pmatrix}\begin{pmatrix} x \\ v \end{pmatrix} + \begin{pmatrix} 0 \\ 1 \end{pmatrix}u\]</span></p>
 <p>where <span class="math inline">\(u\)</span> is the applied force.</p>
 <p><strong>Open-loop eigenvalues:</strong> <span class="math inline">\(\lambda = 0, 0\)</span> (marginally unstable—system drifts if disturbed with no restoring force).</p>
@@ -3015,14 +2625,14 @@ Tip
 </section>
 <section id="solution-via-riccati-equation" class="level3" data-number="13.6.3">
 <h3 data-number="13.6.3" class="anchored" data-anchor-id="solution-via-riccati-equation"><span class="header-section-number">13.6.3</span> Solution via Riccati Equation</h3>
-<p><strong>Theorem XII.6.1 (LQR Optimality):</strong> The optimal feedback control is</p>
+<p><strong>Theorem XIII.6.1 (LQR Optimality):</strong> The optimal feedback control is</p>
 <p><span class="math display">\[u^*(t) = -\mathbf{K}_{\text{opt}}\mathbf{z}(t)\]</span></p>
 <p>where the optimal feedback gain is</p>
 <p><span class="math display">\[\mathbf{K}_{\text{opt}} = \mathbf{R}^{-1}\mathbf{B}^T\mathbf{P}\]</span></p>
 <p>and <span class="math inline">\(\mathbf{P}\)</span> is the <strong>symmetric positive-definite solution</strong> to the <strong>algebraic Riccati equation</strong>:</p>
 <p><span class="math display">\[\mathbf{A}^T\mathbf{P} + \mathbf{P}\mathbf{A} - \mathbf{P}\mathbf{B}\mathbf{R}^{-1}\mathbf{B}^T\mathbf{P} + \mathbf{Q} = 0\]</span></p>
 <p>The resulting cost is <span class="math inline">\(J^* = \mathbf{z}_0^T \mathbf{P}\mathbf{z}_0\)</span>.</p>
-<p><em>Proof:</em> Classical result in optimal control. The Riccati equation is the Hamilton-Jacobi-Bellman condition for optimality. □</p>
+<p><em>Proof <span class="citation" data-cites="Bryson_1975">(<a href="#ref-Bryson_1975" role="doc-biblioref">Bryson and Ho 1975</a>)</span>:</em> The Riccati equation is the Hamilton-Jacobi-Bellman condition for optimality. □</p>
 </section>
 <section id="worked-example-speed-control-trade-off" class="level3" data-number="13.6.4">
 <h3 data-number="13.6.4" class="anchored" data-anchor-id="worked-example-speed-control-trade-off"><span class="header-section-number">13.6.4</span> Worked Example: Speed Control Trade-Off</h3>
@@ -3081,7 +2691,7 @@ Tip
 </section>
 <section id="theorem-controllability-and-stabilizability" class="level3" data-number="13.8.2">
 <h3 data-number="13.8.2" class="anchored" data-anchor-id="theorem-controllability-and-stabilizability"><span class="header-section-number">13.8.2</span> Theorem: Controllability and Stabilizability</h3>
-<p><strong>Theorem XII.8.1 (Stabilizability via Feedback):</strong> If the system <span class="math inline">\((\mathbf{A}, \mathbf{B})\)</span> is <strong>controllable</strong>, then there exists a feedback gain <span class="math inline">\(\mathbf{K}\)</span> such that the closed-loop system <span class="math inline">\(\mathbf{A}_{CL} = \mathbf{A} - \mathbf{BK}\)</span> is <strong>stable</strong> (all eigenvalues in the left half-plane).</p>
+<p><strong>Theorem XIII.8.1 (Stabilizability via Feedback):</strong> If the system <span class="math inline">\((\mathbf{A}, \mathbf{B})\)</span> is <strong>controllable</strong>, then there exists a feedback gain <span class="math inline">\(\mathbf{K}\)</span> such that the closed-loop system <span class="math inline">\(\mathbf{A}_{CL} = \mathbf{A} - \mathbf{BK}\)</span> is <strong>stable</strong> (all eigenvalues in the left half-plane).</p>
 <p><em>Proof:</em> By controllability, we can place eigenvalues anywhere. Choose all eigenvalues in the left half-plane (negative real part). Then <span class="math inline">\(\mathbf{A}_{CL}\)</span> is stable. □</p>
 <p><strong>Weaker condition:</strong> Even if the system is not fully controllable, we may be able to stabilize the <strong>controllable subspace</strong> while the uncontrollable modes are intrinsically stable.</p>
 <hr>
@@ -3117,10 +2727,10 @@ Tip
 </section>
 <section id="xiv.2-fixed-points-and-equilibria" class="level2" data-number="14.2">
 <h2 data-number="14.2" class="anchored" data-anchor-id="xiv.2-fixed-points-and-equilibria"><span class="header-section-number">14.2</span> XIV.2 Fixed Points and Equilibria</h2>
-<p><strong>Definition XIII.2.1:</strong> For a system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \mu)\)</span> (where <span class="math inline">\(\mu\)</span> is a parameter), a <strong>fixed point</strong> (or <strong>equilibrium</strong>) is a state <span class="math inline">\(\mathbf{z}^*\)</span> such that <span class="math inline">\(\mathbf{F}(\mathbf{z}^*, \mu) = \mathbf{0}\)</span>.</p>
+<p><strong>Definition XIV.2.1:</strong> For a system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \mu)\)</span> (where <span class="math inline">\(\mu\)</span> is a parameter), a <strong>fixed point</strong> (or <strong>equilibrium</strong>) is a state <span class="math inline">\(\mathbf{z}^*\)</span> such that <span class="math inline">\(\mathbf{F}(\mathbf{z}^*, \mu) = \mathbf{0}\)</span>.</p>
 <p>At a fixed point, the state does not change: <span class="math inline">\(\dot{\mathbf{z}} = 0\)</span>, so the system remains at rest.</p>
-<p><strong>Definition XIII.2.2:</strong> A fixed point <span class="math inline">\(\mathbf{z}^*\)</span> is <strong>stable</strong> (or <strong>attracting</strong>) if small perturbations <span class="math inline">\(\mathbf{z}_0 = \mathbf{z}^* + \delta\)</span> decay back to <span class="math inline">\(\mathbf{z}^*\)</span> over time. It is <strong>unstable</strong> (or <strong>repelling</strong>) if small perturbations grow away from <span class="math inline">\(\mathbf{z}^*\)</span>.</p>
-<p><strong>Theorem XIII.2.3 (Linearization and Stability):</strong> Consider a fixed point <span class="math inline">\(\mathbf{z}^*\)</span> of <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \mu)\)</span>. Linearize around this point:</p>
+<p><strong>Definition XIV.2.2:</strong> A fixed point <span class="math inline">\(\mathbf{z}^*\)</span> is <strong>stable</strong> (or <strong>attracting</strong>) if small perturbations <span class="math inline">\(\mathbf{z}_0 = \mathbf{z}^* + \delta\)</span> decay back to <span class="math inline">\(\mathbf{z}^*\)</span> over time. It is <strong>unstable</strong> (or <strong>repelling</strong>) if small perturbations grow away from <span class="math inline">\(\mathbf{z}^*\)</span>.</p>
+<p><strong>Theorem XIV.2.3 (Linearization and Stability):</strong> Consider a fixed point <span class="math inline">\(\mathbf{z}^*\)</span> of <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \mu)\)</span>. Linearize around this point:</p>
 <p><span class="math display">\[\dot{\delta} = \mathbf{J}(\mathbf{z}^*, \mu) \delta + O(\|\delta\|^2)\]</span></p>
 <p>where <span class="math inline">\(\mathbf{J} = \frac{\partial \mathbf{F}}{\partial \mathbf{z}}|_{\mathbf{z}^*}\)</span> is the <strong>Jacobian matrix</strong>.</p>
 <ul>
@@ -3128,12 +2738,12 @@ Tip
 <li>If any eigenvalue has <strong>positive real part</strong>, the fixed point is <strong>linearly unstable</strong>.</li>
 <li>If an eigenvalue has <strong>zero real part</strong>, linear analysis is inconclusive (nonlinear terms matter).</li>
 </ul>
-<p><em>Proof sketch:</em> The linearization captures the dominant behavior near the fixed point. By Hartman-Grobman theorem, the local phase portrait of the nonlinear system near a hyperbolic fixed point matches that of its linearization. □</p>
+<p><em>Proof sketch:</em> The linearization captures the dominant behavior near the fixed point. By the Hartman-Grobman theorem <span class="citation" data-cites="Khalil_2002">(<a href="#ref-Khalil_2002" role="doc-biblioref">Khalil 2002</a>)</span>, the local phase portrait of the nonlinear system near a hyperbolic fixed point is topologically equivalent to that of its linearization. □</p>
 </section>
 <section id="xiv.3-bifurcations-when-stability-changes" class="level2" data-number="14.3">
 <h2 data-number="14.3" class="anchored" data-anchor-id="xiv.3-bifurcations-when-stability-changes"><span class="header-section-number">14.3</span> XIV.3 Bifurcations: When Stability Changes</h2>
-<p><strong>Definition XIII.3.1:</strong> A <strong>bifurcation</strong> occurs at a parameter value <span class="math inline">\(\mu_c\)</span> if the number or stability of fixed points changes as <span class="math inline">\(\mu\)</span> passes through <span class="math inline">\(\mu_c\)</span>.</p>
-<p><strong>Theorem XIII.3.2 (Bifurcation Condition):</strong> A bifurcation generically occurs when an eigenvalue of the Jacobian crosses the imaginary axis: - <strong>Real eigenvalue crosses zero:</strong> Saddle-node or transcritical bifurcation - <strong>Complex conjugate pair crosses imaginary axis:</strong> Hopf bifurcation</p>
+<p><strong>Definition XIV.3.1:</strong> A <strong>bifurcation</strong> occurs at a parameter value <span class="math inline">\(\mu_c\)</span> if the number or stability of fixed points changes as <span class="math inline">\(\mu\)</span> passes through <span class="math inline">\(\mu_c\)</span>.</p>
+<p><strong>Theorem XIV.3.2 (Bifurcation Condition):</strong> A bifurcation generically occurs when an eigenvalue of the Jacobian crosses the imaginary axis: - <strong>Real eigenvalue crosses zero:</strong> Saddle-node or transcritical bifurcation - <strong>Complex conjugate pair crosses imaginary axis:</strong> Hopf bifurcation</p>
 <section id="saddle-node-bifurcation" class="level3" data-number="14.3.1">
 <h3 data-number="14.3.1" class="anchored" data-anchor-id="saddle-node-bifurcation"><span class="header-section-number">14.3.1</span> Saddle-Node Bifurcation</h3>
 <p><strong>Canonical form:</strong> <span class="math inline">\(\dot{x} = \mu + x^2\)</span></p>
@@ -3143,7 +2753,7 @@ Tip
 </section>
 <section id="hopf-bifurcation" class="level3" data-number="14.3.2">
 <h3 data-number="14.3.2" class="anchored" data-anchor-id="hopf-bifurcation"><span class="header-section-number">14.3.2</span> Hopf Bifurcation</h3>
-<p><strong>Theorem XIII.3.3 (Hopf Bifurcation):</strong> Consider a two-dimensional system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \mu)\)</span> with a fixed point <span class="math inline">\(\mathbf{z}^*(\mu)\)</span> whose Jacobian eigenvalues are <span class="math inline">\(\lambda(\mu) = \alpha(\mu) \pm i\omega(\mu)\)</span>.</p>
+<p><strong>Theorem XIV.3.3 (Hopf Bifurcation):</strong> Consider a two-dimensional system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \mu)\)</span> with a fixed point <span class="math inline">\(\mathbf{z}^*(\mu)\)</span> whose Jacobian eigenvalues are <span class="math inline">\(\lambda(\mu) = \alpha(\mu) \pm i\omega(\mu)\)</span>.</p>
 <p>If: 1. <span class="math inline">\(\alpha(\mu_c) = 0\)</span> and <span class="math inline">\(\omega(\mu_c) \neq 0\)</span> (complex eigenvalues cross imaginary axis) 2. <span class="math inline">\(\frac{d\alpha}{d\mu}|_{\mu_c} \neq 0\)</span> (transversality: eigenvalues cross generically)</p>
 <p>then at <span class="math inline">\(\mu = \mu_c\)</span>, a <strong>periodic orbit</strong> (limit cycle) emerges from the fixed point.</p>
 <ul>
@@ -3190,13 +2800,13 @@ Tip
 <section id="xiv.5-lyapunov-stability-a-rigorous-approach" class="level2" data-number="14.5">
 <h2 data-number="14.5" class="anchored" data-anchor-id="xiv.5-lyapunov-stability-a-rigorous-approach"><span class="header-section-number">14.5</span> XIV.5 Lyapunov Stability: A Rigorous Approach</h2>
 <p>The <strong>Lyapunov direct method</strong> provides a way to prove stability without explicitly solving the differential equations.</p>
-<p><strong>Definition XIII.5.1:</strong> A <strong>Lyapunov function</strong> for a fixed point <span class="math inline">\(\mathbf{z}^*\)</span> is a scalar function <span class="math inline">\(V(\mathbf{z})\)</span> such that:</p>
+<p><strong>Definition XIV.5.1:</strong> A <strong>Lyapunov function</strong> for a fixed point <span class="math inline">\(\mathbf{z}^*\)</span> is a scalar function <span class="math inline">\(V(\mathbf{z})\)</span> such that:</p>
 <ol type="1">
 <li><span class="math inline">\(V(\mathbf{z}^*) = 0\)</span> (zero at the fixed point)</li>
 <li><span class="math inline">\(V(\mathbf{z}) &gt; 0\)</span> for all <span class="math inline">\(\mathbf{z} \neq \mathbf{z}^*\)</span> in a neighborhood (positive definite)</li>
 <li><span class="math inline">\(\dot{V}(\mathbf{z}) = \nabla V \cdot \mathbf{F}(\mathbf{z}) \leq 0\)</span> (decreasing along trajectories)</li>
 </ol>
-<p><strong>Theorem XIII.5.2 (Lyapunov Stability Theorem):</strong> If a Lyapunov function exists for a fixed point, the fixed point is <strong>stable</strong>.</p>
+<p><strong>Theorem XIV.5.2 (Lyapunov Stability Theorem):</strong> If a Lyapunov function exists for a fixed point, the fixed point is <strong>stable</strong>.</p>
 <p>Moreover, if <span class="math inline">\(\dot{V} &lt; 0\)</span> (strictly negative) for <span class="math inline">\(\mathbf{z} \neq \mathbf{z}^*\)</span>, the fixed point is <strong>asymptotically stable</strong> (trajectories converge to <span class="math inline">\(\mathbf{z}^*\)</span>).</p>
 <p><em>Proof sketch:</em> If <span class="math inline">\(V\)</span> is decreasing and bounded below, it converges to a limit. Since <span class="math inline">\(V(\mathbf{z}^*) = 0\)</span> and <span class="math inline">\(V &gt; 0\)</span> elsewhere, convergence implies <span class="math inline">\(\mathbf{z}(t) \to \mathbf{z}^*\)</span>. □</p>
 <p><strong>Intuition:</strong> Think of <span class="math inline">\(V\)</span> as an energy function. If energy is always decreasing, the system loses energy to dissipation and settles to the lowest-energy state (the fixed point).</p>
@@ -3251,7 +2861,7 @@ Tip
 <li><strong>Stationary chaotic regime:</strong> Once transients decay and the system settles on the attractor, we can describe statistics (power spectrum, autocorrelation) as intrinsic.</li>
 <li><strong>Stochastically perturbed chaos:</strong> If chaotic system is driven by noise (true extrinsic), we can separate them with filtering.</li>
 </ul>
-<p><strong>Theorem XIV.2.1 (Caveat on Chaos):</strong> For a chaotic system, the product decomposition <span class="math inline">\(B = R \times D\)</span> is valid <strong>only for:</strong> 1. Attractor-level invariants (dimension, Lyapunov spectrum), or 2. Time-averaged statistics (mean, variance, power spectrum), or 3. Systems where extrinsic noise is distinct from initial-condition sensitivity</p>
+<p><strong>Theorem XV.2.1 (Caveat on Chaos):</strong> For a chaotic system, the product decomposition <span class="math inline">\(B = R \times D\)</span> is valid <strong>only for:</strong> 1. Attractor-level invariants (dimension, Lyapunov spectrum), or 2. Time-averaged statistics (mean, variance, power spectrum), or 3. Systems where extrinsic noise is distinct from initial-condition sensitivity</p>
 <p>Trajectory-level identity cannot be cleanly separated into intrinsic and extrinsic factors.</p>
 <hr>
 </section>
@@ -3280,7 +2890,7 @@ Tip
 <li><strong>Linearization around operating point:</strong> Valid locally but not globally</li>
 <li><strong>Power-series expansion:</strong> Can write <span class="math inline">\(B = R_1 D + R_3 D^3 + \ldots\)</span> but loses simplicity</li>
 </ul>
-<p><strong>Theorem XIV.3.1:</strong> The product decomposition <span class="math inline">\(B = R \times D\)</span> is valid for amplitudes small enough that response <span class="math inline">\(R\)</span> is <strong>amplitude-independent</strong>. For large-amplitude nonlinear systems, the decomposition becomes multi-valued or requires higher-order expansion.</p>
+<p><strong>Theorem XV.3.1:</strong> The product decomposition <span class="math inline">\(B = R \times D\)</span> is valid for amplitudes small enough that response <span class="math inline">\(R\)</span> is <strong>amplitude-independent</strong>. For large-amplitude nonlinear systems, the decomposition becomes multi-valued or requires higher-order expansion.</p>
 <hr>
 </section>
 </section>
@@ -3307,7 +2917,7 @@ Tip
 <li><strong>Rational transfer function representation:</strong> DDEs can be embedded in higher-dimensional ODEs</li>
 <li><strong>Frequency-domain analysis:</strong> For sufficiently large bandwidth, delay can be neglected</li>
 </ul>
-<p><strong>Theorem XIV.4.1:</strong> A system with time delay <span class="math inline">\(\tau\)</span> can be analyzed using the product framework if and only if <span class="math inline">\(\tau\)</span> is small compared to the dominant time constant <span class="math inline">\(\tau_{\text{sys}}\)</span>. When <span class="math inline">\(\tau / \tau_{\text{sys}}\)</span> is non-negligible, the dimensionality of the state space changes (becomes infinite), and standard pole placement may destabilize the system.</p>
+<p><strong>Theorem XV.4.1:</strong> A system with time delay <span class="math inline">\(\tau\)</span> can be analyzed using the product framework if and only if <span class="math inline">\(\tau\)</span> is small compared to the dominant time constant <span class="math inline">\(\tau_{\text{sys}}\)</span>. When <span class="math inline">\(\tau / \tau_{\text{sys}}\)</span> is non-negligible, the dimensionality of the state space changes (becomes infinite), and standard pole placement may destabilize the system.</p>
 <hr>
 </section>
 </section>
@@ -3335,23 +2945,23 @@ Tip
 <li><strong>Modal decomposition:</strong> Coupled systems can be <strong>decoupled</strong> via coordinate transformation to normal modes (eigenvectors)</li>
 <li><strong>Hierarchical analysis:</strong> Study the coupled system as a <strong>higher-level intrinsic object</strong></li>
 </ul>
-<p><strong>Theorem XIV.5.1:</strong> A coupled system of <span class="math inline">\(n\)</span> bodies can be analyzed as <span class="math inline">\(n\)</span> separate intrinsic components only if the coupling is weak or if the system is transformed to normal modes (eigenvector coordinates). Strong coupling requires treating the entire system as a single intrinsic entity.</p>
+<p><strong>Theorem XV.5.1:</strong> A coupled system of <span class="math inline">\(n\)</span> bodies can be analyzed as <span class="math inline">\(n\)</span> separate intrinsic components only if the coupling is weak or if the system is transformed to normal modes (eigenvector coordinates). Strong coupling requires treating the entire system as a single intrinsic entity.</p>
 <hr>
 </section>
 </section>
 <section id="xiv.6-critical-connection-identifiability-controllability-relationship" class="level2" data-number="15.6">
 <h2 data-number="15.6" class="anchored" data-anchor-id="xiv.6-critical-connection-identifiability-controllability-relationship"><span class="header-section-number">15.6</span> XIV.6 Critical Connection: Identifiability ↔︎ Controllability Relationship</h2>
 <p><strong>Missing from previous analysis: Why identifiability and controllability are linked.</strong></p>
-<section id="theorem-xiv.6.1-identifiability-observability-duality" class="level3" data-number="15.6.1">
-<h3 data-number="15.6.1" class="anchored" data-anchor-id="theorem-xiv.6.1-identifiability-observability-duality"><span class="header-section-number">15.6.1</span> Theorem XIV.6.1 (Identifiability-Observability Duality)</h3>
+<section id="theorem-xv.6.1-identifiability-observability-duality" class="level3" data-number="15.6.1">
+<h3 data-number="15.6.1" class="anchored" data-anchor-id="theorem-xv.6.1-identifiability-observability-duality"><span class="header-section-number">15.6.1</span> Theorem XV.6.1 (Identifiability-Observability Duality)</h3>
 <p>A system is <strong>identifiable</strong> (can separate <span class="math inline">\(R\)</span> and <span class="math inline">\(D\)</span>) if and only if it is <strong>observable</strong> (can infer state from measurements).</p>
 <p><strong>Precise Statement:</strong> Consider a system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{A}\mathbf{z} + \mathbf{B}u\)</span>, <span class="math inline">\(\mathbf{y} = \mathbf{C}\mathbf{z}\)</span>.</p>
 <p>The parameters <span class="math inline">\(\mathbf{A}, \mathbf{B}\)</span> are <strong>identifiable</strong> from observed input-output pairs <span class="math inline">\((u(t), \mathbf{y}(t))\)</span> if and only if the pair <span class="math inline">\((\mathbf{C}, \mathbf{A})\)</span> is <strong>observable</strong>.</p>
 <p><em>Proof sketch:</em> Identifiability requires: different parameter values produce different observed behaviors. Observability requires: different state values produce different measurements. These are equivalent via duality: a state is observable iff the parameter set determining that state is identifiable. □</p>
 <p><strong>Practical Consequence:</strong> If a system is unobservable (some state dimension is invisible in the output), then those state parameters cannot be identified from that output. You must add additional sensors.</p>
 </section>
-<section id="theorem-xiv.6.2-controllability-stabilizability-via-feedback" class="level3" data-number="15.6.2">
-<h3 data-number="15.6.2" class="anchored" data-anchor-id="theorem-xiv.6.2-controllability-stabilizability-via-feedback"><span class="header-section-number">15.6.2</span> Theorem XIV.6.2 (Controllability-Stabilizability via Feedback)</h3>
+<section id="theorem-xv.6.2-controllability-stabilizability-via-feedback" class="level3" data-number="15.6.2">
+<h3 data-number="15.6.2" class="anchored" data-anchor-id="theorem-xv.6.2-controllability-stabilizability-via-feedback"><span class="header-section-number">15.6.2</span> Theorem XV.6.2 (Controllability-Stabilizability via Feedback)</h3>
 <p>A system is <strong>stabilizable</strong> (can stabilize it via feedback) if and only if its <strong>uncontrollable modes are already stable</strong>.</p>
 <p><strong>Precise Statement:</strong> Consider a system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{A}\mathbf{z} + \mathbf{B}u\)</span> with control input <span class="math inline">\(u\)</span>.</p>
 <ol type="1">
@@ -3362,8 +2972,8 @@ Tip
 <p><em>Proof sketch:</em> Controllable modes can be arbitrarily placed (via pole placement). Uncontrollable modes cannot be affected by any feedback law. Thus, stabilization is possible iff uncontrollable modes are intrinsically stable. □</p>
 <p><strong>Implication:</strong> You cannot control what you cannot reach. If a subsystem is uncontrollable and unstable, no feedback can stabilize it.</p>
 </section>
-<section id="theorem-xiv.6.3-bifurcation-loss-of-identifiability" class="level3" data-number="15.6.3">
-<h3 data-number="15.6.3" class="anchored" data-anchor-id="theorem-xiv.6.3-bifurcation-loss-of-identifiability"><span class="header-section-number">15.6.3</span> Theorem XIV.6.3 (Bifurcation Loss of Identifiability)</h3>
+<section id="theorem-xv.6.3-bifurcation-loss-of-identifiability" class="level3" data-number="15.6.3">
+<h3 data-number="15.6.3" class="anchored" data-anchor-id="theorem-xv.6.3-bifurcation-loss-of-identifiability"><span class="header-section-number">15.6.3</span> Theorem XV.6.3 (Bifurcation Loss of Identifiability)</h3>
 <p>As a system approaches a bifurcation point, <strong>identifiability degrades</strong>.</p>
 <p><strong>Precise Statement:</strong> Consider a system <span class="math inline">\(\dot{\mathbf{z}} = \mathbf{F}(\mathbf{z}, \theta, \mu)\)</span> where <span class="math inline">\(\theta\)</span> are parameters and <span class="math inline">\(\mu\)</span> is a bifurcation parameter.</p>
 <p>As <span class="math inline">\(\mu \to \mu_c\)</span> (bifurcation point):</p>
@@ -3540,6 +3150,7 @@ Tip
 <p><strong>For intuitive understanding:</strong> Strogatz, Åström &amp; Murray, Karnopp et al.</p>
 <hr>
 <p><em>— END OF DOCUMENT —</em></p>
+
 </section>
 </section>
 
@@ -4051,7 +3662,7 @@ Tip
 <li><p><strong>Complete orthonormal basis:</strong> The eigenfunctions <span class="math inline">\(\{\phi_n\}\)</span> form a complete orthonormal basis for <span class="math inline">\(H\)</span> (possibly infinite-dimensional).</p></li>
 <li><p><strong>Diagonal representation:</strong> Every <span class="math inline">\(u \in H\)</span> can be written as <span class="math display">\[u = \sum_n c_n\phi_n, \quad c_n = \langle u, \phi_n \rangle\]</span> and <span class="math display">\[\mathbf{A}u = \sum_n \lambda_n c_n\phi_n\]</span></p></li>
 </ol>
-<p><em>Proof:</em> Classical result; see any functional analysis text. □</p>
+<p><em>Proof:</em> Classical result <span class="citation" data-cites="Reed_Simon_1980">(<a href="#ref-Reed_Simon_1980" role="doc-biblioref">Reed and Simon 1980</a>)</span>. □</p>
 <p><strong>Example (Laplacian on <span class="math inline">\([0,1]\)</span>):</strong> The operator <span class="math inline">\(-\frac{d^2}{dx^2}\)</span> on <span class="math inline">\(H^1_0([0,1])\)</span> has: - <strong>Eigenvalues:</strong> <span class="math inline">\(\lambda_n = n^2\pi^2\)</span> for <span class="math inline">\(n = 1, 2, 3, \ldots\)</span> - <strong>Eigenfunctions:</strong> <span class="math inline">\(\phi_n(x) = \sin(n\pi x)\)</span> - These form an orthonormal basis for <span class="math inline">\(L^2([0,1])\)</span></p>
 <hr>
 </section>
@@ -4632,411 +4243,29 @@ Multi-domain system with thermal, kinetic, and fluid dynamics coupling.
 </dl>
 <hr>
 </section>
-</div></section></div></main>
-<!-- /main column -->
-<script id="quarto-html-after-body" type="application/javascript">
-  window.document.addEventListener("DOMContentLoaded", function (event) {
-    const icon = "";
-    const anchorJS = new window.AnchorJS();
-    anchorJS.options = {
-      placement: 'right',
-      icon: icon
-    };
-    anchorJS.add('.anchored');
-    const isCodeAnnotation = (el) => {
-      for (const clz of el.classList) {
-        if (clz.startsWith('code-annotation-')) {                     
-          return true;
-        }
-      }
-      return false;
-    }
-    const onCopySuccess = function(e) {
-      // button target
-      const button = e.trigger;
-      // don't keep focus
-      button.blur();
-      // flash "checked"
-      button.classList.add('code-copy-button-checked');
-      var currentTitle = button.getAttribute("title");
-      button.setAttribute("title", "Copied!");
-      let tooltip;
-      if (window.bootstrap) {
-        button.setAttribute("data-bs-toggle", "tooltip");
-        button.setAttribute("data-bs-placement", "left");
-        button.setAttribute("data-bs-title", "Copied!");
-        tooltip = new bootstrap.Tooltip(button, 
-          { trigger: "manual", 
-            customClass: "code-copy-button-tooltip",
-            offset: [0, -8]});
-        tooltip.show();    
-      }
-      setTimeout(function() {
-        if (tooltip) {
-          tooltip.hide();
-          button.removeAttribute("data-bs-title");
-          button.removeAttribute("data-bs-toggle");
-          button.removeAttribute("data-bs-placement");
-        }
-        button.setAttribute("title", currentTitle);
-        button.classList.remove('code-copy-button-checked');
-      }, 1000);
-      // clear code selection
-      e.clearSelection();
-    }
-    const getTextToCopy = function(trigger) {
-      const outerScaffold = trigger.parentElement.cloneNode(true);
-      const codeEl = outerScaffold.querySelector('code');
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-      text: getTextToCopy
-    });
-    clipboard.on('success', onCopySuccess);
-    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-        text: getTextToCopy,
-        container: window.document.getElementById('quarto-embedded-source-code-modal')
-      });
-      clipboardModal.on('success', onCopySuccess);
-    }
-      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-      var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp('/' + window.location.host + '/');
-      var isInternal = (href) => {
-          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-      }
-      // Inspect non-navigation links and adorn them if external
-     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-      for (var i=0; i<links.length; i++) {
-        const link = links[i];
-        if (!isInternal(link.href)) {
-          // undo the damage that might have been done by quarto-nav.js in the case of
-          // links that we want to consider external
-          if (link.dataset.originalHref !== undefined) {
-            link.href = link.dataset.originalHref;
-          }
-        }
-      }
-    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-      const config = {
-        allowHTML: true,
-        maxWidth: 500,
-        delay: 100,
-        arrow: false,
-        appendTo: function(el) {
-            return el.parentElement;
-        },
-        interactive: true,
-        interactiveBorder: 10,
-        theme: 'quarto',
-        placement: 'bottom-start',
-      };
-      if (contentFn) {
-        config.content = contentFn;
-      }
-      if (onTriggerFn) {
-        config.onTrigger = onTriggerFn;
-      }
-      if (onUntriggerFn) {
-        config.onUntrigger = onUntriggerFn;
-      }
-      window.tippy(el, config); 
-    }
-    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-    for (var i=0; i<noterefs.length; i++) {
-      const ref = noterefs[i];
-      tippyHover(ref, function() {
-        // use id or data attribute instead here
-        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-        try { href = new URL(href).hash; } catch {}
-        const id = href.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note) {
-          return note.innerHTML;
-        } else {
-          return "";
-        }
-      });
-    }
-    const xrefs = window.document.querySelectorAll('a.quarto-xref');
-    const processXRef = (id, note) => {
-      // Strip column container classes
-      const stripColumnClz = (el) => {
-        el.classList.remove("page-full", "page-columns");
-        if (el.children) {
-          for (const child of el.children) {
-            stripColumnClz(child);
-          }
-        }
-      }
-      stripColumnClz(note)
-      if (id === null || id.startsWith('sec-')) {
-        // Special case sections, only their first couple elements
-        const container = document.createElement("div");
-        if (note.children && note.children.length > 2) {
-          container.appendChild(note.children[0].cloneNode(true));
-          for (let i = 1; i < note.children.length; i++) {
-            const child = note.children[i];
-            if (child.tagName === "P" && child.innerText === "") {
-              continue;
-            } else {
-              container.appendChild(child.cloneNode(true));
-              break;
-            }
-          }
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(container);
-          }
-          return container.innerHTML
-        } else {
-          if (window.Quarto?.typesetMath) {
-            window.Quarto.typesetMath(note);
-          }
-          return note.innerHTML;
-        }
-      } else {
-        // Remove any anchor links if they are present
-        const anchorLink = note.querySelector('a.anchorjs-link');
-        if (anchorLink) {
-          anchorLink.remove();
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        if (note.classList.contains("callout")) {
-          return note.outerHTML;
-        } else {
-          return note.innerHTML;
-        }
-      }
-    }
-    for (var i=0; i<xrefs.length; i++) {
-      const xref = xrefs[i];
-      tippyHover(xref, undefined, function(instance) {
-        instance.disable();
-        let url = xref.getAttribute('href');
-        let hash = undefined; 
-        if (url.startsWith('#')) {
-          hash = url;
-        } else {
-          try { hash = new URL(url).hash; } catch {}
-        }
-        if (hash) {
-          const id = hash.replace(/^#\/?/, "");
-          const note = window.document.getElementById(id);
-          if (note !== null) {
-            try {
-              const html = processXRef(id, note.cloneNode(true));
-              instance.setContent(html);
-            } finally {
-              instance.enable();
-              instance.show();
-            }
-          } else {
-            // See if we can fetch this
-            fetch(url.split('#')[0])
-            .then(res => res.text())
-            .then(html => {
-              const parser = new DOMParser();
-              const htmlDoc = parser.parseFromString(html, "text/html");
-              const note = htmlDoc.getElementById(id);
-              if (note !== null) {
-                const html = processXRef(id, note);
-                instance.setContent(html);
-              } 
-            }).finally(() => {
-              instance.enable();
-              instance.show();
-            });
-          }
-        } else {
-          // See if we can fetch a full url (with no hash to target)
-          // This is a special case and we should probably do some content thinning / targeting
-          fetch(url)
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.querySelector('main.content');
-            if (note !== null) {
-              // This should only happen for chapter cross references
-              // (since there is no id in the URL)
-              // remove the first header
-              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-                note.children[0].remove();
-              }
-              const html = processXRef(null, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      }, function(instance) {
-      });
-    }
-        let selectedAnnoteEl;
-        const selectorForAnnotation = ( cell, annotation) => {
-          let cellAttr = 'data-code-cell="' + cell + '"';
-          let lineAttr = 'data-code-annotation="' +  annotation + '"';
-          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-          return selector;
-        }
-        const selectCodeLines = (annoteEl) => {
-          const doc = window.document;
-          const targetCell = annoteEl.getAttribute("data-target-cell");
-          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-          const lineIds = lines.map((line) => {
-            return targetCell + "-" + line;
-          })
-          let top = null;
-          let height = null;
-          let parent = null;
-          if (lineIds.length > 0) {
-              //compute the position of the single el (top and bottom and make a div)
-              const el = window.document.getElementById(lineIds[0]);
-              top = el.offsetTop;
-              height = el.offsetHeight;
-              parent = el.parentElement.parentElement;
-            if (lineIds.length > 1) {
-              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-              height = bottom - top;
-            }
-            if (top !== null && height !== null && parent !== null) {
-              // cook up a div (if necessary) and position it 
-              let div = window.document.getElementById("code-annotation-line-highlight");
-              if (div === null) {
-                div = window.document.createElement("div");
-                div.setAttribute("id", "code-annotation-line-highlight");
-                div.style.position = 'absolute';
-                parent.appendChild(div);
-              }
-              div.style.top = top - 2 + "px";
-              div.style.height = height + 4 + "px";
-              div.style.left = 0;
-              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-              if (gutterDiv === null) {
-                gutterDiv = window.document.createElement("div");
-                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-                gutterDiv.style.position = 'absolute';
-                const codeCell = window.document.getElementById(targetCell);
-                const gutter = codeCell.querySelector('.code-annotation-gutter');
-                gutter.appendChild(gutterDiv);
-              }
-              gutterDiv.style.top = top - 2 + "px";
-              gutterDiv.style.height = height + 4 + "px";
-            }
-            selectedAnnoteEl = annoteEl;
-          }
-        };
-        const unselectCodeLines = () => {
-          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-          elementsIds.forEach((elId) => {
-            const div = window.document.getElementById(elId);
-            if (div) {
-              div.remove();
-            }
-          });
-          selectedAnnoteEl = undefined;
-        };
-          // Handle positioning of the toggle
-      window.addEventListener(
-        "resize",
-        throttle(() => {
-          elRect = undefined;
-          if (selectedAnnoteEl) {
-            selectCodeLines(selectedAnnoteEl);
-          }
-        }, 10)
-      );
-      function throttle(fn, ms) {
-      let throttle = false;
-      let timer;
-        return (...args) => {
-          if(!throttle) { // first call gets through
-              fn.apply(this, args);
-              throttle = true;
-          } else { // all the others get throttled
-              if(timer) clearTimeout(timer); // cancel #2
-              timer = setTimeout(() => {
-                fn.apply(this, args);
-                timer = throttle = false;
-              }, ms);
-          }
-        };
-      }
-        // Attach click handler to the DT
-        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-        for (const annoteDlNode of annoteDls) {
-          annoteDlNode.addEventListener('click', (event) => {
-            const clickedEl = event.target;
-            if (clickedEl !== selectedAnnoteEl) {
-              unselectCodeLines();
-              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-              if (activeEl) {
-                activeEl.classList.remove('code-annotation-active');
-              }
-              selectCodeLines(clickedEl);
-              clickedEl.classList.add('code-annotation-active');
-            } else {
-              // Unselect the line
-              unselectCodeLines();
-              clickedEl.classList.remove('code-annotation-active');
-            }
-          });
-        }
-    const findCites = (el) => {
-      const parentEl = el.parentElement;
-      if (parentEl) {
-        const cites = parentEl.dataset.cites;
-        if (cites) {
-          return {
-            el,
-            cites: cites.split(' ')
-          };
-        } else {
-          return findCites(el.parentElement)
-        }
-      } else {
-        return undefined;
-      }
-    };
-    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-    for (var i=0; i<bibliorefs.length; i++) {
-      const ref = bibliorefs[i];
-      const citeInfo = findCites(ref);
-      if (citeInfo) {
-        tippyHover(citeInfo.el, function() {
-          var popup = window.document.createElement('div');
-          citeInfo.cites.forEach(function(cite) {
-            var citeDiv = window.document.createElement('div');
-            citeDiv.classList.add('hanging-indent');
-            citeDiv.classList.add('csl-entry');
-            var biblioDiv = window.document.getElementById('ref-' + cite);
-            if (biblioDiv) {
-              citeDiv.innerHTML = biblioDiv.innerHTML;
-            }
-            popup.appendChild(citeDiv);
-          });
-          return popup.innerHTML;
-        });
-      }
-    }
-  });
-  </script>
-</div> <!-- /content -->
+</div></section><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Bryson_1975" class="csl-entry" role="listitem">
+Bryson, A. E., and Y. C. Ho. 1975. <span>“Applied Optimal Control: Optimization, Estimation, and Control.”</span>
+</div>
+<div id="ref-Kalman_1960" class="csl-entry" role="listitem">
+Kalman, R. E. 1960. <span>“On the General Theory of Control Systems.”</span> <em>IRE Transactions on Automatic Control</em> 4: 110.
+</div>
+<div id="ref-Khalil_2002" class="csl-entry" role="listitem">
+Khalil, H. K. 2002. <em>Nonlinear Systems</em>. 3rd ed. Prentice Hall.
+</div>
+<div id="ref-Pazy_1983" class="csl-entry" role="listitem">
+Pazy, A. 1983. <em>Semigroups of Linear Operators and Applications to Partial Differential Equations</em>. Springer.
+</div>
+<div id="ref-Reed_Simon_1980" class="csl-entry" role="listitem">
+Reed, M., and B. Simon. 1980. <em>Functional Analysis</em>. Vol. 1. Methods of Modern Mathematical Physics. Academic Press.
+</div>
+</div></section></div>
 
+<!-- QMD_CONTENT_END -->
+    </div>
 
-
-
-</body></html>
+    <footer>
+        <p>&copy; 2026 Cole Prather. All rights reserved.</p>
+    </footer>
+</body>
+</html>

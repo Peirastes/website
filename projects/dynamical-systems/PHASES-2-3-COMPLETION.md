@@ -21,7 +21,7 @@ This is the **longest, most comprehensive worked example** showing end-to-end ap
 **Step 1: Translate to Familiar Domain**
 - Problem given: Design hydraulic absorber at 10 Hz
 - Strategy: Work in mechanical domain (intuition is stronger)
-- Uses: Theorem XI.9.1 (Design Translatability)
+- Uses: Theorem XII.9.1 (Design Translatability)
 
 **Step 2: Design Mechanical Prototype**
 - Target frequency: 10 Hz → ω₀ = 56.5 rad/s
@@ -37,14 +37,14 @@ This is the **longest, most comprehensive worked example** showing end-to-end ap
 - Conclusion: Need active control
 
 **Step 4: Add Feedback Control**
-- Uses: Theorem XII.6.1 (LQR Optimality)
+- Uses: Theorem XIII.6.1 (LQR Optimality)
 - LQR cost function: J = ∫[qx² + ru²]dt with q=1000, r=100
 - Optimal gain: K = [50, 10]
 - Physical effect: Increases effective damping from ζ=0.7 to ζ=0.84
 - New attenuation: Improves from 1.76× to ~8× (meets requirement)
 
 **Step 5: Translate Back to Hydraulic**
-- Uses: Theorem XI.9.1 (Design Translatability Across Domains)
+- Uses: Theorem XII.9.1 (Design Translatability Across Domains)
 - Parameter mapping: m↔Lh, k↔1/Ch, b↔Rh
 - Component selection:
   - Accumulator (0.6L, 200 bar)
@@ -260,7 +260,7 @@ Perception:
 ```
 projects/dynamical-systems/
 │
-├── sources-fields-v2-rigorous.qmd
+├── on-dynamical-systems.qmd
 │   └── 12,700 lines: Main framework (Parts I-XIV + Appendices)
 │
 ├── worked-examples-and-problems.qmd
@@ -287,7 +287,7 @@ projects/dynamical-systems/
 ## Usage Recommendations
 
 ### For Academic Publication
-1. Submit main document (`sources-fields-v2-rigorous.qmd`) to **SIAM Review**
+1. Submit main document (`on-dynamical-systems.qmd`) to **SIAM Review**
 2. Include Phase 2 case study as supplementary material
 3. Reference Phase 3 interactive tool as pedagogical resource
 4. Estimated impact: High-profile review article unifying four research domains
@@ -359,7 +359,7 @@ projects/dynamical-systems/
 
 ### Scientifically
 ✅ Unifies mechanical, electrical, thermal, hydraulic systems under one mathematical principle
-✅ Proves mechanical-electrical identity rigorously (Theorem XI.5.1, XI.8.1)
+✅ Proves mechanical-electrical identity rigorously (Theorem XII.5.1, XII.8.1)
 ✅ Connects identifiability with observability and controllability (Theorems XIV.6.1-XIV.6.3)
 ✅ Provides honest analysis of limitations (Part XIV: 7 failure cases)
 

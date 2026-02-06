@@ -4,7 +4,7 @@
 
 This document guides you through the comprehensive dynamical systems framework based on your background and learning goals.
 
-**Main Document:** `sources-fields-v2-rigorous.qmd` (~11,500 lines)
+**Main Document:** `on-dynamical-systems.qmd` (~11,500 lines)
 **Companion Document:** `worked-examples-and-problems.qmd` (~600 lines)
 
 ---
@@ -30,7 +30,7 @@ Choose your path based on your background and goals:
 **Key Sections to Master:**
 - Theorem N.4: Spectral theory of operators
 - Theorem M.8.1: Conditions for identifiability
-- Theorem XIII.3.3: Hopf bifurcation
+- Theorem XIV.3.3: Hopf bifurcation
 
 **Companion Work:**
 - Problem Set D (PDEs) for theoretical practice
@@ -50,16 +50,16 @@ Choose your path based on your background and goals:
 1. **Parts I-IV (skip theory):** Skim quickly for intuition (~20 min)
 2. **Part VI:** Mathematical framework (just the state-space part) (~20 min)
 3. **Part X:** Electrical systems and concrete examples (~1 hour)
-4. **Part XI:** Cross-domain analogies (focus on theorems XI.5.1, XI.6.1, XI.8.1) (~1 hour)
+4. **Part XI:** Cross-domain analogies (focus on theorems XII.5.1, XII.6.1, XII.8.1) (~1 hour)
 5. **Part XII:** Control theory (skip LQR math, focus on pole placement and PID) (~1.5 hours)
 6. **Part XIII:** Bifurcations (practical interpretation) (~45 min)
 7. **Appendix O:** Notation guide for reference (~20 min)
 
 **Key Sections to Master:**
-- Theorem XI.8.1: Universal oscillator equation
-- Theorem XII.4.1: Pole placement
+- Theorem XII.8.1: Universal oscillator equation
+- Theorem XIII.4.1: Pole placement
 - Section XII.5: PID control modes
-- Definition XIII.2.1-XIII.2.3: Fixed points and linearization
+- Definition XIII.2.1-XIV.2.3: Fixed points and linearization
 
 **Practical Projects:**
 - Design an RLC filter equivalent to a mechanical system (Problem B.3)
@@ -86,7 +86,7 @@ Choose your path based on your background and goals:
 3. **Appendix N:** Complete functional analysis foundations (~2 hours)
    - Focus on: Theorems N.1.2, N.2.1, N.4.1-N.4.2, N.5.1
 4. **Part XIII:** Bifurcation theory with normal forms (~1.5 hours)
-   - Theorem XIII.3.2 and XIII.3.3 (rigorous proofs)
+   - Theorem XIV.3.2 and XIV.3.3 (rigorous proofs)
 5. **Appendix M:** Identifiability and information theory (~2 hours)
    - Theorems M.2.7-M.2.8 (gauge freedom)
    - Theorem M.5.2 (information-theoretic formulation)
@@ -94,10 +94,10 @@ Choose your path based on your background and goals:
 
 **Key Theorems (Master These):**
 - **Existence & Uniqueness:** Picard-Lindelöf theorem (implied in Part VIII)
-- **Stability:** Theorem XIII.2.3 (linearization), XIII.5.2 (Lyapunov)
-- **Bifurcations:** Theorem XIII.3.3 (Hopf)
+- **Stability:** Theorem XIV.2.3 (linearization), XIV.5.2 (Lyapunov)
+- **Bifurcations:** Theorem XIV.3.3 (Hopf)
 - **Identifiability:** Theorems M.2.8, M.8.1
-- **Control:** Theorem XII.3.2 (controllability), XII.6.1 (LQR optimality)
+- **Control:** Theorem XIII.3.2 (controllability), XIII.6.1 (LQR optimality)
 
 **Deep Dives:**
 - Extend Problem Set D with your own PDE problems
@@ -124,7 +124,7 @@ Choose your path based on your background and goals:
 2. **Part X:** Electrical systems with concrete numbers (~1.5 hours)
    - Work through all numerical examples
 3. **Worked Examples 1.1-1.5:** Study each example in detail (~2 hours)
-4. **Part XI:** Cross-domain analogies (read Section XI.5-XI.8 carefully) (~1 hour)
+4. **Part XI:** Cross-domain analogies (read Section XII.5-XII.8 carefully) (~1 hour)
 5. **Part XII.5:** PID control (very practical and intuitive) (~45 min)
 6. **Part XIII (Sections XIII.1-XIII.2):** Bifurcations intuitively (~1 hour)
 7. **Appendix O:** Notation guide (refer to as needed) (~15 min)
@@ -193,10 +193,10 @@ Choose your path based on your background and goals:
 **Key Takeaway:** Electrical systems demonstrate identifiability problem and analogies concretely.
 
 ### Part XI: Cross-Domain Analogies (Rigorous Proofs)
-- **Theorems XI.3-XI.6:** R-type, L-type, C-type correspondence
-- **Theorem XI.5:** Force-voltage analogy via power conjugacy
-- **Theorem XI.8:** Universal oscillator equation
-- **Theorem XI.9:** Design translatability
+- **Theorems XII.3-XII.6:** R-type, L-type, C-type correspondence
+- **Theorem XII.5:** Force-voltage analogy via power conjugacy
+- **Theorem XII.8:** Universal oscillator equation
+- **Theorem XII.9:** Design translatability
 
 **Key Takeaway:** Mathematical identity (not mere analogy) across mechanical, electrical, thermal, hydraulic domains.
 
@@ -211,7 +211,7 @@ Choose your path based on your background and goals:
 **Key Takeaway:** Feedback allows extrinsic control to effectively modify intrinsic dynamics.
 
 ### Part XIII: Bifurcations & Stability
-- **XIII.2:** Fixed points and linearization (Theorem XIII.2.3)
+- **XIII.2:** Fixed points and linearization (Theorem XIV.2.3)
 - **XIII.3:** Saddle-node and Hopf bifurcations
 - **XIII.4:** Bifurcation diagrams
 - **XIII.5:** Lyapunov stability method
@@ -256,7 +256,7 @@ Choose your path based on your background and goals:
 | Topic | Location |
 |:--|:--|
 | Identification problem | Part IX, Appendix M |
-| Cross-domain analogies | Part XI (especially XI.5-XI.8) |
+| Cross-domain analogies | Part XI (especially XII.5-XII.8) |
 | Oscillation and damping | Part X sections 6-7, Part XIII |
 | Stability analysis | Part VIII, Appendix N (theory), Part XIII (practice) |
 | Control design | Part XII (especially 12.4-12.6) |
@@ -267,7 +267,7 @@ Choose your path based on your background and goals:
 
 **Mechanical Systems** → Parts I-VII, X.4-X.7, XII.7, XIII (Examples 1.4-1.5)
 
-**Electrical Systems** → Part X.3-X.7, XI.5-XI.9, XII.5, Problem Sets B-C
+**Electrical Systems** → Part X.3-X.7, XII.5-XII.9, XII.5, Problem Sets B-C
 
 **Thermal Systems** → Part X.8, Part XI (thermal analogies), Worked Example 1.3
 
@@ -349,13 +349,13 @@ Use these questions to test your understanding:
 | Theorem | Location | What It Says |
 |:--|:--|:--|
 | **Product Decomposition** | M.2.8 | Given $B = R \times D$, cannot uniquely identify $(R,D)$ without additional info |
-| **Force-Voltage Analogy** | XI.5.1 | Mechanical and electrical systems are mathematically identical under parameter correspondence |
-| **Universal Oscillator** | XI.8.1 | All systems with one R, L, C element obey same 2nd-order equation |
-| **Linearization & Stability** | XIII.2.3 | Eigenvalues of Jacobian determine local stability of fixed points |
-| **Hopf Bifurcation** | XIII.3.3 | Limit cycle born from fixed point when eigenvalues cross imaginary axis |
-| **Lyapunov Stability** | XIII.5.2 | If energy-like function $V$ is decreasing, system approaches equilibrium |
-| **Controllability** | XII.3.2 | Can place eigenvalues anywhere iff $(A, B)$ is controllable |
-| **LQR Optimality** | XII.6.1 | Riccati equation determines gain that minimizes control cost |
+| **Force-Voltage Analogy** | XII.5.1 | Mechanical and electrical systems are mathematically identical under parameter correspondence |
+| **Universal Oscillator** | XII.8.1 | All systems with one R, L, C element obey same 2nd-order equation |
+| **Linearization & Stability** | XIV.2.3 | Eigenvalues of Jacobian determine local stability of fixed points |
+| **Hopf Bifurcation** | XIV.3.3 | Limit cycle born from fixed point when eigenvalues cross imaginary axis |
+| **Lyapunov Stability** | XIV.5.2 | If energy-like function $V$ is decreasing, system approaches equilibrium |
+| **Controllability** | XIII.3.2 | Can place eigenvalues anywhere iff $(A, B)$ is controllable |
+| **LQR Optimality** | XIII.6.1 | Riccati equation determines gain that minimizes control cost |
 
 ---
 

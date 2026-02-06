@@ -94,16 +94,16 @@ $$C_1 = \frac{\tau_1}{R} = \frac{1 \text{ s}}{10^4 \text{ Ω}} = 10^{-4} \text{ 
 Using least-squares: $\hat{k} = \frac{\sum F_i x_i}{\sum F_i^2}$
 
 **Calculation:**
-$$\sum F_i x_i = (1)(0.103) + (2)(0.195) + (3)(0.302) + (4)(0.398) + (5)(0.505) = 5.491$$
+$$\sum F_i x_i = (1)(0.103) + (2)(0.195) + (3)(0.302) + (4)(0.398) + (5)(0.505) = 5.516$$
 
 $$\sum F_i^2 = 1 + 4 + 9 + 16 + 25 = 55$$
 
-$$\hat{k} = \frac{5.491}{55} \approx 0.0999 \text{ m/N}$$
+$$\hat{k}^{-1} = \frac{5.516}{55} \approx 0.1003 \text{ m/N}$$
 
 **Stiffness:**
-$$\hat{k} = 1/0.0999 \approx 10.01 \text{ N/m}$$
+$$\hat{k} = 1/0.1003 \approx 9.97 \text{ N/m}$$
 
-**Truth:** The true stiffness is $k = 10$ N/m. Error is only 0.01 N/m due to noise.
+**Truth:** The true stiffness is $k = 10$ N/m. Error is only 0.03 N/m due to noise.
 
 ### Uncertainty Quantification
 
@@ -137,13 +137,15 @@ $$k \in [9.93, 10.09] \text{ N/m}$$
 **Steady-State Analysis:** At equilibrium ($\frac{dT}{dt} = 0$):
 $$0 = -\frac{T_{\infty} - 20}{0.1} + 500(100 - T_{\infty})$$
 
-$$T_{\infty} \approx 101.6°\text{C}$$
+Solving: $10(T_{\infty} - 20) = 500(100 - T_{\infty})$, so $510 T_{\infty} = 50200$, giving:
 
-**Steady-State Error:** 1.6°C (system overshoots slightly to maintain equilibrium).
+$$T_{\infty} \approx 98.4°\text{C}$$
+
+**Steady-State Error:** 1.6°C undershoot. The heater cannot supply enough power to overcome heat losses at 100°C.
 
 **Response Time:** ~200 seconds to reach 95% of target (moderately fast).
 
-**Drawback:** Cannot eliminate steady-state error; will always overshoot or undershoot.
+**Drawback:** Cannot eliminate steady-state error; proportional control always produces offset.
 
 ### PI Control: $P = K_P e + K_I \int e \, dt$
 
@@ -400,7 +402,7 @@ The gravity-electricity analogy is almost absent from undergraduate curricula be
 
 Yet in the Newtonian limit, gravity and electricity are **mathematically isomorphic**.
 
-**Key Insight (Theorem XI.X.1):** Gravity and electromagnetism obey the same universal pattern: intrinsic properties (permittivity $\epsilon_0$ or coupling $4\pi G$) combined with extrinsic sources (charge density or mass density) produce fields and potentials with identical mathematical form.
+**Key Insight (Theorem XII.X.1):** Gravity and electromagnetism obey the same universal pattern: intrinsic properties (permittivity $\epsilon_0$ or coupling $4\pi G$) combined with extrinsic sources (charge density or mass density) produce fields and potentials with identical mathematical form.
 
 ---
 
@@ -444,7 +446,7 @@ Yet in the Newtonian limit, gravity and electricity are **mathematically isomorp
 - Classical mechanical vibration theory is well-developed
 - Design intuition is stronger for mechanical engineers
 - Standard textbooks cover this extensively
-- Once designed in mechanics, translation back to hydraulics is routine (Theorem XI.9.1)
+- Once designed in mechanics, translation back to hydraulics is routine (Theorem XII.9.1)
 
 ### Step 2: Design Mechanical Prototype
 
@@ -453,7 +455,7 @@ Yet in the Newtonian limit, gravity and electricity are **mathematically isomorp
 - Desired attenuation: 10× amplitude reduction
 - This requires damping ratio $\zeta \approx 0.7$ (Butterworth filter design, Part XIII bifurcation analysis)
 
-**Design Equations (from Part XI.8.1: Universal Oscillator):**
+**Design Equations (from Part XII.8.1: Universal Oscillator):**
 
 Natural frequency target (slightly below 10 Hz for margin):
 $$\omega_0 = 2\pi \times 9 = 56.55 \text{ rad/s}$$
@@ -474,14 +476,14 @@ $$b = 2\zeta\sqrt{km} = 2 \times 0.7 \times \sqrt{31,980 \times 10} = 791.6 \tex
 - Spring: $k = 32$ kN/m (stiff coil spring or stack of springs)
 - Damper: $b = 792$ N·s/m (viscous damper with appropriate fluid)
 
-**Verification (from Part XI.8.1):**
+**Verification (from Part XII.8.1):**
 $$\zeta = \frac{b}{2\sqrt{km}} = \frac{792}{2\sqrt{32000 \times 10}} = 0.70$$ ✓
 
 $$\omega_0 = \sqrt{k/m} = \sqrt{3200} = 56.57 \text{ rad/s} = 9.0 \text{ Hz}$$ ✓
 
 ### Step 3: Verify Performance via Simulation
 
-**Transfer function (from Part XI.8.1 universal oscillator):**
+**Transfer function (from Part XII.8.1 universal oscillator):**
 
 For a driven oscillator, the frequency response is:
 $$H(j\omega) = \frac{\omega_0^2}{(\omega_0^2 - \omega^2) + 2j\zeta\omega_0\omega}$$
@@ -538,7 +540,7 @@ $$\dot{\mathbf{z}} = \begin{bmatrix} 0 & 1 \\ -3200 & -79.2 \end{bmatrix}\mathbf
 
 Here, $u_{\text{control}}$ is the active feedback force we'll design.
 
-**Cost Function Design (Theorem XII.6.1):**
+**Cost Function Design (Theorem XIII.6.1):**
 
 We want to minimize:
 $$J = \int_0^{\infty} \left[q x^2 + r u^2\right] dt$$
@@ -628,7 +630,7 @@ If LQR attenuation proves insufficient (still less than 10×), increase $q$:
 
 ### Step 5: Translate Back to Hydraulic Implementation
 
-**Using Part XI Analogies (Theorem XI.9.1: Translatability of Designs):**
+**Using Part XII Analogies (Theorem XII.9.1: Translatability of Designs):**
 
 The mechanical design translates to hydraulic via power conjugacy. Recall from Part XI that:
 - **Mechanical domain:** Effort = Force $F$ [N], Flow = Velocity $v$ [m/s], Power = $F \cdot v$ [W]
@@ -875,15 +877,15 @@ Even with cost reductions, system stays well under budget and meets all requirem
 1. **Translation power:** Mechanical domain provides intuition; hydraulic is implementation
 2. **Design methodology:** Use framework to structure design process
 3. **Theoretical backing:** Every step has rigorous theorem support
-   - Theorem XI.9.1: Design translatability across domains
-   - Theorem XII.6.1: LQR optimality for control synthesis
-   - Theorem XIII.2.3: Linearization determines stability
+   - Theorem XII.9.1: Design translatability across domains
+   - Theorem XIII.6.1: LQR optimality for control synthesis
+   - Theorem XIV.2.3: Linearization determines stability
 4. **Practical result:** Real industrial problem solved systematically
 
 **The patterns-of-change framework accelerated design by:**
 - Enabling work in preferred domain (mechanics)
 - Providing rigorous analogy translation (Part XI)
-- Offering optimal control synthesis (Part XII.6)
+- Offering optimal control synthesis (Part XIII.6)
 - Guiding design choices (Part XIII: bifurcations, damping ratio)
 
 **Without the framework:** Design would require:
@@ -930,7 +932,7 @@ An RC circuit with $R = 1$ kΩ, $C = 10$ μF is charged by a time-varying voltag
 **Solution:**
 (a) $\tau = 10^3 \times 10^{-5} = 0.01$ s = 10 ms
 (b) $\frac{dV_C}{dt} + \frac{V_C}{\tau} = \frac{V_s(t)}{\tau}$, i.e., $\frac{dV_C}{dt} + 100 V_C = 500 + 300\sin(2\pi t)$
-(c) For DC component: $V_C \to 5$ V. For AC: amplitude attenuated by factor $\tau \omega$ where $\omega = 2\pi$ rad/s. Attenuation = $0.01 \times 2\pi = 0.0628 \approx 6.3\%$, so $V_{C,AC} \approx 0.19$ V.
+(c) For DC component: $V_C \to 5$ V. For AC: the transfer function magnitude is $|H(j\omega)| = 1/\sqrt{1+(\omega\tau)^2}$. At $\omega = 2\pi$ rad/s with $\tau = 0.01$ s: $|H| = 1/\sqrt{1+(0.0628)^2} \approx 0.998$. So $V_{C,AC} \approx 0.998 \times 3 \approx 2.99$ V (only 0.2% attenuation—this frequency is well below the cutoff $f_c = 1/(2\pi\tau) = 15.9$ Hz).
 
 ---
 
@@ -1163,9 +1165,9 @@ Detailed solutions for all problems are available in this document. Key solution
 
 # References for Further Study
 
-- **Identifiability Theory:** Appendix M, `sources-fields-v2-rigorous.qmd`
-- **Bifurcations:** Part XIII, `sources-fields-v2-rigorous.qmd`
-- **Control Theory:** Part XII, `sources-fields-v2-rigorous.qmd`
-- **Cross-Domain Analogies:** Part XI, `sources-fields-v2-rigorous.qmd`
-- **Functional Analysis:** Appendix N, `sources-fields-v2-rigorous.qmd`
+- **Identifiability Theory:** Appendix M, `on-dynamical-systems.qmd`
+- **Bifurcations:** Part XIII, `on-dynamical-systems.qmd`
+- **Control Theory:** Part XII, `on-dynamical-systems.qmd`
+- **Cross-Domain Analogies:** Part XI, `on-dynamical-systems.qmd`
+- **Functional Analysis:** Appendix N, `on-dynamical-systems.qmd`
 

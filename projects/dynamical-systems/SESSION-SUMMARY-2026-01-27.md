@@ -76,7 +76,7 @@ Result: Framework now encompasses **gravity, electromagnetism, mechanics, and al
 - Added comprehensive getting-started section
 - 5 one-click preset scenarios (underdamped, critical, overdamped, resonance, fast)
 - Detailed regime exploration guide
-- Step-by-step "Key Experiment" verification of Theorem XI.8.1
+- Step-by-step "Key Experiment" verification of Theorem XII.8.1
 - +40 lines of HTML tutorial content
 
 **Performance Metrics Display**
@@ -116,7 +116,7 @@ Result: Framework now encompasses **gravity, electromagnetism, mechanics, and al
 
 **Educational Experiment Guide**
 - 6-step guided parameter correspondence experiment
-- Explicit connection to Theorem XI.8.1
+- Explicit connection to Theorem XII.8.1
 - Pedagogical scaffolding for self-discovery
 - +40 lines of HTML documentation
 
@@ -135,7 +135,7 @@ Result: Framework now encompasses **gravity, electromagnetism, mechanics, and al
 
 ### What Was Added
 
-**File:** `sources-fields-v2-rigorous.qmd`
+**File:** `on-dynamical-systems.qmd`
 
 **New Section Location:** Between Part X (Electrical Systems) and Part XI (Cross-Domain Analogies)
 
@@ -287,7 +287,7 @@ All follow pattern: P = (effort) × (flow)
 
 ## Document Statistics (Final)
 
-### Main Document: sources-fields-v2-rigorous.qmd
+### Main Document: on-dynamical-systems.qmd
 
 | Section | Lines | Status |
 |:--|--:|:--|
@@ -488,7 +488,7 @@ Added universality: Part X.5 + Example 1.5b revealing that gravity and electrici
 - `SESSION-SUMMARY-2026-01-27.md` - This document
 
 ### Modified
-- `sources-fields-v2-rigorous.qmd` - Added Part X.5 (~800 lines)
+- `on-dynamical-systems.qmd` - Added Part X.5 (~800 lines)
 - `worked-examples-and-problems.qmd` - Added Example 1.5b (~300 lines), enhanced Example 1.6 (~250 lines)
 - `interactive-laboratory.html` - Enhanced Phase 3 (~80 lines, 240 lines CSS/JS improvements)
 
