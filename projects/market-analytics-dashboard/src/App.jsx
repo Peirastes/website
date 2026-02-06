@@ -144,20 +144,18 @@ function generateAssetData(ticker) {
   };
 
   const priceHistory = [];
-  let p = price * 0.85;
-  for (let i = 90; i >= 0; i--) {
+  let p = price * 0.4;
+  for (let i = 1825; i >= 0; i--) {
     const date = new Date(); date.setDate(date.getDate() - i);
-    p *= 1 + (r() - 0.47) * 0.04;
+    p *= 1 + (r() - 0.47) * 0.025;
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
     priceHistory.push({
-      date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      date: `${yyyy}-${mm}-${dd}`,
       price: +p.toFixed(2),
       volume: Math.floor(5e5 + r() * 8e7),
-      sma20: 0, sma50: 0,
     });
-  }
-  for (let i = 0; i < priceHistory.length; i++) {
-    if (i >= 19) priceHistory[i].sma20 = +(priceHistory.slice(i - 19, i + 1).reduce((s, d) => s + d.price, 0) / 20).toFixed(2);
-    if (i >= 49) priceHistory[i].sma50 = +(priceHistory.slice(i - 49, i + 1).reduce((s, d) => s + d.price, 0) / 50).toFixed(2);
   }
 
   const avg = (obj) => { const vals = Object.values(obj); return vals.reduce((s, v) => s + v, 0) / vals.length; };
@@ -271,9 +269,13 @@ function ScoreRing({ score, size = 100 }) {
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
+  // Format YYYY-MM-DD dates nicely in tooltip
+  const displayLabel = label?.includes?.("-")
+    ? new Date(label + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : label;
   return (
     <div style={{ background: COLORS.card, border: `1px solid ${COLORS.cardBorder}`, borderRadius: 6, padding: "6px 10px", boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>
-      <div style={{ fontSize: 9, color: COLORS.textDim, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 9, color: COLORS.textDim, marginBottom: 2 }}>{displayLabel}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ fontSize: 10, color: p.color || COLORS.textPrimary, fontWeight: 600 }}>
           {p.name}: {typeof p.value === "number" ? p.value.toLocaleString() : p.value}
@@ -652,17 +654,51 @@ function DetailPanel({ data, tab, setTab, priceRange, setPriceRange }) {
 }
 
 const PRICE_RANGES = [
+  { id: "1D", label: "1D", days: 1 },
   { id: "1W", label: "1W", days: 7 },
   { id: "1M", label: "1M", days: 30 },
   { id: "3M", label: "3M", days: 90 },
+  { id: "6M", label: "6M", days: 180 },
+  { id: "1Y", label: "1Y", days: 365 },
+  { id: "5Y", label: "5Y", days: 1825 },
   { id: "ALL", label: "ALL", days: Infinity },
 ];
 
+function formatChartDate(dateStr, rangeId) {
+  if (!dateStr) return "";
+  // Handle both "YYYY-MM-DD" and "Mon DD" formats
+  const d = dateStr.includes("-") ? new Date(dateStr + "T00:00:00") : null;
+  if (!d || isNaN(d)) return dateStr;
+  switch (rangeId) {
+    case "1D":
+    case "1W":
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    case "1M":
+    case "3M":
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    case "6M":
+    case "1Y":
+      return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    default:
+      return d.toLocaleDateString("en-US", { year: "numeric" });
+  }
+}
+
 function OverviewTab({ data, priceRange, setPriceRange }) {
   const rangeConfig = PRICE_RANGES.find(r => r.id === priceRange) || PRICE_RANGES[2];
-  const chartData = rangeConfig.days === Infinity
+  const sliced = rangeConfig.days === Infinity
     ? data.priceHistory
     : data.priceHistory.slice(-rangeConfig.days);
+
+  // Compute SMA20 on the sliced data
+  const chartData = useMemo(() => {
+    return sliced.map((pt, i, arr) => {
+      const sma20 = i >= 19
+        ? +(arr.slice(i - 19, i + 1).reduce((s, d) => s + d.price, 0) / 20).toFixed(2)
+        : null;
+      return { ...pt, sma20 };
+    });
+  }, [sliced]);
   return (
     <div className="spectrum-overview-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {/* Score + Radar */}
@@ -732,11 +768,16 @@ function OverviewTab({ data, priceRange, setPriceRange }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gridLine} />
-            <XAxis dataKey="date" tick={{ fill: COLORS.textDim, fontSize: 8 }} />
-            <YAxis domain={["auto", "auto"]} tick={{ fill: COLORS.textDim, fontSize: 9 }} tickFormatter={v => `$${v}`} />
+            <XAxis
+              dataKey="date"
+              tick={{ fill: COLORS.textDim, fontSize: 8 }}
+              tickFormatter={(v) => formatChartDate(v, priceRange)}
+              interval={Math.max(0, Math.floor(chartData.length / 6) - 1)}
+            />
+            <YAxis domain={["auto", "auto"]} tick={{ fill: COLORS.textDim, fontSize: 9 }} tickFormatter={v => `$${v.toLocaleString()}`} />
             <Tooltip content={<ChartTooltip />} />
             <Area type="monotone" dataKey="price" stroke={data.color} fill="url(#priceGrad)" strokeWidth={2} />
-            <Line type="monotone" dataKey="sma20" stroke={COLORS.warn} strokeWidth={1} dot={false} />
+            <Line type="monotone" dataKey="sma20" stroke={COLORS.warn} strokeWidth={1} dot={false} connectNulls={false} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

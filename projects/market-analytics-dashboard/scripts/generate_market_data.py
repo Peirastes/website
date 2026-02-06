@@ -148,8 +148,8 @@ def fetch_stock_data(tickers: List[str]) -> Dict[str, Any]:
         tickers_str = " ".join(tickers)
         data = yf.download(tickers_str, period="1d", interval="1m", progress=False, group_by='ticker')
 
-        # Also get historical data for charts (90 days)
-        hist_data = yf.download(tickers_str, period="3mo", interval="1d", progress=False, group_by='ticker')
+        # Get historical data for charts (5 years)
+        hist_data = yf.download(tickers_str, period="5y", interval="1d", progress=False, group_by='ticker')
 
         for ticker in tickers:
             try:
@@ -178,7 +178,7 @@ def fetch_stock_data(tickers: List[str]) -> Dict[str, Any]:
                 if historical is not None and not historical.empty:
                     for idx, row in historical.iterrows():
                         price_history.append({
-                            "date": idx.strftime("%b %d"),
+                            "date": idx.strftime("%Y-%m-%d"),
                             "price": round(float(row['Close']), 2),
                             "volume": int(row['Volume']) if not pd.isna(row['Volume']) else 0,
                         })
@@ -200,7 +200,7 @@ def fetch_stock_data(tickers: List[str]) -> Dict[str, Any]:
                     "fiftyTwoWeekHigh": info.get('fiftyTwoWeekHigh'),
                     "fiftyTwoWeekLow": info.get('fiftyTwoWeekLow'),
                     "dividendYield": info.get('dividendYield'),
-                    "priceHistory": price_history[-90:] if price_history else [],
+                    "priceHistory": price_history,
                     "lastUpdated": datetime.now(timezone.utc).isoformat(),
                 }
                 logger.info(f"  {ticker}: ${price:.2f} ({change_pct:+.2f}%)")
@@ -215,7 +215,7 @@ def fetch_stock_data(tickers: List[str]) -> Dict[str, Any]:
         for ticker in tickers:
             try:
                 stock = yf.Ticker(ticker)
-                hist = stock.history(period="3mo")
+                hist = stock.history(period="5y")
                 info = stock.info
 
                 if not hist.empty:
@@ -230,7 +230,7 @@ def fetch_stock_data(tickers: List[str]) -> Dict[str, Any]:
                 price_history = []
                 for idx, row in hist.iterrows():
                     price_history.append({
-                        "date": idx.strftime("%b %d"),
+                        "date": idx.strftime("%Y-%m-%d"),
                         "price": round(float(row['Close']), 2),
                         "volume": int(row['Volume']),
                     })
@@ -242,7 +242,7 @@ def fetch_stock_data(tickers: List[str]) -> Dict[str, Any]:
                     "previousClose": round(prev_close, 2),
                     "marketCap": info.get('marketCap') or 0,
                     "volume": info.get('volume') or 0,
-                    "priceHistory": price_history[-90:],
+                    "priceHistory": price_history,
                     "lastUpdated": datetime.now(timezone.utc).isoformat(),
                 }
                 logger.info(f"  {ticker}: ${price:.2f} ({change_pct:+.2f}%)")
@@ -289,19 +289,6 @@ def fetch_crypto_data() -> Dict[str, Any]:
             price = coin.get("current_price") or 0
             change_pct = coin.get("price_change_percentage_24h") or 0
 
-            # Build price history from sparkline
-            sparkline = coin.get("sparkline_in_7d", {}).get("price", [])
-            price_history = []
-            if sparkline:
-                # Sparkline is 7 days of hourly data, sample to daily
-                step = max(1, len(sparkline) // 7)
-                for i, p in enumerate(sparkline[::step]):
-                    day = datetime.now() - timedelta(days=7 - i)
-                    price_history.append({
-                        "date": day.strftime("%b %d"),
-                        "price": round(p, 2),
-                    })
-
             results[ticker] = {
                 "ticker": ticker,
                 "price": round(price, 2),
@@ -312,10 +299,35 @@ def fetch_crypto_data() -> Dict[str, Any]:
                 "totalSupply": coin.get("total_supply"),
                 "ath": coin.get("ath"),
                 "athDate": coin.get("ath_date"),
-                "priceHistory": price_history,
+                "priceHistory": [],
                 "lastUpdated": datetime.now(timezone.utc).isoformat(),
             }
             logger.info(f"  {ticker}: ${price:,.2f} ({change_pct:+.2f}%)")
+
+        # Fetch long-term price history per coin (5 years daily)
+        for ticker, config in CRYPTO.items():
+            if ticker not in results or "error" in results[ticker]:
+                continue
+            try:
+                coin_id = config["coingecko_id"]
+                chart_url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
+                chart_resp = requests.get(chart_url, params={"vs_currency": "usd", "days": 1825}, timeout=30)
+                chart_resp.raise_for_status()
+                chart_data = chart_resp.json()
+
+                price_history = []
+                seen_dates = set()
+                for ts, p in chart_data.get("prices", []):
+                    day = datetime.fromtimestamp(ts / 1000).strftime("%Y-%m-%d")
+                    if day not in seen_dates:
+                        seen_dates.add(day)
+                        price_history.append({"date": day, "price": round(p, 2)})
+
+                results[ticker]["priceHistory"] = price_history
+                logger.info(f"  {ticker}: fetched {len(price_history)} days of history")
+                time.sleep(1.5)  # CoinGecko rate limit (free tier)
+            except Exception as e:
+                logger.warning(f"  {ticker}: history fetch failed - {e}")
 
     except Exception as e:
         logger.error(f"CoinGecko API failed: {e}")
