@@ -202,6 +202,18 @@ function generateBriefing(ticker, asset, signal, r) {
   return `${asset?.name} (${asset?.sector}) showing ${signal} signals. Key catalyst: ${catalyst}. Monitor for ${risk}. Composite score indicates ${signal === "bullish" ? "favorable" : signal === "bearish" ? "cautious" : "mixed"} risk-reward profile.`;
 }
 
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function relativeTime(date, now) {
+  if (!date) return "";
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 0) return "just now";
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
 // ─── THEME ───────────────────────────────────────────────────────────────────
 
 const COLORS = {
@@ -742,6 +754,9 @@ export default function SpectrumDashboard() {
   const [collapsedSections, setCollapsedSections] = useState({});
   const [dataSource, setDataSource] = useState("loading"); // "live", "synthetic", "loading"
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("default");
+  const [now, setNow] = useState(Date.now());
 
   const toggleSection = (section) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -893,6 +908,50 @@ export default function SpectrumDashboard() {
     loadData();
   }, [stakes, watchlist, refreshKey, mergeWithAsset]);
 
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey(k => k + 1);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Keep relative time display fresh (tick every 30s)
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Filter and sort ticker lists
+  const filterAndSort = useCallback((tickers) => {
+    let filtered = tickers;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = tickers.filter(ticker => {
+        const asset = ASSETS[ticker];
+        return ticker.toLowerCase().includes(q) ||
+          asset?.name?.toLowerCase().includes(q) ||
+          asset?.sector?.toLowerCase().includes(q);
+      });
+    }
+    if (sortBy !== "default") {
+      filtered = [...filtered].sort((a, b) => {
+        const da = cache[a], db = cache[b];
+        switch (sortBy) {
+          case "score": return (db?.compositeScore || 0) - (da?.compositeScore || 0);
+          case "change": return (db?.changePercent || 0) - (da?.changePercent || 0);
+          case "alpha": return a.localeCompare(b);
+          case "price": return (db?.price || 0) - (da?.price || 0);
+          default: return 0;
+        }
+      });
+    }
+    return filtered;
+  }, [searchQuery, sortBy, cache]);
+
+  const filteredStakes = useMemo(() => filterAndSort(stakes), [filterAndSort, stakes]);
+  const filteredWatchlist = useMemo(() => filterAndSort(watchlist), [filterAndSort, watchlist]);
+
   const selectedData = cache[selected];
 
   return (
@@ -984,8 +1043,10 @@ export default function SpectrumDashboard() {
               fontSize: 9,
               color: COLORS.textDim,
               fontFamily: "'JetBrains Mono', monospace",
-            }}>
-              Updated: {lastUpdated.toLocaleString()}
+            }}
+              title={lastUpdated.toLocaleString()}
+            >
+              Updated {relativeTime(lastUpdated, now)} &middot; auto-refresh 5m
             </span>
           )}
           {dataSource === "synthetic" && (
@@ -1038,6 +1099,94 @@ export default function SpectrumDashboard() {
           flexDirection: "column",
           flexShrink: 0,
         }}>
+          {/* ─── SEARCH & SORT TOOLBAR ─── */}
+          <div style={{
+            padding: "10px 10px 6px",
+            borderBottom: `1px solid ${COLORS.cardBorder}`,
+            background: COLORS.bgPanel,
+            flexShrink: 0,
+          }}>
+            {/* Search input */}
+            <div style={{ position: "relative", marginBottom: 8 }}>
+              <span style={{
+                position: "absolute",
+                left: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: 12,
+                color: COLORS.textDim,
+                pointerEvents: "none",
+              }}>&#x2315;</span>
+              <input
+                type="text"
+                placeholder="Search ticker, name, or sector..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px 8px 28px",
+                  background: COLORS.card,
+                  border: `1px solid ${COLORS.cardBorder}`,
+                  borderRadius: 6,
+                  color: COLORS.textPrimary,
+                  fontSize: 11,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  outline: "none",
+                  transition: "border-color 0.15s",
+                }}
+                onFocus={(e) => e.target.style.borderColor = COLORS.accent + "66"}
+                onBlur={(e) => e.target.style.borderColor = COLORS.cardBorder}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  style={{
+                    position: "absolute",
+                    right: 8,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    color: COLORS.textDim,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    padding: 2,
+                    lineHeight: 1,
+                  }}
+                >&times;</button>
+              )}
+            </div>
+            {/* Sort options */}
+            <div style={{ display: "flex", gap: 4 }}>
+              {[
+                { id: "default", label: "Default" },
+                { id: "score", label: "Score" },
+                { id: "change", label: "Change%" },
+                { id: "price", label: "Price" },
+                { id: "alpha", label: "A-Z" },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSortBy(sortBy === opt.id ? "default" : opt.id)}
+                  style={{
+                    flex: 1,
+                    padding: "5px 0",
+                    background: sortBy === opt.id ? `${COLORS.accent}18` : "transparent",
+                    border: `1px solid ${sortBy === opt.id ? COLORS.accent + "44" : COLORS.cardBorder}`,
+                    borderRadius: 4,
+                    color: sortBy === opt.id ? COLORS.accent : COLORS.textDim,
+                    fontSize: 9,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.03em",
+                  }}
+                >{opt.label}</button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ flex: 1, overflow: "auto" }}>
             {/* STAKES SECTION */}
             <div
@@ -1069,7 +1218,9 @@ export default function SpectrumDashboard() {
                 }}>Owned</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 10, color: COLORS.textSecondary }}>{stakes.length}</span>
+                <span style={{ fontSize: 10, color: COLORS.textSecondary }}>
+                  {filteredStakes.length !== stakes.length ? `${filteredStakes.length}/` : ""}{stakes.length}
+                </span>
                 <span style={{
                   color: COLORS.textDim,
                   fontSize: 10,
@@ -1080,7 +1231,7 @@ export default function SpectrumDashboard() {
             </div>
             {!collapsedSections.stakes && (
               <div style={{ padding: "10px 10px" }}>
-                {stakes.map(ticker => (
+                {filteredStakes.map(ticker => (
                   <TickerCard
                     key={ticker}
                     ticker={ticker}
@@ -1124,7 +1275,9 @@ export default function SpectrumDashboard() {
                 }}>Tracking</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 10, color: COLORS.textSecondary }}>{watchlist.length}</span>
+                <span style={{ fontSize: 10, color: COLORS.textSecondary }}>
+                  {filteredWatchlist.length !== watchlist.length ? `${filteredWatchlist.length}/` : ""}{watchlist.length}
+                </span>
                 <span style={{
                   color: COLORS.textDim,
                   fontSize: 10,
@@ -1135,7 +1288,7 @@ export default function SpectrumDashboard() {
             </div>
             {!collapsedSections.watchlist && (
               <div style={{ padding: "10px 10px" }}>
-                {watchlist.map(ticker => (
+                {filteredWatchlist.map(ticker => (
                   <TickerCard
                     key={ticker}
                     ticker={ticker}
