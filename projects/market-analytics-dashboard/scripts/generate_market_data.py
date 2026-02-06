@@ -364,6 +364,13 @@ def main():
 
     logger.info(f"\nData written to: {output_file}")
 
+    # Also copy to dist folder for direct serving
+    dist_file = PROJECT_ROOT / "dist" / "market_data.json"
+    if dist_file.parent.exists():
+        with open(dist_file, "w") as f:
+            json.dump(all_data, f, indent=2)
+        logger.info(f"Data copied to: {dist_file}")
+
     # Also write a status file
     status = {
         "lastRun": start_time.isoformat(),

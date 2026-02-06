@@ -824,7 +824,7 @@ export default function SpectrumDashboard() {
 
       try {
         // Try to fetch live data from assets
-        const response = await fetch("../assets/market_data.json");
+        const response = await fetch("./market_data.json");
         if (response.ok) {
           const data = await response.json();
           const newCache = {};
