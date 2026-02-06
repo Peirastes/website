@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 SPECTRUM Market Analytics - Scheduled Update Runner
-Wrapper script with logging, error handling, and status tracking.
+Wrapper script with logging, error handling, status tracking, and git push.
 
 Run this via Task Scheduler for automatic market data updates.
 
 Usage:
-    python run_market_update.py              # Full update
+    python run_market_update.py              # Full update + git push
+    python run_market_update.py --no-push    # Update without pushing
     python run_market_update.py --quick      # Skip historical data
 """
 
@@ -21,6 +22,7 @@ import argparse
 
 # ===== CONFIG =====
 PROJECT_ROOT = Path(__file__).parent.parent
+WEBSITE_ROOT = PROJECT_ROOT.parent.parent  # C:\Users\Cole\Dropbox\Website
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 LOGS_DIR = PROJECT_ROOT / "logs"
 ASSETS_DIR = PROJECT_ROOT / "assets"
@@ -149,16 +151,86 @@ def cleanup_old_logs(keep_days=7):
         logger.info(f"Cleaned up {removed} old log files")
 
 
+def git_commit_and_push():
+    """Commit and push the updated data to GitHub."""
+    logger.info("Committing and pushing to GitHub...")
+
+    try:
+        # Change to website root for git operations
+        os.chdir(WEBSITE_ROOT)
+
+        # Check if there are changes to commit
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain", "projects/market-analytics-dashboard/assets/"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if not status_result.stdout.strip():
+            logger.info("No changes to commit")
+            return True
+
+        # Stage the assets
+        subprocess.run(
+            ["git", "add", "projects/market-analytics-dashboard/assets/"],
+            check=True,
+            timeout=30
+        )
+
+        # Create commit message with timestamp
+        now = datetime.now()
+        commit_msg = f"SPECTRUM data update: {now.strftime('%Y-%m-%d %H:%M')}"
+
+        subprocess.run(
+            ["git", "commit", "-m", commit_msg],
+            check=True,
+            timeout=30
+        )
+
+        # Push to origin
+        result = subprocess.run(
+            ["git", "push", "origin", "master"],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        if result.returncode == 0:
+            logger.info("[OK] Changes pushed to GitHub")
+            return True
+        else:
+            logger.warning(f"[WARN] Push may have failed: {result.stderr}")
+            return False
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[ERROR] Git operation failed: {e}")
+        return False
+    except subprocess.TimeoutExpired:
+        logger.error("[ERROR] Git operation timed out")
+        return False
+    except Exception as e:
+        logger.error(f"[ERROR] Unexpected error during git push: {e}")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="SPECTRUM Market Data Updater")
     parser.add_argument("--quick", action="store_true", help="Quick update (skip historical)")
+    parser.add_argument("--no-push", action="store_true", help="Don't push to GitHub")
     args = parser.parse_args()
 
     # Cleanup old logs first
     cleanup_old_logs()
 
     # Run the update
-    return run_data_generator()
+    result = run_data_generator()
+
+    # If successful and not --no-push, commit and push
+    if result == 0 and not args.no_push:
+        git_commit_and_push()
+
+    return result
 
 
 if __name__ == "__main__":
