@@ -13,24 +13,66 @@ import {
 // ─── ASSET REGISTRY ──────────────────────────────────────────────────────────
 
 const ASSETS = {
-  PLTR: { name: "Palantir Technologies", sector: "AI / Government Tech", type: "stock", color: "#1ae5a1" },
-  ARRY: { name: "Array Technologies", sector: "Clean Energy", type: "stock", color: "#f59e0b" },
-  QS: { name: "QuantumScape", sector: "EV Battery Tech", type: "stock", color: "#06b6d4" },
-  SMCI: { name: "Super Micro Computer", sector: "AI Infrastructure", type: "stock", color: "#ef4444" },
-  RKLB: { name: "Rocket Lab USA", sector: "Aerospace / Launch", type: "stock", color: "#a78bfa" },
-  CRWV: { name: "CoreWeave", sector: "AI Cloud / GPU", type: "stock", color: "#22d3ee" },
-  ASTS: { name: "AST SpaceMobile", sector: "Satellite / Telecom", type: "stock", color: "#fb923c" },
-  RGTI: { name: "Rigetti Computing", sector: "Quantum Computing", type: "stock", color: "#818cf8" },
-  QBTS: { name: "D-Wave Quantum", sector: "Quantum Computing", type: "stock", color: "#2dd4bf" },
+  // Tech Giants
   AAPL: { name: "Apple Inc.", sector: "Technology", type: "stock", color: "#a3a3a3" },
   MSFT: { name: "Microsoft Corp.", sector: "Technology", type: "stock", color: "#38bdf8" },
-  NVDA: { name: "NVIDIA Corp.", sector: "Semiconductors", type: "stock", color: "#84cc16" },
-  TSLA: { name: "Tesla Inc.", sector: "EV / Energy", type: "stock", color: "#e11d48" },
   GOOGL: { name: "Alphabet Inc.", sector: "Technology", type: "stock", color: "#4ade80" },
   META: { name: "Meta Platforms", sector: "Technology", type: "stock", color: "#60a5fa" },
+  AMZN: { name: "Amazon.com Inc.", sector: "E-Commerce / Cloud", type: "stock", color: "#ff9900" },
+
+  // AI & Semiconductors
+  NVDA: { name: "NVIDIA Corp.", sector: "Semiconductors", type: "stock", color: "#84cc16" },
+  AMD: { name: "Advanced Micro Devices", sector: "Semiconductors", type: "stock", color: "#ed1c24" },
+  INTC: { name: "Intel Corp.", sector: "Semiconductors", type: "stock", color: "#0071c5" },
+  AVGO: { name: "Broadcom Inc.", sector: "Semiconductors", type: "stock", color: "#cc0000" },
+  TSM: { name: "Taiwan Semiconductor", sector: "Semiconductors", type: "stock", color: "#e03c31" },
+  PLTR: { name: "Palantir Technologies", sector: "AI / Government Tech", type: "stock", color: "#1ae5a1" },
+  SMCI: { name: "Super Micro Computer", sector: "AI Infrastructure", type: "stock", color: "#ef4444" },
+  CRWV: { name: "CoreWeave", sector: "AI Cloud / GPU", type: "stock", color: "#22d3ee" },
+
+  // Quantum Computing
+  RGTI: { name: "Rigetti Computing", sector: "Quantum Computing", type: "stock", color: "#818cf8" },
+  QBTS: { name: "D-Wave Quantum", sector: "Quantum Computing", type: "stock", color: "#2dd4bf" },
+  IONQ: { name: "IonQ Inc.", sector: "Quantum Computing", type: "stock", color: "#6366f1" },
+
+  // Space & Aerospace
+  RKLB: { name: "Rocket Lab USA", sector: "Aerospace / Launch", type: "stock", color: "#a78bfa" },
+  ASTS: { name: "AST SpaceMobile", sector: "Satellite / Telecom", type: "stock", color: "#fb923c" },
+  LUNR: { name: "Intuitive Machines", sector: "Lunar / Space", type: "stock", color: "#c4b5fd" },
+  RDW: { name: "Redwire Corp.", sector: "Space Infrastructure", type: "stock", color: "#f472b6" },
+
+  // EV & Energy
+  TSLA: { name: "Tesla Inc.", sector: "EV / Energy", type: "stock", color: "#e11d48" },
+  RIVN: { name: "Rivian Automotive", sector: "EV", type: "stock", color: "#fbbf24" },
+  LCID: { name: "Lucid Group", sector: "EV", type: "stock", color: "#7dd3fc" },
+  QS: { name: "QuantumScape", sector: "EV Battery Tech", type: "stock", color: "#06b6d4" },
+  ARRY: { name: "Array Technologies", sector: "Clean Energy", type: "stock", color: "#f59e0b" },
+  ENPH: { name: "Enphase Energy", sector: "Solar", type: "stock", color: "#f97316" },
+
+  // Fintech & Finance
+  SQ: { name: "Block Inc.", sector: "Fintech", type: "stock", color: "#00d632" },
+  COIN: { name: "Coinbase Global", sector: "Crypto Exchange", type: "stock", color: "#0052ff" },
+  HOOD: { name: "Robinhood Markets", sector: "Fintech", type: "stock", color: "#00c805" },
+  SOFI: { name: "SoFi Technologies", sector: "Fintech", type: "stock", color: "#00d4aa" },
+
+  // Biotech & Healthcare
+  MRNA: { name: "Moderna Inc.", sector: "Biotech", type: "stock", color: "#00a1e0" },
+  CRSP: { name: "CRISPR Therapeutics", sector: "Gene Editing", type: "stock", color: "#10b981" },
+
+  // Other Growth
+  NET: { name: "Cloudflare Inc.", sector: "Cybersecurity / CDN", type: "stock", color: "#f48120" },
+  SNOW: { name: "Snowflake Inc.", sector: "Cloud Data", type: "stock", color: "#29b5e8" },
+  DDOG: { name: "Datadog Inc.", sector: "Cloud Monitoring", type: "stock", color: "#632ca6" },
+
+  // Cryptocurrency
   BTC: { name: "Bitcoin", sector: "Cryptocurrency", type: "crypto", color: "#f7931a" },
   ETH: { name: "Ethereum", sector: "Cryptocurrency", type: "crypto", color: "#627eea" },
   SOL: { name: "Solana", sector: "Cryptocurrency", type: "crypto", color: "#9945ff" },
+  XRP: { name: "Ripple", sector: "Cryptocurrency", type: "crypto", color: "#23292f" },
+  ADA: { name: "Cardano", sector: "Cryptocurrency", type: "crypto", color: "#0033ad" },
+  DOGE: { name: "Dogecoin", sector: "Cryptocurrency", type: "crypto", color: "#c2a633" },
+  AVAX: { name: "Avalanche", sector: "Cryptocurrency", type: "crypto", color: "#e84142" },
+  LINK: { name: "Chainlink", sector: "Cryptocurrency", type: "crypto", color: "#375bd2" },
 };
 
 // ─── SEEDED RNG + DATA GENERATION ────────────────────────────────────────────
@@ -585,21 +627,29 @@ function MetricsTab({ title, metrics, color }) {
 // ─── MAIN DASHBOARD ──────────────────────────────────────────────────────────
 
 export default function SpectrumDashboard() {
-  const [watchlist] = useState(["PLTR", "NVDA", "TSLA", "AAPL", "MSFT", "BTC", "ETH", "SMCI", "RKLB", "GOOGL"]);
+  // Stakes = positions I own
+  const [stakes] = useState(["PLTR", "NVDA", "RKLB", "BTC", "ETH", "SOL"]);
+  // Watchlist = tracking but don't own
+  const [watchlist] = useState(["TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "AMD", "SMCI", "IONQ", "COIN", "RGTI", "QBTS", "ASTS"]);
   const [selected, setSelected] = useState("PLTR");
   const [expanded, setExpanded] = useState(null);
   const [tab, setTab] = useState("overview");
   const [cache, setCache] = useState({});
   const [refreshKey, setRefreshKey] = useState(0);
+  const [collapsedSections, setCollapsedSections] = useState({});
+
+  const toggleSection = (section) => {
+    setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   // Load data for all tickers
   useEffect(() => {
-    watchlist.forEach(ticker => {
+    [...stakes, ...watchlist].forEach(ticker => {
       if (!cache[ticker]) {
         setCache(prev => ({ ...prev, [ticker]: generateAssetData(ticker) }));
       }
     });
-  }, [watchlist, refreshKey]);
+  }, [stakes, watchlist, refreshKey]);
 
   const selectedData = cache[selected];
 
@@ -724,29 +774,116 @@ export default function SpectrumDashboard() {
           flexDirection: "column",
           flexShrink: 0,
         }}>
-          <div style={{
-            padding: "12px 14px",
-            borderBottom: `1px solid ${COLORS.cardBorder}`,
-            fontSize: 11,
-            fontWeight: 700,
-            color: COLORS.textDim,
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-          }}>
-            Watchlist ({watchlist.length})
-          </div>
-          <div style={{ flex: 1, overflow: "auto", padding: "10px 10px" }}>
-            {watchlist.map(ticker => (
-              <TickerCard
-                key={ticker}
-                ticker={ticker}
-                data={cache[ticker]}
-                isSelected={selected === ticker}
-                isExpanded={expanded === ticker}
-                onSelect={() => { setSelected(ticker); setTab("overview"); }}
-                onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
-              />
-            ))}
+          <div style={{ flex: 1, overflow: "auto" }}>
+            {/* STAKES SECTION */}
+            <div
+              onClick={() => toggleSection("stakes")}
+              style={{
+                padding: "12px 14px",
+                borderBottom: `1px solid ${COLORS.cardBorder}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                background: COLORS.card,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: COLORS.accent,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}>Stakes</span>
+                <span style={{
+                  fontSize: 9,
+                  color: COLORS.textDim,
+                  background: COLORS.bgPanel,
+                  padding: "2px 6px",
+                  borderRadius: 3,
+                }}>Owned</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 10, color: COLORS.textSecondary }}>{stakes.length}</span>
+                <span style={{
+                  color: COLORS.textDim,
+                  fontSize: 10,
+                  transform: collapsedSections.stakes ? "rotate(-90deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s",
+                }}>▼</span>
+              </div>
+            </div>
+            {!collapsedSections.stakes && (
+              <div style={{ padding: "10px 10px" }}>
+                {stakes.map(ticker => (
+                  <TickerCard
+                    key={ticker}
+                    ticker={ticker}
+                    data={cache[ticker]}
+                    isSelected={selected === ticker}
+                    isExpanded={expanded === ticker}
+                    onSelect={() => { setSelected(ticker); setTab("overview"); }}
+                    onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* WATCHLIST SECTION */}
+            <div
+              onClick={() => toggleSection("watchlist")}
+              style={{
+                padding: "12px 14px",
+                borderBottom: `1px solid ${COLORS.cardBorder}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+                background: COLORS.card,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: COLORS.textSecondary,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                }}>Watchlist</span>
+                <span style={{
+                  fontSize: 9,
+                  color: COLORS.textDim,
+                  background: COLORS.bgPanel,
+                  padding: "2px 6px",
+                  borderRadius: 3,
+                }}>Tracking</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 10, color: COLORS.textSecondary }}>{watchlist.length}</span>
+                <span style={{
+                  color: COLORS.textDim,
+                  fontSize: 10,
+                  transform: collapsedSections.watchlist ? "rotate(-90deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s",
+                }}>▼</span>
+              </div>
+            </div>
+            {!collapsedSections.watchlist && (
+              <div style={{ padding: "10px 10px" }}>
+                {watchlist.map(ticker => (
+                  <TickerCard
+                    key={ticker}
+                    ticker={ticker}
+                    data={cache[ticker]}
+                    isSelected={selected === ticker}
+                    isExpanded={expanded === ticker}
+                    onSelect={() => { setSelected(ticker); setTab("overview"); }}
+                    onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
