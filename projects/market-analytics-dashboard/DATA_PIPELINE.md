@@ -12,11 +12,17 @@ Data is saved to `assets/market_data.json` and loaded by the dashboard.
 
 ### Manual Update
 Double-click `RUN_MARKET_UPDATE.bat` to fetch fresh market data.
+**Data is automatically committed and pushed to GitHub** so the live site updates.
 
 ### Automatic Scheduled Updates
 1. Right-click `SETUP_SCHEDULED_UPDATES.bat`
 2. Select "Run as administrator"
 3. Tasks will be created to update data automatically
+4. Each update automatically pushes to GitHub
+
+### Options
+- `--no-push`: Update locally without pushing to GitHub
+- `--quick`: Skip historical data for faster updates
 
 ## Schedule
 
@@ -61,8 +67,15 @@ market-analytics-dashboard/
 
 ### "Simulated" showing instead of "Live Data"
 - Run `RUN_MARKET_UPDATE.bat` to fetch fresh data
+- Wait a minute for GitHub Pages to update
+- Hard refresh the browser (Ctrl+Shift+R)
 - Check `logs/` folder for error details
 - Ensure Python and dependencies are installed
+
+### Data updated but site not showing new prices
+- Updates auto-push to GitHub, but GitHub Pages may take 1-2 minutes
+- Check git log to confirm push succeeded
+- Try hard refresh (Ctrl+Shift+R) or incognito window
 
 ### Missing dependencies
 ```bash
