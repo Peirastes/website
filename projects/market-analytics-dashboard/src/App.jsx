@@ -351,10 +351,55 @@ function TickerLogo({ ticker, color, size = 36 }) {
 
 // ─── TICKER ROW CARD ─────────────────────────────────────────────────────────
 
-function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, onSelect, onToggleExpand, onToggleFavorite }) {
+function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact, onSelect, onToggleExpand, onToggleFavorite }) {
   const asset = ASSETS[ticker];
   const changeColor = data?.changePercent >= 0 ? COLORS.accent : COLORS.danger;
 
+  // ── Compact mode: logo + ticker + price/change only ──
+  if (compact) {
+    return (
+      <div
+        onClick={onSelect}
+        style={{
+          background: isSelected ? `${asset?.color}10` : COLORS.card,
+          border: `1px solid ${isSelected ? `${asset?.color}40` : COLORS.cardBorder}`,
+          borderRadius: 8,
+          marginBottom: 4,
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          padding: "8px 6px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <TickerLogo ticker={ticker} color={asset?.color || COLORS.accent} size={28} />
+        <span style={{
+          fontSize: 10,
+          fontWeight: 800,
+          color: COLORS.textPrimary,
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>{ticker}</span>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 700,
+          color: COLORS.textPrimary,
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>${data?.price != null ? (data.price >= 1000 ? `${(data.price / 1000).toFixed(1)}k` : data.price >= 100 ? data.price.toFixed(0) : data.price.toFixed(2)) : "—"}</span>
+        <span style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: changeColor,
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>
+          {data?.changePercent >= 0 ? "+" : ""}{data?.changePercent?.toFixed(1) || "0.0"}%
+        </span>
+      </div>
+    );
+  }
+
+  // ── Full mode ──
   return (
     <div
       onClick={onSelect}
@@ -503,7 +548,7 @@ function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, onSelect
 
 // ─── DETAIL PANEL ────────────────────────────────────────────────────────────
 
-function DetailPanel({ data, tab, setTab, onBack, isMobile }) {
+function DetailPanel({ data, tab, setTab }) {
   if (!data) {
     return (
       <div style={{
@@ -530,28 +575,13 @@ function DetailPanel({ data, tab, setTab, onBack, isMobile }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {/* Ticker header */}
-      <div style={{
+      <div className="spectrum-detail-header" style={{
         padding: "14px 18px",
         borderBottom: `1px solid ${COLORS.cardBorder}`,
         display: "flex",
         alignItems: "center",
         gap: 14,
       }}>
-        {isMobile && onBack && (
-          <button
-            onClick={onBack}
-            style={{
-              background: COLORS.card,
-              border: `1px solid ${COLORS.cardBorder}`,
-              borderRadius: 6,
-              color: COLORS.textSecondary,
-              cursor: "pointer",
-              fontSize: 16,
-              padding: "6px 10px",
-              flexShrink: 0,
-            }}
-          >&larr;</button>
-        )}
         <div style={{
           width: 6,
           height: 40,
@@ -610,7 +640,7 @@ function DetailPanel({ data, tab, setTab, onBack, isMobile }) {
       </div>
 
       {/* Tab content */}
-      <div style={{ flex: 1, overflow: "auto", padding: 18 }}>
+      <div className="spectrum-detail-content" style={{ flex: 1, overflow: "auto", padding: 18 }}>
         {tab === "overview" && <OverviewTab data={data} />}
         {tab === "fundamentals" && <MetricsTab title="Fundamentals" metrics={data.fundamentals} color={COLORS.accent} />}
         {tab === "technicals" && <MetricsTab title="Technicals" metrics={data.technicals} color="#a78bfa" />}
@@ -792,8 +822,7 @@ export default function SpectrumDashboard() {
   });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
-  const [mobileView, setMobileView] = useState("list"); // "list" | "detail"
-  const isMobile = windowWidth < 768;
+  const isCompact = windowWidth < 768;
 
   const toggleSection = (section) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -1035,7 +1064,9 @@ export default function SpectrumDashboard() {
           .spectrum-metrics-grid { grid-template-columns: 1fr !important; }
           .spectrum-key-metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .spectrum-tab-bar { overflow-x: auto; flex-wrap: nowrap; }
-          .spectrum-tab-bar button { white-space: nowrap; }
+          .spectrum-tab-bar button { white-space: nowrap; font-size: 10px !important; padding: 5px 8px !important; }
+          .spectrum-detail-header { padding: 10px 12px !important; }
+          .spectrum-detail-content { padding: 12px !important; }
         }
       `}</style>
 
@@ -1157,15 +1188,16 @@ export default function SpectrumDashboard() {
       }}>
         {/* LEFT PANEL: Ticker List */}
         <div style={{
-          width: isMobile ? "100%" : 340,
-          borderRight: isMobile ? "none" : `1px solid ${COLORS.cardBorder}`,
+          flex: isCompact ? "none" : 1,
+          width: isCompact ? 140 : "auto",
+          borderRight: `1px solid ${COLORS.cardBorder}`,
           background: COLORS.bgPanel,
-          display: isMobile && mobileView === "detail" ? "none" : "flex",
+          display: "flex",
           flexDirection: "column",
           flexShrink: 0,
         }}>
           {/* ─── SEARCH & SORT TOOLBAR ─── */}
-          <div style={{
+          {!isCompact && <div style={{
             padding: "10px 10px 6px",
             borderBottom: `1px solid ${COLORS.cardBorder}`,
             background: COLORS.bgPanel,
@@ -1266,22 +1298,31 @@ export default function SpectrumDashboard() {
                 >{opt.label}</button>
               ))}
             </div>
-          </div>
+          </div>}
 
           <div style={{ flex: 1, overflow: "auto" }}>
             {/* STAKES SECTION */}
             <div
               onClick={() => toggleSection("stakes")}
               style={{
-                padding: "12px 14px",
+                padding: isCompact ? "8px 6px" : "12px 14px",
                 borderBottom: `1px solid ${COLORS.cardBorder}`,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
+                justifyContent: isCompact ? "center" : "space-between",
                 cursor: "pointer",
                 background: COLORS.card,
               }}
             >
+              {isCompact ? (
+                <span style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: COLORS.accent,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}>Stakes</span>
+              ) : (<>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{
                   fontSize: 11,
@@ -1309,18 +1350,20 @@ export default function SpectrumDashboard() {
                   transition: "transform 0.2s",
                 }}>▼</span>
               </div>
+              </>)}
             </div>
             {!collapsedSections.stakes && (
-              <div style={{ padding: "10px 10px" }}>
+              <div style={{ padding: isCompact ? "6px 4px" : "10px 10px" }}>
                 {filteredStakes.map(ticker => (
                   <TickerCard
                     key={ticker}
                     ticker={ticker}
                     data={cache[ticker]}
                     isSelected={selected === ticker}
-                    isExpanded={expanded === ticker}
+                    isExpanded={!isCompact && expanded === ticker}
                     isFavorite={favorites.includes(ticker)}
-                    onSelect={() => { setSelected(ticker); if (isMobile) setMobileView("detail"); }}
+                    compact={isCompact}
+                    onSelect={() => setSelected(ticker)}
                     onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
                     onToggleFavorite={() => toggleFavorite(ticker)}
                   />
@@ -1332,15 +1375,24 @@ export default function SpectrumDashboard() {
             <div
               onClick={() => toggleSection("watchlist")}
               style={{
-                padding: "12px 14px",
+                padding: isCompact ? "8px 6px" : "12px 14px",
                 borderBottom: `1px solid ${COLORS.cardBorder}`,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
+                justifyContent: isCompact ? "center" : "space-between",
                 cursor: "pointer",
                 background: COLORS.card,
               }}
             >
+              {isCompact ? (
+                <span style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: COLORS.textSecondary,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}>Watch</span>
+              ) : (<>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{
                   fontSize: 11,
@@ -1368,18 +1420,20 @@ export default function SpectrumDashboard() {
                   transition: "transform 0.2s",
                 }}>▼</span>
               </div>
+              </>)}
             </div>
             {!collapsedSections.watchlist && (
-              <div style={{ padding: "10px 10px" }}>
+              <div style={{ padding: isCompact ? "6px 4px" : "10px 10px" }}>
                 {filteredWatchlist.map(ticker => (
                   <TickerCard
                     key={ticker}
                     ticker={ticker}
                     data={cache[ticker]}
                     isSelected={selected === ticker}
-                    isExpanded={expanded === ticker}
+                    isExpanded={!isCompact && expanded === ticker}
                     isFavorite={favorites.includes(ticker)}
-                    onSelect={() => { setSelected(ticker); if (isMobile) setMobileView("detail"); }}
+                    compact={isCompact}
+                    onSelect={() => setSelected(ticker)}
                     onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
                     onToggleFavorite={() => toggleFavorite(ticker)}
                   />
@@ -1392,17 +1446,16 @@ export default function SpectrumDashboard() {
         {/* RIGHT PANEL: Detail View */}
         <div style={{
           flex: 1,
-          display: isMobile && mobileView === "list" ? "none" : "flex",
+          display: "flex",
           flexDirection: "column",
           background: COLORS.bg,
           minHeight: 0,
+          minWidth: 0,
         }}>
           <DetailPanel
             data={selectedData}
             tab={tab}
             setTab={setTab}
-            isMobile={isMobile}
-            onBack={() => setMobileView("list")}
           />
         </div>
       </div>
