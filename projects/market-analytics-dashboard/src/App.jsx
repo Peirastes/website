@@ -351,7 +351,7 @@ function TickerLogo({ ticker, color, size = 36 }) {
 
 // ─── TICKER ROW CARD ─────────────────────────────────────────────────────────
 
-function TickerCard({ ticker, data, isSelected, isExpanded, onSelect, onToggleExpand }) {
+function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, onSelect, onToggleExpand, onToggleFavorite }) {
   const asset = ASSETS[ticker];
   const changeColor = data?.changePercent >= 0 ? COLORS.accent : COLORS.danger;
 
@@ -444,6 +444,21 @@ function TickerCard({ ticker, data, isSelected, isExpanded, onSelect, onToggleEx
           }}>{data?.compositeScore?.toFixed(0) || "—"}</span>
         </div>
 
+        {/* Favorite toggle */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+          style={{
+            background: "none",
+            border: "none",
+            color: isFavorite ? "#f5c542" : COLORS.textDim,
+            cursor: "pointer",
+            fontSize: 14,
+            padding: 4,
+            transition: "color 0.15s ease",
+            flexShrink: 0,
+          }}
+        >{isFavorite ? "\u2605" : "\u2606"}</button>
+
         {/* Expand toggle */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
@@ -488,7 +503,7 @@ function TickerCard({ ticker, data, isSelected, isExpanded, onSelect, onToggleEx
 
 // ─── DETAIL PANEL ────────────────────────────────────────────────────────────
 
-function DetailPanel({ data, tab, setTab }) {
+function DetailPanel({ data, tab, setTab, onBack, isMobile }) {
   if (!data) {
     return (
       <div style={{
@@ -522,6 +537,21 @@ function DetailPanel({ data, tab, setTab }) {
         alignItems: "center",
         gap: 14,
       }}>
+        {isMobile && onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              background: COLORS.card,
+              border: `1px solid ${COLORS.cardBorder}`,
+              borderRadius: 6,
+              color: COLORS.textSecondary,
+              cursor: "pointer",
+              fontSize: 16,
+              padding: "6px 10px",
+              flexShrink: 0,
+            }}
+          >&larr;</button>
+        )}
         <div style={{
           width: 6,
           height: 40,
@@ -553,7 +583,7 @@ function DetailPanel({ data, tab, setTab }) {
       </div>
 
       {/* Tab navigation */}
-      <div style={{
+      <div className="spectrum-tab-bar" style={{
         display: "flex",
         gap: 4,
         padding: "10px 18px",
@@ -593,7 +623,7 @@ function DetailPanel({ data, tab, setTab }) {
 
 function OverviewTab({ data }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+    <div className="spectrum-overview-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {/* Score + Radar */}
       <div style={{
         background: COLORS.card,
@@ -659,7 +689,7 @@ function OverviewTab({ data }) {
         <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 14 }}>
           Key Metrics
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <div className="spectrum-key-metrics-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {[
             { label: "Market Cap", value: data.marketCap },
             { label: "24h Volume", value: data.volume24h },
@@ -694,7 +724,7 @@ function MetricsTab({ title, metrics, color }) {
       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textPrimary, marginBottom: 16 }}>
         {title}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="spectrum-metrics-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div>
           {Object.entries(metrics).slice(0, Math.ceil(Object.keys(metrics).length / 2)).map(([key, value]) => (
             <MetricBar key={key} label={formatLabel(key)} value={value} />
@@ -757,10 +787,26 @@ export default function SpectrumDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("default");
   const [now, setNow] = useState(Date.now());
+  const [favorites, setFavorites] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("spectrum-favorites")) || []; } catch { return []; }
+  });
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  const [mobileView, setMobileView] = useState("list"); // "list" | "detail"
+  const isMobile = windowWidth < 768;
 
   const toggleSection = (section) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
+
+  // Persist favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem("spectrum-favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = useCallback((ticker) => {
+    setFavorites(prev => prev.includes(ticker) ? prev.filter(t => t !== ticker) : [...prev, ticker]);
+  }, []);
 
   // Merge live data with asset metadata
   const mergeWithAsset = useCallback((ticker, liveData) => {
@@ -916,6 +962,13 @@ export default function SpectrumDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Track window width for responsive layout
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Keep relative time display fresh (tick every 30s)
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 30000);
@@ -925,9 +978,12 @@ export default function SpectrumDashboard() {
   // Filter and sort ticker lists
   const filterAndSort = useCallback((tickers) => {
     let filtered = tickers;
+    if (showFavoritesOnly) {
+      filtered = filtered.filter(ticker => favorites.includes(ticker));
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filtered = tickers.filter(ticker => {
+      filtered = filtered.filter(ticker => {
         const asset = ASSETS[ticker];
         return ticker.toLowerCase().includes(q) ||
           asset?.name?.toLowerCase().includes(q) ||
@@ -947,7 +1003,7 @@ export default function SpectrumDashboard() {
       });
     }
     return filtered;
-  }, [searchQuery, sortBy, cache]);
+  }, [searchQuery, sortBy, cache, showFavoritesOnly, favorites]);
 
   const filteredStakes = useMemo(() => filterAndSort(stakes), [filterAndSort, stakes]);
   const filteredWatchlist = useMemo(() => filterAndSort(watchlist), [filterAndSort, watchlist]);
@@ -972,6 +1028,15 @@ export default function SpectrumDashboard() {
         ::-webkit-scrollbar-thumb:hover { background: ${COLORS.textDim}; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @media (max-width: 767px) {
+          .spectrum-header-title { display: none !important; }
+          .spectrum-header-center { display: none !important; }
+          .spectrum-overview-grid { grid-template-columns: 1fr !important; }
+          .spectrum-metrics-grid { grid-template-columns: 1fr !important; }
+          .spectrum-key-metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .spectrum-tab-bar { overflow-x: auto; flex-wrap: nowrap; }
+          .spectrum-tab-bar button { white-space: nowrap; }
+        }
       `}</style>
 
       {/* ═══ TOP HEADER PANEL ═══ */}
@@ -999,7 +1064,7 @@ export default function SpectrumDashboard() {
             color: COLORS.bg,
             fontFamily: "'JetBrains Mono', monospace",
           }}>S</div>
-          <div>
+          <div className="spectrum-header-title">
             <div style={{
               fontSize: 18,
               fontWeight: 800,
@@ -1018,7 +1083,7 @@ export default function SpectrumDashboard() {
         </div>
 
         {/* Center: Data source indicator */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="spectrum-header-center" style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
               width: 8,
@@ -1092,10 +1157,10 @@ export default function SpectrumDashboard() {
       }}>
         {/* LEFT PANEL: Ticker List */}
         <div style={{
-          width: 340,
-          borderRight: `1px solid ${COLORS.cardBorder}`,
+          width: isMobile ? "100%" : 340,
+          borderRight: isMobile ? "none" : `1px solid ${COLORS.cardBorder}`,
           background: COLORS.bgPanel,
-          display: "flex",
+          display: isMobile && mobileView === "detail" ? "none" : "flex",
           flexDirection: "column",
           flexShrink: 0,
         }}>
@@ -1157,7 +1222,23 @@ export default function SpectrumDashboard() {
               )}
             </div>
             {/* Sort options */}
-            <div style={{ display: "flex", gap: 4 }}>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              {/* Favorites filter */}
+              <button
+                onClick={() => setShowFavoritesOnly(prev => !prev)}
+                title={showFavoritesOnly ? "Show all tickers" : "Show favorites only"}
+                style={{
+                  padding: "5px 8px",
+                  background: showFavoritesOnly ? "#f5c54218" : "transparent",
+                  border: `1px solid ${showFavoritesOnly ? "#f5c54244" : COLORS.cardBorder}`,
+                  borderRadius: 4,
+                  color: showFavoritesOnly ? "#f5c542" : COLORS.textDim,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+              >{showFavoritesOnly ? "\u2605" : "\u2606"}</button>
               {[
                 { id: "default", label: "Default" },
                 { id: "score", label: "Score" },
@@ -1238,8 +1319,10 @@ export default function SpectrumDashboard() {
                     data={cache[ticker]}
                     isSelected={selected === ticker}
                     isExpanded={expanded === ticker}
-                    onSelect={() => { setSelected(ticker); setTab("overview"); }}
+                    isFavorite={favorites.includes(ticker)}
+                    onSelect={() => { setSelected(ticker); if (isMobile) setMobileView("detail"); }}
                     onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
+                    onToggleFavorite={() => toggleFavorite(ticker)}
                   />
                 ))}
               </div>
@@ -1295,8 +1378,10 @@ export default function SpectrumDashboard() {
                     data={cache[ticker]}
                     isSelected={selected === ticker}
                     isExpanded={expanded === ticker}
-                    onSelect={() => { setSelected(ticker); setTab("overview"); }}
+                    isFavorite={favorites.includes(ticker)}
+                    onSelect={() => { setSelected(ticker); if (isMobile) setMobileView("detail"); }}
                     onToggleExpand={() => setExpanded(expanded === ticker ? null : ticker)}
+                    onToggleFavorite={() => toggleFavorite(ticker)}
                   />
                 ))}
               </div>
@@ -1307,12 +1392,18 @@ export default function SpectrumDashboard() {
         {/* RIGHT PANEL: Detail View */}
         <div style={{
           flex: 1,
-          display: "flex",
+          display: isMobile && mobileView === "list" ? "none" : "flex",
           flexDirection: "column",
           background: COLORS.bg,
           minHeight: 0,
         }}>
-          <DetailPanel data={selectedData} tab={tab} setTab={setTab} />
+          <DetailPanel
+            data={selectedData}
+            tab={tab}
+            setTab={setTab}
+            isMobile={isMobile}
+            onBack={() => setMobileView("list")}
+          />
         </div>
       </div>
 
