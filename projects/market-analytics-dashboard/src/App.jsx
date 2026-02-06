@@ -26,6 +26,8 @@ const ASSETS = {
   INTC: { name: "Intel Corp.", sector: "Semiconductors", type: "stock", color: "#0071c5" },
   AVGO: { name: "Broadcom Inc.", sector: "Semiconductors", type: "stock", color: "#cc0000" },
   TSM: { name: "Taiwan Semiconductor", sector: "Semiconductors", type: "stock", color: "#e03c31" },
+  MU: { name: "Micron Technology", sector: "Semiconductors", type: "stock", color: "#0077c8" },
+  MCHP: { name: "Microchip Technology", sector: "Semiconductors", type: "stock", color: "#cc2229" },
   PLTR: { name: "Palantir Technologies", sector: "AI / Government Tech", type: "stock", color: "#1ae5a1" },
   SMCI: { name: "Super Micro Computer", sector: "AI Infrastructure", type: "stock", color: "#ef4444" },
   CRWV: { name: "CoreWeave", sector: "AI Cloud / GPU", type: "stock", color: "#22d3ee" },
@@ -35,11 +37,13 @@ const ASSETS = {
   QBTS: { name: "D-Wave Quantum", sector: "Quantum Computing", type: "stock", color: "#2dd4bf" },
   IONQ: { name: "IonQ Inc.", sector: "Quantum Computing", type: "stock", color: "#6366f1" },
 
-  // Space & Aerospace
+  // Space & Aerospace & Defense
   RKLB: { name: "Rocket Lab USA", sector: "Aerospace / Launch", type: "stock", color: "#a78bfa" },
   ASTS: { name: "AST SpaceMobile", sector: "Satellite / Telecom", type: "stock", color: "#fb923c" },
   LUNR: { name: "Intuitive Machines", sector: "Lunar / Space", type: "stock", color: "#c4b5fd" },
   RDW: { name: "Redwire Corp.", sector: "Space Infrastructure", type: "stock", color: "#f472b6" },
+  KTOS: { name: "Kratos Defense & Security", sector: "Defense / Drones", type: "stock", color: "#1e3a5f" },
+  LMT: { name: "Lockheed Martin", sector: "Defense / Aerospace", type: "stock", color: "#003366" },
 
   // EV & Energy
   TSLA: { name: "Tesla Inc.", sector: "EV / Energy", type: "stock", color: "#e11d48" },
@@ -63,6 +67,11 @@ const ASSETS = {
   NET: { name: "Cloudflare Inc.", sector: "Cybersecurity / CDN", type: "stock", color: "#f48120" },
   SNOW: { name: "Snowflake Inc.", sector: "Cloud Data", type: "stock", color: "#29b5e8" },
   DDOG: { name: "Datadog Inc.", sector: "Cloud Monitoring", type: "stock", color: "#632ca6" },
+
+  // Entertainment & Consumer
+  DIS: { name: "Walt Disney Co.", sector: "Entertainment", type: "stock", color: "#006e99" },
+  SPOT: { name: "Spotify Technology", sector: "Streaming / Music", type: "stock", color: "#1db954" },
+  CHWY: { name: "Chewy Inc.", sector: "E-Commerce / Pets", type: "stock", color: "#0b72b9" },
 
   // Cryptocurrency
   BTC: { name: "Bitcoin", sector: "Cryptocurrency", type: "crypto", color: "#f7931a" },
@@ -628,7 +637,10 @@ function MetricsTab({ title, metrics, color }) {
 
 export default function SpectrumDashboard() {
   // Stakes = positions I own
-  const [stakes] = useState(["PLTR", "NVDA", "RKLB", "BTC", "ETH", "SOL"]);
+  const [stakes] = useState([
+    "AVGO", "AMD", "MU", "PLTR", "RKLB", "QS", "KTOS", "ASTS", "TSLA", "SPOT",
+    "MCHP", "QBTS", "SMCI", "CHWY", "LMT", "RGTI", "NVDA", "INTC", "DIS"
+  ]);
   // Watchlist = tracking but don't own
   const [watchlist] = useState(["TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "AMD", "SMCI", "IONQ", "COIN", "RGTI", "QBTS", "ASTS"]);
   const [selected, setSelected] = useState("PLTR");
