@@ -28,6 +28,7 @@ const ASSETS = {
   TSM: { name: "Taiwan Semiconductor", sector: "Semiconductors", type: "stock", color: "#e03c31" },
   MU: { name: "Micron Technology", sector: "Semiconductors", type: "stock", color: "#0077c8" },
   MCHP: { name: "Microchip Technology", sector: "Semiconductors", type: "stock", color: "#cc2229" },
+  ASML: { name: "ASML Holding", sector: "Semiconductors", type: "stock", color: "#0f238c" },
   PLTR: { name: "Palantir Technologies", sector: "AI / Government Tech", type: "stock", color: "#1ae5a1" },
   SMCI: { name: "Super Micro Computer", sector: "AI Infrastructure", type: "stock", color: "#ef4444" },
   CRWV: { name: "CoreWeave", sector: "AI Cloud / GPU", type: "stock", color: "#22d3ee" },
@@ -44,6 +45,7 @@ const ASSETS = {
   RDW: { name: "Redwire Corp.", sector: "Space Infrastructure", type: "stock", color: "#f472b6" },
   KTOS: { name: "Kratos Defense & Security", sector: "Defense / Drones", type: "stock", color: "#1e3a5f" },
   LMT: { name: "Lockheed Martin", sector: "Defense / Aerospace", type: "stock", color: "#003366" },
+  GE: { name: "GE Aerospace", sector: "Aerospace / Industrial", type: "stock", color: "#3d5a80" },
 
   // EV & Energy
   TSLA: { name: "Tesla Inc.", sector: "EV / Energy", type: "stock", color: "#e11d48" },
@@ -72,6 +74,21 @@ const ASSETS = {
   DIS: { name: "Walt Disney Co.", sector: "Entertainment", type: "stock", color: "#006e99" },
   SPOT: { name: "Spotify Technology", sector: "Streaming / Music", type: "stock", color: "#1db954" },
   CHWY: { name: "Chewy Inc.", sector: "E-Commerce / Pets", type: "stock", color: "#0b72b9" },
+  AMC: { name: "AMC Entertainment", sector: "Entertainment / Cinema", type: "stock", color: "#ff0000" },
+  DJT: { name: "Trump Media & Technology", sector: "Social Media", type: "stock", color: "#c41e3a" },
+
+  // Retail & Restaurants
+  AEO: { name: "American Eagle Outfitters", sector: "Retail / Apparel", type: "stock", color: "#1c3f6e" },
+  GME: { name: "GameStop Corp.", sector: "Retail / Gaming", type: "stock", color: "#e01e26" },
+  CBRL: { name: "Cracker Barrel", sector: "Restaurant", type: "stock", color: "#6b4226" },
+  CAVA: { name: "Cava Group", sector: "Restaurant", type: "stock", color: "#00a499" },
+  TSCO: { name: "Tractor Supply Co.", sector: "Retail", type: "stock", color: "#e31837" },
+  LULU: { name: "Lululemon Athletica", sector: "Retail / Apparel", type: "stock", color: "#d31334" },
+
+  // Real Estate & Industrial
+  MPW: { name: "Medical Properties Trust", sector: "REIT / Healthcare", type: "stock", color: "#0066b2" },
+  COMP: { name: "Compass Inc.", sector: "Real Estate Tech", type: "stock", color: "#000000" },
+  LEG: { name: "Leggett & Platt", sector: "Manufacturing", type: "stock", color: "#004c97" },
 
   // Cryptocurrency
   BTC: { name: "Bitcoin", sector: "Cryptocurrency", type: "crypto", color: "#f7931a" },
@@ -638,8 +655,22 @@ function MetricsTab({ title, metrics, color }) {
 export default function SpectrumDashboard() {
   // Stakes = positions I own
   const [stakes] = useState([
-    "AVGO", "AMD", "MU", "PLTR", "RKLB", "QS", "KTOS", "ASTS", "TSLA", "SPOT",
-    "MCHP", "QBTS", "SMCI", "CHWY", "LMT", "RGTI", "NVDA", "INTC", "DIS"
+    // Semiconductors
+    "AVGO", "AMD", "MU", "MCHP", "NVDA", "INTC", "ASML",
+    // AI & Tech
+    "PLTR", "SMCI", "CRWV", "AMZN",
+    // Quantum
+    "QBTS", "RGTI",
+    // Space & Defense
+    "RKLB", "KTOS", "ASTS", "LMT", "GE",
+    // EV & Energy
+    "TSLA", "QS", "ARRY",
+    // Entertainment & Consumer
+    "SPOT", "CHWY", "DIS", "AMC", "DJT", "LULU",
+    // Retail & Restaurant
+    "AEO", "GME", "CBRL", "CAVA", "TSCO",
+    // Real Estate & Industrial
+    "MPW", "COMP", "LEG",
   ]);
   // Watchlist = tracking but don't own
   const [watchlist] = useState(["TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "AMD", "SMCI", "IONQ", "COIN", "RGTI", "QBTS", "ASTS"]);
