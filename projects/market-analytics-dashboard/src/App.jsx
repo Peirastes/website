@@ -271,6 +271,35 @@ function ChartTooltip({ active, payload, label }) {
   );
 }
 
+function TickerLogo({ ticker, color, size = 36 }) {
+  // Get 1-2 characters for the logo
+  const letters = ticker.length <= 2 ? ticker : ticker.slice(0, 2);
+  const fontSize = letters.length === 1 ? size * 0.45 : size * 0.38;
+
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: 8,
+      background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      boxShadow: `0 2px 8px ${color}40`,
+    }}>
+      <span style={{
+        fontSize,
+        fontWeight: 900,
+        color: "#fff",
+        fontFamily: "'JetBrains Mono', monospace",
+        textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+        letterSpacing: "-0.02em",
+      }}>{letters}</span>
+    </div>
+  );
+}
+
 // ─── TICKER ROW CARD ─────────────────────────────────────────────────────────
 
 function TickerCard({ ticker, data, isSelected, isExpanded, onSelect, onToggleExpand }) {
@@ -297,14 +326,8 @@ function TickerCard({ ticker, data, isSelected, isExpanded, onSelect, onToggleEx
         padding: "10px 14px",
         gap: 12,
       }}>
-        {/* Color indicator */}
-        <div style={{
-          width: 4,
-          height: 36,
-          borderRadius: 2,
-          background: asset?.color,
-          flexShrink: 0,
-        }} />
+        {/* Ticker Logo */}
+        <TickerLogo ticker={ticker} color={asset?.color || COLORS.accent} size={36} />
 
         {/* Ticker & Name */}
         <div style={{ flex: 1, minWidth: 0 }}>
