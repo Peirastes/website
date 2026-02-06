@@ -273,6 +273,7 @@ function ChartTooltip({ active, payload, label }) {
 
 function TickerLogo({ ticker, color, size = 36 }) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const asset = ASSETS[ticker];
   const domain = asset?.domain;
 
@@ -280,43 +281,57 @@ function TickerLogo({ ticker, color, size = 36 }) {
   const letters = ticker.length <= 2 ? ticker : ticker.slice(0, 2);
   const fontSize = letters.length === 1 ? size * 0.45 : size * 0.38;
 
-  // Logo URL from Clearbit
-  const logoUrl = domain ? `https://logo.clearbit.com/${domain}` : null;
+  // Logo URL from Google Favicon service (less likely to be blocked by ad blockers)
+  // Request 128px for crisp display
+  const logoUrl = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null;
 
   return (
     <div style={{
       width: size,
       height: size,
       borderRadius: 8,
-      background: imgError || !logoUrl ? `linear-gradient(135deg, ${color}, ${color}cc)` : COLORS.card,
-      border: imgError || !logoUrl ? "none" : `1px solid ${COLORS.cardBorder}`,
+      background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+      border: "none",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
       boxShadow: `0 2px 8px ${color}30`,
       overflow: "hidden",
+      position: "relative",
     }}>
-      {logoUrl && !imgError ? (
+      {/* Always show letters as base layer */}
+      <span style={{
+        fontSize,
+        fontWeight: 900,
+        color: "#fff",
+        fontFamily: "'JetBrains Mono', monospace",
+        textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+        letterSpacing: "-0.02em",
+        position: "absolute",
+        opacity: imgLoaded && !imgError ? 0 : 1,
+        transition: "opacity 0.2s ease",
+      }}>{letters}</span>
+
+      {/* Logo overlay when loaded */}
+      {logoUrl && !imgError && (
         <img
           src={logoUrl}
           alt={ticker}
+          onLoad={() => setImgLoaded(true)}
           onError={() => setImgError(true)}
           style={{
-            width: size * 0.7,
-            height: size * 0.7,
+            width: size * 0.65,
+            height: size * 0.65,
             objectFit: "contain",
+            position: "absolute",
+            opacity: imgLoaded ? 1 : 0,
+            transition: "opacity 0.2s ease",
+            borderRadius: 4,
+            background: "#fff",
+            padding: 2,
           }}
         />
-      ) : (
-        <span style={{
-          fontSize,
-          fontWeight: 900,
-          color: "#fff",
-          fontFamily: "'JetBrains Mono', monospace",
-          textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-          letterSpacing: "-0.02em",
-        }}>{letters}</span>
       )}
     </div>
   );
