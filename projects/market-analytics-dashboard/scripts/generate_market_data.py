@@ -289,6 +289,18 @@ def fetch_crypto_data() -> Dict[str, Any]:
             price = coin.get("current_price") or 0
             change_pct = coin.get("price_change_percentage_24h") or 0
 
+            # Build short-term history from sparkline (7 days, always available)
+            sparkline = coin.get("sparkline_in_7d", {}).get("price", [])
+            sparkline_history = []
+            if sparkline:
+                step = max(1, len(sparkline) // 7)
+                for i, p in enumerate(sparkline[::step]):
+                    day = datetime.now() - timedelta(days=7 - i)
+                    sparkline_history.append({
+                        "date": day.strftime("%Y-%m-%d"),
+                        "price": round(p, 2),
+                    })
+
             results[ticker] = {
                 "ticker": ticker,
                 "price": round(price, 2),
@@ -299,19 +311,22 @@ def fetch_crypto_data() -> Dict[str, Any]:
                 "totalSupply": coin.get("total_supply"),
                 "ath": coin.get("ath"),
                 "athDate": coin.get("ath_date"),
-                "priceHistory": [],
+                "priceHistory": sparkline_history,
                 "lastUpdated": datetime.now(timezone.utc).isoformat(),
             }
             logger.info(f"  {ticker}: ${price:,.2f} ({change_pct:+.2f}%)")
 
-        # Fetch long-term price history per coin (5 years daily)
+        # Try to fetch longer crypto history (CoinGecko free tier: up to 365 days)
         for ticker, config in CRYPTO.items():
             if ticker not in results or "error" in results[ticker]:
                 continue
             try:
                 coin_id = config["coingecko_id"]
                 chart_url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
-                chart_resp = requests.get(chart_url, params={"vs_currency": "usd", "days": 1825}, timeout=30)
+                chart_resp = requests.get(chart_url, params={"vs_currency": "usd", "days": 365}, timeout=30)
+                if chart_resp.status_code == 401:
+                    logger.info(f"  {ticker}: market_chart requires API key, using sparkline only")
+                    break  # All coins will fail the same way, skip the rest
                 chart_resp.raise_for_status()
                 chart_data = chart_resp.json()
 
@@ -323,9 +338,10 @@ def fetch_crypto_data() -> Dict[str, Any]:
                         seen_dates.add(day)
                         price_history.append({"date": day, "price": round(p, 2)})
 
-                results[ticker]["priceHistory"] = price_history
-                logger.info(f"  {ticker}: fetched {len(price_history)} days of history")
-                time.sleep(1.5)  # CoinGecko rate limit (free tier)
+                if price_history:
+                    results[ticker]["priceHistory"] = price_history
+                    logger.info(f"  {ticker}: fetched {len(price_history)} days of history")
+                time.sleep(6)  # CoinGecko free tier rate limit
             except Exception as e:
                 logger.warning(f"  {ticker}: history fetch failed - {e}")
 
