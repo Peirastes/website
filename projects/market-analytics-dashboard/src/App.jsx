@@ -823,8 +823,10 @@ export default function SpectrumDashboard() {
       setDataSource("loading");
 
       try {
-        // Try to fetch live data from assets
-        const response = await fetch("./market_data.json");
+        // Try to fetch live data from assets (with cache bust)
+        const cacheBust = Date.now();
+        const response = await fetch(`./market_data.json?v=${cacheBust}`);
+        console.log("Fetch response:", response.status, response.statusText);
         if (response.ok) {
           const data = await response.json();
           const newCache = {};
