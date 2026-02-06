@@ -113,8 +113,13 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       lodData = await fallback.json();
     }
 
-    // C20 uses LOD data (same shape)
-    c20Data = lodData;
+    // Fetch C20 data separately
+    try {
+      const c20Res = await fetch('./assets/c20_data.json');
+      c20Data = c20Res.ok ? await c20Res.json() : { labels: [], data: [] };
+    } catch {
+      c20Data = { labels: [], data: [] };
+    }
 
     if (magRes.ok) {
       magData = await magRes.json();
@@ -126,7 +131,14 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
     const aaData = await (aaRes.ok ? aaRes.json() : null);
     const pmData = await (pmRes.ok ? pmRes.json() : null);
 
-    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData };
+    // Fetch coherence data
+    let coherenceData = null;
+    try {
+      const cohRes = await fetch('./assets/coherence_data.json');
+      coherenceData = cohRes.ok ? await cohRes.json() : null;
+    } catch { /* ignore */ }
+
+    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData, coherenceData };
   } catch (error) {
     console.warn('Could not load real data, using fallback:', error);
     return null;
@@ -634,10 +646,11 @@ function ECDOWatchDashboard() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [kpData, setKpData] = useState(() => generateKpData());
   const [lodData, setLodData] = useState(() => generateLODData());
-  const [c20Data, setC20Data] = useState(() => generateLODData());  // Uses same shape as LOD
+  const [c20Data, setC20Data] = useState({ labels: [], data: [] });
   const [magData, setMagData] = useState(() => generateMagData());
   const [aaData, setAaData] = useState(() => generateHistoricalAA(historicalTimeRange));
   const [pmData, setPmData] = useState(() => generateHistoricalPM(historicalTimeRange));
+  const [coherenceData, setCoherenceData] = useState(null);
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
@@ -656,6 +669,7 @@ function ECDOWatchDashboard() {
         setAaData(data.aaData);
         setPmData(data.pmData);
         setMagData(data.magData);
+        if (data.coherenceData) setCoherenceData(data.coherenceData);
 
         // Extract and store metadata
         setKpMetadata(data.kpData.metadata || {});
@@ -700,14 +714,23 @@ function ECDOWatchDashboard() {
     }
   }, [alignedData]);
 
-  // Calculate watch status level dynamically
+  // Calculate watch status level from coherence data (or fall back to composite metrics)
   useEffect(() => {
-    if (compositeMetrics.flag) {
+    if (coherenceData && coherenceData.badge) {
+      const badge = coherenceData.badge;
+      if (badge === 'ORANGE') {
+        setStatusLevel('WATCH');
+      } else if (badge === 'YELLOW' || compositeMetrics.flag) {
+        setStatusLevel('ELEVATED_DIAGNOSTIC');
+      } else {
+        setStatusLevel('NOMINAL');
+      }
+    } else if (compositeMetrics.flag) {
       setStatusLevel('ELEVATED_DIAGNOSTIC');
     } else {
       setStatusLevel('NOMINAL');
     }
-  }, [compositeMetrics]);
+  }, [compositeMetrics, coherenceData]);
 
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -819,43 +842,82 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 2: EOP */}
-          <Card step={2} title="Earth Orientation (LOD)" status="NOMINAL" info={{
-            description: "Length of Day (LOD) measures variations in Earth's rotation rate. Changes in LOD reflect mass redistribution and angular momentum exchange within Earth's core, mantle, and atmosphere. It's a sensitive indicator of internal Earth dynamics independent of external solar forcing.",
+          <Card step={2} title="Earth Orientation (LOD + Polar Motion)" status="NOMINAL" info={{
+            description: "Earth Orientation Parameters track variations in Earth's rotation rate (LOD) and polar motion speed. Changes reflect mass redistribution and angular momentum exchange within Earth's core, mantle, and atmosphere. The EOP composite combines both channels: max(|z_LOD|, |z_PM_speed|).",
             lookingFor: [
               "LOD anomalies within ±2 milliseconds (normal range)",
-              "Low z-score values (< 2σ from baseline)",
+              "Low z-score values (< 2σ from 10-year baseline)",
               "Smooth seasonal variation pattern",
-              "Sudden spikes or persistent deviations suggest internal perturbations"
+              "Coherent spikes in both LOD and polar motion suggest internal perturbations"
             ],
-            dataSource: "IERS (International Earth Rotation Service) daily rapid estimates"
+            dataSource: "IERS (International Earth Rotation Service) finals2000A all-time CSV"
           }}>
-            <div style={{ height: 140 }}>
+            <div style={{ height: 160 }}>
               <ChartComponent
                 type="line"
-                height={140}
+                height={160}
                 data={{
-                  labels: alignedData.lodData.labels,
-                  datasets: [{
-                    data: alignedData.lodData.data,
-                    borderColor: '#4a9eff',
-                    backgroundColor: 'rgba(74, 158, 255, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                  }]
+                  labels: lodData.labels || [],
+                  datasets: [
+                    {
+                      label: 'z(LOD)',
+                      data: lodData.z_lod || [],
+                      borderColor: '#4a9eff',
+                      borderWidth: 1.5,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    },
+                    {
+                      label: 'z(PM speed)',
+                      data: lodData.z_pm_speed || [],
+                      borderColor: '#f59e0b',
+                      borderWidth: 1.5,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    },
+                    {
+                      label: 'EOP composite',
+                      data: lodData.eop_composite || [],
+                      borderColor: '#ffffff',
+                      borderWidth: 2,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    }
+                  ]
                 }}
                 options={{
                   ...darkThemeOptions,
+                  plugins: {
+                    ...darkThemeOptions.plugins,
+                    legend: {
+                      display: true,
+                      position: 'top',
+                      labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
+                    }
+                  },
                   scales: {
                     x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y }
+                    y: { ...darkThemeOptions.scales.y, title: { display: true, text: 'z-score', color: '#7a7a8c', font: { size: 10 } } }
                   }
                 }}
               />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="LOD z (recent)" value={alignedData.lodData.data.length > 0 && alignedData.lodData.data[alignedData.lodData.data.length - 1] !== null ? alignedData.lodData.data[alignedData.lodData.data.length - 1].toFixed(2) : "—"} status="positive" />
-              <Metric label="PM Drift z" value="0.41" status="positive" />
+              <Metric
+                label="LOD z"
+                value={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "—"; })()}
+                status={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
+              />
+              <Metric
+                label="PM Speed z"
+                value={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "—"; })()}
+                status={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
+              />
+              <Metric
+                label="EOP Composite"
+                value={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "—"; })()}
+                status={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
+              />
             </div>
           </Card>
           
@@ -987,30 +1049,139 @@ function ECDOWatchDashboard() {
           </Card>
           
           {/* Step 5: Coherence */}
-          <Card step={5} title="Cross-Channel Coherence" status="NOMINAL" info={{
-            description: "Cross-channel coherence analyzes whether anomalies detected in independent monitoring systems (EOP/LOD and magnetometer) are correlated in time. True geophysical events show up across multiple independent channels. Coherence filters out spurious single-channel anomalies and identifies system-level perturbations.",
+          <Card step={5} title="Cross-Channel Coherence" status={coherenceData && coherenceData.badge === 'ORANGE' ? 'ELEVATED' : 'NOMINAL'} info={{
+            description: "Cross-channel coherence analyzes whether anomalies detected in independent monitoring systems (EOP and magnetometer) are correlated in time. True geophysical events show up across multiple independent channels. The watch score combines EOP and MAG composites on quiet days only: 100 × (0.6 × EOP_signal + 0.4 × MAG_signal).",
             lookingFor: [
               "Low correlation (< 0.3) is normal: independent systems track different phenomena",
               "Elevated correlation during quiet days suggests genuine coherent signal",
               "EOP↔MAG correlation ≥ 0.5 during gate-open conditions = WATCH-level event",
-              "Quiet day count should be high when external forcing (Kp) is suppressed"
+              "Watch score: GREEN (<35), YELLOW (35-65), ORANGE (≥65), GRAY (disturbed gate)"
             ],
-            dataSource: "Derived from Steps 2 and 4 using rolling correlation analysis (14-day window)"
+            dataSource: "Derived from Steps 2 and 4 using quiet-day-gated correlation analysis (30-day rolling window, N≥10 required)"
           }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-              <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>QUIET DAYS</div>
-                <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color: '#4a9eff' }}>18</div>
+            {coherenceData && coherenceData.labels && coherenceData.labels.length > 0 ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                  <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>QUIET DAYS (90d)</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color: '#4a9eff' }}>
+                      {coherenceData.quiet_day_count}/{coherenceData.total_days}
+                    </div>
+                  </div>
+                  <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>WATCH SCORE</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color:
+                      coherenceData.badge === 'GREEN' ? '#10b981' :
+                      coherenceData.badge === 'YELLOW' ? '#f59e0b' :
+                      coherenceData.badge === 'ORANGE' ? '#ef4444' : '#7a7a8c'
+                    }}>
+                      {coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "—"}
+                    </div>
+                  </div>
+                  <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>BADGE</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color:
+                      coherenceData.badge === 'GREEN' ? '#10b981' :
+                      coherenceData.badge === 'YELLOW' ? '#f59e0b' :
+                      coherenceData.badge === 'ORANGE' ? '#ef4444' : '#7a7a8c'
+                    }}>
+                      {coherenceData.badge}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Composite overlay chart: EOP vs MAG */}
+                <div style={{ height: 160, marginBottom: 12 }}>
+                  <ChartComponent
+                    type="line"
+                    height={160}
+                    data={{
+                      labels: coherenceData.labels,
+                      datasets: [
+                        {
+                          label: 'EOP composite',
+                          data: coherenceData.eop_composite,
+                          borderColor: '#4a9eff',
+                          borderWidth: 1.5,
+                          tension: 0.3,
+                          pointRadius: 0,
+                        },
+                        {
+                          label: 'MAG composite',
+                          data: coherenceData.mag_composite,
+                          borderColor: '#f59e0b',
+                          borderWidth: 1.5,
+                          tension: 0.3,
+                          pointRadius: 0,
+                        }
+                      ]
+                    }}
+                    options={{
+                      ...darkThemeOptions,
+                      plugins: {
+                        ...darkThemeOptions.plugins,
+                        legend: {
+                          display: true,
+                          position: 'top',
+                          labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
+                        }
+                      },
+                      scales: {
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
+                        y: { ...darkThemeOptions.scales.y, title: { display: true, text: 'composite score', color: '#7a7a8c', font: { size: 10 } } }
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Watch score chart */}
+                <div style={{ height: 100, marginBottom: 12 }}>
+                  <ChartComponent
+                    type="line"
+                    height={100}
+                    data={{
+                      labels: coherenceData.labels,
+                      quietFlags: coherenceData.quiet,
+                      datasets: [{
+                        label: 'Watch score',
+                        data: coherenceData.watch_score,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                      }]
+                    }}
+                    options={{
+                      ...darkThemeOptions,
+                      plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
+                      scales: {
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
+                        y: { ...darkThemeOptions.scales.y, min: 0, max: 100, title: { display: true, text: 'score (0-100)', color: '#7a7a8c', font: { size: 10 } } }
+                      }
+                    }}
+                    quietFlags={coherenceData.quiet}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <Metric
+                    label="EOP↔MAG r"
+                    value={coherenceData.correlation != null ? coherenceData.correlation.toFixed(2) : "n/a"}
+                    status={coherenceData.correlation != null && Math.abs(coherenceData.correlation) >= 0.5 ? "warning" : "positive"}
+                  />
+                  <Metric
+                    label="N (quiet)"
+                    value={`${coherenceData.quiet_day_count}`}
+                    status={coherenceData.quiet_day_count >= 10 ? "positive" : "warning"}
+                  />
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
+                Coherence data not yet available. Run the data pipeline to generate.
               </div>
-              <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>PERCENTILE</div>
-                <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color: '#10b981' }}>42nd</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Metric label="EOP↔MAG r" value="0.12" />
-              <Metric label="Status" value="Valid" status="positive" />
-            </div>
+            )}
           </Card>
           
           {/* Historical Section */}

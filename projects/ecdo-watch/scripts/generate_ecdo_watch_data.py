@@ -531,7 +531,7 @@ def load_usgs_mag_timeseries_H(station: str, start: datetime, end: datetime) -> 
 # -------------------------
 # Main Script
 # -------------------------
-def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, lod_json=None, mag_json=None):
+def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, eop_baseline=None, lod_json=None, mag_json=None):
     """Generate JSON files for multiple time ranges."""
     time_ranges = {
         "30d": 30,
@@ -560,15 +560,22 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
                 }
                 results[f"kp_{range_name}"] = kp_json
 
-        # EOP data - use full eop_all for proper time-range slicing
-        if not eop_all.empty:
-            # Filter eop_all to requested date range (proper time-range selection)
-            eop_subset = eop_all[(eop_all["date"] >= cutoff) & (eop_all["date"] <= now)].copy()
+        # EOP data - use eop_baseline (with z-scores) if available, else eop_all
+        eop_source = eop_baseline if (eop_baseline is not None and not eop_baseline.empty) else eop_all
+        if eop_source is not None and not eop_source.empty:
+            eop_subset = eop_source[(eop_source["date"] >= cutoff) & (eop_source["date"] <= now)].copy()
             if not eop_subset.empty:
                 lod_data_json = {
                     "labels": eop_subset["date"].dt.strftime("%Y-%m-%d").tolist(),
                     "data": eop_subset["lod_ms"].fillna(0).tolist()
                 }
+                # Include z-scores if available
+                if "z_lod" in eop_subset.columns:
+                    lod_data_json["z_lod"] = [round(v, 4) if pd.notna(v) else None for v in eop_subset["z_lod"].tolist()]
+                if "z_pm_speed" in eop_subset.columns:
+                    lod_data_json["z_pm_speed"] = [round(v, 4) if pd.notna(v) else None for v in eop_subset["z_pm_speed"].tolist()]
+                if "eop_composite" in eop_subset.columns:
+                    lod_data_json["eop_composite"] = [round(v, 4) if pd.notna(v) else None for v in eop_subset["eop_composite"].tolist()]
                 results[f"lod_{range_name}"] = lod_data_json
 
         # Magnetometer data - use full history with date-based filtering
@@ -602,6 +609,121 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
                 results[f"mag_{range_name}"] = mag_range_json
 
     return results
+
+def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_history: pd.DataFrame, kp_history: pd.DataFrame, now: datetime) -> None:
+    """Generate cross-channel coherence JSON: EOP composite vs MAG composite on quiet days."""
+    if eop_baseline.empty or mag_history.empty:
+        raise ValueError("Need both EOP baseline and MAG history for coherence")
+
+    # Get EOP composite (date-indexed)
+    eop = eop_baseline[["date", "eop_composite"]].dropna(subset=["eop_composite"]).copy()
+    eop["date"] = pd.to_datetime(eop["date"]).dt.tz_localize(None)
+
+    # Compute MAG composite from history (average z-score across stations)
+    mag = mag_history.copy()
+    mag["date"] = pd.to_datetime(mag["date"]).dt.tz_localize(None)
+    station_cols = [c for c in ["BOU", "FRD", "BRW", "HON"] if c in mag.columns]
+    if not station_cols:
+        raise ValueError("No magnetometer station columns found")
+
+    # Compute z-scores for each station using robust method
+    for col in station_cols:
+        mag[col] = pd.to_numeric(mag[col], errors="coerce")
+        # Filter bad data
+        mag.loc[mag[col] > 90000, col] = np.nan
+    # Use robust z-score on each station's daily mean, then composite
+    for col in station_cols:
+        z_col = f"z_{col}"
+        mag[z_col] = robust_zscore(mag[col], window=min(180, max(30, len(mag) // 3)))
+    z_cols = [f"z_{c}" for c in station_cols]
+    mag["mag_composite"] = mag[z_cols].abs().max(axis=1)
+
+    # Merge EOP and MAG on date
+    merged = pd.merge(eop[["date", "eop_composite"]], mag[["date", "mag_composite"]], on="date", how="inner")
+    merged = merged.sort_values("date").reset_index(drop=True)
+
+    # Filter to last 90 days for primary analysis
+    cutoff_90d = now.replace(tzinfo=None) - timedelta(days=90)
+    merged_90d = merged[merged["date"] >= cutoff_90d].copy()
+
+    if merged_90d.empty:
+        raise ValueError("No overlapping EOP + MAG data in last 90 days")
+
+    # Apply quiet-day flags from Kp history
+    kp = kp_history[["date", "kp_max"]].copy()
+    kp["date"] = pd.to_datetime(kp["date"]).dt.tz_localize(None)
+    merged_90d = pd.merge(merged_90d, kp[["date", "kp_max"]], on="date", how="left")
+    merged_90d["quiet"] = merged_90d["kp_max"].fillna(99).le(KP_QUIET_MAX)
+
+    quiet_days = merged_90d[merged_90d["quiet"]].dropna(subset=["mag_composite", "eop_composite"])
+    n_quiet = len(quiet_days)
+
+    # Pearson correlation on quiet days (require N>=10)
+    corr_quiet = None
+    if n_quiet >= 10:
+        corr_quiet = float(quiet_days["mag_composite"].corr(quiet_days["eop_composite"]))
+        if pd.isna(corr_quiet):
+            corr_quiet = None
+
+    # Rolling 30-day trailing correlation (quiet days, N>=10)
+    rolling_corr = []
+    for _, row in merged_90d.iterrows():
+        d = row["date"]
+        window = merged_90d[(merged_90d["date"] >= d - timedelta(days=30)) & (merged_90d["date"] <= d)]
+        w_quiet = window[window["quiet"]].dropna(subset=["mag_composite", "eop_composite"])
+        if len(w_quiet) >= 10:
+            c = float(w_quiet["mag_composite"].corr(w_quiet["eop_composite"]))
+            rolling_corr.append(round(c, 4) if pd.notna(c) else None)
+        else:
+            rolling_corr.append(None)
+
+    # Gated watch score: 100 * (0.6 * e_sig + 0.4 * m_sig) on quiet days, 0 on disturbed
+    watch_scores = []
+    for _, row in merged_90d.iterrows():
+        if row["quiet"]:
+            e_sig = min(1.0, abs(row["eop_composite"]) / 3.0) if pd.notna(row["eop_composite"]) else 0.0
+            m_sig = min(1.0, abs(row["mag_composite"]) / 3.0) if pd.notna(row["mag_composite"]) else 0.0
+            score = 100.0 * (0.6 * e_sig + 0.4 * m_sig)
+            watch_scores.append(round(max(0.0, min(100.0, score)), 1))
+        else:
+            watch_scores.append(0.0)
+
+    # Badge from latest quiet-day watch score
+    latest_score = None
+    latest_quiet = False
+    for i in range(len(merged_90d) - 1, -1, -1):
+        if merged_90d.iloc[i]["quiet"]:
+            latest_score = watch_scores[i]
+            latest_quiet = True
+            break
+
+    if not latest_quiet or latest_score is None:
+        badge = "GRAY"
+    elif latest_score < 35:
+        badge = "GREEN"
+    elif latest_score < 65:
+        badge = "YELLOW"
+    else:
+        badge = "ORANGE"
+
+    coherence_json = {
+        "labels": merged_90d["date"].dt.strftime("%Y-%m-%d").tolist(),
+        "eop_composite": [round(v, 4) if pd.notna(v) else None for v in merged_90d["eop_composite"].tolist()],
+        "mag_composite": [round(v, 4) if pd.notna(v) else None for v in merged_90d["mag_composite"].tolist()],
+        "quiet": merged_90d["quiet"].tolist(),
+        "watch_score": watch_scores,
+        "rolling_corr_30d": rolling_corr,
+        "correlation": round(corr_quiet, 4) if corr_quiet is not None else None,
+        "badge": badge,
+        "quiet_day_count": n_quiet,
+        "total_days": len(merged_90d),
+        "latest_watch_score": latest_score,
+    }
+    coherence_json = add_metadata(coherence_json, "Derived (EOP x MAG coherence)", source_status="ok")
+
+    (assets_dir / "coherence_data.json").write_text(json.dumps(coherence_json))
+    print(f"    [OK] coherence_data.json ({n_quiet} quiet days, corr={corr_quiet}, badge={badge})")
+
 
 def main():
     script_dir = Path(__file__).parent
@@ -658,31 +780,48 @@ def main():
         (assets_dir / "kp_data.json").write_text(json.dumps(kp_json))
         print(f"    [OK] kp_data.json ({quiet_info['quiet_day_count']}/{quiet_info['window_days']} quiet days)")
 
-    # 2. LOD data (10+ years historical) - fetch real IERS data
+    # 2. LOD + Polar Motion data (10+ years historical) - fetch real IERS data
     # Use all-time CSV as primary source for historic data
+    eop_baseline = pd.DataFrame()  # Will hold z-scored EOP for coherence analysis
     if not eop_all.empty:
-        print("    [OK] Using IERS all-time LOD data")
+        print("    [OK] Using IERS all-time EOP data")
         eop_synthetic = eop_all
 
-        # Generate JSON with all available history
+        # Compute robust z-scores over the 10-year baseline
+        baseline_cutoff = now - timedelta(days=int(BASELINE_YEARS_EOP * 365.25))
+        eop_baseline = eop_all[eop_all["date"] >= baseline_cutoff].copy()
+        eop_baseline = eop_baseline.dropna(subset=["lod_ms"]).sort_values("date").reset_index(drop=True)
+
+        # Compute pm_speed if not already present
+        if "pm_speed_arcsec_per_day" not in eop_baseline.columns:
+            eop_baseline["pm_speed_arcsec_per_day"] = eop_baseline["pm_r_arcsec"].diff().abs()
+
+        eop_baseline["z_lod"] = robust_zscore(eop_baseline["lod_ms"], window=180)
+        eop_baseline["z_pm_speed"] = robust_zscore(eop_baseline["pm_speed_arcsec_per_day"], window=180)
+        eop_baseline["eop_composite"] = eop_baseline[["z_lod", "z_pm_speed"]].abs().max(axis=1)
+
+        # Generate JSON with all available history (raw LOD for backward compat)
         lod_json = {
             "labels": eop_all["date"].dt.strftime("%Y-%m-%d").tolist(),
             "data": eop_all["lod_ms"].fillna(0).tolist()
         }
 
-        # For display, keep only recent 90 days in main file
-        recent_idx = max(0, len(lod_json["labels"]) - 90)
+        # For display, keep only recent 90 days in main file with z-scores
+        eop_recent = eop_baseline.tail(90).copy()
         lod_recent_json = {
-            "labels": lod_json["labels"][recent_idx:],
-            "data": lod_json["data"][recent_idx:]
+            "labels": eop_recent["date"].dt.strftime("%Y-%m-%d").tolist(),
+            "data": eop_recent["lod_ms"].fillna(0).tolist(),
+            "z_lod": [round(v, 4) if pd.notna(v) else None for v in eop_recent["z_lod"].tolist()],
+            "z_pm_speed": [round(v, 4) if pd.notna(v) else None for v in eop_recent["z_pm_speed"].tolist()],
+            "eop_composite": [round(v, 4) if pd.notna(v) else None for v in eop_recent["eop_composite"].tolist()],
         }
 
-        # Add metadata - data age is how old the oldest point in the display is
+        # Add metadata
         if lod_recent_json["labels"]:
             oldest_label = lod_recent_json["labels"][0]
             oldest_date = pd.to_datetime(oldest_label, utc=True)
             data_age_h = (now - oldest_date).total_seconds() / 3600.0
-            lod_recent_json = add_metadata(lod_recent_json, "IERS (LOD)", data_age_hours=data_age_h, source_status="ok")
+            lod_recent_json = add_metadata(lod_recent_json, "IERS (EOP)", data_age_hours=data_age_h, source_status="ok")
     else:
         print("    [ERROR] IERS LOD data unavailable and no fallback available")
         print("    Please check IERS data source or manually provide data")
@@ -692,7 +831,7 @@ def main():
 
     if lod_json["labels"]:
         (assets_dir / "lod_data.json").write_text(json.dumps(lod_recent_json))
-        print("    [OK] lod_data.json (90-day recent view from real IERS data)")
+        print("    [OK] lod_data.json (90-day EOP view with z-scores)")
 
     # 3. Historical AA index (last 50 years)
     if not kp_history.empty:
@@ -948,13 +1087,29 @@ def main():
 
     # 6. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
-    # Pass main LOD and Mag JSON data for clean slicing
-    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, lod_json, mag_json)
+    # Pass eop_baseline (with z-scores) for proper EOP data in time ranges
+    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, eop_baseline=eop_baseline, lod_json=lod_json, mag_json=mag_json)
 
     for dataset_name, dataset in time_range_data.items():
         filepath = assets_dir / f"{dataset_name}.json"
         filepath.write_text(json.dumps(dataset))
         print(f"    [OK] {dataset_name}.json")
+
+    # 7. Cross-channel coherence analysis
+    print("  Computing cross-channel coherence...")
+    try:
+        _generate_coherence_data(assets_dir, eop_baseline, mag_history, kp_history, now)
+    except Exception as e:
+        print(f"    Warning: Coherence computation failed: {e}")
+        # Write a minimal coherence file so the frontend doesn't break
+        fallback = {
+            "labels": [], "eop_composite": [], "mag_composite": [],
+            "quiet": [], "watch_score": [],
+            "correlation": None, "rolling_corr_30d": [],
+            "badge": "GRAY", "quiet_day_count": 0, "total_days": 0,
+        }
+        (assets_dir / "coherence_data.json").write_text(json.dumps(fallback))
+        print("    [OK] coherence_data.json (fallback)")
 
     print(f"[{utcnow().isoformat()}] Complete!")
 
