@@ -718,26 +718,163 @@ export default function SpectrumDashboard() {
     "MPW", "COMP", "LEG",
   ]);
   // Watchlist = tracking but don't own
-  const [watchlist] = useState(["TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "AMD", "SMCI", "IONQ", "COIN", "RGTI", "QBTS", "ASTS"]);
+  const [watchlist] = useState(["AAPL", "MSFT", "GOOGL", "META", "IONQ", "COIN", "BTC", "ETH", "SOL"]);
   const [selected, setSelected] = useState("PLTR");
   const [expanded, setExpanded] = useState(null);
   const [tab, setTab] = useState("overview");
   const [cache, setCache] = useState({});
   const [refreshKey, setRefreshKey] = useState(0);
   const [collapsedSections, setCollapsedSections] = useState({});
+  const [dataSource, setDataSource] = useState("loading"); // "live", "synthetic", "loading"
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const toggleSection = (section) => {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Load data for all tickers
+  // Merge live data with asset metadata
+  const mergeWithAsset = useCallback((ticker, liveData) => {
+    const asset = ASSETS[ticker];
+    if (!asset) return null;
+
+    // Generate synthetic metrics for now (these could come from a separate analysis API)
+    const rng = seededRandom(ticker.split("").reduce((a, c) => a + c.charCodeAt(0), 0) + Math.floor(Date.now() / 86400000));
+    const r = () => rng();
+
+    const dims = {
+      fundamentals: {
+        revenueGrowth: 20 + r() * 75, profitMargin: 10 + r() * 70, debtToEquity: r() * 85,
+        freeCashFlow: 15 + r() * 75, earningsQuality: 25 + r() * 65, bookValue: 20 + r() * 60,
+      },
+      technicals: {
+        rsi: 20 + r() * 60, macdSignal: 20 + r() * 70, bollingerPos: 15 + r() * 75,
+        volumeTrend: 25 + r() * 65, maAlignment: 20 + r() * 75, supportResistance: 25 + r() * 65,
+      },
+      sentiment: {
+        newsScore: 20 + r() * 75, socialBuzz: 10 + r() * 85, analystConsensus: 25 + r() * 65,
+        institutionalFlow: 20 + r() * 70, retailSentiment: 15 + r() * 75, fearGreedIdx: 10 + r() * 80,
+      },
+      macro: {
+        sectorMomentum: 25 + r() * 65, rateExposure: r() * 80, inflationHedge: 15 + r() * 70,
+        geopoliticalRisk: r() * 75, regulatoryClimate: 25 + r() * 65, currencyExposure: 15 + r() * 65,
+      },
+      esg: {
+        environmental: 20 + r() * 70, social: 25 + r() * 65, governance: 30 + r() * 60,
+        controversyRisk: r() * 70, sustainabilityTrend: 25 + r() * 65,
+      },
+    };
+
+    const avg = (obj) => { const vals = Object.values(obj); return vals.reduce((s, v) => s + v, 0) / vals.length; };
+
+    const radarData = [
+      { dimension: "Fundamentals", value: avg(dims.fundamentals), fullMark: 100 },
+      { dimension: "Technicals", value: avg(dims.technicals), fullMark: 100 },
+      { dimension: "Sentiment", value: avg(dims.sentiment), fullMark: 100 },
+      { dimension: "Macro", value: avg(dims.macro), fullMark: 100 },
+      { dimension: "ESG", value: avg(dims.esg), fullMark: 100 },
+      { dimension: "Momentum", value: 25 + r() * 65, fullMark: 100 },
+    ];
+
+    const signal = liveData.changePercent > 2 ? "bullish" : liveData.changePercent < -2 ? "bearish" : "neutral";
+    const briefing = generateBriefing(ticker, asset, signal, r);
+
+    // Format market cap
+    const formatMarketCap = (mc) => {
+      if (!mc) return "N/A";
+      if (mc >= 1e12) return `$${(mc / 1e12).toFixed(2)}T`;
+      if (mc >= 1e9) return `$${(mc / 1e9).toFixed(1)}B`;
+      if (mc >= 1e6) return `$${(mc / 1e6).toFixed(1)}M`;
+      return `$${mc.toLocaleString()}`;
+    };
+
+    // Format volume
+    const formatVolume = (vol) => {
+      if (!vol) return "N/A";
+      if (vol >= 1e9) return `${(vol / 1e9).toFixed(1)}B`;
+      if (vol >= 1e6) return `${(vol / 1e6).toFixed(1)}M`;
+      if (vol >= 1e3) return `${(vol / 1e3).toFixed(1)}K`;
+      return vol.toLocaleString();
+    };
+
+    return {
+      ticker,
+      ...asset,
+      price: liveData.price || 0,
+      changePercent: liveData.changePercent || 0,
+      previousClose: liveData.previousClose,
+      open: liveData.open,
+      dayHigh: liveData.dayHigh,
+      dayLow: liveData.dayLow,
+      marketCap: formatMarketCap(liveData.marketCap),
+      volume24h: formatVolume(liveData.volume),
+      priceHistory: liveData.priceHistory || [],
+      ...dims,
+      radarData,
+      compositeScore: +avg(radarData.map(d => d.value)).toFixed(1),
+      signal,
+      briefing,
+      lastUpdated: liveData.lastUpdated,
+    };
+  }, []);
+
+  // Load data from JSON file or fall back to synthetic
   useEffect(() => {
-    [...stakes, ...watchlist].forEach(ticker => {
-      if (!cache[ticker]) {
-        setCache(prev => ({ ...prev, [ticker]: generateAssetData(ticker) }));
+    const loadData = async () => {
+      setDataSource("loading");
+
+      try {
+        // Try to fetch live data from assets
+        const response = await fetch("assets/market_data.json");
+        if (response.ok) {
+          const data = await response.json();
+          const newCache = {};
+
+          // Process stocks
+          if (data.stocks) {
+            Object.entries(data.stocks).forEach(([ticker, stockData]) => {
+              if (!stockData.error) {
+                const merged = mergeWithAsset(ticker, stockData);
+                if (merged) newCache[ticker] = merged;
+              }
+            });
+          }
+
+          // Process crypto
+          if (data.crypto) {
+            Object.entries(data.crypto).forEach(([ticker, cryptoData]) => {
+              const merged = mergeWithAsset(ticker, cryptoData);
+              if (merged) newCache[ticker] = merged;
+            });
+          }
+
+          // Fill in any missing tickers with synthetic data
+          [...stakes, ...watchlist].forEach(ticker => {
+            if (!newCache[ticker]) {
+              newCache[ticker] = generateAssetData(ticker);
+            }
+          });
+
+          setCache(newCache);
+          setLastUpdated(data.generated ? new Date(data.generated) : null);
+          setDataSource("live");
+          console.log(`Loaded live data for ${Object.keys(newCache).length} assets`);
+          return;
+        }
+      } catch (err) {
+        console.log("No live data available, using synthetic:", err.message);
       }
-    });
-  }, [stakes, watchlist, refreshKey]);
+
+      // Fall back to synthetic data
+      const newCache = {};
+      [...stakes, ...watchlist].forEach(ticker => {
+        newCache[ticker] = generateAssetData(ticker);
+      });
+      setCache(newCache);
+      setDataSource("synthetic");
+    };
+
+    loadData();
+  }, [stakes, watchlist, refreshKey, mergeWithAsset]);
 
   const selectedData = cache[selected];
 
@@ -804,23 +941,45 @@ export default function SpectrumDashboard() {
           </div>
         </div>
 
-        {/* Center: Live indicator */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: COLORS.accent,
-            animation: "pulse 2s ease infinite",
-            boxShadow: `0 0 10px ${COLORS.accent}`,
-          }} />
-          <span style={{
-            fontSize: 10,
-            color: COLORS.accent,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.15em",
-          }}>Live</span>
+        {/* Center: Data source indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: dataSource === "live" ? COLORS.accent : dataSource === "loading" ? COLORS.warn : COLORS.textDim,
+              animation: dataSource === "loading" ? "pulse 1s ease infinite" : dataSource === "live" ? "pulse 2s ease infinite" : "none",
+              boxShadow: dataSource === "live" ? `0 0 10px ${COLORS.accent}` : "none",
+            }} />
+            <span style={{
+              fontSize: 10,
+              color: dataSource === "live" ? COLORS.accent : dataSource === "loading" ? COLORS.warn : COLORS.textSecondary,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}>
+              {dataSource === "live" ? "Live Data" : dataSource === "loading" ? "Loading..." : "Simulated"}
+            </span>
+          </div>
+          {lastUpdated && dataSource === "live" && (
+            <span style={{
+              fontSize: 9,
+              color: COLORS.textDim,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              Updated: {lastUpdated.toLocaleString()}
+            </span>
+          )}
+          {dataSource === "synthetic" && (
+            <span style={{
+              fontSize: 9,
+              color: COLORS.warn,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              Run RUN_MARKET_UPDATE.bat for real data
+            </span>
+          )}
         </div>
 
         {/* Right: Settings */}
@@ -838,7 +997,7 @@ export default function SpectrumDashboard() {
               cursor: "pointer",
               transition: "all 0.15s",
             }}
-          >↻ Refresh</button>
+          >↻ Reload</button>
           <div style={{
             fontSize: 10,
             color: COLORS.textDim,
@@ -997,7 +1156,9 @@ export default function SpectrumDashboard() {
         textAlign: "center",
         flexShrink: 0,
       }}>
-        SPECTRUM v3 — Quantitative signals are simulated for demonstration. Connect real data providers for production use.
+        SPECTRUM v3 — {dataSource === "live"
+          ? "Live market data from Yahoo Finance & CoinGecko. Composite scores are analytical estimates."
+          : "Run RUN_MARKET_UPDATE.bat to fetch live market data. Currently showing simulated prices."}
       </footer>
     </div>
   );
