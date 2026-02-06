@@ -373,7 +373,7 @@ function DetailPanel({ data, tab, setTab }) {
   ];
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {/* Ticker header */}
       <div style={{
         padding: "14px 18px",
@@ -611,7 +611,6 @@ export default function SpectrumDashboard() {
       background: COLORS.bg,
       color: COLORS.textPrimary,
       fontFamily: "'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif",
-      overflow: "hidden",
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
@@ -714,7 +713,7 @@ export default function SpectrumDashboard() {
       <div style={{
         flex: 1,
         display: "flex",
-        overflow: "hidden",
+        minHeight: 0,
       }}>
         {/* LEFT PANEL: Ticker List */}
         <div style={{
@@ -757,7 +756,7 @@ export default function SpectrumDashboard() {
           display: "flex",
           flexDirection: "column",
           background: COLORS.bg,
-          overflow: "hidden",
+          minHeight: 0,
         }}>
           <DetailPanel data={selectedData} tab={tab} setTab={setTab} />
         </div>
