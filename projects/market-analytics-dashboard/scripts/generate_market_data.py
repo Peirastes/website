@@ -325,6 +325,24 @@ def fetch_crypto_data() -> Dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# UTILITIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def sanitize_for_json(obj):
+    """Recursively convert NaN/Inf values to None for valid JSON."""
+    import math
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(item) for item in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    return obj
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -357,18 +375,21 @@ def main():
         }
     }
 
+    # Sanitize data to remove NaN/Inf values (not valid JSON)
+    all_data = sanitize_for_json(all_data)
+
     # Write to assets
     output_file = ASSETS_DIR / "market_data.json"
-    with open(output_file, "w") as f:
-        json.dump(all_data, f, indent=2)
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(all_data, f, indent=2, ensure_ascii=False)
 
     logger.info(f"\nData written to: {output_file}")
 
     # Also copy to dist folder for direct serving
     dist_file = PROJECT_ROOT / "dist" / "market_data.json"
     if dist_file.parent.exists():
-        with open(dist_file, "w") as f:
-            json.dump(all_data, f, indent=2)
+        with open(dist_file, "w", encoding="utf-8") as f:
+            json.dump(all_data, f, indent=2, ensure_ascii=False)
         logger.info(f"Data copied to: {dist_file}")
 
     # Also write a status file
