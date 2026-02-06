@@ -38,54 +38,9 @@
             </div>
 
             <h2>Archive</h2>
-            <div class="year" onclick="toggleYear('2026')">2026</div>
-            <ul id="2026" class="month-list">
-                <li><a href="#project19">Electrostatics Lab</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2025')">2025</div>
-            <ul id="2025" class="month-list">
-                <li><a href="#project15">Problem-Solving and Critical Path Reasoning</a></li>
-                <li><a href="#project14">Dynamical Systems Lab</a></li>
-                <li><a href="#project14b">Two-Body Gravitational Free Fall</a></li>
-                <li><a href="#project13">On Analogies of Dynamical Systems</a></li>
-                <li><a href="#project12">Inferential Dynamics</a></li>
-                <li><a href="#project11">Rebound Pendulum</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2024')">2024</div>
-            <ul id="2024" class="month-list">
-                <li><a href="#project10">Certainty, Inference, and Comprehension</a></li>
-                <li><a href="#project9">Horizontal Frame Centering Algorithm</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2023')">2023</div>
-            <ul id="2023" class="month-list">
-                <li><a href="#project8">A Universe of Proportions</a></li>
-            </ul>
-            
-            <div class="year" onclick="toggleYear('2021')">2021</div>
-            <ul id="2021" class="month-list">
-                <li><a href="#project7">Fundamental Principles - On Analogies (continued)</a></li>
-                <!-- <li><a href="#project6">Simple Environment Sensing System with Microcontroller</a></li> -->
-                <li><a href="#project5">On Physical Analogies</a></li>
-            </ul>
-            
-            <div class="year" onclick="toggleYear('2020')">2020</div>
-            <ul id="2020" class="month-list">
-                <li><a href="#project4">Gravitational Radiation</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2018')">2018</div>
-            <ul id="2018" class="month-list">
-                <li><a href="#project3">Disk Cam Synthesis</a></li>
-                <li><a href="#project2">Nonlinear Human Population Growth Modeling</a></li>
-            </ul>
-
-            <div class="year" onclick="toggleYear('2017')">2017</div>
-            <ul id="2017" class="month-list">
-                <li><a href="#project1">Gravitational Wave Detector</a></li>
-            </ul>
+            <div id="archive-list">
+                <!-- Archive will be generated here by JavaScript -->
+            </div>
         </aside>
 
         <main id="project-list">
@@ -347,10 +302,49 @@
                 const jsonElement = document.getElementById('projects-data');
                 const projects = JSON.parse(jsonElement.textContent);
                 renderProjects(projects);
+                renderArchive(projects);
             } catch (error) {
                 console.error('Error loading projects:', error);
                 document.getElementById('project-list').innerHTML = '<p>Error loading projects. Please check the console.</p>';
             }
+        }
+
+        // Generate archive sidebar dynamically from projects data
+        function renderArchive(projects) {
+            const archiveList = document.getElementById('archive-list');
+
+            // Filter visible projects and group by year
+            const visibleProjects = projects.filter(p => p.visible !== false);
+            const projectsByYear = {};
+
+            visibleProjects.forEach(project => {
+                const year = project.year;
+                if (!projectsByYear[year]) {
+                    projectsByYear[year] = [];
+                }
+                projectsByYear[year].push(project);
+            });
+
+            // Sort years descending
+            const years = Object.keys(projectsByYear).sort((a, b) => b - a);
+
+            // Generate HTML
+            let archiveHTML = '';
+            years.forEach(year => {
+                const yearProjects = projectsByYear[year];
+                const projectLinks = yearProjects
+                    .map(p => `<li><a href="#${p.id}">${p.title}</a></li>`)
+                    .join('\n                ');
+
+                archiveHTML += `
+            <div class="year" onclick="toggleYear('${year}')">${year}</div>
+            <ul id="${year}" class="month-list">
+                ${projectLinks}
+            </ul>
+`;
+            });
+
+            archiveList.innerHTML = archiveHTML;
         }
 
         function renderProjects(projects) {
