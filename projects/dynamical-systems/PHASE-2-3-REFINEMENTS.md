@@ -291,7 +291,7 @@ Damping Ratio (ζ)     Behavior                Color    Indicator
    - Adjust mass → adjust inductance → verify ω₀ synchronization
    - Adjust damping → adjust resistance → verify ζ synchronization
    - Adjust drive → observe proportional response
-   - Explicit connection to Theorem XI.8.1
+   - Explicit connection to Theorem XII.8.1
 
 **Educational Impact:**
 - Students have guided structure for exploration

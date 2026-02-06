@@ -117,7 +117,7 @@
      4. Verify ω₀ stays synchronized
      5. Increase damping proportionally
      6. Notice identical damping behavior in both systems
-   - Explicit connection to Theorem XI.8.1 (Universal Oscillator Equation)
+   - Explicit connection to Theorem XII.8.1 (Universal Oscillator Equation)
 
 **File Size:** ~740 lines → ~820 lines (+80 lines, primarily educational content)
 
@@ -167,7 +167,7 @@
 4. See metric display and regime indicator
 5. ✓ "I understand: ζ = 0.316 means underdamped; oscillates with decay"
 6. Follow guided experiment: adjust m, then L, check ω₀
-7. ✓ "The analogy is verified! Theorem XI.8.1 works!"
+7. ✓ "The analogy is verified! Theorem XII.8.1 works!"
 
 ---
 
