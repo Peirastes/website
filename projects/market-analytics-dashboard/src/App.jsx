@@ -548,7 +548,7 @@ function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact,
 
 // ─── DETAIL PANEL ────────────────────────────────────────────────────────────
 
-function DetailPanel({ data, tab, setTab }) {
+function DetailPanel({ data, tab, setTab, priceRange, setPriceRange }) {
   if (!data) {
     return (
       <div style={{
@@ -641,7 +641,7 @@ function DetailPanel({ data, tab, setTab }) {
 
       {/* Tab content */}
       <div className="spectrum-detail-content" style={{ flex: 1, overflow: "auto", padding: 18 }}>
-        {tab === "overview" && <OverviewTab data={data} />}
+        {tab === "overview" && <OverviewTab data={data} priceRange={priceRange} setPriceRange={setPriceRange} />}
         {tab === "fundamentals" && <MetricsTab title="Fundamentals" metrics={data.fundamentals} color={COLORS.accent} />}
         {tab === "technicals" && <MetricsTab title="Technicals" metrics={data.technicals} color="#a78bfa" />}
         {tab === "sentiment" && <MetricsTab title="Sentiment" metrics={data.sentiment} color="#f59e0b" />}
@@ -651,7 +651,18 @@ function DetailPanel({ data, tab, setTab }) {
   );
 }
 
-function OverviewTab({ data }) {
+const PRICE_RANGES = [
+  { id: "1W", label: "1W", days: 7 },
+  { id: "1M", label: "1M", days: 30 },
+  { id: "3M", label: "3M", days: 90 },
+  { id: "ALL", label: "ALL", days: Infinity },
+];
+
+function OverviewTab({ data, priceRange, setPriceRange }) {
+  const rangeConfig = PRICE_RANGES.find(r => r.id === priceRange) || PRICE_RANGES[2];
+  const chartData = rangeConfig.days === Infinity
+    ? data.priceHistory
+    : data.priceHistory.slice(-rangeConfig.days);
   return (
     <div className="spectrum-overview-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       {/* Score + Radar */}
@@ -687,11 +698,33 @@ function OverviewTab({ data }) {
         borderRadius: 10,
         padding: 18,
       }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
-          Price History (90D)
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            Price History
+          </div>
+          <div style={{ display: "flex", gap: 2, background: COLORS.bgPanel, borderRadius: 5, padding: 2 }}>
+            {PRICE_RANGES.map(r => (
+              <button
+                key={r.id}
+                onClick={() => setPriceRange(r.id)}
+                style={{
+                  padding: "3px 10px",
+                  background: priceRange === r.id ? COLORS.card : "transparent",
+                  border: priceRange === r.id ? `1px solid ${COLORS.cardBorder}` : "1px solid transparent",
+                  borderRadius: 4,
+                  color: priceRange === r.id ? COLORS.textPrimary : COLORS.textDim,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >{r.label}</button>
+            ))}
+          </div>
         </div>
         <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={data.priceHistory.slice(-60)}>
+          <AreaChart data={chartData}>
             <defs>
               <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={data.color} stopOpacity={0.2} />
@@ -816,6 +849,7 @@ export default function SpectrumDashboard() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("default");
+  const [priceRange, setPriceRange] = useState("3M");
   const [now, setNow] = useState(Date.now());
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("spectrum-favorites")) || []; } catch { return []; }
@@ -1456,6 +1490,8 @@ export default function SpectrumDashboard() {
             data={selectedData}
             tab={tab}
             setTab={setTab}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
           />
         </div>
       </div>
