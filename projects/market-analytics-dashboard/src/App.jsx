@@ -14,91 +14,91 @@ import {
 
 const ASSETS = {
   // Tech Giants
-  AAPL: { name: "Apple Inc.", sector: "Technology", type: "stock", color: "#a3a3a3" },
-  MSFT: { name: "Microsoft Corp.", sector: "Technology", type: "stock", color: "#38bdf8" },
-  GOOGL: { name: "Alphabet Inc.", sector: "Technology", type: "stock", color: "#4ade80" },
-  META: { name: "Meta Platforms", sector: "Technology", type: "stock", color: "#60a5fa" },
-  AMZN: { name: "Amazon.com Inc.", sector: "E-Commerce / Cloud", type: "stock", color: "#ff9900" },
+  AAPL: { name: "Apple Inc.", sector: "Technology", type: "stock", color: "#a3a3a3", domain: "apple.com" },
+  MSFT: { name: "Microsoft Corp.", sector: "Technology", type: "stock", color: "#38bdf8", domain: "microsoft.com" },
+  GOOGL: { name: "Alphabet Inc.", sector: "Technology", type: "stock", color: "#4ade80", domain: "google.com" },
+  META: { name: "Meta Platforms", sector: "Technology", type: "stock", color: "#60a5fa", domain: "meta.com" },
+  AMZN: { name: "Amazon.com Inc.", sector: "E-Commerce / Cloud", type: "stock", color: "#ff9900", domain: "amazon.com" },
 
   // AI & Semiconductors
-  NVDA: { name: "NVIDIA Corp.", sector: "Semiconductors", type: "stock", color: "#84cc16" },
-  AMD: { name: "Advanced Micro Devices", sector: "Semiconductors", type: "stock", color: "#ed1c24" },
-  INTC: { name: "Intel Corp.", sector: "Semiconductors", type: "stock", color: "#0071c5" },
-  AVGO: { name: "Broadcom Inc.", sector: "Semiconductors", type: "stock", color: "#cc0000" },
-  TSM: { name: "Taiwan Semiconductor", sector: "Semiconductors", type: "stock", color: "#e03c31" },
-  MU: { name: "Micron Technology", sector: "Semiconductors", type: "stock", color: "#0077c8" },
-  MCHP: { name: "Microchip Technology", sector: "Semiconductors", type: "stock", color: "#cc2229" },
-  ASML: { name: "ASML Holding", sector: "Semiconductors", type: "stock", color: "#0f238c" },
-  PLTR: { name: "Palantir Technologies", sector: "AI / Government Tech", type: "stock", color: "#1ae5a1" },
-  SMCI: { name: "Super Micro Computer", sector: "AI Infrastructure", type: "stock", color: "#ef4444" },
-  CRWV: { name: "CoreWeave", sector: "AI Cloud / GPU", type: "stock", color: "#22d3ee" },
+  NVDA: { name: "NVIDIA Corp.", sector: "Semiconductors", type: "stock", color: "#84cc16", domain: "nvidia.com" },
+  AMD: { name: "Advanced Micro Devices", sector: "Semiconductors", type: "stock", color: "#ed1c24", domain: "amd.com" },
+  INTC: { name: "Intel Corp.", sector: "Semiconductors", type: "stock", color: "#0071c5", domain: "intel.com" },
+  AVGO: { name: "Broadcom Inc.", sector: "Semiconductors", type: "stock", color: "#cc0000", domain: "broadcom.com" },
+  TSM: { name: "Taiwan Semiconductor", sector: "Semiconductors", type: "stock", color: "#e03c31", domain: "tsmc.com" },
+  MU: { name: "Micron Technology", sector: "Semiconductors", type: "stock", color: "#0077c8", domain: "micron.com" },
+  MCHP: { name: "Microchip Technology", sector: "Semiconductors", type: "stock", color: "#cc2229", domain: "microchip.com" },
+  ASML: { name: "ASML Holding", sector: "Semiconductors", type: "stock", color: "#0f238c", domain: "asml.com" },
+  PLTR: { name: "Palantir Technologies", sector: "AI / Government Tech", type: "stock", color: "#1ae5a1", domain: "palantir.com" },
+  SMCI: { name: "Super Micro Computer", sector: "AI Infrastructure", type: "stock", color: "#ef4444", domain: "supermicro.com" },
+  CRWV: { name: "CoreWeave", sector: "AI Cloud / GPU", type: "stock", color: "#22d3ee", domain: "coreweave.com" },
 
   // Quantum Computing
-  RGTI: { name: "Rigetti Computing", sector: "Quantum Computing", type: "stock", color: "#818cf8" },
-  QBTS: { name: "D-Wave Quantum", sector: "Quantum Computing", type: "stock", color: "#2dd4bf" },
-  IONQ: { name: "IonQ Inc.", sector: "Quantum Computing", type: "stock", color: "#6366f1" },
+  RGTI: { name: "Rigetti Computing", sector: "Quantum Computing", type: "stock", color: "#818cf8", domain: "rigetti.com" },
+  QBTS: { name: "D-Wave Quantum", sector: "Quantum Computing", type: "stock", color: "#2dd4bf", domain: "dwavesys.com" },
+  IONQ: { name: "IonQ Inc.", sector: "Quantum Computing", type: "stock", color: "#6366f1", domain: "ionq.com" },
 
   // Space & Aerospace & Defense
-  RKLB: { name: "Rocket Lab USA", sector: "Aerospace / Launch", type: "stock", color: "#a78bfa" },
-  ASTS: { name: "AST SpaceMobile", sector: "Satellite / Telecom", type: "stock", color: "#fb923c" },
-  LUNR: { name: "Intuitive Machines", sector: "Lunar / Space", type: "stock", color: "#c4b5fd" },
-  RDW: { name: "Redwire Corp.", sector: "Space Infrastructure", type: "stock", color: "#f472b6" },
-  KTOS: { name: "Kratos Defense & Security", sector: "Defense / Drones", type: "stock", color: "#1e3a5f" },
-  LMT: { name: "Lockheed Martin", sector: "Defense / Aerospace", type: "stock", color: "#003366" },
-  GE: { name: "GE Aerospace", sector: "Aerospace / Industrial", type: "stock", color: "#3d5a80" },
+  RKLB: { name: "Rocket Lab USA", sector: "Aerospace / Launch", type: "stock", color: "#a78bfa", domain: "rocketlabusa.com" },
+  ASTS: { name: "AST SpaceMobile", sector: "Satellite / Telecom", type: "stock", color: "#fb923c", domain: "ast-science.com" },
+  LUNR: { name: "Intuitive Machines", sector: "Lunar / Space", type: "stock", color: "#c4b5fd", domain: "intuitivemachines.com" },
+  RDW: { name: "Redwire Corp.", sector: "Space Infrastructure", type: "stock", color: "#f472b6", domain: "redwirespace.com" },
+  KTOS: { name: "Kratos Defense & Security", sector: "Defense / Drones", type: "stock", color: "#1e3a5f", domain: "kratosdefense.com" },
+  LMT: { name: "Lockheed Martin", sector: "Defense / Aerospace", type: "stock", color: "#003366", domain: "lockheedmartin.com" },
+  GE: { name: "GE Aerospace", sector: "Aerospace / Industrial", type: "stock", color: "#3d5a80", domain: "geaerospace.com" },
 
   // EV & Energy
-  TSLA: { name: "Tesla Inc.", sector: "EV / Energy", type: "stock", color: "#e11d48" },
-  RIVN: { name: "Rivian Automotive", sector: "EV", type: "stock", color: "#fbbf24" },
-  LCID: { name: "Lucid Group", sector: "EV", type: "stock", color: "#7dd3fc" },
-  QS: { name: "QuantumScape", sector: "EV Battery Tech", type: "stock", color: "#06b6d4" },
-  ARRY: { name: "Array Technologies", sector: "Clean Energy", type: "stock", color: "#f59e0b" },
-  ENPH: { name: "Enphase Energy", sector: "Solar", type: "stock", color: "#f97316" },
+  TSLA: { name: "Tesla Inc.", sector: "EV / Energy", type: "stock", color: "#e11d48", domain: "tesla.com" },
+  RIVN: { name: "Rivian Automotive", sector: "EV", type: "stock", color: "#fbbf24", domain: "rivian.com" },
+  LCID: { name: "Lucid Group", sector: "EV", type: "stock", color: "#7dd3fc", domain: "lucidmotors.com" },
+  QS: { name: "QuantumScape", sector: "EV Battery Tech", type: "stock", color: "#06b6d4", domain: "quantumscape.com" },
+  ARRY: { name: "Array Technologies", sector: "Clean Energy", type: "stock", color: "#f59e0b", domain: "arraytechinc.com" },
+  ENPH: { name: "Enphase Energy", sector: "Solar", type: "stock", color: "#f97316", domain: "enphase.com" },
 
   // Fintech & Finance
-  SQ: { name: "Block Inc.", sector: "Fintech", type: "stock", color: "#00d632" },
-  COIN: { name: "Coinbase Global", sector: "Crypto Exchange", type: "stock", color: "#0052ff" },
-  HOOD: { name: "Robinhood Markets", sector: "Fintech", type: "stock", color: "#00c805" },
-  SOFI: { name: "SoFi Technologies", sector: "Fintech", type: "stock", color: "#00d4aa" },
+  SQ: { name: "Block Inc.", sector: "Fintech", type: "stock", color: "#00d632", domain: "block.xyz" },
+  COIN: { name: "Coinbase Global", sector: "Crypto Exchange", type: "stock", color: "#0052ff", domain: "coinbase.com" },
+  HOOD: { name: "Robinhood Markets", sector: "Fintech", type: "stock", color: "#00c805", domain: "robinhood.com" },
+  SOFI: { name: "SoFi Technologies", sector: "Fintech", type: "stock", color: "#00d4aa", domain: "sofi.com" },
 
   // Biotech & Healthcare
-  MRNA: { name: "Moderna Inc.", sector: "Biotech", type: "stock", color: "#00a1e0" },
-  CRSP: { name: "CRISPR Therapeutics", sector: "Gene Editing", type: "stock", color: "#10b981" },
+  MRNA: { name: "Moderna Inc.", sector: "Biotech", type: "stock", color: "#00a1e0", domain: "modernatx.com" },
+  CRSP: { name: "CRISPR Therapeutics", sector: "Gene Editing", type: "stock", color: "#10b981", domain: "crisprtx.com" },
 
   // Other Growth
-  NET: { name: "Cloudflare Inc.", sector: "Cybersecurity / CDN", type: "stock", color: "#f48120" },
-  SNOW: { name: "Snowflake Inc.", sector: "Cloud Data", type: "stock", color: "#29b5e8" },
-  DDOG: { name: "Datadog Inc.", sector: "Cloud Monitoring", type: "stock", color: "#632ca6" },
+  NET: { name: "Cloudflare Inc.", sector: "Cybersecurity / CDN", type: "stock", color: "#f48120", domain: "cloudflare.com" },
+  SNOW: { name: "Snowflake Inc.", sector: "Cloud Data", type: "stock", color: "#29b5e8", domain: "snowflake.com" },
+  DDOG: { name: "Datadog Inc.", sector: "Cloud Monitoring", type: "stock", color: "#632ca6", domain: "datadoghq.com" },
 
   // Entertainment & Consumer
-  DIS: { name: "Walt Disney Co.", sector: "Entertainment", type: "stock", color: "#006e99" },
-  SPOT: { name: "Spotify Technology", sector: "Streaming / Music", type: "stock", color: "#1db954" },
-  CHWY: { name: "Chewy Inc.", sector: "E-Commerce / Pets", type: "stock", color: "#0b72b9" },
-  AMC: { name: "AMC Entertainment", sector: "Entertainment / Cinema", type: "stock", color: "#ff0000" },
-  DJT: { name: "Trump Media & Technology", sector: "Social Media", type: "stock", color: "#c41e3a" },
+  DIS: { name: "Walt Disney Co.", sector: "Entertainment", type: "stock", color: "#006e99", domain: "disney.com" },
+  SPOT: { name: "Spotify Technology", sector: "Streaming / Music", type: "stock", color: "#1db954", domain: "spotify.com" },
+  CHWY: { name: "Chewy Inc.", sector: "E-Commerce / Pets", type: "stock", color: "#0b72b9", domain: "chewy.com" },
+  AMC: { name: "AMC Entertainment", sector: "Entertainment / Cinema", type: "stock", color: "#ff0000", domain: "amctheatres.com" },
+  DJT: { name: "Trump Media & Technology", sector: "Social Media", type: "stock", color: "#c41e3a", domain: "tmtgcorp.com" },
 
   // Retail & Restaurants
-  AEO: { name: "American Eagle Outfitters", sector: "Retail / Apparel", type: "stock", color: "#1c3f6e" },
-  GME: { name: "GameStop Corp.", sector: "Retail / Gaming", type: "stock", color: "#e01e26" },
-  CBRL: { name: "Cracker Barrel", sector: "Restaurant", type: "stock", color: "#6b4226" },
-  CAVA: { name: "Cava Group", sector: "Restaurant", type: "stock", color: "#00a499" },
-  TSCO: { name: "Tractor Supply Co.", sector: "Retail", type: "stock", color: "#e31837" },
-  LULU: { name: "Lululemon Athletica", sector: "Retail / Apparel", type: "stock", color: "#d31334" },
+  AEO: { name: "American Eagle Outfitters", sector: "Retail / Apparel", type: "stock", color: "#1c3f6e", domain: "ae.com" },
+  GME: { name: "GameStop Corp.", sector: "Retail / Gaming", type: "stock", color: "#e01e26", domain: "gamestop.com" },
+  CBRL: { name: "Cracker Barrel", sector: "Restaurant", type: "stock", color: "#6b4226", domain: "crackerbarrel.com" },
+  CAVA: { name: "Cava Group", sector: "Restaurant", type: "stock", color: "#00a499", domain: "cava.com" },
+  TSCO: { name: "Tractor Supply Co.", sector: "Retail", type: "stock", color: "#e31837", domain: "tractorsupply.com" },
+  LULU: { name: "Lululemon Athletica", sector: "Retail / Apparel", type: "stock", color: "#d31334", domain: "lululemon.com" },
 
   // Real Estate & Industrial
-  MPW: { name: "Medical Properties Trust", sector: "REIT / Healthcare", type: "stock", color: "#0066b2" },
-  COMP: { name: "Compass Inc.", sector: "Real Estate Tech", type: "stock", color: "#000000" },
-  LEG: { name: "Leggett & Platt", sector: "Manufacturing", type: "stock", color: "#004c97" },
+  MPW: { name: "Medical Properties Trust", sector: "REIT / Healthcare", type: "stock", color: "#0066b2", domain: "medicalpropertiestrust.com" },
+  COMP: { name: "Compass Inc.", sector: "Real Estate Tech", type: "stock", color: "#000000", domain: "compass.com" },
+  LEG: { name: "Leggett & Platt", sector: "Manufacturing", type: "stock", color: "#004c97", domain: "leggett.com" },
 
   // Cryptocurrency
-  BTC: { name: "Bitcoin", sector: "Cryptocurrency", type: "crypto", color: "#f7931a" },
-  ETH: { name: "Ethereum", sector: "Cryptocurrency", type: "crypto", color: "#627eea" },
-  SOL: { name: "Solana", sector: "Cryptocurrency", type: "crypto", color: "#9945ff" },
-  XRP: { name: "Ripple", sector: "Cryptocurrency", type: "crypto", color: "#23292f" },
-  ADA: { name: "Cardano", sector: "Cryptocurrency", type: "crypto", color: "#0033ad" },
-  DOGE: { name: "Dogecoin", sector: "Cryptocurrency", type: "crypto", color: "#c2a633" },
-  AVAX: { name: "Avalanche", sector: "Cryptocurrency", type: "crypto", color: "#e84142" },
-  LINK: { name: "Chainlink", sector: "Cryptocurrency", type: "crypto", color: "#375bd2" },
+  BTC: { name: "Bitcoin", sector: "Cryptocurrency", type: "crypto", color: "#f7931a", domain: "bitcoin.org" },
+  ETH: { name: "Ethereum", sector: "Cryptocurrency", type: "crypto", color: "#627eea", domain: "ethereum.org" },
+  SOL: { name: "Solana", sector: "Cryptocurrency", type: "crypto", color: "#9945ff", domain: "solana.com" },
+  XRP: { name: "Ripple", sector: "Cryptocurrency", type: "crypto", color: "#23292f", domain: "ripple.com" },
+  ADA: { name: "Cardano", sector: "Cryptocurrency", type: "crypto", color: "#0033ad", domain: "cardano.org" },
+  DOGE: { name: "Dogecoin", sector: "Cryptocurrency", type: "crypto", color: "#c2a633", domain: "dogecoin.com" },
+  AVAX: { name: "Avalanche", sector: "Cryptocurrency", type: "crypto", color: "#e84142", domain: "avax.network" },
+  LINK: { name: "Chainlink", sector: "Cryptocurrency", type: "crypto", color: "#375bd2", domain: "chain.link" },
 };
 
 // ─── SEEDED RNG + DATA GENERATION ────────────────────────────────────────────
@@ -272,30 +272,52 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 function TickerLogo({ ticker, color, size = 36 }) {
-  // Get 1-2 characters for the logo
+  const [imgError, setImgError] = useState(false);
+  const asset = ASSETS[ticker];
+  const domain = asset?.domain;
+
+  // Fallback letters
   const letters = ticker.length <= 2 ? ticker : ticker.slice(0, 2);
   const fontSize = letters.length === 1 ? size * 0.45 : size * 0.38;
+
+  // Logo URL from Clearbit
+  const logoUrl = domain ? `https://logo.clearbit.com/${domain}` : null;
 
   return (
     <div style={{
       width: size,
       height: size,
       borderRadius: 8,
-      background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+      background: imgError || !logoUrl ? `linear-gradient(135deg, ${color}, ${color}cc)` : COLORS.card,
+      border: imgError || !logoUrl ? "none" : `1px solid ${COLORS.cardBorder}`,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       flexShrink: 0,
-      boxShadow: `0 2px 8px ${color}40`,
+      boxShadow: `0 2px 8px ${color}30`,
+      overflow: "hidden",
     }}>
-      <span style={{
-        fontSize,
-        fontWeight: 900,
-        color: "#fff",
-        fontFamily: "'JetBrains Mono', monospace",
-        textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-        letterSpacing: "-0.02em",
-      }}>{letters}</span>
+      {logoUrl && !imgError ? (
+        <img
+          src={logoUrl}
+          alt={ticker}
+          onError={() => setImgError(true)}
+          style={{
+            width: size * 0.7,
+            height: size * 0.7,
+            objectFit: "contain",
+          }}
+        />
+      ) : (
+        <span style={{
+          fontSize,
+          fontWeight: 900,
+          color: "#fff",
+          fontFamily: "'JetBrains Mono', monospace",
+          textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+          letterSpacing: "-0.02em",
+        }}>{letters}</span>
+      )}
     </div>
   );
 }
