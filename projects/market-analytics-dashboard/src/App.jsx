@@ -382,6 +382,79 @@ const COLORS = {
 
 // ─── UI COMPONENTS ───────────────────────────────────────────────────────────
 
+// ─── SCORE GRADE DESCRIPTIONS ───────────────────────────────────────────────
+
+function getGradeInfo(score) {
+  if (score > 80) return { grade: "A+", label: "Exceptional", desc: "Top-tier across most dimensions. Strong fundamentals, favorable technicals, and positive analyst outlook.", color: COLORS.accent };
+  if (score > 70) return { grade: "A", label: "Strong", desc: "Above average on most metrics. Solid fundamentals with supportive technical and analyst signals.", color: COLORS.accent };
+  if (score > 60) return { grade: "B+", label: "Above Average", desc: "Moderately strong profile. Some dimensions stand out while others are neutral.", color: "#a3e635" };
+  if (score > 50) return { grade: "B", label: "Average", desc: "Mixed signals across dimensions. No major red flags, but limited upside catalysts.", color: COLORS.warn };
+  if (score > 40) return { grade: "C", label: "Below Average", desc: "Weak in several dimensions. Caution warranted — check fundamentals and momentum closely.", color: COLORS.warn };
+  return { grade: "D", label: "Weak", desc: "Poor scores across most dimensions. Significant headwinds in fundamentals, technicals, or analyst sentiment.", color: COLORS.danger };
+}
+
+function ScoreTooltip({ data, anchor = "bottom", align = "right" }) {
+  const { grade, label, desc, color } = getGradeInfo(data.compositeScore);
+  const dims = (data.radarData || []).filter(d => d.value != null);
+
+  const posStyle = {
+    position: "absolute",
+    [anchor === "bottom" ? "top" : "bottom"]: "calc(100% + 8px)",
+    width: 260,
+  };
+  if (align === "center") { posStyle.left = "50%"; posStyle.transform = "translateX(-50%)"; }
+  else { posStyle.right = 0; }
+
+  return (
+    <div style={{
+      ...posStyle,
+      background: COLORS.card,
+      border: `1px solid ${COLORS.cardBorder}`,
+      borderRadius: 10,
+      padding: 14,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+      zIndex: 1000,
+      animation: "fadeIn 0.15s ease",
+    }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 8,
+          background: `${color}18`, border: `2px solid ${color}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontWeight: 900, fontSize: 16, color, fontFamily: "'JetBrains Mono', monospace",
+        }}>{grade}</div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.textPrimary }}>{data.ticker}: {label}</div>
+          <div style={{ fontSize: 10, color: COLORS.textSecondary }}>Composite {data.compositeScore.toFixed(0)}/100</div>
+        </div>
+      </div>
+
+      {/* Description */}
+      <div style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5, marginBottom: 12 }}>{desc}</div>
+
+      {/* Dimension breakdown */}
+      <div style={{ borderTop: `1px solid ${COLORS.cardBorder}`, paddingTop: 10 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Dimension Breakdown</div>
+        {dims.map((d) => {
+          const dc = d.value > 70 ? COLORS.accent : d.value > 45 ? COLORS.warn : COLORS.danger;
+          return (
+            <div key={d.dimension} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+              <span style={{ fontSize: 9, color: COLORS.textSecondary, width: 80, flexShrink: 0 }}>{d.dimension}</span>
+              <div style={{ flex: 1, height: 3, background: COLORS.gridLine, borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: `${d.value}%`, height: "100%", background: dc, borderRadius: 2 }} />
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 700, color: dc, fontFamily: "'JetBrains Mono', monospace", width: 22, textAlign: "right" }}>{d.value.toFixed(0)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function MetricBar({ label, value, rawDisplay }) {
   const safeVal = value != null ? value : 50;
   const color = safeVal > 70 ? COLORS.accent : safeVal > 45 ? COLORS.warn : COLORS.danger;
@@ -397,14 +470,18 @@ function MetricBar({ label, value, rawDisplay }) {
   );
 }
 
-function ScoreRing({ score, size = 100 }) {
+function ScoreRing({ score, size = 100, data }) {
+  const [hovered, setHovered] = useState(false);
   const radius = size / 2 - 10;
   const circ = 2 * Math.PI * radius;
   const off = circ * (1 - score / 100);
-  const color = score > 70 ? COLORS.accent : score > 50 ? COLORS.warn : COLORS.danger;
-  const grade = score > 80 ? "A+" : score > 70 ? "A" : score > 60 ? "B+" : score > 50 ? "B" : score > 40 ? "C" : "D";
+  const { grade, color } = getGradeInfo(score);
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
+    <div
+      style={{ position: "relative", width: size, height: size, cursor: "default" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={COLORS.gridLine} strokeWidth={6} />
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={6}
@@ -415,6 +492,9 @@ function ScoreRing({ score, size = 100 }) {
         <div style={{ fontSize: 22, fontWeight: 800, color, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>{score.toFixed(0)}</div>
         <div style={{ fontSize: 10, fontWeight: 600, color: `${color}99`, marginTop: 2 }}>{grade}</div>
       </div>
+      {hovered && data?.radarData && (
+        <ScoreTooltip data={data} anchor="bottom" align="center" />
+      )}
     </div>
   );
 }
@@ -508,6 +588,7 @@ function TickerLogo({ ticker, color, size = 36 }) {
 function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact, onSelect, onToggleExpand, onToggleFavorite }) {
   const asset = ASSETS[ticker];
   const changeColor = data?.changePercent >= 0 ? COLORS.accent : COLORS.danger;
+  const [showScoreTooltip, setShowScoreTooltip] = useState(false);
 
   // ── Compact mode: logo + ticker + price/change only ──
   if (compact) {
@@ -624,23 +705,32 @@ function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact,
           </div>
         </div>
 
-        {/* Score indicator */}
-        <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: 6,
-          background: COLORS.bgPanel,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}>
-          <span style={{
-            fontSize: 12,
-            fontWeight: 800,
-            color: data?.compositeScore > 60 ? COLORS.accent : data?.compositeScore > 45 ? COLORS.warn : COLORS.danger,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}>{data?.compositeScore?.toFixed(0) || "—"}</span>
+        {/* Score indicator with hover tooltip */}
+        <div
+          style={{ position: "relative", flexShrink: 0 }}
+          onMouseEnter={() => setShowScoreTooltip(true)}
+          onMouseLeave={() => setShowScoreTooltip(false)}
+        >
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 6,
+            background: COLORS.bgPanel,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "default",
+          }}>
+            <span style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: data?.compositeScore > 60 ? COLORS.accent : data?.compositeScore > 45 ? COLORS.warn : COLORS.danger,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>{data?.compositeScore?.toFixed(0) || "—"}</span>
+          </div>
+          {showScoreTooltip && data?.radarData && (
+            <ScoreTooltip data={data} anchor="bottom" />
+          )}
         </div>
 
         {/* Favorite toggle */}
@@ -876,7 +966,7 @@ function OverviewTab({ data, priceRange, setPriceRange }) {
         <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>
           Composite Score
         </div>
-        <ScoreRing score={data.compositeScore} size={110} />
+        <ScoreRing score={data.compositeScore} size={110} data={data} />
         <div style={{ width: "100%", marginTop: 16 }}>
           <ResponsiveContainer width="100%" height={180}>
             <RadarChart data={data.radarData}>
