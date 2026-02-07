@@ -468,11 +468,20 @@ def main():
     logger.info(f"\nData written to: {output_file}")
 
     # Also copy to dist folder for direct serving
-    dist_file = PROJECT_ROOT / "dist" / "market_data.json"
-    if dist_file.parent.exists():
+    dist_dir = PROJECT_ROOT / "dist"
+    if dist_dir.exists():
+        dist_file = dist_dir / "market_data.json"
         with open(dist_file, "w", encoding="utf-8") as f:
             json.dump(all_data, f, indent=2, ensure_ascii=False)
         logger.info(f"Data copied to: {dist_file}")
+
+        # Copy intel briefs to dist if they exist
+        intel_src = ASSETS_DIR / "intel_briefs.json"
+        intel_dst = dist_dir / "intel_briefs.json"
+        if intel_src.exists():
+            import shutil
+            shutil.copy2(intel_src, intel_dst)
+            logger.info(f"Intel briefs copied to: {intel_dst}")
 
     # Also write a status file
     status = {

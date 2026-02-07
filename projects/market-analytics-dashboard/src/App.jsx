@@ -102,10 +102,12 @@ const ASSETS = {
 };
 
 // ─── INTEL BRIEFS ───────────────────────────────────────────────────────────
-// Per-ticker qualitative analysis: thesis, recent catalyst, key risk, what to watch
+// Loaded dynamically from assets/intel_briefs.json (editable without rebuild).
+// Fallback empty object — tooltip shows "No analyst brief available" if missing.
+let INTEL = {};
 
-const INTEL = {
-  // Tech Giants
+// Kept inline as initial fallback while JSON loads
+const INTEL_FALLBACK = {
   AAPL: {
     thesis: "Record Q1 revenue $143.8B (16% YoY) with iPhone $85.3B all-time high and Services $30B. Privacy-first AI approach via Apple Intelligence, but monetization slower than peers.",
     recent: "Q1 FY2026 EPS $2.84 (19% YoY); iPhone revenue $85.3B (+23% YoY); Services $30B (+14% YoY).",
@@ -507,6 +509,9 @@ const INTEL = {
     watch: "CCIP adoption metrics and transaction volumes; new blockchain integrations; RWA project wins.",
   },
 };
+
+// Initialize INTEL with fallback data (will be overwritten by fetch)
+INTEL = { ...INTEL_FALLBACK };
 
 // ─── SEEDED RNG + SYNTHETIC FALLBACK ─────────────────────────────────────────
 
@@ -1584,6 +1589,8 @@ export default function SpectrumDashboard() {
   const [collapsedSections, setCollapsedSections] = useState({});
   const [dataSource, setDataSource] = useState("loading"); // "live", "synthetic", "loading"
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [intelData, setIntelData] = useState(INTEL_FALLBACK);
+  const [intelUpdated, setIntelUpdated] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("default");
   const [priceRange, setPriceRange] = useState("3M");
@@ -1822,11 +1829,34 @@ export default function SpectrumDashboard() {
     loadData();
   }, [stakes, watchlist, refreshKey, mergeWithAsset]);
 
-  // Auto-refresh every 5 minutes
+  // Auto-refresh market data every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       setRefreshKey(k => k + 1);
     }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch intel briefs from JSON (on load + every 4 hours)
+  useEffect(() => {
+    const fetchIntel = async () => {
+      try {
+        const resp = await fetch(`./intel_briefs.json?v=${Date.now()}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.briefs && Object.keys(data.briefs).length > 0) {
+            INTEL = data.briefs;
+            setIntelData(data.briefs);
+            setIntelUpdated(data.generated ? new Date(data.generated) : null);
+            console.log(`Loaded intel briefs for ${Object.keys(data.briefs).length} tickers`);
+          }
+        }
+      } catch (err) {
+        console.log("Intel briefs not available, using built-in fallback:", err.message);
+      }
+    };
+    fetchIntel();
+    const interval = setInterval(fetchIntel, 4 * 60 * 60 * 1000); // 4 hours
     return () => clearInterval(interval);
   }, []);
 
@@ -1981,7 +2011,7 @@ export default function SpectrumDashboard() {
             }}
               title={lastUpdated.toLocaleString()}
             >
-              Updated {relativeTime(lastUpdated, now)} &middot; auto-refresh 5m
+              Prices {relativeTime(lastUpdated, now)} &middot; Intel {intelUpdated ? relativeTime(intelUpdated, now) : "built-in"}
             </span>
           )}
           {dataSource === "synthetic" && (
