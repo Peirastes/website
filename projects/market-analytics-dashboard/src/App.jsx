@@ -1025,7 +1025,6 @@ function TickerLogo({ ticker, color, size = 36 }) {
 function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact, onSelect, onToggleExpand, onToggleFavorite }) {
   const asset = ASSETS[ticker];
   const changeColor = data?.changePercent >= 0 ? COLORS.accent : COLORS.danger;
-  const [showScoreTooltip, setShowScoreTooltip] = useState(false);
 
   // ── Compact mode: logo + ticker + price/change only ──
   if (compact) {
@@ -1142,32 +1141,23 @@ function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact,
           </div>
         </div>
 
-        {/* Score indicator with hover tooltip */}
-        <div
-          style={{ position: "relative", flexShrink: 0 }}
-          onMouseEnter={() => setShowScoreTooltip(true)}
-          onMouseLeave={() => setShowScoreTooltip(false)}
-        >
-          <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 6,
-            background: COLORS.bgPanel,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "default",
-          }}>
-            <span style={{
-              fontSize: 12,
-              fontWeight: 800,
-              color: data?.compositeScore > 60 ? COLORS.accent : data?.compositeScore > 45 ? COLORS.warn : COLORS.danger,
-              fontFamily: "'JetBrains Mono', monospace",
-            }}>{data?.compositeScore?.toFixed(0) || "—"}</span>
-          </div>
-          {showScoreTooltip && data?.radarData && (
-            <ScoreTooltip data={data} anchor="bottom" />
-          )}
+        {/* Score indicator */}
+        <div style={{
+          width: 36,
+          height: 36,
+          borderRadius: 6,
+          background: COLORS.bgPanel,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <span style={{
+            fontSize: 12,
+            fontWeight: 800,
+            color: data?.compositeScore > 60 ? COLORS.accent : data?.compositeScore > 45 ? COLORS.warn : COLORS.danger,
+            fontFamily: "'JetBrains Mono', monospace",
+          }}>{data?.compositeScore?.toFixed(0) || "—"}</span>
         </div>
 
         {/* Favorite toggle */}
@@ -1201,28 +1191,73 @@ function TickerCard({ ticker, data, isSelected, isExpanded, isFavorite, compact,
         >▼</button>
       </div>
 
-      {/* Expanded briefing */}
-      {isExpanded && data && (
-        <div style={{
-          padding: "0 14px 12px 30px",
-          borderTop: `1px solid ${COLORS.cardBorder}`,
-          marginTop: 0,
-          paddingTop: 10,
-          animation: "fadeIn 0.2s ease",
-        }}>
+      {/* Expanded briefing + intel */}
+      {isExpanded && data && (() => {
+        const intel = INTEL[ticker];
+        const { grade, color: gradeColor } = getGradeInfo(data.compositeScore || 50);
+        const dims = (data.radarData || []).filter(d => d.value != null);
+        return (
           <div style={{
-            fontSize: 10,
-            color: COLORS.textSecondary,
-            lineHeight: 1.6,
-            marginBottom: 8,
-          }}>{data.briefing}</div>
-          <div style={{ display: "flex", gap: 12, fontSize: 9, color: COLORS.textDim }}>
-            <span>Cap: {data.marketCap}</span>
-            <span>Vol: {data.volume24h}</span>
-            <span>Sector: {data.sector}</span>
+            padding: "0 14px 12px 14px",
+            borderTop: `1px solid ${COLORS.cardBorder}`,
+            marginTop: 0,
+            paddingTop: 10,
+            animation: "fadeIn 0.2s ease",
+          }}>
+            {/* Data-driven summary line */}
+            <div style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.6, marginBottom: 8 }}>
+              {data.briefing}
+            </div>
+
+            {/* Stats row */}
+            <div style={{ display: "flex", gap: 12, fontSize: 9, color: COLORS.textDim, marginBottom: 10 }}>
+              <span>Cap: {data.marketCap}</span>
+              <span>Vol: {data.volume24h}</span>
+              <span>Score: <span style={{ color: gradeColor, fontWeight: 700 }}>{grade} ({data.compositeScore?.toFixed(0)})</span></span>
+            </div>
+
+            {/* Intel brief */}
+            {intel && (
+              <div style={{ borderTop: `1px solid ${COLORS.cardBorder}`, paddingTop: 8 }}>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.textSecondary, textTransform: "uppercase", letterSpacing: "0.06em" }}>Thesis </span>
+                  <span style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5 }}>{intel.thesis}</span>
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.accent, textTransform: "uppercase", letterSpacing: "0.06em" }}>Recent </span>
+                  <span style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5 }}>{intel.recent}</span>
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.danger, textTransform: "uppercase", letterSpacing: "0.06em" }}>Risk </span>
+                  <span style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5 }}>{intel.risk}</span>
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.warn, textTransform: "uppercase", letterSpacing: "0.06em" }}>Watch </span>
+                  <span style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5 }}>{intel.watch}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Dimension bars */}
+            {dims.length > 0 && (
+              <div style={{ borderTop: `1px solid ${COLORS.cardBorder}`, paddingTop: 6, marginTop: 4 }}>
+                {dims.map((d) => {
+                  const dc = d.value > 70 ? COLORS.accent : d.value > 45 ? COLORS.warn : COLORS.danger;
+                  return (
+                    <div key={d.dimension} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 9, color: COLORS.textDim, width: 76, flexShrink: 0 }}>{d.dimension}</span>
+                      <div style={{ flex: 1, height: 3, background: COLORS.gridLine, borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ width: `${d.value}%`, height: "100%", background: dc, borderRadius: 2 }} />
+                      </div>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: dc, fontFamily: "'JetBrains Mono', monospace", width: 22, textAlign: "right" }}>{d.value.toFixed(0)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
