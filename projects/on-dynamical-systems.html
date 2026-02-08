@@ -1,65 +1,455 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sources, Fields, and the Architecture of Change - Peirastes</title>
-    <link rel="stylesheet" href="../css/style.css">
-    <!-- Quarto/Bootstrap styles for injected content -->
-    <link href="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-    <link href="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
-    <link href="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/tippy.css" rel="stylesheet">
-    <link href="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-    <!-- MathJax -->
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-    <script src="../js/main.js"></script>
-    <!-- Quarto scripts for injected content -->
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/quarto.js" type="module"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/popper.min.js"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/tippy.umd.min.js"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap.min.js"></script>
-    <style>
-        /* Styles for injected Quarto content */
-        .content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
-        /* Ensure Quarto's page-columns layout works within our template */
-        #quarto-content {
-            margin-top: 1rem;
-        }
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
 
-        /* Style tweaks for integration with site theme */
-        .quarto-title-meta {
-            margin-bottom: 2rem;
-        }
-    </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Cole Prather">
+<meta name="dcterms.date" content="2026-02-08">
+
+<title>Describing the Structure of Dynamical Systems</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="on-dynamical-systems_files/libs/clipboard/clipboard.min.js"></script>
+<script src="on-dynamical-systems_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="on-dynamical-systems_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="on-dynamical-systems_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="on-dynamical-systems_files/libs/quarto-html/popper.min.js"></script>
+<script src="on-dynamical-systems_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="on-dynamical-systems_files/libs/quarto-html/anchor.min.js"></script>
+<link href="on-dynamical-systems_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="on-dynamical-systems_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="on-dynamical-systems_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="on-dynamical-systems_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="on-dynamical-systems_files/libs/bootstrap/bootstrap-4d7f0bce1131f3e5f9547cd857cfbfc8.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
 </head>
 
-<body>
-    <header>
-        <h1>Peirastes</h1>
-        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
-    </header>
+<body class="quarto-light">
 
-    <nav>
-        <a href="../index.html">Home</a>
-        <a href="../about.html">About</a>
-        <a href="../current-projects.html">Current Projects</a>
-        <a href="../previous-work.html">Previous Work</a>
-        <a href="../timeline.html">Physics Timeline</a>
-        <a href="../quotes.html">Quotes</a>
-    </nav>
-
-    <div class="content">
-        <!-- QMD_CONTENT_START -->
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#abstract" id="toc-abstract" class="nav-link active" data-scroll-target="#abstract">Abstract</a></li>
+  <li><a href="#part-i-the-primordial-pattern" id="toc-part-i-the-primordial-pattern" class="nav-link" data-scroll-target="#part-i-the-primordial-pattern"><span class="header-section-number">1</span> Part I: The Primordial Pattern</a>
+  <ul class="collapse">
+  <li><a href="#why-change-matters" id="toc-why-change-matters" class="nav-link" data-scroll-target="#why-change-matters"><span class="header-section-number">1.1</span> Why Change Matters</a></li>
+  <li><a href="#two-laws-one-pattern" id="toc-two-laws-one-pattern" class="nav-link" data-scroll-target="#two-laws-one-pattern"><span class="header-section-number">1.2</span> Two Laws, One Pattern</a></li>
+  <li><a href="#intrinsic-and-extrinsic" id="toc-intrinsic-and-extrinsic" class="nav-link" data-scroll-target="#intrinsic-and-extrinsic"><span class="header-section-number">1.3</span> Intrinsic and Extrinsic</a></li>
+  <li><a href="#the-birth-of-field-thinking" id="toc-the-birth-of-field-thinking" class="nav-link" data-scroll-target="#the-birth-of-field-thinking"><span class="header-section-number">1.4</span> The Birth of Field Thinking</a></li>
+  <li><a href="#the-universality-hint-mass-and-charge-as-interchangeable" id="toc-the-universality-hint-mass-and-charge-as-interchangeable" class="nav-link" data-scroll-target="#the-universality-hint-mass-and-charge-as-interchangeable"><span class="header-section-number">1.5</span> The Universality Hint: Mass and Charge as Interchangeable</a></li>
+  </ul></li>
+  <li><a href="#part-ii-potential-energy-and-potential" id="toc-part-ii-potential-energy-and-potential" class="nav-link" data-scroll-target="#part-ii-potential-energy-and-potential"><span class="header-section-number">2</span> Part II: Potential Energy and Potential</a>
+  <ul class="collapse">
+  <li><a href="#spatial-energy" id="toc-spatial-energy" class="nav-link" data-scroll-target="#spatial-energy"><span class="header-section-number">2.1</span> Spatial Energy</a></li>
+  <li><a href="#potential-energy-per-unit-source" id="toc-potential-energy-per-unit-source" class="nav-link" data-scroll-target="#potential-energy-per-unit-source"><span class="header-section-number">2.2</span> Potential: Energy per Unit Source</a></li>
+  <li><a href="#work-and-kinetic-energy" id="toc-work-and-kinetic-energy" class="nav-link" data-scroll-target="#work-and-kinetic-energy"><span class="header-section-number">2.3</span> Work and Kinetic Energy</a></li>
+  <li><a href="#energy-conservation" id="toc-energy-conservation" class="nav-link" data-scroll-target="#energy-conservation"><span class="header-section-number">2.4</span> Energy Conservation</a></li>
+  </ul></li>
+  <li><a href="#part-iii-the-three-energy-modes" id="toc-part-iii-the-three-energy-modes" class="nav-link" data-scroll-target="#part-iii-the-three-energy-modes"><span class="header-section-number">3</span> Part III: The Three Energy Modes</a>
+  <ul class="collapse">
+  <li><a href="#classification-of-energy-storage-and-dissipation" id="toc-classification-of-energy-storage-and-dissipation" class="nav-link" data-scroll-target="#classification-of-energy-storage-and-dissipation"><span class="header-section-number">3.1</span> Classification of Energy Storage and Dissipation</a></li>
+  <li><a href="#rlc-circuit" id="toc-rlc-circuit" class="nav-link" data-scroll-target="#rlc-circuit"><span class="header-section-number">3.2</span> RLC Circuit</a></li>
+  <li><a href="#mass-spring-damper" id="toc-mass-spring-damper" class="nav-link" data-scroll-target="#mass-spring-damper"><span class="header-section-number">3.3</span> Mass-Spring-Damper</a></li>
+  <li><a href="#hydraulic-analog" id="toc-hydraulic-analog" class="nav-link" data-scroll-target="#hydraulic-analog"><span class="header-section-number">3.4</span> Hydraulic Analog</a></li>
+  <li><a href="#effort-flow-and-the-constitutive-laws" id="toc-effort-flow-and-the-constitutive-laws" class="nav-link" data-scroll-target="#effort-flow-and-the-constitutive-laws"><span class="header-section-number">3.5</span> Effort, Flow, and the Constitutive Laws</a></li>
+  </ul></li>
+  <li><a href="#part-iv-impedance-power-and-bond-graphs" id="toc-part-iv-impedance-power-and-bond-graphs" class="nav-link" data-scroll-target="#part-iv-impedance-power-and-bond-graphs"><span class="header-section-number">4</span> Part IV: Impedance, Power, and Bond Graphs</a>
+  <ul class="collapse">
+  <li><a href="#terminal-pairs" id="toc-terminal-pairs" class="nav-link" data-scroll-target="#terminal-pairs"><span class="header-section-number">4.1</span> Terminal Pairs</a></li>
+  <li><a href="#the-bridge-to-dynamical-systems" id="toc-the-bridge-to-dynamical-systems" class="nav-link" data-scroll-target="#the-bridge-to-dynamical-systems"><span class="header-section-number">4.2</span> The Bridge to Dynamical Systems</a></li>
+  </ul></li>
+  <li><a href="#part-v-the-complete-cross-domain-analogy" id="toc-part-v-the-complete-cross-domain-analogy" class="nav-link" data-scroll-target="#part-v-the-complete-cross-domain-analogy"><span class="header-section-number">5</span> Part V: The Complete Cross-Domain Analogy</a></li>
+  <li><a href="#part-vi-mathematical-framework" id="toc-part-vi-mathematical-framework" class="nav-link" data-scroll-target="#part-vi-mathematical-framework"><span class="header-section-number">6</span> Part VI: Mathematical Framework</a>
+  <ul class="collapse">
+  <li><a href="#finite-dimensional-dynamical-systems" id="toc-finite-dimensional-dynamical-systems" class="nav-link" data-scroll-target="#finite-dimensional-dynamical-systems"><span class="header-section-number">6.1</span> Finite-Dimensional Dynamical Systems</a>
+  <ul class="collapse">
+  <li><a href="#state-space-formulation" id="toc-state-space-formulation" class="nav-link" data-scroll-target="#state-space-formulation"><span class="header-section-number">6.1.1</span> State-Space Formulation</a></li>
+  </ul></li>
+  <li><a href="#chains-of-coupled-oscillators" id="toc-chains-of-coupled-oscillators" class="nav-link" data-scroll-target="#chains-of-coupled-oscillators"><span class="header-section-number">6.2</span> Chains of Coupled Oscillators</a>
+  <ul class="collapse">
+  <li><a href="#matrix-formulation" id="toc-matrix-formulation" class="nav-link" data-scroll-target="#matrix-formulation"><span class="header-section-number">6.2.1</span> Matrix Formulation</a></li>
+  </ul></li>
+  <li><a href="#the-continuum-limit" id="toc-the-continuum-limit" class="nav-link" data-scroll-target="#the-continuum-limit"><span class="header-section-number">6.3</span> The Continuum Limit</a></li>
+  <li><a href="#field-evolution-as-operator-equation" id="toc-field-evolution-as-operator-equation" class="nav-link" data-scroll-target="#field-evolution-as-operator-equation"><span class="header-section-number">6.4</span> Field Evolution as Operator Equation</a></li>
+  </ul></li>
+  <li><a href="#part-vii-conservation-laws-and-constitutive-relations" id="toc-part-vii-conservation-laws-and-constitutive-relations" class="nav-link" data-scroll-target="#part-vii-conservation-laws-and-constitutive-relations"><span class="header-section-number">7</span> Part VII: Conservation Laws and Constitutive Relations</a>
+  <ul class="collapse">
+  <li><a href="#the-generic-pattern" id="toc-the-generic-pattern" class="nav-link" data-scroll-target="#the-generic-pattern"><span class="header-section-number">7.1</span> The Generic Pattern</a></li>
+  <li><a href="#heat-conduction" id="toc-heat-conduction" class="nav-link" data-scroll-target="#heat-conduction"><span class="header-section-number">7.2</span> Heat Conduction</a></li>
+  <li><a href="#mass-diffusion" id="toc-mass-diffusion" class="nav-link" data-scroll-target="#mass-diffusion"><span class="header-section-number">7.3</span> Mass Diffusion</a></li>
+  <li><a href="#charge-transport" id="toc-charge-transport" class="nav-link" data-scroll-target="#charge-transport"><span class="header-section-number">7.4</span> Charge Transport</a></li>
+  <li><a href="#linear-elasticity" id="toc-linear-elasticity" class="nav-link" data-scroll-target="#linear-elasticity"><span class="header-section-number">7.5</span> Linear Elasticity</a></li>
+  </ul></li>
+  <li><a href="#part-viii-manifolds-and-trajectories-rigorous-formulation" id="toc-part-viii-manifolds-and-trajectories-rigorous-formulation" class="nav-link" data-scroll-target="#part-viii-manifolds-and-trajectories-rigorous-formulation"><span class="header-section-number">8</span> Part VIII: Manifolds and Trajectories — Rigorous Formulation</a>
+  <ul class="collapse">
+  <li><a href="#pdes-as-infinite-dimensional-odes" id="toc-pdes-as-infinite-dimensional-odes" class="nav-link" data-scroll-target="#pdes-as-infinite-dimensional-odes"><span class="header-section-number">8.1</span> PDEs as Infinite-Dimensional ODEs</a>
+  <ul class="collapse">
+  <li><a href="#the-operator-determines-the-geometry" id="toc-the-operator-determines-the-geometry" class="nav-link" data-scroll-target="#the-operator-determines-the-geometry"><span class="header-section-number">8.1.1</span> The Operator Determines the Geometry</a></li>
+  <li><a href="#example-heat-equation-on-01" id="toc-example-heat-equation-on-01" class="nav-link" data-scroll-target="#example-heat-equation-on-01"><span class="header-section-number">8.1.2</span> Example: Heat Equation on <span class="math inline">\([0,1]\)</span></a></li>
+  </ul></li>
+  <li><a href="#trajectories-as-realized-histories" id="toc-trajectories-as-realized-histories" class="nav-link" data-scroll-target="#trajectories-as-realized-histories"><span class="header-section-number">8.2</span> Trajectories as Realized Histories</a></li>
+  </ul></li>
+  <li><a href="#part-ix-causal-attribution-and-product-structure" id="toc-part-ix-causal-attribution-and-product-structure" class="nav-link" data-scroll-target="#part-ix-causal-attribution-and-product-structure"><span class="header-section-number">9</span> Part IX: Causal Attribution and Product Structure</a>
+  <ul class="collapse">
+  <li><a href="#the-fundamental-problem" id="toc-the-fundamental-problem" class="nav-link" data-scroll-target="#the-fundamental-problem"><span class="header-section-number">9.1</span> The Fundamental Problem</a></li>
+  <li><a href="#physical-interpretation" id="toc-physical-interpretation" class="nav-link" data-scroll-target="#physical-interpretation"><span class="header-section-number">9.2</span> Physical Interpretation</a></li>
+  <li><a href="#the-matrix-case" id="toc-the-matrix-case" class="nav-link" data-scroll-target="#the-matrix-case"><span class="header-section-number">9.3</span> The Matrix Case</a></li>
+  <li><a href="#resolving-ambiguity" id="toc-resolving-ambiguity" class="nav-link" data-scroll-target="#resolving-ambiguity"><span class="header-section-number">9.4</span> Resolving Ambiguity</a></li>
+  <li><a href="#the-nature-nurture-parallel" id="toc-the-nature-nurture-parallel" class="nav-link" data-scroll-target="#the-nature-nurture-parallel"><span class="header-section-number">9.5</span> The Nature-Nurture Parallel</a></li>
+  <li><a href="#epistemological-implications" id="toc-epistemological-implications" class="nav-link" data-scroll-target="#epistemological-implications"><span class="header-section-number">9.6</span> Epistemological Implications</a></li>
+  </ul></li>
+  <li><a href="#part-x-electrical-systems-and-cross-domain-analogies" id="toc-part-x-electrical-systems-and-cross-domain-analogies" class="nav-link" data-scroll-target="#part-x-electrical-systems-and-cross-domain-analogies"><span class="header-section-number">10</span> Part X: Electrical Systems and Cross-Domain Analogies</a>
+  <ul class="collapse">
+  <li><a href="#x.1-motivation-and-structure" id="toc-x.1-motivation-and-structure" class="nav-link" data-scroll-target="#x.1-motivation-and-structure"><span class="header-section-number">10.1</span> X.1 Motivation and Structure</a></li>
+  <li><a href="#x.2-foundations-circuit-laws-and-constitutive-relations" id="toc-x.2-foundations-circuit-laws-and-constitutive-relations" class="nav-link" data-scroll-target="#x.2-foundations-circuit-laws-and-constitutive-relations"><span class="header-section-number">10.2</span> X.2 Foundations: Circuit Laws and Constitutive Relations</a>
+  <ul class="collapse">
+  <li><a href="#kirchhoffs-current-law-kcl" id="toc-kirchhoffs-current-law-kcl" class="nav-link" data-scroll-target="#kirchhoffs-current-law-kcl"><span class="header-section-number">10.2.1</span> Kirchhoff’s Current Law (KCL)</a></li>
+  <li><a href="#kirchhoffs-voltage-law-kvl" id="toc-kirchhoffs-voltage-law-kvl" class="nav-link" data-scroll-target="#kirchhoffs-voltage-law-kvl"><span class="header-section-number">10.2.2</span> Kirchhoff’s Voltage Law (KVL)</a></li>
+  <li><a href="#ohms-law-resistor" id="toc-ohms-law-resistor" class="nav-link" data-scroll-target="#ohms-law-resistor"><span class="header-section-number">10.2.3</span> Ohm’s Law (Resistor)</a></li>
+  <li><a href="#faradays-law-inductor" id="toc-faradays-law-inductor" class="nav-link" data-scroll-target="#faradays-law-inductor"><span class="header-section-number">10.2.4</span> Faraday’s Law (Inductor)</a></li>
+  <li><a href="#constitutive-relation-capacitor" id="toc-constitutive-relation-capacitor" class="nav-link" data-scroll-target="#constitutive-relation-capacitor"><span class="header-section-number">10.2.5</span> Constitutive Relation (Capacitor)</a></li>
+  </ul></li>
+  <li><a href="#x.3-the-rc-circuit-charging-and-discharging" id="toc-x.3-the-rc-circuit-charging-and-discharging" class="nav-link" data-scroll-target="#x.3-the-rc-circuit-charging-and-discharging"><span class="header-section-number">10.3</span> X.3 The RC Circuit: Charging and Discharging</a>
+  <ul class="collapse">
+  <li><a href="#setup-and-governing-equation" id="toc-setup-and-governing-equation" class="nav-link" data-scroll-target="#setup-and-governing-equation"><span class="header-section-number">10.3.1</span> Setup and Governing Equation</a></li>
+  <li><a href="#solution-exponential-approach-to-steady-state" id="toc-solution-exponential-approach-to-steady-state" class="nav-link" data-scroll-target="#solution-exponential-approach-to-steady-state"><span class="header-section-number">10.3.2</span> Solution: Exponential Approach to Steady State</a></li>
+  <li><a href="#example-charging-an-leds-smoothing-capacitor" id="toc-example-charging-an-leds-smoothing-capacitor" class="nav-link" data-scroll-target="#example-charging-an-leds-smoothing-capacitor"><span class="header-section-number">10.3.3</span> Example: Charging an LED’s Smoothing Capacitor</a></li>
+  <li><a href="#the-identification-problem-applied-to-rc-charging" id="toc-the-identification-problem-applied-to-rc-charging" class="nav-link" data-scroll-target="#the-identification-problem-applied-to-rc-charging"><span class="header-section-number">10.3.4</span> The Identification Problem Applied to RC Charging</a></li>
+  </ul></li>
+  <li><a href="#x.4-the-rl-circuit-current-building-through-inductance" id="toc-x.4-the-rl-circuit-current-building-through-inductance" class="nav-link" data-scroll-target="#x.4-the-rl-circuit-current-building-through-inductance"><span class="header-section-number">10.4</span> X.4 The RL Circuit: Current Building Through Inductance</a>
+  <ul class="collapse">
+  <li><a href="#setup-and-governing-equation-1" id="toc-setup-and-governing-equation-1" class="nav-link" data-scroll-target="#setup-and-governing-equation-1"><span class="header-section-number">10.4.1</span> Setup and Governing Equation</a></li>
+  <li><a href="#solution-current-building-to-steady-state" id="toc-solution-current-building-to-steady-state" class="nav-link" data-scroll-target="#solution-current-building-to-steady-state"><span class="header-section-number">10.4.2</span> Solution: Current Building to Steady State</a></li>
+  <li><a href="#example-energizing-a-relay-coil" id="toc-example-energizing-a-relay-coil" class="nav-link" data-scroll-target="#example-energizing-a-relay-coil"><span class="header-section-number">10.4.3</span> Example: Energizing a Relay Coil</a></li>
+  </ul></li>
+  <li><a href="#x.5-the-lc-circuit-harmonic-oscillations" id="toc-x.5-the-lc-circuit-harmonic-oscillations" class="nav-link" data-scroll-target="#x.5-the-lc-circuit-harmonic-oscillations"><span class="header-section-number">10.5</span> X.5 The LC Circuit: Harmonic Oscillations</a>
+  <ul class="collapse">
+  <li><a href="#setup-and-governing-equation-2" id="toc-setup-and-governing-equation-2" class="nav-link" data-scroll-target="#setup-and-governing-equation-2"><span class="header-section-number">10.5.1</span> Setup and Governing Equation</a></li>
+  <li><a href="#solution-harmonic-oscillation" id="toc-solution-harmonic-oscillation" class="nav-link" data-scroll-target="#solution-harmonic-oscillation"><span class="header-section-number">10.5.2</span> Solution: Harmonic Oscillation</a></li>
+  <li><a href="#example-tuning-circuit-in-a-radio" id="toc-example-tuning-circuit-in-a-radio" class="nav-link" data-scroll-target="#example-tuning-circuit-in-a-radio"><span class="header-section-number">10.5.3</span> Example: Tuning Circuit in a Radio</a></li>
+  <li><a href="#mechanical-analog-mass-spring-system" id="toc-mechanical-analog-mass-spring-system" class="nav-link" data-scroll-target="#mechanical-analog-mass-spring-system"><span class="header-section-number">10.5.4</span> Mechanical Analog: Mass-Spring System</a></li>
+  </ul></li>
+  <li><a href="#x.6-the-rlc-circuit-three-damping-regimes" id="toc-x.6-the-rlc-circuit-three-damping-regimes" class="nav-link" data-scroll-target="#x.6-the-rlc-circuit-three-damping-regimes"><span class="header-section-number">10.6</span> X.6 The RLC Circuit: Three Damping Regimes</a>
+  <ul class="collapse">
+  <li><a href="#setup-and-governing-equation-3" id="toc-setup-and-governing-equation-3" class="nav-link" data-scroll-target="#setup-and-governing-equation-3"><span class="header-section-number">10.6.1</span> Setup and Governing Equation</a></li>
+  <li><a href="#three-regimes-based-on-damping-ratio" id="toc-three-regimes-based-on-damping-ratio" class="nav-link" data-scroll-target="#three-regimes-based-on-damping-ratio"><span class="header-section-number">10.6.2</span> Three Regimes Based on Damping Ratio</a></li>
+  <li><a href="#example-switch-closure-in-an-audio-amplifier" id="toc-example-switch-closure-in-an-audio-amplifier" class="nav-link" data-scroll-target="#example-switch-closure-in-an-audio-amplifier"><span class="header-section-number">10.6.3</span> Example: Switch Closure in an Audio Amplifier</a></li>
+  <li><a href="#mechanical-analog-mass-spring-damper" id="toc-mechanical-analog-mass-spring-damper" class="nav-link" data-scroll-target="#mechanical-analog-mass-spring-damper"><span class="header-section-number">10.6.4</span> Mechanical Analog: Mass-Spring-Damper</a></li>
+  </ul></li>
+  <li><a href="#x.7-the-driven-rlc-circuit-resonance" id="toc-x.7-the-driven-rlc-circuit-resonance" class="nav-link" data-scroll-target="#x.7-the-driven-rlc-circuit-resonance"><span class="header-section-number">10.7</span> X.7 The Driven RLC Circuit: Resonance</a>
+  <ul class="collapse">
+  <li><a href="#setup-and-forcing" id="toc-setup-and-forcing" class="nav-link" data-scroll-target="#setup-and-forcing"><span class="header-section-number">10.7.1</span> Setup and Forcing</a></li>
+  <li><a href="#steady-state-solution-and-impedance" id="toc-steady-state-solution-and-impedance" class="nav-link" data-scroll-target="#steady-state-solution-and-impedance"><span class="header-section-number">10.7.2</span> Steady-State Solution and Impedance</a></li>
+  <li><a href="#resonance-frequency-of-maximum-current" id="toc-resonance-frequency-of-maximum-current" class="nav-link" data-scroll-target="#resonance-frequency-of-maximum-current"><span class="header-section-number">10.7.3</span> Resonance: Frequency of Maximum Current</a></li>
+  <li><a href="#example-am-radio-tuning" id="toc-example-am-radio-tuning" class="nav-link" data-scroll-target="#example-am-radio-tuning"><span class="header-section-number">10.7.4</span> Example: AM Radio Tuning</a></li>
+  <li><a href="#mechanical-analog-driven-mass-spring-damper" id="toc-mechanical-analog-driven-mass-spring-damper" class="nav-link" data-scroll-target="#mechanical-analog-driven-mass-spring-damper"><span class="header-section-number">10.7.5</span> Mechanical Analog: Driven Mass-Spring-Damper</a></li>
+  </ul></li>
+  <li><a href="#x.8-frequency-response-and-transfer-functions" id="toc-x.8-frequency-response-and-transfer-functions" class="nav-link" data-scroll-target="#x.8-frequency-response-and-transfer-functions"><span class="header-section-number">10.8</span> X.8 Frequency Response and Transfer Functions</a>
+  <ul class="collapse">
+  <li><a href="#transfer-function-representation" id="toc-transfer-function-representation" class="nav-link" data-scroll-target="#transfer-function-representation"><span class="header-section-number">10.8.1</span> Transfer Function Representation</a></li>
+  <li><a href="#magnitude-and-phase-response" id="toc-magnitude-and-phase-response" class="nav-link" data-scroll-target="#magnitude-and-phase-response"><span class="header-section-number">10.8.2</span> Magnitude and Phase Response</a></li>
+  <li><a href="#bandwidth-and-rolloff" id="toc-bandwidth-and-rolloff" class="nav-link" data-scroll-target="#bandwidth-and-rolloff"><span class="header-section-number">10.8.3</span> Bandwidth and Rolloff</a></li>
+  <li><a href="#example-anti-aliasing-filter-design" id="toc-example-anti-aliasing-filter-design" class="nav-link" data-scroll-target="#example-anti-aliasing-filter-design"><span class="header-section-number">10.8.4</span> Example: Anti-Aliasing Filter Design</a></li>
+  </ul></li>
+  <li><a href="#x.9-thermal-systems-rc-analogy" id="toc-x.9-thermal-systems-rc-analogy" class="nav-link" data-scroll-target="#x.9-thermal-systems-rc-analogy"><span class="header-section-number">10.9</span> X.9 Thermal Systems: RC Analogy</a>
+  <ul class="collapse">
+  <li><a href="#thermal-circuit-analogy" id="toc-thermal-circuit-analogy" class="nav-link" data-scroll-target="#thermal-circuit-analogy"><span class="header-section-number">10.9.1</span> Thermal Circuit Analogy</a></li>
+  <li><a href="#example-electronics-cooling" id="toc-example-electronics-cooling" class="nav-link" data-scroll-target="#example-electronics-cooling"><span class="header-section-number">10.9.2</span> Example: Electronics Cooling</a></li>
+  <li><a href="#transient-heat-flow-identification-problem" id="toc-transient-heat-flow-identification-problem" class="nav-link" data-scroll-target="#transient-heat-flow-identification-problem"><span class="header-section-number">10.9.3</span> Transient Heat Flow Identification Problem</a></li>
+  </ul></li>
+  <li><a href="#x.10-hydraulic-systems-pressure-flow-analogy" id="toc-x.10-hydraulic-systems-pressure-flow-analogy" class="nav-link" data-scroll-target="#x.10-hydraulic-systems-pressure-flow-analogy"><span class="header-section-number">10.10</span> X.10 Hydraulic Systems: Pressure-Flow Analogy</a>
+  <ul class="collapse">
+  <li><a href="#hydraulic-circuit-laws" id="toc-hydraulic-circuit-laws" class="nav-link" data-scroll-target="#hydraulic-circuit-laws"><span class="header-section-number">10.10.1</span> Hydraulic Circuit Laws</a></li>
+  <li><a href="#rlc-hydraulic-analogy" id="toc-rlc-hydraulic-analogy" class="nav-link" data-scroll-target="#rlc-hydraulic-analogy"><span class="header-section-number">10.10.2</span> RLC Hydraulic Analogy</a></li>
+  <li><a href="#example-hydraulic-shock-absorber" id="toc-example-hydraulic-shock-absorber" class="nav-link" data-scroll-target="#example-hydraulic-shock-absorber"><span class="header-section-number">10.10.3</span> Example: Hydraulic Shock Absorber</a></li>
+  </ul></li>
+  <li><a href="#x.11-cross-domain-power-and-energy-efficiency" id="toc-x.11-cross-domain-power-and-energy-efficiency" class="nav-link" data-scroll-target="#x.11-cross-domain-power-and-energy-efficiency"><span class="header-section-number">10.11</span> X.11 Cross-Domain Power and Energy Efficiency</a>
+  <ul class="collapse">
+  <li><a href="#universal-power-formula" id="toc-universal-power-formula" class="nav-link" data-scroll-target="#universal-power-formula"><span class="header-section-number">10.11.1</span> Universal Power Formula</a></li>
+  <li><a href="#energy-storage-efficiency-at-resonance" id="toc-energy-storage-efficiency-at-resonance" class="nav-link" data-scroll-target="#energy-storage-efficiency-at-resonance"><span class="header-section-number">10.11.2</span> Energy Storage Efficiency at Resonance</a></li>
+  <li><a href="#example-minimizing-power-loss-in-an-electrical-distribution-network" id="toc-example-minimizing-power-loss-in-an-electrical-distribution-network" class="nav-link" data-scroll-target="#example-minimizing-power-loss-in-an-electrical-distribution-network"><span class="header-section-number">10.11.3</span> Example: Minimizing Power Loss in an Electrical Distribution Network</a></li>
+  </ul></li>
+  <li><a href="#the-hidden-revelation-awaiting" id="toc-the-hidden-revelation-awaiting" class="nav-link" data-scroll-target="#the-hidden-revelation-awaiting"><span class="header-section-number">10.12</span> The Hidden Revelation Awaiting</a></li>
+  </ul></li>
+  <li><a href="#part-xi-the-universal-structuregravity-electromagnetism-and-cross-domain-analogies" id="toc-part-xi-the-universal-structuregravity-electromagnetism-and-cross-domain-analogies" class="nav-link" data-scroll-target="#part-xi-the-universal-structuregravity-electromagnetism-and-cross-domain-analogies"><span class="header-section-number">11</span> Part XI: The Universal Structure—Gravity, Electromagnetism, and Cross-Domain Analogies</a>
+  <ul class="collapse">
+  <li><a href="#introduction-to-part-xi" id="toc-introduction-to-part-xi" class="nav-link" data-scroll-target="#introduction-to-part-xi"><span class="header-section-number">11.1</span> Introduction to Part XI</a></li>
+  <li><a href="#xi.1-the-unremarked-analogy" id="toc-xi.1-the-unremarked-analogy" class="nav-link" data-scroll-target="#xi.1-the-unremarked-analogy"><span class="header-section-number">11.2</span> XI.1 The Unremarked Analogy</a></li>
+  <li><a href="#xi.2-dimensional-analysis-unmasking-the-gravitational-volt" id="toc-xi.2-dimensional-analysis-unmasking-the-gravitational-volt" class="nav-link" data-scroll-target="#xi.2-dimensional-analysis-unmasking-the-gravitational-volt"><span class="header-section-number">11.3</span> XI.2 Dimensional Analysis: Unmasking the Gravitational Volt</a>
+  <ul class="collapse">
+  <li><a href="#electrical-potential-voltage" id="toc-electrical-potential-voltage" class="nav-link" data-scroll-target="#electrical-potential-voltage"><span class="header-section-number">11.3.1</span> Electrical Potential (Voltage)</a></li>
+  <li><a href="#gravitational-potential-the-gravitational-volt" id="toc-gravitational-potential-the-gravitational-volt" class="nav-link" data-scroll-target="#gravitational-potential-the-gravitational-volt"><span class="header-section-number">11.3.2</span> Gravitational Potential (The Gravitational Volt)</a></li>
+  <li><a href="#the-stunning-symmetry" id="toc-the-stunning-symmetry" class="nav-link" data-scroll-target="#the-stunning-symmetry"><span class="header-section-number">11.3.3</span> The Stunning Symmetry</a></li>
+  </ul></li>
+  <li><a href="#xi.3-newtons-law-of-universal-gravitation-and-coulombs-lawthe-perfect-parallel" id="toc-xi.3-newtons-law-of-universal-gravitation-and-coulombs-lawthe-perfect-parallel" class="nav-link" data-scroll-target="#xi.3-newtons-law-of-universal-gravitation-and-coulombs-lawthe-perfect-parallel"><span class="header-section-number">11.4</span> XI.3 Newton’s Law of Universal Gravitation and Coulomb’s Law—The Perfect Parallel</a>
+  <ul class="collapse">
+  <li><a href="#coulombs-law-electric-force-between-charges" id="toc-coulombs-law-electric-force-between-charges" class="nav-link" data-scroll-target="#coulombs-law-electric-force-between-charges"><span class="header-section-number">11.4.1</span> Coulomb’s Law (Electric Force Between Charges)</a></li>
+  <li><a href="#newtons-law-of-universal-gravitation" id="toc-newtons-law-of-universal-gravitation" class="nav-link" data-scroll-target="#newtons-law-of-universal-gravitation"><span class="header-section-number">11.4.2</span> Newton’s Law of Universal Gravitation</a></li>
+  <li><a href="#structural-identity-except-for-sign-and-coupling-type" id="toc-structural-identity-except-for-sign-and-coupling-type" class="nav-link" data-scroll-target="#structural-identity-except-for-sign-and-coupling-type"><span class="header-section-number">11.4.3</span> Structural Identity (Except for Sign and Coupling Type)</a></li>
+  <li><a href="#the-mathematical-structure" id="toc-the-mathematical-structure" class="nav-link" data-scroll-target="#the-mathematical-structure"><span class="header-section-number">11.4.4</span> The Mathematical Structure</a></li>
+  </ul></li>
+  <li><a href="#xi.4-gausss-law-and-the-poisson-equationperfect-duality" id="toc-xi.4-gausss-law-and-the-poisson-equationperfect-duality" class="nav-link" data-scroll-target="#xi.4-gausss-law-and-the-poisson-equationperfect-duality"><span class="header-section-number">11.5</span> XI.4 Gauss’s Law and the Poisson Equation—Perfect Duality</a>
+  <ul class="collapse">
+  <li><a href="#gausss-law-electrostatics" id="toc-gausss-law-electrostatics" class="nav-link" data-scroll-target="#gausss-law-electrostatics"><span class="header-section-number">11.5.1</span> Gauss’s Law (Electrostatics)</a></li>
+  <li><a href="#gausss-law-for-gravity" id="toc-gausss-law-for-gravity" class="nav-link" data-scroll-target="#gausss-law-for-gravity"><span class="header-section-number">11.5.2</span> Gauss’s Law for Gravity</a></li>
+  <li><a href="#side-by-side-comparison" id="toc-side-by-side-comparison" class="nav-link" data-scroll-target="#side-by-side-comparison"><span class="header-section-number">11.5.3</span> Side-by-Side Comparison</a></li>
+  </ul></li>
+  <li><a href="#xi.5-power-conjugacy-in-gravitational-and-electromagnetic-fields" id="toc-xi.5-power-conjugacy-in-gravitational-and-electromagnetic-fields" class="nav-link" data-scroll-target="#xi.5-power-conjugacy-in-gravitational-and-electromagnetic-fields"><span class="header-section-number">11.6</span> XI.5 Power Conjugacy in Gravitational and Electromagnetic Fields</a>
+  <ul class="collapse">
+  <li><a href="#electrical-power-in-field-form" id="toc-electrical-power-in-field-form" class="nav-link" data-scroll-target="#electrical-power-in-field-form"><span class="header-section-number">11.6.1</span> Electrical Power in Field Form</a></li>
+  <li><a href="#gravitational-power-in-field-form" id="toc-gravitational-power-in-field-form" class="nav-link" data-scroll-target="#gravitational-power-in-field-form"><span class="header-section-number">11.6.2</span> Gravitational Power in Field Form</a></li>
+  </ul></li>
+  <li><a href="#xi.6-worked-example-earths-gravitational-potential-as-a-function-of-altitude" id="toc-xi.6-worked-example-earths-gravitational-potential-as-a-function-of-altitude" class="nav-link" data-scroll-target="#xi.6-worked-example-earths-gravitational-potential-as-a-function-of-altitude"><span class="header-section-number">11.7</span> XI.6 Worked Example: Earth’s Gravitational Potential as a Function of Altitude</a></li>
+  <li><a href="#xi.7-maxwell-equations-and-the-gravitational-field-equations-the-complete-theory" id="toc-xi.7-maxwell-equations-and-the-gravitational-field-equations-the-complete-theory" class="nav-link" data-scroll-target="#xi.7-maxwell-equations-and-the-gravitational-field-equations-the-complete-theory"><span class="header-section-number">11.8</span> XI.7 Maxwell Equations and the Gravitational Field Equations — The Complete Theory</a>
+  <ul class="collapse">
+  <li><a href="#xi.7.1-four-foundational-assumptions-of-gravitoelectromagnetism" id="toc-xi.7.1-four-foundational-assumptions-of-gravitoelectromagnetism" class="nav-link" data-scroll-target="#xi.7.1-four-foundational-assumptions-of-gravitoelectromagnetism"><span class="header-section-number">11.8.1</span> XI.7.1 Four Foundational Assumptions of Gravitoelectromagnetism</a></li>
+  <li><a href="#xi.7.2-derivation-from-einsteins-field-equations" id="toc-xi.7.2-derivation-from-einsteins-field-equations" class="nav-link" data-scroll-target="#xi.7.2-derivation-from-einsteins-field-equations"><span class="header-section-number">11.8.2</span> XI.7.2 Derivation from Einstein’s Field Equations</a></li>
+  <li><a href="#xi.7.3-liénard-wiechert-potentials-for-gravity" id="toc-xi.7.3-liénard-wiechert-potentials-for-gravity" class="nav-link" data-scroll-target="#xi.7.3-liénard-wiechert-potentials-for-gravity"><span class="header-section-number">11.8.3</span> XI.7.3 Liénard-Wiechert Potentials for Gravity</a></li>
+  <li><a href="#xi.7.4-gravitational-larmor-formula-and-radiation" id="toc-xi.7.4-gravitational-larmor-formula-and-radiation" class="nav-link" data-scroll-target="#xi.7.4-gravitational-larmor-formula-and-radiation"><span class="header-section-number">11.8.4</span> XI.7.4 Gravitational Larmor Formula and Radiation</a></li>
+  <li><a href="#xi.7.5-experimental-validation-of-gravitoelectromagnetism" id="toc-xi.7.5-experimental-validation-of-gravitoelectromagnetism" class="nav-link" data-scroll-target="#xi.7.5-experimental-validation-of-gravitoelectromagnetism"><span class="header-section-number">11.8.5</span> XI.7.5 Experimental Validation of Gravitoelectromagnetism</a></li>
+  <li><a href="#xi.7.6-limitations-and-breakdown-of-gravitoelectromagnetism" id="toc-xi.7.6-limitations-and-breakdown-of-gravitoelectromagnetism" class="nav-link" data-scroll-target="#xi.7.6-limitations-and-breakdown-of-gravitoelectromagnetism"><span class="header-section-number">11.8.6</span> XI.7.6 Limitations and Breakdown of Gravitoelectromagnetism</a></li>
+  </ul></li>
+  <li><a href="#xi.8-why-this-analogy-is-almost-never-taught" id="toc-xi.8-why-this-analogy-is-almost-never-taught" class="nav-link" data-scroll-target="#xi.8-why-this-analogy-is-almost-never-taught"><span class="header-section-number">11.9</span> XI.8 Why This Analogy Is Almost Never Taught</a></li>
+  <li><a href="#xi.9-implications-for-the-patterns-of-change-framework" id="toc-xi.9-implications-for-the-patterns-of-change-framework" class="nav-link" data-scroll-target="#xi.9-implications-for-the-patterns-of-change-framework"><span class="header-section-number">11.10</span> XI.9 Implications for the Patterns-of-Change Framework</a>
+  <ul class="collapse">
+  <li><a href="#the-gravity-electricity-isomorphism-as-the-ultimate-test" id="toc-the-gravity-electricity-isomorphism-as-the-ultimate-test" class="nav-link" data-scroll-target="#the-gravity-electricity-isomorphism-as-the-ultimate-test"><span class="header-section-number">11.10.1</span> The Gravity-Electricity Isomorphism as the Ultimate Test</a></li>
+  <li><a href="#framework-robustness-against-deep-physics-changes" id="toc-framework-robustness-against-deep-physics-changes" class="nav-link" data-scroll-target="#framework-robustness-against-deep-physics-changes"><span class="header-section-number">11.10.2</span> Framework Robustness Against Deep Physics Changes</a></li>
+  <li><a href="#causal-implications-of-the-gravity-electricity-symmetry" id="toc-causal-implications-of-the-gravity-electricity-symmetry" class="nav-link" data-scroll-target="#causal-implications-of-the-gravity-electricity-symmetry"><span class="header-section-number">11.10.3</span> Causal Implications of the Gravity-Electricity Symmetry</a></li>
+  </ul></li>
+  <li><a href="#from-revelation-to-proof" id="toc-from-revelation-to-proof" class="nav-link" data-scroll-target="#from-revelation-to-proof"><span class="header-section-number">11.11</span> From Revelation to Proof</a></li>
+  </ul></li>
+  <li><a href="#part-xii-the-bond-graph-framework-and-rigorous-proof-of-cross-domain-analogies" id="toc-part-xii-the-bond-graph-framework-and-rigorous-proof-of-cross-domain-analogies" class="nav-link" data-scroll-target="#part-xii-the-bond-graph-framework-and-rigorous-proof-of-cross-domain-analogies"><span class="header-section-number">12</span> Part XII: The Bond-Graph Framework and Rigorous Proof of Cross-Domain Analogies</a>
+  <ul class="collapse">
+  <li><a href="#xii.1-motivation-why-does-the-analogy-work" id="toc-xii.1-motivation-why-does-the-analogy-work" class="nav-link" data-scroll-target="#xii.1-motivation-why-does-the-analogy-work"><span class="header-section-number">12.1</span> XII.1 Motivation: Why Does the Analogy Work?</a></li>
+  <li><a href="#xii.2-power-conjugacy-and-effort-flow-pairs" id="toc-xii.2-power-conjugacy-and-effort-flow-pairs" class="nav-link" data-scroll-target="#xii.2-power-conjugacy-and-effort-flow-pairs"><span class="header-section-number">12.2</span> XII.2 Power Conjugacy and Effort-Flow Pairs</a>
+  <ul class="collapse">
+  <li><a href="#definition-power-conjugate-variables" id="toc-definition-power-conjugate-variables" class="nav-link" data-scroll-target="#definition-power-conjugate-variables"><span class="header-section-number">12.2.1</span> Definition: Power-Conjugate Variables</a></li>
+  <li><a href="#examples-across-domains" id="toc-examples-across-domains" class="nav-link" data-scroll-target="#examples-across-domains"><span class="header-section-number">12.2.2</span> Examples Across Domains</a></li>
+  </ul></li>
+  <li><a href="#xii.3-passive-elements-and-their-constitutive-relations" id="toc-xii.3-passive-elements-and-their-constitutive-relations" class="nav-link" data-scroll-target="#xii.3-passive-elements-and-their-constitutive-relations"><span class="header-section-number">12.3</span> XII.3 Passive Elements and Their Constitutive Relations</a>
+  <ul class="collapse">
+  <li><a href="#r-type-elements-dissipation" id="toc-r-type-elements-dissipation" class="nav-link" data-scroll-target="#r-type-elements-dissipation"><span class="header-section-number">12.3.1</span> R-Type Elements (Dissipation)</a></li>
+  <li><a href="#c-type-elements-potential-storage" id="toc-c-type-elements-potential-storage" class="nav-link" data-scroll-target="#c-type-elements-potential-storage"><span class="header-section-number">12.3.2</span> C-Type Elements (Potential Storage)</a></li>
+  <li><a href="#i-type-elements-kinetic-storage" id="toc-i-type-elements-kinetic-storage" class="nav-link" data-scroll-target="#i-type-elements-kinetic-storage"><span class="header-section-number">12.3.3</span> I-Type Elements (Kinetic Storage)</a></li>
+  </ul></li>
+  <li><a href="#xii.4-the-bond-graph-framework-as-rigorous-theorem" id="toc-xii.4-the-bond-graph-framework-as-rigorous-theorem" class="nav-link" data-scroll-target="#xii.4-the-bond-graph-framework-as-rigorous-theorem"><span class="header-section-number">12.4</span> XII.4 The Bond-Graph Framework as Rigorous Theorem</a>
+  <ul class="collapse">
+  <li><a href="#single-port-1-port-elements" id="toc-single-port-1-port-elements" class="nav-link" data-scroll-target="#single-port-1-port-elements"><span class="header-section-number">12.4.1</span> Single-Port (1-Port) Elements</a></li>
+  <li><a href="#multi-port-networks-and-kirchhoff-analogs" id="toc-multi-port-networks-and-kirchhoff-analogs" class="nav-link" data-scroll-target="#multi-port-networks-and-kirchhoff-analogs"><span class="header-section-number">12.4.2</span> Multi-Port Networks and Kirchhoff Analogs</a></li>
+  <li><a href="#the-bond-graph-node-causality-and-power-flow" id="toc-the-bond-graph-node-causality-and-power-flow" class="nav-link" data-scroll-target="#the-bond-graph-node-causality-and-power-flow"><span class="header-section-number">12.4.3</span> The Bond-Graph Node: Causality and Power Flow</a></li>
+  </ul></li>
+  <li><a href="#xii.5-the-force-voltage-analogy-rigorous-proof" id="toc-xii.5-the-force-voltage-analogy-rigorous-proof" class="nav-link" data-scroll-target="#xii.5-the-force-voltage-analogy-rigorous-proof"><span class="header-section-number">12.5</span> XII.5 The Force-Voltage Analogy: Rigorous Proof</a>
+  <ul class="collapse">
+  <li><a href="#intuitive-foundation-why-power-conjugacy-matters" id="toc-intuitive-foundation-why-power-conjugacy-matters" class="nav-link" data-scroll-target="#intuitive-foundation-why-power-conjugacy-matters"><span class="header-section-number">12.5.1</span> Intuitive Foundation: Why Power Conjugacy Matters</a></li>
+  <li><a href="#theorem-xii.5.1-force-voltage-analogy-via-power-conjugacy" id="toc-theorem-xii.5.1-force-voltage-analogy-via-power-conjugacy" class="nav-link" data-scroll-target="#theorem-xii.5.1-force-voltage-analogy-via-power-conjugacy"><span class="header-section-number">12.5.2</span> Theorem XII.5.1 (Force-Voltage Analogy via Power Conjugacy)</a></li>
+  <li><a href="#concrete-demonstration-session-2-examples" id="toc-concrete-demonstration-session-2-examples" class="nav-link" data-scroll-target="#concrete-demonstration-session-2-examples"><span class="header-section-number">12.5.3</span> Concrete Demonstration: Session 2 Examples</a></li>
+  <li><a href="#why-the-analogy-is-perfect-power-preservation" id="toc-why-the-analogy-is-perfect-power-preservation" class="nav-link" data-scroll-target="#why-the-analogy-is-perfect-power-preservation"><span class="header-section-number">12.5.4</span> Why the Analogy is Perfect: Power Preservation</a></li>
+  </ul></li>
+  <li><a href="#xii.6-passive-element-correspondence-complete-mapping" id="toc-xii.6-passive-element-correspondence-complete-mapping" class="nav-link" data-scroll-target="#xii.6-passive-element-correspondence-complete-mapping"><span class="header-section-number">12.6</span> XII.6 Passive Element Correspondence: Complete Mapping</a></li>
+  <li><a href="#xii.7-energy-conservation-equivalence" id="toc-xii.7-energy-conservation-equivalence" class="nav-link" data-scroll-target="#xii.7-energy-conservation-equivalence"><span class="header-section-number">12.7</span> XII.7 Energy Conservation Equivalence</a>
+  <ul class="collapse">
+  <li><a href="#theorem-xii.7.1-total-mechanical-energy-in-mass-spring-damper" id="toc-theorem-xii.7.1-total-mechanical-energy-in-mass-spring-damper" class="nav-link" data-scroll-target="#theorem-xii.7.1-total-mechanical-energy-in-mass-spring-damper"><span class="header-section-number">12.7.1</span> Theorem XII.7.1 (Total Mechanical Energy in Mass-Spring-Damper)</a></li>
+  <li><a href="#theorem-xii.7.2-total-electrical-energy-in-series-rlc" id="toc-theorem-xii.7.2-total-electrical-energy-in-series-rlc" class="nav-link" data-scroll-target="#theorem-xii.7.2-total-electrical-energy-in-series-rlc"><span class="header-section-number">12.7.2</span> Theorem XII.7.2 (Total Electrical Energy in Series RLC)</a></li>
+  <li><a href="#theorem-xii.7.3-energy-conservation-equivalence" id="toc-theorem-xii.7.3-energy-conservation-equivalence" class="nav-link" data-scroll-target="#theorem-xii.7.3-energy-conservation-equivalence"><span class="header-section-number">12.7.3</span> Theorem XII.7.3 (Energy Conservation Equivalence)</a></li>
+  </ul></li>
+  <li><a href="#xii.8-the-universal-oscillator-equation" id="toc-xii.8-the-universal-oscillator-equation" class="nav-link" data-scroll-target="#xii.8-the-universal-oscillator-equation"><span class="header-section-number">12.8</span> XII.8 The Universal Oscillator Equation</a>
+  <ul class="collapse">
+  <li><a href="#intuitive-foundation-why-one-equation-governs-everything" id="toc-intuitive-foundation-why-one-equation-governs-everything" class="nav-link" data-scroll-target="#intuitive-foundation-why-one-equation-governs-everything"><span class="header-section-number">12.8.1</span> Intuitive Foundation: Why One Equation Governs Everything</a></li>
+  <li><a href="#theorem-xii.8.1-universal-second-order-dynamics" id="toc-theorem-xii.8.1-universal-second-order-dynamics" class="nav-link" data-scroll-target="#theorem-xii.8.1-universal-second-order-dynamics"><span class="header-section-number">12.8.2</span> Theorem XII.8.1 (Universal Second-Order Dynamics)</a></li>
+  <li><a href="#concrete-demonstration-session-2-examples-1" id="toc-concrete-demonstration-session-2-examples-1" class="nav-link" data-scroll-target="#concrete-demonstration-session-2-examples-1"><span class="header-section-number">12.8.3</span> Concrete Demonstration: Session 2 Examples</a></li>
+  <li><a href="#consequence-three-damping-regimes-are-universal" id="toc-consequence-three-damping-regimes-are-universal" class="nav-link" data-scroll-target="#consequence-three-damping-regimes-are-universal"><span class="header-section-number">12.8.4</span> Consequence: Three Damping Regimes are Universal</a></li>
+  </ul></li>
+  <li><a href="#xii.9-practical-implication-design-by-analogy" id="toc-xii.9-practical-implication-design-by-analogy" class="nav-link" data-scroll-target="#xii.9-practical-implication-design-by-analogy"><span class="header-section-number">12.9</span> XII.9 Practical Implication: Design by Analogy</a>
+  <ul class="collapse">
+  <li><a href="#theorem-xii.9.1-translatability-of-designs" id="toc-theorem-xii.9.1-translatability-of-designs" class="nav-link" data-scroll-target="#theorem-xii.9.1-translatability-of-designs"><span class="header-section-number">12.9.1</span> Theorem XII.9.1 (Translatability of Designs)</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#part-xiii-control-theory-and-the-intrinsic-extrinsic-boundary" id="toc-part-xiii-control-theory-and-the-intrinsic-extrinsic-boundary" class="nav-link" data-scroll-target="#part-xiii-control-theory-and-the-intrinsic-extrinsic-boundary"><span class="header-section-number">13</span> Part XIII: Control Theory and the Intrinsic-Extrinsic Boundary</a>
+  <ul class="collapse">
+  <li><a href="#xiii.1-motivation-feedback-as-deliberate-extrinsic-intervention" id="toc-xiii.1-motivation-feedback-as-deliberate-extrinsic-intervention" class="nav-link" data-scroll-target="#xiii.1-motivation-feedback-as-deliberate-extrinsic-intervention"><span class="header-section-number">13.1</span> XIII.1 Motivation: Feedback as Deliberate Extrinsic Intervention</a></li>
+  <li><a href="#xiii.2-the-standard-control-configuration" id="toc-xiii.2-the-standard-control-configuration" class="nav-link" data-scroll-target="#xiii.2-the-standard-control-configuration"><span class="header-section-number">13.2</span> XIII.2 The Standard Control Configuration</a>
+  <ul class="collapse">
+  <li><a href="#state-space-system-and-feedback" id="toc-state-space-system-and-feedback" class="nav-link" data-scroll-target="#state-space-system-and-feedback"><span class="header-section-number">13.2.1</span> State-Space System and Feedback</a></li>
+  <li><a href="#key-observation" id="toc-key-observation" class="nav-link" data-scroll-target="#key-observation"><span class="header-section-number">13.2.2</span> Key Observation</a></li>
+  </ul></li>
+  <li><a href="#xiii.3-fundamental-concepts-controllability-and-observability" id="toc-xiii.3-fundamental-concepts-controllability-and-observability" class="nav-link" data-scroll-target="#xiii.3-fundamental-concepts-controllability-and-observability"><span class="header-section-number">13.3</span> XIII.3 Fundamental Concepts: Controllability and Observability</a>
+  <ul class="collapse">
+  <li><a href="#controllability-can-we-steer-the-system" id="toc-controllability-can-we-steer-the-system" class="nav-link" data-scroll-target="#controllability-can-we-steer-the-system"><span class="header-section-number">13.3.1</span> Controllability: Can We Steer the System?</a></li>
+  <li><a href="#observability-can-we-infer-the-state" id="toc-observability-can-we-infer-the-state" class="nav-link" data-scroll-target="#observability-can-we-infer-the-state"><span class="header-section-number">13.3.2</span> Observability: Can We Infer the State?</a></li>
+  </ul></li>
+  <li><a href="#xiii.4-pole-placement-and-state-feedback" id="toc-xiii.4-pole-placement-and-state-feedback" class="nav-link" data-scroll-target="#xiii.4-pole-placement-and-state-feedback"><span class="header-section-number">13.4</span> XIII.4 Pole Placement and State Feedback</a>
+  <ul class="collapse">
+  <li><a href="#the-pole-placement-problem" id="toc-the-pole-placement-problem" class="nav-link" data-scroll-target="#the-pole-placement-problem"><span class="header-section-number">13.4.1</span> The Pole Placement Problem</a></li>
+  <li><a href="#worked-example-stabilizing-an-unstable-system" id="toc-worked-example-stabilizing-an-unstable-system" class="nav-link" data-scroll-target="#worked-example-stabilizing-an-unstable-system"><span class="header-section-number">13.4.2</span> Worked Example: Stabilizing an Unstable System</a></li>
+  <li><a href="#mechanical-interpretation-position-control-via-force-feedback" id="toc-mechanical-interpretation-position-control-via-force-feedback" class="nav-link" data-scroll-target="#mechanical-interpretation-position-control-via-force-feedback"><span class="header-section-number">13.4.3</span> Mechanical Interpretation: Position Control via Force Feedback</a></li>
+  </ul></li>
+  <li><a href="#xiii.5-pid-control-proportional-integral-derivative" id="toc-xiii.5-pid-control-proportional-integral-derivative" class="nav-link" data-scroll-target="#xiii.5-pid-control-proportional-integral-derivative"><span class="header-section-number">13.5</span> XIII.5 PID Control: Proportional, Integral, Derivative</a>
+  <ul class="collapse">
+  <li><a href="#the-three-modes-of-control" id="toc-the-three-modes-of-control" class="nav-link" data-scroll-target="#the-three-modes-of-control"><span class="header-section-number">13.5.1</span> The Three Modes of Control</a></li>
+  <li><a href="#passive-element-analogy-p-as-spring-i-as-capacitor-d-as-damper" id="toc-passive-element-analogy-p-as-spring-i-as-capacitor-d-as-damper" class="nav-link" data-scroll-target="#passive-element-analogy-p-as-spring-i-as-capacitor-d-as-damper"><span class="header-section-number">13.5.2</span> Passive Element Analogy: P as Spring, I as Capacitor, D as Damper</a></li>
+  <li><a href="#example-temperature-control-with-pid" id="toc-example-temperature-control-with-pid" class="nav-link" data-scroll-target="#example-temperature-control-with-pid"><span class="header-section-number">13.5.3</span> Example: Temperature Control with PID</a></li>
+  </ul></li>
+  <li><a href="#xiii.6-linear-quadratic-regulator-lqr-control" id="toc-xiii.6-linear-quadratic-regulator-lqr-control" class="nav-link" data-scroll-target="#xiii.6-linear-quadratic-regulator-lqr-control"><span class="header-section-number">13.6</span> XIII.6 Linear Quadratic Regulator (LQR) Control</a>
+  <ul class="collapse">
+  <li><a href="#optimal-control-problem" id="toc-optimal-control-problem" class="nav-link" data-scroll-target="#optimal-control-problem"><span class="header-section-number">13.6.1</span> Optimal Control Problem</a></li>
+  <li><a href="#effort-flow-interpretation-of-lqr" id="toc-effort-flow-interpretation-of-lqr" class="nav-link" data-scroll-target="#effort-flow-interpretation-of-lqr"><span class="header-section-number">13.6.2</span> Effort-Flow Interpretation of LQR</a></li>
+  <li><a href="#solution-via-riccati-equation" id="toc-solution-via-riccati-equation" class="nav-link" data-scroll-target="#solution-via-riccati-equation"><span class="header-section-number">13.6.3</span> Solution via Riccati Equation</a></li>
+  <li><a href="#worked-example-speed-control-trade-off" id="toc-worked-example-speed-control-trade-off" class="nav-link" data-scroll-target="#worked-example-speed-control-trade-off"><span class="header-section-number">13.6.4</span> Worked Example: Speed Control Trade-Off</a></li>
+  </ul></li>
+  <li><a href="#xiii.7-the-inverted-pendulum-unstable-system-control" id="toc-xiii.7-the-inverted-pendulum-unstable-system-control" class="nav-link" data-scroll-target="#xiii.7-the-inverted-pendulum-unstable-system-control"><span class="header-section-number">13.7</span> XIII.7 The Inverted Pendulum: Unstable System Control</a>
+  <ul class="collapse">
+  <li><a href="#physics-of-the-inverted-pendulum" id="toc-physics-of-the-inverted-pendulum" class="nav-link" data-scroll-target="#physics-of-the-inverted-pendulum"><span class="header-section-number">13.7.1</span> Physics of the Inverted Pendulum</a></li>
+  <li><a href="#stabilization-via-lqr" id="toc-stabilization-via-lqr" class="nav-link" data-scroll-target="#stabilization-via-lqr"><span class="header-section-number">13.7.2</span> Stabilization via LQR</a></li>
+  </ul></li>
+  <li><a href="#xiii.8-the-intrinsic-extrinsic-boundary-and-control" id="toc-xiii.8-the-intrinsic-extrinsic-boundary-and-control" class="nav-link" data-scroll-target="#xiii.8-the-intrinsic-extrinsic-boundary-and-control"><span class="header-section-number">13.8</span> XIII.8 The Intrinsic-Extrinsic Boundary and Control</a>
+  <ul class="collapse">
+  <li><a href="#philosophical-implication" id="toc-philosophical-implication" class="nav-link" data-scroll-target="#philosophical-implication"><span class="header-section-number">13.8.1</span> Philosophical Implication</a></li>
+  <li><a href="#theorem-controllability-and-stabilizability" id="toc-theorem-controllability-and-stabilizability" class="nav-link" data-scroll-target="#theorem-controllability-and-stabilizability"><span class="header-section-number">13.8.2</span> Theorem: Controllability and Stabilizability</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#part-xiv-bifurcations-stability-and-the-geometry-of-phase-space" id="toc-part-xiv-bifurcations-stability-and-the-geometry-of-phase-space" class="nav-link" data-scroll-target="#part-xiv-bifurcations-stability-and-the-geometry-of-phase-space"><span class="header-section-number">14</span> Part XIV: Bifurcations, Stability, and the Geometry of Phase Space</a>
+  <ul class="collapse">
+  <li><a href="#xiv.1-motivation-why-systems-behave-differently-at-different-parameters" id="toc-xiv.1-motivation-why-systems-behave-differently-at-different-parameters" class="nav-link" data-scroll-target="#xiv.1-motivation-why-systems-behave-differently-at-different-parameters"><span class="header-section-number">14.1</span> XIV.1 Motivation: Why Systems Behave Differently at Different Parameters</a></li>
+  <li><a href="#xiv.2-fixed-points-and-equilibria" id="toc-xiv.2-fixed-points-and-equilibria" class="nav-link" data-scroll-target="#xiv.2-fixed-points-and-equilibria"><span class="header-section-number">14.2</span> XIV.2 Fixed Points and Equilibria</a></li>
+  <li><a href="#xiv.3-bifurcations-when-stability-changes" id="toc-xiv.3-bifurcations-when-stability-changes" class="nav-link" data-scroll-target="#xiv.3-bifurcations-when-stability-changes"><span class="header-section-number">14.3</span> XIV.3 Bifurcations: When Stability Changes</a>
+  <ul class="collapse">
+  <li><a href="#saddle-node-bifurcation" id="toc-saddle-node-bifurcation" class="nav-link" data-scroll-target="#saddle-node-bifurcation"><span class="header-section-number">14.3.1</span> Saddle-Node Bifurcation</a></li>
+  <li><a href="#hopf-bifurcation" id="toc-hopf-bifurcation" class="nav-link" data-scroll-target="#hopf-bifurcation"><span class="header-section-number">14.3.2</span> Hopf Bifurcation</a></li>
+  </ul></li>
+  <li><a href="#xiv.4-bifurcation-diagrams" id="toc-xiv.4-bifurcation-diagrams" class="nav-link" data-scroll-target="#xiv.4-bifurcation-diagrams"><span class="header-section-number">14.4</span> XIV.4 Bifurcation Diagrams</a></li>
+  <li><a href="#xiv.5-lyapunov-stability-a-rigorous-approach" id="toc-xiv.5-lyapunov-stability-a-rigorous-approach" class="nav-link" data-scroll-target="#xiv.5-lyapunov-stability-a-rigorous-approach"><span class="header-section-number">14.5</span> XIV.5 Lyapunov Stability: A Rigorous Approach</a>
+  <ul class="collapse">
+  <li><a href="#example-spring-damper-system" id="toc-example-spring-damper-system" class="nav-link" data-scroll-target="#example-spring-damper-system"><span class="header-section-number">14.5.1</span> Example: Spring-Damper System</a></li>
+  </ul></li>
+  <li><a href="#xiv.6-connection-to-control-and-feedback" id="toc-xiv.6-connection-to-control-and-feedback" class="nav-link" data-scroll-target="#xiv.6-connection-to-control-and-feedback"><span class="header-section-number">14.6</span> XIV.6 Connection to Control and Feedback</a></li>
+  </ul></li>
+  <li><a href="#part-xv-limits-and-breakdown-of-the-framework" id="toc-part-xv-limits-and-breakdown-of-the-framework" class="nav-link" data-scroll-target="#part-xv-limits-and-breakdown-of-the-framework"><span class="header-section-number">15</span> Part XV: Limits and Breakdown of the Framework</a>
+  <ul class="collapse">
+  <li><a href="#xiv.1-intellectual-honesty-where-does-this-framework-fail" id="toc-xiv.1-intellectual-honesty-where-does-this-framework-fail" class="nav-link" data-scroll-target="#xiv.1-intellectual-honesty-where-does-this-framework-fail"><span class="header-section-number">15.1</span> XIV.1 Intellectual Honesty: Where Does This Framework Fail?</a></li>
+  <li><a href="#xiv.2-failure-case-1-chaotic-and-stochastic-systems" id="toc-xiv.2-failure-case-1-chaotic-and-stochastic-systems" class="nav-link" data-scroll-target="#xiv.2-failure-case-1-chaotic-and-stochastic-systems"><span class="header-section-number">15.2</span> XIV.2 Failure Case 1: Chaotic and Stochastic Systems</a>
+  <ul class="collapse">
+  <li><a href="#the-problem" id="toc-the-problem" class="nav-link" data-scroll-target="#the-problem"><span class="header-section-number">15.2.1</span> The Problem</a></li>
+  <li><a href="#framework-limitation" id="toc-framework-limitation" class="nav-link" data-scroll-target="#framework-limitation"><span class="header-section-number">15.2.2</span> Framework Limitation</a></li>
+  <li><a href="#when-the-framework-still-works" id="toc-when-the-framework-still-works" class="nav-link" data-scroll-target="#when-the-framework-still-works"><span class="header-section-number">15.2.3</span> When the Framework Still Works</a></li>
+  </ul></li>
+  <li><a href="#xiv.3-failure-case-2-nonlinear-responses-with-amplitude-dependence" id="toc-xiv.3-failure-case-2-nonlinear-responses-with-amplitude-dependence" class="nav-link" data-scroll-target="#xiv.3-failure-case-2-nonlinear-responses-with-amplitude-dependence"><span class="header-section-number">15.3</span> XIV.3 Failure Case 2: Nonlinear Responses with Amplitude Dependence</a>
+  <ul class="collapse">
+  <li><a href="#the-problem-1" id="toc-the-problem-1" class="nav-link" data-scroll-target="#the-problem-1"><span class="header-section-number">15.3.1</span> The Problem</a></li>
+  <li><a href="#when-this-matters" id="toc-when-this-matters" class="nav-link" data-scroll-target="#when-this-matters"><span class="header-section-number">15.3.2</span> When This Matters</a></li>
+  <li><a href="#when-the-framework-still-works-1" id="toc-when-the-framework-still-works-1" class="nav-link" data-scroll-target="#when-the-framework-still-works-1"><span class="header-section-number">15.3.3</span> When the Framework Still Works</a></li>
+  </ul></li>
+  <li><a href="#xiv.4-failure-case-3-time-delay-systems-and-memory-effects" id="toc-xiv.4-failure-case-3-time-delay-systems-and-memory-effects" class="nav-link" data-scroll-target="#xiv.4-failure-case-3-time-delay-systems-and-memory-effects"><span class="header-section-number">15.4</span> XIV.4 Failure Case 3: Time-Delay Systems and Memory Effects</a>
+  <ul class="collapse">
+  <li><a href="#the-problem-2" id="toc-the-problem-2" class="nav-link" data-scroll-target="#the-problem-2"><span class="header-section-number">15.4.1</span> The Problem</a></li>
+  <li><a href="#delayed-feedback" id="toc-delayed-feedback" class="nav-link" data-scroll-target="#delayed-feedback"><span class="header-section-number">15.4.2</span> Delayed Feedback</a></li>
+  <li><a href="#when-the-framework-still-works-2" id="toc-when-the-framework-still-works-2" class="nav-link" data-scroll-target="#when-the-framework-still-works-2"><span class="header-section-number">15.4.3</span> When the Framework Still Works</a></li>
+  </ul></li>
+  <li><a href="#xiv.5-failure-case-4-strongly-coupled-multi-body-systems" id="toc-xiv.5-failure-case-4-strongly-coupled-multi-body-systems" class="nav-link" data-scroll-target="#xiv.5-failure-case-4-strongly-coupled-multi-body-systems"><span class="header-section-number">15.5</span> XIV.5 Failure Case 4: Strongly Coupled Multi-Body Systems</a>
+  <ul class="collapse">
+  <li><a href="#the-problem-3" id="toc-the-problem-3" class="nav-link" data-scroll-target="#the-problem-3"><span class="header-section-number">15.5.1</span> The Problem</a></li>
+  <li><a href="#when-this-breaks-the-framework" id="toc-when-this-breaks-the-framework" class="nav-link" data-scroll-target="#when-this-breaks-the-framework"><span class="header-section-number">15.5.2</span> When This Breaks the Framework</a></li>
+  <li><a href="#when-the-framework-still-works-3" id="toc-when-the-framework-still-works-3" class="nav-link" data-scroll-target="#when-the-framework-still-works-3"><span class="header-section-number">15.5.3</span> When the Framework Still Works</a></li>
+  </ul></li>
+  <li><a href="#xiv.6-critical-connection-identifiability-controllability-relationship" id="toc-xiv.6-critical-connection-identifiability-controllability-relationship" class="nav-link" data-scroll-target="#xiv.6-critical-connection-identifiability-controllability-relationship"><span class="header-section-number">15.6</span> XIV.6 Critical Connection: Identifiability ↔︎ Controllability Relationship</a>
+  <ul class="collapse">
+  <li><a href="#theorem-xv.6.1-identifiability-observability-duality" id="toc-theorem-xv.6.1-identifiability-observability-duality" class="nav-link" data-scroll-target="#theorem-xv.6.1-identifiability-observability-duality"><span class="header-section-number">15.6.1</span> Theorem XV.6.1 (Identifiability-Observability Duality)</a></li>
+  <li><a href="#theorem-xv.6.2-controllability-stabilizability-via-feedback" id="toc-theorem-xv.6.2-controllability-stabilizability-via-feedback" class="nav-link" data-scroll-target="#theorem-xv.6.2-controllability-stabilizability-via-feedback"><span class="header-section-number">15.6.2</span> Theorem XV.6.2 (Controllability-Stabilizability via Feedback)</a></li>
+  <li><a href="#theorem-xv.6.3-bifurcation-loss-of-identifiability" id="toc-theorem-xv.6.3-bifurcation-loss-of-identifiability" class="nav-link" data-scroll-target="#theorem-xv.6.3-bifurcation-loss-of-identifiability"><span class="header-section-number">15.6.3</span> Theorem XV.6.3 (Bifurcation Loss of Identifiability)</a></li>
+  </ul></li>
+  <li><a href="#xiv.7-summary-where-the-framework-is-robust-vs.-fragile" id="toc-xiv.7-summary-where-the-framework-is-robust-vs.-fragile" class="nav-link" data-scroll-target="#xiv.7-summary-where-the-framework-is-robust-vs.-fragile"><span class="header-section-number">15.7</span> XIV.7 Summary: Where the Framework is Robust vs.&nbsp;Fragile</a></li>
+  </ul></li>
+  
+  
+  
+  
+  
+  <li><a href="#part-xvi-synthesis-and-future-directions" id="toc-part-xvi-synthesis-and-future-directions" class="nav-link" data-scroll-target="#part-xvi-synthesis-and-future-directions"><span class="header-section-number">21</span> Part XVI: Synthesis and Future Directions</a>
+  <ul class="collapse">
+  <li><a href="#xvi.1-what-we-have-accomplished" id="toc-xvi.1-what-we-have-accomplished" class="nav-link" data-scroll-target="#xvi.1-what-we-have-accomplished"><span class="header-section-number">21.1</span> XVI.1 What We Have Accomplished</a></li>
+  <li><a href="#xvi.2-the-deep-unity-of-physical-law" id="toc-xvi.2-the-deep-unity-of-physical-law" class="nav-link" data-scroll-target="#xvi.2-the-deep-unity-of-physical-law"><span class="header-section-number">21.2</span> XVI.2 The Deep Unity of Physical Law</a></li>
+  <li><a href="#xvi.3-outstanding-questions-and-future-directions" id="toc-xvi.3-outstanding-questions-and-future-directions" class="nav-link" data-scroll-target="#xvi.3-outstanding-questions-and-future-directions"><span class="header-section-number">21.3</span> XVI.3 Outstanding Questions and Future Directions</a></li>
+  <li><a href="#xvi.4-implications-for-scientific-practice" id="toc-xvi.4-implications-for-scientific-practice" class="nav-link" data-scroll-target="#xvi.4-implications-for-scientific-practice"><span class="header-section-number">21.4</span> XVI.4 Implications for Scientific Practice</a></li>
+  <li><a href="#xvi.5-closing-reflections" id="toc-xvi.5-closing-reflections" class="nav-link" data-scroll-target="#xvi.5-closing-reflections"><span class="header-section-number">21.5</span> XVI.5 Closing Reflections</a></li>
+  <li><a href="#recommended-further-reading-by-topic" id="toc-recommended-further-reading-by-topic" class="nav-link" data-scroll-target="#recommended-further-reading-by-topic"><span class="header-section-number">21.6</span> Recommended Further Reading by Topic</a></li>
+  </ul></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="on-dynamical-systems.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Sources, Fields, and the Architecture of Change</h1>
-<p class="subtitle lead">A Unified Framework for Dynamical Systems — Rigorous Mathematical Foundations</p>
+<h1 class="title">Describing the Structure of Dynamical Systems</h1>
+<p class="subtitle lead">A Unifying Mathematical Framework</p>
 </div>
 
 
@@ -76,7 +466,7 @@
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 5, 2026</p>
+      <p class="date">February 8, 2026</p>
     </div>
   </div>
   
@@ -95,14 +485,14 @@
 <p>where the response encodes material or geometric properties, and the drive encodes forces, gradients, or boundary conditions imposed by the environment. At the field level, such constitutive relations combine with conservation laws to yield partial differential equations of the form</p>
 <p><span class="math display">\[\frac{\partial u}{\partial t} = \mathcal{L}_\theta[u] + S(x,t)\]</span></p>
 <p>where <span class="math inline">\(\mathcal{L}_\theta\)</span> is an operator determined by intrinsic structure (diffusivity, conductivity, stiffness, permittivity) and <span class="math inline">\(S\)</span> represents extrinsic sources and boundary drives. Formally, this defines an ordinary differential equation on an infinite-dimensional manifold of field configurations. The geometry of this manifold—its modes, curvature, and stable or unstable directions—is largely set by intrinsic properties, whereas realized system histories are selected by extrinsic drives and initial conditions.</p>
-<p>This product structure has profound epistemological consequences. Because the observable is generated by the joint action of intrinsic and extrinsic factors, behavior alone cannot uniquely resolve “how much was the material” versus “how much was the drive” without auxiliary assumptions; causal attributions are <strong>structurally underdetermined</strong> along a nature–nurture axis. This document systematizes this pattern, develops its mathematical framework from first principles with rigorous proofs, demonstrates its universality through cross-domain analogies, and analyzes its implications for causal inference using information-theoretic and statistical identifiability methods.</p>
+<p>This product structure has profound epistemological consequences. Because the observable is generated by the joint action of intrinsic and extrinsic factors, behavior alone cannot uniquely resolve “how much was the response” versus “how much was the drive” without auxiliary assumptions; causal attributions are <strong>structurally underdetermined</strong> along a nature–nurture axis. This work systematizes this pattern, develops its mathematical framework from first principles with rigorous examples, demonstrates its universality through cross-domain analogies, and analyzes its implications for causal inference using information-theoretic and statistical identifiability methods.</p>
 <hr>
 </section>
 <section id="part-i-the-primordial-pattern" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Part I: The Primordial Pattern</h1>
 <section id="why-change-matters" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="why-change-matters"><span class="header-section-number">1.1</span> Why Change Matters</h2>
-<p>All physical laws describe change (or its absence). Dynamical systems provide a rigorous mathematical framework for these descriptions. The central question: what encourages or discourages a system to change? Is the influence intrinsic to the system or imposed by its environment?</p>
+<p>All physical laws describe change (or its absence). Dynamical systems provide a rigorous mathematical framework for these descriptions. The central question: what encourages or discourages a system to change? Is the influence intrinsic to the system or imposed by its environment? Perhaps both? And in what proportion?</p>
 </section>
 <section id="two-laws-one-pattern" class="level2" data-number="1.2">
 <h2 data-number="1.2" class="anchored" data-anchor-id="two-laws-one-pattern"><span class="header-section-number">1.2</span> Two Laws, One Pattern</h2>
@@ -111,7 +501,7 @@
 <p><strong>Coulomb’s Law:</strong> <span class="math display">\[F = qE\]</span></p>
 <p>Note both have similar forms, each denoting a force as the product of two interacting components—a <em>source</em> (mass <span class="math inline">\(m\)</span>, or charge <span class="math inline">\(q\)</span>) and a <em>field</em> (acceleration <span class="math inline">\(a\)</span>, or electric field <span class="math inline">\(E\)</span>). Interestingly, one can combine the words “source” and “field” to create the word “force”—a useful mnemonic. The generalized force can be expressed as:</p>
 <p><span class="math display">\[\boxed{\text{Force} = \text{Source} \times \text{Field}}\]</span></p>
-<p>Force is measured in Newtons in both cases. Mass is measured in kilograms and charge is measured in Coulombs. Thus, the units of acceleration are Newtons per kilogram (= m/s²), and the units of the electric field are Newtons per Coulomb (= V/m). If the electric field is considered analogous to an acceleration field, then the unit for generalized field strength is:</p>
+<p>Force is measured in Newtons in both cases. Mass is measured in kilograms and charge is measured in Coulombs. Thus, the units of acceleration are Newtons per kilogram (m/s²), and the units of the electric field are Newtons per Coulomb (V/m). If the electric field is considered analogous to an acceleration field, then the unit for generalized field strength is:</p>
 <p><span class="math display">\[\text{Field} = \frac{\text{Force}}{\text{Source}}\]</span></p>
 <p>In essence, <strong>Sources interact with Fields and experience Forces</strong>, and Forces are the product of an interaction between a Source and a Field.</p>
 </section>
@@ -127,7 +517,7 @@
 </section>
 <section id="the-birth-of-field-thinking" class="level2" data-number="1.4">
 <h2 data-number="1.4" class="anchored" data-anchor-id="the-birth-of-field-thinking"><span class="header-section-number">1.4</span> The Birth of Field Thinking</h2>
-<p>It is curious to consider the possibility that Fields could be influenced by Sources themselves. Perhaps the motion of a Source through the Field has a lasting effect—like walking through snow and leaving behind a trail of deformation. The Field itself has a Source! This may relate to the distinction between conservative and nonconservative forces and the fields through which they act.</p>
+<p>It is curious to consider the possibility that Fields could be influenced by Sources themselves. Perhaps the motion of a Source through the Field has a lasting effect—like walking through snow and leaving behind a trail of deformation. The Field itself has a Source!</p>
 <p>To explore the nature of this interaction, consider two masses placed a distance <span class="math inline">\(R\)</span> apart. Assuming they are isolated from any other source of mass, the force between them is described by Newton’s Universal Law of Gravitation:</p>
 <p><span class="math display">\[F = G\frac{mM}{R^2}\]</span></p>
 <p>where <span class="math inline">\(G\)</span> is the universal gravitational constant (<span class="math inline">\(G \approx 6.674 \times 10^{-11}\)</span> N·m²/kg²), <span class="math inline">\(M\)</span> is the larger mass (the “parent” or “planet”), and <span class="math inline">\(m\)</span> is the smaller mass (the “child” or “satellite”).</p>
@@ -149,7 +539,7 @@
 </ul>
 <p>The mathematical forms are <strong>identical</strong>. Mass plays the role of charge; <span class="math inline">\(G\)</span> plays the role of <span class="math inline">\(k\)</span>. They are the same equation with different labels. Yet textbooks present them as fundamentally different forces—gravity in mechanics courses, electromagnetism in separate courses. This historical accident obscures a profound unity.</p>
 <p>Much later in this document (Part XI), we will reveal that this is no coincidence. Gravity and electricity obey the same mathematical laws up to coupling constants. When we recognize this identity, the entire framework of cross-domain analogies becomes not heuristic but necessary—a consequence of the universal structure built into the laws of physics.</p>
-<p>For now, note the pattern: <strong>Observable force = (intrinsic property) × (extrinsic field)</strong>. Mass and charge both play the role of “intrinsic property.” This suggests they may be more similar than different at a fundamental level.</p>
+<p>For now, note the pattern: <strong>Observable force = (intrinsic property) × (extrinsic field)</strong>. Mass and charge both play the role of “intrinsic property.” This suggests they may be more similar than different.</p>
 <hr>
 </section>
 </section>
@@ -158,20 +548,21 @@
 <section id="spatial-energy" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="spatial-energy"><span class="header-section-number">2.1</span> Spatial Energy</h2>
 <p>The configuration of a Source in a Field, and its corresponding Force, can also be described via its location within the Field. This description is known as <strong>Potential Energy</strong>—a sort of “spatial energy.”</p>
+<p>Assuming a uniform acceleration field,</p>
 <p><strong>Gravitational Potential Energy:</strong> <span class="math display">\[U = mgh = Fh\]</span></p>
 <p>where the gravitational force is <span class="math inline">\(F = mg\)</span>. The potential energy is a product of Force and Distance, with units of N·m = Joules. The distance <span class="math inline">\(h\)</span> is measured from the field’s zero-potential or “ground.”</p>
 <p><strong>Electrostatic Potential Energy:</strong> <span class="math display">\[U = qEs = Fs\]</span></p>
-<p>where the electrostatic force is <span class="math inline">\(F = qE\)</span>.</p>
-<p>If either a mass or a charge is “elevated” to a non-zero potential, there is energy which “wishes” to be released. Upon releasing the mass or charge, it will be driven by a force to follow a trajectory which seeks to minimize this potential energy.</p>
-<p>The force which develops as a result of this potential energy minimization can be described as the gradient of the potential function:</p>
+<p>where the electrostatic force is <span class="math inline">\(F = qE\)</span>. The potential energy is again a product of Force and Distance, also with units of Joules. The distance <span class="math inline">\(s\)</span> is similarly measured from the fields zero-potential, which is commonly referred to a “ground”.</p>
+<p>If either a mass or a charge is “elevated” to a non-zero potential, there is energy which “wishes” to be released. Upon releasing the mass or charge, it will be driven by a force to follow a trajectory which seeks to minimize this potential energy. The force which develops as a result of this potential energy minimization can be described as the gradient of the potential function:</p>
 <p><span class="math display">\[\vec{F} = -\nabla\phi\]</span></p>
 </section>
 <section id="potential-energy-per-unit-source" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="potential-energy-per-unit-source"><span class="header-section-number">2.2</span> Potential: Energy per Unit Source</h2>
 <p>Define <strong>potential</strong> as the ratio of potential energy per source (specific potential energy), such that it is the product of Field and Reference Displacement.</p>
-<p><strong>Electric potential (voltage):</strong> <span class="math display">\[V = \frac{U}{q} = Es\]</span> Units: Joules per Coulomb = Volts</p>
 <p><strong>Gravitational potential:</strong> <span class="math display">\[V_g = \frac{U}{m} = gh\]</span> Units: Joules per kilogram = m²/s²</p>
 <p>Note that gravitational potential has the same units as velocity-squared—a curious fact with deep connections to energy conservation.</p>
+<p><strong>Electric potential (voltage):</strong> <span class="math display">\[V = \frac{U}{q} = Es\]</span> Units: Joules per Coulomb = Volts</p>
+<p>This is the common measurement of voltage, or potential difference.</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -214,8 +605,8 @@ Important
 <h2 data-number="3.1" class="anchored" data-anchor-id="classification-of-energy-storage-and-dissipation"><span class="header-section-number">3.1</span> Classification of Energy Storage and Dissipation</h2>
 <p>If the energy of a system can be fully described, then its behavior can be described too. The energy of a system can be described with <strong>three energy modes</strong>:</p>
 <ul>
-<li><strong>Potential energy</strong>: energy stored in <em>configuration</em> (position, deformation, separation)</li>
-<li><strong>Kinetic energy</strong>: energy stored in <em>motion</em></li>
+<li><strong>Potential energy</strong>: energy <em>stored in configuration</em> (position, deformation, separation)</li>
+<li><strong>Kinetic energy</strong>: energy <em>stored in motion</em></li>
 <li><strong>Dissipative energy</strong>: energy <em>lost</em> to nonconservative effects (friction, drag, resistance)</li>
 </ul>
 <p>Each of these three forms represents a <strong>passive role</strong> in the system:</p>
@@ -233,18 +624,18 @@ Important
 <li><strong>Inductor</strong>: the kinetic storage element (in the magnetic field, and in the inertia-like behavior of current)</li>
 <li><strong>Capacitor</strong>: the potential storage element (in the electric field, and in charge separation)</li>
 </ul>
-<p>Before the circuit is closed, the capacitor is uncharged—there is no voltage across it—and the inductor carries no current. When the switch closes, current starts to flow. The resistor opposes the flow and converts electrical power into heat. The inductor opposes changes in the flow, “pushing back” against sudden jumps in current. The capacitor begins accumulating charge, building voltage.</p>
-<p>As the capacitor charges, the voltage across it rises, leaving less voltage available to drive current. The current falls. In the ideal DC limit, current goes to zero once the capacitor reaches the source voltage. The circuit evolves from kinetic activity (current) into potential storage (charge separation), while the resistor continuously bleeds energy away.</p>
+<p>Before the circuit is closed, the capacitor is uncharged—there is no voltage across it—and the inductor carries no current. When the switch closes, current begins to flow. The resistor opposes the flow and converts electrical power into heat. The inductor opposes changes in the flow, “pushing back” against sudden jumps in current. The capacitor begins accumulating charge, increasing its voltage.</p>
+<p>As the capacitor charges, the voltage across it rises, leaving less potential difference (voltage) across the resistor available to drive current, so current decreases. In the ideal DC limit, current goes to zero once the capacitor reaches the source voltage. The circuit evolves from kinetic activity (current) into potential storage (charge separation), while the resistor continuously bleeds energy away.</p>
 </section>
 <section id="mass-spring-damper" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="mass-spring-damper"><span class="header-section-number">3.3</span> Mass-Spring-Damper</h2>
 <p>A similar behavior appears in mechanics with the mass-spring-damper system:</p>
 <ul>
 <li><strong>Damper</strong>: the dissipative element—converts mechanical power into heat through friction-like effects</li>
-<li><strong>Mass</strong>: the kinetic storage element—stores energy in motion and resists changes in velocity</li>
-<li><strong>Spring</strong>: the potential storage element—stores energy in deformation and “pushes back” when stretched or compressed</li>
+<li><strong>Mass</strong>: the kinetic storage element—stores energy in motion and inertial/momentum resist changes in velocity (acceleration)</li>
+<li><strong>Spring</strong>: the potential storage element- stores energy in deformation and “pushes back” when stretched or compressed)</li>
 </ul>
-<p>Before anything moves, the spring can be undeformed (no spring force) and the mass at rest (no kinetic energy). When the system is disturbed, motion begins. The damper opposes motion, producing a resistive force that grows with velocity. The mass resists rapid changes in velocity. The spring builds a restoring force as it stores potential energy.</p>
+<p>Before anything moves, the spring is undeformed (no spring force) and the mass at rest (no kinetic energy). When the system is disturbed, motion begins. The damper opposes motion, producing a resistive force that scales with velocity. The mass resists rapid changes in velocity (accelerations). The spring builds a restoring force as it stores potential energy.</p>
 <p>As spring deformation increases, the restoring force grows, reducing net force available to accelerate the mass. The velocity peaks and falls as the spring pulls the mass back toward equilibrium. The damper steadily bleeds energy, oscillations shrink, and the system settles toward rest.</p>
 <p>This is not just a poetic similarity—the governing relationships line up in the same roles:</p>
 <ul>
@@ -261,6 +652,8 @@ Important
 <li><strong>Inertance</strong> (long pipe / moving slug of fluid): the kinetic storage element—moving fluid has inertia and resists rapid changes in flow (the effect behind water hammer)</li>
 <li><strong>Compliance</strong> (accumulator with flexible diaphragm): the potential storage element—stores energy by compressing/expanding a volume</li>
 </ul>
+<p>Before anything flows, the accumulator is relaxed—no pressure difference across its diaphragm—and the fluid in the inertance pipe is stationary. When a pressure source is applied, fluid begins to move. The restriction opposes flow, converting hydraulic power into heat through viscous friction. The inertance opposes changes in flow rate, resisting sudden accelerations of the fluid column (this is the mechanism behind water hammer—fluid in motion does not stop easily).</p>
+<p>As the accumulator fills, its diaphragm stretches and internal pressure rises, leaving less pressure difference available across the restriction to drive flow, so the flow rate decreases. In the steady-state limit, flow goes to zero once the accumulator pressure equals the source pressure. The system evolves from kinetic activity (fluid in motion) into potential storage (pressure in the accumulator), while the restriction continuously bleeds energy away.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -271,115 +664,241 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>All three systems share the same structure:</strong> two elements exchange energy back and forth (kinetic ↔︎ potential), while the dissipative element continuously bleeds energy away. The nouns change—charge and current versus displacement and velocity versus pressure and flow—but the behavior is the same: storage, exchange, decay.</p>
+<p><strong>All three systems share the same structure:</strong> two elements exchange energy back and forth (kinetic ↔︎ potential), while the dissipative element continuously bleeds energy away. The nouns change—charge and current versus displacement and velocity versus pressure and flow—but the behavior is the same:</p>
+<ul>
+<li><strong>Ability</strong> — potential storage — energy latent in configuration</li>
+<li><strong>Activity</strong> — kinetic exchange — energy in transit between forms</li>
+<li><strong>Reality</strong> — dissipation — energy irreversibly lost</li>
+</ul>
+<p>An ideal system has only Ability and Activity; a real system always includes Reality.</p>
 </div>
 </div>
 </section>
-<section id="constitutive-laws" class="level2" data-number="3.5">
-<h2 data-number="3.5" class="anchored" data-anchor-id="constitutive-laws"><span class="header-section-number">3.5</span> Constitutive Laws</h2>
-<p>The mapping becomes concrete when we write the element laws in matching form.</p>
+<section id="effort-flow-and-the-constitutive-laws" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="effort-flow-and-the-constitutive-laws"><span class="header-section-number">3.5</span> Effort, Flow, and the Constitutive Laws</h2>
+<p>The mapping becomes concrete when writing the passive element laws in a recognizable form. Each system has a paired set of terminal variables: an <strong>effort</strong> variable (the driving difference) and a <strong>flow</strong> variable (the through quantity). These terms originate from bond-graph theory, where the same three passive roles can be written consistently in effort and flow across every domain.</p>
 <p><strong>Electrical:</strong></p>
+<p>The electrical effort variable is voltage (<span class="math inline">\(V\)</span>), and the flow variable is current (<span class="math inline">\(I\)</span>). The three passive circuit elements—resistor, inductor, and capacitor—each relate these two variables through a distinct constitutive law: proportionality, differentiation, or integration.</p>
 <ul>
-<li>Resistor: <span class="math inline">\(V_R = RI\)</span></li>
-<li>Inductor: <span class="math inline">\(V_L = L\frac{dI}{dt}\)</span></li>
-<li>Capacitor: <span class="math inline">\(I_C = C\frac{dV}{dt}\)</span></li>
+<li><p><strong>Resistor:</strong> <span class="math display">\[V_R = RI\]</span> where <span class="math inline">\(R\)</span> is resistance, measured in Ohms (<span class="math inline">\(\Omega\)</span>). Voltage drop is proportional to current. The faster charge flows, the more energy the resistor bleeds as heat.</p></li>
+<li><p><strong>Inductor:</strong> <span class="math display">\[V_L = L\frac{dI}{dt}\]</span> where <span class="math inline">\(L\)</span> is inductance, measured in Henrys (H). Voltage is proportional to the <em>rate of change</em> of current, not the quantity of current itself. The inductor stores energy in a magnetic field while current builds, then returns it as current collapses.</p></li>
+<li><p><strong>Capacitor:</strong> <span class="math display">\[I_C = C\frac{dV}{dt}\]</span> where <span class="math inline">\(C\)</span> is capacitance, measured in Farads (F). Current flows into the capacitor only while its voltage is changing. Once fully charged, current stops. Energy is stored in the electric field between the plates, held in the separation of charge.</p></li>
 </ul>
-<p><strong>Mechanical (translation, with <span class="math inline">\(v = \dot{x}\)</span>):</strong></p>
+<p><strong>Gravitational:</strong></p>
+<p>The gravitational effort variable is potential (<span class="math inline">\(V_g\)</span>), and the flow variable is mass flow rate (<span class="math inline">\(\dot{m}\)</span>). Gravitational potential is a true potential — energy per unit mass (J/kg) — making it the closest mechanical analog to voltage and pressure. The same three constitutive forms apply:</p>
 <ul>
-<li>Damper: <span class="math inline">\(F_d = bv\)</span></li>
-<li>Mass: <span class="math inline">\(F_m = m\frac{dv}{dt} = m\ddot{x}\)</span></li>
-<li>Spring: <span class="math inline">\(F_s = kx\)</span> (equivalently, <span class="math inline">\(\dot{F}_s = kv\)</span>)</li>
+<li><p><strong>Gravitational resistance</strong> (drag / viscous friction on mass flow): <span class="math display">\[V_g = R_g \dot{m}\]</span> where <span class="math inline">\(R_g\)</span> is gravitational resistance, measured in J·s/kg². Potential drop is proportional to mass flow rate. The faster mass flows through the resistive path, the more energy is lost.</p></li>
+<li><p><strong>Gravitational inertance</strong> (resistance to changes in mass flow): <span class="math display">\[V_g = L_g \frac{d\dot{m}}{dt}\]</span> where <span class="math inline">\(L_g\)</span> is gravitational inertance, measured in J·s²/kg². Potential is proportional to the <em>rate of change</em> of mass flow, not mass flow itself.</p></li>
+<li><p><strong>Gravitational compliance</strong> (mass storage under potential): <span class="math display">\[\dot{m} = H \frac{dV_g}{dt}\]</span> where <span class="math inline">\(H\)</span> is gravitational compliance, measured in kg²/(J·s). Mass flow into storage is proportional to the rate of change of potential.</p></li>
 </ul>
-<p>That one line—<span class="math inline">\(F = m\frac{dv}{dt}\)</span>—is the mechanical twin of the inductor law <span class="math inline">\(V = L\frac{dI}{dt}\)</span>.</p>
-<p><strong>Both say: the kinetic storage element resists changes in the flow variable.</strong></p>
-<hr>
-</section>
-</section>
-<section id="part-iv-effort-flow-and-power" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Part IV: Effort, Flow, and Power</h1>
-<section id="terminal-pairs" class="level2" data-number="4.1">
-<h2 data-number="4.1" class="anchored" data-anchor-id="terminal-pairs"><span class="header-section-number">4.1</span> Terminal Pairs</h2>
-<p>Why do these analogies keep working? A useful lens: <strong>potential is energy per source</strong>. Gravitational potential is energy per unit mass; electrical potential is energy per unit charge. Once potential is treated as “energy per source,” the idea of a <em>through</em> quantity becomes natural: it is a <strong>source-flow rate</strong> (charge flow, mass flow, volume flow).</p>
-<p>At the terminals of a system, there is usually a “driving difference” and a resulting “through” quantity, corresponding to how the potential and kinetic elements exchange energy through the system.</p>
-<p>The ratio of driving difference to through quantity is set by the dissipative path, and it controls how quickly energy is bled away relative to how much is stored. This is known as <strong>impedance</strong>:</p>
+<p><strong>Mechanical (translation):</strong></p>
+<p>The mechanical effort variable is force (<span class="math inline">\(F\)</span>), and the flow variable is velocity (<span class="math inline">\(v = \dot{x}\)</span>). The three passive mechanical elements—damper, mass, and spring—each relate these two variables through the same three constitutive forms: proportionality, differentiation, or integration. Note that unlike voltage, pressure, and gravitational potential, force is not a traditional potential — it is the gradient of potential energy with respect to displacement (<span class="math inline">\(F = -dU/dx\)</span>). Nevertheless, force carries units of energy per displacement (J/m = N), and the effort-flow structure holds. The familiar force laws (<span class="math inline">\(F = bv\)</span>, <span class="math inline">\(F = ma\)</span>, <span class="math inline">\(F = kx\)</span>) can be rewritten in effort-flow form: Newton’s second law becomes <span class="math inline">\(F = m\frac{dv}{dt}\)</span> since <span class="math inline">\(a = \frac{dv}{dt}\)</span>, and Hooke’s law becomes <span class="math inline">\(v = \frac{1}{k}\frac{dF}{dt}\)</span> after differentiating both sides, where the compliance <span class="math inline">\(\frac{1}{k}\)</span> plays the role of capacitance.</p>
 <ul>
-<li>Electrical: <span class="math inline">\(Z = \frac{V}{I}\)</span></li>
-<li>Mechanical (translation): <span class="math inline">\(Z = \frac{F}{v}\)</span></li>
-<li>Mechanical (rotation): <span class="math inline">\(Z = \frac{\tau}{\omega}\)</span></li>
-<li>Hydraulic: <span class="math inline">\(Z = \frac{\Delta p}{Q}\)</span></li>
+<li><p><strong>Damper:</strong> <span class="math display">\[F_d = bv\]</span> where <span class="math inline">\(b\)</span> is the damping coefficient, measured in Newton-seconds per meter (N·s/m). Resistive force is proportional to velocity. The faster the mass moves, the harder the damper pushes back, converting kinetic energy to heat.</p></li>
+<li><p><strong>Mass:</strong> <span class="math display">\[F_m = m\frac{dv}{dt}\]</span> where <span class="math inline">\(m\)</span> is mass, measured in kilograms (kg). Force is proportional to the <em>rate of change</em> of velocity, not velocity itself. The mass does not resist motion—it resists <em>changes</em> in motion (accelerations). A moving mass carries momentum past equilibrium, overshooting the spring’s rest position and enabling oscillation.</p></li>
+<li><p><strong>Spring:</strong> <span class="math display">\[v = \frac{1}{k}\frac{dF_s}{dt}\]</span> where <span class="math inline">\(k\)</span> is the spring stiffness, measured in Newtons per meter (N/m), and <span class="math inline">\(\frac{1}{k}\)</span> is the mechanical compliance. Velocity is proportional to the rate of change of the restoring force. A softer spring (larger <span class="math inline">\(\frac{1}{k}\)</span>) allows more velocity for the same rate of force change.</p></li>
 </ul>
-<p>For a purely dissipative path, that ratio is just the resistive constant. Once storage is present, the “effective ratio” becomes dynamic (time/frequency dependent), because part of the driving difference is temporarily in storage before being returned or dissipated.</p>
-</section>
-<section id="power-accounting" class="level2" data-number="4.2">
-<h2 data-number="4.2" class="anchored" data-anchor-id="power-accounting"><span class="header-section-number">4.2</span> Power Accounting</h2>
-<p>The paired variables (voltage/current, force/velocity, pressure/flow) describe how energy propagates through the system. Their product is <strong>power</strong>—the rate at which energy is transferred:</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The reader can verify that <strong>mechanical rotation</strong> follows the same pattern with effort = torque <span class="math inline">\(\tau\)</span> (J/rad) and flow = angular velocity <span class="math inline">\(\omega\)</span> (rad/s), yielding the constitutive laws <span class="math inline">\(\tau = b_\theta \omega\)</span>, <span class="math inline">\(\tau = J\frac{d\omega}{dt}\)</span>, and <span class="math inline">\(\omega = \frac{1}{k_\theta}\frac{d\tau}{dt}\)</span>.</p>
+</div>
+</div>
+<p><strong>Hydraulic:</strong></p>
+<p>The hydraulic effort variable is pressure (<span class="math inline">\(p\)</span>), and the flow variable is volume flow rate (<span class="math inline">\(Q\)</span>). The three passive hydraulic elements—restriction, inertance, and compliance—each relate these two variables through the same three constitutive forms: proportionality, differentiation, or integration. The inertance of a fluid column is <span class="math inline">\(I_h = \frac{\rho L}{A}\)</span> (where <span class="math inline">\(\rho\)</span> is density, <span class="math inline">\(L\)</span> is pipe length, and <span class="math inline">\(A\)</span> is cross-sectional area), and the compliance of an accumulator is <span class="math inline">\(C_h\)</span>, relating stored volume to pressure via <span class="math inline">\(V_{\text{stored}} = C_h \, p\)</span>.</p>
 <ul>
-<li>Electrical: <span class="math inline">\(P = VI\)</span></li>
-<li>Mechanical (translation): <span class="math inline">\(P = Fv\)</span></li>
-<li>Mechanical (rotation): <span class="math inline">\(P = \tau\omega\)</span></li>
-<li>Hydraulic: <span class="math inline">\(P = \Delta p \cdot Q\)</span></li>
+<li><p><strong>Restriction</strong> (valve/orifice): <span class="math display">\[p = R_h Q\]</span> where <span class="math inline">\(R_h\)</span> is hydraulic resistance, measured in Pascal-seconds per cubic meter (Pa·s/m³). Pressure drop is proportional to flow rate. The faster fluid moves through the restriction, the more energy is lost to viscous heating.</p></li>
+<li><p><strong>Inertance</strong> (long pipe / fluid slug): <span class="math display">\[p = I_h \frac{dQ}{dt}\]</span> where <span class="math inline">\(I_h\)</span> is inertance, measured in Pascal-seconds-squared per cubic meter (Pa·s²/m³). Pressure is proportional to the <em>rate of change</em> of flow, not flow itself. A long, narrow pipe resists rapid changes in flow rate—this is the mechanism behind water hammer.</p></li>
+<li><p><strong>Compliance</strong> (accumulator with flexible diaphragm): <span class="math display">\[Q = C_h \frac{dp}{dt}\]</span> where <span class="math inline">\(C_h\)</span> is hydraulic compliance, measured in cubic meters per Pascal (m³/Pa). Flow into the accumulator is proportional to the rate of change of pressure. A more compliant accumulator accepts more flow for the same rate of pressure rise.</p></li>
 </ul>
-<p>Describing a system at its terminals using <span class="math inline">\((V, I)\)</span> or <span class="math inline">\((F, v)\)</span> or <span class="math inline">\((\Delta p, Q)\)</span> makes it possible to directly track <strong>energy transfer</strong>.</p>
-<p>This clarifies why real sources “sag under load.” Real sources contain internal dissipative effects, so part of the driving difference is spent internally when the through quantity increases. A battery behaves like an EMF in series with internal resistance:</p>
-<p><span class="math display">\[V_{\text{terminal}} = \mathcal{E} - rI\]</span></p>
-<p>A pressurized canister behaves identically in hydraulics: reservoir pressure is the available driving difference, but outlet pressure falls as flow increases because pressure is lost across internal restrictions. Same structure, different nouns.</p>
-</section>
-<section id="bond-graph-variables" class="level2" data-number="4.3">
-<h2 data-number="4.3" class="anchored" data-anchor-id="bond-graph-variables"><span class="header-section-number">4.3</span> Bond-Graph Variables</h2>
-<p>Bond-graph prior art calls these paired variables <strong>effort</strong> (the driving difference) and <strong>flow</strong> (the through quantity), precisely because their product is power and because the same three passive roles can be written consistently in those variables.</p>
-<p><strong>This is the bridge to dynamical systems.</strong> The moment a system includes storage—something that accumulates over time—its behavior stops being a purely algebraic “ratio at the terminal” and becomes an evolution law. That is where ODEs (and, when storage is distributed in space, PDEs) enter the conversation.</p>
-<section id="terminal-pairs-and-the-three-passive-roles" class="level3" data-number="4.3.1">
-<h3 data-number="4.3.1" class="anchored" data-anchor-id="terminal-pairs-and-the-three-passive-roles"><span class="header-section-number">4.3.1</span> Terminal Pairs and the Three Passive Roles</h3>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-</colgroup>
+<p>The structural correspondence across all domains is summarized below.</p>
+<table>
 <thead>
-<tr class="header">
-<th style="text-align: left;">Domain / Port</th>
-<th style="text-align: left;">Driving variable (effort)</th>
-<th style="text-align: left;">Through variable (flow)</th>
-<th style="text-align: left;">Power</th>
+<tr>
+<th rowspan="2">
+Role
+</th>
+<th rowspan="2">
+Electrical
+</th>
+<th rowspan="2">
+Gravitational
+</th>
+<th colspan="2" style="text-align:center;">
+Mechanical
+</th>
+<th rowspan="2">
+Hydraulic
+</th>
+<th rowspan="2">
+Pattern
+</th>
+</tr>
+<tr>
+<th>
+<small>translation</small>
+</th>
+<th>
+<small>rotation</small>
+</th>
 </tr>
 </thead>
 <tbody>
-<tr class="odd">
-<td style="text-align: left;">Electrical</td>
-<td style="text-align: left;"><span class="math inline">\(V\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(I\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(P = VI\)</span></td>
+<tr>
+<td>
+Dissipation
+</td>
+<td>
+<span class="math inline">\(V = RI\)</span>
+</td>
+<td>
+<span class="math inline">\(V_g = R_g \dot{m}\)</span>
+</td>
+<td>
+<span class="math inline">\(F = bv\)</span>
+</td>
+<td>
+<span class="math inline">\(\tau = b_\theta \omega\)</span>
+</td>
+<td>
+<span class="math inline">\(p = R_h Q\)</span>
+</td>
+<td>
+effort <span class="math inline">\(=\)</span> resistance <span class="math inline">\(\times\)</span> flow
+</td>
 </tr>
-<tr class="even">
-<td style="text-align: left;">Mechanical (translation)</td>
-<td style="text-align: left;"><span class="math inline">\(F\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(v\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(P = Fv\)</span></td>
+<tr>
+<td>
+Kinetic storage
+</td>
+<td>
+<span class="math inline">\(V = L\frac{dI}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(V_g = L_g \frac{d\dot{m}}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(F = m\frac{dv}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(\tau = J\frac{d\omega}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(p = I_h \frac{dQ}{dt}\)</span>
+</td>
+<td>
+effort <span class="math inline">\(=\)</span> inertance <span class="math inline">\(\times\)</span> <span class="math inline">\(\frac{d}{dt}\)</span>(flow)
+</td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;">Mechanical (rotation)</td>
-<td style="text-align: left;"><span class="math inline">\(\tau\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(\omega\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(P = \tau\omega\)</span></td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Hydraulic</td>
-<td style="text-align: left;"><span class="math inline">\(\Delta p\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(Q\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(P = \Delta p \cdot Q\)</span></td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Gravitational (transport port)</td>
-<td style="text-align: left;"><span class="math inline">\(V_g\)</span> (J/kg)</td>
-<td style="text-align: left;"><span class="math inline">\(B=\dot{m}\)</span> (kg/s)</td>
-<td style="text-align: left;"><span class="math inline">\(P = V_g B\)</span></td>
+<tr>
+<td>
+Potential storage
+</td>
+<td>
+<span class="math inline">\(I = C\frac{dV}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(\dot{m} = H\frac{dV_g}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(v = \frac{1}{k}\frac{dF}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(\omega = \frac{1}{k_\theta}\frac{d\tau}{dt}\)</span>
+</td>
+<td>
+<span class="math inline">\(Q = C_h \frac{dp}{dt}\)</span>
+</td>
+<td>
+flow <span class="math inline">\(=\)</span> compliance <span class="math inline">\(\times\)</span> <span class="math inline">\(\frac{d}{dt}\)</span>(effort)
+</td>
 </tr>
 </tbody>
 </table>
+<p>The structural pattern is clear. Each row of the table compares a single universal statement:</p>
+<ul>
+<li><strong>Reality</strong> (dissipation): the dissipative element produces a response proportional to the flow variable — an instantaneous, memoryless tax on any real process.</li>
+<li><strong>Activity</strong> (kinetic storage): the kinetic storage element resists changes in the flow variable — energy carried in the momentum of the flow itself.</li>
+<li><strong>Ability</strong> (potential storage): the flow variable equals a compliance times the rate of change of the effort variable — energy held latent in configuration.</li>
+</ul>
+<p>In every case, the same calculus applies — proportionality, differentiation, integration — only the names and variables differ.</p>
 <hr>
 </section>
+</section>
+<section id="part-iv-impedance-power-and-bond-graphs" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Part IV: Impedance, Power, and Bond Graphs</h1>
+<section id="terminal-pairs" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="terminal-pairs"><span class="header-section-number">4.1</span> Terminal Pairs</h2>
+<p>The constitutive laws were written in effort-flow form, but the effort and flow variables were described by domain — voltage and current, force and velocity, etc,. These variables have general dimensions. In every domain, the effort variable carries units of energy per source, and the flow variable carries units of source per time. Making this explicit reveals why impedance and power take the same form everywhere.</p>
+<p>The effort variable carries units of <strong>energy per source</strong>. In most domains, this is a true potential:</p>
+<ul>
+<li>Electrical: voltage <span class="math inline">\(V\)</span> — energy per unit charge (J/C)</li>
+<li>Gravitational: potential <span class="math inline">\(V_g\)</span> — energy per unit mass (J/kg)</li>
+<li>Hydraulic: pressure <span class="math inline">\(p\)</span> — energy per unit volume (J/m³)</li>
+</ul>
+<p>In mechanical systems, the effort variable has the same dimensional structure but is not traditionally called a potential:</p>
+<ul>
+<li>Mechanical (translation): force <span class="math inline">\(F\)</span> — energy per unit displacement (J/m = N)</li>
+<li>Mechanical (rotation): torque <span class="math inline">\(\tau\)</span> — energy per unit angle (J/rad)</li>
+</ul>
+<p>Force and torque are gradients of potential energy with respect to their source coordinates (<span class="math inline">\(F = -dU/dx\)</span>, <span class="math inline">\(\tau = -dU/d\theta\)</span>), not potentials themselves. The dimensional pattern — energy per source — holds in every case, but the naming convention diverges for mechanical systems.</p>
+<p>The flow variable carries units of <strong>source per time</strong>:</p>
+<ul>
+<li>Electrical: current <span class="math inline">\(I\)</span> — charge per time (C/s = A)</li>
+<li>Gravitational: mass flow rate <span class="math inline">\(\dot{m}\)</span> — mass per time (kg/s)</li>
+<li>Hydraulic: volume flow rate <span class="math inline">\(Q\)</span> — volume per time (m³/s)</li>
+<li>Mechanical (translation): velocity <span class="math inline">\(v\)</span> — displacement per time (m/s)</li>
+<li>Mechanical (rotation): angular velocity <span class="math inline">\(\omega\)</span> — angle per time (rad/s)</li>
+</ul>
+<p>The framework does not prescribe what the source must be; it requires only that the effort-flow pairing be power-conjugate — that their product yield power. Different choices of “source” within the same physical domain (e.g., displacement vs.&nbsp;mass for mechanical systems) yield different but equally valid descriptions.</p>
+<p>These two generalized dimensions — effort and flow — combine to produce two fundamental system quantities through division and multiplication.</p>
+<p><strong>Their ratio is impedance.</strong> Dividing effort by flow:</p>
+<p><span class="math display">\[Z = \frac{\text{effort}}{\text{flow}} = \frac{\text{energy}/\text{source}}{\text{source}/\text{time}} = \frac{\text{energy} \cdot \text{time}}{\text{source}^2}\]</span></p>
+<p>Impedance encodes the dissipative and storage qualities of the system. It controls how much driving difference is required per unit of through quantity—how quickly energy is bled away relative to how much is stored:</p>
+<ul>
+<li>Electrical: <span class="math inline">\(Z = \frac{V}{I} = \frac{\text{J/C}}{\text{C/s}} = \frac{\text{J} \cdot \text{s}}{\text{C}^2}\)</span> (energy·time / charge²)</li>
+<li>Mechanical (translation): <span class="math inline">\(Z = \frac{F}{v} = \frac{\text{J/m}}{\text{m/s}} = \frac{\text{J} \cdot \text{s}}{\text{m}^2}\)</span> (energy·time / displacement²)</li>
+<li>Mechanical (rotation): <span class="math inline">\(Z = \frac{\tau}{\omega} = \frac{\text{J/rad}}{\text{rad/s}} = \frac{\text{J} \cdot \text{s}}{\text{rad}^2}\)</span> (energy·time / angle²)</li>
+<li>Gravitational: <span class="math inline">\(Z = \frac{V_g}{\dot{m}} = \frac{\text{J/kg}}{\text{kg/s}} = \frac{\text{J} \cdot \text{s}}{\text{kg}^2}\)</span> (energy·time / mass²)</li>
+<li>Hydraulic: <span class="math inline">\(Z = \frac{p}{Q} = \frac{\text{J/m}^3}{\text{m}^3\text{/s}} = \frac{\text{J} \cdot \text{s}}{\text{m}^6}\)</span> (energy·time / volume²)</li>
+</ul>
+<p>Every domain reduces to the same generalized form — the “source” differs (charge, displacement, angle, mass, volume), but the dimensional structure is universal. Note that hydraulic pressure <span class="math inline">\(p\)</span> denotes a differential pressure — the drop across the element measured with respect to an absolute or gauge reference, analogous to voltage measured with respect to ground.</p>
+<p><strong>Their product is power.</strong> Multiplying effort by flow:</p>
+<p><span class="math display">\[P = \text{effort} \times \text{flow} = \frac{\text{energy}}{\text{source}} \times \frac{\text{source}}{\text{time}} = \frac{\text{energy}}{\text{time}}\]</span></p>
+<p>The source units cancel, leaving power as the rate of energy transfer—regardless of domain:</p>
+<ul>
+<li>Electrical: <span class="math inline">\(P = VI\)</span> — measured in Watts (W = J/s)</li>
+<li>Mechanical (translation): <span class="math inline">\(P = Fv\)</span> — measured in Watts</li>
+<li>Mechanical (rotation): <span class="math inline">\(P = \tau\omega\)</span> — measured in Watts</li>
+<li>Gravitational: <span class="math inline">\(P = V_g \dot{m}\)</span> — measured in Watts</li>
+<li>Hydraulic: <span class="math inline">\(P = p \cdot Q\)</span> — measured in Watts</li>
+</ul>
+<p>Describing a system at its terminals using <span class="math inline">\((V, I)\)</span> or <span class="math inline">\((F, v)\)</span> or <span class="math inline">\((V_g, \dot{m})\)</span> or <span class="math inline">\((p, Q)\)</span> makes it possible to directly track <strong>energy transfer</strong>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Why real sources “sag under load.”</strong> Real sources contain internal dissipative effects, so part of the effort is spent internally when the flow increases. A battery behaves like an EMF in series with internal resistance: <span class="math inline">\(V_{\text{terminal}} = \mathcal{E} - rI\)</span>. A pressurized canister behaves identically in hydraulics: reservoir pressure is the available effort, but outlet pressure falls as flow increases because pressure is lost across internal restrictions. Same structure, different nouns.</p>
+</div>
+</div>
+</section>
+<section id="the-bridge-to-dynamical-systems" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="the-bridge-to-dynamical-systems"><span class="header-section-number">4.2</span> The Bridge to Dynamical Systems</h2>
+<p>The moment a system includes storage — something that accumulates over time — its behavior stops being a purely algebraic ratio at the terminal and becomes an evolution law. Impedance is no longer a static number; it becomes a dynamic, frequency-dependent quantity because part of the effort is temporarily held in storage before being returned or dissipated. That is where ordinary differential equations (and, when storage is distributed in space, partial differential equations) enter the conversation.</p>
+<hr>
 </section>
 </section>
 <section id="part-v-the-complete-cross-domain-analogy" class="level1" data-number="5">
@@ -406,6 +925,14 @@ Note
 </thead>
 <tbody>
 <tr class="odd">
+<td style="text-align: left;"><strong>Source</strong></td>
+<td style="text-align: left;">Mass <span class="math inline">\(m\)</span> (kg)</td>
+<td style="text-align: left;">Charge <span class="math inline">\(q\)</span> (C)</td>
+<td style="text-align: left;">Displacement <span class="math inline">\(x\)</span> (m)</td>
+<td style="text-align: left;">Angle <span class="math inline">\(\theta\)</span> (rad)</td>
+<td style="text-align: left;">Volume <span class="math inline">\(V\)</span> (m³)</td>
+</tr>
+<tr class="even">
 <td style="text-align: left;"><strong>Displacement</strong></td>
 <td style="text-align: left;">Height <span class="math inline">\(h\)</span></td>
 <td style="text-align: left;">Path coordinate <span class="math inline">\(x\)</span></td>
@@ -413,24 +940,16 @@ Note
 <td style="text-align: left;">Angle <span class="math inline">\(\theta\)</span></td>
 <td style="text-align: left;">Volume <span class="math inline">\(V\)</span></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td style="text-align: left;"><strong>Motion</strong></td>
-<td style="text-align: left;">Mass flow <span class="math inline">\(B=\dot{m}\)</span></td>
+<td style="text-align: left;">Mass flow <span class="math inline">\(\dot{m}\)</span></td>
 <td style="text-align: left;">Drift speed <span class="math inline">\(u_d\)</span></td>
 <td style="text-align: left;">Velocity <span class="math inline">\(v=\dot{x}\)</span></td>
 <td style="text-align: left;">Angular speed <span class="math inline">\(\omega=\dot{\theta}\)</span></td>
 <td style="text-align: left;">Volume flow <span class="math inline">\(Q=\dot{V}\)</span></td>
 </tr>
-<tr class="odd">
-<td style="text-align: left;"><strong>Source</strong></td>
-<td style="text-align: left;">Mass <span class="math inline">\(m\)</span></td>
-<td style="text-align: left;">Charge <span class="math inline">\(q\)</span></td>
-<td style="text-align: left;">—</td>
-<td style="text-align: left;">—</td>
-<td style="text-align: left;">—</td>
-</tr>
 <tr class="even">
-<td style="text-align: left;"><strong>Field = Force/Source</strong></td>
+<td style="text-align: left;"><strong>Field</strong></td>
 <td style="text-align: left;">Gravitic field <span class="math inline">\(g\)</span></td>
 <td style="text-align: left;">Electric field <span class="math inline">\(E\)</span></td>
 <td style="text-align: left;">Acceleration <span class="math inline">\(a\)</span></td>
@@ -454,60 +973,44 @@ Note
 <td style="text-align: left;"><span class="math inline">\(U=\int p\,dV\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;"><strong>Potential</strong></td>
-<td style="text-align: left;"><span class="math inline">\(V_g=U/m=gh\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(V=U/q\)</span></td>
-<td style="text-align: left;">—</td>
-<td style="text-align: left;">—</td>
-<td style="text-align: left;"><span class="math inline">\(p=U/V\)</span></td>
+<td style="text-align: left;"><strong>Potential (energy/source)</strong></td>
+<td style="text-align: left;"><span class="math inline">\(V_g=U/m=gh\)</span> (J/kg)</td>
+<td style="text-align: left;"><span class="math inline">\(V=U/q\)</span> (J/C)</td>
+<td style="text-align: left;">Force <span class="math inline">\(F\)</span> (J/m)</td>
+<td style="text-align: left;">Torque <span class="math inline">\(\tau\)</span> (J/rad)</td>
+<td style="text-align: left;"><span class="math inline">\(p=U/V\)</span> (J/m³)</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><strong>Flux / Current</strong></td>
-<td style="text-align: left;"><span class="math inline">\(B=\dot{m}\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(I=\dot{q}\)</span></td>
-<td style="text-align: left;">—</td>
-<td style="text-align: left;">—</td>
-<td style="text-align: left;"><span class="math inline">\(Q=\dot{V}\)</span></td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;"><strong>Port Effort</strong></td>
-<td style="text-align: left;">Potential <span class="math inline">\(V_g\)</span></td>
-<td style="text-align: left;">Voltage <span class="math inline">\(V\)</span></td>
-<td style="text-align: left;">Force <span class="math inline">\(F\)</span></td>
-<td style="text-align: left;">Torque <span class="math inline">\(\tau\)</span></td>
-<td style="text-align: left;">Pressure diff. <span class="math inline">\(\Delta p\)</span></td>
-</tr>
-<tr class="even">
-<td style="text-align: left;"><strong>Port Flow</strong></td>
-<td style="text-align: left;">Mass flow <span class="math inline">\(B\)</span></td>
-<td style="text-align: left;">Current <span class="math inline">\(I\)</span></td>
-<td style="text-align: left;">Velocity <span class="math inline">\(v\)</span></td>
-<td style="text-align: left;">Angular speed <span class="math inline">\(\omega\)</span></td>
-<td style="text-align: left;">Volume flow <span class="math inline">\(Q\)</span></td>
+<td style="text-align: left;"><strong>Flux / Current (source/time)</strong></td>
+<td style="text-align: left;"><span class="math inline">\(\dot{m}\)</span> (kg/s)</td>
+<td style="text-align: left;"><span class="math inline">\(I=\dot{q}\)</span> (C/s)</td>
+<td style="text-align: left;"><span class="math inline">\(v=\dot{x}\)</span> (m/s)</td>
+<td style="text-align: left;"><span class="math inline">\(\omega=\dot{\theta}\)</span> (rad/s)</td>
+<td style="text-align: left;"><span class="math inline">\(Q=\dot{V}\)</span> (m³/s)</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;"><strong>Power</strong></td>
-<td style="text-align: left;"><span class="math inline">\(P=V_g B\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(P=V_g \dot{m}\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(P=VI\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(P=Fv\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(P=\tau\omega\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(P=\Delta p \cdot Q\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(P=p \cdot Q\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: left;"><strong>Impedance</strong></td>
-<td style="text-align: left;"><span class="math inline">\(Z_g=V_g/B\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(Z_g=V_g/\dot{m}\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(Z=V/I\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(Z=F/v\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(Z=\tau/\omega\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(Z=\Delta p/Q\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(Z=p/Q\)</span></td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;"><strong>Resistance (R-type)</strong></td>
-<td style="text-align: left;"><span class="math inline">\(R_g\)</span>: <span class="math inline">\(V_g=R_g B\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(R_g\)</span>: <span class="math inline">\(V_g=R_g \dot{m}\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(R\)</span>: <span class="math inline">\(V=RI\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(b\)</span>: <span class="math inline">\(F=bv\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(b_\theta\)</span>: <span class="math inline">\(\tau=b_\theta\omega\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(R_h\)</span>: <span class="math inline">\(\Delta p=R_h Q\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(R_h\)</span>: <span class="math inline">\(p=R_h Q\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: left;"><strong>Conductance (G-type)</strong></td>
@@ -521,9 +1024,9 @@ Note
 <td style="text-align: left;"><strong>Capacitance (C-type)</strong></td>
 <td style="text-align: left;"><span class="math inline">\(H\)</span>: <span class="math inline">\(m=HV_g\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(C\)</span>: <span class="math inline">\(q=CV\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(C_m=1/k\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(C_\theta=1/k_\theta\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(C_h\)</span>: <span class="math inline">\(V=C_h\Delta p\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(C_m=1/k\)</span>: <span class="math inline">\(x=C_m F\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(C_\theta=1/k_\theta\)</span>: <span class="math inline">\(\theta=C_\theta \tau\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(C_h\)</span>: <span class="math inline">\(V_{\text{stored}}=C_h p\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: left;"><strong>Stiffness (inverse C)</strong></td>
@@ -535,11 +1038,11 @@ Note
 </tr>
 <tr class="odd">
 <td style="text-align: left;"><strong>Inductance (I-type)</strong></td>
-<td style="text-align: left;"><span class="math inline">\(L_g\)</span>: <span class="math inline">\(V_g=L_g\dot{B}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(L_g\)</span>: <span class="math inline">\(V_g=L_g\frac{d\dot{m}}{dt}\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(L\)</span>: <span class="math inline">\(V=L\dot{I}\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(m\)</span>: <span class="math inline">\(F=m\dot{v}\)</span></td>
 <td style="text-align: left;"><span class="math inline">\(J\)</span>: <span class="math inline">\(\tau=J\dot{\omega}\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(I_h\)</span>: <span class="math inline">\(\Delta p=I_h\dot{Q}\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(I_h\)</span>: <span class="math inline">\(p=I_h\dot{Q}\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: left;"><strong>C-state</strong> (<span class="math inline">\(\int f\,dt\)</span>)</td>
@@ -4259,13 +4762,411 @@ Pazy, A. 1983. <em>Semigroups of Linear Operators and Applications to Partial Di
 <div id="ref-Reed_Simon_1980" class="csl-entry" role="listitem">
 Reed, M., and B. Simon. 1980. <em>Functional Analysis</em>. Vol. 1. Methods of Modern Mathematical Physics. Academic Press.
 </div>
-</div></section></div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
 
-<!-- QMD_CONTENT_END -->
-    </div>
 
-    <footer>
-        <p>&copy; 2026 Cole Prather. All rights reserved.</p>
-    </footer>
-</body>
-</html>
+
+
+</body></html>
