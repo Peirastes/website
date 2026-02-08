@@ -32,15 +32,15 @@ def extract_content(html: str) -> str:
     # Replace only the corresponding </header> (first one after title-block)
     main_content = main_content.replace('</header>', '</div>', 1)
 
-    # Wrap TOC + main in the quarto-content container for proper layout
+    # Include TOC alongside main content with simple layout (no Quarto grid)
     if toc_match:
         toc_html = toc_match.group(1).strip()
         return (
-            '<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">\n'
+            '<div id="quarto-toc-sidebar">\n'
             + toc_html + '\n'
-            + '<div class="content" id="quarto-document-content">\n'
-            + main_content + '\n'
             + '</div>\n'
+            + '<div id="quarto-document-content">\n'
+            + main_content + '\n'
             + '</div>'
         )
     else:
