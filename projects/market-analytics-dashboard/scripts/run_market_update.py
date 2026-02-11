@@ -159,9 +159,15 @@ def git_commit_and_push():
         # Change to website root for git operations
         os.chdir(WEBSITE_ROOT)
 
-        # Check if there are changes to commit
+        # Check if there are changes to commit (assets, dist, or logs)
+        paths_to_stage = [
+            "projects/market-analytics-dashboard/assets/",
+            "projects/market-analytics-dashboard/dist/market_data.json",
+            "projects/market-analytics-dashboard/dist/intel_briefs.json",
+            "projects/market-analytics-dashboard/logs/",
+        ]
         status_result = subprocess.run(
-            ["git", "status", "--porcelain", "projects/market-analytics-dashboard/assets/"],
+            ["git", "status", "--porcelain", "--"] + paths_to_stage,
             capture_output=True,
             text=True,
             timeout=30
@@ -171,9 +177,9 @@ def git_commit_and_push():
             logger.info("No changes to commit")
             return True
 
-        # Stage the assets
+        # Stage assets, dist data files, and logs
         subprocess.run(
-            ["git", "add", "projects/market-analytics-dashboard/assets/"],
+            ["git", "add", "--"] + paths_to_stage,
             check=True,
             timeout=30
         )
