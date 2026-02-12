@@ -14,6 +14,8 @@ set "PDF_OUT=%ROOT%on-dynamical-systems.pdf"
 set "TEMPLATE=%WEBSITE%\projects\on-dynamical-systems.html"
 set "INJECTOR=%WEBSITE%\documents\inject.py"
 set "PY=C:\Users\Cole\anaconda3\envs\anims\python.exe"
+set "HIDE_CSS=%ROOT%hide-wip.css"
+set "HIDE_LUA=%ROOT%hide-wip.lua"
 
 echo.
 echo ===== Dynamical Systems Build Pipeline =====
@@ -59,6 +61,16 @@ if errorlevel 1 (
 )
 echo      HTML rendered successfully.
 
+REM Step 1b: Hide WIP chapters in standalone HTML via CSS injection
+echo [1b/5] Hiding work-in-progress chapters in HTML...
+%PY% -c "import sys,pathlib; css=pathlib.Path(sys.argv[2]).read_text(encoding='utf-8'); html=pathlib.Path(sys.argv[1]); t=html.read_text(encoding='utf-8'); t=t.replace('</head>','<style>'+css+'</style>\n</head>',1); html.write_text(t,encoding='utf-8')" "%HTML_OUT%" "%HIDE_CSS%"
+if errorlevel 1 (
+    echo ERROR: CSS injection failed
+    pause
+    exit /b 1
+)
+echo      WIP chapters hidden.
+
 REM Step 2: Rewrite paths for website context
 REM The template lives at projects/on-dynamical-systems.html
 REM The _files folder is at projects/dynamical-systems/on-dynamical-systems_files/
@@ -84,7 +96,7 @@ echo      Content injected successfully.
 
 REM Step 4: Render PDF (using xelatex for Unicode support)
 echo [4/5] Rendering QMD to PDF...
-quarto render "%QMD_FILE%" --to pdf --pdf-engine xelatex
+quarto render "%QMD_FILE%" --to pdf --pdf-engine xelatex --lua-filter "%HIDE_LUA%"
 if errorlevel 1 (
     echo ERROR: Quarto PDF render failed
     echo      Note: PDF generation requires LaTeX with xelatex
