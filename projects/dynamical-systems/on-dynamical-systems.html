@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Cole Prather">
-<meta name="dcterms.date" content="2026-02-11">
+<meta name="dcterms.date" content="2026-02-13">
 
 <title>Describing the Structure of Dynamical Systems</title>
 <style>
@@ -200,7 +200,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 11, 2026</p>
+      <p class="date">February 13, 2026</p>
     </div>
   </div>
   
@@ -958,41 +958,45 @@ Note
 <p>The constitutive relation closes the system by expressing the flux <span class="math inline">\(\mathbf{J}\)</span> in terms of the state:</p>
 <p><span class="math display">\[\mathbf{J} = \underbrace{\text{Response}}_{\text{intrinsic}} \times \underbrace{\text{Drive}}_{\text{extrinsic}}\]</span></p>
 <p>In the simplest (linear, isotropic) case, this is literal multiplication: a material coefficient times a gradient. The gradient operator <span class="math inline">\(\nabla\)</span> measures the direction and rate of steepest increase of the field variable — again, purely geometric. What makes the constitutive relation material-specific is the coefficient that multiplies it. More generally, the “Response” may be a tensor, a nonlinear function, or an operator with memory — but the structural pattern remains.</p>
-<p>Substituting the constitutive relation into the conservation law yields an evolution equation — the field-level analog of <span class="math inline">\(F = ma\)</span> or <span class="math inline">\(V = IR\)</span>. The combined operator that emerges — divergence of (material coefficient times gradient) — <em>is</em> the intrinsic operator <span class="math inline">\(\mathcal{L}_\theta\)</span> of Part VI. The sections below demonstrate this pattern across five physical domains.</p>
+<p>Substituting the constitutive relation into the conservation law closes the system. In the simplest case — a linear, isotropic constitutive law <span class="math inline">\(\mathbf{J} = -\alpha \nabla u\)</span> — the substitution yields:</p>
+<p><span class="math display">\[\frac{\partial u}{\partial t} = \alpha \nabla^2 u + S\]</span></p>
+<p>where <span class="math inline">\(\nabla^2 = \nabla \cdot \nabla\)</span> is the <strong>Laplacian</strong> — the divergence of the gradient. The Laplacian at a point measures how much <span class="math inline">\(u\)</span> there deviates from the average of its immediate surroundings: it is positive where <span class="math inline">\(u\)</span> sits in a local valley (lower than its neighbors) and negative where <span class="math inline">\(u\)</span> sits on a local peak. Multiplied by the material coefficient <span class="math inline">\(\alpha\)</span>, it tells the system how fast to equalize these spatial imbalances. The combined operator <span class="math inline">\(\alpha \nabla^2\)</span> <em>is</em> the intrinsic operator <span class="math inline">\(\mathcal{L}_\theta\)</span> of Part VI.</p>
+<p>The sections below demonstrate how this two-step procedure produces the specific evolution equation for each physical domain.</p>
 </section>
 <section id="heat-conduction" class="level2" data-number="7.2">
 <h2 data-number="7.2" class="anchored" data-anchor-id="heat-conduction"><span class="header-section-number">7.2</span> Heat Conduction</h2>
-<p><strong>Conserved quantity:</strong> thermal energy</p>
-<p>Conservation of thermal energy in its most fundamental form states that the rate of change of energy density <span class="math inline">\(e\)</span> at a point equals the net heat flux into that point, plus any local sources:</p>
+<p>A hot iron bar left in a cool room gradually equilibrates. Heat flows from regions of high temperature to regions of low — but <em>how fast</em> depends on the material. Copper equilibrates in seconds; ceramic takes minutes. The two-step construction produces the evolution equation governing this process.</p>
+<p><strong>Conservation of energy.</strong> In its most fundamental form, thermal energy conservation states that the rate of change of energy density <span class="math inline">\(e\)</span> at a point equals the net heat flux into that point, plus any local sources:</p>
 <p><span class="math display">\[\frac{\partial e}{\partial t} + \nabla \cdot \mathbf{q} = Q\]</span></p>
-<p>This equation is pure bookkeeping — no material properties appear. It holds for copper, water, air, or anything else. To rewrite it in terms of the measurable quantity <em>temperature</em>, one needs the relationship <span class="math inline">\(de = \rho c_p \, dT\)</span>, where <span class="math inline">\(\rho\)</span> is mass density and <span class="math inline">\(c_p\)</span> is specific heat capacity — both material-dependent. This substitution yields the more familiar form:</p>
-<p><strong>Conservation of energy (in terms of temperature):</strong> <span class="math display">\[\rho c_p \frac{\partial T}{\partial t} + \nabla \cdot \mathbf{q} = Q\]</span></p>
-<p>which has already absorbed one piece of material identity — how efficiently a substance stores thermal energy — into the conservation side.</p>
-<p>What the conservation law still does not specify is <em>how</em> heat flows. That is the job of the constitutive relation.</p>
+<p>This equation is pure bookkeeping — no material properties appear. It holds for copper, water, air, or anything else. To rewrite it in terms of the measurable quantity <em>temperature</em>, one needs <span class="math inline">\(de = \rho c_p \, dT\)</span>, where <span class="math inline">\(\rho\)</span> is mass density and <span class="math inline">\(c_p\)</span> is specific heat capacity — both material-dependent. This yields:</p>
+<p><span class="math display">\[\rho c_p \frac{\partial T}{\partial t} + \nabla \cdot \mathbf{q} = Q\]</span></p>
+<p>which has already absorbed one piece of material identity — how efficiently a substance stores thermal energy — into the conservation side. What the equation still does not specify is <em>how</em> heat flows. That is the job of the constitutive relation.</p>
 <p><strong>Constitutive relation (Fourier’s Law):</strong> <span class="math display">\[\mathbf{q} = -k\nabla T\]</span></p>
 <p>Heat flux flows down the temperature gradient. The thermal conductivity <span class="math inline">\(k\)</span> is the <em>response</em>; the temperature gradient <span class="math inline">\(\nabla T\)</span> is the <em>drive</em>. The negative sign ensures flux flows from hot to cold.</p>
-<p>Substituting Fourier’s Law into the conservation equation replaces <span class="math inline">\(\mathbf{q}\)</span> with <span class="math inline">\(-k\nabla T\)</span>, yielding <span class="math inline">\(\nabla \cdot (k \nabla T)\)</span>. For a homogeneous material (<span class="math inline">\(k\)</span> constant), this simplifies to <span class="math inline">\(k \nabla^2 T\)</span>, where <span class="math inline">\(\nabla^2 = \nabla \cdot \nabla\)</span> is the Laplacian — the divergence of the gradient. The Laplacian is a purely geometric operator; the material coefficient <span class="math inline">\(k\)</span> scales it. This combined operator <span class="math inline">\(k\nabla^2\)</span> <em>is</em> the intrinsic operator <span class="math inline">\(\mathcal{L}_\theta\)</span> for heat conduction.</p>
+<p>Substituting Fourier’s Law into the conservation equation replaces <span class="math inline">\(\mathbf{q}\)</span> with <span class="math inline">\(-k\nabla T\)</span>, yielding <span class="math inline">\(\nabla \cdot (k \nabla T)\)</span>. For a homogeneous material (<span class="math inline">\(k\)</span> constant), this simplifies to <span class="math inline">\(k \nabla^2 T\)</span> — the intrinsic operator <span class="math inline">\(\mathcal{L}_\theta\)</span> for heat conduction.</p>
 <p><strong>Evolution equation (Heat equation):</strong> <span class="math display">\[\frac{\partial T}{\partial t} = \alpha \nabla^2 T + \frac{Q}{\rho c_p}\]</span></p>
 <p>where <span class="math inline">\(\alpha = k/(\rho c_p)\)</span> is <strong>thermal diffusivity</strong> [m²/s] — a single number that absorbs all of the material’s intrinsic thermal properties.</p>
-<p><strong>Intrinsic:</strong> <span class="math inline">\(\alpha\)</span> (thermal diffusivity — how readily the material conducts heat) <strong>Extrinsic:</strong> <span class="math inline">\(Q\)</span> (heat sources), boundary temperatures</p>
+<p><strong>Conserved quantity:</strong> thermal energy</p>
+<p><strong>Intrinsic:</strong> <span class="math inline">\(\alpha\)</span> (thermal diffusivity — how readily the material conducts heat)</p>
+<p><strong>Extrinsic:</strong> <span class="math inline">\(Q\)</span> (heat sources), boundary temperatures</p>
 </section>
 <section id="mass-diffusion" class="level2" data-number="7.3">
 <h2 data-number="7.3" class="anchored" data-anchor-id="mass-diffusion"><span class="header-section-number">7.3</span> Mass Diffusion</h2>
-<p><strong>Conserved quantity:</strong> mass concentration <span class="math inline">\(c\)</span></p>
 <p>A drop of ink in still water spreads over time. The ink molecules are not pushed by any external force — they wander randomly, colliding with water molecules, and the statistical effect of these collisions is a net flow from regions of high concentration to regions of low concentration.</p>
 <p><strong>Conservation of mass:</strong> <span class="math display">\[\frac{\partial c}{\partial t} + \nabla \cdot \mathbf{J} = S\]</span></p>
-<p>Unlike the heat case, no material conversion is needed here — concentration <span class="math inline">\(c\)</span> is already the natural field variable, and this conservation law is material-independent.</p>
+<p>Unlike the heat case, no material conversion is needed — concentration <span class="math inline">\(c\)</span> is already the natural field variable, and this conservation law is material-independent.</p>
 <p><strong>Constitutive relation (Fick’s Law):</strong> <span class="math display">\[\mathbf{J} = -D\nabla c\]</span></p>
 <p>Mass flux flows down the concentration gradient. The diffusivity <span class="math inline">\(D\)</span> [m²/s] is the <em>response</em> — it measures how easily molecules move through the medium. The concentration gradient <span class="math inline">\(\nabla c\)</span> is the <em>drive</em>. The structure is identical to Fourier’s Law with <span class="math inline">\(D\)</span> playing the role of <span class="math inline">\(k\)</span> and <span class="math inline">\(c\)</span> playing the role of <span class="math inline">\(T\)</span>.</p>
 <p>Substituting into the conservation law yields the same Laplacian structure:</p>
 <p><strong>Evolution equation (Diffusion equation):</strong> <span class="math display">\[\frac{\partial c}{\partial t} = D\nabla^2 c + S\]</span></p>
-<p><strong>Intrinsic:</strong> <span class="math inline">\(D\)</span> (mass diffusivity — how easily molecules move through the medium) <strong>Extrinsic:</strong> <span class="math inline">\(S\)</span> (mass sources), boundary concentrations</p>
-<p>The mathematical identity between the heat equation and the diffusion equation is not a coincidence — it is a consequence of the identical two-step recipe applied to different conserved quantities.</p>
+<p>The heat equation and the diffusion equation share the same mathematical form — a shared structure that the two-step procedure, applied to different conserved quantities, makes explicit.</p>
+<p><strong>Conserved quantity:</strong> mass (concentration <span class="math inline">\(c\)</span>)</p>
+<p><strong>Intrinsic:</strong> <span class="math inline">\(D\)</span> (mass diffusivity — how easily molecules move through the medium)</p>
+<p><strong>Extrinsic:</strong> <span class="math inline">\(S\)</span> (mass sources), boundary concentrations</p>
 </section>
 <section id="charge-transport" class="level2" data-number="7.4">
 <h2 data-number="7.4" class="anchored" data-anchor-id="charge-transport"><span class="header-section-number">7.4</span> Charge Transport</h2>
-<p><strong>Conserved quantity:</strong> electric charge density <span class="math inline">\(\rho_e\)</span></p>
-<p>Electric current is the flow of charge, driven by differences in electric potential — voltage. The pattern is now familiar.</p>
+<p>Apply a voltage across a wire, and current flows. How much current depends on the material: copper carries it freely; glass blocks it almost entirely. The two-step construction applied to charge produces a surprising result — not diffusion, but exponential relaxation.</p>
 <p><strong>Conservation of charge:</strong> <span class="math display">\[\frac{\partial \rho_e}{\partial t} + \nabla \cdot \mathbf{J} = 0\]</span></p>
 <p>Charge is strictly conserved — there are no sources or sinks (unlike heat, which can be generated internally). The right-hand side is zero.</p>
 <p><strong>Constitutive relation (Ohm’s Law):</strong> <span class="math display">\[\mathbf{J} = \sigma \mathbf{E} = -\sigma \nabla V\]</span></p>
@@ -1001,13 +1005,14 @@ Note
 <p><span class="math display">\[\frac{\partial \rho_e}{\partial t} = \nabla \cdot (\sigma \nabla V)\]</span></p>
 <p>For a homogeneous conductor (<span class="math inline">\(\sigma\)</span> constant), this yields the Laplacian <span class="math inline">\(\sigma \nabla^2 V\)</span> — the same spatial operator as in the heat and diffusion equations. But closing the equation — expressing everything in terms of a single field variable — requires a step with no analog in the previous domains. The conserved quantity <span class="math inline">\(\rho_e\)</span> and the potential <span class="math inline">\(V\)</span> are not related by a simple material conversion (as <span class="math inline">\(e = \rho c_p T\)</span> relates energy density to temperature); instead, they are linked by a second physical law: Gauss’s law, <span class="math inline">\(\nabla^2 V = -\rho_e/\epsilon\)</span>, where <span class="math inline">\(\epsilon\)</span> is the material permittivity. Substituting eliminates <span class="math inline">\(V\)</span>:</p>
 <p><strong>Evolution equation (Charge relaxation):</strong> <span class="math display">\[\frac{\partial \rho_e}{\partial t} = -\frac{\sigma}{\epsilon}\,\rho_e\]</span></p>
-<p>This is <em>not</em> a diffusion equation. Free charge in a conductor decays locally and exponentially, with time constant <span class="math inline">\(\tau = \epsilon/\sigma\)</span>. For copper, <span class="math inline">\(\tau \approx 10^{-19}\)</span> s — charge redistribution is effectively instantaneous. The intrinsic operator is multiplication by <span class="math inline">\(-\sigma/\epsilon\)</span>: the two-step recipe, applied to charge in a conductor, produces exponential relaxation rather than spatial spreading. In the steady-state limit, the conductor interior is charge-free and the potential satisfies Laplace’s equation <span class="math inline">\(\nabla^2 V = 0\)</span> — the same equation governing steady-state temperature.</p>
-<p><strong>Intrinsic:</strong> <span class="math inline">\(\sigma\)</span> (conductivity), <span class="math inline">\(\epsilon\)</span> (permittivity) — together determining the relaxation rate <span class="math inline">\(\sigma/\epsilon\)</span> <strong>Extrinsic:</strong> applied voltages, boundary conditions</p>
+<p>This is <em>not</em> a diffusion equation. Free charge in a conductor decays locally and exponentially, with time constant <span class="math inline">\(\tau = \epsilon/\sigma\)</span>. For copper, <span class="math inline">\(\tau \approx 10^{-19}\)</span> s — charge redistribution is effectively instantaneous. The intrinsic operator is multiplication by <span class="math inline">\(-\sigma/\epsilon\)</span>: the two-step procedure, applied to charge in a conductor, produces exponential relaxation rather than spatial spreading. In the steady-state limit, the conductor interior is charge-free and the potential satisfies Laplace’s equation <span class="math inline">\(\nabla^2 V = 0\)</span> — the same equation governing steady-state temperature.</p>
+<p><strong>Conserved quantity:</strong> electric charge</p>
+<p><strong>Intrinsic:</strong> <span class="math inline">\(\sigma\)</span> (conductivity), <span class="math inline">\(\epsilon\)</span> (permittivity) — together determining the relaxation rate <span class="math inline">\(\sigma/\epsilon\)</span></p>
+<p><strong>Extrinsic:</strong> applied voltages, boundary conditions</p>
 </section>
 <section id="linear-elasticity" class="level2" data-number="7.5">
 <h2 data-number="7.5" class="anchored" data-anchor-id="linear-elasticity"><span class="header-section-number">7.5</span> Linear Elasticity</h2>
-<p><strong>Conserved quantity:</strong> momentum density <span class="math inline">\(\rho \mathbf{v}\)</span></p>
-<p>The previous three examples all involved scalar fields with constitutive relations of the form “coefficient times gradient.” Elasticity breaks this scalar pattern in two ways: the field variable is a <em>vector</em> (displacement <span class="math inline">\(\mathbf{u}\)</span>), and the constitutive relation links a <em>tensor</em> (stress) to a <em>tensor</em> (strain). The two-step recipe is the same, but the algebra is richer.</p>
+<p>Strike a bell, and it rings. Pluck a guitar string, and it vibrates. Deform any elastic solid, and internal stresses develop that resist the deformation and, if released, drive the material back toward its rest configuration. Unlike the previous three scalar-field examples, elasticity involves a <em>vector</em> field (displacement <span class="math inline">\(\mathbf{u}\)</span>) and a constitutive relation linking a <em>tensor</em> (stress) to a <em>tensor</em> (strain). The two-step pattern is the same, but the algebra is richer.</p>
 <p><strong>Conservation of momentum:</strong> <span class="math display">\[\rho \frac{\partial^2 \mathbf{u}}{\partial t^2} = \nabla \cdot \boldsymbol{\sigma} + \mathbf{f}\]</span></p>
 <p>This is Newton’s Second Law applied to a continuous medium: mass density times acceleration equals the divergence of the internal stress tensor plus external body forces.</p>
 <p><strong>Constitutive relation (Hooke’s Law):</strong> <span class="math display">\[\boldsymbol{\sigma} = \mathbf{C} : \boldsymbol{\varepsilon}\]</span></p>
@@ -1015,19 +1020,22 @@ Note
 <p>Substituting Hooke’s Law into the momentum equation replaces <span class="math inline">\(\boldsymbol{\sigma}\)</span> with <span class="math inline">\(\mathbf{C} : \boldsymbol{\varepsilon}\)</span>. For an isotropic material, the stress-strain relation simplifies to <span class="math inline">\(\boldsymbol{\sigma} = \lambda(\nabla \cdot \mathbf{u})\mathbf{I} + 2\mu\boldsymbol{\varepsilon}\)</span>, and taking the divergence yields <span class="math inline">\((\lambda + \mu)\nabla(\nabla \cdot \mathbf{u}) + \mu\nabla^2\mathbf{u}\)</span>:</p>
 <p><strong>Evolution equation (Navier equation):</strong> <span class="math display">\[\rho \frac{\partial^2 \mathbf{u}}{\partial t^2} = (\lambda + \mu)\nabla(\nabla \cdot \mathbf{u}) + \mu\nabla^2\mathbf{u} + \mathbf{f}\]</span></p>
 <p>The Laplacian reappears — now acting on a vector field. The additional term <span class="math inline">\((\lambda + \mu)\nabla(\nabla \cdot \mathbf{u})\)</span> couples compressional and shear deformations; it vanishes for incompressible materials (<span class="math inline">\(\nabla \cdot \mathbf{u} = 0\)</span>), reducing the equation to a vector wave equation with shear wave speed <span class="math inline">\(c_s = \sqrt{\mu/\rho}\)</span>, structurally identical to the scalar wave equation derived in Part VI.</p>
-<p><strong>Intrinsic:</strong> <span class="math inline">\(\mathbf{C}\)</span> (material stiffness — how strongly the material resists deformation) <strong>Extrinsic:</strong> <span class="math inline">\(\mathbf{f}\)</span> (body forces), boundary loads and displacements</p>
+<p><strong>Conserved quantity:</strong> momentum</p>
+<p><strong>Intrinsic:</strong> <span class="math inline">\(\mathbf{C}\)</span> (material stiffness — how strongly the material resists deformation)</p>
+<p><strong>Extrinsic:</strong> <span class="math inline">\(\mathbf{f}\)</span> (body forces), boundary loads and displacements</p>
 </section>
 <section id="fluid-mechanics" class="level2" data-number="7.6">
 <h2 data-number="7.6" class="anchored" data-anchor-id="fluid-mechanics"><span class="header-section-number">7.6</span> Fluid Mechanics</h2>
-<p><strong>Conserved quantity:</strong> momentum density <span class="math inline">\(\rho \mathbf{v}\)</span></p>
-<p>Like elasticity, fluid mechanics conserves momentum and involves tensor stress. But fluids have a fundamental difference: they resist the <em>rate</em> of deformation, not deformation itself. A solid spring pushes back when stretched; a fluid resists only while it is <em>being</em> deformed.</p>
+<p>Stir honey in a jar, then stop. The motion slows and eventually ceases — the honey’s viscosity bleeds away kinetic energy as heat. Like elasticity, fluid mechanics conserves momentum and involves tensor stress. But fluids resist the <em>rate</em> of deformation, not deformation itself. A solid spring pushes back when stretched; a fluid resists only while it is <em>being</em> deformed.</p>
 <p><strong>Conservation of momentum:</strong> <span class="math display">\[\rho \frac{\partial \mathbf{v}}{\partial t} + \rho(\mathbf{v} \cdot \nabla)\mathbf{v} = \nabla \cdot \boldsymbol{\sigma} + \mathbf{f}\]</span></p>
 <p><strong>Constitutive relation (Newton’s Law of Viscosity):</strong> <span class="math display">\[\boldsymbol{\sigma} = -p\mathbf{I} + \mu\left(\nabla \mathbf{v} + (\nabla \mathbf{v})^T\right)\]</span></p>
 <p>For a Newtonian fluid, viscous stress is proportional to the rate of strain. The dynamic viscosity <span class="math inline">\(\mu\)</span> [Pa·s] is the <em>response</em>; the velocity gradient <span class="math inline">\(\nabla \mathbf{v}\)</span> is the <em>drive</em>.</p>
 <p>Substituting the constitutive relation into the momentum equation and imposing the incompressibility constraint (<span class="math inline">\(\nabla \cdot \mathbf{v} = 0\)</span>) yields:</p>
 <p><strong>Evolution equation (Navier–Stokes, incompressible):</strong> <span class="math display">\[\rho \frac{\partial \mathbf{v}}{\partial t} + \rho(\mathbf{v} \cdot \nabla)\mathbf{v} = -\nabla p + \mu \nabla^2 \mathbf{v} + \mathbf{f}\]</span></p>
 <p>The viscous term <span class="math inline">\(\mu\nabla^2\mathbf{v}\)</span> has the same Laplacian structure found in every preceding domain. Dividing through by <span class="math inline">\(\rho\)</span> isolates the kinematic viscosity <span class="math inline">\(\nu = \mu/\rho\)</span> [m²/s] — the direct fluid analog of thermal diffusivity <span class="math inline">\(\alpha\)</span> and mass diffusivity <span class="math inline">\(D\)</span>. All three carry units of m²/s and play the same mathematical role: they set the rate at which spatial gradients smooth out.</p>
-<p><strong>Intrinsic:</strong> <span class="math inline">\(\mu\)</span> (dynamic viscosity — how strongly the fluid resists shearing), <span class="math inline">\(\rho\)</span> (density) <strong>Extrinsic:</strong> <span class="math inline">\(\mathbf{f}\)</span> (body forces), pressure gradients, boundary velocities</p>
+<p><strong>Conserved quantity:</strong> momentum</p>
+<p><strong>Intrinsic:</strong> <span class="math inline">\(\mu\)</span> (dynamic viscosity — how strongly the fluid resists shearing), <span class="math inline">\(\rho\)</span> (density)</p>
+<p><strong>Extrinsic:</strong> <span class="math inline">\(\mathbf{f}\)</span> (body forces), pressure gradients, boundary velocities</p>
 <div class="callout callout-style-default callout-important callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1046,11 +1054,12 @@ Important
 <h2 data-number="7.7" class="anchored" data-anchor-id="the-pattern-summarized"><span class="header-section-number">7.7</span> The Pattern Summarized</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -1058,6 +1067,7 @@ Important
 <th>Conserved Quantity</th>
 <th>Constitutive Law</th>
 <th>Response (Intrinsic)</th>
+<th>Evolution Coefficient</th>
 <th>Drive (Extrinsic)</th>
 </tr>
 </thead>
@@ -1067,6 +1077,7 @@ Important
 <td>Energy</td>
 <td>Fourier</td>
 <td><span class="math inline">\(k\)</span> (conductivity)</td>
+<td><span class="math inline">\(\alpha = k/\rho c_p\)</span> (thermal diffusivity) [m²/s]</td>
 <td><span class="math inline">\(\nabla T\)</span></td>
 </tr>
 <tr class="even">
@@ -1074,6 +1085,7 @@ Important
 <td>Mass</td>
 <td>Fick</td>
 <td><span class="math inline">\(D\)</span> (diffusivity)</td>
+<td><span class="math inline">\(D\)</span> (mass diffusivity) [m²/s]</td>
 <td><span class="math inline">\(\nabla c\)</span></td>
 </tr>
 <tr class="odd">
@@ -1081,6 +1093,7 @@ Important
 <td>Charge</td>
 <td>Ohm</td>
 <td><span class="math inline">\(\sigma\)</span> (conductivity)</td>
+<td><span class="math inline">\(\sigma/\epsilon\)</span> (charge relaxation rate) [1/s]</td>
 <td><span class="math inline">\(\mathbf{E}\)</span></td>
 </tr>
 <tr class="even">
@@ -1088,6 +1101,7 @@ Important
 <td>Momentum</td>
 <td>Hooke</td>
 <td><span class="math inline">\(\mathbf{C}\)</span> (stiffness)</td>
+<td><span class="math inline">\(c_s^2 = \mu/\rho\)</span> (shear wave speed²) [m²/s²]</td>
 <td><span class="math inline">\(\boldsymbol{\varepsilon}\)</span></td>
 </tr>
 <tr class="odd">
@@ -1095,11 +1109,12 @@ Important
 <td>Momentum</td>
 <td>Newton</td>
 <td><span class="math inline">\(\mu\)</span> (viscosity)</td>
+<td><span class="math inline">\(\nu = \mu/\rho\)</span> (kinematic viscosity) [m²/s]</td>
 <td><span class="math inline">\(\nabla \mathbf{v}\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>The conservation law is always the same abstract statement: “the rate of change equals the net inflow plus sources.” What distinguishes one field from another is the constitutive relation — the specific form of the Response × Drive product. The material coefficient (conductivity, diffusivity, stiffness, viscosity) encodes the system’s intrinsic character; the gradient or field encodes the extrinsic drive.</p>
+<p>The conservation law is always the same abstract statement: “the rate of change equals the net inflow plus sources.” What distinguishes one field from another is the constitutive relation — the specific form of the Response × Drive product. The material coefficient (conductivity, diffusivity, stiffness, viscosity) encodes the system’s intrinsic character; the gradient or field encodes the extrinsic drive. The evolution coefficient — obtained by combining the constitutive parameter with material density or capacity — is the quantity that actually governs the dynamics. For heat, diffusion, and fluids, this coefficient carries units of m²/s and sets the rate at which spatial gradients smooth out; for electricity it is a relaxation rate; for elasticity it is a squared wave speed.</p>
 <hr>
 </section>
 </section>
@@ -1107,7 +1122,7 @@ Important
 <h1 data-number="8"><span class="header-section-number">8</span> Part VIII: Spectral Geometry and the State Manifold</h1>
 <section id="from-fields-to-geometry" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="from-fields-to-geometry"><span class="header-section-number">8.1</span> From Fields to Geometry</h2>
-<p>Part VII showed that a two-step recipe — conservation law plus constitutive relation — produces evolution equations across every physical domain. But what is the nature of the mathematical object that evolves? In Part I, a mass or charge was a single object with a position and velocity. In Part VI, we generalized to chains of <span class="math inline">\(n\)</span> coupled oscillators described by a state vector <span class="math inline">\(\mathbf{z} \in \mathbb{R}^{2n}\)</span>, then passed to the continuum limit, where the state became an entire field <span class="math inline">\(u(x,t)\)</span> — a function defined over space. At each instant, the “state” of a heat-conducting rod is not a number but a <em>temperature profile</em>: a point in an infinite-dimensional function space.</p>
+<p>Part VII showed that a two-step construction — conservation law plus constitutive relation — produces evolution equations across every physical domain. But what is the nature of the mathematical object that evolves? In Part I, a mass or charge was a single object with a position and velocity. In Part VI, we generalized to chains of <span class="math inline">\(n\)</span> coupled oscillators described by a state vector <span class="math inline">\(\mathbf{z} \in \mathbb{R}^{2n}\)</span>, then passed to the continuum limit, where the state became an entire field <span class="math inline">\(u(x,t)\)</span> — a function defined over space. At each instant, the “state” of a heat-conducting rod is not a number but a <em>temperature profile</em>: a point in an infinite-dimensional function space.</p>
 <p>This section makes that picture rigorous and extracts its geometric content. The key insight: every concept from finite-dimensional dynamical systems — state spaces, trajectories, stability, invariant structures — survives the passage to infinite dimensions. A PDE is the same mathematics as an ODE, on a larger stage.</p>
 </section>
 <section id="the-state-manifold" class="level2" data-number="8.2">
