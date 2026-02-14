@@ -872,6 +872,7 @@ def load_volcanic_activity(cache_dir: Path) -> dict:
                 if start_date_raw and len(str(start_date_raw)) >= 8:
                     sd = str(start_date_raw)
                     start_date = f"{sd[:4]}-{sd[4:6]}-{sd[6:8]}"
+                vei = props.get("ExplosivityIndexMax")
                 if lat is not None and lon is not None:
                     entry = {
                         "name": name,
@@ -882,6 +883,8 @@ def load_volcanic_activity(cache_dir: Path) -> dict:
                     }
                     if start_date:
                         entry["start_date"] = start_date
+                    if vei is not None:
+                        entry["vei"] = int(vei)
                     current_volcanoes.append(entry)
             source = "Smithsonian GVP"
             print(f"      GVP WFS: {len(current_volcanoes)} continuing eruptions")

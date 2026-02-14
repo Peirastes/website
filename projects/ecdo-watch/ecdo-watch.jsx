@@ -733,6 +733,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           vName: v.name,
           vStatus: v.status,
           vStartDate: v.start_date || null,
+          vVei: v.vei != null ? v.vei : null,
         });
       });
     }
@@ -821,6 +822,36 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     }
 
+    // Add rings around volcanoes — intensity from VEI, speed from recency
+    if (volcData && volcData.current_volcanoes) {
+      const now = Date.now();
+      volcData.current_volcanoes.forEach(v => {
+        const vei = v.vei != null ? v.vei : 1;
+        // Recency: days since eruption started (capped at 10 years)
+        let daysSinceStart = 3650;
+        if (v.start_date) {
+          const sd = new Date(v.start_date);
+          if (!isNaN(sd)) daysSinceStart = Math.max(1, (now - sd) / 86400000);
+        }
+        // Recency factor: 1.0 for today, decays toward 0.15 for very old eruptions
+        const recency = Math.max(0.15, 1.0 - Math.log10(daysSinceStart) / Math.log10(3650));
+        // Ring size: VEI 0→0.8, VEI 2→1.6, VEI 4→2.8, VEI 7→4.6
+        const maxR = 0.8 + vei * 0.55;
+        // Pulse faster for recent eruptions
+        const repeatPeriod = Math.round(1000 + (1 - recency) * 3000);
+        // Brighter for recent, dimmer for old
+        const alpha = (0.25 + recency * 0.45).toFixed(2);
+        ringsData.push({
+          lat: v.lat,
+          lng: v.lon,
+          maxR,
+          propagationSpeed: 0.6 + recency * 0.8,
+          repeatPeriod,
+          color: `rgba(239, 68, 68, ${alpha})`,
+        });
+      });
+    }
+
     globe
       .ringsData(ringsData)
       .ringLat('lat')
@@ -903,6 +934,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 <>
                   <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#e8e8ed', marginBottom: 4 }}>{d.vName}</div>
                   <div style={{ color: '#a8a8bc' }}>Status: <span style={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', fontSize: 10 }}>{d.vStatus || 'active'}</span></div>
+                  {d.vVei != null && <div style={{ color: '#a8a8bc' }}>VEI: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vVei}</span></div>}
                   {d.vStartDate && <div style={{ color: '#a8a8bc' }}>Eruption start: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vStartDate}</span></div>}
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
                 </>
