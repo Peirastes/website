@@ -53,6 +53,9 @@ GSFC_C20_LONG_TERM = "https://earth.gsfc.nasa.gov/sites/default/files/geo/gsfc_s
 USGS_GEOMAG_WS = "https://geomag.usgs.gov/ws/data/"
 INTERMAGNET_HAPI = "https://imag-data.bgs.ac.uk/GIN_V1/hapi/data"
 WDC_MAGNETOMETER = "https://www.ngdc.noaa.gov/products/data-access-system/data/datasets/earth-magnetic-field/"
+USGS_EQ_FDSN = "https://earthquake.usgs.gov/fdsnws/event/1/query"
+USGS_VHAP_ACTIVITY = "https://volcanoes.usgs.gov/hans-public/api/volcano/activityReport"
+GVP_WFS_ERUPTIONS = "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/wfs"
 
 # INTERMAGNET station codes (map USGS codes to INTERMAGNET equivalents)
 INTERMAGNET_STATIONS = {
@@ -564,9 +567,358 @@ def load_usgs_mag_timeseries_H(station: str, start: datetime, end: datetime) -> 
     return df.sort_values("timestamp").reset_index(drop=True) if not df.empty else df
 
 # -------------------------
+# Haversine helper
+# -------------------------
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in km between two lat/lon points."""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+# -------------------------
+# Deep Seismicity
+# -------------------------
+def load_usgs_deep_seismicity(cache_dir: Path, years: int = 10) -> pd.DataFrame:
+    """Fetch deep earthquakes (>300km, M>=4.5) from USGS FDSN and aggregate to daily.
+
+    Uses cached history file + live update for recent 30 days.
+    """
+    history_file = cache_dir / "deep_eq_history.csv"
+    now = utcnow()
+
+    # Load existing history
+    history = pd.DataFrame()
+    if history_file.exists():
+        try:
+            history = pd.read_csv(history_file, parse_dates=["date"])
+            history["date"] = pd.to_datetime(history["date"]).dt.tz_localize(None)
+            print(f"    Loaded {len(history)} days of deep EQ history")
+        except Exception as e:
+            print(f"    Warning: Could not load deep EQ history: {e}")
+
+    # Determine what we need to fetch
+    if history.empty:
+        # Fetch full history in yearly chunks
+        fetch_start = now - timedelta(days=years * 365)
+        chunks = []
+        current = fetch_start
+        while current < now:
+            chunk_end = min(current + timedelta(days=365), now)
+            try:
+                url = (
+                    f"{USGS_EQ_FDSN}?format=geojson"
+                    f"&mindepth=300&minmagnitude=4.5"
+                    f"&starttime={current.strftime('%Y-%m-%d')}"
+                    f"&endtime={chunk_end.strftime('%Y-%m-%d')}"
+                    f"&orderby=time"
+                )
+                print(f"      Fetching deep EQ {current.strftime('%Y-%m-%d')} to {chunk_end.strftime('%Y-%m-%d')}...")
+                data = fetch_json(url, timeout_s=60, max_retries=2)
+                if data and "features" in data:
+                    chunks.extend(data["features"])
+                    print(f"        {len(data['features'])} events")
+            except Exception as e:
+                print(f"        Warning: Chunk failed: {type(e).__name__}")
+            current = chunk_end
+        events = chunks
+    else:
+        # Only fetch last 30 days to update
+        fetch_start = now - timedelta(days=30)
+        url = (
+            f"{USGS_EQ_FDSN}?format=geojson"
+            f"&mindepth=300&minmagnitude=4.5"
+            f"&starttime={fetch_start.strftime('%Y-%m-%d')}"
+            f"&endtime={now.strftime('%Y-%m-%d')}"
+            f"&orderby=time"
+        )
+        data = fetch_json(url, timeout_s=60, max_retries=3)
+        events = data.get("features", []) if data else []
+        print(f"      Fetched {len(events)} recent deep EQ events")
+
+    # Parse events into rows
+    event_rows = []
+    for feat in events:
+        props = feat.get("properties", {})
+        geom = feat.get("geometry", {})
+        coords = geom.get("coordinates", [None, None, None])
+        mag = props.get("mag")
+        event_time = props.get("time")
+        if mag is None or event_time is None or len(coords) < 3:
+            continue
+        try:
+            dt = datetime.fromtimestamp(event_time / 1000, tz=timezone.utc)
+            event_rows.append({
+                "date": dt.strftime("%Y-%m-%d"),
+                "mag": float(mag),
+                "depth_km": float(coords[2]),
+                "lat": float(coords[1]),
+                "lon": float(coords[0]),
+            })
+        except Exception:
+            continue
+
+    if not event_rows:
+        if not history.empty:
+            return history
+        return pd.DataFrame(columns=["date", "eq_count", "energy_log10", "max_magnitude", "mean_depth_km"])
+
+    events_df = pd.DataFrame(event_rows)
+    events_df["date_dt"] = pd.to_datetime(events_df["date"])
+    # Energy: 10^(1.5*M + 4.8) joules
+    events_df["energy"] = 10 ** (1.5 * events_df["mag"] + 4.8)
+
+    # Aggregate daily
+    daily = events_df.groupby("date").agg(
+        eq_count=("mag", "size"),
+        energy_sum=("energy", "sum"),
+        max_magnitude=("mag", "max"),
+        mean_depth_km=("depth_km", "mean"),
+    ).reset_index()
+    daily["energy_log10"] = np.log10(daily["energy_sum"])
+    daily["date"] = pd.to_datetime(daily["date"])
+    daily = daily.drop(columns=["energy_sum"])
+
+    # Compute spatial dispersion per day
+    dispersions = []
+    for d, group in events_df.groupby("date"):
+        if len(group) < 2:
+            dispersions.append({"date": pd.to_datetime(d), "dispersion_km": 0.0})
+        else:
+            dists = []
+            lats = group["lat"].tolist()
+            lons = group["lon"].tolist()
+            for i in range(len(lats)):
+                for j in range(i + 1, len(lats)):
+                    dists.append(haversine_km(lats[i], lons[i], lats[j], lons[j]))
+            dispersions.append({"date": pd.to_datetime(d), "dispersion_km": np.std(dists) if dists else 0.0})
+    disp_df = pd.DataFrame(dispersions)
+    daily = pd.merge(daily, disp_df, on="date", how="left")
+
+    # Merge with existing history (prefer new data for overlapping dates)
+    if not history.empty:
+        history["date"] = pd.to_datetime(history["date"])
+        combined = pd.concat([history, daily], ignore_index=True)
+        combined = combined.sort_values("date").drop_duplicates(subset=["date"], keep="last")
+        daily = combined.reset_index(drop=True)
+
+    # Fill missing days with zeros
+    full_range = pd.date_range(daily["date"].min(), now.replace(tzinfo=None), freq="D")
+    daily = daily.set_index("date").reindex(full_range).rename_axis("date").reset_index()
+    daily["eq_count"] = daily["eq_count"].fillna(0).astype(int)
+
+    # Save history
+    daily.to_csv(history_file, index=False, date_format="%Y-%m-%d")
+    print(f"    Saved {len(daily)} days of deep EQ history")
+
+    return daily
+
+
+def generate_deep_seismicity_json(daily: pd.DataFrame, days: int = 90) -> dict:
+    """Generate JSON output for deep seismicity channel."""
+    if daily.empty:
+        return {"labels": [], "eq_count": [], "energy_log10": [], "max_magnitude": [],
+                "mean_depth_km": [], "z_eq_count": [], "z_energy": [], "rolling_30d_count": []}
+
+    # Compute z-scores on full history, then slice
+    daily = daily.copy()
+    daily["z_eq_count"] = robust_zscore(daily["eq_count"].astype(float), window=180)
+    daily["z_energy"] = robust_zscore(daily["energy_log10"], window=180)
+    daily["rolling_30d_count"] = daily["eq_count"].rolling(30, min_periods=1).mean()
+
+    # Slice to requested window
+    subset = daily.tail(days).copy()
+
+    return {
+        "labels": subset["date"].dt.strftime("%Y-%m-%d").tolist(),
+        "eq_count": subset["eq_count"].tolist(),
+        "energy_log10": [round(v, 2) if pd.notna(v) else None for v in subset["energy_log10"]],
+        "max_magnitude": [round(v, 1) if pd.notna(v) else None for v in subset["max_magnitude"]],
+        "mean_depth_km": [round(v, 0) if pd.notna(v) else None for v in subset["mean_depth_km"]],
+        "z_eq_count": [round(v, 4) if pd.notna(v) else None for v in subset["z_eq_count"]],
+        "z_energy": [round(v, 4) if pd.notna(v) else None for v in subset["z_energy"]],
+        "rolling_30d_count": [round(v, 2) if pd.notna(v) else None for v in subset["rolling_30d_count"]],
+    }
+
+
+# -------------------------
+# Volcanic Activity
+# -------------------------
+def load_volcanic_activity(cache_dir: Path) -> dict:
+    """Fetch current volcanic activity from USGS VHAP API with GVP fallback.
+
+    Returns dict with current_volcanoes list and historical weekly snapshots.
+    """
+    history_file = cache_dir / "volcanic_history.csv"
+    cache_file = cache_dir / "volcanic_activity_cache.json"
+    now = utcnow()
+
+    # Load existing weekly history
+    history = pd.DataFrame()
+    if history_file.exists():
+        try:
+            history = pd.read_csv(history_file, parse_dates=["date"])
+            history["date"] = pd.to_datetime(history["date"]).dt.tz_localize(None)
+            print(f"    Loaded {len(history)} weeks of volcanic history")
+        except Exception as e:
+            print(f"    Warning: Could not load volcanic history: {e}")
+
+    # Check cache (7-day)
+    current_volcanoes = []
+    source = "none"
+
+    if cache_file.exists():
+        mtime = datetime.fromtimestamp(cache_file.stat().st_mtime, tz=timezone.utc)
+        age_h = (now - mtime).total_seconds() / 3600.0
+        if age_h <= 168.0:  # 7 days
+            try:
+                cached = json.loads(cache_file.read_text(encoding="utf-8"))
+                current_volcanoes = cached.get("volcanoes", [])
+                source = cached.get("source", "cache")
+                print(f"    Using cached volcanic data ({age_h:.0f}h old, {len(current_volcanoes)} volcanoes)")
+                # Still need to append new weekly snapshot if needed
+                if not history.empty:
+                    latest_date = history["date"].max()
+                    if (now.replace(tzinfo=None) - latest_date).days < 7:
+                        return {"current_volcanoes": current_volcanoes, "history": history, "source": source}
+            except Exception:
+                pass
+
+    # Primary: Smithsonian GVP WFS (continuing eruptions)
+    if not current_volcanoes:
+        try:
+            print("    Trying Smithsonian GVP WFS API...")
+            url = (
+                f"{GVP_WFS_ERUPTIONS}?service=WFS&version=1.1.0"
+                f"&request=GetFeature&typeName=GVP-VOTW:E3WebApp_Eruptions1960"
+                f"&outputFormat=application%2Fjson&maxFeatures=200"
+                f"&CQL_FILTER=ContinuingEruption=%27True%27"
+            )
+            data = fetch_json(url, timeout_s=60, max_retries=3)
+            features = data.get("features", [])
+            for feat in features:
+                props = feat.get("properties", {})
+                name = props.get("VolcanoName", "Unknown")
+                lat = props.get("LatitudeDecimal")
+                lon = props.get("LongitudeDecimal")
+                if lat is not None and lon is not None:
+                    current_volcanoes.append({
+                        "name": name,
+                        "lat": float(lat),
+                        "lon": float(lon),
+                        "status": "erupting",
+                        "alert": "CONTINUING",
+                    })
+            source = "Smithsonian GVP"
+            print(f"      GVP WFS: {len(current_volcanoes)} continuing eruptions")
+        except Exception as e:
+            print(f"      GVP WFS failed: {type(e).__name__}: {str(e)[:100]}")
+
+    # Fallback: USGS VHAP API
+    if not current_volcanoes:
+        try:
+            print("    Trying USGS VHAP API...")
+            data = fetch_json(USGS_VHAP_ACTIVITY, timeout_s=30, max_retries=2)
+            if isinstance(data, list):
+                for entry in data:
+                    name = entry.get("volcanoName") or entry.get("name", "Unknown")
+                    lat = entry.get("latitude") or entry.get("lat")
+                    lon = entry.get("longitude") or entry.get("lon")
+                    if lat is not None and lon is not None:
+                        current_volcanoes.append({
+                            "name": name, "lat": float(lat), "lon": float(lon),
+                            "status": "elevated", "alert": "UNKNOWN",
+                        })
+                source = "USGS VHAP"
+                print(f"      USGS VHAP: {len(current_volcanoes)} volcanoes")
+        except Exception as e:
+            print(f"      USGS VHAP failed: {type(e).__name__}")
+
+    # Cache result
+    if current_volcanoes:
+        ensure_dir(cache_file.parent)
+        cache_file.write_text(json.dumps({"volcanoes": current_volcanoes, "source": source}), encoding="utf-8")
+
+    # Count eruptions started in last 90 days (truly "new")
+    new_eruption_count = 0
+    if source == "Smithsonian GVP":
+        try:
+            cutoff_date = (now - timedelta(days=90)).strftime("%Y%m%d")
+            url_recent = (
+                f"{GVP_WFS_ERUPTIONS}?service=WFS&version=1.1.0"
+                f"&request=GetFeature&typeName=GVP-VOTW:E3WebApp_Eruptions1960"
+                f"&outputFormat=application%2Fjson&maxFeatures=100"
+                f"&CQL_FILTER=StartDate>='{cutoff_date}'"
+            )
+            recent_data = fetch_json(url_recent, timeout_s=30, max_retries=2)
+            new_eruption_count = len(recent_data.get("features", []))
+            print(f"      New eruptions (last 90d): {new_eruption_count}")
+        except Exception:
+            pass
+
+    # Compute dispersion
+    dispersion_km = 0.0
+    if len(current_volcanoes) >= 2:
+        valid = [v for v in current_volcanoes if v["lat"] != 0 or v["lon"] != 0]
+        if len(valid) >= 2:
+            dists = []
+            for i in range(len(valid)):
+                for j in range(i + 1, len(valid)):
+                    dists.append(haversine_km(valid[i]["lat"], valid[i]["lon"], valid[j]["lat"], valid[j]["lon"]))
+            dispersion_km = np.mean(dists) if dists else 0.0
+
+    # Append weekly snapshot
+    new_row = pd.DataFrame([{
+        "date": now.replace(tzinfo=None),
+        "active_count": len(current_volcanoes),
+        "new_eruptions": new_eruption_count,
+        "dispersion_km": round(dispersion_km, 0),
+    }])
+
+    if history.empty:
+        history = new_row
+    else:
+        history = pd.concat([history, new_row], ignore_index=True)
+        history = history.sort_values("date").drop_duplicates(subset=["date"], keep="last").reset_index(drop=True)
+
+    # Save history
+    history.to_csv(history_file, index=False, date_format="%Y-%m-%d")
+    print(f"    Saved {len(history)} weeks of volcanic history")
+
+    return {"current_volcanoes": current_volcanoes, "history": history, "source": source}
+
+
+def generate_volcanic_activity_json(volcanic_data: dict) -> dict:
+    """Generate JSON output for volcanic activity channel."""
+    history = volcanic_data.get("history", pd.DataFrame())
+    current = volcanic_data.get("current_volcanoes", [])
+    source = volcanic_data.get("source", "unknown")
+
+    if history.empty:
+        return {
+            "labels": [], "active_count": [], "new_eruptions": [],
+            "dispersion_km": [], "z_active_count": [], "current_volcanoes": [],
+        }
+
+    history = history.copy()
+    history["z_active_count"] = robust_zscore(history["active_count"].astype(float), window=max(20, len(history) // 3))
+
+    return {
+        "labels": history["date"].dt.strftime("%Y-%m-%d").tolist(),
+        "active_count": history["active_count"].tolist(),
+        "new_eruptions": history["new_eruptions"].tolist(),
+        "dispersion_km": [round(v, 0) if pd.notna(v) else None for v in history["dispersion_km"]],
+        "z_active_count": [round(v, 4) if pd.notna(v) else None for v in history["z_active_count"]],
+        "current_volcanoes": current[:50],  # Cap at 50 for JSON size
+    }
+
+
+# -------------------------
 # Main Script
 # -------------------------
-def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, eop_baseline=None, lod_json=None, mag_json=None):
+def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, eop_baseline=None, lod_json=None, mag_json=None, deep_eq_daily=None):
     """Generate JSON files for multiple time ranges."""
     time_ranges = {
         "30d": 30,
@@ -643,6 +995,12 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
                         composite.append(0)
                 mag_range_json["composite"] = composite
                 results[f"mag_{range_name}"] = mag_range_json
+
+        # Deep seismicity data
+        if deep_eq_daily is not None and not deep_eq_daily.empty:
+            seis_json = generate_deep_seismicity_json(deep_eq_daily, days=days)
+            if seis_json["labels"]:
+                results[f"seis_{range_name}"] = seis_json
 
     return results
 
@@ -1111,17 +1469,44 @@ def main():
     else:
         print("    WARNING: No magnetometer data available")
 
-    # 6. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
+    # 6. Deep Seismicity (mantle stress proxy)
+    print("  Fetching deep seismicity data...")
+    deep_eq_daily = pd.DataFrame()
+    try:
+        deep_eq_daily = load_usgs_deep_seismicity(cache_dir, years=10)
+        if not deep_eq_daily.empty:
+            seis_json = generate_deep_seismicity_json(deep_eq_daily, days=90)
+            seis_json = add_metadata(seis_json, "USGS FDSN (deep EQ)", source_status="ok")
+            (assets_dir / "deep_seismicity_data.json").write_text(json.dumps(seis_json))
+            print(f"    [OK] deep_seismicity_data.json ({len(seis_json['labels'])} days)")
+        else:
+            print("    Warning: No deep seismicity data")
+    except Exception as e:
+        print(f"    Warning: Deep seismicity fetch failed: {e}")
+
+    # 7. Volcanic Activity (global eruptions)
+    print("  Fetching volcanic activity data...")
+    try:
+        volcanic_data = load_volcanic_activity(cache_dir)
+        volc_json = generate_volcanic_activity_json(volcanic_data)
+        volc_json = add_metadata(volc_json, volcanic_data.get("source", "USGS VHAP / Smithsonian GVP"), source_status="ok" if volcanic_data.get("current_volcanoes") else "failed")
+        (assets_dir / "volcanic_activity_data.json").write_text(json.dumps(volc_json))
+        n_volc = len(volcanic_data.get("current_volcanoes", []))
+        print(f"    [OK] volcanic_activity_data.json ({n_volc} active volcanoes)")
+    except Exception as e:
+        print(f"    Warning: Volcanic activity fetch failed: {e}")
+
+    # 8. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
     # Pass eop_baseline (with z-scores) for proper EOP data in time ranges
-    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, eop_baseline=eop_baseline, lod_json=lod_json, mag_json=mag_json)
+    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, eop_baseline=eop_baseline, lod_json=lod_json, mag_json=mag_json, deep_eq_daily=deep_eq_daily)
 
     for dataset_name, dataset in time_range_data.items():
         filepath = assets_dir / f"{dataset_name}.json"
         filepath.write_text(json.dumps(dataset))
         print(f"    [OK] {dataset_name}.json")
 
-    # 7. Cross-channel coherence analysis
+    # 9. Cross-channel coherence analysis
     print("  Computing cross-channel coherence...")
     try:
         _generate_coherence_data(assets_dir, eop_baseline, mag_history, kp_history, now)

@@ -140,7 +140,26 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       coherenceData = cohRes.ok ? await cohRes.json() : null;
     } catch { /* ignore */ }
 
-    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData, coherenceData };
+    // Fetch deep seismicity data
+    let seisData = null;
+    try {
+      const seisRes = await fetch(`./assets/seis_${timeRange}.json`);
+      if (seisRes.ok) {
+        seisData = await seisRes.json();
+      } else {
+        const seisFallback = await fetch('./assets/deep_seismicity_data.json');
+        seisData = seisFallback.ok ? await seisFallback.json() : null;
+      }
+    } catch { /* ignore */ }
+
+    // Fetch volcanic activity data
+    let volcData = null;
+    try {
+      const volcRes = await fetch('./assets/volcanic_activity_data.json');
+      volcData = volcRes.ok ? await volcRes.json() : null;
+    } catch { /* ignore */ }
+
+    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData, coherenceData, seisData, volcData };
   } catch (error) {
     console.warn('Could not load real data, using fallback:', error);
     return null;
@@ -369,6 +388,8 @@ const StatusBanner = ({ level }) => {
                 <li>Earth Orientation (LOD) - Rotational dynamics</li>
                 <li>Ground Magnetometer - Multi-station magnetic field anomalies</li>
                 <li>Cross-channel Coherence - Correlated signals across independent systems</li>
+                <li>Deep Seismicity - Mantle stress via deep earthquakes (&gt;300km)</li>
+                <li>Volcanic Activity - Global eruption monitoring and dispersion</li>
               </ul>
             </div>
             <button
@@ -653,6 +674,8 @@ function ECDOWatchDashboard() {
   const [aaData, setAaData] = useState(() => generateHistoricalAA(historicalTimeRange));
   const [pmData, setPmData] = useState(() => generateHistoricalPM(historicalTimeRange));
   const [coherenceData, setCoherenceData] = useState(null);
+  const [seisData, setSeisData] = useState(null);
+  const [volcData, setVolcData] = useState(null);
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
@@ -672,6 +695,8 @@ function ECDOWatchDashboard() {
         setPmData(data.pmData);
         setMagData(data.magData);
         if (data.coherenceData) setCoherenceData(data.coherenceData);
+        if (data.seisData) setSeisData(data.seisData);
+        if (data.volcData) setVolcData(data.volcData);
 
         // Extract and store metadata
         setKpMetadata(data.kpData.metadata || {});
@@ -1191,6 +1216,216 @@ function ECDOWatchDashboard() {
             )}
           </Card>
           
+          {/* Step 6: Deep Seismicity */}
+          <Card step={6} title="Deep Seismicity (Mantle Stress)" status={(() => {
+            if (!seisData || !seisData.z_eq_count) return 'NOMINAL';
+            const recent = seisData.z_eq_count.slice(-14).filter(v => v != null);
+            const maxZ = recent.length > 0 ? Math.max(...recent.map(v => Math.abs(v))) : 0;
+            return maxZ >= 2.5 ? 'ELEVATED' : 'NOMINAL';
+          })()} info={{
+            description: "Deep earthquakes (>300km depth, M≥4.5) occur in subducting slabs and reflect mantle stress. Unlike shallow seismicity driven by plate tectonics, deep seismicity is a proxy for mantle-scale dynamics. ECDO theory predicts increased deep mantle activity before a tau point.",
+            lookingFor: [
+              "Elevated daily deep EQ count above historical baseline (z > 2.5)",
+              "Increased energy release (log10 energy trending upward)",
+              "High spatial dispersion (globally distributed, not localized)",
+              "Sustained anomalies over weeks, not isolated daily spikes"
+            ],
+            dataSource: "USGS FDSN Earthquake Catalog (real-time, mindepth=300km, minmag=4.5)"
+          }}>
+            {seisData && seisData.labels && seisData.labels.length > 0 ? (
+              <>
+                <div style={{ height: 160 }}>
+                  <ChartComponent
+                    type="line"
+                    height={160}
+                    data={{
+                      labels: seisData.labels,
+                      datasets: [
+                        {
+                          label: 'Daily deep EQ count',
+                          data: seisData.eq_count,
+                          borderColor: '#8b5cf6',
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                          fill: true,
+                          borderWidth: 1.5,
+                          tension: 0.3,
+                          pointRadius: 0,
+                        },
+                        {
+                          label: '30d rolling avg',
+                          data: seisData.rolling_30d_count,
+                          borderColor: '#ffffff',
+                          borderWidth: 2,
+                          borderDash: [5, 3],
+                          tension: 0.3,
+                          pointRadius: 0,
+                        }
+                      ]
+                    }}
+                    options={{
+                      ...darkThemeOptions,
+                      plugins: {
+                        ...darkThemeOptions.plugins,
+                        legend: {
+                          display: true,
+                          position: 'top',
+                          labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
+                        }
+                      },
+                      scales: {
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
+                        y: { ...darkThemeOptions.scales.y, title: { display: true, text: 'events/day', color: '#7a7a8c', font: { size: 10 } } }
+                      }
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <Metric
+                    label="EQ Count (30d avg)"
+                    value={(() => {
+                      const arr = seisData.rolling_30d_count || [];
+                      const v = arr[arr.length - 1];
+                      return v != null ? v.toFixed(1) : "—";
+                    })()}
+                    status="positive"
+                  />
+                  <Metric
+                    label="Max z (14d)"
+                    value={(() => {
+                      const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null);
+                      return arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))).toFixed(2) : "—";
+                    })()}
+                    status={(() => {
+                      const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null);
+                      const maxZ = arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))) : 0;
+                      return maxZ >= 2.5 ? "warning" : "positive";
+                    })()}
+                  />
+                  <Metric
+                    label="Energy (30d log10)"
+                    value={(() => {
+                      const arr = (seisData.energy_log10 || []).slice(-30).filter(v => v != null);
+                      if (arr.length === 0) return "—";
+                      return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1);
+                    })()}
+                    status="positive"
+                  />
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
+                Deep seismicity data not yet available. Run the data pipeline to generate.
+              </div>
+            )}
+          </Card>
+
+          {/* Step 7: Volcanic Activity */}
+          <Card step={7} title="Volcanic Activity (Global Eruptions)" status={(() => {
+            if (!volcData || !volcData.z_active_count) return 'NOMINAL';
+            const recent = volcData.z_active_count.filter(v => v != null);
+            const latest = recent.length > 0 ? recent[recent.length - 1] : 0;
+            return Math.abs(latest) >= 2.0 ? 'ELEVATED' : 'NOMINAL';
+          })()} info={{
+            description: "ECDO theory predicts synchronized volcanic activation in geographically distant regions. An increase in simultaneously active volcanoes and high geographic dispersion suggests mantle-wide stress propagation rather than localized tectonics.",
+            lookingFor: [
+              "Increased number of simultaneously active volcanoes (z > 2.0)",
+              "High geographic dispersion (>8000km mean pairwise distance)",
+              "Simultaneous eruptions in geographically distant regions",
+              "Temporal clustering of new eruptions within weeks"
+            ],
+            dataSource: "USGS Volcano Hazards Program / Smithsonian GVP (weekly updates)"
+          }}>
+            {volcData && volcData.labels && volcData.labels.length > 0 ? (
+              <>
+                <div style={{ height: 160 }}>
+                  <ChartComponent
+                    type="bar"
+                    height={160}
+                    data={{
+                      labels: volcData.labels,
+                      datasets: [{
+                        label: 'Active volcanoes',
+                        data: volcData.active_count,
+                        backgroundColor: volcData.z_active_count
+                          ? volcData.z_active_count.map(z => z != null && Math.abs(z) >= 2.0 ? '#ef4444' : '#f59e0b')
+                          : '#f59e0b',
+                        borderRadius: 2,
+                      }]
+                    }}
+                    options={{
+                      ...darkThemeOptions,
+                      plugins: {
+                        ...darkThemeOptions.plugins,
+                        legend: { display: false }
+                      },
+                      scales: {
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
+                        y: { ...darkThemeOptions.scales.y, beginAtZero: true, title: { display: true, text: 'active count', color: '#7a7a8c', font: { size: 10 } } }
+                      }
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <Metric
+                    label="Active Volcanoes"
+                    value={(() => {
+                      const arr = volcData.active_count || [];
+                      return arr.length > 0 ? arr[arr.length - 1] : "—";
+                    })()}
+                    status="positive"
+                  />
+                  <Metric
+                    label="New Eruptions (30d)"
+                    value={(() => {
+                      const arr = volcData.new_eruptions || [];
+                      return arr.length > 0 ? arr[arr.length - 1] : "—";
+                    })()}
+                    status={(() => {
+                      const arr = volcData.new_eruptions || [];
+                      const v = arr.length > 0 ? arr[arr.length - 1] : 0;
+                      return v >= 3 ? "warning" : "positive";
+                    })()}
+                  />
+                  <Metric
+                    label="Dispersion (km)"
+                    value={(() => {
+                      const arr = volcData.dispersion_km || [];
+                      const v = arr.length > 0 ? arr[arr.length - 1] : null;
+                      return v != null ? Math.round(v).toLocaleString() : "—";
+                    })()}
+                    status="positive"
+                  />
+                </div>
+                {volcData.current_volcanoes && volcData.current_volcanoes.length > 0 && (
+                  <div style={{ marginTop: 12, padding: 12, background: '#16161f', borderRadius: 6, fontSize: 11, color: '#a8a8bc', maxHeight: 120, overflowY: 'auto' }}>
+                    <strong style={{ color: '#e8e8ed', display: 'block', marginBottom: 6 }}>Currently active:</strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {volcData.current_volcanoes.slice(0, 20).map((v, idx) => (
+                        <span key={idx} style={{
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          fontSize: 10,
+                          background: v.status === 'erupting' ? 'rgba(239,68,68,0.2)' : v.status === 'elevated' ? 'rgba(245,158,11,0.2)' : 'rgba(107,114,128,0.2)',
+                          color: v.status === 'erupting' ? '#ef4444' : v.status === 'elevated' ? '#f59e0b' : '#7a7a8c',
+                          border: `1px solid ${v.status === 'erupting' ? '#ef4444' : v.status === 'elevated' ? '#f59e0b' : '#4a4a5c'}`,
+                        }}>
+                          {v.name}
+                        </span>
+                      ))}
+                      {volcData.current_volcanoes.length > 20 && (
+                        <span style={{ color: '#7a7a8c', fontSize: 10, alignSelf: 'center' }}>+{volcData.current_volcanoes.length - 20} more</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
+                Volcanic activity data not yet available. Run the data pipeline to generate.
+              </div>
+            )}
+          </Card>
+
           {/* Historical Section */}
           <Card title="📊 Century-Scale Historical Context">
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
