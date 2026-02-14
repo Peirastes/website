@@ -651,18 +651,20 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
     globeInstanceRef.current = globe;
 
-    // Handle resize
-    const handleResize = () => {
+    // Use ResizeObserver to track container size changes (grid layout, window resize)
+    const ro = new ResizeObserver(() => {
       if (globeInstanceRef.current && globeContainerRef.current) {
         const w = globeContainerRef.current.clientWidth;
-        const h = globeContainerRef.current.clientHeight || Math.max(400, w * 0.75);
-        globeInstanceRef.current.width(w).height(h);
+        const h = globeContainerRef.current.clientHeight;
+        if (w > 0 && h > 0) {
+          globeInstanceRef.current.width(w).height(h);
+        }
       }
-    };
-    window.addEventListener('resize', handleResize);
+    });
+    ro.observe(container);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      ro.disconnect();
     };
   }, []);
 
