@@ -4,6 +4,16 @@
 
 const { useState, useEffect, useRef } = React;
 
+const useWindowWidth = () => {
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  return width;
+};
+
 // Fallback synthetic data if JSON files not available
 const generateKpData = () => {
   const data = [];
@@ -305,128 +315,6 @@ const DataSourceFooter = ({ kpMetadata, lodMetadata, magMetadata }) => {
   );
 };
 
-const StatusBanner = ({ level }) => {
-  const [showInfo, setShowInfo] = React.useState(false);
-
-  const statusInfo = {
-    NOMINAL: {
-      color: '#10b981',
-      text: 'All parameters within historical bounds',
-      description: 'All monitored geophysical signals (Kp, LOD, magnetometer) are within their normal historical ranges. No anomalies detected across monitoring channels.'
-    },
-    ELEVATED_DIAGNOSTIC: {
-      color: '#f59e0b',
-      text: 'Single-channel anomaly detected',
-      description: 'One monitoring channel has detected a statistical anomaly (±2.5σ or greater). This may represent normal variability or the beginning of a multi-channel event. Continued monitoring recommended.'
-    },
-    WATCH: {
-      color: '#ef4444',
-      text: 'Multi-channel coherent anomaly',
-      description: 'Multiple independent geophysical channels are showing correlated anomalies. This indicates a potential system-wide geophysical perturbation and warrants close observation.'
-    },
-  };
-
-  const c = statusInfo[level] || statusInfo.NOMINAL;
-
-  return (
-    <>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#0f0f15', border: '1px solid #252532', borderLeft: '4px solid ' + c.color,
-        borderRadius: 10, padding: '16px 20px', marginBottom: 16, flexWrap: 'wrap', gap: 16
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 12, height: 12, borderRadius: '50%', background: c.color,
-            animation: 'pulse 2s infinite'
-          }} />
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontFamily: 'monospace', fontSize: 18, margin: 0, color: '#e8e8ed' }}>{level}</h2>
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                onMouseEnter={() => setShowInfo(true)}
-                onMouseLeave={() => setShowInfo(false)}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #7a7a8c',
-                  color: '#7a7a8c',
-                  borderRadius: '50%',
-                  width: 20,
-                  height: 20,
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.borderColor = c.color;
-                  e.target.style.color = c.color;
-                  setShowInfo(true);
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.borderColor = '#7a7a8c';
-                  e.target.style.color = '#7a7a8c';
-                  setShowInfo(false);
-                }}
-              >
-                i
-              </button>
-            </div>
-            <p style={{ fontSize: 13, color: '#7a7a8c', margin: 0 }}>{c.text}</p>
-          </div>
-        </div>
-        <div style={{ fontSize: 11, color: '#7a7a8c', maxWidth: 280, textAlign: 'right' }}>
-          ⚠️ Experimental analysis tool, NOT a prediction system
-        </div>
-      </div>
-
-      {showInfo && (
-        <div style={{
-          background: '#16161f', border: '1px solid ' + c.color, borderRadius: 10,
-          padding: 16, marginBottom: 16, fontSize: 13, color: '#e8e8ed',
-          borderLeft: '4px solid ' + c.color
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-            <div>
-              <strong style={{ color: c.color }}>What does this mean?</strong>
-              <p style={{ margin: '8px 0 0 0', color: '#a8a8bc' }}>{c.description}</p>
-
-              <strong style={{ color: c.color, display: 'block', marginTop: 12 }}>What we monitor:</strong>
-              <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
-                <li>External Forcing (Kp index) - Solar wind energy coupling</li>
-                <li>Earth Orientation (LOD) - Rotational dynamics</li>
-                <li>Ground Magnetometer - Multi-station magnetic field anomalies</li>
-                <li>Cross-channel Coherence - Correlated signals across independent systems</li>
-                <li>Deep Seismicity - Mantle stress via deep earthquakes (&gt;300km)</li>
-                <li>Volcanic Activity - Global eruption monitoring and dispersion</li>
-              </ul>
-            </div>
-            <button
-              onClick={() => setShowInfo(false)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#7a7a8c',
-                fontSize: 18,
-                cursor: 'pointer',
-                padding: 0,
-                minWidth: 20
-              }}
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-};
-
 const Card = ({ step, title, status, children, info }) => {
   const [showInfo, setShowInfo] = React.useState(false);
   const statusColors = {
@@ -546,6 +434,51 @@ const Metric = ({ label, value, status }) => {
     <div style={{ flex: 1, minWidth: 70, background: '#16161f', borderRadius: 6, padding: '10px 12px' }}>
       <div style={{ fontSize: 10, color: '#7a7a8c', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
       <div style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 600, color: colors[status] || '#e8e8ed' }}>{value}</div>
+    </div>
+  );
+};
+
+const CompactCard = ({ step, title, status, subtitle, children }) => {
+  const statusColors = {
+    OPEN: '#10b981', NOMINAL: '#10b981', OK: '#10b981',
+    CLOSED: '#ef4444', SUPPRESSED: '#ef4444',
+    ELEVATED: '#f59e0b',
+  };
+
+  return (
+    <div style={{
+      background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, overflow: 'hidden'
+    }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '6px 10px', borderBottom: '1px solid #252532', background: '#16161f',
+        minHeight: 32,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          {step && <span style={{
+            fontFamily: 'monospace', fontSize: 9, color: '#7a7a8c',
+            background: '#252532', padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+          }}>S{step}</span>}
+          <h3 style={{ fontSize: 12, fontWeight: 600, margin: 0, color: '#e8e8ed', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</h3>
+          {subtitle && <span style={{ fontSize: 9, color: '#7a7a8c', whiteSpace: 'nowrap', flexShrink: 0 }}>{subtitle}</span>}
+        </div>
+        <span style={{
+          fontFamily: 'monospace', fontSize: 9, fontWeight: 600,
+          padding: '2px 6px', borderRadius: 3, textTransform: 'uppercase', flexShrink: 0,
+          background: (statusColors[status] || '#6b7280') + '22', color: statusColors[status] || '#6b7280'
+        }}>{status}</span>
+      </div>
+      <div style={{ padding: 10 }}>{children}</div>
+    </div>
+  );
+};
+
+const CompactMetric = ({ label, value, status }) => {
+  const colors = { positive: '#10b981', negative: '#ef4444', warning: '#f59e0b' };
+  return (
+    <div style={{ flex: 1, minWidth: 55, background: '#16161f', borderRadius: 4, padding: '5px 7px' }}>
+      <div style={{ fontSize: 8, color: '#7a7a8c', textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: colors[status] || '#e8e8ed' }}>{value}</div>
     </div>
   );
 };
@@ -1013,6 +946,9 @@ function ECDOWatchDashboard() {
   const [seismicEvents, setSeismicEvents] = useState(null);
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
+  const [showStatusInfo, setShowStatusInfo] = useState(false);
+  const [historicalExpanded, setHistoricalExpanded] = useState(false);
+  const width = useWindowWidth();
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
   const [kpMetadata, setKpMetadata] = useState({});
   const [lodMetadata, setLodMetadata] = useState({});
@@ -1094,82 +1030,109 @@ function ECDOWatchDashboard() {
     }
   }, [compositeMetrics, coherenceData]);
 
+  // Compute layout values
+  const statusColorMap = { NOMINAL: '#10b981', ELEVATED_DIAGNOSTIC: '#f59e0b', WATCH: '#ef4444' };
+  const statusColor = statusColorMap[statusLevel] || '#10b981';
+  const gridCols4 = width >= 1000 ? 'repeat(4, 1fr)' : width >= 600 ? 'repeat(2, 1fr)' : '1fr';
+  const gridCols3 = width >= 1000 ? 'repeat(3, 1fr)' : width >= 600 ? 'repeat(2, 1fr)' : '1fr';
+
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <style dangerouslySetInnerHTML={{__html: '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }'}} />
-      
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
-        {/* Header */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid #252532', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>🌍 ECDO Watch</h1>
-            <p style={{ color: '#7a7a8c', fontSize: 13, margin: 0 }}>Falsification-first geophysics monitor • Tau Point approach detection</p>
-          </div>
-          <div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: '#7a7a8c', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Range</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {['30d', '90d', '1y', '5y', '10y'].map(range => (
-                  <button
-                    key={range}
-                    onClick={() => setSelectedTimeRange(range)}
-                    style={{
-                      background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
-                      border: '1px solid #252532',
-                      color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
-                      padding: '4px 10px',
-                      borderRadius: 4,
-                      fontSize: 10,
-                      fontFamily: 'monospace',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    {range}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ marginBottom: 8 }}>
-                <DataFreshnessIndicator metadata={kpMetadata} />
-              </div>
-              <div style={{ fontSize: 11 }}>
-                <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none' }}>
-                  ECDO Theory
-                </a>
-              </div>
-            </div>
-          </div>
-        </header>
 
-        <StatusBanner level={statusLevel} />
-        
-        {/* Main Stack */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          
-          {/* Step 1: Gate */}
-          <Card step={1} title="External Forcing Gate (Kp Index)" status="OPEN" info={{
-            description: "The Kp (planetary K-index) measures solar wind energy input to Earth's magnetosphere. High Kp values indicate strong geomagnetic storms driven by external solar forcing. This step acts as a 'gate' to distinguish internal Earth dynamics from external solar influences.",
-            lookingFor: [
-              "Kp ≤ 4 on most days (quiet geomagnetic conditions)",
-              "Low Dst values (< -50 nT indicates suppressed disturbance)",
-              "Absence of sustained high-amplitude fluctuations",
-              "When gate is OPEN: Internal anomalies are more meaningful"
-            ],
-            dataSource: "NOAA SWPC (3-hour Kp) and GFZ (daily historical records since 1932)"
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
+
+        {/* Row 1: Merged Header Bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: '#0f0f15', border: '1px solid #252532',
+          borderLeft: `4px solid ${statusColor}`,
+          borderRadius: 8, padding: '8px 16px', marginBottom: 12,
+          flexWrap: 'wrap', gap: 8, minHeight: 50,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>ECDO Watch</h1>
+            <div style={{
+              width: 10, height: 10, borderRadius: '50%', background: statusColor,
+              animation: 'pulse 2s infinite', flexShrink: 0,
+            }} />
+            <span style={{ fontFamily: 'monospace', fontSize: 12, color: statusColor, fontWeight: 600 }}>{statusLevel}</span>
+            <button
+              onClick={() => setShowStatusInfo(!showStatusInfo)}
+              style={{
+                background: 'transparent', border: '1px solid #7a7a8c', color: '#7a7a8c',
+                borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 'bold',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0, transition: 'all 0.2s ease', flexShrink: 0,
+              }}
+            >i</button>
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['30d', '90d', '1y', '5y', '10y'].map(range => (
+              <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
+                background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
+                border: '1px solid #252532',
+                color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
+                padding: '2px 8px', borderRadius: 3, fontSize: 9,
+                fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
+              }}>
+                {range}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <DataFreshnessIndicator metadata={kpMetadata} />
+            <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', fontSize: 10 }}>
+              ECDO Theory
+            </a>
+          </div>
+        </div>
+
+        {/* Status info expandable panel */}
+        {showStatusInfo && (
+          <div style={{
+            background: '#16161f', border: `1px solid ${statusColor}`, borderRadius: 8,
+            padding: 16, marginBottom: 12, fontSize: 13, color: '#e8e8ed',
+            borderLeft: `4px solid ${statusColor}`,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 16, background: '#16161f', borderRadius: 6, marginBottom: 12 }}>
-              <span style={{ fontSize: 32 }}>🛡️</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
               <div>
-                <div style={{ color: '#10b981', fontFamily: 'monospace', fontSize: 14, fontWeight: 600 }}>GATE OPEN</div>
-                <div style={{ color: '#7a7a8c', fontSize: 11 }}>Internal inference allowed</div>
+                <strong style={{ color: statusColor }}>What does this mean?</strong>
+                <p style={{ margin: '8px 0 0 0', color: '#a8a8bc' }}>
+                  {statusLevel === 'WATCH' ? 'Multiple independent geophysical channels are showing correlated anomalies. This indicates a potential system-wide geophysical perturbation and warrants close observation.' :
+                   statusLevel === 'ELEVATED_DIAGNOSTIC' ? 'One monitoring channel has detected a statistical anomaly. This may represent normal variability or the beginning of a multi-channel event.' :
+                   'All monitored geophysical signals are within their normal historical ranges. No anomalies detected.'}
+                </p>
+                <strong style={{ color: statusColor, display: 'block', marginTop: 12 }}>What we monitor:</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
+                  <li>External Forcing (Kp index) - Solar wind energy coupling</li>
+                  <li>Earth Orientation (LOD) - Rotational dynamics</li>
+                  <li>Ground Magnetometer - Multi-station magnetic field anomalies</li>
+                  <li>Cross-channel Coherence - Correlated signals across independent systems</li>
+                  <li>Deep Seismicity - Mantle stress via deep earthquakes (&gt;300km)</li>
+                  <li>Volcanic Activity - Global eruption monitoring and dispersion</li>
+                </ul>
+                <div style={{ marginTop: 8, fontSize: 11, color: '#7a7a8c' }}>
+                  Experimental analysis tool, NOT a prediction system
+                </div>
               </div>
+              <button onClick={() => setShowStatusInfo(false)} style={{
+                background: 'transparent', border: 'none', color: '#7a7a8c',
+                fontSize: 18, cursor: 'pointer', padding: 0, minWidth: 20,
+              }}>&#215;</button>
             </div>
-            <div style={{ height: 120 }}>
+          </div>
+        )}
+
+        {/* Row 2: Monitoring Panels - 4 column grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: gridCols4, gap: 12, marginBottom: 12 }}>
+
+          {/* S1: Kp Gate */}
+          <CompactCard step={1} title="Kp Gate" status="OPEN">
+            <div style={{ height: 80 }}>
               <ChartComponent
                 type="line"
-                height={120}
+                height={80}
                 quietFlags={alignedData.kpData.is_quiet}
                 data={{
                   labels: alignedData.kpData.labels,
@@ -1179,50 +1142,39 @@ function ECDOWatchDashboard() {
                     backgroundColor: 'rgba(74, 158, 255, 0.1)',
                     fill: true,
                     tension: 0.3,
-                    pointRadius: 0
+                    pointRadius: 0,
                   }]
                 }}
                 options={{
                   ...darkThemeOptions,
                   scales: {
-                    ...darkThemeOptions.scales,
-                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y }
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
                   }
                 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <Metric label="Kp Max" value="2.3" status="positive" />
-              <Metric label="Dst" value="-12 nT" status="positive" />
-              <Metric
-                label="Quiet Days"
-                value={kpData && kpData.is_quiet ? `${kpData.is_quiet.filter(x => x).length}/${kpData.is_quiet.length}` : "—"}
+            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+              <CompactMetric label="Kp Max" value="2.3" status="positive" />
+              <CompactMetric label="Dst" value="-12 nT" status="positive" />
+              <CompactMetric
+                label="Quiet"
+                value={kpData && kpData.is_quiet ? `${kpData.is_quiet.filter(x => x).length}/${kpData.is_quiet.length}` : "\u2014"}
                 status="positive"
               />
             </div>
-          </Card>
-          
-          {/* Step 2: EOP */}
-          <Card step={2} title="Earth Orientation (LOD + Polar Motion)" status="NOMINAL" info={{
-            description: "Earth Orientation Parameters track variations in Earth's rotation rate (LOD) and polar motion speed. Changes reflect mass redistribution and angular momentum exchange within Earth's core, mantle, and atmosphere. The EOP composite combines both channels: max(|z_LOD|, |z_PM_speed|).",
-            lookingFor: [
-              "LOD anomalies within ±2 milliseconds (normal range)",
-              "Low z-score values (< 2σ from 10-year baseline)",
-              "Smooth seasonal variation pattern",
-              "Coherent spikes in both LOD and polar motion suggest internal perturbations"
-            ],
-            dataSource: "IERS (International Earth Rotation Service) finals2000A all-time CSV"
-          }}>
-            <div style={{ height: 160 }}>
+          </CompactCard>
+
+          {/* S2: EOP / LOD */}
+          <CompactCard step={2} title="EOP / LOD" status="NOMINAL">
+            <div style={{ height: 100 }}>
               <ChartComponent
                 type="line"
-                height={160}
+                height={100}
                 data={{
                   labels: lodData.labels || [],
                   datasets: [
                     {
-                      label: 'z(LOD)',
                       data: lodData.z_lod || [],
                       borderColor: '#4a9eff',
                       borderWidth: 1.5,
@@ -1230,7 +1182,6 @@ function ECDOWatchDashboard() {
                       pointRadius: 0,
                     },
                     {
-                      label: 'z(PM speed)',
                       data: lodData.z_pm_speed || [],
                       borderColor: '#f59e0b',
                       borderWidth: 1.5,
@@ -1238,7 +1189,6 @@ function ECDOWatchDashboard() {
                       pointRadius: 0,
                     },
                     {
-                      label: 'EOP composite',
                       data: lodData.eop_composite || [],
                       borderColor: '#ffffff',
                       borderWidth: 2,
@@ -1249,226 +1199,187 @@ function ECDOWatchDashboard() {
                 }}
                 options={{
                   ...darkThemeOptions,
-                  plugins: {
-                    ...darkThemeOptions.plugins,
-                    legend: {
-                      display: true,
-                      position: 'top',
-                      labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
-                    }
-                  },
                   scales: {
-                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y, title: { display: true, text: 'z-score', color: '#7a7a8c', font: { size: 10 } } }
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
                   }
                 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric
+            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+              <CompactMetric
                 label="LOD z"
-                value={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "—"; })()}
+                value={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}
                 status={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
               />
-              <Metric
-                label="PM Speed z"
-                value={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "—"; })()}
+              <CompactMetric
+                label="PM z"
+                value={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}
                 status={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
               />
-              <Metric
-                label="EOP Composite"
-                value={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "—"; })()}
+              <CompactMetric
+                label="EOP"
+                value={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}
                 status={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
               />
             </div>
-          </Card>
-          
-          {/* Step 3: C20 */}
-          <Card step={3} title="Mass Distribution (C20)" status="OK" info={{
-            description: "C20 (degree-2, order-0 spherical harmonic coefficient) represents Earth's oblateness and mass distribution. Changes in C20 reflect deep mass movements in the core-mantle system and glacial isostatic adjustment (GIA). This is a slow-changing but highly significant indicator of internal Earth structure.",
-            lookingFor: [
-              "C20 trending within GIA predictions (accounting for post-glacial rebound)",
-              "Z-score anomalies isolated to this channel (not corroborated by faster channels)",
-              "This is a confirmatory (lagged) channel, not a leading indicator",
-              "Large deviations from GIA model suggest unusual deep mantle activity"
-            ],
-            dataSource: "NASA GSFC SLR (Satellite Laser Ranging) long-term C20 record"
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#16161f', borderRadius: 6, marginBottom: 12, fontSize: 11, color: '#7a7a8c' }}>
-              📡 C20 data: <strong style={{ color: '#e8e8ed' }}>{c20Data && c20Data.labels ? `${c20Data.labels.length} days` : 'Loading...'}</strong>
-            </div>
+          </CompactCard>
+
+          {/* S4: Magnetometer (visual order: after EOP) */}
+          <CompactCard step={4} title="Magnetometer" status="NOMINAL">
             <div style={{ height: 100 }}>
               <ChartComponent
                 type="line"
                 height={100}
+                data={{
+                  labels: alignedData.magData.labels,
+                  datasets: [
+                    {
+                      data: alignedData.magData.bou,
+                      borderColor: 'rgba(74, 158, 255, 0.15)',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    },
+                    {
+                      data: alignedData.magData.frd,
+                      borderColor: 'rgba(245, 158, 11, 0.15)',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    },
+                    {
+                      data: alignedData.magData.brw,
+                      borderColor: 'rgba(16, 185, 129, 0.15)',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    },
+                    {
+                      data: alignedData.magData.hon,
+                      borderColor: 'rgba(139, 92, 246, 0.15)',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    },
+                    {
+                      data: alignedData.magData.composite,
+                      borderColor: '#ffffff',
+                      borderWidth: 2,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    }
+                  ]
+                }}
+                options={{
+                  ...darkThemeOptions,
+                  scales: {
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                  }
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+              <CompactMetric label="Comp z" value={compositeMetrics.z} status={Math.abs(parseFloat(compositeMetrics.z)) >= 2.5 ? "negative" : "positive"} />
+              <CompactMetric label="Max 14d" value={compositeMetrics.maxZ} status={compositeMetrics.flag ? "warning" : "positive"} />
+              <CompactMetric label="Flag" value={compositeMetrics.flag ? "\u26a0" : "\u2713"} status={compositeMetrics.flag ? "warning" : "positive"} />
+            </div>
+          </CompactCard>
+
+          {/* S3: C20 */}
+          <CompactCard step={3} title="C20 Mass" status="OK" subtitle={c20Data && c20Data.labels ? `${c20Data.labels.length}d` : ''}>
+            <div style={{ height: 80 }}>
+              <ChartComponent
+                type="line"
+                height={80}
                 data={{
                   labels: c20Data && c20Data.labels ? c20Data.labels : [],
                   datasets: [{
                     data: c20Data && c20Data.data ? c20Data.data : [],
                     borderColor: '#10b981',
                     tension: 0.3,
-                    pointRadius: 0
+                    pointRadius: 0,
                   }]
                 }}
                 options={{
                   ...darkThemeOptions,
                   scales: {
-                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y }
+                    x: { ...darkThemeOptions.scales.x, display: false },
+                    y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
                   }
                 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="C20 z (recent)" value={c20Data && c20Data.data && c20Data.data.length > 0 && c20Data.data[c20Data.data.length - 1] !== null ? c20Data.data[c20Data.data.length - 1].toFixed(2) : "—"} status="positive" />
-              <Metric label="vs GIA" value="Normal" status="positive" />
+            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+              <CompactMetric label="C20 z" value={c20Data && c20Data.data && c20Data.data.length > 0 && c20Data.data[c20Data.data.length - 1] !== null ? c20Data.data[c20Data.data.length - 1].toFixed(2) : "\u2014"} status="positive" />
+              <CompactMetric label="vs GIA" value="Normal" status="positive" />
             </div>
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'center' }}>
-              ⏱️ Lagged confirmatory channel
-            </div>
-          </Card>
-          
-          {/* Step 4: Magnetometer */}
-          <Card step={4} title="Ground Magnetic (Multi-Station)" status="NOMINAL" info={{
-            description: "Ground-based magnetometer observations measure horizontal magnetic field perturbations at four USGS stations (Boulder, Fredericksburg, Barrow, Honolulu). Multi-station coherence filters out local/instrumental noise and identifies true geomagnetic signals. High z-scores across multiple stations indicate significant internal magnetic anomalies.",
-            lookingFor: [
-              "Composite z-score within ±2σ (normal baseline range)",
-              "Coherent signals across 3+ stations (not isolated single-site noise)",
-              "Spikes ≥ 2.5σ warrant attention if sustained or multi-channel correlated",
-              "Recent observation: 7.7σ spike on 2026-01-25 (observed across multiple stations)"
-            ],
-            dataSource: "USGS Geomagnetic Monitoring Program (4 monitoring stations, 60-day window)"
-          }}>
-            <div style={{ height: 180 }}>
-              <ChartComponent
-                type="line"
-                height={180}
-                data={{
-                  labels: alignedData.magData.labels,
-                  datasets: [
-                    {
-                      label: 'Boulder',
-                      data: alignedData.magData.bou,
-                      borderColor: '#4a9eff',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      label: 'Fredericksburg',
-                      data: alignedData.magData.frd,
-                      borderColor: '#f59e0b',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0
-                    },
-                    {
-                      label: 'Barrow',
-                      data: alignedData.magData.brw,
-                      borderColor: '#10b981',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0
-                    },
-                    {
-                      label: 'Honolulu',
-                      data: alignedData.magData.hon,
-                      borderColor: '#8b5cf6',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0
-                    },
-                    {
-                      label: 'Composite',
-                      data: alignedData.magData.composite,
-                      borderColor: '#ffffff',
-                      borderWidth: 2,
-                      tension: 0.3,
-                      pointRadius: 0
-                    }
-                  ]
-                }}
-                options={{
-                  ...darkThemeOptions,
-                  plugins: {
-                    ...darkThemeOptions.plugins,
-                    legend: {
-                      display: true,
-                      position: 'top',
-                      labels: {
-                        color: '#7a7a8c',
-                        boxWidth: 12,
-                        padding: 8,
-                        font: { size: 10 }
-                      }
-                    }
-                  },
-                  scales: {
-                    x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                    y: { ...darkThemeOptions.scales.y }
-                  }
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <Metric label="Composite z" value={compositeMetrics.z} status={Math.abs(parseFloat(compositeMetrics.z)) >= 2.5 ? "negative" : "positive"} />
-              <Metric label="Max z (14d)" value={compositeMetrics.maxZ} status={compositeMetrics.flag ? "warning" : "positive"} />
-              <Metric label="Flag" value={compositeMetrics.flag ? "⚠ YES" : "✓ No"} status={compositeMetrics.flag ? "warning" : "positive"} />
-            </div>
-          </Card>
-          
-          {/* Step 5: Coherence */}
-          <Card step={5} title="Cross-Channel Coherence" status={coherenceData && coherenceData.badge === 'ORANGE' ? 'ELEVATED' : 'NOMINAL'} info={{
-            description: "Cross-channel coherence analyzes whether anomalies detected in independent monitoring systems (EOP and magnetometer) are correlated in time. True geophysical events show up across multiple independent channels. The watch score combines EOP and MAG composites on quiet days only: 100 × (0.6 × EOP_signal + 0.4 × MAG_signal).",
-            lookingFor: [
-              "Low correlation (< 0.3) is normal: independent systems track different phenomena",
-              "Elevated correlation during quiet days suggests genuine coherent signal",
-              "EOP↔MAG correlation ≥ 0.5 during gate-open conditions = WATCH-level event",
-              "Watch score: GREEN (<35), YELLOW (35-65), ORANGE (≥65), GRAY (disturbed gate)"
-            ],
-            dataSource: "Derived from Steps 2 and 4 using quiet-day-gated correlation analysis (30-day rolling window, N≥10 required)"
-          }}>
+          </CompactCard>
+        </div>
+
+        {/* Row 3: Globe Centerpiece */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ border: '1px solid #1e3a5f', borderRadius: 10, boxShadow: '0 0 20px rgba(74,158,255,0.05)' }}>
+            <Card title="Geophysical Spatial Monitor" info={{
+              description: "Interactive 3D globe showing the spatial distribution of deep earthquakes, active volcanoes, and magnetometer stations. The polar motion spiral reveals the Chandler wobble \u2014 a ~433-day oscillation with ~6m amplitude.",
+              lookingFor: [
+                "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
+                "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
+                "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
+                "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
+              ],
+              dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+                gap: 16,
+              }}>
+                <div>
+                  <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
+                </div>
+                <div>
+                  <PolarMotionCharts polarMotionData={polarMotionData} />
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Row 4: Analysis Panels - 3 column grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: gridCols3, gap: 12, marginBottom: 12 }}>
+
+          {/* S5: Coherence */}
+          <CompactCard step={5} title="Coherence" status={coherenceData && coherenceData.badge === 'ORANGE' ? 'ELEVATED' : 'NOMINAL'}>
             {coherenceData && coherenceData.labels && coherenceData.labels.length > 0 ? (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
-                  <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>QUIET DAYS (90d)</div>
-                    <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color: '#4a9eff' }}>
-                      {coherenceData.quiet_day_count}/{coherenceData.total_days}
-                    </div>
-                  </div>
-                  <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>WATCH SCORE</div>
-                    <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color:
-                      coherenceData.badge === 'GREEN' ? '#10b981' :
-                      coherenceData.badge === 'YELLOW' ? '#f59e0b' :
-                      coherenceData.badge === 'ORANGE' ? '#ef4444' : '#7a7a8c'
-                    }}>
-                      {coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "—"}
-                    </div>
-                  </div>
-                  <div style={{ background: '#16161f', borderRadius: 6, padding: 12, textAlign: 'center' }}>
-                    <div style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>BADGE</div>
-                    <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 600, color:
-                      coherenceData.badge === 'GREEN' ? '#10b981' :
-                      coherenceData.badge === 'YELLOW' ? '#f59e0b' :
-                      coherenceData.badge === 'ORANGE' ? '#ef4444' : '#7a7a8c'
-                    }}>
-                      {coherenceData.badge}
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+                  <CompactMetric
+                    label="Quiet Days"
+                    value={`${coherenceData.quiet_day_count}/${coherenceData.total_days}`}
+                    status="positive"
+                  />
+                  <CompactMetric
+                    label="Score"
+                    value={coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "\u2014"}
+                    status={coherenceData.badge === 'GREEN' ? 'positive' : coherenceData.badge === 'YELLOW' ? 'warning' : coherenceData.badge === 'ORANGE' ? 'negative' : undefined}
+                  />
+                  <CompactMetric
+                    label="Badge"
+                    value={coherenceData.badge}
+                    status={coherenceData.badge === 'GREEN' ? 'positive' : coherenceData.badge === 'YELLOW' ? 'warning' : coherenceData.badge === 'ORANGE' ? 'negative' : undefined}
+                  />
                 </div>
-
-                {/* Composite overlay chart: EOP vs MAG */}
-                <div style={{ height: 160, marginBottom: 12 }}>
+                <div style={{ height: 100, marginBottom: 8 }}>
                   <ChartComponent
                     type="line"
-                    height={160}
+                    height={100}
                     data={{
                       labels: coherenceData.labels,
                       datasets: [
                         {
-                          label: 'EOP composite',
+                          label: 'EOP',
                           data: coherenceData.eop_composite,
                           borderColor: '#4a9eff',
                           borderWidth: 1.5,
@@ -1476,7 +1387,7 @@ function ECDOWatchDashboard() {
                           pointRadius: 0,
                         },
                         {
-                          label: 'MAG composite',
+                          label: 'MAG',
                           data: coherenceData.mag_composite,
                           borderColor: '#f59e0b',
                           borderWidth: 1.5,
@@ -1492,27 +1403,24 @@ function ECDOWatchDashboard() {
                         legend: {
                           display: true,
                           position: 'top',
-                          labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
+                          labels: { color: '#7a7a8c', boxWidth: 8, padding: 6, font: { size: 9 } }
                         }
                       },
                       scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                        y: { ...darkThemeOptions.scales.y, title: { display: true, text: 'composite score', color: '#7a7a8c', font: { size: 10 } } }
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 5 } },
+                        y: { ...darkThemeOptions.scales.y },
                       }
                     }}
                   />
                 </div>
-
-                {/* Watch score chart */}
-                <div style={{ height: 100, marginBottom: 12 }}>
+                <div style={{ height: 60, marginBottom: 8 }}>
                   <ChartComponent
                     type="line"
-                    height={100}
+                    height={60}
                     data={{
                       labels: coherenceData.labels,
                       quietFlags: coherenceData.quiet,
                       datasets: [{
-                        label: 'Watch score',
                         data: coherenceData.watch_score,
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -1525,61 +1433,51 @@ function ECDOWatchDashboard() {
                       ...darkThemeOptions,
                       plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
                       scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                        y: { ...darkThemeOptions.scales.y, min: 0, max: 100, title: { display: true, text: 'score (0-100)', color: '#7a7a8c', font: { size: 10 } } }
+                        x: { ...darkThemeOptions.scales.x, display: false },
+                        y: { ...darkThemeOptions.scales.y, min: 0, max: 100 },
                       }
                     }}
                     quietFlags={coherenceData.quiet}
                   />
                 </div>
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Metric
-                    label="EOP↔MAG r"
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <CompactMetric
+                    label="EOP&#8596;MAG r"
                     value={coherenceData.correlation != null ? coherenceData.correlation.toFixed(2) : "n/a"}
                     status={coherenceData.correlation != null && Math.abs(coherenceData.correlation) >= 0.5 ? "warning" : "positive"}
                   />
-                  <Metric
-                    label="N (quiet)"
+                  <CompactMetric
+                    label="N quiet"
                     value={`${coherenceData.quiet_day_count}`}
                     status={coherenceData.quiet_day_count >= 10 ? "positive" : "warning"}
                   />
                 </div>
               </>
             ) : (
-              <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
-                Coherence data not yet available. Run the data pipeline to generate.
+              <div style={{ padding: 16, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>
+                Coherence data not yet available.
               </div>
             )}
-          </Card>
-          
-          {/* Step 6: Deep Seismicity */}
-          <Card step={6} title="Deep Seismicity (Mantle Stress)" status={(() => {
+          </CompactCard>
+
+          {/* S6: Deep Seismicity */}
+          <CompactCard step={6} title="Deep Seismicity" status={(() => {
             if (!seisData || !seisData.z_eq_count) return 'NOMINAL';
             const recent = seisData.z_eq_count.slice(-14).filter(v => v != null);
             const maxZ = recent.length > 0 ? Math.max(...recent.map(v => Math.abs(v))) : 0;
             return maxZ >= 2.5 ? 'ELEVATED' : 'NOMINAL';
-          })()} info={{
-            description: "Deep earthquakes (>300km depth, M≥4.5) occur in subducting slabs and reflect mantle stress. Unlike shallow seismicity driven by plate tectonics, deep seismicity is a proxy for mantle-scale dynamics. ECDO theory predicts increased deep mantle activity before a tau point.",
-            lookingFor: [
-              "Elevated daily deep EQ count above historical baseline (z > 2.5)",
-              "Increased energy release (log10 energy trending upward)",
-              "High spatial dispersion (globally distributed, not localized)",
-              "Sustained anomalies over weeks, not isolated daily spikes"
-            ],
-            dataSource: "USGS FDSN Earthquake Catalog (real-time, mindepth=300km, minmag=4.5)"
-          }}>
+          })()}>
             {seisData && seisData.labels && seisData.labels.length > 0 ? (
               <>
-                <div style={{ height: 160 }}>
+                <div style={{ height: 120 }}>
                   <ChartComponent
                     type="line"
-                    height={160}
+                    height={120}
                     data={{
                       labels: seisData.labels,
                       datasets: [
                         {
-                          label: 'Daily deep EQ count',
+                          label: 'Daily deep EQ',
                           data: seisData.eq_count,
                           borderColor: '#8b5cf6',
                           backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -1589,7 +1487,7 @@ function ECDOWatchDashboard() {
                           pointRadius: 0,
                         },
                         {
-                          label: '30d rolling avg',
+                          label: '30d avg',
                           data: seisData.rolling_30d_count,
                           borderColor: '#ffffff',
                           borderWidth: 2,
@@ -1606,31 +1504,31 @@ function ECDOWatchDashboard() {
                         legend: {
                           display: true,
                           position: 'top',
-                          labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
+                          labels: { color: '#7a7a8c', boxWidth: 8, padding: 6, font: { size: 9 } }
                         }
                       },
                       scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                        y: { ...darkThemeOptions.scales.y, title: { display: true, text: 'events/day', color: '#7a7a8c', font: { size: 10 } } }
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 5 } },
+                        y: { ...darkThemeOptions.scales.y },
                       }
                     }}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <Metric
-                    label="EQ Count (30d avg)"
+                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                  <CompactMetric
+                    label="30d avg"
                     value={(() => {
                       const arr = seisData.rolling_30d_count || [];
                       const v = arr[arr.length - 1];
-                      return v != null ? v.toFixed(1) : "—";
+                      return v != null ? v.toFixed(1) : "\u2014";
                     })()}
                     status="positive"
                   />
-                  <Metric
-                    label="Max z (14d)"
+                  <CompactMetric
+                    label="Max z 14d"
                     value={(() => {
                       const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null);
-                      return arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))).toFixed(2) : "—";
+                      return arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))).toFixed(2) : "\u2014";
                     })()}
                     status={(() => {
                       const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null);
@@ -1638,11 +1536,11 @@ function ECDOWatchDashboard() {
                       return maxZ >= 2.5 ? "warning" : "positive";
                     })()}
                   />
-                  <Metric
-                    label="Energy (30d log10)"
+                  <CompactMetric
+                    label="Energy"
                     value={(() => {
                       const arr = (seisData.energy_log10 || []).slice(-30).filter(v => v != null);
-                      if (arr.length === 0) return "—";
+                      if (arr.length === 0) return "\u2014";
                       return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1);
                     })()}
                     status="positive"
@@ -1650,38 +1548,28 @@ function ECDOWatchDashboard() {
                 </div>
               </>
             ) : (
-              <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
-                Deep seismicity data not yet available. Run the data pipeline to generate.
+              <div style={{ padding: 16, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>
+                Deep seismicity data not yet available.
               </div>
             )}
-          </Card>
+          </CompactCard>
 
-          {/* Step 7: Volcanic Activity */}
-          <Card step={7} title="Volcanic Activity (Global Eruptions)" status={(() => {
+          {/* S7: Volcanic */}
+          <CompactCard step={7} title="Volcanic" status={(() => {
             if (!volcData || !volcData.z_active_count) return 'NOMINAL';
             const recent = volcData.z_active_count.filter(v => v != null);
             const latest = recent.length > 0 ? recent[recent.length - 1] : 0;
             return Math.abs(latest) >= 2.0 ? 'ELEVATED' : 'NOMINAL';
-          })()} info={{
-            description: "ECDO theory predicts synchronized volcanic activation in geographically distant regions. An increase in simultaneously active volcanoes and high geographic dispersion suggests mantle-wide stress propagation rather than localized tectonics.",
-            lookingFor: [
-              "Increased number of simultaneously active volcanoes (z > 2.0)",
-              "High geographic dispersion (>8000km mean pairwise distance)",
-              "Simultaneous eruptions in geographically distant regions",
-              "Temporal clustering of new eruptions within weeks"
-            ],
-            dataSource: "USGS Volcano Hazards Program / Smithsonian GVP (weekly updates)"
-          }}>
+          })()}>
             {volcData && volcData.labels && volcData.labels.length > 0 ? (
               <>
-                <div style={{ height: 160 }}>
+                <div style={{ height: 100 }}>
                   <ChartComponent
                     type="bar"
-                    height={160}
+                    height={100}
                     data={{
                       labels: volcData.labels,
                       datasets: [{
-                        label: 'Active volcanoes',
                         data: volcData.active_count,
                         backgroundColor: volcData.z_active_count
                           ? volcData.z_active_count.map(z => z != null && Math.abs(z) >= 2.0 ? '#ef4444' : '#f59e0b')
@@ -1691,31 +1579,28 @@ function ECDOWatchDashboard() {
                     }}
                     options={{
                       ...darkThemeOptions,
-                      plugins: {
-                        ...darkThemeOptions.plugins,
-                        legend: { display: false }
-                      },
+                      plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
                       scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 8 } },
-                        y: { ...darkThemeOptions.scales.y, beginAtZero: true, title: { display: true, text: 'active count', color: '#7a7a8c', font: { size: 10 } } }
+                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 5 } },
+                        y: { ...darkThemeOptions.scales.y, beginAtZero: true },
                       }
                     }}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <Metric
-                    label="Active Volcanoes"
+                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                  <CompactMetric
+                    label="Active"
                     value={(() => {
                       const arr = volcData.active_count || [];
-                      return arr.length > 0 ? arr[arr.length - 1] : "—";
+                      return arr.length > 0 ? arr[arr.length - 1] : "\u2014";
                     })()}
                     status="positive"
                   />
-                  <Metric
-                    label="New Eruptions (30d)"
+                  <CompactMetric
+                    label="New 30d"
                     value={(() => {
                       const arr = volcData.new_eruptions || [];
-                      return arr.length > 0 ? arr[arr.length - 1] : "—";
+                      return arr.length > 0 ? arr[arr.length - 1] : "\u2014";
                     })()}
                     status={(() => {
                       const arr = volcData.new_eruptions || [];
@@ -1723,164 +1608,138 @@ function ECDOWatchDashboard() {
                       return v >= 3 ? "warning" : "positive";
                     })()}
                   />
-                  <Metric
-                    label="Dispersion (km)"
+                  <CompactMetric
+                    label="Disp km"
                     value={(() => {
                       const arr = volcData.dispersion_km || [];
                       const v = arr.length > 0 ? arr[arr.length - 1] : null;
-                      return v != null ? Math.round(v).toLocaleString() : "—";
+                      return v != null ? Math.round(v).toLocaleString() : "\u2014";
                     })()}
                     status="positive"
                   />
                 </div>
                 {volcData.current_volcanoes && volcData.current_volcanoes.length > 0 && (
-                  <div style={{ marginTop: 12, padding: 12, background: '#16161f', borderRadius: 6, fontSize: 11, color: '#a8a8bc', maxHeight: 120, overflowY: 'auto' }}>
-                    <strong style={{ color: '#e8e8ed', display: 'block', marginBottom: 6 }}>Currently active:</strong>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {volcData.current_volcanoes.slice(0, 20).map((v, idx) => (
+                  <div style={{ marginTop: 8, padding: 8, background: '#16161f', borderRadius: 4, fontSize: 10, color: '#a8a8bc', maxHeight: 60, overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {volcData.current_volcanoes.slice(0, 15).map((v, idx) => (
                         <span key={idx} style={{
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          fontSize: 10,
-                          background: v.status === 'erupting' ? 'rgba(239,68,68,0.2)' : v.status === 'elevated' ? 'rgba(245,158,11,0.2)' : 'rgba(107,114,128,0.2)',
-                          color: v.status === 'erupting' ? '#ef4444' : v.status === 'elevated' ? '#f59e0b' : '#7a7a8c',
-                          border: `1px solid ${v.status === 'erupting' ? '#ef4444' : v.status === 'elevated' ? '#f59e0b' : '#4a4a5c'}`,
+                          padding: '1px 6px', borderRadius: 3, fontSize: 9,
+                          background: v.status === 'erupting' ? 'rgba(239,68,68,0.2)' : 'rgba(107,114,128,0.2)',
+                          color: v.status === 'erupting' ? '#ef4444' : '#7a7a8c',
                         }}>
                           {v.name}
                         </span>
                       ))}
-                      {volcData.current_volcanoes.length > 20 && (
-                        <span style={{ color: '#7a7a8c', fontSize: 10, alignSelf: 'center' }}>+{volcData.current_volcanoes.length - 20} more</span>
+                      {volcData.current_volcanoes.length > 15 && (
+                        <span style={{ color: '#7a7a8c', fontSize: 9 }}>+{volcData.current_volcanoes.length - 15}</span>
                       )}
                     </div>
                   </div>
                 )}
               </>
             ) : (
-              <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
-                Volcanic activity data not yet available. Run the data pipeline to generate.
+              <div style={{ padding: 16, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>
+                Volcanic data not yet available.
               </div>
             )}
-          </Card>
+          </CompactCard>
+        </div>
 
-          {/* Geophysical Spatial Monitor */}
-          <Card title="Geophysical Spatial Monitor" info={{
-            description: "Interactive 3D globe showing the spatial distribution of deep earthquakes, active volcanoes, and magnetometer stations. The polar motion spiral reveals the Chandler wobble — a ~433-day oscillation with ~6m amplitude caused by Earth's axis of rotation not coinciding with its axis of symmetry.",
-            lookingFor: [
-              "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
-              "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
-              "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
-              "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
-            ],
-            dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
-          }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-              gap: 16,
-            }}>
-              <div>
-                <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
-              </div>
-              <div>
-                <PolarMotionCharts polarMotionData={polarMotionData} />
-              </div>
-            </div>
-          </Card>
-
-          {/* Historical Section */}
-          <Card title="📊 Century-Scale Historical Context">
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              {[10, 50, 100, 150].map(function(y) {
-                return (
-                  <button key={y} onClick={function() { setHistoricalTimeRange(y); }} style={{
+        {/* Row 5: Historical Context (collapsible) */}
+        <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+          <div
+            onClick={() => setHistoricalExpanded(!historicalExpanded)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '12px 16px', cursor: 'pointer',
+              background: '#16161f', userSelect: 'none',
+            }}
+          >
+            <span style={{ fontSize: 10, color: '#7a7a8c', transition: 'transform 0.2s', display: 'inline-block', transform: historicalExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>Century-Scale Historical Context</h3>
+          </div>
+          {historicalExpanded && (
+            <div style={{ padding: 16 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                {[10, 50, 100, 150].map(y => (
+                  <button key={y} onClick={() => setHistoricalTimeRange(y)} style={{
                     background: historicalTimeRange === y ? '#4a9eff' : '#16161f',
                     border: '1px solid #252532', color: historicalTimeRange === y ? '#fff' : '#7a7a8c',
-                    padding: '4px 12px', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', cursor: 'pointer'
+                    padding: '4px 12px', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', cursor: 'pointer',
                   }}>{y}Y</button>
-                );
-              })}
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-              <div>
-                <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Geomagnetic Ap Index (since 1932)</h4>
-                <div style={{ height: 200 }}>
-                  <ChartComponent
-                    type="line"
-                    height={200}
-                    data={{
-                      labels: aaData.labels,
-                      datasets: [{
-                        data: aaData.data,
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
-                      }]
-                    }}
-                    options={{
-                      ...darkThemeOptions,
-                      scales: {
-                        ...darkThemeOptions.scales,
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
-                        y: { ...darkThemeOptions.scales.y }
-                      }
-                    }}
-                  />
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+                <div>
+                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Geomagnetic Ap Index (since 1932)</h4>
+                  <div style={{ height: 160 }}>
+                    <ChartComponent
+                      type="line"
+                      height={160}
+                      data={{
+                        labels: aaData.labels,
+                        datasets: [{
+                          data: aaData.data,
+                          borderColor: '#f59e0b',
+                          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                          fill: true, tension: 0.3, pointRadius: 0,
+                        }]
+                      }}
+                      options={{
+                        ...darkThemeOptions,
+                        scales: {
+                          ...darkThemeOptions.scales,
+                          x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
+                          y: { ...darkThemeOptions.scales.y },
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Polar Motion Amplitude (since 1846)</h4>
+                  <div style={{ height: 160 }}>
+                    <ChartComponent
+                      type="line"
+                      height={160}
+                      data={{
+                        labels: pmData.labels,
+                        datasets: [{
+                          data: pmData.data,
+                          borderColor: '#10b981',
+                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          fill: true, tension: 0.3, pointRadius: 0,
+                        }]
+                      }}
+                      options={{
+                        ...darkThemeOptions,
+                        scales: {
+                          ...darkThemeOptions.scales,
+                          x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
+                          y: { ...darkThemeOptions.scales.y },
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Polar Motion Amplitude (since 1846)</h4>
-                <div style={{ height: 200 }}>
-                  <ChartComponent
-                    type="line"
-                    height={200}
-                    data={{
-                      labels: pmData.labels,
-                      datasets: [{
-                        data: pmData.data,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
-                      }]
-                    }}
-                    options={{
-                      ...darkThemeOptions,
-                      scales: {
-                        ...darkThemeOptions.scales,
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
-                        y: { ...darkThemeOptions.scales.y }
-                      }
-                    }}
-                  />
-                </div>
+              <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
+                <Metric label="Ap Record" value="1932&#8211;Now" />
+                <Metric label="PM Record" value="1846&#8211;Now" />
+                <Metric label="LOD Record" value="1623&#8211;Now" />
+                <Metric label="Current Regime" value="Within Bounds" status="positive" />
+              </div>
+              <div style={{ marginTop: 16, padding: 12, background: '#16161f', borderRadius: 6, fontSize: 11, color: '#7a7a8c' }}>
+                <strong>Data sources:</strong> Ap index from GFZ (1932&#8211;present); Polar motion from IERS C01 (1846&#8211;present); LOD from IERS (yearly since 1623).
               </div>
             </div>
-            
-            <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
-              <Metric label="Ap Record" value="1932–Now" />
-              <Metric label="PM Record" value="1846–Now" />
-              <Metric label="LOD Record" value="1623–Now" />
-              <Metric label="Current Regime" value="Within Bounds" status="positive" />
-            </div>
-            
-            <div style={{ marginTop: 16, padding: 12, background: '#16161f', borderRadius: 6, fontSize: 11, color: '#7a7a8c' }}>
-              📚 <strong>Data sources:</strong> Ap index from GFZ (1932–present); Polar motion from IERS C01 (1846–present); LOD from IERS (yearly since 1623).
-            </div>
-          </Card>
-          
+          )}
         </div>
 
         <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
 
-        {/* Footer */}
-        <footer style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'left' }}>
-          ⚠️ This is an experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines, not probabilities of future events.
+        <footer style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'left' }}>
+          Experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines.
         </footer>
       </div>
     </div>
