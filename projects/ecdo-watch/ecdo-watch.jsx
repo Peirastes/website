@@ -631,7 +631,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
     const container = globeContainerRef.current;
     const width = container.clientWidth;
-    const height = Math.max(400, width * 0.75);
+    const height = container.clientHeight || Math.max(400, width * 0.75);
 
     const globe = Globe()
       .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg')
@@ -655,7 +655,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     const handleResize = () => {
       if (globeInstanceRef.current && globeContainerRef.current) {
         const w = globeContainerRef.current.clientWidth;
-        const h = Math.max(400, w * 0.75);
+        const h = globeContainerRef.current.clientHeight || Math.max(400, w * 0.75);
         globeInstanceRef.current.width(w).height(h);
       }
     };
@@ -730,8 +730,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   }, [seismicEvents, volcData]);
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div ref={globeContainerRef} style={{ width: '100%', minHeight: 400, cursor: 'grab' }} />
+    <div style={{ position: 'relative', height: '100%', minHeight: 400 }}>
+      <div ref={globeContainerRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />
       {/* Legend overlay */}
       <div style={{
         position: 'absolute', bottom: 12, left: 12,
@@ -1336,7 +1336,7 @@ function ECDOWatchDashboard() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
                 gap: 16,
               }}>
-                <div>
+                <div style={{ minHeight: 400 }}>
                   <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
                 </div>
                 <div>
