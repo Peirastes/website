@@ -676,16 +676,16 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     // Build combined points data
     const pointsData = [];
 
-    // 1. Earthquake epicenters (purple)
+    // 1. Earthquake epicenters (purple) - scaled by magnitude
     if (seismicEvents && seismicEvents.events) {
       seismicEvents.events.forEach(ev => {
         pointsData.push({
           lat: ev.lat,
           lng: ev.lon,
-          size: Math.max(0.15, ev.mag * 0.08),
-          color: '#8b5cf6',
-          altitude: ev.depth_km / 50000,
-          label: `M${ev.mag} | ${ev.depth_km}km | ${ev.date}`,
+          size: Math.max(0.4, (ev.mag - 3.5) * 0.4),
+          color: ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6',
+          altitude: 0.005,
+          label: `M${ev.mag} | ${ev.depth_km}km depth | ${ev.date}`,
           type: 'earthquake',
         });
       });
@@ -728,6 +728,30 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       .pointColor('color')
       .pointLabel('label')
       .pointsMerge(true);
+
+    // Add rings around earthquake epicenters for visibility
+    const ringsData = [];
+    if (seismicEvents && seismicEvents.events) {
+      seismicEvents.events.forEach(ev => {
+        ringsData.push({
+          lat: ev.lat,
+          lng: ev.lon,
+          maxR: (ev.mag - 3.5) * 1.5,
+          propagationSpeed: 1,
+          repeatPeriod: ev.mag >= 5.5 ? 1200 : 2000,
+          color: ev.mag >= 6.0 ? 'rgba(192,132,252,0.6)' : 'rgba(139,92,246,0.4)',
+        });
+      });
+    }
+
+    globe
+      .ringsData(ringsData)
+      .ringLat('lat')
+      .ringLng('lng')
+      .ringMaxRadius('maxR')
+      .ringPropagationSpeed('propagationSpeed')
+      .ringRepeatPeriod('repeatPeriod')
+      .ringColor('color');
 
   }, [seismicEvents, volcData]);
 
