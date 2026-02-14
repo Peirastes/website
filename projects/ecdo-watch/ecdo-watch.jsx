@@ -70,8 +70,9 @@ const generateHistoricalPM = (years) => {
 
 const generateMagData = () => {
   const bou = [];
+  const frd = [];
+  const brw = [];
   const hon = [];
-  const sjg = [];
   const composite = [];
   const labels = [];
   const now = new Date();
@@ -80,11 +81,12 @@ const generateMagData = () => {
     date.setDate(date.getDate() - i);
     labels.push(date.toISOString().split('T')[0]);
     bou.push((Math.random() - 0.5) * 2);
+    frd.push((Math.random() - 0.5) * 2);
+    brw.push((Math.random() - 0.5) * 2);
     hon.push((Math.random() - 0.5) * 2);
-    sjg.push((Math.random() - 0.5) * 2);
     composite.push((Math.random() - 0.5) * 1.5);
   }
-  return { labels, bou, hon, sjg, composite };
+  return { labels, bou, frd, brw, hon, composite };
 };
 
 // Fetch real data from JSON files for a given time range
@@ -608,14 +610,14 @@ const alignRecentData = (kpData, lodData, magData) => {
   }
 
   // Align Mag to LOD time axis
-  const magAligned = { labels: baseLabels, bou: Array(baseLength).fill(null), hon: Array(baseLength).fill(null), sjg: Array(baseLength).fill(null), composite: Array(baseLength).fill(null) };
+  const magAligned = { labels: baseLabels, bou: Array(baseLength).fill(null), frd: Array(baseLength).fill(null), brw: Array(baseLength).fill(null), hon: Array(baseLength).fill(null), composite: Array(baseLength).fill(null) };
   if (magData && magData.labels) {
     const magLen = magData.labels.length;
     const magStartIdx = baseLength - magLen;
 
     if (magStartIdx >= 0) {
       // Mag data fits within range - place at the end
-      const stations = ['bou', 'hon', 'sjg', 'composite'];
+      const stations = ['bou', 'frd', 'brw', 'hon', 'composite'];
       stations.forEach(station => {
         if (magData[station]) {
           magData[station].forEach((val, i) => {
@@ -626,7 +628,7 @@ const alignRecentData = (kpData, lodData, magData) => {
     } else {
       // Mag data is longer than range - take the most recent baseLength days
       const offset = magLen - baseLength;
-      const stations = ['bou', 'hon', 'sjg', 'composite'];
+      const stations = ['bou', 'frd', 'brw', 'hon', 'composite'];
       stations.forEach(station => {
         if (magData[station]) {
           for (let i = 0; i < baseLength; i++) {
@@ -662,7 +664,7 @@ function ECDOWatchDashboard() {
   useEffect(() => {
     fetchDataFromJSON(selectedTimeRange).then(data => {
       if (data) {
-        console.log(`Loaded data for ${selectedTimeRange}:`, { kpLabels: data.kpData.labels.length, lodLabels: data.lodData.labels.length, magLabels: data.magData.labels.length, magBouNonNull: data.magData.bou.filter(x => x !== null).length });
+        console.log(`Loaded data for ${selectedTimeRange}:`, { kpLabels: data.kpData.labels.length, lodLabels: data.lodData.labels.length, magLabels: data.magData.labels.length });
         setKpData(data.kpData);
         setLodData(data.lodData);
         setC20Data(data.c20Data);
@@ -683,8 +685,6 @@ function ECDOWatchDashboard() {
   // Recalculate aligned data whenever individual datasets change
   useEffect(() => {
     const aligned = alignRecentData(kpData, lodData, magData);
-    const magBouNonNull = aligned.magData.bou ? aligned.magData.bou.filter(x => x !== null).length : 0;
-    console.log('Aligned data:', { magLabels: aligned.magData.labels.length, magBouNonNull });
     setAlignedData(aligned);
   }, [kpData, lodData, magData]);
 
@@ -991,20 +991,27 @@ function ECDOWatchDashboard() {
                       borderWidth: 1,
                       tension: 0.3,
                       pointRadius: 0,
-                      opacity: 0.5
                     },
                     {
-                      label: 'Honolulu',
-                      data: alignedData.magData.hon,
-                      borderColor: '#8b5cf6',
+                      label: 'Fredericksburg',
+                      data: alignedData.magData.frd,
+                      borderColor: '#f59e0b',
                       borderWidth: 1,
                       tension: 0.3,
                       pointRadius: 0
                     },
                     {
-                      label: 'San Juan',
-                      data: alignedData.magData.sjg,
+                      label: 'Barrow',
+                      data: alignedData.magData.brw,
                       borderColor: '#10b981',
+                      borderWidth: 1,
+                      tension: 0.3,
+                      pointRadius: 0
+                    },
+                    {
+                      label: 'Honolulu',
+                      data: alignedData.magData.hon,
+                      borderColor: '#8b5cf6',
                       borderWidth: 1,
                       tension: 0.3,
                       pointRadius: 0
@@ -1200,7 +1207,7 @@ function ECDOWatchDashboard() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
               <div>
-                <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Geomagnetic aa Index (since 1868)</h4>
+                <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Geomagnetic Ap Index (since 1932)</h4>
                 <div style={{ height: 200 }}>
                   <ChartComponent
                     type="line"
@@ -1259,14 +1266,14 @@ function ECDOWatchDashboard() {
             </div>
             
             <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
-              <Metric label="aa Record" value="1868–Now" />
+              <Metric label="Ap Record" value="1932–Now" />
               <Metric label="PM Record" value="1846–Now" />
               <Metric label="LOD Record" value="1623–Now" />
               <Metric label="Current Regime" value="Within Bounds" status="positive" />
             </div>
             
             <div style={{ marginTop: 16, padding: 12, background: '#16161f', borderRadius: 6, fontSize: 11, color: '#7a7a8c' }}>
-              📚 <strong>Data sources:</strong> aa index from IAGA/BGS (1868–present); Polar motion from IERS C01 (1846–present); LOD from IERS (yearly since 1623).
+              📚 <strong>Data sources:</strong> Ap index from GFZ (1932–present); Polar motion from IERS C01 (1846–present); LOD from IERS (yearly since 1623).
             </div>
           </Card>
           

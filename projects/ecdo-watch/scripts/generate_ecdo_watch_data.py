@@ -51,7 +51,7 @@ IERS_EOP_ALL_CSV = "https://datacenter.iers.org/data/csv/finals2000A.all.csv"
 GFZ_KP_DAILY_SINCE_1932 = "https://kp.gfz.de/app/files/Kp_ap_Ap_SN_F107_since_1932.txt"
 GSFC_C20_LONG_TERM = "https://earth.gsfc.nasa.gov/sites/default/files/geo/gsfc_slr_c20_long_term.txt"
 USGS_GEOMAG_WS = "https://geomag.usgs.gov/ws/data/"
-INTERMAGNET_API = "https://imag-data.bgs.ac.uk/GIN_V1/data"
+INTERMAGNET_HAPI = "https://imag-data.bgs.ac.uk/GIN_V1/hapi/data"
 WDC_MAGNETOMETER = "https://www.ngdc.noaa.gov/products/data-access-system/data/datasets/earth-magnetic-field/"
 
 # INTERMAGNET station codes (map USGS codes to INTERMAGNET equivalents)
@@ -171,6 +171,26 @@ def save_mag_history(cache_dir: Path, history_df: pd.DataFrame) -> None:
     history_df = history_df.sort_values("date").drop_duplicates(subset=["date"], keep="last")
     history_df.to_csv(history_file, index=False, date_format="%Y-%m-%d")
     print(f"    Saved {len(history_df)} days of magnetometer history")
+
+def clean_mag_history(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean accumulated magnetometer history: remove 99999 markers and statistical outliers."""
+    df = df.copy()
+    station_cols = [c for c in ["BOU", "FRD", "BRW", "HON"] if c in df.columns]
+
+    for col in station_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        # Remove exact USGS missing data markers
+        df.loc[df[col] >= 99999, col] = np.nan
+        # Remove statistical outliers using median ± 5*MAD
+        valid = df[col].dropna()
+        if len(valid) > 10:
+            median = valid.median()
+            mad = (valid - median).abs().median()
+            if mad > 0:
+                threshold = 5 * 1.4826 * mad  # scaled MAD
+                df.loc[(df[col] - median).abs() > threshold, col] = np.nan
+
+    return df
 
 def merge_mag_history(existing: pd.DataFrame, new_data: Dict[str, List], date_range: List[str]) -> pd.DataFrame:
     """Merge newly fetched magnetometer data with existing history."""
@@ -340,7 +360,12 @@ def load_swpc_kp_dst() -> tuple:
     return kp_data, dst_data
 
 def load_gsfc_c20(cache_dir: Path = None) -> pd.DataFrame:
-    """Load C20 (degree-2 gravity harmonic) from NASA GSFC with caching."""
+    """Load C20 (degree-2 gravity harmonic) from NASA GSFC with caching.
+
+    File format: Column 0 = year.fraction (e.g. 1976.4481),
+    Column 4 = TSVD MM C20 (recommended by NASA).
+    Data lines start after the "Product:" header line.
+    """
     if cache_dir is None:
         cache_dir = Path(__file__).parent.parent / "assets" / "cache"
 
@@ -352,24 +377,32 @@ def load_gsfc_c20(cache_dir: Path = None) -> pd.DataFrame:
         return pd.DataFrame()
 
     rows = []
+    past_header = False
     for line in text.splitlines():
         line = line.strip()
-        if not line or line.startswith("#"):
+        if not line:
+            continue
+        # Skip everything until we pass the "Product:" line
+        if line.startswith("Product:"):
+            past_header = True
+            continue
+        if not past_header:
             continue
 
         parts = line.split()
-        if len(parts) < 3:
+        if len(parts) < 5:
             continue
 
         try:
-            # Format: YYYY MM.MMMMM value uncertainty
-            year = int(parts[0])
-            month_decimal = float(parts[1])
-            month = int(month_decimal)
-            day = int((month_decimal - month) * 30) + 1
-            c20_value = float(parts[2])
+            # Column 0: year.fraction (e.g. 1976.4481)
+            year_frac = float(parts[0])
+            year = int(year_frac)
+            frac = year_frac - year
+            dt = datetime(year, 1, 1, tzinfo=timezone.utc) + timedelta(days=frac * 365.25)
 
-            dt = datetime(year, month, day, tzinfo=timezone.utc)
+            # Column 4: TSVD MM C20 (recommended solution)
+            c20_value = float(parts[4])
+
             rows.append({
                 "date": dt,
                 "c20": c20_value
@@ -405,18 +438,21 @@ def load_usgs_mag_timeseries_H_chunked(station: str, start: datetime, end: datet
         return pd.DataFrame()
 
 def load_intermagnet_mag_timeseries_H(station: str, start: datetime, end: datetime) -> pd.DataFrame:
-    """Fetch H component from INTERMAGNET web service (fallback source)."""
-    intermagnet_code = INTERMAGNET_STATIONS.get(station, station)
-    start_s = start.strftime("%Y-%m-%d")
-    end_s = end.strftime("%Y-%m-%d")
+    """Fetch H component from INTERMAGNET HAPI service (fallback source).
 
-    # INTERMAGNET URL format: https://imag-data.bgs.ac.uk/GIN_V1/data?id=XXX&sampling_period=60&starttime=YYYY-MM-DD&endtime=YYYY-MM-DD
+    Uses the HAPI standard endpoint with CSV format.
+    Dataset ID format: {station}/best-avail/PT1M/HDZF
+    """
+    intermagnet_code = INTERMAGNET_STATIONS.get(station, station)
+    start_s = start.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    end_s = end.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
     url = (
-        f"{INTERMAGNET_API}"
-        f"?id={intermagnet_code}"
-        f"&sampling_period={MAG_SAMPLING_S}"
-        f"&starttime={start_s}"
-        f"&endtime={end_s}"
+        f"{INTERMAGNET_HAPI}"
+        f"?id={intermagnet_code}/best-avail/PT1M/HDZF"
+        f"&time.min={start_s}"
+        f"&time.max={end_s}"
+        f"&format=csv"
     )
 
     try:
@@ -430,18 +466,17 @@ def load_intermagnet_mag_timeseries_H(station: str, start: datetime, end: dateti
         if not line or line.startswith("#"):
             continue
 
-        parts = line.split()
-        if len(parts) < 4:
+        parts = line.split(",")
+        if len(parts) < 2:
             continue
 
         try:
-            date_str, time_str = parts[0], parts[1]
-            h_val = float(parts[2])  # H component
-            ts = pd.to_datetime(f"{date_str}T{time_str}", utc=True, errors="coerce")
+            ts = pd.to_datetime(parts[0], utc=True, errors="coerce")
+            h_val = float(parts[1])  # H is the first data column after timestamp
 
             if pd.isna(ts) or pd.isna(h_val):
                 continue
-            if h_val > 1e5:  # Skip bad data
+            if h_val >= 99999:
                 continue
 
             rows.append({"timestamp": ts, "value": h_val})
@@ -520,7 +555,7 @@ def load_usgs_mag_timeseries_H(station: str, start: datetime, end: datetime) -> 
         except Exception:
             continue
 
-        if pd.isna(v) or v > 1e5:
+        if pd.isna(v) or v >= 99999:
             continue
 
         rows.append({"timestamp": ts, "value": v})
@@ -591,14 +626,15 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
                 mag_range_json = {
                     "labels": labels[start_idx:],
                     "bou": mag_data_by_station.get("BOU", [])[start_idx:],
+                    "frd": mag_data_by_station.get("FRD", [])[start_idx:],
+                    "brw": mag_data_by_station.get("BRW", [])[start_idx:],
                     "hon": mag_data_by_station.get("HON", [])[start_idx:],
-                    "sjg": mag_data_by_station.get("BRW", [])[start_idx:],
                 }
                 # Compute composite for this range
                 composite = []
                 for i in range(len(mag_range_json["labels"])):
                     z_scores = []
-                    for key in ["bou", "hon", "sjg"]:
+                    for key in ["bou", "frd", "brw", "hon"]:
                         if i < len(mag_range_json.get(key, [])):
                             z_scores.append(mag_range_json[key][i])
                     if z_scores:
@@ -629,8 +665,15 @@ def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_h
     # Compute z-scores for each station using robust method
     for col in station_cols:
         mag[col] = pd.to_numeric(mag[col], errors="coerce")
-        # Filter bad data
-        mag.loc[mag[col] > 90000, col] = np.nan
+        # Filter bad data (99999 markers and statistical outliers)
+        mag.loc[mag[col] >= 99999, col] = np.nan
+        valid = mag[col].dropna()
+        if len(valid) > 10:
+            median_val = valid.median()
+            mad_val = (valid - median_val).abs().median()
+            if mad_val > 0:
+                threshold = 5 * 1.4826 * mad_val
+                mag.loc[(mag[col] - median_val).abs() > threshold, col] = np.nan
     # Use robust z-score on each station's daily mean, then composite
     for col in station_cols:
         z_col = f"z_{col}"
@@ -833,18 +876,18 @@ def main():
         (assets_dir / "lod_data.json").write_text(json.dumps(lod_recent_json))
         print("    [OK] lod_data.json (90-day EOP view with z-scores)")
 
-    # 3. Historical AA index (last 50 years)
-    if not kp_history.empty:
-        kp_annual = kp_history.set_index("date").resample("YE")["kp_max"].mean()
-        end_year = kp_annual.index[-1].year
+    # 3. Historical Ap index (last 50 years, from GFZ daily Ap)
+    if not kp_history.empty and "Ap" in kp_history.columns:
+        ap_annual = kp_history.set_index("date").resample("YE")["Ap"].mean()
+        end_year = ap_annual.index[-1].year
         start_year = end_year - 50
-        aa_subset = kp_annual[str(start_year):str(end_year)]
+        ap_subset = ap_annual[str(start_year):str(end_year)]
         aa_json = {
-            "labels": [str(year) for year in aa_subset.index.year],
-            "data": aa_subset.fillna(0).tolist()
+            "labels": [str(year) for year in ap_subset.index.year],
+            "data": ap_subset.fillna(0).tolist()
         }
         (assets_dir / "historical_aa.json").write_text(json.dumps(aa_json))
-        print("    [OK] historical_aa.json")
+        print("    [OK] historical_aa.json (Ap index)")
 
     # 4. Historical PM (last 50 years)
     if not eop_all.empty:
@@ -864,30 +907,24 @@ def main():
     try:
         c20_all = load_gsfc_c20(cache_dir)
         if not c20_all.empty:
-            # For display, keep only recent 90 days
-            cutoff_date = now - timedelta(days=90)
+            # Compute robust z-scores over the full C20 history
+            c20_all["z_c20"] = robust_zscore(c20_all["c20"], window=min(180, max(30, len(c20_all) // 3)))
+
+            # For display, show last 5 years (C20 is ~monthly, so 90 days gives only ~3 points)
+            cutoff_date = now - timedelta(days=5 * 365)
             c20_recent = c20_all[c20_all["date"] >= cutoff_date].copy()
 
             if not c20_recent.empty:
-                # Calculate z-scores (normalized relative to recent mean)
-                c20_values = c20_recent["c20"].values
-                c20_mean = np.mean(c20_values)
-                c20_std = np.std(c20_values)
-                if c20_std > 0:
-                    c20_z = (c20_values - c20_mean) / c20_std
-                else:
-                    c20_z = np.zeros_like(c20_values)
-
                 c20_json = {
                     "labels": c20_recent["date"].dt.strftime("%Y-%m-%d").tolist(),
-                    "data": c20_z.tolist()
+                    "data": [round(v, 4) if pd.notna(v) else None for v in c20_recent["z_c20"].tolist()]
                 }
                 oldest_date = c20_recent["date"].min()
                 data_age_h = (now - oldest_date).total_seconds() / 3600.0
                 c20_json = add_metadata(c20_json, "NASA GSFC (C20)", data_age_hours=data_age_h, source_status="ok")
 
                 (assets_dir / "c20_data.json").write_text(json.dumps(c20_json))
-                print("    [OK] c20_data.json")
+                print(f"    [OK] c20_data.json ({len(c20_recent)} data points)")
         else:
             print("    Warning: C20 data unavailable")
     except Exception as e:
@@ -898,8 +935,10 @@ def main():
     end_time = now
     start_time = end_time - timedelta(days=60)
 
-    # Load existing magnetometer history
+    # Load existing magnetometer history and clean bad data
     mag_history = load_mag_history(cache_dir)
+    if not mag_history.empty:
+        mag_history = clean_mag_history(mag_history)
 
     # Dictionary to store newly fetched raw daily means (with dates)
     new_mag_data = {}  # station -> {date: value}
@@ -1018,27 +1057,13 @@ def main():
         mag_history = mag_history.sort_values("date").reset_index(drop=True)
         full_date_range = [str(d.date()) for d in mag_history["date"]]
 
-        # Normalize using full history (z-scores computed over entire dataset)
+        # Normalize using robust z-scores (median/MAD) over full history
         normalized_data = {}
         for station in ["BOU", "FRD", "BRW", "HON"]:
             if station in mag_history.columns:
-                values = mag_history[station].tolist()
-                # Remove bad data (99999 is USGS missing data marker)
-                clean_values = [v if v is not None and v < 90000 else None for v in values]
-
-                # Convert to z-scores using full history statistics
-                valid_values = [v for v in clean_values if v is not None]
-                if valid_values:
-                    mean = sum(valid_values) / len(valid_values)
-                    std_dev = (sum((v - mean) ** 2 for v in valid_values) / len(valid_values)) ** 0.5
-                    if std_dev > 0:
-                        z_scores = [(v - mean) / std_dev if v is not None else 0 for v in clean_values]
-                    else:
-                        z_scores = [0 for _ in clean_values]
-                else:
-                    z_scores = [0] * len(clean_values)
-
-                normalized_data[station] = z_scores
+                series = pd.to_numeric(mag_history[station], errors="coerce")
+                z = robust_zscore(series, window=min(180, max(30, len(mag_history) // 3)))
+                normalized_data[station] = [round(v, 4) if pd.notna(v) else 0 for v in z.tolist()]
             else:
                 normalized_data[station] = [0] * len(full_date_range)
 
@@ -1065,8 +1090,9 @@ def main():
         mag_json = {
             "labels": recent_date_range,
             "bou": normalized_data.get("BOU", [])[recent_idx:],
+            "frd": normalized_data.get("FRD", [])[recent_idx:],
+            "brw": normalized_data.get("BRW", [])[recent_idx:],
             "hon": normalized_data.get("HON", [])[recent_idx:],
-            "sjg": normalized_data.get("BRW", [])[recent_idx:],
             "composite": composite[recent_idx:]
         }
         # Add metadata with station info and sources
