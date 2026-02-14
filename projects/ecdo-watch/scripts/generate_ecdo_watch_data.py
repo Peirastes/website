@@ -1079,7 +1079,7 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
 
     return results
 
-def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_history: pd.DataFrame, kp_history: pd.DataFrame, now: datetime) -> None:
+def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_history: pd.DataFrame, kp_history: pd.DataFrame, now: datetime, days: int = 90, range_name: str = "") -> None:
     """Generate cross-channel coherence JSON: EOP composite vs MAG composite on quiet days."""
     if eop_baseline.empty or mag_history.empty:
         raise ValueError("Need both EOP baseline and MAG history for coherence")
@@ -1118,12 +1118,12 @@ def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_h
     merged = pd.merge(eop[["date", "eop_composite"]], mag[["date", "mag_composite"]], on="date", how="inner")
     merged = merged.sort_values("date").reset_index(drop=True)
 
-    # Filter to last 90 days for primary analysis
-    cutoff_90d = now.replace(tzinfo=None) - timedelta(days=90)
+    # Filter to requested time range for analysis
+    cutoff_90d = now.replace(tzinfo=None) - timedelta(days=days)
     merged_90d = merged[merged["date"] >= cutoff_90d].copy()
 
     if merged_90d.empty:
-        raise ValueError("No overlapping EOP + MAG data in last 90 days")
+        raise ValueError(f"No overlapping EOP + MAG data in last {days} days")
 
     # Apply quiet-day flags from Kp history
     kp = kp_history[["date", "kp_max"]].copy()
@@ -1197,8 +1197,10 @@ def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_h
     }
     coherence_json = add_metadata(coherence_json, "Derived (EOP x MAG coherence)", source_status="ok")
 
-    (assets_dir / "coherence_data.json").write_text(json.dumps(coherence_json))
-    print(f"    [OK] coherence_data.json ({n_quiet} quiet days, corr={corr_quiet}, badge={badge})")
+    suffix = f"_{range_name}" if range_name else ""
+    filename = f"coherence{suffix}.json"
+    (assets_dir / filename).write_text(json.dumps(coherence_json))
+    print(f"    [OK] {filename} ({n_quiet} quiet days, corr={corr_quiet}, badge={badge})")
 
 
 def main():
@@ -1593,21 +1595,22 @@ def main():
         filepath.write_text(json.dumps(dataset))
         print(f"    [OK] {dataset_name}.json")
 
-    # 10. Cross-channel coherence analysis
+    # 10. Cross-channel coherence analysis (multi-range)
     print("  Computing cross-channel coherence...")
-    try:
-        _generate_coherence_data(assets_dir, eop_baseline, mag_history, kp_history, now)
-    except Exception as e:
-        print(f"    Warning: Coherence computation failed: {e}")
-        # Write a minimal coherence file so the frontend doesn't break
-        fallback = {
-            "labels": [], "eop_composite": [], "mag_composite": [],
-            "quiet": [], "watch_score": [],
-            "correlation": None, "rolling_corr_30d": [],
-            "badge": "GRAY", "quiet_day_count": 0, "total_days": 0,
-        }
-        (assets_dir / "coherence_data.json").write_text(json.dumps(fallback))
-        print("    [OK] coherence_data.json (fallback)")
+    coherence_ranges = {"30d": 30, "90d": 90, "1y": 365, "5y": 365 * 5, "10y": 365 * 10}
+    fallback = {
+        "labels": [], "eop_composite": [], "mag_composite": [],
+        "quiet": [], "watch_score": [],
+        "correlation": None, "rolling_corr_30d": [],
+        "badge": "GRAY", "quiet_day_count": 0, "total_days": 0,
+    }
+    for rname, rdays in coherence_ranges.items():
+        try:
+            _generate_coherence_data(assets_dir, eop_baseline, mag_history, kp_history, now, days=rdays, range_name=rname)
+        except Exception as e:
+            print(f"    Warning: Coherence {rname} failed: {e}")
+            (assets_dir / f"coherence_{rname}.json").write_text(json.dumps(add_metadata(dict(fallback), "Derived", source_status="fallback")))
+            print(f"    [OK] coherence_{rname}.json (fallback)")
 
     print(f"[{utcnow().isoformat()}] Complete!")
 

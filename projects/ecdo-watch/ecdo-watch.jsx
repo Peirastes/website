@@ -143,11 +143,16 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
     const aaData = await (aaRes.ok ? aaRes.json() : null);
     const pmData = await (pmRes.ok ? pmRes.json() : null);
 
-    // Fetch coherence data
+    // Fetch coherence data (time-range specific)
     let coherenceData = null;
     try {
-      const cohRes = await fetch('./assets/coherence_data.json');
-      coherenceData = cohRes.ok ? await cohRes.json() : null;
+      const cohRes = await fetch(`./assets/coherence_${timeRange}.json`);
+      if (cohRes.ok) {
+        coherenceData = await cohRes.json();
+      } else {
+        const cohFallback = await fetch('./assets/coherence_90d.json');
+        coherenceData = cohFallback.ok ? await cohFallback.json() : null;
+      }
     } catch { /* ignore */ }
 
     // Fetch deep seismicity data
