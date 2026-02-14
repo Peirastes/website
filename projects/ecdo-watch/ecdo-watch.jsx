@@ -622,6 +622,7 @@ const MAG_STATION_COORDS = [
 const GlobeView = ({ seismicEvents, volcData }) => {
   const globeContainerRef = useRef(null);
   const globeInstanceRef = useRef(null);
+  const [selectedPoint, setSelectedPoint] = useState(null);
 
   useEffect(() => {
     if (!globeContainerRef.current || typeof Globe === 'undefined') return;
@@ -787,7 +788,21 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         }
         return '';
       })
-      .pointsMerge(false);
+      .pointsMerge(false)
+      .onPointClick(d => {
+        setSelectedPoint(d);
+        if (globeInstanceRef.current) {
+          globeInstanceRef.current.controls().autoRotate = false;
+          // Focus the globe on the clicked point
+          globeInstanceRef.current.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.8 }, 600);
+        }
+      })
+      .onGlobeClick(() => {
+        setSelectedPoint(null);
+        if (globeInstanceRef.current) {
+          globeInstanceRef.current.controls().autoRotate = true;
+        }
+      });
 
     // Add rings around earthquake epicenters for visibility
     const ringsData = [];
@@ -842,6 +857,57 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           Plate Boundaries
         </div>
       </div>
+
+      {/* Click info panel */}
+      {selectedPoint && (() => {
+        const d = selectedPoint;
+        const borderColor = d.type === 'earthquake' ? '#8b5cf6' : d.type === 'volcano' ? '#ef4444' : '#4a9eff';
+        return (
+          <div style={{
+            position: 'absolute', top: 12, right: 12,
+            background: 'rgba(15,15,21,0.95)', border: '1px solid #252532',
+            borderLeft: `3px solid ${borderColor}`,
+            borderRadius: 6, padding: '12px 16px', fontSize: 11, color: '#e8e8ed',
+            minWidth: 180, maxWidth: 260, lineHeight: 1.6,
+            fontFamily: 'Inter, system-ui, sans-serif',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <span style={{ fontSize: 9, color: '#7a7a8c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {d.type === 'earthquake' ? 'Deep Earthquake' : d.type === 'volcano' ? 'Volcano' : 'Mag Station'}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSelectedPoint(null); if (globeInstanceRef.current) globeInstanceRef.current.controls().autoRotate = true; }}
+                style={{ background: 'transparent', border: 'none', color: '#7a7a8c', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >&#215;</button>
+            </div>
+            {d.type === 'earthquake' && (
+              <>
+                <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>M{d.mag}</div>
+                <div style={{ color: '#a8a8bc' }}>Depth: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.depth_km.toFixed(0)} km</span></div>
+                <div style={{ color: '#a8a8bc' }}>Date: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.date}</span></div>
+                <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+              </>
+            )}
+            {d.type === 'volcano' && (() => {
+              const statusColor = d.vStatus === 'erupting' ? '#ef4444' : d.vStatus === 'elevated' ? '#f59e0b' : '#7a7a8c';
+              return (
+                <>
+                  <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#e8e8ed', marginBottom: 4 }}>{d.vName}</div>
+                  <div style={{ color: '#a8a8bc' }}>Status: <span style={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', fontSize: 10 }}>{d.vStatus || 'active'}</span></div>
+                  <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+                </>
+              );
+            })()}
+            {d.type === 'station' && (
+              <>
+                <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: '#4a9eff', marginBottom: 4 }}>{d.sCode}</div>
+                <div style={{ color: '#a8a8bc' }}>{d.sName}</div>
+                <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+              </>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 };
