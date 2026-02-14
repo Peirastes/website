@@ -710,8 +710,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           size: Math.max(0.4, (ev.mag - 3.5) * 0.4),
           color: ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6',
           altitude: 0.005,
-          label: `M${ev.mag} | ${ev.depth_km}km depth | ${ev.date}`,
           type: 'earthquake',
+          mag: ev.mag,
+          depth_km: ev.depth_km,
+          date: ev.date,
         });
       });
     }
@@ -725,8 +727,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           size: 0.4,
           color: '#ef4444',
           altitude: 0.01,
-          label: v.name,
           type: 'volcano',
+          vName: v.name,
+          vStatus: v.status,
         });
       });
     }
@@ -739,10 +742,15 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         size: 0.35,
         color: '#4a9eff',
         altitude: 0.015,
-        label: `${s.code} - ${s.name}`,
         type: 'station',
+        sCode: s.code,
+        sName: s.name,
       });
     });
+
+    const tooltipStyle = 'background:rgba(15,15,21,0.95);border:1px solid #252532;border-radius:6px;padding:8px 12px;font-family:Inter,system-ui,sans-serif;font-size:11px;color:#e8e8ed;line-height:1.5;max-width:220px;pointer-events:none;';
+    const dimStyle = 'color:#7a7a8c;font-size:10px;';
+    const valStyle = 'font-family:monospace;font-weight:600;';
 
     globe
       .pointsData(pointsData)
@@ -751,8 +759,35 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       .pointAltitude('altitude')
       .pointRadius('size')
       .pointColor('color')
-      .pointLabel('label')
-      .pointsMerge(true);
+      .pointLabel(d => {
+        if (d.type === 'earthquake') {
+          return `<div style="${tooltipStyle}border-left:3px solid #8b5cf6;">
+            <div style="margin-bottom:4px;"><span style="${dimStyle}">DEEP EARTHQUAKE</span></div>
+            <div><span style="${valStyle}color:#c084fc;">M${d.mag}</span> <span style="${dimStyle}">| ${d.depth_km.toFixed(0)}km depth</span></div>
+            <div style="${dimStyle}">${d.date}</div>
+            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
+          </div>`;
+        }
+        if (d.type === 'volcano') {
+          const statusColor = d.vStatus === 'erupting' ? '#ef4444' : d.vStatus === 'elevated' ? '#f59e0b' : '#7a7a8c';
+          return `<div style="${tooltipStyle}border-left:3px solid #ef4444;">
+            <div style="margin-bottom:4px;"><span style="${dimStyle}">VOLCANO</span></div>
+            <div style="${valStyle}">${d.vName}</div>
+            <div><span style="color:${statusColor};font-size:10px;font-weight:600;text-transform:uppercase;">${d.vStatus || 'active'}</span></div>
+            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
+          </div>`;
+        }
+        if (d.type === 'station') {
+          return `<div style="${tooltipStyle}border-left:3px solid #4a9eff;">
+            <div style="margin-bottom:4px;"><span style="${dimStyle}">MAG STATION</span></div>
+            <div style="${valStyle}">${d.sCode}</div>
+            <div style="${dimStyle}">${d.sName}</div>
+            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
+          </div>`;
+        }
+        return '';
+      })
+      .pointsMerge(false);
 
     // Add rings around earthquake epicenters for visibility
     const ringsData = [];
@@ -1093,7 +1128,7 @@ function ECDOWatchDashboard() {
 
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <style dangerouslySetInnerHTML={{__html: '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }'}} />
+      <style dangerouslySetInnerHTML={{__html: '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } } .scene-tooltip { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; }'}} />
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
 
