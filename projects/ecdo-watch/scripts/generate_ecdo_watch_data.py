@@ -993,7 +993,7 @@ def generate_volcanic_activity_json(volcanic_data: dict) -> dict:
 # -------------------------
 # Main Script
 # -------------------------
-def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, eop_baseline=None, lod_json=None, mag_json=None, deep_eq_daily=None):
+def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, eop_baseline=None, lod_json=None, mag_json=None, deep_eq_daily=None, c20_all=None, volcanic_data=None):
     """Generate JSON files for multiple time ranges."""
     time_ranges = {
         "30d": 30,
@@ -1076,6 +1076,40 @@ def generate_time_range_datasets(kp_history, eop_all, mag_data_by_station, now, 
             seis_json = generate_deep_seismicity_json(deep_eq_daily, days=days)
             if seis_json["labels"]:
                 results[f"seis_{range_name}"] = seis_json
+
+        # C20 data (filter by date range)
+        if c20_all is not None and not c20_all.empty:
+            c20_subset = c20_all[c20_all["date"] >= cutoff].copy()
+            if not c20_subset.empty and "z_c20" in c20_subset.columns:
+                c20_json = {
+                    "labels": c20_subset["date"].dt.strftime("%Y-%m-%d").tolist(),
+                    "data": [round(v, 4) if pd.notna(v) else None for v in c20_subset["z_c20"].tolist()],
+                }
+                results[f"c20_{range_name}"] = c20_json
+
+        # Volcanic activity data (filter history by date range)
+        if volcanic_data is not None:
+            volc_history = volcanic_data.get("history", pd.DataFrame())
+            current = volcanic_data.get("current_volcanoes", [])
+            if not volc_history.empty:
+                cutoff_naive = cutoff.replace(tzinfo=None) if cutoff.tzinfo else cutoff
+                vh = volc_history[volc_history["date"] >= cutoff_naive].copy()
+                if not vh.empty:
+                    window = max(20, len(vh) // 3)
+                    if len(vh) >= 20:
+                        z_ac = robust_zscore(vh["active_count"].astype(float), window=window)
+                        z_list = [round(v, 4) if pd.notna(v) else None for v in z_ac]
+                    else:
+                        z_list = [None] * len(vh)
+                    volc_range_json = {
+                        "labels": vh["date"].dt.strftime("%Y-%m-%d").tolist(),
+                        "active_count": vh["active_count"].tolist(),
+                        "new_eruptions": vh["new_eruptions"].tolist(),
+                        "dispersion_km": [round(v, 0) if pd.notna(v) else None for v in vh["dispersion_km"]],
+                        "z_active_count": z_list,
+                        "current_volcanoes": current[:50],
+                    }
+                    results[f"volc_{range_name}"] = volc_range_json
 
     return results
 
@@ -1339,6 +1373,7 @@ def main():
 
     # 4.5. C20 data (degree-2 gravity harmonic)
     print("  Fetching C20 data...")
+    c20_all = pd.DataFrame()
     try:
         c20_all = load_gsfc_c20(cache_dir)
         if not c20_all.empty:
@@ -1568,6 +1603,7 @@ def main():
 
     # 7. Volcanic Activity (global eruptions)
     print("  Fetching volcanic activity data...")
+    volcanic_data = {}
     try:
         volcanic_data = load_volcanic_activity(cache_dir)
         volc_json = generate_volcanic_activity_json(volcanic_data)
@@ -1588,7 +1624,7 @@ def main():
     # 9. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
     # Pass eop_baseline (with z-scores) for proper EOP data in time ranges
-    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, eop_baseline=eop_baseline, lod_json=lod_json, mag_json=mag_json, deep_eq_daily=deep_eq_daily)
+    time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, eop_baseline=eop_baseline, lod_json=lod_json, mag_json=mag_json, deep_eq_daily=deep_eq_daily, c20_all=c20_all, volcanic_data=volcanic_data)
 
     for dataset_name, dataset in time_range_data.items():
         filepath = assets_dir / f"{dataset_name}.json"

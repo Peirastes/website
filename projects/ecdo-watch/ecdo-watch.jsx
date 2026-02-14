@@ -125,10 +125,15 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       lodData = await fallback.json();
     }
 
-    // Fetch C20 data separately
+    // Fetch C20 data (time-range specific)
     try {
-      const c20Res = await fetch('./assets/c20_data.json');
-      c20Data = c20Res.ok ? await c20Res.json() : { labels: [], data: [] };
+      const c20Res = await fetch(`./assets/c20_${timeRange}.json`);
+      if (c20Res.ok) {
+        c20Data = await c20Res.json();
+      } else {
+        const c20Fallback = await fetch('./assets/c20_data.json');
+        c20Data = c20Fallback.ok ? await c20Fallback.json() : { labels: [], data: [] };
+      }
     } catch {
       c20Data = { labels: [], data: [] };
     }
@@ -167,11 +172,16 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       }
     } catch { /* ignore */ }
 
-    // Fetch volcanic activity data
+    // Fetch volcanic activity data (time-range specific)
     let volcData = null;
     try {
-      const volcRes = await fetch('./assets/volcanic_activity_data.json');
-      volcData = volcRes.ok ? await volcRes.json() : null;
+      const volcRes = await fetch(`./assets/volc_${timeRange}.json`);
+      if (volcRes.ok) {
+        volcData = await volcRes.json();
+      } else {
+        const volcFallback = await fetch('./assets/volcanic_activity_data.json');
+        volcData = volcFallback.ok ? await volcFallback.json() : null;
+      }
     } catch { /* ignore */ }
 
     // Fetch polar motion data
