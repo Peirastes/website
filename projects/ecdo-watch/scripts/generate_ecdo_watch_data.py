@@ -653,6 +653,7 @@ def load_usgs_deep_seismicity(cache_dir: Path, years: int = 10) -> tuple:
             dt = datetime.fromtimestamp(event_time / 1000, tz=timezone.utc)
             event_rows.append({
                 "date": dt.strftime("%Y-%m-%d"),
+                "datetime": dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "mag": float(mag),
                 "depth_km": float(coords[2]),
                 "lat": float(coords[1]),
@@ -866,14 +867,22 @@ def load_volcanic_activity(cache_dir: Path) -> dict:
                 name = props.get("VolcanoName", "Unknown")
                 lat = props.get("LatitudeDecimal")
                 lon = props.get("LongitudeDecimal")
+                start_date_raw = props.get("StartDate", "")
+                start_date = ""
+                if start_date_raw and len(str(start_date_raw)) >= 8:
+                    sd = str(start_date_raw)
+                    start_date = f"{sd[:4]}-{sd[4:6]}-{sd[6:8]}"
                 if lat is not None and lon is not None:
-                    current_volcanoes.append({
+                    entry = {
                         "name": name,
                         "lat": float(lat),
                         "lon": float(lon),
                         "status": "erupting",
                         "alert": "CONTINUING",
-                    })
+                    }
+                    if start_date:
+                        entry["start_date"] = start_date
+                    current_volcanoes.append(entry)
             source = "Smithsonian GVP"
             print(f"      GVP WFS: {len(current_volcanoes)} continuing eruptions")
         except Exception as e:

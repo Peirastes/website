@@ -715,6 +715,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           mag: ev.mag,
           depth_km: ev.depth_km,
           date: ev.date,
+          datetime: ev.datetime || ev.date,
         });
       });
     }
@@ -731,6 +732,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           type: 'volcano',
           vName: v.name,
           vStatus: v.status,
+          vStartDate: v.start_date || null,
         });
       });
     }
@@ -880,20 +882,28 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 style={{ background: 'transparent', border: 'none', color: '#7a7a8c', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}
               >&#215;</button>
             </div>
-            {d.type === 'earthquake' && (
-              <>
-                <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>M{d.mag}</div>
-                <div style={{ color: '#a8a8bc' }}>Depth: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.depth_km.toFixed(0)} km</span></div>
-                <div style={{ color: '#a8a8bc' }}>Date: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.date}</span></div>
-                <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
-              </>
-            )}
+            {d.type === 'earthquake' && (() => {
+              let dateStr = d.date;
+              if (d.datetime && d.datetime.includes('T')) {
+                const dt = new Date(d.datetime);
+                dateStr = dt.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+              }
+              return (
+                <>
+                  <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>M{d.mag}</div>
+                  <div style={{ color: '#a8a8bc' }}>Depth: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.depth_km.toFixed(0)} km</span></div>
+                  <div style={{ color: '#a8a8bc' }}>Date: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{dateStr}</span></div>
+                  <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+                </>
+              );
+            })()}
             {d.type === 'volcano' && (() => {
               const statusColor = d.vStatus === 'erupting' ? '#ef4444' : d.vStatus === 'elevated' ? '#f59e0b' : '#7a7a8c';
               return (
                 <>
                   <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#e8e8ed', marginBottom: 4 }}>{d.vName}</div>
                   <div style={{ color: '#a8a8bc' }}>Status: <span style={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', fontSize: 10 }}>{d.vStatus || 'active'}</span></div>
+                  {d.vStartDate && <div style={{ color: '#a8a8bc' }}>Eruption start: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vStartDate}</span></div>}
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
                 </>
               );
