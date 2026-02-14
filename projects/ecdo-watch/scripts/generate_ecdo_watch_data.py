@@ -581,10 +581,11 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 # -------------------------
 # Deep Seismicity
 # -------------------------
-def load_usgs_deep_seismicity(cache_dir: Path, years: int = 10) -> pd.DataFrame:
+def load_usgs_deep_seismicity(cache_dir: Path, years: int = 10) -> tuple:
     """Fetch deep earthquakes (>300km, M>=4.5) from USGS FDSN and aggregate to daily.
 
     Uses cached history file + live update for recent 30 days.
+    Returns (daily_df, event_rows) where event_rows is a list of individual event dicts.
     """
     history_file = cache_dir / "deep_eq_history.csv"
     now = utcnow()
@@ -662,8 +663,8 @@ def load_usgs_deep_seismicity(cache_dir: Path, years: int = 10) -> pd.DataFrame:
 
     if not event_rows:
         if not history.empty:
-            return history
-        return pd.DataFrame(columns=["date", "eq_count", "energy_log10", "max_magnitude", "mean_depth_km"])
+            return history, []
+        return pd.DataFrame(columns=["date", "eq_count", "energy_log10", "max_magnitude", "mean_depth_km"]), []
 
     events_df = pd.DataFrame(event_rows)
     events_df["date_dt"] = pd.to_datetime(events_df["date"])
@@ -713,7 +714,69 @@ def load_usgs_deep_seismicity(cache_dir: Path, years: int = 10) -> pd.DataFrame:
     daily.to_csv(history_file, index=False, date_format="%Y-%m-%d")
     print(f"    Saved {len(daily)} days of deep EQ history")
 
-    return daily
+    return daily, event_rows
+
+
+def generate_seismic_events_json(events: list, assets_dir: Path) -> None:
+    """Save recent individual seismic events for globe display (last 90 days, <=500 events)."""
+    now = utcnow()
+    cutoff = now - timedelta(days=90)
+    cutoff_str = cutoff.strftime("%Y-%m-%d")
+
+    recent = [e for e in events if e.get("date", "") >= cutoff_str]
+    # Sort by date descending and cap at 500
+    recent.sort(key=lambda e: e["date"], reverse=True)
+    recent = recent[:500]
+
+    out = {
+        "events": recent,
+    }
+    out = add_metadata(out, "USGS FDSN", source_status="ok")
+
+    (assets_dir / "seismic_events.json").write_text(json.dumps(out))
+    print(f"    [OK] seismic_events.json ({len(recent)} events)")
+
+
+def generate_polar_motion_json(eop_all: pd.DataFrame, assets_dir: Path) -> None:
+    """Generate polar motion data JSON for spiral plot and Chandler wobble decomposition.
+
+    Uses last 10 years of daily pm_x/pm_y from IERS finals2000A.
+    Chandler separation: 365-day rolling mean captures annual + secular drift,
+    residual approximates Chandler component (~433-day period).
+    """
+    if eop_all.empty:
+        print("    Warning: No EOP data for polar motion JSON")
+        return
+
+    now = utcnow()
+    cutoff = now - timedelta(days=10 * 365)
+    subset = eop_all[eop_all["date"] >= cutoff].copy()
+    subset = subset.dropna(subset=["pm_x_arcsec", "pm_y_arcsec"]).sort_values("date").reset_index(drop=True)
+
+    if len(subset) < 400:
+        print(f"    Warning: Only {len(subset)} polar motion points (need ~3650)")
+        return
+
+    # Chandler wobble separation via 365-day rolling mean
+    subset["pm_x_annual"] = subset["pm_x_arcsec"].rolling(365, min_periods=180, center=True).mean()
+    subset["pm_y_annual"] = subset["pm_y_arcsec"].rolling(365, min_periods=180, center=True).mean()
+    subset["pm_x_chandler"] = subset["pm_x_arcsec"] - subset["pm_x_annual"]
+    subset["pm_y_chandler"] = subset["pm_y_arcsec"] - subset["pm_y_annual"]
+
+    # Drop rows where rolling mean is NaN (edges)
+    valid = subset.dropna(subset=["pm_x_chandler", "pm_y_chandler"]).copy()
+
+    out = {
+        "labels": valid["date"].dt.strftime("%Y-%m-%d").tolist(),
+        "pm_x": [round(v, 6) for v in valid["pm_x_arcsec"].tolist()],
+        "pm_y": [round(v, 6) for v in valid["pm_y_arcsec"].tolist()],
+        "pm_x_chandler": [round(v, 6) if pd.notna(v) else None for v in valid["pm_x_chandler"].tolist()],
+        "pm_y_chandler": [round(v, 6) if pd.notna(v) else None for v in valid["pm_y_chandler"].tolist()],
+    }
+    out = add_metadata(out, "IERS finals2000A", source_status="ok")
+
+    (assets_dir / "polar_motion_data.json").write_text(json.dumps(out))
+    print(f"    [OK] polar_motion_data.json ({len(valid)} points)")
 
 
 def generate_deep_seismicity_json(daily: pd.DataFrame, days: int = 90) -> dict:
@@ -1473,14 +1536,19 @@ def main():
     print("  Fetching deep seismicity data...")
     deep_eq_daily = pd.DataFrame()
     try:
-        deep_eq_daily = load_usgs_deep_seismicity(cache_dir, years=10)
+        deep_eq_daily, deep_eq_events = load_usgs_deep_seismicity(cache_dir, years=10)
         if not deep_eq_daily.empty:
             seis_json = generate_deep_seismicity_json(deep_eq_daily, days=90)
             seis_json = add_metadata(seis_json, "USGS FDSN (deep EQ)", source_status="ok")
             (assets_dir / "deep_seismicity_data.json").write_text(json.dumps(seis_json))
             print(f"    [OK] deep_seismicity_data.json ({len(seis_json['labels'])} days)")
         else:
+            deep_eq_events = []
             print("    Warning: No deep seismicity data")
+
+        # Generate individual events JSON for globe display
+        if deep_eq_events:
+            generate_seismic_events_json(deep_eq_events, assets_dir)
     except Exception as e:
         print(f"    Warning: Deep seismicity fetch failed: {e}")
 
@@ -1496,7 +1564,14 @@ def main():
     except Exception as e:
         print(f"    Warning: Volcanic activity fetch failed: {e}")
 
-    # 8. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
+    # 8. Polar Motion (spiral plot + Chandler wobble)
+    print("  Generating polar motion data...")
+    try:
+        generate_polar_motion_json(eop_all, assets_dir)
+    except Exception as e:
+        print(f"    Warning: Polar motion generation failed: {e}")
+
+    # 9. Generate time-range datasets (30d, 90d, 1y, 5y, 10y)
     print("  Generating multi-range datasets...")
     # Pass eop_baseline (with z-scores) for proper EOP data in time ranges
     time_range_data = generate_time_range_datasets(kp_history, eop_all, normalized_mag_data, now, eop_baseline=eop_baseline, lod_json=lod_json, mag_json=mag_json, deep_eq_daily=deep_eq_daily)
@@ -1506,7 +1581,7 @@ def main():
         filepath.write_text(json.dumps(dataset))
         print(f"    [OK] {dataset_name}.json")
 
-    # 9. Cross-channel coherence analysis
+    # 10. Cross-channel coherence analysis
     print("  Computing cross-channel coherence...")
     try:
         _generate_coherence_data(assets_dir, eop_baseline, mag_history, kp_history, now)

@@ -159,7 +159,21 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       volcData = volcRes.ok ? await volcRes.json() : null;
     } catch { /* ignore */ }
 
-    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData, coherenceData, seisData, volcData };
+    // Fetch polar motion data
+    let polarMotionData = null;
+    try {
+      const pmrRes = await fetch('./assets/polar_motion_data.json');
+      polarMotionData = pmrRes.ok ? await pmrRes.json() : null;
+    } catch { /* ignore */ }
+
+    // Fetch seismic events for globe
+    let seismicEventsData = null;
+    try {
+      const seRes = await fetch('./assets/seismic_events.json');
+      seismicEventsData = seRes.ok ? await seRes.json() : null;
+    } catch { /* ignore */ }
+
+    return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData, coherenceData, seisData, volcData, polarMotionData, seismicEventsData };
   } catch (error) {
     console.warn('Could not load real data, using fallback:', error);
     return null;
@@ -663,6 +677,325 @@ const alignRecentData = (kpData, lodData, magData) => {
   return { kpData: kpAligned, lodData, magData: magAligned };
 };
 
+// Magnetometer station coordinates (fixed locations)
+const MAG_STATION_COORDS = [
+  { code: 'BOU', name: 'Boulder', lat: 40.1374, lng: -105.2371 },
+  { code: 'FRD', name: 'Fredericksburg', lat: 38.2045, lng: -77.3705 },
+  { code: 'BRW', name: 'Barrow', lat: 71.3212, lng: -156.6280 },
+  { code: 'HON', name: 'Honolulu', lat: 21.3155, lng: -157.9241 },
+];
+
+// Globe component using globe.gl
+const GlobeView = ({ seismicEvents, volcData }) => {
+  const globeContainerRef = useRef(null);
+  const globeInstanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!globeContainerRef.current || typeof Globe === 'undefined') return;
+
+    // Only create the globe once
+    if (globeInstanceRef.current) return;
+
+    const container = globeContainerRef.current;
+    const width = container.clientWidth;
+    const height = Math.max(400, width * 0.75);
+
+    const globe = Globe()
+      .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg')
+      .backgroundColor('rgba(0,0,0,0)')
+      .showAtmosphere(true)
+      .atmosphereColor('#3a228a')
+      .atmosphereAltitude(0.15)
+      .width(width)
+      .height(height)
+      .pointOfView({ lat: 10, lng: 170, altitude: 2.2 })
+      (container);
+
+    // Auto-rotate
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.3;
+    globe.controls().enableZoom = true;
+
+    globeInstanceRef.current = globe;
+
+    // Handle resize
+    const handleResize = () => {
+      if (globeInstanceRef.current && globeContainerRef.current) {
+        const w = globeContainerRef.current.clientWidth;
+        const h = Math.max(400, w * 0.75);
+        globeInstanceRef.current.width(w).height(h);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // Update data layers when data changes
+  useEffect(() => {
+    if (!globeInstanceRef.current) return;
+    const globe = globeInstanceRef.current;
+
+    // Build combined points data
+    const pointsData = [];
+
+    // 1. Earthquake epicenters (purple)
+    if (seismicEvents && seismicEvents.events) {
+      seismicEvents.events.forEach(ev => {
+        pointsData.push({
+          lat: ev.lat,
+          lng: ev.lon,
+          size: Math.max(0.15, ev.mag * 0.08),
+          color: '#8b5cf6',
+          altitude: ev.depth_km / 50000,
+          label: `M${ev.mag} | ${ev.depth_km}km | ${ev.date}`,
+          type: 'earthquake',
+        });
+      });
+    }
+
+    // 2. Active volcanoes (red)
+    if (volcData && volcData.current_volcanoes) {
+      volcData.current_volcanoes.forEach(v => {
+        pointsData.push({
+          lat: v.lat,
+          lng: v.lon,
+          size: 0.4,
+          color: '#ef4444',
+          altitude: 0.01,
+          label: v.name,
+          type: 'volcano',
+        });
+      });
+    }
+
+    // 3. Magnetometer stations (blue)
+    MAG_STATION_COORDS.forEach(s => {
+      pointsData.push({
+        lat: s.lat,
+        lng: s.lng,
+        size: 0.35,
+        color: '#4a9eff',
+        altitude: 0.015,
+        label: `${s.code} - ${s.name}`,
+        type: 'station',
+      });
+    });
+
+    globe
+      .pointsData(pointsData)
+      .pointLat('lat')
+      .pointLng('lng')
+      .pointAltitude('altitude')
+      .pointRadius('size')
+      .pointColor('color')
+      .pointLabel('label')
+      .pointsMerge(true);
+
+  }, [seismicEvents, volcData]);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div ref={globeContainerRef} style={{ width: '100%', minHeight: 400, cursor: 'grab' }} />
+      {/* Legend overlay */}
+      <div style={{
+        position: 'absolute', bottom: 12, left: 12,
+        background: 'rgba(15,15,21,0.85)', border: '1px solid #252532',
+        borderRadius: 6, padding: '8px 12px', fontSize: 10, color: '#a8a8bc',
+        display: 'flex', flexDirection: 'column', gap: 4,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6', display: 'inline-block' }} />
+          Deep EQ (>300km)
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+          Active Volcanoes
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a9eff', display: 'inline-block' }} />
+          Mag Stations
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Polar motion spiral + Chandler residual charts
+const PolarMotionCharts = ({ polarMotionData }) => {
+  const spiralRef = useRef(null);
+  const chandlerRef = useRef(null);
+  const spiralChartRef = useRef(null);
+  const chandlerChartRef = useRef(null);
+
+  useEffect(() => {
+    if (!polarMotionData || !polarMotionData.labels || polarMotionData.labels.length === 0) return;
+
+    // --- Chart 1: X/Y Spiral Plot ---
+    if (spiralChartRef.current) spiralChartRef.current.destroy();
+
+    const n = polarMotionData.labels.length;
+    // Color gradient: blue (old) to orange (recent)
+    const spiralPoints = polarMotionData.pm_x.map((x, i) => ({
+      x: x,
+      y: polarMotionData.pm_y[i],
+    }));
+
+    // Create gradient colors for each point
+    const colors = polarMotionData.labels.map((_, i) => {
+      const t = i / (n - 1); // 0..1
+      const r = Math.round(74 + t * (245 - 74));
+      const g = Math.round(158 + t * (158 - 158));
+      const b = Math.round(255 + t * (11 - 255));
+      return `rgb(${r},${g},${b})`;
+    });
+
+    spiralChartRef.current = new Chart(spiralRef.current.getContext('2d'), {
+      type: 'scatter',
+      data: {
+        datasets: [{
+          data: spiralPoints,
+          pointBackgroundColor: colors,
+          pointBorderColor: colors,
+          pointRadius: 1,
+          pointHoverRadius: 3,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#16161f',
+            borderColor: '#252532',
+            borderWidth: 1,
+            titleColor: '#e8e8ed',
+            bodyColor: '#7a7a8c',
+            callbacks: {
+              label: (ctx) => {
+                const idx = ctx.dataIndex;
+                return `${polarMotionData.labels[idx]} | X: ${ctx.parsed.x.toFixed(4)}″ Y: ${ctx.parsed.y.toFixed(4)}″`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'PM X (arcsec)', color: '#7a7a8c', font: { size: 10 } },
+            grid: { color: '#1e1e2a' },
+            ticks: { color: '#7a7a8c', font: { size: 9 } },
+          },
+          y: {
+            title: { display: true, text: 'PM Y (arcsec)', color: '#7a7a8c', font: { size: 10 } },
+            grid: { color: '#1e1e2a' },
+            ticks: { color: '#7a7a8c', font: { size: 9 } },
+          }
+        }
+      }
+    });
+
+    // --- Chart 2: Chandler Residual Time Series ---
+    if (chandlerChartRef.current) chandlerChartRef.current.destroy();
+
+    // Downsample for performance (every 3rd point)
+    const step = 3;
+    const dsLabels = polarMotionData.labels.filter((_, i) => i % step === 0);
+    const dsX = polarMotionData.pm_x_chandler.filter((_, i) => i % step === 0);
+    const dsY = polarMotionData.pm_y_chandler.filter((_, i) => i % step === 0);
+
+    chandlerChartRef.current = new Chart(chandlerRef.current.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: dsLabels,
+        datasets: [
+          {
+            label: 'Chandler X',
+            data: dsX,
+            borderColor: '#4a9eff',
+            borderWidth: 1.5,
+            tension: 0.3,
+            pointRadius: 0,
+          },
+          {
+            label: 'Chandler Y',
+            data: dsY,
+            borderColor: '#f59e0b',
+            borderWidth: 1.5,
+            tension: 0.3,
+            pointRadius: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
+          },
+          tooltip: {
+            backgroundColor: '#16161f',
+            borderColor: '#252532',
+            borderWidth: 1,
+            titleColor: '#e8e8ed',
+            bodyColor: '#7a7a8c',
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#7a7a8c', font: { size: 9 }, maxTicksLimit: 8 },
+          },
+          y: {
+            title: { display: true, text: 'arcsec', color: '#7a7a8c', font: { size: 10 } },
+            grid: { color: '#1e1e2a' },
+            ticks: { color: '#7a7a8c', font: { size: 9 } },
+          }
+        }
+      }
+    });
+
+    return () => {
+      if (spiralChartRef.current) spiralChartRef.current.destroy();
+      if (chandlerChartRef.current) chandlerChartRef.current.destroy();
+    };
+  }, [polarMotionData]);
+
+  if (!polarMotionData || !polarMotionData.labels || polarMotionData.labels.length === 0) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
+        Polar motion data not yet available. Run the data pipeline to generate.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Polar Motion Spiral (10yr)</h4>
+        <div style={{ maxWidth: 360, margin: '0 auto' }}>
+          <canvas ref={spiralRef} />
+        </div>
+        <div style={{ fontSize: 10, color: '#7a7a8c', textAlign: 'center', marginTop: 4 }}>
+          Color: <span style={{ color: '#4a9eff' }}>blue</span> = older → <span style={{ color: '#f59e0b' }}>orange</span> = recent
+        </div>
+      </div>
+      <div>
+        <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Chandler Wobble Residual (~433d period)</h4>
+        <div style={{ height: 160 }}>
+          <canvas ref={chandlerRef} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function ECDOWatchDashboard() {
   const [selectedTimeRange, setSelectedTimeRange] = useState('90d');
   const [historicalTimeRange, setHistoricalTimeRange] = useState(50);
@@ -676,6 +1009,8 @@ function ECDOWatchDashboard() {
   const [coherenceData, setCoherenceData] = useState(null);
   const [seisData, setSeisData] = useState(null);
   const [volcData, setVolcData] = useState(null);
+  const [polarMotionData, setPolarMotionData] = useState(null);
+  const [seismicEvents, setSeismicEvents] = useState(null);
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
@@ -697,6 +1032,8 @@ function ECDOWatchDashboard() {
         if (data.coherenceData) setCoherenceData(data.coherenceData);
         if (data.seisData) setSeisData(data.seisData);
         if (data.volcData) setVolcData(data.volcData);
+        if (data.polarMotionData) setPolarMotionData(data.polarMotionData);
+        if (data.seismicEventsData) setSeismicEvents(data.seismicEventsData);
 
         // Extract and store metadata
         setKpMetadata(data.kpData.metadata || {});
@@ -1424,6 +1761,31 @@ function ECDOWatchDashboard() {
                 Volcanic activity data not yet available. Run the data pipeline to generate.
               </div>
             )}
+          </Card>
+
+          {/* Geophysical Spatial Monitor */}
+          <Card title="Geophysical Spatial Monitor" info={{
+            description: "Interactive 3D globe showing the spatial distribution of deep earthquakes, active volcanoes, and magnetometer stations. The polar motion spiral reveals the Chandler wobble — a ~433-day oscillation with ~6m amplitude caused by Earth's axis of rotation not coinciding with its axis of symmetry.",
+            lookingFor: [
+              "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
+              "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
+              "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
+              "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
+            ],
+            dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+              gap: 16,
+            }}>
+              <div>
+                <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
+              </div>
+              <div>
+                <PolarMotionCharts polarMotionData={polarMotionData} />
+              </div>
+            </div>
           </Card>
 
           {/* Historical Section */}
