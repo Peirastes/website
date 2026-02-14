@@ -651,6 +651,31 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
     globeInstanceRef.current = globe;
 
+    // Fetch tectonic plate boundaries and render as paths
+    fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || !data.features || !globeInstanceRef.current) return;
+        const paths = [];
+        data.features.forEach(f => {
+          const lines = f.geometry.type === 'MultiLineString'
+            ? f.geometry.coordinates
+            : [f.geometry.coordinates];
+          lines.forEach(line => {
+            paths.push({ points: line });
+          });
+        });
+        globeInstanceRef.current
+          .pathsData(paths)
+          .pathPoints('points')
+          .pathPointLat(p => p[1])
+          .pathPointLng(p => p[0])
+          .pathColor(() => 'rgba(245, 158, 11, 0.25)')
+          .pathStroke(0.4)
+          .pathTransitionDuration(0);
+      })
+      .catch(() => {}); // fail silently
+
     // Use ResizeObserver to track container size changes (grid layout, window resize)
     const ro = new ResizeObserver(() => {
       if (globeInstanceRef.current && globeContainerRef.current) {
@@ -776,6 +801,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a9eff', display: 'inline-block' }} />
           Mag Stations
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 12, height: 2, background: 'rgba(245, 158, 11, 0.5)', display: 'inline-block' }} />
+          Plate Boundaries
         </div>
       </div>
     </div>
