@@ -100,10 +100,10 @@ This yields analytic solutions for:
 | Gap | Priority | Notes |
 |-----|----------|-------|
 | Publication-quality figures | High | Tank schematic, compressibility spectrum, depth distribution, P-V diagrams |
-| Literature review section | High | Engage with econophysics (Mantegna & Stanley), thermoeconomics |
 | Empirical validation examples | Medium | Apply lot-level model to historical stock data |
-| References | Medium | Complete bibliography |
-| Acknowledgments | Low | To be added |
+| ~~Literature review section~~ | ~~Done~~ | ~~Section 1.3 rewritten as Related Work with five traditions~~ |
+| ~~References~~ | ~~Done~~ | ~~20-entry bibliography added~~ |
+| ~~Acknowledgments~~ | ~~Done~~ | ~~Tank-draining origin + Claude Opus 4.5/4.6 collaboration~~ |
 
 ---
 
