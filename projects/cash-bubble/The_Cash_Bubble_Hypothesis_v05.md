@@ -32,15 +32,19 @@ The framework developed here emerged from the classic "tank draining" problems e
 
 What elevates this from private analogy to publishable framework is the discovery that the mathematics *actually works*. The equations governing fluid flow in tanks are not merely *similar* to personal finance dynamics—they are *the same equations*, with dollars replacing gallons and accounts replacing reservoirs. Moreover, this structural identity extends beyond fluid mechanics: the distinction between cash and investments maps precisely onto the distinction between incompressible and compressible media, importing thermodynamic structure.
 
-### 1.3 The Gap in the Literature
+### 1.3 Related Work
 
-The idea that money behaves like fluid has historical precedent. In 1949, the economist Bill Phillips constructed the MONIAC, a hydraulic machine that modeled the British economy using colored water flowing through transparent pipes. But MONIAC operated at the macroeconomic scale; the personal finance domain has never received comparable treatment.
+The application of physical reasoning to economic systems has a substantial history, and the present work connects to several adjacent fields.
 
-In the adjacent field of econophysics, researchers have applied statistical mechanics to financial markets—Mantegna and Stanley's work on scaling laws in stock returns, Bouchaud and Potters' theory of financial risk, and the growing literature on wealth distributions that echo Boltzmann statistics. These approaches treat financial systems through the lens of physics, but they focus on market-level or population-level phenomena. The dynamics of a single household's finances—the scale at which most financial decisions actually occur—remains uncharted territory.
+**Hydraulic economic models.** In 1949, the economist Bill Phillips constructed the MONIAC, a hydraulic machine that modeled the circular flow of the British national economy using colored water flowing through transparent pipes [1]. Tanks represented sectors (households, firms, government), flows represented income and expenditure, and adjustable valves served as policy instruments. MONIAC operated at the macroeconomic scale, modeled only incompressible flows, and had no thermodynamic structure. The present work operates at the household scale and introduces compressible investment accounts alongside incompressible cash flows.
 
-Separately, the fields of thermoeconomics and exergoeconomics apply thermodynamic concepts (exergy, entropy production) to industrial and macroeconomic systems. This work demonstrates that thermodynamic reasoning can illuminate economic behavior, but it has not been brought to the personal finance scale.
+**Econophysics.** The field of econophysics applies statistical physics to the collective behavior of financial markets [2, 3]. This tradition characterizes market-wide phenomena—return distributions, scaling laws, correlation structures—treating the market as an emergent system of many interacting agents. The present paper operates at a different scale: rather than characterizing what the market does, it models what happens *to a household* immersed in that market.
 
-This paper fills the gap between these traditions: applying the mathematical machinery of fluid mechanics and thermodynamics to household-level financial dynamics, where conservation laws govern cash accounts and energy relations govern investment behavior.
+**Statistical mechanics of money.** A related tradition examines wealth distributions through agent-based models with conserved-money exchange [4, 15], modeling *populations* of agents and characterizing the equilibrium distributions that emerge. The present paper instead models a *single household* and tracks how value flows and transforms within its accounts. The two perspectives are complementary, analogous to the distinction between kinetic theory (ensemble behavior) and classical thermodynamics (one system's energy balance).
+
+**Thermoeconomics and exergoeconomics.** Several traditions apply thermodynamic concepts to economic systems at industrial and macroeconomic scales: entropy constraints on resource use [5], exergy-based cost accounting for thermal system optimization [6], formal analogies between thermodynamic and economic equilibria [16, 17], and thermodynamic identities for market-level aggregates [18]. These contributions generally operate at the level of national economies, industrial plants, or aggregate markets.
+
+The present paper operates in the space between these traditions, applying fluid mechanics and thermodynamics to household-level financial dynamics—where conservation laws govern cash accounts and the First Law governs investment value changes.
 
 ### 1.4 Thesis and Contribution
 
@@ -538,13 +542,51 @@ The framework is not a forecasting tool—it does not predict where prices will 
 
 ## Acknowledgments
 
-*[To be added]*
+This framework originated from the simple observation that interconnected tank-draining problems in differential equations—reservoirs of fluid connected by regulated flows, governed by conservation laws—are structurally identical to a system of personal financial accounts. The leap from that observation to a full thermofluidic theory was developed in collaboration with Anthropic's Claude (Opus 4.5 and 4.6), whose contributions to the mathematical formalization, critical review, and iterative refinement of the framework were substantial.
 
 ---
 
 ## References
 
-*[To be completed]*
+1. Phillips, A. W. (1950). "Mechanical Models in Economic Dynamics." *Economica* (New Series), 17(67), 283–305.
+
+2. Mantegna, R. N., and Stanley, H. E. (2000). *An Introduction to Econophysics: Correlations and Complexity in Finance.* Cambridge University Press.
+
+3. Bouchaud, J.-P., and Potters, M. (2003). *Theory of Financial Risk and Derivative Pricing: From Statistical Physics to Risk Management.* 2nd ed. Cambridge University Press.
+
+4. Dragulescu, A., and Yakovenko, V. M. (2000). "Statistical Mechanics of Money." *European Physical Journal B*, 17(4), 723–729.
+
+5. Georgescu-Roegen, N. (1971). *The Entropy Law and the Economic Process.* Harvard University Press.
+
+6. Bejan, A., Tsatsaronis, G., and Moran, M. J. (1996). *Thermal Design and Optimization.* John Wiley & Sons.
+
+7. Samuelson, P. A. (1965). "Rational Theory of Warrant Pricing." *Industrial Management Review*, 6(2), 13–39.
+
+8. Black, F., and Scholes, M. (1973). "The Pricing of Options and Corporate Liabilities." *Journal of Political Economy*, 81(3), 637–654.
+
+9. Uhlenbeck, G. E., and Ornstein, L. S. (1930). "On the Theory of the Brownian Motion." *Physical Review*, 36(5), 823–841.
+
+10. Risken, H. (1989). *The Fokker-Planck Equation: Methods of Solution and Applications.* 2nd ed. Springer-Verlag.
+
+11. Ricciardi, L. M., and Sato, S. (1988). "First-Passage-Time Density and Moments of the Ornstein-Uhlenbeck Process." *Journal of Applied Probability*, 25(1), 43–57.
+
+12. Øksendal, B. (2003). *Stochastic Differential Equations: An Introduction with Applications.* 6th ed. Springer-Verlag.
+
+13. Kailath, T. (1980). *Linear Systems.* Prentice-Hall.
+
+14. Board of Governors of the Federal Reserve System. *Survey of Consumer Finances (SCF).* https://www.federalreserve.gov/econres/scfindex.htm.
+
+15. Yakovenko, V. M., and Rosser, J. B. (2009). "Colloquium: Statistical Mechanics of Money, Wealth, and Income." *Reviews of Modern Physics*, 81(4), 1703–1725.
+
+16. Saslow, W. M. (1999). "An Economic Analogy to Thermodynamics." *American Journal of Physics*, 67(12), 1239–1247.
+
+17. Smith, E., and Foley, D. K. (2008). "Classical Thermodynamics and Economic General Equilibrium Theory." *Journal of Economic Dynamics and Control*, 32(1), 7–65.
+
+18. Rashkovskiy, S. A. (2021). "Thermodynamics of Markets." *Physica A*, 567, 125699.
+
+19. Vasicek, O. (1977). "An Equilibrium Characterization of the Term Structure." *Journal of Financial Economics*, 5(2), 177–188.
+
+20. Poterba, J. M., and Summers, L. H. (1988). "Mean Reversion in Stock Prices: Evidence and Implications." *Journal of Financial Economics*, 22(1), 27–59.
 
 ---
 
