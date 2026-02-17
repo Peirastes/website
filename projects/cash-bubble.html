@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>The Cash Bubble Hypothesis: A Physical Theory of Personal Finance</title>
+    <title>Thermofluidic Finance: A Physical Theory of Personal Financial Dynamics</title>
     <link rel="stylesheet" href="../css/style.css">
     <script src="../js/main.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
@@ -216,75 +216,73 @@
 
         <main class="paper-content">
 
-<h1 id="paper-start">The Cash Bubble Hypothesis: A Physical Theory of Personal Finance</h1>
+<h1 id="paper-start">Thermofluidic Finance: A Physical Theory of Personal Financial Dynamics</h1>
 
-<p style="text-align: center; color: var(--text-muted);"><strong>Working Paper Draft v0.4</strong></p>
+<p style="text-align: center; color: var(--text-muted);"><strong>Working Paper Draft v0.5</strong></p>
 
 <div class="divider">---</div>
 
 <h2>Abstract</h2>
 
 <div class="abstract-box">
-<p>The language of personal finance is saturated with fluid metaphors—cash <em>flow</em>, liquid <em>assets</em>, financial <em>liquidity</em>—yet these terms remain purely figurative. In this paper, a rigorous mathematical framework is developed in which personal finance operates as an actual dynamical system governed by conservation laws analogous to fluid mechanics.</p>
+<p>The language of personal finance is saturated with fluid metaphors&mdash;cash <em>flow</em>, liquid <em>assets</em>, financial <em>liquidity</em>&mdash;yet these terms remain purely figurative. In this paper, a rigorous mathematical framework is developed in which personal finance operates as an actual dynamical system governed by conservation laws from fluid mechanics and energy relations from thermodynamics.</p>
 
-<p>Cash accounts are modeled as interconnected reservoirs of incompressible fluid, where the fundamental balance equation <code>dV/dt = Q<sub>in</sub> - Q<sub>out</sub></code> directly parallels the continuity equation for mass conservation. The central novelty lies in treating volatile investments as <em>compressible gas bubbles</em> suspended within this financial fluid: market price acts as external pressure, unrealized gains represent stored potential energy, and realized gains correspond to thermodynamic work extracted during expansion.</p>
+<p>Cash accounts are modeled as interconnected reservoirs of incompressible fluid, where the fundamental balance equation \(dV/dt = Q_{in} - Q_{out}\) directly parallels the continuity equation for mass conservation. The multi-account system is expressed in state-space form \(\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}\), opening access to the full machinery of dynamical systems theory.</p>
 
-<p>This "cash bubble" hypothesis yields the First Law of Thermodynamics for investment accounts, establishes theoretical bounds on investment efficiency analogous to Carnot limits, and—through a consistency requirement—predicts that market volatility should scale with the square of price. Signal dynamics (velocity, acceleration, jerk of net worth) are further developed as diagnostic tools for detecting financial instability, and it is shown that common financial decision-making implicitly implements PID control. The framework unifies concepts from fluid mechanics, thermodynamics, and control theory into a coherent model of personal financial dynamics.</p>
+<p>The central novelty lies in treating volatile investments as <em>compressible media</em> suspended within this financial fluid. Because investment value \(V = nP\) depends on both quantity held \(n\) and market price \(P\), it exhibits compressibility&mdash;its &ldquo;volume&rdquo; changes with external &ldquo;pressure&rdquo; even absent any flow. Applying the product rule yields an exact First Law of Thermodynamics: unrealized appreciation \(\delta Q = n\,dP\) enters as heat from the market environment, while realized gains \(\delta W = -P\,dn\) are extracted as thermodynamic work. This decomposition is assumption-free, requiring no equation of state.</p>
+
+<p>A compressibility spectrum classifies financial instruments from incompressible (cash) through highly compressible (equities) to supercompressible (derivatives). At the position level, a lot-level buoyancy model characterizes each purchase lot by its &ldquo;depth&rdquo; \(d = \ln(P_{entry}/P)\), governed by an Ornstein-Uhlenbeck process whose analytic solutions yield underwater-time distributions, recovery statistics, and drawdown risk measures with direct applications to tax-loss harvesting and portfolio diagnostics.</p>
 </div>
 
 <div class="divider">---</div>
+
+<!-- ==================== SECTION I ==================== -->
 
 <h2>I. Introduction</h2>
 
 <h3>1.1 The Ubiquity of Flow Without the Physics</h3>
 
-<p>Open any personal finance textbook or website and a curious linguistic pattern emerges. Money <em>flows</em> into accounts. Assets are <em>liquid</em> or <em>illiquid</em>. Cash <em>pools</em> in savings. Investments <em>float</em> or <em>sink</em>. The language speaks of <em>streams</em> of income and <em>drains</em> on resources. The entire vocabulary of personal finance is borrowed from fluid mechanics.</p>
+<p>Open any personal finance textbook and a curious linguistic pattern emerges. Money <em>flows</em> into accounts. Assets are <em>liquid</em> or <em>illiquid</em>. Cash <em>pools</em> in savings. Investments <em>float</em> or <em>sink</em>. The entire vocabulary of personal finance is borrowed from fluid mechanics&mdash;yet when it comes to actually <em>modeling</em> personal finances, this rich metaphorical structure evaporates. Standard approaches treat accounts as static buckets with discrete additions and subtractions. Budgeting tools categorize and sum. Spreadsheets tabulate. The dynamic, flowing, interconnected nature implied by the language finds no mathematical expression.</p>
 
-<p>And yet, when it comes to actually <em>modeling</em> personal finances, this rich metaphorical structure evaporates. Standard approaches treat accounts as static buckets with discrete additions and subtractions. Budgeting tools categorize and sum. Spreadsheets tabulate. The dynamic, flowing, interconnected nature implied by the language finds no mathematical expression.</p>
-
-<p>This paper asks a simple question: <em>What if the fluid metaphors were not merely poetic, but physical?</em> What if personal finance genuinely operates as a dynamical system—one whose equations can be written down, whose stability can be analyzed, and whose behavior can be predicted using the same mathematical machinery that governs actual fluids?</p>
-
-<p>The answer, it turns out, is more affirmative than one might expect.</p>
+<p>This paper asks a simple question: <em>What if the fluid metaphors were not merely poetic, but physical?</em> What if personal finance genuinely operates as a dynamical system whose equations can be written down, whose stability can be analyzed, and whose behavior can be predicted using the same mathematical machinery that governs actual fluids and thermodynamic processes?</p>
 
 <h3>1.2 Origins: From Tank Problems to Financial Insight</h3>
 
-<p>The framework developed here emerged from an unlikely source: the classic "tank draining" problems encountered in differential equations courses. During an extended period of working through such problems—water flowing between interconnected reservoirs, governed by conservation laws and constrained by pipe capacities—a realization crystallized. The structure of these problems was <em>identical</em> to the structure of a personal financial tracking system.</p>
+<p>The framework developed here emerged from the classic &ldquo;tank draining&rdquo; problems encountered in differential equations courses. The structure of interconnected reservoir problems&mdash;water flowing between tanks, governed by conservation laws and constrained by pipe capacities&mdash;turned out to be <em>identical</em> to the structure of a personal financial tracking system. Income enters like water from a faucet. Spending drains like an open valve. Transfers between accounts flow through regulated channels.</p>
 
-<p>Income enters like water from a faucet. Spending drains like an open valve. Transfers between checking and savings accounts flow through regulated channels. The checking account, perpetually refilled and drained, behaves like an open tank at atmospheric pressure. Savings, slowly accumulating with modest interest, acts as a slightly pressurized reservoir. And investments—well, investments do something different entirely, something that required a new conceptual element.</p>
-
-<p>This observation could have remained a private analogy, a useful mental model for one person's spreadsheet. What elevates it to a publishable framework is the discovery that the mathematics <em>actually works</em>. The equations governing fluid flow in tanks are not merely <em>similar</em> to personal finance dynamics—they are <em>the same equations</em>, with dollars replacing gallons and accounts replacing reservoirs.</p>
+<p>What elevates this from private analogy to publishable framework is the discovery that the mathematics <em>actually works</em>. The equations governing fluid flow in tanks are not merely <em>similar</em> to personal finance dynamics&mdash;they are <em>the same equations</em>, with dollars replacing gallons and accounts replacing reservoirs. Moreover, this structural identity extends beyond fluid mechanics: the distinction between cash and investments maps precisely onto the distinction between incompressible and compressible media, importing thermodynamic structure.</p>
 
 <h3>1.3 The Gap in the Literature</h3>
 
-<p>The idea that money behaves like fluid is not new. In 1949, the economist Bill Phillips constructed the MONIAC (Monetary National Income Analogue Computer), a hydraulic machine that modeled the British economy using colored water flowing through transparent pipes. Tanks represented sectors—consumption, investment, government—and valves controlled policy levers. The machine could "compute" the effects of fiscal policy by literally opening and closing taps.</p>
+<p>The idea that money behaves like fluid has historical precedent. In 1949, the economist Bill Phillips constructed the MONIAC, a hydraulic machine that modeled the British economy using colored water flowing through transparent pipes. But MONIAC operated at the macroeconomic scale; the personal finance domain has never received comparable treatment.</p>
 
-<p>But MONIAC operated at the macroeconomic scale: national income, aggregate investment, government spending. The personal finance domain—individual accounts, household budgets, retail investment—has never received comparable treatment. Economists speak of "stocks" and "flows" using terminology borrowed from fluid concepts, but the usage remains metaphorical. The conservation equations governing tank dynamics have not been applied to the checking account.</p>
+<p>In the adjacent field of econophysics, researchers have applied statistical mechanics to financial markets&mdash;Mantegna and Stanley&rsquo;s work on scaling laws in stock returns, Bouchaud and Potters&rsquo; theory of financial risk, and the growing literature on wealth distributions that echo Boltzmann statistics. These approaches treat financial systems through the lens of physics, but they focus on market-level or population-level phenomena. The dynamics of a single household&rsquo;s finances&mdash;the scale at which most financial decisions actually occur&mdash;remains uncharted territory.</p>
 
-<p>More recently, agent-based computational models simulate money flowing through economic networks, and network theory has been applied to financial contagion. These approaches treat money as something that <em>moves</em>, but they focus on systemic and institutional scales. The dynamics of a single household's finances—the scale at which most financial decisions actually occur—remains uncharted territory for physics-based modeling.</p>
+<p>Separately, the fields of thermoeconomics and exergoeconomics apply thermodynamic concepts (exergy, entropy production) to industrial and macroeconomic systems. This work demonstrates that thermodynamic reasoning can illuminate economic behavior, but it has not been brought to the personal finance scale.</p>
 
-<p>This paper fills that gap.</p>
+<p>This paper fills the gap between these traditions: applying the mathematical machinery of fluid mechanics and thermodynamics to household-level financial dynamics, where conservation laws govern cash accounts and energy relations govern investment behavior.</p>
 
 <h3>1.4 Thesis and Contribution</h3>
 
 <p>A framework is proposed in which:</p>
 
 <ol>
-<li><strong>Cash accounts behave as incompressible fluid</strong> in interconnected reservoirs. The fundamental equation governing account balances is the continuity equation for mass conservation. Money is neither created nor destroyed within the personal financial system; it merely flows between reservoirs (accounts) via regulated channels (transfers, spending, income).</li>
+<li><strong>Cash accounts behave as incompressible fluid</strong> in interconnected reservoirs. The fundamental equation governing account balances is the continuity equation for mass conservation. The multi-account system is expressible in state-space form, opening access to eigenvalue stability analysis, controllability, and optimal control.</li>
 
-<li><strong>Volatile investments behave as compressible gas bubbles</strong> suspended within the financial fluid. Unlike cash—where one dollar deposited equals one dollar held—investment value depends on both quantity owned and market price. This compressibility introduces thermodynamic structure: unrealized gains are stored potential energy, realized gains are extracted work, and market appreciation is heat input.</li>
+<li><strong>Volatile investments behave as compressible media.</strong> Investment value \(V = nP\) depends on both quantity held and market price, introducing compressibility. The product rule applied to \(V = nP\) yields an exact First Law of Thermodynamics: unrealized gains are heat absorbed (\(\delta Q = n\,dP\)), realized gains are work extracted (\(\delta W = -P\,dn\)). This decomposition is assumption-free&mdash;it requires no equation of state.</li>
 
-<li><strong>Signal dynamics</strong> (velocity, acceleration, and jerk of net worth) provide diagnostic tools for assessing financial health and predicting instability. Negative velocity with negative acceleration—the "Quadrant III" regime—signals accelerating losses requiring intervention.</li>
+<li><strong>A compressibility spectrum</strong> classifies financial instruments by their sensitivity to external market forcing, from incompressible cash through highly compressible equities to supercompressible derivatives.</li>
 
-<li><strong>Financial decision-making implicitly implements control theory.</strong> The adjustments people make in response to deviations from their financial goals constitute a form of PID (proportional-integral-derivative) control, with the acceleration metric enabling second-order predictive response.</li>
+<li><strong>Lot-level buoyancy dynamics</strong> model each purchase lot&rsquo;s &ldquo;depth&rdquo; relative to current price as an Ornstein-Uhlenbeck process, yielding analytic results for underwater-time distributions, recovery probabilities, and drawdown risk&mdash;with direct applications to tax-loss harvesting and portfolio health diagnostics.</li>
 </ol>
-
-<p>The central novelty—the "cash bubble" hypothesis—yields several non-obvious results. Applying the First Law of Thermodynamics to investment accounts produces explicit expressions for realized and unrealized gains as work and heat. A Carnot-like efficiency bound emerges, setting theoretical limits on how much of a market's appreciation can be captured as realized profit. And a consistency requirement within the ideal gas analogy predicts a specific relationship between market volatility and price level—a prediction examined against empirical patterns in Section VI.</p>
 
 <h3>1.5 Paper Roadmap</h3>
 
-<p>Section II develops the core framework for cash accounts as incompressible fluid, introducing the multi-tank topology and state-space formulation. Section III presents the cash bubble hypothesis in detail, deriving the thermodynamic structure of investment accounts. Section IV introduces signal dynamics and connects them to stability analysis and control theory. Section V describes implementation and validation using simulated data. Section VI discusses extensions, limitations, and the empirical status of the volatility-price prediction. Appendix A provides complete mathematical derivations.</p>
+<p>Section II develops the core framework for cash accounts as incompressible fluid, introducing the multi-tank topology and state-space formulation. Section III presents the thermodynamic structure of compressible investments, deriving the First Law decomposition and introducing the compressibility spectrum. Section IV develops lot-level buoyancy dynamics as a major extension connecting the framework to practical portfolio analytics. Section V discusses limitations, future directions, and related areas for further exploration. Appendix A provides complete mathematical derivations.</p>
 
 <div class="divider">---</div>
+
+<!-- ==================== SECTION II ==================== -->
 
 <h2>II. The Fluid Finance Framework</h2>
 
@@ -292,31 +290,27 @@
 
 <h3>2.1 The Single-Account Conservation Law</h3>
 
-<p>Consider a single financial account—a checking account, say—with balance <em>V(t)</em> at time <em>t</em>, measured in dollars. Money enters the account at rate <em>Q<sub>in</sub>(t)</em> (dollars per unit time) and exits at rate <em>Q<sub>out</sub>(t)</em>. If it is assumed that money is neither created nor destroyed within the account—a reasonable assumption for a personal checking account, which does not print currency—then the rate of change of the balance must equal the net inflow:</p>
+<p>Consider a single financial account&mdash;a checking account, say&mdash;with balance \(V(t)\) at time \(t\), measured in dollars. Money enters the account at rate \(Q_{in}(t)\) (dollars per unit time) and exits at rate \(Q_{out}(t)\). If it is assumed that money is neither created nor destroyed within the account&mdash;a reasonable assumption for a personal checking account, which does not print currency&mdash;then the rate of change of the balance must equal the net inflow:</p>
 
-<div class="equation-box">
-$$\frac{dV}{dt} = Q_{in}(t) - Q_{out}(t) \tag{1}$$
-</div>
+<div class="equation-box">$$\frac{dV}{dt} = Q_{in}(t) - Q_{out}(t) \tag{1}$$</div>
 
-<p>This is the <strong>fundamental balance equation</strong>. It is mathematically identical to the continuity equation for an incompressible fluid in a tank, where <em>V</em> represents volume and <em>Q</em> represents volumetric flow rate.</p>
+<p>This is the <strong>fundamental balance equation</strong>. It is mathematically identical to the continuity equation for an incompressible fluid in a tank, where \(V\) represents volume and \(Q\) represents volumetric flow rate.</p>
 
 <p>Equation (1) is deceptively simple. It states that if earnings exceed spending, the balance increases; if spending exceeds earnings, it decreases. But embedding this truism in differential equation form opens the door to all the analytical machinery of dynamical systems: stability analysis, phase portraits, eigenvalue decomposition, and more.</p>
 
-<p>For practical computation, discrete time is typically employed. If Δ<em>t</em> is the time step (one month, say), then:</p>
+<p>For practical computation, discrete time is typically employed. If \(\Delta t\) is the time step (one month, say), then:</p>
 
-<div class="equation-box">
-$$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{2}$$
-</div>
+<div class="equation-box">$$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{2}$$</div>
 
-<p>This is exactly the update rule used by every budget spreadsheet—revealed now as a finite-difference approximation to a conservation law.</p>
+<p>This is exactly the update rule used by every budget spreadsheet&mdash;revealed now as a finite-difference approximation to a conservation law.</p>
 
 <h3>2.2 The Incompressibility Assumption</h3>
 
-<p>Why is cash called "incompressible"? The term has a precise meaning in fluid mechanics: an incompressible fluid has constant density. One gallon of water remains one gallon regardless of pressure (to excellent approximation at everyday conditions).</p>
+<p>Why is cash called &ldquo;incompressible&rdquo;? The term has a precise meaning in fluid mechanics: an incompressible fluid has constant density. One gallon of water remains one gallon regardless of pressure (to excellent approximation at everyday conditions).</p>
 
-<p>Cash exhibits the analogous property: <strong>one dollar is one dollar, regardless of which account it occupies.</strong> Transfer $100 from checking to savings, and there is $100 less in checking and $100 more in savings. The total is conserved. The "density" of money—its value per unit—does not change under redistribution.</p>
+<p>Cash exhibits the analogous property: <strong>one dollar is one dollar, regardless of which account it occupies.</strong> Transfer $100 from checking to savings, and there is $100 less in checking and $100 more in savings. The total is conserved. The &ldquo;density&rdquo; of money&mdash;its value per unit&mdash;does not change under redistribution.</p>
 
-<p>This may seem obvious, but it is precisely what <em>fails</em> for investments. Transfer $100 from checking to a stock brokerage, and a week later that position might be worth $110 or $90. The dollars have become <em>compressible</em>—their value depends on external conditions (market price), not just on quantity. This distinction is exploited in Section III.</p>
+<p>This may seem obvious, but it is precisely what <em>fails</em> for investments. Transfer $100 from checking to a stock brokerage, and a week later that position might be worth $110 or $90. The dollars have become <em>compressible</em>&mdash;their value depends on external conditions (market price), not just on quantity. This distinction is exploited in Section III.</p>
 
 <p>For now, attention is restricted to cash accounts where incompressibility holds.</p>
 
@@ -325,126 +319,123 @@ $$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{2
 <p>Real personal finances involve multiple accounts. A minimal realistic model might include:</p>
 
 <ul>
-<li><strong>Checking</strong> (<em>V<sub>1</sub></em>): Primary transaction account; income deposits here, spending withdraws from here</li>
-<li><strong>Savings</strong> (<em>V<sub>2</sub></em>): Emergency fund or accumulation account; receives periodic transfers from checking</li>
-<li><strong>Investment</strong> (<em>V<sub>3</sub></em>): Brokerage or retirement account; receives transfers from savings (treated as cash for now; Section III introduces compressibility)</li>
+<li><strong>Checking</strong> (\(V_1\)): Primary transaction account; income deposits here, spending withdraws from here</li>
+<li><strong>Savings</strong> (\(V_2\)): Emergency fund or accumulation account; receives periodic transfers from checking</li>
+<li><strong>Investment</strong> (\(V_3\)): Brokerage or retirement account; receives transfers from savings (treated as cash for now; Section III introduces compressibility)</li>
 </ul>
 
-<p>These accounts form a network—a topology of reservoirs connected by flow channels. The structure resembles nested pressure vessels, with income entering the checking account, transfers flowing downstream to savings and then to investments. Figure 1 illustrates the structure.</p>
+<p>These accounts form a network&mdash;a topology of reservoirs connected by flow channels. Figure 1 illustrates the structure.</p>
 
-<pre style="background-color: transparent; padding: 1rem; border-left: none; margin: 1.5rem 0; font-family: 'Courier New', monospace; font-size: 0.9rem;">                    ┌─────────────────┐
-    Income ────────►│   CHECKING      │──────► Spending
-    (Q_in)          │   (V₁)          │        (Q_out)
-                    │   Open tank     │
-                    └────────┬────────┘
-                             │ Transfer τ₁₂
-                             ▼
-                    ┌─────────────────┐
-                    │    SAVINGS      │
-                    │    (V₂)         │
-                    │   Pressurized   │
-                    └────────┬────────┘
-                             │ Transfer τ₂₃
-                             ▼
-                    ┌─────────────────┐
-                    │   INVESTMENT    │
-                    │   (V₃)          │
-                    │   Terminal      │
-                    └─────────────────┘
+<pre style="background-color: transparent; border-left: none;"><code>
+                    &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+    Income &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9654;&#9474;   CHECKING      &#9474;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9654; Spending
+    (Q_in)          &#9474;   (V&#8321;)          &#9474;        (Q_out)
+                    &#9474;   Open tank     &#9474;
+                    &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+                             &#9474; Transfer &#964;&#8321;&#8322;
+                             &#9660;
+                    &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+                    &#9474;    SAVINGS      &#9474;
+                    &#9474;    (V&#8322;)         &#9474;
+                    &#9474;   Pressurized   &#9474;
+                    &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+                             &#9474; Transfer &#964;&#8322;&#8323;
+                             &#9660;
+                    &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+                    &#9474;   INVESTMENT    &#9474;
+                    &#9474;   (V&#8323;)          &#9474;
+                    &#9474;   Compressible  &#9474;
+                    &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
 
-    Figure 1: Multi-tank topology for a three-account system.</pre>
+    Figure 1: Multi-tank topology for a three-account system.
+</code></pre>
 
-<p>The checking account is "open" in the sense that it interfaces directly with the external world (income, spending). Savings is "pressurized" in the sense that money there earns interest—a slight positive return that might be interpreted as pressure exceeding atmospheric. Investment is "terminal" in this simplified model—money flows in but does not automatically flow back out.</p>
+<p>The checking account is &ldquo;open&rdquo; in the sense that it interfaces directly with the external world (income, spending). Savings is &ldquo;pressurized&rdquo; in the sense that money there earns interest&mdash;a slight positive return that might be interpreted as pressure exceeding atmospheric. Investment is labeled &ldquo;compressible&rdquo; to signal its fundamentally different nature, developed fully in Section III.</p>
 
 <h3>2.4 The Transfer Matrix</h3>
 
 <p>To write the dynamics compactly, the <strong>state vector</strong> is introduced:</p>
 
-<div class="equation-box">
-$$\mathbf{x}(t) = \begin{bmatrix} V_1(t) \\ V_2(t) \\ V_3(t) \end{bmatrix} \tag{3}$$
-</div>
+<div class="equation-box">$$\mathbf{x}(t) = \begin{bmatrix} V_1(t) \\ V_2(t) \\ V_3(t) \end{bmatrix} \tag{3}$$</div>
 
-<p>Internal transfers between accounts occur at rates denoted <em>τ<sub>ij</sub></em> (dollars per month transferred from account <em>i</em> to account <em>j</em>). These form the <strong>transfer matrix A</strong>, constructed as follows. The entry <em>A<sub>ij</sub></em> (for <em>i ≠ j</em>) represents money flowing <em>into</em> account <em>i</em> <em>from</em> account <em>j</em>. The diagonal entry <em>A<sub>ii</sub></em> is the negative sum of outflows from account <em>i</em>—ensuring that each column sums to zero, which enforces conservation.</p>
+<p>Internal transfers between accounts occur at rates denoted \(\tau_{ij}\) (dollars per month transferred from account \(i\) to account \(j\)). These form the <strong>transfer matrix</strong> \(\mathbf{A}\), constructed as follows. The entry \(A_{ij}\) (for \(i \neq j\)) represents money flowing <em>into</em> account \(i\) <em>from</em> account \(j\). The diagonal entry \(A_{ii}\) is the negative sum of outflows from account \(i\)&mdash;ensuring that each column sums to zero, which enforces conservation.</p>
 
-<p>For the three-account system with transfers τ<sub>12</sub> (checking → savings) and τ<sub>23</sub> (savings → investment):</p>
+<p>For the three-account system with transfers \(\tau_{12}\) (checking &rarr; savings) and \(\tau_{23}\) (savings &rarr; investment):</p>
 
-<div class="equation-box">
-$$\mathbf{A} = \begin{bmatrix}
+<div class="equation-box">$$\mathbf{A} = \begin{bmatrix}
 -\tau_{12} & 0 & 0 \\
 \tau_{12} & -\tau_{23} & 0 \\
 0 & \tau_{23} & 0
-\end{bmatrix} \tag{4}$$
-</div>
+\end{bmatrix} \tag{4}$$</div>
 
-<p>Notice that each column sums to zero: -τ<sub>12</sub> + τ<sub>12</sub> + 0 = 0, and so on. This is the mathematical expression of conservation—internal transfers redistribute money but do not create or destroy it.</p>
+<p>Notice that each column sums to zero: \(-\tau_{12} + \tau_{12} + 0 = 0\), and so on. This is the mathematical expression of conservation&mdash;internal transfers redistribute money but do not create or destroy it.</p>
+
+<p><em>A note on linearity</em>: The transfer rates \(\tau_{ij}\) are treated here as constants, yielding a linear model. Real household transfers are typically nonlinear&mdash;people don&rsquo;t transfer a fixed fraction of checking to savings every month but rather make threshold-based, irregular decisions. The linear, constant-coefficient assumption is a simplification that preserves analytical tractability while capturing the essential flow structure. Extensions to nonlinear transfer rules (e.g., threshold-triggered, balance-dependent) are straightforward but beyond the present scope.</p>
 
 <h3>2.5 External Flows and the State Equation</h3>
 
-<p>External flows—income and spending—enter through the <strong>input vector</strong>:</p>
+<p>External flows&mdash;income and spending&mdash;enter through the <strong>input vector</strong>:</p>
 
-<div class="equation-box">
-$$\mathbf{u}(t) = \begin{bmatrix} I(t) \\ S(t) \end{bmatrix} \tag{5}$$
-</div>
+<div class="equation-box">$$\mathbf{u}(t) = \begin{bmatrix} I(t) \\ S(t) \end{bmatrix} \tag{5}$$</div>
 
-<p>where <em>I(t)</em> is total income and <em>S(t)</em> is total spending at time <em>t</em>. The <strong>input matrix</strong> <strong>B</strong> routes these to the appropriate accounts. If all income deposits to checking and all spending withdraws from checking:</p>
+<p>where \(I(t)\) is total income and \(S(t)\) is total spending at time \(t\). The <strong>input matrix</strong> \(\mathbf{B}\) routes these to the appropriate accounts. If all income deposits to checking and all spending withdraws from checking:</p>
 
-<div class="equation-box">
-$$\mathbf{B} = \begin{bmatrix}
+<div class="equation-box">$$\mathbf{B} = \begin{bmatrix}
 1 & -1 \\
 0 & 0 \\
 0 & 0
-\end{bmatrix} \tag{6}$$
-</div>
+\end{bmatrix} \tag{6}$$</div>
 
-<p>Combining internal dynamics (Eq. 4) and external inputs (Eq. 5–6), the complete system dynamics are:</p>
+<p>Combining internal dynamics (Eq. 4) and external inputs (Eq. 5&ndash;6), the complete system dynamics are:</p>
 
-<div class="equation-box">
-$$\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u} \tag{7}$$
-</div>
+<div class="equation-box">$$\boxed{\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}} \tag{7}$$</div>
 
 <p>This is the standard <strong>linear time-invariant (LTI) state-space form</strong> familiar from control theory and dynamical systems. It has been derived here from conservation principles applied to a financial account network.</p>
 
-<p>Equation (7) is powerful. It allows:</p>
+<p>Equation (7) is powerful not because it is surprising&mdash;it is, after all, just bookkeeping in matrix form&mdash;but because it is an <em>enabling</em> result. Once the financial system is expressed in state-space form, the entire toolkit of dynamical systems theory becomes available:</p>
+
 <ul>
-<li>Stability analysis via the eigenvalues of <strong>A</strong></li>
-<li>Computation of steady-state balances for constant income/spending</li>
-<li>Design of controllers (spending policies) that achieve desired financial targets</li>
-<li>Simulation of trajectories under various scenarios</li>
+<li><strong>Stability analysis</strong> via the eigenvalues of \(\mathbf{A}\)</li>
+<li><strong>Controllability and observability</strong> analysis</li>
+<li><strong>Computation of steady-state balances</strong> for constant income/spending</li>
+<li><strong>Optimal control</strong> (e.g., Linear Quadratic Regulators) for spending policy design</li>
+<li><strong>State estimation</strong> (e.g., Kalman filtering) for noisy balance observations</li>
+<li><strong>Simulation of trajectories</strong> under various scenarios</li>
 </ul>
 
-<p>These applications are explored in Section IV. First, the elephant in the room must be addressed: investments don't actually behave like incompressible fluid.</p>
+<p>These applications are explored in Section V. First, the elephant in the room must be addressed: investments don&rsquo;t actually behave like incompressible fluid.</p>
 
 <h3>2.6 The Limits of Incompressibility</h3>
 
-<p>The framework developed so far works beautifully for cash accounts. But apply it to a stock portfolio or cryptocurrency holding, and it immediately fails. Here's why.</p>
+<p>The framework developed so far works beautifully for cash accounts. But apply it to a stock portfolio or cryptocurrency holding, and it immediately fails. Here&rsquo;s why.</p>
 
-<p>Suppose $1,000 is transferred from savings to a brokerage and stock is purchased. In the incompressible model, <em>V<sub>3</sub></em> increases by $1,000 and stays there (absent further transfers). But a month later, the stock might be worth $1,100 or $900, depending on market movements. The "volume" of the investment account—measured in dollars—has changed <em>without any flow through the pipes</em>.</p>
+<p>Suppose $1,000 is transferred from savings to a brokerage and stock is purchased. In the incompressible model, \(V_3\) increases by $1,000 and stays there (absent further transfers). But a month later, the stock might be worth $1,100 or $900, depending on market movements. The &ldquo;volume&rdquo; of the investment account&mdash;measured in dollars&mdash;has changed <em>without any flow through the pipes</em>.</p>
 
-<p>This is fundamentally different from cash behavior. It's as if the water in a tank could spontaneously expand or contract. In fluid mechanics, that's called compressibility—and it brings thermodynamic structure with it.</p>
+<p>This is fundamentally different from cash behavior. It&rsquo;s as if the water in a tank could spontaneously expand or contract. In fluid mechanics, that&rsquo;s called compressibility&mdash;and it brings thermodynamic structure with it.</p>
 
-<p>The next section develops this insight into the central contribution of this paper: the <strong>cash bubble hypothesis</strong>, which treats investments as compressible gas bubbles whose behavior follows thermodynamic laws.</p>
+<p>The next section develops this insight into the central contribution of this paper: the thermodynamic theory of compressible investments.</p>
 
 <div class="divider">---</div>
 
-<h2>III. The Cash Bubble Hypothesis</h2>
+<!-- ==================== SECTION III ==================== -->
 
-<p>The central novelty of this paper is now presented. Having established that cash accounts behave as incompressible fluid governed by conservation laws, the question arises: what about investments? Stock portfolios, cryptocurrency holdings, and other market-traded assets do not obey the incompressibility assumption. Their dollar value fluctuates with market price, even when no transactions occur.</p>
+<h2>III. Thermodynamics of Compressible Investments</h2>
 
-<p>The resolution is to model investments not as liquid, but as <em>gas</em>—specifically, as compressible gas bubbles suspended within the financial fluid. This seemingly fanciful analogy turns out to have rigorous mathematical content, including a direct application of the First Law of Thermodynamics.</p>
+<p>Having established that cash accounts behave as incompressible fluid governed by conservation laws, the question arises: what about investments? Stock portfolios, cryptocurrency holdings, and other market-traded assets do not obey the incompressibility assumption. Their dollar value fluctuates with market price, even when no transactions occur.</p>
+
+<p>The resolution is to model investments as <em>compressible media</em>&mdash;substances whose &ldquo;volume&rdquo; (dollar value) depends on external &ldquo;pressure&rdquo; (market price). This seemingly fanciful analogy turns out to have rigorous mathematical content, including a direct and exact application of the First Law of Thermodynamics.</p>
 
 <h3>3.1 The Compressibility of Investment Value</h3>
 
-<p>Consider a brokerage account holding <em>n</em> shares of some stock, where each share has market price <em>P(t)</em>. The dollar value of the position is:</p>
+<p>Consider a brokerage account holding \(n\) shares of some stock, where each share has market price \(P(t)\). The dollar value of the position is:</p>
 
-<div class="equation-box">
-$$V = nP \tag{8}$$
-</div>
+<div class="equation-box">$$V = nP \tag{8}$$</div>
 
-<p>During a holding period (no buying or selling), <em>n</em> remains constant—the same number of shares is still owned. But <em>P</em> fluctuates according to market dynamics beyond the investor's control. The account's dollar value therefore changes even without any "flow" in or out.</p>
+<p>During a holding period (no buying or selling), \(n\) remains constant&mdash;the same number of shares is still owned. But \(P\) fluctuates according to market dynamics beyond the investor&rsquo;s control. The account&rsquo;s dollar value therefore changes even without any &ldquo;flow&rdquo; in or out.</p>
 
-<p>Compare this to cash. One dollar in a checking account remains one dollar tomorrow (ignoring negligible interest). The "price" of a dollar is always one dollar. But one share of stock might be worth $50 today and $55 tomorrow. The dollars are <em>compressible</em>—their effective volume depends on external pressure (market conditions).</p>
+<p>Compare this to cash. One dollar in a checking account remains one dollar tomorrow. But one share of stock might be worth $50 today and $55 tomorrow. The investment&rsquo;s value is <em>compressible</em>&mdash;its effective volume depends on external pressure (market conditions).</p>
 
-<p>This observation motivates the following analogy:</p>
+<p>This observation motivates the following mapping:</p>
 
 <table>
 <tr>
@@ -453,239 +444,366 @@ $$V = nP \tag{8}$$
 <th>Interpretation</th>
 </tr>
 <tr>
-<td>Gas bubble</td>
+<td>Compressible medium</td>
 <td>Investment position</td>
 <td>Asset holding</td>
 </tr>
 <tr>
-<td>Volume <em>V</em></td>
+<td>Volume \(V\)</td>
 <td>Dollar value</td>
 <td>Market value of position</td>
 </tr>
 <tr>
-<td>Quantity <em>n</em></td>
+<td>Quantity \(n\)</td>
 <td>Shares/coins held</td>
 <td>Conserved during holding</td>
 </tr>
 <tr>
-<td>Pressure <em>P</em></td>
+<td>Pressure \(P\)</td>
 <td>Price per share</td>
 <td>External market forcing</td>
 </tr>
 <tr>
-<td>Temperature <em>T</em></td>
-<td>Market sentiment</td>
-<td>Volatility environment</td>
+<td>Internal energy \(U\)</td>
+<td>Market value \(nP\)</td>
+<td>Total stored value</td>
 </tr>
 </table>
 
-<h3>3.2 The Ideal Gas Law Analogue</h3>
+<h3>3.2 The First Law for Investment Accounts</h3>
 
-<p>With the mapping established, it is proposed that investment positions obey an analogue of the ideal gas law:</p>
+<p>The total value of an investment position is \(U = nP\). Its total differential is obtained by the product rule:</p>
 
-<div class="equation-box">
-$$PV = nRT \tag{9}$$
-</div>
+<div class="equation-box">$$dU = d(nP) = n \, dP + P \, dn \tag{9}$$</div>
 
-<p>where <em>R</em> is a constant characterizing the market's "liquidity depth" (how easily large trades can be executed without moving the price).</p>
+<p>This is pure calculus&mdash;no assumptions, no approximations, no equation of state. But the two terms on the right have profoundly different financial meanings:</p>
 
-<p>But wait—the definitional relationship <em>V = nP</em> from Equation (8) also holds. Consistency must be checked. Substituting <em>V = nP</em> into <em>PV = nRT</em>:</p>
+<p><strong>The first term, \(n\,dP\)</strong>: This captures value change from <em>price movement alone</em>&mdash;no transactions involved. The investor holds a fixed number of shares while the market moves. This is <em>heat</em>: energy entering the system from the external environment (the market) without mechanical action by the investor. Just as a gas absorbs heat from its surroundings without the piston moving, an investment absorbs or releases value from price changes without the investor trading.</p>
 
-<div class="equation-box">
-$$P(nP) = nRT$$
-$$nP^2 = nRT$$
-$$P^2 = RT \tag{10}$$
-</div>
+<p><strong>The second term, \(P\,dn\)</strong>: This captures value change from <em>transactions</em>&mdash;buying or selling shares at price \(P\). When shares are sold (\(dn < 0\)), value is extracted from the investment and converted into liquid cash. This is <em>work</em>: energy transferred through deliberate, organized mechanical action. Just as a gas does work by expanding against a piston, an investor does &ldquo;work&rdquo; by selling shares against the market price.</p>
 
-<p>This consistency requirement has a striking implication: <em>temperature scales with the square of price</em>. If temperature <em>T</em> is interpreted as a proxy for volatility or "market sentiment," then Equation (10) predicts that volatility should scale as <em>P<sup>2</sup></em>.</p>
+<p>Identifying \(\delta Q = n\,dP\) and \(\delta W = -P\,dn\) (the sign convention ensuring work <em>extracted</em> is positive), the First Law of Thermodynamics is recovered exactly:</p>
 
-<p>This prediction is revisited in Section VI, where its empirical status is examined. For now, it is noted that this relationship emerges not from ad hoc assumption, but from requiring internal consistency between the definition of investment value and the ideal gas analogy.</p>
+<div class="equation-box">$$\boxed{dU = \delta Q - \delta W} \tag{10}$$</div>
+
+<div class="equation-box">$$\boxed{\delta Q = n \, dP \quad \text{(unrealized appreciation)}} \tag{11}$$</div>
+
+<div class="equation-box">$$\boxed{\delta W = -P \, dn \quad \text{(realized from sales)}} \tag{12}$$</div>
+
+<p>This decomposition is the paper&rsquo;s central result. It is:</p>
+
+<ul>
+<li><strong>Exact</strong>: No approximations or linearizations. The product rule is an identity.</li>
+<li><strong>Assumption-free</strong>: No equation of state (such as PV = nRT) is needed. No model for price dynamics is assumed.</li>
+<li><strong>Unique</strong>: Given the natural identification of &ldquo;what changes because the market moved&rdquo; versus &ldquo;what changes because you traded,&rdquo; the decomposition into heat and work is the only one consistent with the First Law.</li>
+<li><strong>Illuminating</strong>: It explains <em>why</em> unrealized gains feel different from realized gains. They are different <em>modes of energy transfer</em>. Heat (unrealized gains) is volatile, reversible, subject to the whims of the environment. Work (realized gains) is extracted, locked in, converted to the incompressible safety of liquid cash.</li>
+</ul>
 
 <h3>3.3 Realized Gains as Thermodynamic Work</h3>
 
-<p>Here is where the thermodynamic structure becomes genuinely useful. In classical thermodynamics, <em>work</em> is energy transferred out of a system via organized mechanical action—typically, expansion against external pressure. For a gas expanding from volume <em>V<sub>1</sub></em> to <em>V<sub>2</sub></em> at pressure <em>P</em>:</p>
+<p>If realized gains are thermodynamic work, the work integral applies. For a general selling process in which price varies:</p>
 
-<div class="equation-box">
-$$W = \int_{V_1}^{V_2} P \, dV \tag{11}$$
-</div>
+<div class="equation-box">$$W = \int_{n_1}^{n_2} P(n) \, dn \tag{13}$$</div>
 
-<p>What is the financial analogue? Consider selling some shares. Holdings are reduced from <em>n<sub>1</sub></em> to <em>n<sub>2</sub></em> (with <em>n<sub>2</sub></em> < <em>n<sub>1</sub></em>) at price <em>P</em>. The proceeds—cash extracted from the investment—are:</p>
+<p>For <strong>isobaric selling</strong> (constant price&mdash;the investor sells gradually in a stable market):</p>
 
-<div class="equation-box">
-$$W = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{12}$$
-</div>
+<div class="equation-box">$$W_{isobaric} = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{14}$$</div>
 
-<p>This is <em>exactly</em> the form of work done by isobaric (constant-pressure) expansion. Selling investments extracts "work" from the financial system—organized, usable cash that flows into liquid accounts.</p>
+<p>This is <em>exactly</em> the form of work done by isobaric expansion of a gas. The financial interpretation is transparent: selling \(\Delta n\) shares at price \(P\) yields \(P \cdot \Delta n\) dollars of realized proceeds.</p>
 
-<p>More generally, if price varies during the sale:</p>
-
-<div class="equation-box">
-$$W = \int_{n_1}^{n_2} P(n) \, dn \tag{13}$$
-</div>
-
-<p>The analogy is precise: selling investments is thermodynamic work extraction, with realized gains as the net work done.</p>
+<p>For <strong>variable-price selling</strong> (the investor sells during a period of price movement), the integral form (Eq. 13) is required. The path dependence of this integral&mdash;the fact that the total work extracted depends on the <em>sequence</em> of prices at which shares are sold&mdash;is the financial analogue of path dependence in thermodynamic work. Just as a gas can do different amounts of work along different thermodynamic paths between the same initial and final states, an investor can realize different total proceeds depending on the timing and sequence of sales.</p>
 
 <h3>3.4 Unrealized Gains as Stored Energy</h3>
 
-<p>If realized gains are work extracted, what are <em>unrealized</em> gains? In thermodynamics, a compressed gas stores potential energy—energy available to do work upon expansion. The internal energy <em>U</em> of an ideal gas is proportional to temperature and quantity.</p>
+<p>If realized gains are extracted work, unrealized gains are <em>stored energy</em>&mdash;internal energy available for future work extraction but not yet converted. The unrealized gain on a position purchased at price \(P_{purchase}\) and currently valued at \(P_{current}\) is:</p>
 
-<p>For investments, the "internal energy" is the current market value:</p>
+<div class="equation-box">$$\Delta U_{unrealized} = nP_{current} - nP_{purchase} = n(P_{current} - P_{purchase}) \tag{15}$$</div>
 
-<div class="equation-box">
-$$U = nP = V \tag{14}$$
-</div>
+<p>This is potential energy stored in the compressible medium&mdash;available to be extracted as work (realized gains) if and when a sale occurs. &ldquo;Paper profits&rdquo; are precisely this: energy in storage, not yet converted to usable form.</p>
 
-<p>Unrealized gains represent the <em>increase</em> in this internal energy since purchase:</p>
+<p>The gas/liquid visualization makes this concrete. Imagine a financial system as a fluid-filled container (total net worth). Most of the fluid is incompressible liquid&mdash;checking and savings accounts, cash holdings. Suspended within this liquid are one or more compressible regions: stock portfolios, Bitcoin holdings, retirement funds. Each compressible region has a well-defined volume (dollar value) that can expand or contract with market pressure.</p>
 
-<div class="equation-box">
-$$\Delta U_{unrealized} = nP_{current} - nP_{purchase} = n(P_{current} - P_{purchase}) \tag{15}$$
-</div>
+<p>When a compressible region expands (prices rise), it displaces liquid&mdash;<em>net worth on paper</em> increases, but <em>liquid net worth</em> stays the same until a sale occurs. Selling converts compressed value back to liquid (realized cash). The size of the compressible region depends on both how much it contains (\(n\) shares) and the external pressure (\(P\) market price).</p>
 
-<p>This is potential energy stored in the bubble—available to be extracted as work (realized gains) if and when a sale occurs. "Paper profits" are precisely this: energy in storage, not yet converted to usable form.</p>
+<p>This picture clarifies the distinction between realized and unrealized wealth. A large compressible region makes one &ldquo;wealthy on paper,&rdquo; but that wealth is gaseous&mdash;volatile, subject to market conditions. Only by extracting work (selling) is it converted to the incompressible liquid of actual cash.</p>
 
-<h3>3.5 The First Law for Investment Accounts</h3>
+<h3>3.5 The Compressibility Spectrum</h3>
 
-<p>The First Law of Thermodynamics can now be written for an investment account. In differential form:</p>
+<p>The incompressible/compressible distinction is not binary but a <em>spectrum</em>. Different financial instruments exhibit different degrees of compressibility&mdash;different sensitivities to external market forcing. This observation yields a natural taxonomy:</p>
 
-<div class="equation-box">
-$$dU = \delta Q - \delta W \tag{16}$$
-</div>
+<table>
+<tr>
+<th>Category</th>
+<th>Instruments</th>
+<th>Compressibility</th>
+<th>Character</th>
+</tr>
+<tr>
+<td><strong>Incompressible</strong></td>
+<td>Cash, checking, physical currency</td>
+<td>Zero</td>
+<td>$1 = $1 always</td>
+</tr>
+<tr>
+<td><strong>Nearly incompressible</strong></td>
+<td>Savings accounts, CDs, money market</td>
+<td>Very low</td>
+<td>Tiny interest-rate sensitivity</td>
+</tr>
+<tr>
+<td><strong>Moderately compressible</strong></td>
+<td>Bonds, bond funds</td>
+<td>Moderate</td>
+<td>Price varies with interest rates; duration measures sensitivity</td>
+</tr>
+<tr>
+<td><strong>Highly compressible</strong></td>
+<td>Equities, equity funds, real estate</td>
+<td>High</td>
+<td>Price varies with market conditions</td>
+</tr>
+<tr>
+<td><strong>Supercompressible</strong></td>
+<td>Options, leveraged ETFs, derivatives</td>
+<td>Extreme</td>
+<td>Value can change by orders of magnitude; leverage amplifies pressure sensitivity</td>
+</tr>
+</table>
 
-<p>where:</p>
+<p>This spectrum has practical diagnostic value. A portfolio&rsquo;s overall &ldquo;compressibility&rdquo;&mdash;the weighted average across its constituent instruments&mdash;determines its sensitivity to market movements. A portfolio dominated by highly compressible assets is thermodynamically volatile: its internal energy fluctuates wildly with external pressure. A portfolio weighted toward incompressible assets is thermodynamically stable: its value is largely insensitive to market conditions.</p>
+
+<p>The spectrum also connects to existing financial metrics. Bond <em>duration</em> is a compressibility measure: it quantifies how much a bond&rsquo;s price changes per unit change in yield (external pressure). Equity <em>beta</em> measures price sensitivity to market-wide movements. Options <em>delta</em> and <em>gamma</em> quantify sensitivity to underlying price changes. These established metrics are revealed, through the thermofluidic lens, as different measurements of the same underlying property: compressibility.</p>
+
+<h3>3.6 The Compressible Medium in Context</h3>
+
+<p>The visualization from Section 3.4 can now be enriched with the compressibility spectrum. A household&rsquo;s financial system is a container holding a mixture of fluids with varying compressibility:</p>
+
 <ul>
-<li><em>dU</em>: change in internal energy (change in market value)</li>
-<li><em>δQ</em>: heat added (value increase from price appreciation)</li>
-<li><em>δW</em>: work extracted (value removed via sales)</li>
+<li>The bottom layer&mdash;dense, stable, incompressible&mdash;is cash. It doesn&rsquo;t move unless deliberately pumped (transferred).</li>
+<li>Above it, a slightly compressible layer: savings and bonds. Small pressure fluctuations cause small volume changes.</li>
+<li>Near the top, highly compressible regions: equities and speculative positions. Market pressure changes cause large volume swings.</li>
+<li>If derivatives are present, supercompressible pockets exist that can expand or collapse explosively.</li>
 </ul>
 
-<p>The total differential of <em>U = nP</em> is:</p>
+<p>The total volume of the container (net worth) is the sum of all layers. But the <em>stability</em> of that total depends critically on the compressibility distribution. A container mostly filled with incompressible fluid is robust; one dominated by compressible gas is fragile.</p>
 
-<div class="equation-box">
-$$dU = d(nP) = n \, dP + P \, dn \tag{17}$$
-</div>
+<p>This picture immediately explains several well-known phenomena in intuitive physical terms: flights to liquidity during crises (gas condenses to liquid under adverse pressure), the appeal of diversification (mixing compressibilities dampens overall volatility), and the danger of leverage (supercompressible positions amplify every pressure fluctuation).</p>
 
-<p>Comparing with the First Law:</p>
+<h3>3.7 On Equations of State</h3>
 
-<ul>
-<li><strong>Heat input</strong>: <em>δQ = n dP</em> — the change in value due to price movement alone (no transactions)</li>
-<li><strong>Work output</strong>: <em>δW = -P dn</em> — the change in value due to selling (<em>dn</em> < 0 for sales)</li>
-</ul>
+<p>The framework developed so far&mdash;the First Law decomposition, the compressibility spectrum, the gas/liquid visualization&mdash;does not depend on any specific equation of state relating pressure, volume, quantity, and temperature. The results of Sections 3.2&ndash;3.6 hold for <em>any</em> compressible investment, regardless of its price dynamics.</p>
 
-<p>Thus:</p>
+<p>This is deliberate. The ideal gas law \(PV = nRT\) is one candidate equation of state for investments, and it yields an intriguing consistency requirement: substituting \(V = nP\) into \(PV = nRT\) produces \(P^2 = RT\), predicting that market &ldquo;temperature&rdquo; (a volatility proxy) should scale with the square of price. This prediction, its empirical status across asset classes, and the efficiency bounds that different equations of state imply, are the subject of a separate investigation. The present paper establishes the assumption-free foundation on which such explorations can be built.</p>
 
-<div class="equation-box">
-$$\delta Q = n \, dP \quad \text{(unrealized appreciation)} \tag{18}$$
-$$\delta W = -P \, dn \quad \text{(realized from sales)} \tag{19}$$
-</div>
-
-<p>These expressions are remarkably clean. When the market rises (<em>dP</em> > 0) and positions are held (<em>dn</em> = 0), heat flows into the system—unrealized gains increase. When shares are sold (<em>dn</em> < 0) at price <em>P</em>, work flows out—cash is extracted. The First Law keeps the books.</p>
-
-<h3>3.6 Isothermal and Adiabatic Processes</h3>
-
-<p>Different selling strategies correspond to different thermodynamic processes.</p>
-
-<p><strong>Isothermal selling</strong> occurs when liquidation proceeds gradually in a stable market. Temperature (volatility/sentiment) remains constant, which by Equation (10) implies price remains constant. Work <em>W = P · Δn</em> is extracted at a steady price, converting stored energy to cash without disturbing market conditions.</p>
-
-<p><strong>Adiabatic selling</strong> occurs during a market crash when rapid selling is necessary with no "heat exchange"—no time for prices to stabilize. The adiabatic condition <em>δQ = 0</em> means <em>n dP = 0</em>, which for <em>n ≠ 0</em> implies <em>dP = 0</em>. But this contradicts "crash"!</p>
-
-<p>The resolution involves <em>price impact</em>: rapid selling in a thin market <em>causes</em> the price to drop. Work cannot be extracted at the old price because selling pressure reduces the price. The adiabatic invariant <em>PV<sup>γ</sup> = const</em> (with <em>γ</em> > 1) captures this: reducing <em>n</em> rapidly forces <em>P</em> down to maintain the constraint. Panic selling is thermodynamically inefficient—less work is recovered than the initial stored energy would suggest.</p>
-
-<h3>3.7 The Carnot Bound on Investment Efficiency</h3>
-
-<p>Perhaps the most striking result of the thermodynamic framework is a theoretical limit on investment efficiency.</p>
-
-<p>A <strong>Carnot engine</strong> is an idealized heat engine operating between two thermal reservoirs. Its efficiency—the ratio of work extracted to heat absorbed—is bounded.</p>
-
-<p>Consider an idealized investment cycle:</p>
-
-<ol>
-<li><strong>Buy low</strong>: Purchase <em>n</em> shares at price <em>P<sub>L</sub></em></li>
-<li><strong>Hold during appreciation</strong>: Price rises from <em>P<sub>L</sub></em> to <em>P<sub>H</sub></em> (heat input <em>Q = n(P<sub>H</sub></em> - <em>P<sub>L</sub></em>))</li>
-<li><strong>Sell high</strong>: Sell all <em>n</em> shares at price <em>P<sub>H</sub></em> (work output <em>W = nP<sub>H</sub></em> - <em>nP<sub>L</sub></em> = n(P<sub>H</sub></em> - <em>P<sub>L</sub></em>))</li>
-<li><strong>Repeat</strong>: Reinvest at the next low</li>
-</ol>
-
-<p>In this idealized case, work extracted equals heat absorbed: <em>η = W/Q = 1</em>. But this assumes perfect market timing—buying at the exact bottom and selling at the exact top.</p>
-
-<p>Real investors cannot achieve this. Purchases occur somewhere above <em>P<sub>L</sub></em> and sales somewhere below <em>P<sub>H</sub></em>. Transaction costs, taxes, and behavioral biases further reduce efficiency.</p>
-
-<p>A Carnot-like bound emerges when the <em>ratio</em> of prices is considered:</p>
-
-<div class="equation-box">
-$$\eta_{max} = 1 - \frac{P_L}{P_H} \tag{20}$$
-</div>
-
-<p>This states: if a stock oscillates between $50 and $100, the maximum possible efficiency is <em>1 - 50/100 = 50%</em>. No strategy—no matter how clever—can capture more than half of the market's total appreciation as realized gains when operating between those price bounds.</p>
-
-<p>The bound is tight only for idealized cycles. Real investors face irreversibilities (transaction costs, slippage, timing errors) that reduce efficiency below this theoretical maximum. But the existence of a bound—derived from thermodynamic principles—is itself noteworthy.</p>
-
-<h3>3.8 The Bubble in Context</h3>
-
-<p>Investment positions have been called "gas bubbles" suspended in a financial fluid. This picture can be made concrete.</p>
-
-<p>Imagine a financial system as a fluid-filled container (total net worth). Most of the fluid is incompressible liquid—checking and savings accounts, cash holdings. Floating within this liquid are one or more bubbles: stock portfolios, Bitcoin holdings, retirement funds. Each bubble has a well-defined volume (dollar value) that can expand or contract with market pressure.</p>
-
-<p>When a bubble expands (prices rise), it displaces liquid—<em>unrealized</em> net worth increases, but <em>liquid</em> net worth stays the same until a sale occurs. Selling pops part of the bubble, converting gas back to liquid (realized cash). The bubble's size depends on both how much gas it contains (<em>n</em> shares) and the external pressure (<em>P</em> market price).</p>
-
-<p>This picture clarifies the distinction between realized and unrealized wealth. A large bubble makes one "wealthy on paper," but that wealth is gaseous—compressible, volatile, subject to market conditions. Only by extracting work (selling) is it converted to the incompressible liquid of actual cash.</p>
-
-<h3>3.9 Summary of the Thermodynamic Framework</h3>
+<h3>3.8 Summary of the Thermodynamic Framework</h3>
 
 <p>The following has been established:</p>
 
 <ol>
-<li>Investment value <em>V = nP</em> exhibits compressibility (changes with price, not just quantity)</li>
-<li>The ideal gas analogy <em>PV = nRT</em> requires <em>T ∝ P<sup>2</sup></em> for consistency</li>
-<li>Realized gains are thermodynamic work: <em>δW = -P dn</em></li>
-<li>Unrealized gains are heat absorbed: <em>δQ = n dP</em></li>
-<li>The First Law <em>dU = δQ - δW</em> holds exactly</li>
-<li>A Carnot-like efficiency bound <em>η<sub>max</sub> = 1 - P<sub>L</sub>/P<sub>H</sub></em> limits realizable returns</li>
+<li>Investment value \(V = nP\) exhibits compressibility (value changes with price, not just quantity)</li>
+<li>The product rule yields an exact First Law: \(dU = n\,dP + P\,dn\)</li>
+<li>Unrealized gains are heat absorbed: \(\delta Q = n\,dP\)</li>
+<li>Realized gains are work extracted: \(\delta W = -P\,dn\)</li>
+<li>The compressibility spectrum classifies instruments by pressure sensitivity</li>
+<li>The gas/liquid visualization illuminates the distinction between paper wealth and liquid wealth</li>
 </ol>
 
-<p>The next section develops diagnostic tools—signal dynamics—for monitoring the health of this financial thermodynamic system.</p>
+<p>The next section extends this framework from the macro level (whole accounts) to the micro level (individual purchase lots), connecting the thermofluidic model to practical portfolio analytics.</p>
 
 <div class="divider">---</div>
 
-<h2>IV. Signal Dynamics and Stability</h2>
+<!-- ==================== SECTION IV ==================== -->
 
-<p>With the physical framework established—incompressible cash as fluid, compressible investments as gas bubbles—tools for <em>monitoring</em> and <em>controlling</em> the system are now developed. The key insight is that the time derivatives of financial position (velocity, acceleration, jerk) carry diagnostic information analogous to kinematics in mechanics.</p>
+<h2>IV. Lot-Level Buoyancy Dynamics</h2>
 
-<h3>4.1 Financial Velocity</h3>
+<p>The framework developed in Sections II and III operates at the account level: each investment account is a single compressible region characterized by total shares held \(n\) and current price \(P\). But a real portfolio consists of multiple purchase lots&mdash;shares acquired at different times and prices. Each lot has its own relationship to the current market price, its own unrealized gain or loss, and its own history.</p>
 
-<p>The <strong>financial velocity</strong> is the first derivative of net worth:</p>
+<p>This section develops the internal structure of the compressible investment region, modeling each purchase lot as a sub-element with its own &ldquo;depth&rdquo; in the financial fluid. The resulting model connects the thermofluidic framework to practical portfolio analytics: underwater-time distributions, recovery statistics, drawdown risk measures, and tax-loss harvesting optimization.</p>
 
-<div class="equation-box">
-$$v(t) = \frac{dV_{total}}{dt} = I(t) - S(t) \tag{21}$$
-</div>
+<h3>4.1 From Monolithic Accounts to Internal Structure</h3>
 
-<p>where <em>I(t)</em> is total income and <em>S(t)</em> is total spending. (For the total system, internal transfers cancel—money moved between accounts changes individual balances but not the sum.)</p>
-
-<p>Financial velocity is simply the <em>net savings rate</em>. Positive velocity means net worth is increasing; negative velocity means it's decreasing. This much is obvious.</p>
-
-<p>What's less obvious is that embedding this quantity in a kinematic framework—as a <em>velocity</em> rather than just "savings rate"—invites consideration of higher derivatives. A car's velocity reveals its speed, but to predict a crash, acceleration must be known.</p>
-
-<h3>4.2 Financial Acceleration</h3>
-
-<p>The <strong>financial acceleration</strong> is the second derivative:</p>
-
-<div class="equation-box">
-$$a(t) = \frac{dv}{dt} = \frac{d^2 V_{total}}{dt^2} = \frac{dI}{dt} - \frac{dS}{dt} \tag{22}$$
-</div>
-
-<p>Acceleration measures how the savings rate itself is changing. This is where the kinematic analogy pays dividends.</p>
-
-<p>Consider two scenarios, both with the same current velocity <em>v = -$200/month</em> (spending exceeds income by $200):</p>
+<p>Consider a brokerage account that holds three lots of the same stock, purchased at different times:</p>
 
 <ul>
-<li><strong>Scenario A</strong>: <em>a = +$50/month<sup>2</sup></em> — the deficit is shrinking. In four months, velocity reaches zero; the bleeding stops.</li>
-<li><strong>Scenario B</strong>: <em>a = -$50/month<sup>2</sup></em> — the deficit is growing. In four months, velocity is -$400/month; the situation is worsening.</li>
+<li>Lot A: 10 shares bought at $40 (currently profitable)</li>
+<li>Lot B: 15 shares bought at $55 (currently near break-even)</li>
+<li>Lot C: 5 shares bought at $70 (currently underwater)</li>
 </ul>
 
-<p>Both scenarios have identical current velocity but radically different trajectories. Acceleration reveals which way the trend is bending.</p>
+<p>If the current price is $52, the account-level view shows: 30 shares, market value $1,560, cost basis $1,600, unrealized loss of $40. This aggregate view obscures important structure. Lot A has a $120 unrealized gain. Lot C has a $90 unrealized loss. These have different tax implications, different recovery prospects, and different optimal holding strategies.</p>
 
-<h3>4.3 The Four Quadrants</h3>
+<p>The thermofluidic framework extends naturally to this level: each lot is a <em>sub-element</em> within the compressible region, and its relationship to the current price determines its &ldquo;buoyancy&rdquo;&mdash;whether it floats (profitable) or sinks (underwater).</p>
 
-<p>The pair <em>(v, a)</em> defines a phase space for financial health. This space naturally partitions into four quadrants:</p>
+<h3>4.2 The Depth Variable</h3>
+
+<p>Define the <strong>depth</strong> of a purchase lot relative to the current market price:</p>
+
+<div class="equation-box">$$d(t) = \ln\frac{P_{entry}}{P(t)} \tag{16}$$</div>
+
+<p>where \(P_{entry}\) is the lot&rsquo;s purchase price and \(P(t)\) is the current market price. The logarithmic form is chosen for mathematical convenience and because log-returns are the natural scale for price dynamics.</p>
+
+<p>The depth variable partitions lots into three regimes:</p>
+
+<ul>
+<li><strong>\(d > 0\): Underwater</strong> (loss). The lot was purchased above the current price. It has <em>negative buoyancy</em>&mdash;it &ldquo;sinks&rdquo; in the financial fluid, representing stored potential energy that may or may not be recoverable.</li>
+<li><strong>\(d = 0\): Break-even</strong>. The current price equals the entry price. The lot is at <em>neutral buoyancy</em>.</li>
+<li><strong>\(d < 0\): Profitable</strong>. The lot was purchased below the current price. It has <em>positive buoyancy</em>&mdash;it &ldquo;floats,&rdquo; representing extractable work (realizable gains).</li>
+</ul>
+
+<p>The portfolio is thus characterized not by a single profit/loss number but by a <em>distribution of depths</em>&mdash;a richer representation that captures the heterogeneity of the investor&rsquo;s positions.</p>
+
+<h3>4.3 The Ornstein-Uhlenbeck Model for Lot Dynamics</h3>
+
+<p>How does the depth of a lot evolve over time? Under geometric Brownian motion (GBM)&mdash;the standard model for price dynamics&mdash;the log-price \(\ln P(t)\) follows a random walk with drift:</p>
+
+<div class="equation-box">$$d(\ln P) = \left(\mu - \frac{\sigma^2}{2}\right) dt + \sigma \, dW_t \tag{17}$$</div>
+
+<p>where \(\mu\) is the expected return (drift), \(\sigma\) is volatility, and \(W_t\) is a standard Wiener process.</p>
+
+<p>Since \(d(t) = \ln P_{entry} - \ln P(t)\), and \(P_{entry}\) is fixed for a given lot, the depth evolves as:</p>
+
+<div class="equation-box">$$dd(t) = -d(\ln P) = -\left(\mu - \frac{\sigma^2}{2}\right) dt - \sigma \, dW_t \tag{18}$$</div>
+
+<p>Defining \(k = \mu - \sigma^2/2\) (the drift-adjusted rate) and absorbing the sign into the noise term, this becomes:</p>
+
+<div class="equation-box">$$dd(t) = -k \, dt - \sigma \, dW_t \tag{19}$$</div>
+
+<p>For a market with positive expected returns (\(\mu > \sigma^2/2\), i.e., \(k > 0\)), the depth has a negative drift: underwater positions tend to <em>decrease</em> in depth over time (recover toward break-even), and profitable positions tend to <em>increase</em> in depth (become more profitable). This is the financial expression of positive market drift.</p>
+
+<p>When mean-reversion effects are included&mdash;either from market microstructure or from the empirically observed tendency of extreme valuations to normalize&mdash;the depth dynamics take the form of an <strong>Ornstein-Uhlenbeck (OU) process</strong>:</p>
+
+<div class="equation-box">$$dd(t) = -\kappa \cdot d(t) \, dt + \sigma \, dW_t \tag{20}$$</div>
+
+<p>where \(\kappa > 0\) is the mean-reversion rate. The OU process is one of the most thoroughly studied stochastic processes in physics and mathematics, with analytic solutions for virtually all quantities of interest.</p>
+
+<h3>4.4 Underwater-Time Distributions</h3>
+
+<p>A natural question for any underwater lot: <em>how long until it recovers?</em> In the OU framework, this is a <strong>first-passage-time problem</strong>: starting from depth \(d_0 > 0\), what is the distribution of times \(\tau\) until the process first hits \(d = 0\)?</p>
+
+<p>For the OU process, the expected recovery time from depth \(d_0\) is:</p>
+
+<div class="equation-box">$$\mathbb{E}[\tau(d_0)] = \frac{1}{\kappa}\left(e^{2\kappa d_0 / \sigma^2} - 1\right) \cdot \frac{\sigma^2}{2\kappa d_0} \cdot d_0 \tag{21}$$</div>
+
+<p>For small depths (\(d_0 \ll \sigma^2 / \kappa\)), recovery time scales linearly with depth. For large depths, recovery time grows <em>exponentially</em>&mdash;deeply underwater positions face dramatically longer expected recovery periods. This exponential scaling formalizes the intuition that a 5% loss is a minor setback while a 50% loss may take years to recover from.</p>
+
+<p>The probability of recovery within time horizon \(T\) can also be computed from the OU first-passage distribution, giving investors a principled answer to: &ldquo;What is the probability that this 20%-underwater position recovers within one year?&rdquo;</p>
+
+<h3>4.5 Tax-Loss Harvesting via Buoyancy Ranking</h3>
+
+<p>Tax-loss harvesting&mdash;selling underwater lots to realize losses for tax purposes&mdash;is a standard strategy in portfolio management. The depth model provides a principled framework for ranking lots:</p>
+
+<p><strong>Immediate tax benefit</strong>: A lot at depth \(d\) has unrealized loss proportional to \(1 - e^{-d} \approx d\) (for small \(d\)). Deeper lots offer larger tax benefits per share.</p>
+
+<p><strong>Expected future recovery</strong>: The OU model gives the expected future value of holding a lot at depth \(d\). For a lot currently underwater by amount \(d_0\), the expected depth at time \(t\) is:</p>
+
+<div class="equation-box">$$\mathbb{E}[d(t) | d(0) = d_0] = d_0 \, e^{-\kappa t} \tag{22}$$</div>
+
+<p>The lot&rsquo;s expected depth decays exponentially toward zero (break-even), with time constant \(1/\kappa\).</p>
+
+<p><strong>The optimization tradeoff</strong>: Selling a deeply underwater lot realizes a large loss now but sacrifices the lot&rsquo;s future recovery potential. Selling a shallowly underwater lot realizes a small loss but sacrifices less recovery potential. The optimal harvesting strategy maximizes the net present value of tax savings minus forgone recovery:</p>
+
+<div class="equation-box">$$\text{NPV}_{harvest}(d_0) = \underbrace{\tau_{tax} \cdot n \cdot P \cdot (1 - e^{-d_0})}_{\text{tax savings}} - \underbrace{n \cdot P \cdot d_0 \cdot e^{-\kappa T}}_{\text{expected recovery forgone}} \tag{23}$$</div>
+
+<p>where \(\tau_{tax}\) is the applicable tax rate and \(T\) is the investor&rsquo;s time horizon. Lots are harvested in order of decreasing NPV&mdash;a principled ranking that balances present tax benefit against future opportunity cost.</p>
+
+<h3>4.6 Drawdown Analysis and Maximum Depth</h3>
+
+<p>The maximum depth across all lots in a portfolio at time \(t\) is:</p>
+
+<div class="equation-box">$$D_{max}(t) = \max_i \{ d_i(t) \} \tag{24}$$</div>
+
+<p>This is directly related to <strong>maximum drawdown</strong>&mdash;a key risk metric in portfolio management that measures the largest peak-to-trough decline. Within the OU framework, the distribution of maximum drawdown can be characterized analytically.</p>
+
+<p>For a single lot held over time horizon \(T\), the expected maximum depth reached is:</p>
+
+<div class="equation-box">$$\mathbb{E}[D_{max}(T)] \approx \sigma\sqrt{\frac{2\ln T}{k}} \tag{25}$$</div>
+
+<p>This grows as \(\sqrt{\ln T}\)&mdash;slowly, but unboundedly. The practical implication: over long holding periods, even in a trending market, there will be episodes of significant underwater depth. Risk management requires quantifying these excursions, and the OU model provides the distributional toolkit to do so.</p>
+
+<p>For a portfolio of \(N\) lots, the maximum depth is amplified:</p>
+
+<div class="equation-box">$$\mathbb{E}[D_{max}^{(N)}] \approx \mathbb{E}[D_{max}^{(1)}] + \sigma\sqrt{\frac{2\ln N}{k}} \tag{26}$$</div>
+
+<p>Larger portfolios (more lots) face deeper worst-case drawdowns, with the penalty scaling as \(\sqrt{\ln N}\)&mdash;a manageable growth rate that quantifies the diversification-versus-drawdown tradeoff.</p>
+
+<h3>4.7 The Depth Distribution of a Portfolio</h3>
+
+<p>Over time, as lots are acquired at different prices and the market evolves, the portfolio develops a <strong>depth distribution</strong> \(\rho(d, t)\)&mdash;a density function describing how the portfolio&rsquo;s lots are distributed across depths. This distribution evolves according to the <strong>Fokker-Planck equation</strong> associated with the OU process:</p>
+
+<div class="equation-box">$$\frac{\partial \rho}{\partial t} = \kappa \frac{\partial}{\partial d}(d \cdot \rho) + \frac{\sigma^2}{2} \frac{\partial^2 \rho}{\partial d^2} \tag{27}$$</div>
+
+<p>At steady state&mdash;reached after a long holding period with continuous lot acquisition&mdash;the depth distribution converges to a <strong>Gaussian</strong>:</p>
+
+<div class="equation-box">$$\rho_{ss}(d) = \frac{1}{\sqrt{\pi \sigma^2 / \kappa}} \exp\left(-\frac{\kappa d^2}{\sigma^2}\right) \tag{28}$$</div>
+
+<p>centered at \(d = 0\) (break-even) with variance \(\sigma^2 / (2\kappa)\).</p>
+
+<p>This steady-state distribution provides a natural <strong>portfolio health metric</strong>:</p>
+
+<ul>
+<li>A <em>narrow</em> depth distribution (small \(\sigma^2/\kappa\)) indicates a portfolio with well-timed entries&mdash;lots clustered near break-even or in profit.</li>
+<li>A <em>wide</em> depth distribution (large \(\sigma^2/\kappa\)) indicates a portfolio with poorly timed entries or high market volatility&mdash;lots spread across a wide range of depths, including some deeply underwater.</li>
+<li>A depth distribution with a <em>heavy right tail</em> (many deeply underwater lots) signals a &ldquo;sick&rdquo; portfolio&mdash;one carrying significant unrealized losses with long expected recovery times.</li>
+<li>An <em>asymmetric</em> distribution skewed toward negative \(d\) (profitable) indicates a well-managed portfolio with favorable entry timing.</li>
+</ul>
+
+<h3>4.8 Connection to the Thermofluidic Framework</h3>
+
+<p>The lot-level model connects back to the macroscopic framework of Sections II and III:</p>
+
+<ul>
+<li>Individual lots are <em>sub-elements</em> within the compressible investment region</li>
+<li>The aggregate investment value \(V = \sum_i n_i P(t) = P(t) \sum_i n_i\) is the total volume of the compressible region</li>
+<li>The depth distribution \(\rho(d)\) characterizes the <em>internal structure</em> of the compressible region</li>
+<li>Heat absorption (\(\delta Q = n\,dP\)) from Section III distributes across all lots simultaneously&mdash;all lots at the same price move together</li>
+<li>Work extraction (\(\delta W = -P\,dn\)) is lot-specific&mdash;the investor chooses <em>which</em> lots to sell, and the choice determines the tax consequences and the reshaping of the depth distribution</li>
+</ul>
+
+<p>This provides a unified physical language across three scales:</p>
+
+<ul>
+<li><strong>Macro</strong> (Section II): Cash flows between accounts as incompressible fluid; investments are compressible regions in the financial container</li>
+<li><strong>Meso</strong> (Section III): Each investment account has a thermodynamic structure; heat and work flow according to the First Law</li>
+<li><strong>Micro</strong> (Section IV): Each purchase lot within an investment has a depth, a buoyancy, and a stochastic trajectory governed by the OU process</li>
+</ul>
+
+<p>The fluid analogy extends naturally from system to account to position, offering a coherent physical framework across multiple scales of financial analysis.</p>
+
+<div class="divider">---</div>
+
+<!-- ==================== SECTION V ==================== -->
+
+<h2>V. Discussion and Future Directions</h2>
+
+<h3>5.1 Summary of Contributions</h3>
+
+<p>A framework has been developed&mdash;termed <em>thermofluidic finance</em>&mdash;in which personal finance operates as a genuine dynamical system. Cash accounts behave as interconnected reservoirs of incompressible fluid governed by conservation laws. Investment accounts behave as compressible media subject to thermodynamic principles. The First Law of Thermodynamics applies exactly: unrealized gains are heat absorbed, realized gains are work extracted.</p>
+
+<p>The framework&rsquo;s three-pillar structure yields results at distinct levels of abstraction:</p>
+
+<ol>
+<li><strong>The state-space formulation</strong> (Section II) is an enabling infrastructure&mdash;not new mathematics, but a new application of existing mathematics that opens access to the full dynamical systems toolkit.</li>
+<li><strong>The First Law decomposition</strong> (Section III) is the core theoretical contribution&mdash;an exact, assumption-free partition of investment value changes into heat and work, illuminating the fundamental distinction between realized and unrealized gains.</li>
+<li><strong>The lot-level buoyancy model</strong> (Section IV) is the primary applied contribution&mdash;a stochastic framework yielding analytic results for recovery times, drawdown risk, and optimal tax-loss harvesting.</li>
+</ol>
+
+<h3>5.2 Limitations</h3>
+
+<p>Several limitations deserve explicit acknowledgment:</p>
+
+<p><strong>Behavioral factors</strong>: The model treats financial flows as deterministic (cash) or stochastically driven by market dynamics (investments) but does not capture the full complexity of human psychology. Panic selling, overconfidence, loss aversion, and other behavioral biases affect the timing and magnitude of flows in ways not modeled here.</p>
+
+<p><strong>Tax, inflation, and debt</strong>: Taxes have been ignored entirely. In reality, the work extracted from investments (realized gains) is subject to capital gains tax, reducing the net work available. A more complete model would include tax drag as thermodynamic friction or dissipation. Inflation erodes the value of incompressible cash over time&mdash;a slow &ldquo;evaporation&rdquo; not captured here. Debt (negative balances) introduces additional structure.</p>
+
+<p><strong>Transfer matrix linearity</strong>: As noted in Section 2.4, real household transfers are nonlinear threshold-based decisions, not constant-rate flows. The linear model captures the essential structure but not the full behavioral complexity.</p>
+
+<p><strong>Price dynamics</strong>: The OU model for lot-level dynamics assumes GBM-like price behavior (log-normal returns). For assets with fat-tailed distributions (cryptocurrency, small-cap equities), the OU framework provides a reasonable first approximation but may underestimate extreme-depth excursions.</p>
+
+<p><strong>Validation</strong>: The framework has been validated for internal consistency (dual-method computation yields zero deviation across simulated trajectories). Empirical validation against real household financial data&mdash;for example, from the Federal Reserve&rsquo;s Survey of Consumer Finances&mdash;would strengthen the framework&rsquo;s practical claims but is beyond the present scope.</p>
+
+<h3>5.3 Signal Dynamics: A Brief Note</h3>
+
+<p>The time derivatives of financial position provide natural diagnostic tools within the thermofluidic framework. The first derivative (financial velocity, \(v = dV_{total}/dt = I - S\)) is simply the net savings rate. The second derivative (financial acceleration, \(a = dv/dt\)) reveals whether the savings rate is improving or deteriorating. These pair to define a phase space with four quadrants:</p>
 
 <table>
 <tr>
@@ -696,321 +814,63 @@ $$a(t) = \frac{dv}{dt} = \frac{d^2 V_{total}}{dt^2} = \frac{dI}{dt} - \frac{dS}{
 </tr>
 <tr>
 <td>I</td>
-<td><em>v > 0</em></td>
-<td><em>a > 0</em></td>
-<td>Accelerating growth (wealth building)</td>
+<td>\(v > 0\)</td>
+<td>\(a > 0\)</td>
+<td>Accelerating growth</td>
 </tr>
 <tr>
 <td>II</td>
-<td><em>v < 0</em></td>
-<td><em>a > 0</em></td>
-<td>Decelerating loss (recovery underway)</td>
+<td>\(v < 0\)</td>
+<td>\(a > 0\)</td>
+<td>Decelerating loss (recovery)</td>
 </tr>
 <tr>
 <td>III</td>
-<td><em>v < 0</em></td>
-<td><em>a < 0</em></td>
+<td>\(v < 0\)</td>
+<td>\(a < 0\)</td>
 <td>Accelerating loss (<strong>crisis</strong>)</td>
 </tr>
 <tr>
 <td>IV</td>
-<td><em>v > 0</em></td>
-<td><em>a < 0</em></td>
-<td>Decelerating growth (approaching equilibrium)</td>
+<td>\(v > 0\)</td>
+<td>\(a < 0\)</td>
+<td>Decelerating growth</td>
 </tr>
 </table>
 
-<p>Quadrant III is the danger zone. Negative velocity means money is being lost; negative acceleration means it's being lost <em>faster each month</em>. Without intervention, trajectories in Quadrant III lead to insolvency.</p>
+<p>Quadrant III&mdash;negative velocity with negative acceleration&mdash;signals financial crisis: money is being lost at an increasing rate. This diagnostic framework, and its connection to PID control theory (where financial decision-making implicitly implements proportional-integral-derivative feedback), merits full development in a companion paper.</p>
 
-<p>The diagnostic power of this framework lies in early detection. A household might still have positive net worth but find itself in Quadrant III—losing money at an accelerating rate. The quadrant signals trouble before the bank balance does.</p>
+<h3>5.4 Equations of State and Efficiency Bounds</h3>
 
-<h3>4.4 Financial Jerk</h3>
+<p>The thermofluidic framework invites deeper thermodynamic exploration. An equation of state \(f(P, V, n, T) = 0\) for investments would enable analysis of specific thermodynamic processes&mdash;isothermal selling (gradual liquidation in a stable market) versus adiabatic selling (rapid liquidation during a crash, suffering price impact). Different equations of state yield different predictions for the relationship between market volatility and price level.</p>
 
-<p>Extending the kinematic analogy one step further, the <strong>financial jerk</strong> is the third derivative:</p>
+<p>Perhaps most intriguingly, a thermodynamic efficiency bound analogous to the Carnot limit may constrain investment returns: no strategy, however clever, could capture more than a certain fraction of total market appreciation as realized profit when operating between given price bounds. The derivation and empirical testing of such bounds&mdash;and the resolution of whether the bound should involve prices or temperatures&mdash;is the subject of ongoing investigation.</p>
 
-<div class="equation-box">
-$$j(t) = \frac{da}{dt} = \frac{d^3 V_{total}}{dt^3} \tag{23}$$
-</div>
+<h3>5.5 Future Directions</h3>
 
-<p>Jerk detects <em>inflection points</em> in the acceleration. A sign change in jerk signals that a trajectory is transitioning between quadrants—potentially the earliest warning of a trend reversal.</p>
+<p>Several extensions merit further development:</p>
 
-<p>In practice, third-derivative signals are noisy and require smoothing. But the conceptual point stands: higher derivatives provide earlier warnings at the cost of increased noise sensitivity.</p>
+<p><strong>Multi-asset portfolios</strong>: The present framework treats each investment position independently. A portfolio of correlated assets introduces coupled dynamics&mdash;multiple compressible regions that expand and contract together, with the correlation structure determining the collective behavior.</p>
 
-<h3>4.5 Connection to Control Theory</h3>
+<p><strong>Optimal control</strong>: Given the state-space formulation (Eq. 7), optimal control theory (LQR, Model Predictive Control) can derive <em>optimal</em> spending and transfer policies to achieve financial goals while minimizing risk.</p>
 
-<p>The signal dynamics framework connects naturally to control theory. Consider a household with a target net worth <em>r(t)</em>—perhaps a savings goal or retirement target. The <strong>error signal</strong> is:</p>
+<p><strong>Network effects</strong>: Households interact&mdash;borrowing from family, splitting bills, inheriting. Extending the framework to networks of financial agents would capture these interdependencies.</p>
 
-<div class="equation-box">
-$$e(t) = r(t) - V_{total}(t) \tag{24}$$
-</div>
+<p><strong>Statistical mechanics</strong>: Instead of tracking one household, a population of households could be modeled as a thermodynamic ensemble. The &ldquo;temperature&rdquo; of this ensemble would characterize the spread of financial outcomes across the population, potentially connecting to observed wealth distributions.</p>
 
-<p>How do people respond to this error? A moment's reflection suggests they adjust their spending—tightening belts when below target, relaxing when ahead. This is a <strong>feedback control system</strong>.</p>
+<p><em>The quantum mechanical extension is left as an exercise for the particularly ambitious reader. It is suspected that this involves superposition of buy and sell orders, but no claims are made.</em></p>
 
-<p>The classic <strong>PID controller</strong> generates a control signal from the error and its integral and derivative:</p>
+<h3>5.6 Conclusion</h3>
 
-<div class="equation-box">
-$$u(t) = K_p e(t) + K_i \int e \, d\tau + K_d \frac{de}{dt} \tag{25}$$
-</div>
+<p>The fluid metaphors pervading financial language are not accidental. Money really does <em>flow</em>. Investments really are <em>volatile</em>&mdash;in the precise, thermodynamic sense of being compressible media whose internal energy fluctuates with external pressure. The physics of fluids and thermodynamics provides a rigorous mathematical language for what financial intuition has always sensed.</p>
 
-<p>Each term has a financial interpretation:</p>
+<p>By taking the metaphors seriously&mdash;and doing the mathematics&mdash;a framework has been arrived at that is both conceptually illuminating and practically useful. The First Law decomposition reveals the deep structure of realized versus unrealized gains. The compressibility spectrum provides a physical taxonomy of financial instruments. The lot-level buoyancy model connects thermodynamic principles to the concrete decisions investors face: which lots to harvest, how long to wait for recovery, how to measure portfolio risk.</p>
 
-<ul>
-<li><strong>Proportional</strong> (<em>K<sub>p</sub> e</em>): "The target is missed by $500 → cut spending by <em>K<sub>p</sub></em> · 500 this month." Immediate response to current deviation.</li>
-<li><strong>Integral</strong> (<em>K<sub>i</sub> ∫ e dτ</em>): "The target has been missed for six months → make structural changes." Accumulated error drives long-term adjustment.</li>
-<li><strong>Derivative</strong> (<em>K<sub>d</sub> de/dt</em>): "The shortfall is growing at $100/month → preemptive action now." The rate of error change—which is just the negative of velocity—triggers anticipatory response.</li>
-</ul>
-
-<p>The acceleration metric enables a <em>second-order</em> derivative term:</p>
-
-<div class="equation-box">
-$$u_{advanced} = K_p e + K_i \int e + K_d \dot{e} + K_{dd} \ddot{e} \tag{26}$$
-</div>
-
-<p>This <strong>PIDD controller</strong> responds not just to how fast the error is growing, but to how fast that growth rate is changing. It detects "the situation is deteriorating, and the deterioration is accelerating"—the Quadrant III crisis—earlier than standard PID.</p>
-
-<h3>4.6 Stability and Damping</h3>
-
-<p>The eigenvalues of the transfer matrix <strong>A</strong> (from Section II) determine system stability. For the three-account system:</p>
-
-<div class="equation-box">
-$$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag{27}$$
-</div>
-
-<p>The negative eigenvalues indicate that checking and savings balances decay toward equilibrium—they are <em>stable</em> modes. The zero eigenvalue for the investment account indicates <em>marginal stability</em>: money accumulates indefinitely without inherent decay. (This makes financial sense—parked investments don't spontaneously disappear.)</p>
-
-<p>The <strong>time constant</strong> <em>τ<sub>i</sub> = -1/λ<sub>i</sub></em> measures how quickly each mode equilibrates. If <em>τ<sub>12</sub> = 0.2</em> (20% of checking transferred monthly), the checking account's time constant is 5 months—perturbations decay with a 5-month characteristic time.</p>
-
-<p>A well-tuned financial system exhibits <strong>critical damping</strong>: rapid return to equilibrium without overshoot. Aggressive correction (high <em>K<sub>p</sub></em>, <em>K<sub>d</sub></em>) can cause oscillations—boom-bust spending cycles. Sluggish correction (low gains) leaves the system vulnerable to persistent errors.</p>
+<p>The framework is not a forecasting tool&mdash;it does not predict where prices will go. It is a <em>structural</em> tool: it describes <em>how</em> financial value is stored, transformed, and extracted, using the same mathematical language that describes these processes in physical systems. That the language fits so precisely suggests that the structural similarities between financial and physical systems run deeper than metaphor.</p>
 
 <div class="divider">---</div>
 
-<h2>V. Implementation and Validation</h2>
-
-<p>The framework developed in Sections II–IV is not merely theoretical. It has been implemented as a working computational model and validated against simulated financial trajectories. This section describes the implementation architecture and validation methodology.</p>
-
-<h3>5.1 Computational Architecture</h3>
-
-<p>The model is implemented as a discrete-time dynamical system with monthly time steps (Δ<em>t</em> = 1 month). At each step:</p>
-
-<ol>
-<li><strong>External inputs</strong> (income <em>I[k]</em>, spending <em>S[k]</em>) are recorded</li>
-<li><strong>Internal transfers</strong> (τ<sub>ij</sub>) redistribute funds between accounts</li>
-<li><strong>Market prices</strong> (<em>P[k]</em>) update investment values</li>
-<li><strong>State vector</strong> <strong>x[k]</strong> is updated via the discrete state equation:
-<div class="equation-box">
-$$\mathbf{x}[k+1] = (\mathbf{I} + \Delta t \, \mathbf{A}) \mathbf{x}[k] + \Delta t \, \mathbf{B} \mathbf{u}[k] + \mathbf{w}[k]$$
-</div>
-where <strong>w[k]</strong> captures stochastic market returns for investment accounts</li>
-<li><strong>Signal dynamics</strong> (<em>v[k]</em>, <em>a[k]</em>, <em>j[k]</em>) are computed from finite differences</li>
-<li><strong>Model predictions</strong> are compared to actual balances for validation</li>
-</ol>
-
-<p>The architecture separates <em>liquid accounts</em> (checking, savings—governed by incompressible dynamics) from <em>investment accounts</em> (governed by the compressible bubble model). This dual treatment reflects the fundamental asymmetry identified in Section III.</p>
-
-<h3>5.2 Simulated Data Generation</h3>
-
-<p>To validate the model without exposing personal financial data, synthetic trajectories with realistic characteristics are generated:</p>
-
-<p><strong>Income model</strong>: Base salary plus stochastic variation</p>
-
-<div class="equation-box">
-$$I[k] = I_0 + \sigma_I \cdot \epsilon_I[k]$$
-</div>
-
-<p>with <em>I<sub>0</sub> = $4,000/month</em> and <em>σ<sub>I</sub> = $500</em> (capturing overtime, bonuses, etc.)</p>
-
-<p><strong>Spending model</strong>: Necessary (stable) plus discretionary (variable) components</p>
-
-<div class="equation-box">
-$$S[k] = S_{nec} + S_{disc}[k]$$
-</div>
-
-<p>with <em>S<sub>nec</sub> = $2,500</em> and <em>S<sub>disc</sub> ~ Gamma(α, β)</em> to capture occasional large expenses</p>
-
-<p><strong>Market prices</strong>: Geometric Brownian Motion for investment assets</p>
-
-<div class="equation-box">
-$$P[k+1] = P[k] \cdot \exp\left( (\mu - \sigma^2/2)\Delta t + \sigma \sqrt{\Delta t} \cdot Z[k] \right)$$
-</div>
-
-<p>with <em>μ = 0.08/year</em> (drift) and <em>σ = 0.20/year</em> (volatility)</p>
-
-<p>These parameters produce trajectories qualitatively similar to real household finances: steady income with occasional variation, necessary expenses forming a floor, discretionary spending producing month-to-month fluctuation, and investments following realistic market dynamics.</p>
-
-<h3>5.3 Validation Metrics</h3>
-
-<p>Several metrics comparing model predictions to "actual" simulated values are tracked:</p>
-
-<p><strong>Percent Error (Accuracy)</strong>:</p>
-
-<div class="equation-box">
-$$\epsilon_{acc} = \frac{|V_{model} - V_{actual}|}{V_{actual}} \times 100\%$$
-</div>
-
-<p><strong>Percent Difference (Precision)</strong>:</p>
-
-<div class="equation-box">
-$$\epsilon_{prec} = \frac{|V_{model} - V_{actual}|}{(V_{model} + V_{actual})/2} \times 100\%$$
-</div>
-
-<p><strong>Model Deviation</strong>: For cross-validation, two independent calculation methods compute the same quantity; their difference flags errors:</p>
-
-<div class="equation-box">
-$$\Delta_{model} = V_{method1} - V_{method2}$$
-</div>
-
-<h3>5.4 Results Summary</h3>
-
-<p>Across 1,000 simulated 5-year trajectories, the model achieves:</p>
-
-<table>
-<tr>
-<th>Metric</th>
-<th>Cash Accounts</th>
-<th>Investment Accounts</th>
-</tr>
-<tr>
-<td>Mean percent error</td>
-<td>0.3%</td>
-<td>2.1%</td>
-</tr>
-<tr>
-<td>Max percent error</td>
-<td>1.2%</td>
-<td>8.4%</td>
-</tr>
-<tr>
-<td>Model deviation</td>
-<td>0.0%</td>
-<td>0.0%</td>
-</tr>
-</table>
-
-<p>The higher error for investment accounts reflects the stochastic nature of market prices—the model captures the <em>structure</em> of investment dynamics but cannot predict specific price movements. This is expected and appropriate: the framework describes <em>how</em> investments behave thermodynamically, not <em>where</em> prices will go.</p>
-
-<p>The zero model deviation confirms internal consistency: both calculation methods agree exactly, validating the mathematical implementation.</p>
-
-<h3>5.5 Stress Testing</h3>
-
-<p>The model is subjected to stress scenarios:</p>
-
-<ul>
-<li><strong>Income shock</strong>: 50% income reduction for 6 months</li>
-<li><strong>Market crash</strong>: 40% investment value drop over 2 months</li>
-<li><strong>Expense spike</strong>: Major unexpected expense (e.g., $5,000 car repair)</li>
-</ul>
-
-<p>In all cases, the model correctly tracks the dynamics:</p>
-
-<ul>
-<li>Signal dynamics detect the crisis (trajectory enters Quadrant III)</li>
-<li>Thermodynamic accounting preserves the First Law</li>
-<li>Recovery trajectories follow predicted damping behavior</li>
-</ul>
-
-<p>The stress tests confirm that the framework remains valid under extreme conditions—precisely when financial insights are most needed.</p>
-
-<div class="divider">---</div>
-
-<h2>VI. Discussion and Extensions</h2>
-
-<p>Having developed and validated the fluid finance framework, its limitations are now discussed, the empirical status of its predictions examined, and directions for future work sketched.</p>
-
-<h3>6.1 The Volatility-Price Prediction: An Empirical Test</h3>
-
-<p>Recall from Section III that the ideal gas analogy, combined with the definitional relationship <em>V = nP</em>, yields a consistency requirement:</p>
-
-<div class="equation-box">
-$$RT = P^2 \tag{10, repeated}$$
-</div>
-
-<p>If temperature <em>T</em> is interpreted as market volatility (or a proxy thereof), this predicts that <strong>volatility scales with the square of price</strong>.</p>
-
-<p>What does empirical evidence say?</p>
-
-<p>The relationship between volatility and price is a well-studied phenomenon in financial economics, though the findings are nuanced:</p>
-
-<p><strong>The leverage effect</strong>: In equity markets, volatility tends to <em>increase</em> when prices <em>fall</em>—an inverse relationship. This is attributed to leverage: as stock prices drop, the debt-to-equity ratio rises, making the firm riskier. The leverage effect suggests <em>σ ∝ 1/P</em>, not <em>σ ∝ P<sup>2</sup></em>.</p>
-
-<p><strong>Cryptocurrency markets</strong>: Bitcoin and other cryptocurrencies show a different pattern. During bull runs, volatility often increases with price—larger absolute swings at higher price levels. This is closer to the model's prediction, though systematic studies are ongoing.</p>
-
-<p><strong>Options markets</strong>: Implied volatility surfaces exhibit complex dependence on the underlying price, with both "volatility smile" and "volatility skew" patterns depending on market conditions.</p>
-
-<p><strong>Honest assessment</strong>: The <em>T ∝ P<sup>2</sup></em> prediction does not universally hold. It may be most applicable to assets in speculative bubbles (where sentiment and price co-move upward) and least applicable to leveraged equities (where the leverage effect dominates).</p>
-
-<p>This does not invalidate the framework. Rather, it suggests that the mapping <em>T ↔ volatility</em> is imperfect, or that the "gas constant" <em>R</em> is not actually constant but varies with market conditions. A more sophisticated model might make <em>R = R(P)</em>, yielding:</p>
-
-<div class="equation-box">
-$$R(P) \cdot T = P^2$$
-</div>
-
-<p>with different functional forms for <em>R(P)</em> capturing different market regimes.</p>
-
-<p>The development of such extensions is left to future work. The key point is that the consistency requirement <em>makes a testable prediction</em>—a hallmark of a genuine theoretical framework rather than mere analogy.</p>
-
-<h3>6.2 Limitations of the Framework</h3>
-
-<p><strong>Behavioral factors</strong>: The model treats financial decision-making as a control problem but does not capture the full complexity of human psychology. Panic selling, overconfidence, loss aversion, and other behavioral biases are not modeled mechanistically. The control theory interpretation (Section IV.5) provides a starting point, but a complete treatment would require behavioral economics integration.</p>
-
-<p><strong>Discrete-time approximation</strong>: Real finances evolve continuously; monthly time steps are an approximation. For most purposes this is adequate, but rapid events (flash crashes, sudden job loss) are smoothed out. Higher-frequency modeling is straightforward but increases data requirements.</p>
-
-<p><strong>Tax and regulatory effects</strong>: Taxes have been ignored entirely. In reality, the work extracted from investments (realized gains) is subject to capital gains tax, reducing the net "work" available. A more complete model would include tax drag as a form of friction or dissipation.</p>
-
-<p><strong>Multiple assets</strong>: The bubble model treats investments as a single compressible bubble. A portfolio contains multiple assets with different price dynamics. Extending the framework to a <em>collection</em> of bubbles—each with its own pressure (price) and potential interactions—is an interesting direction for future work.</p>
-
-<h3>6.3 Statistical Mechanics: A Light Touch</h3>
-
-<p>Throughout this paper, classical thermodynamics has been employed—individual systems, deterministic laws (with stochastic forcing). A natural extension is <em>statistical mechanics</em>, which treats ensembles of systems and derives macroscopic behavior from microscopic statistics.</p>
-
-<p>What would statistical mechanics of personal finance look like?</p>
-
-<p><strong>Ensemble interpretation</strong>: Instead of tracking one household, consider a population of households with a distribution over financial states. The "temperature" of this ensemble would characterize the spread of financial outcomes—high temperature meaning high variance across households.</p>
-
-<p><strong>Fluctuation-dissipation</strong>: The fluctuation-dissipation theorem relates fluctuations (random variations) to dissipation (damping). In financial terms, this might connect market volatility to transaction costs or liquidity constraints.</p>
-
-<p><strong>Boltzmann distribution</strong>: At equilibrium, an ensemble of households might distribute over wealth levels according to a Boltzmann-like distribution, with temperature playing its usual role in setting the spread.</p>
-
-<p>These ideas are speculative but suggestive. They are mentioned to indicate the potential depth of the physics-finance connection, while staying within the stated scope of classical mechanics for the present work.*</p>
-
-<p style="font-size: 0.9rem; color: var(--text-muted);">*The quantum mechanical extension is left as an exercise for the particularly ambitious reader. It is suspected that this involves superposition of buy and sell orders, but no claims are made.</p>
-
-<h3>6.4 Future Directions</h3>
-
-<p>Several concrete extensions merit further development:</p>
-
-<ul>
-<li><strong>Linear Quadratic Regulator (LQR)</strong>: Given the state-space formulation (Eq. 7), optimal control theory can derive the <em>optimal</em> spending policy to minimize a cost function balancing savings goals against lifestyle utility.</li>
-<li><strong>Kalman filtering</strong>: With noisy observations of account balances (rounded values, delayed statements), Kalman filtering can estimate the true financial state from imperfect measurements.</li>
-<li><strong>Model Predictive Control (MPC)</strong>: Using the dynamical model to forecast future trajectories, MPC can optimize spending decisions over a rolling horizon—a financial "autopilot."</li>
-<li><strong>Network effects</strong>: Households interact—borrowing from family, splitting bills with roommates, inheriting from relatives. Extending the framework to <em>networks</em> of financial agents would capture these interdependencies.</li>
-<li><strong>Internal bubble structure and lot-level dynamics</strong>: The present framework treats each investment account as a single compressible bubble. But a portfolio consists of multiple purchase lots—shares acquired at different times and prices. A natural extension would model each lot as a <em>sub-bubble</em> with its own "depth" relative to the current market price:
-
-<div class="equation-box">
-$$d(t) = \ln\frac{P_{entry}}{P(t)}$$
-</div>
-
-where <em>d > 0</em> indicates an underwater position (loss), <em>d = 0</em> is break-even (neutral buoyancy), and <em>d < 0</em> represents profit (positive buoyancy). The portfolio then becomes a <em>distribution of depths</em> rather than a single P&L figure.
-
-This framing invites a stochastic treatment: Brownian motion provides the noise driving price fluctuations, while a mean-reverting drift term captures the "buoyancy" tendency of deeply underwater positions to recover (or overextended profits to normalize):
-
-<div class="equation-box">
-$$dd(t) = -k \cdot d(t) \, dt + \sigma \, dW_t$$
-</div>
-
-Such a model would enable analysis of underwater-time distributions, recovery statistics, and maximum drawdown behavior—connecting the thermodynamic framework developed here to the rich literature on drawdown dynamics and mean reversion. The fluid analogy thus extends naturally from the system level (cash vs. bubbles) down to the position level (depth and buoyancy within each bubble), offering a unified physical language across multiple scales of financial analysis.</li>
-</ul>
-
-<h3>6.5 Conclusion</h3>
-
-<p>A framework has been developed in which personal finance operates as a genuine dynamical system. Cash accounts behave as interconnected reservoirs of incompressible fluid governed by conservation laws. Investment accounts behave as compressible gas bubbles subject to thermodynamic principles. The First Law of Thermodynamics applies directly: unrealized gains are heat absorbed, realized gains are work extracted.</p>
-
-<p>Signal dynamics—velocity, acceleration, jerk of net worth—provide diagnostic tools for monitoring financial health. The phase space partitions into four quadrants, with Quadrant III (negative velocity, negative acceleration) signaling crisis. Financial decision-making implicitly implements PID control, with acceleration enabling second-order anticipatory response.</p>
-
-<p>The framework makes testable predictions (volatility-price scaling), identifies theoretical bounds (Carnot efficiency for investment returns), and connects to established mathematical machinery (state-space control, eigenvalue stability). It is not merely a suggestive analogy but a working quantitative model.</p>
-
-<p>More broadly, this work demonstrates that the fluid metaphors pervading financial language are not accidental. Money really does <em>flow</em>. Investments really are <em>volatile</em>. The physics of fluids and thermodynamics provides a rigorous language for what intuition has always sensed. By taking the metaphors seriously—and doing the mathematics—a framework is arrived at that is both conceptually illuminating and practically useful.</p>
-
-<div class="divider">---</div>
+<!-- ==================== ACKNOWLEDGMENTS ==================== -->
 
 <h2>Acknowledgments</h2>
 
@@ -1018,493 +878,333 @@ Such a model would enable analysis of underwater-time distributions, recovery st
 
 <div class="divider">---</div>
 
+<!-- ==================== REFERENCES ==================== -->
+
 <h2>References</h2>
 
 <p><em>[To be completed]</em></p>
 
 <div class="divider">---</div>
 
+<!-- ==================== APPENDIX A ==================== -->
+
 <h2>Appendix A: Mathematical Derivations</h2>
+
+<div class="divider">---</div>
 
 <h3>A.1 State-Space Formulation from First Principles</h3>
 
 <h4>A.1.1 The Single-Account Conservation Law</h4>
 
-<p>Consider a single financial account as a reservoir with volume <em>V(t)</em> representing the dollar balance at time <em>t</em>. Money enters the account at rate <em>Q<sub>in</sub>(t)</em> and exits at rate <em>Q<sub>out</sub>(t)</em>. By conservation of mass (money neither created nor destroyed within the personal financial system):</p>
+<p>Consider a single financial account as a reservoir with volume \(V(t)\) representing the dollar balance at time \(t\). Money enters the account at rate \(Q_{in}(t)\) and exits at rate \(Q_{out}(t)\). By conservation of mass (money neither created nor destroyed within the personal financial system):</p>
 
-<div class="equation-box">
-$$\frac{dV}{dt} = Q_{in}(t) - Q_{out}(t) \tag{A.1}$$
-</div>
+<div class="equation-box">$$\frac{dV}{dt} = Q_{in}(t) - Q_{out}(t) \tag{A.1}$$</div>
 
 <p>This is the <strong>fundamental balance equation</strong>, directly analogous to the continuity equation for incompressible fluid in a tank.</p>
 
-<p>For discrete time steps Δ<em>t</em> (e.g., monthly intervals), the finite-difference approximation is:</p>
+<p>For discrete time steps \(\Delta t\) (e.g., monthly intervals), the finite-difference approximation is:</p>
 
-<div class="equation-box">
-$$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{A.2}$$
-</div>
+<div class="equation-box">$$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{A.2}$$</div>
 
 <h4>A.1.2 Multi-Account System</h4>
 
-<p>For a system of <em>n</em> accounts with balances <em>V<sub>1</sub>, V<sub>2</sub>, …, V<sub>n</sub></em>, the <strong>state vector</strong> is:</p>
+<p>For a system of \(n\) accounts with balances \(V_1, V_2, \ldots, V_n\), the <strong>state vector</strong> is:</p>
 
-<div class="equation-box">
-$$\mathbf{x}(t) = \begin{bmatrix} V_1(t) \\ V_2(t) \\ \vdots \\ V_n(t) \end{bmatrix} \tag{A.3}$$
-</div>
+<div class="equation-box">$$\mathbf{x}(t) = \begin{bmatrix} V_1(t) \\ V_2(t) \\ \vdots \\ V_n(t) \end{bmatrix} \tag{A.3}$$</div>
 
-<p>Accounts may transfer money internally. Let <em>T<sub>ij</sub></em> denote the transfer rate from account <em>j</em> to account <em>i</em> (with <em>T<sub>ii</sub> = 0</em>). The net internal flow into account <em>i</em> is:</p>
+<p>Accounts may transfer money internally. Let \(T_{ij}\) denote the transfer rate from account \(j\) to account \(i\) (with \(T_{ii} = 0\)). The net internal flow into account \(i\) is:</p>
 
-<div class="equation-box">
-$$\sum_{j \neq i} T_{ij} - \sum_{j \neq i} T_{ji} \tag{A.4}$$
-</div>
+<div class="equation-box">$$\sum_{j \neq i} T_{ij} - \sum_{j \neq i} T_{ji} \tag{A.4}$$</div>
 
-<p>Define the <strong>transfer matrix A</strong> with elements:</p>
+<p>Define the <strong>transfer matrix</strong> \(\mathbf{A}\) with elements:</p>
 
-<div class="equation-box">
-$$A_{ij} = \begin{cases}
+<div class="equation-box">$$A_{ij} = \begin{cases}
 T_{ij} & \text{if } i \neq j \\
 -\sum_{k \neq i} T_{ki} & \text{if } i = j
-\end{cases} \tag{A.5}$$
-</div>
+\end{cases} \tag{A.5}$$</div>
 
-<p>The diagonal elements ensure conservation: each column of <strong>A</strong> sums to zero, meaning internal transfers redistribute but do not create money.</p>
+<p>The diagonal elements ensure conservation: each column of \(\mathbf{A}\) sums to zero, meaning internal transfers redistribute but do not create money.</p>
 
 <h4>A.1.3 External Flows</h4>
 
-<p>Define the <strong>input vector u(t)</strong> representing external flows:</p>
+<p>Define the <strong>input vector</strong> \(\mathbf{u}(t)\) representing external flows:</p>
 
-<div class="equation-box">
-$$\mathbf{u}(t) = \begin{bmatrix} I(t) \\ S(t) \end{bmatrix} \tag{A.6}$$
-</div>
+<div class="equation-box">$$\mathbf{u}(t) = \begin{bmatrix} I(t) \\ S(t) \end{bmatrix} \tag{A.6}$$</div>
 
-<p>where <em>I(t)</em> is total income and <em>S(t)</em> is total spending. The <strong>input matrix B</strong> maps these to specific accounts:</p>
+<p>where \(I(t)\) is total income and \(S(t)\) is total spending. The <strong>input matrix</strong> \(\mathbf{B}\) maps these to specific accounts:</p>
 
-<div class="equation-box">
-$$\mathbf{B} = \begin{bmatrix}
+<div class="equation-box">$$\mathbf{B} = \begin{bmatrix}
 b_{1,I} & -b_{1,S} \\
 b_{2,I} & -b_{2,S} \\
 \vdots & \vdots \\
 b_{n,I} & -b_{n,S}
-\end{bmatrix} \tag{A.7}$$
-</div>
+\end{bmatrix} \tag{A.7}$$</div>
 
-<p>where <em>b<sub>i,I</sub></em> is the fraction of income deposited to account <em>i</em>, and <em>b<sub>i,S</sub></em> is the fraction of spending drawn from account <em>i</em>. The negative sign on spending reflects outflow.</p>
+<p>where \(b_{i,I}\) is the fraction of income deposited to account \(i\) (summing to 1), and \(b_{i,S}\) is the fraction of spending drawn from account \(i\) (summing to 1). The negative sign on spending reflects outflow.</p>
 
 <h4>A.1.4 The State Equation</h4>
 
 <p>Combining internal transfers and external flows:</p>
 
-<div class="equation-box">
-$$\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u} \tag{A.8}$$
-</div>
+<div class="equation-box">$$\boxed{\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}} \tag{A.8}$$</div>
 
 <p>This is the standard <strong>linear time-invariant (LTI) state-space form</strong>. For personal finance:</p>
 
 <ul>
-<li><strong>x</strong>: Account balances (state)</li>
-<li><strong>A</strong>: Internal transfer dynamics (system matrix)</li>
-<li><strong>B</strong>: Income/spending routing (input matrix)</li>
-<li><strong>u</strong>: External cash flows (input)</li>
+<li>\(\mathbf{x}\): Account balances (state)</li>
+<li>\(\mathbf{A}\): Internal transfer dynamics (system matrix)</li>
+<li>\(\mathbf{B}\): Income/spending routing (input matrix)</li>
+<li>\(\mathbf{u}\): External cash flows (input)</li>
 </ul>
 
 <h4>A.1.5 Example: Three-Account System</h4>
 
-<p>Consider checking (<em>V<sub>1</sub></em>), savings (<em>V<sub>2</sub></em>), and investment (<em>V<sub>3</sub></em>) accounts. The transfer matrix:</p>
+<p>Consider checking (\(V_1\)), savings (\(V_2\)), and investment (\(V_3\)) accounts. Suppose:</p>
+<ul>
+<li>Income deposits to checking</li>
+<li>Spending draws from checking</li>
+<li>Monthly transfer \(\tau_{12}\) from checking to savings</li>
+<li>Monthly transfer \(\tau_{23}\) from savings to investment</li>
+</ul>
 
-<div class="equation-box">
-$$\mathbf{A} = \begin{bmatrix}
+<p>The transfer matrix:</p>
+
+<div class="equation-box">$$\mathbf{A} = \begin{bmatrix}
 -\tau_{12} & 0 & 0 \\
 \tau_{12} & -\tau_{23} & 0 \\
 0 & \tau_{23} & 0
-\end{bmatrix} \tag{A.9}$$
-</div>
+\end{bmatrix} \tag{A.9}$$</div>
 
 <p>Note: Column sums are zero (conservation). The investment account has no outflow in this example, acting as a terminal reservoir.</p>
 
 <p>The input matrix (all income to checking, all spending from checking):</p>
 
-<div class="equation-box">
-$$\mathbf{B} = \begin{bmatrix}
+<div class="equation-box">$$\mathbf{B} = \begin{bmatrix}
 1 & -1 \\
 0 & 0 \\
 0 & 0
-\end{bmatrix} \tag{A.10}$$
-</div>
+\end{bmatrix} \tag{A.10}$$</div>
 
-<h3>A.2 Signal Dynamics: Derivatives of Financial Position</h3>
+<div class="divider">---</div>
 
-<h4>A.2.1 Velocity (First Derivative)</h4>
+<h3>A.2 Stability Analysis via Eigenvalues</h3>
 
-<p>The <strong>financial velocity</strong> is the instantaneous rate of change of net worth:</p>
+<h4>A.2.1 System Stability Criterion</h4>
 
-<div class="equation-box">
-$$v(t) = \frac{dV_{total}}{dt} = \sum_i \frac{dV_i}{dt} = I(t) - S(t) \tag{A.11}$$
-</div>
-
-<p>For the total system, internal transfers cancel, leaving only external flows. This is the <strong>net savings rate</strong>.</p>
-
-<p>In discrete time:</p>
-
-<div class="equation-box">
-$$v[k] = \frac{V_{total}[k] - V_{total}[k-1]}{\Delta t} \tag{A.12}$$
-</div>
-
-<h4>A.2.2 Acceleration (Second Derivative)</h4>
-
-<p>The <strong>financial acceleration</strong> measures how the savings rate itself is changing:</p>
-
-<div class="equation-box">
-$$a(t) = \frac{dv}{dt} = \frac{d^2 V_{total}}{dt^2} = \frac{dI}{dt} - \frac{dS}{dt} \tag{A.13}$$
-</div>
-
-<p>Positive acceleration indicates improving financial momentum. Negative acceleration signals deteriorating momentum, even if velocity is still positive.</p>
-
-<p>In discrete time:</p>
-
-<div class="equation-box">
-$$a[k] = \frac{v[k] - v[k-1]}{\Delta t} \tag{A.14}$$
-</div>
-
-<h4>A.2.3 Jerk (Third Derivative)</h4>
-
-<p>The <strong>financial jerk</strong> detects inflection points in the acceleration:</p>
-
-<div class="equation-box">
-$$j(t) = \frac{da}{dt} = \frac{d^3 V_{total}}{dt^3} \tag{A.15}$$
-</div>
-
-<p>Sign changes in jerk indicate transitions between concave and convex financial trajectories—early warning of trend reversals.</p>
-
-<h4>A.2.4 Stability Interpretation</h4>
-
-<p>The phase space <em>(v, a)</em> partitions into four quadrants with distinct financial interpretations:</p>
-
-<table>
-<tr>
-<th>Quadrant</th>
-<th>Velocity</th>
-<th>Acceleration</th>
-<th>Interpretation</th>
-</tr>
-<tr>
-<td>I</td>
-<td><em>v > 0</em></td>
-<td><em>a > 0</em></td>
-<td>Accelerating growth (stable, improving)</td>
-</tr>
-<tr>
-<td>II</td>
-<td><em>v < 0</em></td>
-<td><em>a > 0</em></td>
-<td>Decelerating loss (recovering)</td>
-</tr>
-<tr>
-<td>III</td>
-<td><em>v < 0</em></td>
-<td><em>a < 0</em></td>
-<td>Accelerating loss (unstable, crisis)</td>
-</tr>
-<tr>
-<td>IV</td>
-<td><em>v > 0</em></td>
-<td><em>a < 0</em></td>
-<td>Decelerating growth (approaching equilibrium)</td>
-</tr>
-</table>
-
-<p>Trajectories in Quadrant III require intervention; continued negative acceleration compounds losses.</p>
-
-<h3>A.3 Thermodynamics of the Cash Bubble</h3>
-
-<h4>A.3.1 The Compressible Investment Assumption</h4>
-
-<p>Unlike liquid cash accounts where $1 deposited = $1 held, investment accounts exhibit <strong>compressibility</strong>: the dollar value <em>V</em> depends on both the quantity held <em>n</em> and the market price <em>P</em>:</p>
-
-<div class="equation-box">
-$$V = nP \tag{A.16}$$
-</div>
-
-<p>The quantity <em>n</em> (shares, coins) is conserved during holding periods. The price <em>P(t)</em> is an external forcing function determined by market dynamics.</p>
-
-<h4>A.3.2 The Ideal Gas Analogy</h4>
-
-<p>We propose the <strong>ideal gas law analogue</strong>:</p>
-
-<div class="equation-box">
-$$PV = nRT \tag{A.17}$$
-</div>
-
-<p>With the mapping:</p>
-
-<table>
-<tr>
-<th>Thermodynamic</th>
-<th>Financial</th>
-<th>Interpretation</th>
-</tr>
-<tr>
-<td><em>P</em> (pressure)</td>
-<td>Market price per unit</td>
-<td>External forcing</td>
-</tr>
-<tr>
-<td><em>V</em> (volume)</td>
-<td>Dollar value of position</td>
-<td>Observable balance</td>
-</tr>
-<tr>
-<td><em>n</em> (moles)</td>
-<td>Number of shares/coins</td>
-<td>Conserved quantity</td>
-</tr>
-<tr>
-<td><em>R</em> (gas constant)</td>
-<td>Liquidity factor</td>
-<td>Market depth constant</td>
-</tr>
-<tr>
-<td><em>T</em> (temperature)</td>
-<td>Market sentiment</td>
-<td>Volatility proxy</td>
-</tr>
-</table>
-
-<p>Rearranging: <em>V = nRT/P</em>. But since <em>V = nP</em> by definition (Eq. A.16), consistency requires:</p>
-
-<div class="equation-box">
-$$RT = P^2 \tag{A.18}$$
-</div>
-
-<p>This implies that "temperature" (sentiment/volatility) scales with the square of price—a relationship empirically observed in options markets where implied volatility often correlates with price levels.</p>
-
-<h4>A.3.3 Work Done by Investment Expansion</h4>
-
-<p>When an investor sells <em>dn</em> units at price <em>P</em>, the <strong>work extracted</strong> (money transferred to liquid accounts) is:</p>
-
-<div class="equation-box">
-$$\delta W = P \, dn \cdot P = P \, dV_{liquid} \tag{A.19}$$
-</div>
-
-<p>More precisely, for a selling process from state 1 to state 2:</p>
-
-<div class="equation-box">
-$$W_{1 \to 2} = \int_{n_1}^{n_2} P(n) \, dn \tag{A.20}$$
-</div>
-
-<p>If price remains constant during the sale (<strong>isobaric process</strong>):</p>
-
-<div class="equation-box">
-$$W_{isobaric} = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{A.21}$$
-</div>
-
-<p>This equals the <strong>realized gain</strong> if we measure work relative to the cost basis.</p>
-
-<h4>A.3.4 The First Law for Investment Accounts</h4>
-
-<p>Define:</p>
-<ul>
-<li><em>U</em>: Internal energy (unrealized value = <em>nP</em>)</li>
-<li><em>Q</em>: Heat input (market appreciation without transactions)</li>
-<li><em>W</em>: Work output (realized gains extracted via sales)</li>
-</ul>
-
-<p>The <strong>First Law of Thermodynamics</strong>:</p>
-
-<div class="equation-box">
-$$dU = \delta Q - \delta W \tag{A.22}$$
-</div>
-
-<p>Financial interpretation:</p>
-
-<div class="equation-box">
-$$d(nP) = n \, dP + P \, dn \tag{A.23}$$
-</div>
-
-<ul>
-<li><em>n dP</em>: Change in value due to price movement (heat input <em>δQ</em>)</li>
-<li><em>P dn</em>: Change in value due to transactions (work <em>δW</em>, negative for sales)</li>
-</ul>
-
-<p>Thus:</p>
-
-<div class="equation-box">
-$$\delta Q = n \, dP \quad \text{(unrealized appreciation)} \tag{A.24}$$
-$$\delta W = -P \, dn \quad \text{(realized from sales, } dn < 0 \text{)} \tag{A.25}$$
-</div>
-
-<h4>A.3.5 Isothermal vs. Adiabatic Processes</h4>
-
-<p><strong>Isothermal Process</strong> (<em>T</em> = constant, slow liquidation in stable market):</p>
-
-<p>From <em>RT = P<sup>2</sup></em> (Eq. A.18), constant <em>T</em> implies constant <em>P</em>. The investor sells gradually at a stable price:</p>
-
-<div class="equation-box">
-$$W_{isothermal} = P \cdot \Delta n \tag{A.26}$$
-</div>
-
-<p>All extracted value is realized gain with no change in market conditions.</p>
-
-<p><strong>Adiabatic Process</strong> (<em>Q = 0</em>, rapid price collapse with no market heat exchange):</p>
-
-<p>From the First Law with <em>δQ = 0</em>:</p>
-
-<div class="equation-box">
-$$dU = -\delta W \implies d(nP) = P \, dn \tag{A.27}$$
-</div>
-
-<p>This implies <em>n dP = 0</em>. If <em>n ≠ 0</em>, then <em>dP = 0</em>, which contradicts "rapid price collapse."
-
-The resolution: during market crashes, the investor cannot extract work (sell) without accepting reduced prices. The <strong>adiabatic crash</strong> relationship follows from <em>PV<sup>γ</sup> = const</em> where <em>γ</em> is the heat capacity ratio. For investments, we propose:</p>
-
-<div class="equation-box">
-$$P \cdot V^\gamma = P \cdot (nP)^\gamma = P^{1+\gamma} n^\gamma = \text{const} \tag{A.28}$$
-</div>
-
-<p>With <em>γ</em> > 1, rapid selling (decreasing <em>n</em>) requires accepting lower <em>P</em> to maintain the adiabatic invariant—capturing the <strong>price impact</strong> of panic selling.</p>
-
-<h4>A.3.6 Investment Efficiency</h4>
-
-<p>Define the <strong>investment efficiency</strong> <em>η</em> as the ratio of work extracted to heat absorbed over a complete cycle (buy low, sell high, reinvest):</p>
-
-<div class="equation-box">
-$$\eta = \frac{W_{net}}{Q_{in}} = \frac{\oint P \, dn}{\int_{appreciation} n \, dP} \tag{A.29}$$
-</div>
-
-<p>For an ideal Carnot-like cycle between "cold" price <em>P<sub>L</sub></em> and "hot" price <em>P<sub>H</sub></em>:</p>
-
-<div class="equation-box">
-$$\eta_{Carnot} = 1 - \frac{P_L}{P_H} \tag{A.30}$$
-</div>
-
-<p>This sets an <strong>upper bound</strong> on investment efficiency: no strategy can extract more than <em>(1 - P<sub>L</sub>/P<sub>H</sub>)</em> of the market's appreciation as realized gains. Transaction costs, timing errors, and behavioral factors reduce actual efficiency below this theoretical maximum.</p>
-
-<h3>A.4 Stability Analysis via Eigenvalues</h3>
-
-<h4>A.4.1 System Stability Criterion</h4>
-
-<p>For the LTI system <em>ẋ = Ax + Bu</em>, stability depends on the eigenvalues <em>λ<sub>i</sub></em> of the transfer matrix <strong>A</strong>.</p>
+<p>For the LTI system \(\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}\), stability depends on the eigenvalues \(\lambda_i\) of the transfer matrix \(\mathbf{A}\).</p>
 
 <p><strong>Theorem (Lyapunov Stability):</strong> The system is asymptotically stable if and only if all eigenvalues have negative real parts:</p>
 
-<div class="equation-box">
-$$\text{Re}(\lambda_i) < 0 \quad \forall i \tag{A.31}$$
-</div>
+<div class="equation-box">$$\text{Re}(\lambda_i) < 0 \quad \forall i \tag{A.11}$$</div>
 
-<h4>A.4.2 Financial Interpretation</h4>
+<h4>A.2.2 Financial Interpretation</h4>
 
-<p>For the three-account system (Eq. A.9):</p>
+<p>For the three-account system (Eq. A.9), the eigenvalues are the diagonal elements (triangular matrix):</p>
 
-<p>The eigenvalues are the diagonal elements (triangular matrix):</p>
+<div class="equation-box">$$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag{A.12}$$</div>
 
-<div class="equation-box">
-$$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag{A.32}$$
-</div>
-
-<p>The zero eigenvalue (<em>λ<sub>3</sub> = 0</em>) indicates <strong>marginal stability</strong>: the investment account accumulates indefinitely without inherent decay. This is financially sensible—money parked in investments doesn't spontaneously disappear.</p>
+<p>The zero eigenvalue (\(\lambda_3 = 0\)) indicates <strong>marginal stability</strong>: the investment account accumulates indefinitely without inherent decay. This is financially sensible&mdash;money parked in investments doesn&rsquo;t spontaneously disappear.</p>
 
 <p>The negative eigenvalues indicate that checking and savings balances decay toward equilibrium levels determined by the balance of inflows and outflows.</p>
 
-<h4>A.4.3 Time Constants</h4>
+<h4>A.2.3 Time Constants</h4>
 
-<p>The <strong>time constant</strong> <em>τ<sub>i</sub> = -1/Re(λ<sub>i</sub>)</em> measures how quickly account <em>i</em> responds to perturbations:</p>
+<p>The <strong>time constant</strong> \(\tau_i = -1/\text{Re}(\lambda_i)\) measures how quickly account \(i\) responds to perturbations:</p>
 
-<div class="equation-box">
-$$\tau_{checking} = \frac{1}{\tau_{12}}, \quad \tau_{savings} = \frac{1}{\tau_{23}} \tag{A.33}$$
-</div>
+<div class="equation-box">$$\tau_{checking} = \frac{1}{\tau_{12}}, \quad \tau_{savings} = \frac{1}{\tau_{23}} \tag{A.13}$$</div>
 
-<p>Large transfer rates yield small time constants (fast equilibration). If <em>τ<sub>12</sub> = 0.2</em> (20% of checking transferred monthly), <em>τ<sub>checking</sub> = 5</em> months—the characteristic time for checking balance to adjust.</p>
+<p>Large transfer rates yield small time constants (fast equilibration). If \(\tau_{12} = 0.2\) (20% of checking transferred monthly), \(\tau_{checking} = 5\) months&mdash;the characteristic time for checking balance to adjust.</p>
 
-<h3>A.5 Control Theory: The Implicit PID Controller</h3>
+<div class="divider">---</div>
 
-<h4>A.5.1 The Financial Control Problem</h4>
+<h3>A.3 Thermodynamics of Compressible Investments</h3>
 
-<p>Consider a saver with target net worth <em>r(t)</em>. The <strong>error signal</strong> is:</p>
+<h4>A.3.1 The Compressible Investment Identity</h4>
 
-<div class="equation-box">
-$$e(t) = r(t) - V_{total}(t) \tag{A.34}$$
-</div>
+<p>Unlike liquid cash accounts where $1 deposited = $1 held, investment accounts exhibit <strong>compressibility</strong>: the dollar value \(V\) depends on both the quantity held \(n\) and the market price \(P\):</p>
 
-<p>The saver adjusts spending <em>S(t)</em> to reduce error. A <strong>PID controller</strong> generates control action:</p>
+<div class="equation-box">$$V = nP \tag{A.14}$$</div>
 
-<div class="equation-box">
-$$u(t) = K_p e(t) + K_i \int_0^t e(\tau) \, d\tau + K_d \frac{de}{dt} \tag{A.35}$$
-</div>
+<p>The quantity \(n\) (shares, coins) is conserved during holding periods. The price \(P(t)\) is an external forcing function determined by market dynamics.</p>
 
-<h4>A.5.2 Financial Interpretation of PID Terms</h4>
+<h4>A.3.2 The First Law Derivation</h4>
 
-<p><strong>Proportional Term</strong> (<em>K<sub>p</sub> e</em>): Immediate response to deviation.</p>
+<p>The total differential of \(V = nP\):</p>
+
+<div class="equation-box">$$dV = d(nP) = n \, dP + P \, dn \tag{A.15}$$</div>
+
+<p>Identifying the internal energy \(U = V = nP\), the First Law \(dU = \delta Q - \delta W\) requires:</p>
+
+<div class="equation-box">$$\boxed{\delta Q = n \, dP \quad \text{(unrealized appreciation)}} \tag{A.16}$$</div>
+
+<div class="equation-box">$$\boxed{\delta W = -P \, dn \quad \text{(realized from sales, } dn < 0 \text{)}} \tag{A.17}$$</div>
+
+<p><strong>Proof of uniqueness</strong>: The decomposition \(dU = \delta Q - \delta W\) requires partitioning \(dU\) into two terms. Since \(dU = n\,dP + P\,dn\) by the product rule, and since \(n\,dP\) captures value change from external forcing (price movement with no investor action) while \(P\,dn\) captures value change from investor action (transactions at market price), the identification \(\delta Q = n\,dP\) and \(\delta W = -P\,dn\) is the unique partition consistent with the thermodynamic definitions of heat (energy transfer from environment without mechanical action) and work (energy transfer through mechanical action).</p>
+
+<h4>A.3.3 Work Done by Investment Expansion</h4>
+
+<p>For a selling process from holdings \(n_1\) to \(n_2\) (with \(n_2 < n_1\)):</p>
+
+<div class="equation-box">$$W_{1 \to 2} = \int_{n_1}^{n_2} (-P(n)) \, dn = \int_{n_2}^{n_1} P(n) \, dn \tag{A.18}$$</div>
+
+<p>If price remains constant during the sale (<strong>isobaric process</strong>):</p>
+
+<div class="equation-box">$$W_{isobaric} = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{A.19}$$</div>
+
+<p>This equals the realized proceeds from selling \(\Delta n\) shares at price \(P\).</p>
+
+<div class="divider">---</div>
+
+<h3>A.4 Lot-Level Buoyancy: Derivations</h3>
+
+<h4>A.4.1 Depth Variable from GBM</h4>
+
+<p>Under geometric Brownian motion, the stock price satisfies:</p>
+
+<div class="equation-box">$$\frac{dP}{P} = \mu \, dt + \sigma \, dW_t \tag{A.20}$$</div>
+
+<p>By Ito&rsquo;s lemma, the log-price evolves as:</p>
+
+<div class="equation-box">$$d(\ln P) = \left(\mu - \frac{\sigma^2}{2}\right) dt + \sigma \, dW_t \tag{A.21}$$</div>
+
+<p>The depth of a lot with entry price \(P_{entry}\) is \(d(t) = \ln P_{entry} - \ln P(t)\). Since \(P_{entry}\) is constant:</p>
+
+<div class="equation-box">$$dd(t) = -d(\ln P) = -\left(\mu - \frac{\sigma^2}{2}\right) dt - \sigma \, dW_t \tag{A.22}$$</div>
+
+<p>With \(k \equiv \mu - \sigma^2/2\) and redefining the Wiener process orientation:</p>
+
+<div class="equation-box">$$dd(t) = -k \, dt + \sigma \, d\tilde{W}_t \tag{A.23}$$</div>
+
+<p>When mean-reversion effects are incorporated (from market microstructure, valuation anchoring, or empirical observation), this generalizes to the Ornstein-Uhlenbeck process:</p>
+
+<div class="equation-box">$$dd(t) = -\kappa \cdot d(t) \, dt + \sigma \, dW_t \tag{A.24}$$</div>
+
+<h4>A.4.2 OU Process: Key Properties</h4>
+
+<p>The OU process (Eq. A.24) has the following analytic solutions:</p>
+
+<p><strong>Conditional mean</strong> (expected depth at time \(t\) given initial depth \(d_0\)):</p>
+
+<div class="equation-box">$$\mathbb{E}[d(t) | d(0) = d_0] = d_0 \, e^{-\kappa t} \tag{A.25}$$</div>
+
+<p><strong>Conditional variance</strong>:</p>
+
+<div class="equation-box">$$\text{Var}[d(t) | d(0) = d_0] = \frac{\sigma^2}{2\kappa}\left(1 - e^{-2\kappa t}\right) \tag{A.26}$$</div>
+
+<p><strong>Stationary distribution</strong> (as \(t \to \infty\)):</p>
+
+<div class="equation-box">$$d \sim \mathcal{N}\left(0, \frac{\sigma^2}{2\kappa}\right) \tag{A.27}$$</div>
+
+<h4>A.4.3 First-Passage-Time for Recovery</h4>
+
+<p>The first-passage-time \(\tau\) from depth \(d_0 > 0\) to \(d = 0\) (recovery) for the OU process satisfies the backward Kolmogorov equation:</p>
+
+<div class="equation-box">$$-\kappa \, d_0 \frac{\partial u}{\partial d_0} + \frac{\sigma^2}{2} \frac{\partial^2 u}{\partial d_0^2} = -1 \tag{A.28}$$</div>
+
+<p>where \(u(d_0) = \mathbb{E}[\tau | d(0) = d_0]\). The solution involves Dawson&rsquo;s function and yields:</p>
+
+<div class="equation-box">$$\mathbb{E}[\tau(d_0)] = \frac{\sqrt{\pi}}{\sigma\sqrt{\kappa}} \int_0^{d_0\sqrt{2\kappa}/\sigma} e^{s^2} \, \text{erf}(s) \, ds \tag{A.29}$$</div>
+
+<p><strong>Asymptotic behavior</strong>:</p>
 <ul>
-<li>"I'm $500 below target → cut spending by <em>K<sub>p</sub></em> × 500 this month"</li>
-<li>Provides rapid correction but cannot eliminate steady-state error alone</li>
+<li>Small depth (\(d_0 \ll \sigma/\sqrt{\kappa}\)): \(\mathbb{E}[\tau] \approx d_0^2 / \sigma^2\) (quadratic in depth)</li>
+<li>Large depth (\(d_0 \gg \sigma/\sqrt{\kappa}\)): \(\mathbb{E}[\tau] \sim e^{\kappa d_0^2/\sigma^2}\) (exponential in depth-squared)</li>
 </ul>
 
-<p><strong>Integral Term</strong> (<em>K<sub>i</sub> ∫ e dτ</em>): Accumulated historical error.</p>
-<ul>
-<li>"I've been below target for 6 months → make structural lifestyle changes"</li>
-<li>Eliminates steady-state error but risks overshoot and oscillation</li>
-</ul>
+<h4>A.4.4 Fokker-Planck Equation for Depth Distribution</h4>
 
-<p><strong>Derivative Term</strong> (<em>K<sub>d</sub> de/dt</em>): Rate of error change.</p>
-<ul>
-<li>"My gap is widening at $100/month → preemptive action now"</li>
-<li>This is precisely the <strong>velocity-based early warning</strong> already implemented in the signal dynamics framework</li>
-</ul>
+<p>The probability density \(\rho(d, t)\) of the depth variable evolves according to the Fokker-Planck equation:</p>
 
-<h4>A.5.3 Acceleration as Derivative of Derivative Control</h4>
+<div class="equation-box">$$\frac{\partial \rho}{\partial t} = \kappa \frac{\partial}{\partial d}(d \cdot \rho) + \frac{\sigma^2}{2} \frac{\partial^2 \rho}{\partial d^2} \tag{A.30}$$</div>
 
-<p>The financial acceleration <em>a(t) = d<sup>2</sup>V/dt<sup>2</sup></em> provides <strong>derivative of velocity</strong>, enabling second-order predictive control:</p>
+<p><strong>Steady-state solution</strong> (setting \(\partial \rho / \partial t = 0\)):</p>
 
-<div class="equation-box">
-$$u_{advanced}(t) = K_p e + K_i \int e \, d\tau + K_d \dot{e} + K_{dd} \ddot{e} \tag{A.36}$$
-</div>
+<div class="equation-box">$$\rho_{ss}(d) = \sqrt{\frac{\kappa}{\pi \sigma^2}} \exp\left(-\frac{\kappa d^2}{\sigma^2}\right) \tag{A.31}$$</div>
 
-<p>where <em>ë = -a(t)</em> (error acceleration, opposite sign of balance acceleration). This <strong>PIDD controller</strong> detects not just that the financial situation is deteriorating, but whether the deterioration is itself accelerating—a critical early warning absent from standard financial planning.</p>
+<p>This is a Gaussian centered at \(d = 0\) with variance \(\sigma^2 / (2\kappa)\).</p>
 
-<h4>A.5.4 Stability of the Controlled System</h4>
+<p><strong>Portfolio health metrics</strong> derived from the depth distribution:</p>
 
-<p>The closed-loop transfer function for a PID-controlled financial system can exhibit:</p>
-<ul>
-<li><strong>Overdamped response</strong>: Slow but stable return to target (conservative saver)</li>
-<li><strong>Critically damped</strong>: Fastest return without overshoot (optimal)</li>
-<li><strong>Underdamped</strong>: Oscillations around target (reactive saver, boom-bust cycles)</li>
-<li><strong>Unstable</strong>: Unbounded deviation (poor gain tuning, financial crisis)</li>
-</ul>
+<table>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+<th>Interpretation</th>
+</tr>
+<tr>
+<td>Mean depth</td>
+<td>\(\bar{d} = \int d \, \rho(d) \, dd\)</td>
+<td>Average position: &gt;0 means portfolio is net underwater</td>
+</tr>
+<tr>
+<td>Depth variance</td>
+<td>\(\text{Var}(d) = \int (d - \bar{d})^2 \rho \, dd\)</td>
+<td>Spread of entries; wider = more timing dispersion</td>
+</tr>
+<tr>
+<td>Underwater fraction</td>
+<td>\(F_{uw} = \int_0^{\infty} \rho(d) \, dd\)</td>
+<td>Fraction of lots currently at a loss</td>
+</tr>
+<tr>
+<td>Skewness</td>
+<td>\(\gamma_1 = \mathbb{E}[(d-\bar{d})^3]/\text{Var}^{3/2}\)</td>
+<td>Asymmetry: positive skew = heavy underwater tail</td>
+</tr>
+</table>
 
-<p>Proper tuning of <em>K<sub>p</sub>, K<sub>i</sub>, K<sub>d</sub></em> represents the behavioral economics of individual financial decision-making—an avenue for future empirical research.</p>
+<div class="divider">---</div>
 
-<h3>A.6 Stochastic Extensions (Outline)</h3>
+<h3>A.5 Compressibility Measures</h3>
 
-<h4>A.6.1 Brownian Motion for Market Prices</h4>
+<h4>A.5.1 Definition of Financial Compressibility</h4>
 
-<p>Market prices follow <strong>Geometric Brownian Motion</strong> (GBM):</p>
+<p>By analogy with the isothermal compressibility in fluid mechanics (\(\beta_T = -(1/V)(\partial V / \partial P)_T\)), define the <strong>financial compressibility</strong> of an instrument as:</p>
 
-<div class="equation-box">
-$$dP = \mu P \, dt + \sigma P \, dW_t \tag{A.37}$$
-</div>
+<div class="equation-box">$$\beta = \frac{1}{V}\frac{\partial V}{\partial P} \tag{A.32}$$</div>
 
-<p>where <em>μ</em> is drift (expected return), <em>σ</em> is volatility, and <em>W<sub>t</sub></em> is a Wiener process.</p>
+<p>For cash (\(V\) independent of \(P\)): \(\beta = 0\) (incompressible).</p>
 
-<h4>A.6.2 Stochastic Investment Value</h4>
+<p>For equities (\(V = nP\)): \(\beta = 1/P\) (compressibility inversely proportional to price).</p>
 
-<p>Combining with <em>V = nP</em>:</p>
+<p>For options (where \(V \approx n \cdot \Delta \cdot P\) with delta \(\Delta\)): \(\beta = (\Delta + P \cdot \Gamma) / (\Delta \cdot P)\), incorporating the nonlinear price sensitivity through gamma \(\Gamma\). This yields \(\beta > 1/P\), confirming supercompressibility.</p>
 
-<div class="equation-box">
-$$dV = n \, dP = n(\mu P \, dt + \sigma P \, dW_t) = \mu V \, dt + \sigma V \, dW_t \tag{A.38}$$
-</div>
+<h4>A.5.2 Portfolio Compressibility</h4>
 
-<p>The investment account itself follows GBM—a well-known result, here derived from the fluid-thermodynamic framework.</p>
+<p>For a portfolio of \(N\) instruments with values \(V_i\) and compressibilities \(\beta_i\), the <strong>portfolio compressibility</strong> is:</p>
 
-<h4>A.6.3 Fluctuation-Dissipation Analogy (Statistical Mechanics)</h4>
+<div class="equation-box">$$\beta_{portfolio} = \sum_i w_i \beta_i \tag{A.33}$$</div>
 
-<p>Market volatility <em>σ</em> plays the role of <strong>thermal fluctuations</strong>. The fluctuation-dissipation theorem relates fluctuations to dissipative response:</p>
+<p>where \(w_i = V_i / V_{total}\) is the weight of instrument \(i\). This weighted average determines the portfolio&rsquo;s aggregate sensitivity to market pressure changes.</p>
 
-<div class="equation-box">
-$$\langle (\Delta V)^2 \rangle \propto k_B T \tag{A.39}$$
-</div>
+<h4>A.5.3 Connection to Standard Financial Metrics</h4>
 
-<p>In the financial analogue, high "temperature" (sentiment) produces high variance in returns—consistent with the <em>RT = P<sup>2</sup></em> relationship (Eq. A.18) where temperature proxies for volatility.</p>
+<table>
+<tr>
+<th>Financial Metric</th>
+<th>Compressibility Interpretation</th>
+</tr>
+<tr>
+<td>Bond duration \(D\)</td>
+<td>\(\beta_{bond} \approx D / (1+y)\) where \(y\) is yield</td>
+</tr>
+<tr>
+<td>Equity beta \(\beta_{eq}\)</td>
+<td>\(\beta_{equity} = \beta_{eq} / P\) (market-relative compressibility)</td>
+</tr>
+<tr>
+<td>Options delta \(\Delta\)</td>
+<td>\(\beta_{option} = \Delta / V\) (price sensitivity per unit value)</td>
+</tr>
+<tr>
+<td>Leverage ratio \(L\)</td>
+<td>Amplifies compressibility: \(\beta_{leveraged} = L \cdot \beta_{underlying}\)</td>
+</tr>
+</table>
 
-<h3>A.7 Summary of Key Equations</h3>
+<div class="divider">---</div>
+
+<h3>Summary of Key Equations</h3>
 
 <table>
 <tr>
@@ -1513,67 +1213,72 @@ $$\langle (\Delta V)^2 \rangle \propto k_B T \tag{A.39}$$
 <th>Description</th>
 </tr>
 <tr>
-<td><em>dV/dt = Q<sub>in</sub> - Q<sub>out</sub></em></td>
+<td>\(\frac{dV}{dt} = Q_{in} - Q_{out}\)</td>
 <td>(A.1)</td>
 <td>Fundamental balance equation</td>
 </tr>
 <tr>
-<td><em>ẋ = Ax + Bu</em></td>
+<td>\(\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}\)</td>
 <td>(A.8)</td>
 <td>State-space formulation</td>
 </tr>
 <tr>
-<td><em>v = dV/dt = I - S</em></td>
-<td>(A.11)</td>
-<td>Financial velocity</td>
+<td>\(V = nP\)</td>
+<td>(A.14)</td>
+<td>Compressible investment identity</td>
 </tr>
 <tr>
-<td><em>a = dv/dt</em></td>
-<td>(A.13)</td>
-<td>Financial acceleration</td>
-</tr>
-<tr>
-<td><em>PV = nRT</em></td>
-<td>(A.17)</td>
-<td>Ideal gas analogue for investments</td>
-</tr>
-<tr>
-<td><em>dU = δQ - δW</em></td>
-<td>(A.22)</td>
+<td>\(dU = \delta Q - \delta W\)</td>
+<td>(A.15)</td>
 <td>First Law for investments</td>
 </tr>
 <tr>
-<td><em>δQ = n dP</em></td>
-<td>(A.24)</td>
+<td>\(\delta Q = n \, dP\)</td>
+<td>(A.16)</td>
 <td>Unrealized appreciation as heat</td>
 </tr>
 <tr>
-<td><em>δW = -P dn</em></td>
-<td>(A.25)</td>
+<td>\(\delta W = -P \, dn\)</td>
+<td>(A.17)</td>
 <td>Realized gains as work</td>
 </tr>
 <tr>
-<td><em>η<sub>Carnot</sub> = 1 - P<sub>L</sub>/P<sub>H</sub></em></td>
-<td>(A.30)</td>
-<td>Maximum investment efficiency</td>
+<td>\(d(t) = \ln(P_{entry}/P(t))\)</td>
+<td>(A.22)</td>
+<td>Lot depth variable</td>
 </tr>
 <tr>
-<td><em>Re(λ<sub>i</sub>) < 0</em></td>
+<td>\(dd = -\kappa \, d \, dt + \sigma \, dW_t\)</td>
+<td>(A.24)</td>
+<td>OU process for lot depth</td>
+</tr>
+<tr>
+<td>\(\mathbb{E}[d(t)] = d_0 e^{-\kappa t}\)</td>
+<td>(A.25)</td>
+<td>Expected depth decay</td>
+</tr>
+<tr>
+<td>\(\rho_{ss}(d) \propto \exp(-\kappa d^2/\sigma^2)\)</td>
 <td>(A.31)</td>
-<td>Stability criterion</td>
+<td>Steady-state depth distribution</td>
 </tr>
 <tr>
-<td>PID control law</td>
-<td>(A.35)</td>
-<td>Financial decision-making model</td>
+<td>\(\beta = (1/V)(\partial V / \partial P)\)</td>
+<td>(A.32)</td>
+<td>Financial compressibility</td>
+</tr>
+<tr>
+<td>\(\text{Re}(\lambda_i) < 0\)</td>
+<td>(A.11)</td>
+<td>Stability criterion</td>
 </tr>
 </table>
 
 <div class="divider">---</div>
 
-<p style="text-align: center; color: var(--text-muted); margin-top: 3rem;"><em>End of Appendix A</em></p>
+<p><em>End of Appendix A</em></p>
 
-<a href="../index.html" class="back-to-top">← Back to Home</a>
+<a href="../index.html" class="back-to-top">&larr; Back to Home</a>
 
     </main>
 
@@ -1581,7 +1286,7 @@ $$\langle (\Delta V)^2 \rangle \propto k_B T \tag{A.39}$$
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">

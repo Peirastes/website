@@ -1,91 +1,58 @@
-# The Cash Bubble Hypothesis — Project Summary
+# Thermofluidic Finance — Project Summary
 
 **Author:** Cole Prather
-**Last Updated:** February 14, 2026
-**Status:** Advanced Draft (70% toward publication-ready)
+**Last Updated:** February 16, 2026
+**Status:** Advanced Draft (v0.5 — major restructuring complete)
 
 ---
 
 ## Overview
 
-The Cash Bubble Hypothesis is an interdisciplinary research project that develops a rigorous mathematical theory of personal finance grounded in fluid mechanics, thermodynamics, and control theory. The central idea: cash accounts behave as interconnected reservoirs of **incompressible fluid** governed by conservation laws, while volatile investments (stocks, cryptocurrency) behave as **compressible gas bubbles** suspended within that fluid. This is not metaphor — the equations governing fluid flow in tanks are mathematically identical to those governing personal account dynamics.
+Thermofluidic Finance is an interdisciplinary research project that develops a rigorous mathematical theory of personal finance grounded in fluid mechanics and thermodynamics. The central ideas:
 
-The framework unifies five intellectual domains into a single coherent model:
-
-1. **Fluid Mechanics** — Conservation of mass (money); multi-tank topology; transfer matrices
-2. **Thermodynamics** — Work-energy relationships for investments; First Law applied to realized/unrealized gains
-3. **Control Theory** — Financial decision-making as implicit PID control; stability via eigenvalue analysis
-4. **Signal Processing** — Velocity, acceleration, and jerk of net worth as diagnostic indicators
-5. **Dynamical Systems** — State-space formulation; phase portraits; stability regimes
+1. **Cash accounts behave as interconnected reservoirs of incompressible fluid** governed by conservation laws, expressible in state-space form with eigenvalue stability analysis.
+2. **Volatile investments behave as compressible media** subject to thermodynamic principles. The First Law of Thermodynamics applies exactly: unrealized gains are heat absorbed ($\delta Q = n\,dP$), realized gains are work extracted ($\delta W = -P\,dn$). This decomposition is assumption-free.
+3. **A compressibility spectrum** classifies financial instruments from incompressible (cash) through highly compressible (equities) to supercompressible (derivatives).
+4. **Lot-level buoyancy dynamics** model each purchase lot's depth relative to current price as an Ornstein-Uhlenbeck process, yielding analytic results for recovery statistics, drawdown risk, and tax-loss harvesting optimization.
 
 ---
 
-## The Core Framework
+## The Three-Pillar Structure
 
-### Incompressible Cash
+### Pillar 1: Fluid Mechanics of Cash (Section II)
 
-Cash accounts (checking, savings) obey a conservation law identical to the continuity equation for fluid in a tank:
+Cash accounts obey a conservation law identical to the continuity equation for fluid in a tank:
 
 $$\frac{dV}{dt} = Q_{in}(t) - Q_{out}(t)$$
 
-One dollar is one dollar regardless of which account it occupies — the "density" of money is constant under redistribution. Multiple accounts form a network of reservoirs connected by regulated flow channels (transfers), expressible as a linear time-invariant state-space system:
+Multiple accounts form a network expressible as a linear time-invariant state-space system:
 
 $$\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$$
 
-where **x** is the vector of account balances, **A** is the internal transfer matrix (column sums zero, enforcing conservation), and **Bu** captures external flows (income, spending).
+This opens access to eigenvalue stability analysis, controllability, observability, and optimal control.
 
-### Compressible Investments (The Cash Bubble)
+### Pillar 2: Thermodynamics of Investments (Section III)
 
-Investments break the incompressibility assumption: transferring $1,000 to a brokerage may yield $1,100 or $900 a month later. Investment value $V = nP$ depends on both quantity held ($n$, conserved during holding) and market price ($P$, an external forcing function). This compressibility introduces thermodynamic structure:
+Investment value $V = nP$ exhibits compressibility. The product rule yields an exact First Law:
 
-| Thermodynamic Quantity | Financial Analogue | Interpretation |
-|------------------------|-------------------|----------------|
-| Pressure ($P$) | Market price per share | External forcing |
-| Volume ($V$) | Dollar value of position | Observable balance |
-| Quantity ($n$) | Shares/coins held | Conserved during holding |
-| Temperature ($T$) | Market sentiment/volatility | Volatility proxy |
-| Heat ($\delta Q$) | Unrealized appreciation ($n\,dP$) | Price movement without transactions |
-| Work ($\delta W$) | Realized gains ($-P\,dn$) | Cash extracted via sales |
+$$dU = d(nP) = \underbrace{n\,dP}_{\delta Q\text{ (heat)}} + \underbrace{P\,dn}_{-\delta W\text{ (work)}}$$
 
-The First Law of Thermodynamics applies directly:
+- **Heat** ($\delta Q = n\,dP$): Unrealized appreciation — value change from price movement without investor action
+- **Work** ($\delta W = -P\,dn$): Realized gains — value extracted through deliberate transactions
 
-$$dU = \delta Q - \delta W = n\,dP + P\,dn$$
+The compressibility spectrum classifies instruments by pressure sensitivity, connecting to established financial metrics (duration, beta, delta/gamma).
 
-### Key Results
+### Pillar 3: Lot-Level Buoyancy Dynamics (Section IV)
 
-- **Ideal gas consistency requirement**: Requiring $V = nP$ and $PV = nRT$ simultaneously yields $T \propto P^2$ — a testable prediction that volatility should scale with the square of price.
-- **Carnot efficiency bound**: Maximum investment efficiency $\eta_{max} = 1 - P_L/P_H$ sets a theoretical ceiling on realizable returns between price bounds.
-- **Isothermal vs. adiabatic selling**: Gradual liquidation in stable markets extracts work efficiently; panic selling during crashes suffers thermodynamic inefficiency from price impact.
+Each purchase lot has a depth $d(t) = \ln(P_{entry}/P(t))$ governed by an Ornstein-Uhlenbeck process:
 
-### Signal Dynamics
+$$dd(t) = -\kappa \cdot d(t)\,dt + \sigma\,dW_t$$
 
-Time derivatives of net worth serve as diagnostic indicators:
-
-| Derivative | Name | Financial Meaning |
-|------------|------|-------------------|
-| 0th | Position | Account balance |
-| 1st | Velocity | Net savings rate ($I - S$) |
-| 2nd | Acceleration | Rate of change of savings rate |
-| 3rd | Jerk | Trend inflection (early warning) |
-
-The velocity-acceleration phase space partitions into four quadrants:
-
-- **Quadrant I** ($v > 0$, $a > 0$): Accelerating growth — wealth building
-- **Quadrant II** ($v < 0$, $a > 0$): Decelerating loss — recovery underway
-- **Quadrant III** ($v < 0$, $a < 0$): Accelerating loss — **crisis**
-- **Quadrant IV** ($v > 0$, $a < 0$): Decelerating growth — approaching equilibrium
-
-Quadrant III is the danger zone. A household may still have positive net worth but be losing money at an accelerating rate. The quadrant signals trouble before the bank balance does.
-
-### Control Theory Connection
-
-Financial decision-making implicitly implements PID control:
-
-- **Proportional**: Immediate spending adjustment in response to deviation from target
-- **Integral**: Structural lifestyle changes from accumulated shortfall
-- **Derivative**: Preemptive action based on velocity (trend awareness)
-
-The acceleration metric enables a second-order derivative term (PIDD control), detecting not just deterioration but *accelerating* deterioration — the earliest warning of Quadrant III crisis.
+This yields analytic solutions for:
+- Underwater-time distributions and recovery probabilities
+- Tax-loss harvesting optimization via buoyancy ranking
+- Maximum drawdown statistics
+- Portfolio depth distributions (Fokker-Planck steady state)
 
 ---
 
@@ -93,49 +60,60 @@ The acceleration metric enables a second-order derivative term (PIDD control), d
 
 | Document | Description | Status |
 |----------|-------------|--------|
-| `The_Cash_Bubble_Hypothesis_v04.md` | Main working paper (~46,000 words, Sections I–VI) | Advanced draft |
-| `The_Cash_Bubble_Hypothesis_v03.md` | Previous paper version | Superseded by v04 |
-| `Appendix_A_Mathematical_Derivations.md` | Complete mathematical appendix with rigorous proofs | Complete |
-| `Fluid_Finance_Project_Summary.md` | Original project summary with publication outline and prompting framework | Reference |
-| `CREAM Claude Review.docx` | Review of the CREAM spreadsheet model that inspired the framework | Reference |
+| `The_Cash_Bubble_Hypothesis_v05.md` | Main working paper (v0.5 — restructured around three pillars) | Current |
+| `The_Cash_Bubble_Hypothesis_v04.md` | Previous version (five-domain structure) | Superseded |
+| `The_Cash_Bubble_Hypothesis_v03.md` | Earlier version | Superseded |
+| `Appendix_A_Mathematical_Derivations.md` | Updated appendix with OU derivations and compressibility measures | Current |
+| `notes_for_later.md` | Preserved content displaced during v04→v05 refactoring (equation of state, Carnot bound, signal dynamics, statistical mechanics) | Reference |
+| `REVIEW_PLAN.md` | Critical review and refactoring plan | Reference |
+| `Fluid_Finance_Project_Summary.md` | Original project summary with publication outline | Archive |
+| `CashBubbleSimulator_v1.html` | Interactive simulator embedded in project page | Active |
 
 ---
 
-## What's Complete
+## What's Complete (v0.5)
 
 - State-space formulation with conservation laws and transfer matrices
-- Signal dynamics (velocity, acceleration, jerk) fully defined and operationalized
-- Stability analysis framework via eigenvalue decomposition
-- Four-quadrant diagnostic regime for financial health
-- Cash bubble hypothesis conceptually established with thermodynamic mappings
 - First Law derivation: $\delta Q = n\,dP$ (unrealized), $\delta W = -P\,dn$ (realized)
-- Carnot efficiency bound for investment returns
-- Isothermal/adiabatic process analysis for selling strategies
-- PID control interpretation of financial decision-making
-- Comprehensive mathematical appendices with proofs
-- Implementation architecture (discrete-time dynamical system, monthly steps)
-- Validation methodology with simulated data (1,000 trajectories, stress testing)
-- Internal bubble structure extension (lot-level depth and buoyancy model)
+- Compressibility spectrum taxonomy (cash → savings → bonds → equities → derivatives)
+- Formal compressibility measure $\beta = (1/V)(\partial V / \partial P)$ with connections to duration, beta, delta
+- Lot-level buoyancy model with depth variable $d = \ln(P_{entry}/P)$
+- OU process derivation from GBM via Ito's lemma
+- First-passage-time analysis for underwater recovery
+- Tax-loss harvesting optimization framework
+- Fokker-Planck equation and steady-state depth distribution
+- Portfolio health metrics from depth distribution
+- Eigenvalue stability analysis
+- Updated mathematical appendix
 
-## What Remains
+## What's Been Deferred to Companion Papers
+
+| Topic | Status | Location |
+|-------|--------|----------|
+| Ideal gas law analogue ($PV = nRT$) and $T \propto P^2$ | Separate exploration | `notes_for_later.md`, Paper Seed 1 |
+| Carnot efficiency bound ($\eta = 1 - P_L/P_H$) | Needs re-derivation | `notes_for_later.md`, Paper Seed 2 |
+| Signal dynamics (velocity, acceleration, jerk) and PID control | Applied paper | `notes_for_later.md`, Paper Seed 3 |
+| Statistical mechanics extension | Low priority | `notes_for_later.md`, Paper Seed 4 |
+
+## What Remains for v0.5 Publication
 
 | Gap | Priority | Notes |
 |-----|----------|-------|
-| Thermodynamic formalism completion | High | $W = \int P\,dV$ mapping needs rigorous finish; P-V diagram construction |
-| Simulated validation examples | High | 3–5 detailed scenarios needed (income shock, market crash, recovery) |
-| Publication-quality figures | High | 6 planned: tank schematic, bubble diagram, P-V diagram, signal plots, phase diagram, validation results |
-| Control theory formal derivation | Medium | PID mapping conceptual; needs mathematical rigor |
-| Empirical volatility-price test | Medium | $T \propto P^2$ prediction testable against historical data |
-| Statistical mechanics extension | Low | Ensemble interpretation, fluctuation-dissipation — light touch only |
-| Peer review venue selection | Low | Candidates: Physica A, Journal of Economic Dynamics & Control, PLOS ONE |
+| Publication-quality figures | High | Tank schematic, compressibility spectrum, depth distribution, P-V diagrams |
+| Literature review section | High | Engage with econophysics (Mantegna & Stanley), thermoeconomics |
+| Empirical validation examples | Medium | Apply lot-level model to historical stock data |
+| References | Medium | Complete bibliography |
+| Acknowledgments | Low | To be added |
 
 ---
 
-## Origin and Motivation
+## Version History
 
-The framework emerged from the classic "tank draining" problems in differential equations courses. The realization: the structure of interconnected reservoir problems is *identical* to personal financial account dynamics — income enters like water from a faucet, spending drains like an open valve, transfers flow through regulated channels.
-
-The historical precedent is the MONIAC (1949), Bill Phillips' hydraulic computer that modeled the British economy with colored water in transparent pipes. But MONIAC operated at macroeconomic scale. No previous work has applied this rigorous physics-based approach to personal (household) finance — the scale at which most financial decisions actually occur. This project fills that gap.
+| Version | Date | Changes |
+|---------|------|---------|
+| v0.5 | Feb 2026 | Major restructuring: three-pillar architecture, renamed to "Thermofluidic Finance," First Law promoted to centerpiece, lot-level buoyancy expanded to full section, PV=nRT/Carnot/PID deferred |
+| v0.4 | Feb 2026 | Full five-domain paper (fluid + thermo + control + signal + dynamical systems) |
+| v0.3 | Jan 2026 | Earlier working draft |
 
 ---
 
@@ -144,19 +122,9 @@ The historical precedent is the MONIAC (1949), Bill Phillips' hydraulic computer
 - **Primary venue**: Working paper on personal website (full version)
 - **Secondary venue**: Peer-reviewed journal submission (format adaptable)
 - **Target audience**: Physics/engineering readers; finance terminology explained
+- **Candidate journals**: Physica A, Journal of Economic Dynamics & Control, PLOS ONE, American Journal of Physics
 - **Data policy**: Simulated data only — no personal financial data disclosed
-- **Physics scope**: Classical mechanics fully developed; statistical mechanics light touch; quantum mechanics explicitly excluded
-- **Target submission**: Q2 2026 (April–May)
-- **Estimated completion**: 6–8 weeks of focused work remaining
 
 ---
 
-## Related Projects
-
-- **Dynamical Systems Lab** (2025) — Interactive visualization of dynamical systems
-- **Rebound Pendulum** (2025) — Experimental study of energy loss and coefficient of restitution
-- **On Analogies of Dynamical Systems** (2025) — Theoretical framework for structural analogies across physical domains
-
----
-
-*This summary reflects the state of the project as of February 2026. For detailed mathematical derivations, see Appendix A. For the full working paper, see The_Cash_Bubble_Hypothesis_v04.md.*
+*This summary reflects the state of the project as of February 2026. For the full working paper, see The_Cash_Bubble_Hypothesis_v05.md.*

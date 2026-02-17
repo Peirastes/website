@@ -18,7 +18,7 @@ $$V(t + \Delta t) = V(t) + \left[ Q_{in}(t) - Q_{out}(t) \right] \Delta t \tag{A
 
 ### A.1.2 Multi-Account System
 
-For a system of $n$ accounts with balances $V_1, V_2, \ldots, V_n$, we define the **state vector**:
+For a system of $n$ accounts with balances $V_1, V_2, \ldots, V_n$, the **state vector** is:
 
 $$\mathbf{x}(t) = \begin{bmatrix} V_1(t) \\ V_2(t) \\ \vdots \\ V_n(t) \end{bmatrix} \tag{A.3}$$
 
@@ -28,7 +28,7 @@ $$\sum_{j \neq i} T_{ij} - \sum_{j \neq i} T_{ji} \tag{A.4}$$
 
 Define the **transfer matrix** $\mathbf{A}$ with elements:
 
-$$A_{ij} = \begin{cases} 
+$$A_{ij} = \begin{cases}
 T_{ij} & \text{if } i \neq j \\
 -\sum_{k \neq i} T_{ki} & \text{if } i = j
 \end{cases} \tag{A.5}$$
@@ -43,7 +43,7 @@ $$\mathbf{u}(t) = \begin{bmatrix} I(t) \\ S(t) \end{bmatrix} \tag{A.6}$$
 
 where $I(t)$ is total income and $S(t)$ is total spending. The **input matrix** $\mathbf{B}$ maps these to specific accounts:
 
-$$\mathbf{B} = \begin{bmatrix} 
+$$\mathbf{B} = \begin{bmatrix}
 b_{1,I} & -b_{1,S} \\
 b_{2,I} & -b_{2,S} \\
 \vdots & \vdots \\
@@ -93,276 +93,181 @@ $$\mathbf{B} = \begin{bmatrix}
 
 ---
 
-## A.2 Signal Dynamics: Derivatives of Financial Position
+## A.2 Stability Analysis via Eigenvalues
 
-### A.2.1 Velocity (First Derivative)
-
-The **financial velocity** is the instantaneous rate of change of net worth:
-
-$$v(t) = \frac{dV_{total}}{dt} = \sum_i \frac{dV_i}{dt} = I(t) - S(t) \tag{A.11}$$
-
-For the total system, internal transfers cancel, leaving only external flows. This is the **net savings rate**.
-
-In discrete time:
-
-$$v[k] = \frac{V_{total}[k] - V_{total}[k-1]}{\Delta t} \tag{A.12}$$
-
-### A.2.2 Acceleration (Second Derivative)
-
-The **financial acceleration** measures how the savings rate itself is changing:
-
-$$a(t) = \frac{dv}{dt} = \frac{d^2 V_{total}}{dt^2} = \frac{dI}{dt} - \frac{dS}{dt} \tag{A.13}$$
-
-Positive acceleration indicates improving financial momentum (savings rate increasing). Negative acceleration signals deteriorating momentum, even if velocity is still positive.
-
-In discrete time:
-
-$$a[k] = \frac{v[k] - v[k-1]}{\Delta t} \tag{A.14}$$
-
-### A.2.3 Jerk (Third Derivative)
-
-The **financial jerk** detects inflection points in the acceleration:
-
-$$j(t) = \frac{da}{dt} = \frac{d^3 V_{total}}{dt^3} \tag{A.15}$$
-
-Sign changes in jerk indicate transitions between concave and convex financial trajectories—early warning of trend reversals.
-
-### A.2.4 Stability Interpretation
-
-The phase space $(v, a)$ partitions into four quadrants with distinct financial interpretations:
-
-| Quadrant | Velocity | Acceleration | Interpretation |
-|----------|----------|--------------|----------------|
-| I | $v > 0$ | $a > 0$ | Accelerating growth (stable, improving) |
-| II | $v < 0$ | $a > 0$ | Decelerating loss (recovering) |
-| III | $v < 0$ | $a < 0$ | Accelerating loss (unstable, crisis) |
-| IV | $v > 0$ | $a < 0$ | Decelerating growth (approaching equilibrium) |
-
-Trajectories in Quadrant III require intervention; continued negative acceleration compounds losses.
-
----
-
-## A.3 Thermodynamics of the Cash Bubble
-
-### A.3.1 The Compressible Investment Assumption
-
-Unlike liquid cash accounts where $1 deposited = $1 held, investment accounts exhibit **compressibility**: the dollar value $V$ depends on both the quantity held $n$ and the market price $P$:
-
-$$V = nP \tag{A.16}$$
-
-The quantity $n$ (shares, coins) is conserved during holding periods. The price $P(t)$ is an external forcing function determined by market dynamics.
-
-### A.3.2 The Ideal Gas Analogy
-
-We propose the **ideal gas law analogue**:
-
-$$PV = nRT \tag{A.17}$$
-
-With the mapping:
-
-| Thermodynamic | Financial | Interpretation |
-|---------------|-----------|----------------|
-| $P$ (pressure) | Market price per unit | External forcing |
-| $V$ (volume) | Dollar value of position | Observable balance |
-| $n$ (moles) | Number of shares/coins | Conserved quantity |
-| $R$ (gas constant) | Liquidity factor | Market depth constant |
-| $T$ (temperature) | Market sentiment | Volatility proxy |
-
-Rearranging: $V = nRT/P$. But since $V = nP$ by definition (Eq. A.16), consistency requires:
-
-$$RT = P^2 \tag{A.18}$$
-
-This implies that "temperature" (sentiment/volatility) scales with the square of price—a relationship empirically observed in options markets where implied volatility often correlates with price levels.
-
-### A.3.3 Work Done by Investment Expansion
-
-When an investor sells $dn$ units at price $P$, the **work extracted** (money transferred to liquid accounts) is:
-
-$$\delta W = P \, dn \cdot P = P \, dV_{liquid} \tag{A.19}$$
-
-More precisely, for a selling process from state 1 to state 2:
-
-$$W_{1 \to 2} = \int_{n_1}^{n_2} P(n) \, dn \tag{A.20}$$
-
-If price remains constant during the sale (**isobaric process**):
-
-$$W_{isobaric} = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{A.21}$$
-
-This equals the **realized gain** if we measure work relative to the cost basis.
-
-### A.3.4 The First Law for Investment Accounts
-
-Define:
-- $U$: Internal energy (unrealized value = $nP$)
-- $Q$: Heat input (market appreciation without transactions)
-- $W$: Work output (realized gains extracted via sales)
-
-The **First Law of Thermodynamics**:
-
-$$\boxed{dU = \delta Q - \delta W} \tag{A.22}$$
-
-Financial interpretation:
-
-$$d(nP) = n \, dP + P \, dn \tag{A.23}$$
-
-- $n \, dP$: Change in value due to price movement (heat input $\delta Q$)
-- $P \, dn$: Change in value due to transactions (work $\delta W$, negative for sales)
-
-Thus:
-
-$$\boxed{\delta Q = n \, dP \quad \text{(unrealized appreciation)}} \tag{A.24}$$
-
-$$\boxed{\delta W = -P \, dn \quad \text{(realized from sales, } dn < 0 \text{)}} \tag{A.25}$$
-
-### A.3.5 Isothermal vs. Adiabatic Processes
-
-**Isothermal Process** ($T$ = constant, slow liquidation in stable market):
-
-From $RT = P^2$ (Eq. A.18), constant $T$ implies constant $P$. The investor sells gradually at a stable price:
-
-$$W_{isothermal} = P \cdot \Delta n \tag{A.26}$$
-
-All extracted value is realized gain with no change in market conditions.
-
-**Adiabatic Process** ($Q = 0$, rapid price collapse with no market heat exchange):
-
-From the First Law with $\delta Q = 0$:
-
-$$dU = -\delta W \implies d(nP) = P \, dn \tag{A.27}$$
-
-This implies $n \, dP = 0$. If $n \neq 0$, then $dP = 0$, which contradicts "rapid price collapse." 
-
-The resolution: during market crashes, the investor cannot extract work (sell) without accepting reduced prices. The **adiabatic crash** relationship follows from $PV^\gamma = \text{const}$ where $\gamma$ is the heat capacity ratio. For investments, we propose:
-
-$$P \cdot V^\gamma = P \cdot (nP)^\gamma = P^{1+\gamma} n^\gamma = \text{const} \tag{A.28}$$
-
-With $\gamma > 1$, rapid selling (decreasing $n$) requires accepting lower $P$ to maintain the adiabatic invariant—capturing the **price impact** of panic selling.
-
-### A.3.6 Investment Efficiency
-
-Define the **investment efficiency** $\eta$ as the ratio of work extracted to heat absorbed over a complete cycle (buy low, sell high, reinvest):
-
-$$\eta = \frac{W_{net}}{Q_{in}} = \frac{\oint P \, dn}{\int_{appreciation} n \, dP} \tag{A.29}$$
-
-For an ideal Carnot-like cycle between "cold" price $P_L$ and "hot" price $P_H$:
-
-$$\eta_{Carnot} = 1 - \frac{P_L}{P_H} \tag{A.30}$$
-
-This sets an **upper bound** on investment efficiency: no strategy can extract more than $(1 - P_L/P_H)$ of the market's appreciation as realized gains. Transaction costs, timing errors, and behavioral factors reduce actual efficiency below this theoretical maximum.
-
----
-
-## A.4 Stability Analysis via Eigenvalues
-
-### A.4.1 System Stability Criterion
+### A.2.1 System Stability Criterion
 
 For the LTI system $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$, stability depends on the eigenvalues $\lambda_i$ of the transfer matrix $\mathbf{A}$.
 
 **Theorem (Lyapunov Stability):** The system is asymptotically stable if and only if all eigenvalues have negative real parts:
 
-$$\text{Re}(\lambda_i) < 0 \quad \forall i \tag{A.31}$$
+$$\text{Re}(\lambda_i) < 0 \quad \forall i \tag{A.11}$$
 
-### A.4.2 Financial Interpretation
+### A.2.2 Financial Interpretation
 
-For the three-account system (Eq. A.9):
+For the three-account system (Eq. A.9), the eigenvalues are the diagonal elements (triangular matrix):
 
-$$\mathbf{A} = \begin{bmatrix}
--\tau_{12} & 0 & 0 \\
-\tau_{12} & -\tau_{23} & 0 \\
-0 & \tau_{23} & 0
-\end{bmatrix}$$
-
-The eigenvalues are the diagonal elements (triangular matrix):
-
-$$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag{A.32}$$
+$$\lambda_1 = -\tau_{12}, \quad \lambda_2 = -\tau_{23}, \quad \lambda_3 = 0 \tag{A.12}$$
 
 The zero eigenvalue ($\lambda_3 = 0$) indicates **marginal stability**: the investment account accumulates indefinitely without inherent decay. This is financially sensible—money parked in investments doesn't spontaneously disappear.
 
 The negative eigenvalues indicate that checking and savings balances decay toward equilibrium levels determined by the balance of inflows and outflows.
 
-### A.4.3 Time Constants
+### A.2.3 Time Constants
 
 The **time constant** $\tau_i = -1/\text{Re}(\lambda_i)$ measures how quickly account $i$ responds to perturbations:
 
-$$\tau_{checking} = \frac{1}{\tau_{12}}, \quad \tau_{savings} = \frac{1}{\tau_{23}} \tag{A.33}$$
+$$\tau_{checking} = \frac{1}{\tau_{12}}, \quad \tau_{savings} = \frac{1}{\tau_{23}} \tag{A.13}$$
 
 Large transfer rates yield small time constants (fast equilibration). If $\tau_{12} = 0.2$ (20% of checking transferred monthly), $\tau_{checking} = 5$ months—the characteristic time for checking balance to adjust.
 
 ---
 
-## A.5 Control Theory: The Implicit PID Controller
+## A.3 Thermodynamics of Compressible Investments
 
-### A.5.1 The Financial Control Problem
+### A.3.1 The Compressible Investment Identity
 
-Consider a saver with target net worth $r(t)$. The **error signal** is:
+Unlike liquid cash accounts where \$1 deposited = \$1 held, investment accounts exhibit **compressibility**: the dollar value $V$ depends on both the quantity held $n$ and the market price $P$:
 
-$$e(t) = r(t) - V_{total}(t) \tag{A.34}$$
+$$V = nP \tag{A.14}$$
 
-The saver adjusts spending $S(t)$ to reduce error. A **PID controller** generates control action:
+The quantity $n$ (shares, coins) is conserved during holding periods. The price $P(t)$ is an external forcing function determined by market dynamics.
 
-$$u(t) = K_p e(t) + K_i \int_0^t e(\tau) \, d\tau + K_d \frac{de}{dt} \tag{A.35}$$
+### A.3.2 The First Law Derivation
 
-### A.5.2 Financial Interpretation of PID Terms
+The total differential of $V = nP$:
 
-**Proportional Term** ($K_p e$): Immediate response to deviation.
-- "I'm $500 below target → cut spending by $K_p \times 500$ this month"
-- Provides rapid correction but cannot eliminate steady-state error alone
+$$dV = d(nP) = n \, dP + P \, dn \tag{A.15}$$
 
-**Integral Term** ($K_i \int e \, d\tau$): Accumulated historical error.
-- "I've been below target for 6 months → make structural lifestyle changes"
-- Eliminates steady-state error but risks overshoot and oscillation
+Identifying the internal energy $U = V = nP$, the First Law $dU = \delta Q - \delta W$ requires:
 
-**Derivative Term** ($K_d \frac{de}{dt}$): Rate of error change.
-- "My gap is widening at $100/month → preemptive action now"
-- This is precisely the **velocity-based early warning** already implemented in the signal dynamics framework
+$$\boxed{\delta Q = n \, dP \quad \text{(unrealized appreciation)}} \tag{A.16}$$
 
-### A.5.3 Acceleration as Derivative of Derivative Control
+$$\boxed{\delta W = -P \, dn \quad \text{(realized from sales, } dn < 0 \text{)}} \tag{A.17}$$
 
-The financial acceleration $a(t) = d^2V/dt^2$ provides **derivative of velocity**, enabling second-order predictive control:
+**Proof of uniqueness**: The decomposition $dU = \delta Q - \delta W$ requires partitioning $dU$ into two terms. Since $dU = n\,dP + P\,dn$ by the product rule, and since $n\,dP$ captures value change from external forcing (price movement with no investor action) while $P\,dn$ captures value change from investor action (transactions at market price), the identification $\delta Q = n\,dP$ and $\delta W = -P\,dn$ is the unique partition consistent with the thermodynamic definitions of heat (energy transfer from environment without mechanical action) and work (energy transfer through mechanical action).
 
-$$u_{advanced}(t) = K_p e + K_i \int e \, d\tau + K_d \dot{e} + K_{dd} \ddot{e} \tag{A.36}$$
+### A.3.3 Work Done by Investment Expansion
 
-where $\ddot{e} = -a(t)$ (error acceleration, opposite sign of balance acceleration). This **PIDD controller** detects not just that the financial situation is deteriorating, but whether the deterioration is itself accelerating—a critical early warning absent from standard financial planning.
+For a selling process from holdings $n_1$ to $n_2$ (with $n_2 < n_1$):
 
-### A.5.4 Stability of the Controlled System
+$$W_{1 \to 2} = \int_{n_1}^{n_2} (-P(n)) \, dn = \int_{n_2}^{n_1} P(n) \, dn \tag{A.18}$$
 
-The closed-loop transfer function for a PID-controlled financial system can exhibit:
-- **Overdamped response**: Slow but stable return to target (conservative saver)
-- **Critically damped**: Fastest return without overshoot (optimal)
-- **Underdamped**: Oscillations around target (reactive saver, boom-bust cycles)
-- **Unstable**: Unbounded deviation (poor gain tuning, financial crisis)
+If price remains constant during the sale (**isobaric process**):
 
-Proper tuning of $K_p$, $K_i$, $K_d$ represents the behavioral economics of individual financial decision-making—an avenue for future empirical research.
+$$W_{isobaric} = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{A.19}$$
+
+This equals the realized proceeds from selling $\Delta n$ shares at price $P$.
 
 ---
 
-## A.6 Stochastic Extensions (Outline)
+## A.4 Lot-Level Buoyancy: Derivations
 
-### A.6.1 Brownian Motion for Market Prices
+### A.4.1 Depth Variable from GBM
 
-Market prices follow **Geometric Brownian Motion** (GBM):
+Under geometric Brownian motion, the stock price satisfies:
 
-$$dP = \mu P \, dt + \sigma P \, dW_t \tag{A.37}$$
+$$\frac{dP}{P} = \mu \, dt + \sigma \, dW_t \tag{A.20}$$
 
-where $\mu$ is drift (expected return), $\sigma$ is volatility, and $W_t$ is a Wiener process.
+By Ito's lemma, the log-price evolves as:
 
-### A.6.2 Stochastic Investment Value
+$$d(\ln P) = \left(\mu - \frac{\sigma^2}{2}\right) dt + \sigma \, dW_t \tag{A.21}$$
 
-Combining with $V = nP$:
+The depth of a lot with entry price $P_{entry}$ is $d(t) = \ln P_{entry} - \ln P(t)$. Since $P_{entry}$ is constant:
 
-$$dV = n \, dP = n(\mu P \, dt + \sigma P \, dW_t) = \mu V \, dt + \sigma V \, dW_t \tag{A.38}$$
+$$dd(t) = -d(\ln P) = -\left(\mu - \frac{\sigma^2}{2}\right) dt - \sigma \, dW_t \tag{A.22}$$
 
-The investment account itself follows GBM—a well-known result, here derived from the fluid-thermodynamic framework.
+With $k \equiv \mu - \sigma^2/2$ and redefining the Wiener process orientation:
 
-### A.6.3 Fluctuation-Dissipation Analogy (Statistical Mechanics)
+$$dd(t) = -k \, dt + \sigma \, d\tilde{W}_t \tag{A.23}$$
 
-Market volatility $\sigma$ plays the role of **thermal fluctuations**. The fluctuation-dissipation theorem relates fluctuations to dissipative response:
+When mean-reversion effects are incorporated (from market microstructure, valuation anchoring, or empirical observation), this generalizes to the Ornstein-Uhlenbeck process:
 
-$$\langle (\Delta V)^2 \rangle \propto k_B T \tag{A.39}$$
+$$dd(t) = -\kappa \cdot d(t) \, dt + \sigma \, dW_t \tag{A.24}$$
 
-In the financial analogue, high "temperature" (sentiment) produces high variance in returns—consistent with the $RT = P^2$ relationship (Eq. A.18) where temperature proxies for volatility.
+### A.4.2 OU Process: Key Properties
 
-*Further development of statistical mechanics analogues is reserved for future work, as the classical framework provides sufficient foundation for the present analysis.*
+The OU process (Eq. A.24) has the following analytic solutions:
+
+**Conditional mean** (expected depth at time $t$ given initial depth $d_0$):
+
+$$\mathbb{E}[d(t) | d(0) = d_0] = d_0 \, e^{-\kappa t} \tag{A.25}$$
+
+**Conditional variance**:
+
+$$\text{Var}[d(t) | d(0) = d_0] = \frac{\sigma^2}{2\kappa}\left(1 - e^{-2\kappa t}\right) \tag{A.26}$$
+
+**Stationary distribution** (as $t \to \infty$):
+
+$$d \sim \mathcal{N}\left(0, \frac{\sigma^2}{2\kappa}\right) \tag{A.27}$$
+
+### A.4.3 First-Passage-Time for Recovery
+
+The first-passage-time $\tau$ from depth $d_0 > 0$ to $d = 0$ (recovery) for the OU process satisfies the backward Kolmogorov equation:
+
+$$-\kappa \, d_0 \frac{\partial u}{\partial d_0} + \frac{\sigma^2}{2} \frac{\partial^2 u}{\partial d_0^2} = -1 \tag{A.28}$$
+
+where $u(d_0) = \mathbb{E}[\tau | d(0) = d_0]$. The solution involves Dawson's function and yields:
+
+$$\mathbb{E}[\tau(d_0)] = \frac{\sqrt{\pi}}{\sigma\sqrt{\kappa}} \int_0^{d_0\sqrt{2\kappa}/\sigma} e^{s^2} \, \text{erf}(s) \, ds \tag{A.29}$$
+
+**Asymptotic behavior**:
+- Small depth ($d_0 \ll \sigma/\sqrt{\kappa}$): $\mathbb{E}[\tau] \approx d_0^2 / \sigma^2$ (quadratic in depth)
+- Large depth ($d_0 \gg \sigma/\sqrt{\kappa}$): $\mathbb{E}[\tau] \sim e^{\kappa d_0^2/\sigma^2}$ (exponential in depth-squared)
+
+### A.4.4 Fokker-Planck Equation for Depth Distribution
+
+The probability density $\rho(d, t)$ of the depth variable evolves according to the Fokker-Planck equation:
+
+$$\frac{\partial \rho}{\partial t} = \kappa \frac{\partial}{\partial d}(d \cdot \rho) + \frac{\sigma^2}{2} \frac{\partial^2 \rho}{\partial d^2} \tag{A.30}$$
+
+**Steady-state solution** (setting $\partial \rho / \partial t = 0$):
+
+$$\rho_{ss}(d) = \sqrt{\frac{\kappa}{\pi \sigma^2}} \exp\left(-\frac{\kappa d^2}{\sigma^2}\right) \tag{A.31}$$
+
+This is a Gaussian centered at $d = 0$ with variance $\sigma^2 / (2\kappa)$.
+
+**Portfolio health metrics** derived from the depth distribution:
+
+| Metric | Formula | Interpretation |
+|--------|---------|----------------|
+| Mean depth | $\bar{d} = \int d \, \rho(d) \, dd$ | Average position: >0 means portfolio is net underwater |
+| Depth variance | $\text{Var}(d) = \int (d - \bar{d})^2 \rho \, dd$ | Spread of entries; wider = more timing dispersion |
+| Underwater fraction | $F_{uw} = \int_0^{\infty} \rho(d) \, dd$ | Fraction of lots currently at a loss |
+| Skewness | $\gamma_1 = \mathbb{E}[(d-\bar{d})^3]/\text{Var}^{3/2}$ | Asymmetry: positive skew = heavy underwater tail |
+
+---
+
+## A.5 Compressibility Measures
+
+### A.5.1 Definition of Financial Compressibility
+
+By analogy with the isothermal compressibility in fluid mechanics ($\beta_T = -(1/V)(\partial V / \partial P)_T$), define the **financial compressibility** of an instrument as:
+
+$$\beta = \frac{1}{V}\frac{\partial V}{\partial P} \tag{A.32}$$
+
+For cash ($V$ independent of $P$): $\beta = 0$ (incompressible).
+
+For equities ($V = nP$): $\beta = 1/P$ (compressibility inversely proportional to price).
+
+For options (where $V \approx n \cdot \Delta \cdot P$ with delta $\Delta$): $\beta = (\Delta + P \cdot \Gamma) / (\Delta \cdot P)$, incorporating the nonlinear price sensitivity through gamma $\Gamma$. This yields $\beta > 1/P$, confirming supercompressibility.
+
+### A.5.2 Portfolio Compressibility
+
+For a portfolio of $N$ instruments with values $V_i$ and compressibilities $\beta_i$, the **portfolio compressibility** is:
+
+$$\beta_{portfolio} = \sum_i w_i \beta_i \tag{A.33}$$
+
+where $w_i = V_i / V_{total}$ is the weight of instrument $i$. This weighted average determines the portfolio's aggregate sensitivity to market pressure changes.
+
+### A.5.3 Connection to Standard Financial Metrics
+
+| Financial Metric | Compressibility Interpretation |
+|-----------------|-------------------------------|
+| Bond duration $D$ | $\beta_{bond} \approx D / (1+y)$ where $y$ is yield |
+| Equity beta $\beta_{eq}$ | $\beta_{equity} = \beta_{eq} / P$ (market-relative compressibility) |
+| Options delta $\Delta$ | $\beta_{option} = \Delta / V$ (price sensitivity per unit value) |
+| Leverage ratio $L$ | Amplifies compressibility: $\beta_{leveraged} = L \cdot \beta_{underlying}$ |
 
 ---
 
@@ -372,15 +277,16 @@ In the financial analogue, high "temperature" (sentiment) produces high variance
 |----------|--------|-------------|
 | $\frac{dV}{dt} = Q_{in} - Q_{out}$ | (A.1) | Fundamental balance equation |
 | $\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}$ | (A.8) | State-space formulation |
-| $v = dV/dt = I - S$ | (A.11) | Financial velocity |
-| $a = dv/dt$ | (A.13) | Financial acceleration |
-| $PV = nRT$ | (A.17) | Ideal gas analogue for investments |
-| $dU = \delta Q - \delta W$ | (A.22) | First Law for investments |
-| $\delta Q = n \, dP$ | (A.24) | Unrealized appreciation as heat |
-| $\delta W = -P \, dn$ | (A.25) | Realized gains as work |
-| $\eta_{Carnot} = 1 - P_L/P_H$ | (A.30) | Maximum investment efficiency |
-| $\text{Re}(\lambda_i) < 0$ | (A.31) | Stability criterion |
-| PID control law | (A.35) | Financial decision-making model |
+| $V = nP$ | (A.14) | Compressible investment identity |
+| $dU = \delta Q - \delta W$ | (A.15) | First Law for investments |
+| $\delta Q = n \, dP$ | (A.16) | Unrealized appreciation as heat |
+| $\delta W = -P \, dn$ | (A.17) | Realized gains as work |
+| $d(t) = \ln(P_{entry}/P(t))$ | (A.22) | Lot depth variable |
+| $dd = -\kappa \, d \, dt + \sigma \, dW_t$ | (A.24) | OU process for lot depth |
+| $\mathbb{E}[d(t)] = d_0 e^{-\kappa t}$ | (A.25) | Expected depth decay |
+| $\rho_{ss}(d) \propto \exp(-\kappa d^2/\sigma^2)$ | (A.31) | Steady-state depth distribution |
+| $\beta = (1/V)(\partial V / \partial P)$ | (A.32) | Financial compressibility |
+| $\text{Re}(\lambda_i) < 0$ | (A.11) | Stability criterion |
 
 ---
 
