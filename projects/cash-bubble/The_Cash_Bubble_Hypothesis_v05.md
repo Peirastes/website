@@ -104,29 +104,9 @@ Real personal finances involve multiple accounts. A minimal realistic model migh
 
 These accounts form a network—a topology of reservoirs connected by flow channels. Figure 1 illustrates the structure.
 
-```
-                    ┌─────────────────┐
-    Income ────────►│   CHECKING      │──────► Spending
-    (Q_in)          │   (V₁)          │        (Q_out)
-                    │   Open tank     │
-                    └────────┬────────┘
-                             │ Transfer τ₁₂
-                             ▼
-                    ┌─────────────────┐
-                    │    SAVINGS      │
-                    │    (V₂)         │
-                    │   Pressurized   │
-                    └────────┬────────┘
-                             │ Transfer τ₂₃
-                             ▼
-                    ┌─────────────────┐
-                    │   INVESTMENT    │
-                    │   (V₃)          │
-                    │   Compressible  │
-                    └─────────────────┘
+![Figure 1: Multi-tank topology for a three-account system](figures/fig1-multi-tank-topology.svg)
 
-    Figure 1: Multi-tank topology for a three-account system.
-```
+*Figure 1: Multi-tank topology for a three-account system. Checking is open (directly interfaces with income and spending), savings is pressurized (sealed, earns interest), and investment is compressible (value fluctuates with market pressure).*
 
 The checking account is "open" in the sense that it interfaces directly with the external world (income, spending). Savings is "pressurized" in the sense that money there earns interest—a slight positive return that might be interpreted as pressure exceeding atmospheric. Investment is labeled "compressible" to signal its fundamentally different nature, developed fully in Section III.
 
@@ -260,6 +240,10 @@ This is *exactly* the form of work done by isobaric expansion of a gas. The fina
 
 For **variable-price selling** (the investor sells during a period of price movement), the integral form (Eq. 13) is required. The path dependence of this integral—the fact that the total work extracted depends on the *sequence* of prices at which shares are sold—is the financial analogue of path dependence in thermodynamic work. Just as a gas can do different amounts of work along different thermodynamic paths between the same initial and final states, an investor can realize different total proceeds depending on the timing and sequence of sales.
 
+![Figure 3: P-V process diagram showing path-dependent work](figures/fig3-pv-process-diagram.svg)
+
+*Figure 3: P-V process diagram illustrating path-dependent realized proceeds. Two different selling paths between the same initial state A and final state B yield different total work (shaded areas). Path 1 (selling early at higher prices) extracts more proceeds than Path 2 (selling late at lower prices).*
+
 ### 3.4 Unrealized Gains as Stored Energy
 
 If realized gains are extracted work, unrealized gains are *stored energy*—internal energy available for future work extraction but not yet converted. The unrealized gain on a position purchased at price $P_{purchase}$ and currently valued at $P_{current}$ is:
@@ -285,6 +269,10 @@ The incompressible/compressible distinction is not binary but a *spectrum*. Diff
 | **Moderately compressible** | Bonds, bond funds | Moderate | Price varies with interest rates; duration measures sensitivity |
 | **Highly compressible** | Equities, equity funds, real estate | High | Price varies with market conditions |
 | **Supercompressible** | Options, leveraged ETFs, derivatives | Extreme | Value can change by orders of magnitude; leverage amplifies pressure sensitivity |
+
+![Figure 2: The compressibility spectrum of financial instruments](figures/fig2-compressibility-spectrum.svg)
+
+*Figure 2: The compressibility spectrum. Financial instruments arranged from incompressible (cash) to supercompressible (derivatives), with established sensitivity metrics (duration, beta, delta/gamma) mapped to their corresponding regions.*
 
 This spectrum has practical diagnostic value. A portfolio's overall "compressibility"—the weighted average across its constituent instruments—determines its sensitivity to market movements. A portfolio dominated by highly compressible assets is thermodynamically volatile: its internal energy fluctuates wildly with external pressure. A portfolio weighted toward incompressible assets is thermodynamically stable: its value is largely insensitive to market conditions.
 
@@ -450,6 +438,10 @@ This steady-state distribution provides a natural **portfolio health metric**:
 - A *wide* depth distribution (large $\sigma^2/\kappa$) indicates a portfolio with poorly timed entries or high market volatility—lots spread across a wide range of depths, including some deeply underwater.
 - A depth distribution with a *heavy right tail* (many deeply underwater lots) signals a "sick" portfolio—one carrying significant unrealized losses with long expected recovery times.
 - An *asymmetric* distribution skewed toward negative $d$ (profitable) indicates a well-managed portfolio with favorable entry timing.
+
+![Figure 4: Steady-state depth distributions for healthy and unhealthy portfolios](figures/fig4-depth-distribution.svg)
+
+*Figure 4: Steady-state depth distributions. A healthy portfolio (narrow, solid orange) clusters lots near break-even; an unhealthy portfolio (wide, dashed cyan) spreads lots across a broad range of depths, including deeply underwater positions.*
 
 ### 4.8 Connection to the Thermofluidic Framework
 
