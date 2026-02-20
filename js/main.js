@@ -12,6 +12,20 @@ function getTheme() {
   return localStorage.getItem('theme') || 'light';
 }
 
+function toggleTheme() {
+  const next = getTheme() === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  updateThemeToggle();
+}
+
+function updateThemeToggle() {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const isDark = getTheme() === 'dark';
+  btn.textContent = isDark ? '\u2600' : '\u263E';
+  btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+}
+
 function initializeTheme() {
   const savedTheme = getTheme();
   document.documentElement.setAttribute('data-theme', savedTheme);
@@ -21,6 +35,18 @@ function initializeTheme() {
   if (themeSelect) {
     themeSelect.value = savedTheme;
   }
+
+  // Inject nav theme toggle if not already present
+  const nav = document.querySelector('nav');
+  if (nav && !document.getElementById('theme-toggle')) {
+    const btn = document.createElement('button');
+    btn.id = 'theme-toggle';
+    btn.type = 'button';
+    btn.onclick = toggleTheme;
+    nav.appendChild(btn);
+  }
+  updateThemeToggle();
+
   console.log('Theme initialized to:', savedTheme);
 }
 
