@@ -1340,7 +1340,18 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                             onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                           >
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                            {axis && <span style={{ fontSize: 8, color: '#00e5ff', flexShrink: 0 }}>{axis.bearing.toFixed(0)}&deg;</span>}
+                            {axis && (() => {
+                              const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
+                              const dev = Math.abs(axis.bearing - ideal);
+                              const deviation = dev > 180 ? 360 - dev : dev;
+                              const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
+                              return (
+                                <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace' }}>
+                                  <span style={{ color: '#00e5ff' }}>{axis.bearing.toFixed(0)}&deg;</span>
+                                  {' '}<span style={{ color: devColor }}>({deviation.toFixed(1)}&deg;)</span>
+                                </span>
+                              );
+                            })()}
                           </div>
                         );
                       })}
