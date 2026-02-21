@@ -678,6 +678,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const dataSourcesRef = useRef({});
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
+  const [verified, setVerified] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('ecdo-watch-verified') || '[]')); }
+    catch { return new Set(); }
+  });
   const [layers, setLayers] = useState({
     plates: true, earthquakes: true, volcanoes: true,
     stations: true, monuments: true, bearingLines: true,
@@ -687,7 +691,16 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   useEffect(() => {
     fetch('./assets/monuments.json')
       .then(r => r.ok ? r.json() : [])
-      .then(data => setMonuments(Array.isArray(data) ? data : []))
+      .then(data => {
+        const arr = Array.isArray(data) ? data : [];
+        setMonuments(arr);
+        setVerified(prev => {
+          const merged = new Set(prev);
+          arr.forEach(m => { if (m.verified) merged.add(m.name); });
+          localStorage.setItem('ecdo-watch-verified', JSON.stringify([...merged]));
+          return merged;
+        });
+      })
       .catch(() => {});
   }, []);
 
@@ -857,20 +870,22 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     });
 
-    // 4. Ancient monuments (gold)
+    // 4. Ancient monuments (gold; verified = green outline)
     monuments.forEach(m => {
+      const mVerified = verified.has(m.name);
       ds.monuments.entities.add({
         position: Cesium.Cartesian3.fromDegrees(m.lng, m.lat),
         point: {
           pixelSize: 8,
           color: Cesium.Color.fromCssColorString('#f59e0b'),
-          outlineColor: Cesium.Color.WHITE,
-          outlineWidth: 1.5,
+          outlineColor: mVerified ? Cesium.Color.fromCssColorString('#22c55e') : Cesium.Color.WHITE,
+          outlineWidth: mVerified ? 2.5 : 1.5,
         },
         _customData: {
           type: 'monument', lat: m.lat, lng: m.lng,
           mName: m.name, mRegion: m.region,
           mAge: m.est_age, mNotes: m.notes,
+          mVerified,
         },
       });
     });
@@ -914,7 +929,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.monuments.show = layers.monuments;
     ds.bearingLines.show = layers.bearingLines;
 
-  }, [seismicEvents, volcData, layers, monuments]);
+  }, [seismicEvents, volcData, layers, monuments, verified]);
 
   // Fly to clicked monument
   useEffect(() => {
@@ -930,6 +945,15 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
   const toggleLayer = (key) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleVerified = (name) => {
+    setVerified(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      localStorage.setItem('ecdo-watch-verified', JSON.stringify([...next]));
+      return next;
+    });
   };
 
   return (
@@ -985,6 +1009,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             <span style={{ fontSize: 10 }}>{item.label}</span>
           </label>
         ))}
+        <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid #252532',
+          fontSize: 9, color: '#7a7a8c', fontFamily: 'monospace' }}>
+          &#10003; {verified.size} / {monuments.length} verified
+        </div>
       </div>
 
       {/* Click info panel */}
@@ -1061,6 +1089,14 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                   {d.mNotes && <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>{d.mNotes}</div>}
                   <div style={{ color: '#a8a8bc', marginTop: 4 }}>Bearing to Np&#8242;: <span style={{ color: '#22c55e', fontFamily: 'monospace', fontWeight: 600 }}>{bearing.toFixed(1)}&deg;</span></div>
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+                  <button onClick={() => toggleVerified(d.mName)} style={{
+                    marginTop: 8, padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                    fontWeight: 600, border: `1px solid ${verified.has(d.mName) ? '#22c55e' : '#7a7a8c'}`, borderRadius: 4,
+                    background: verified.has(d.mName) ? '#22c55e22' : 'transparent',
+                    color: verified.has(d.mName) ? '#22c55e' : '#7a7a8c', cursor: 'pointer',
+                  }}>
+                    {verified.has(d.mName) ? '\u2713 VERIFIED' : 'MARK VERIFIED'}
+                  </button>
                 </>
               );
             })()}
