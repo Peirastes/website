@@ -590,7 +590,7 @@ var DA=[{n:"USD",p:1,g:0,c:"#4ade80"},{n:"Gold",p:5062,g:.3,c:"#ffd700"},{n:"BTC
 var AC=["#00d4ff","#00ff88","#ffd700","#ff6b9d","#a78bfa","#f97316","#06b6d4","#ec4899","#84cc16","#f43f5e"];
 var S={assets:DA.map(function(a,i){return{id:i+1,name:a.n,startPrice:a.p,currentPrice:a.p,gamma:a.g,color:a.c,manual:false}}),
   bubbles:[],history:[],cash:10000,sel:null,buyId:1,buyAmt:1000,buyMode:'dollar',buyShares:1,sellPct:25,sellMode:'dollar',sellAmt:100,sellShares:1,
-  mT:1,inf:1,mode:"manual",run:true,tW:0,fr:0,expA:null,pSort:'depth'};
+  mT:1,inf:1,mode:"manual",run:true,tW:0,fr:0,expA:null,pSort:'depth',aSort:'name'};
 var fmt=function(v){return"$"+Math.abs(v||0).toLocaleString("en-US",{maximumFractionDigits:0})};
 var fmtP=function(v){return"$"+(v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})};
 var fmtPct=function(v){return(v>=0?"+":"")+(v*100).toFixed(1)+"%"};
@@ -978,10 +978,18 @@ function updateDOM(){
   // innerHTML only every 300ms
   var now=performance.now();if(now-lastDOM<300)return;lastDOM=now;
   // Left screen
-  D.LS.innerHTML='<div style="margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid rgba(51,255,102,.04);font-size:8px;display:flex;justify-content:space-between">'
-    +'<span style="color:rgba(51,255,102,.25)">MODE: <span style="color:#00ccdd">'+S.mode.toUpperCase()+'</span></span>'
-    +'<span style="color:rgba(51,255,102,.25)">T='+S.mT.toFixed(2)+' INF='+(((S.inf-1)*100).toFixed(1))+'%</span></div>'
-    +S.assets.map(function(a){var sel=a.id===S.buyId,ch=(a.currentPrice-a.startPrice)/a.startPrice;
+  var asBtn=function(lbl,k){return'<span onclick="S.aSort=\''+k+'\';dirty=true" style="font-size:6px;padding:1px 3px;cursor:pointer;border-radius:2px;'
+    +(S.aSort===k?'background:rgba(0,204,221,.12);color:#00ccdd;border:1px solid rgba(0,204,221,.3)':'color:rgba(51,255,102,.2);border:1px solid rgba(255,255,255,.04)')
+    +'">'+lbl+'</span>';};
+  var sortedAssets=S.assets.slice().sort(function(a,b){
+    if(S.aSort==='price')return b.currentPrice-a.currentPrice;
+    if(S.aSort==='change'){return((b.currentPrice-b.startPrice)/b.startPrice)-((a.currentPrice-a.startPrice)/a.startPrice);}
+    if(S.aSort==='grade'){var sa=getSpectrum(a.name),sb=getSpectrum(b.name);return(sb?sb.composite:0)-(sa?sa.composite:0);}
+    return a.name.localeCompare(b.name);});
+  D.LS.innerHTML='<div style="margin-bottom:3px;padding-bottom:3px;border-bottom:1px solid rgba(51,255,102,.04);font-size:8px;display:flex;justify-content:space-between;align-items:center">'
+    +'<span style="color:rgba(51,255,102,.25)">'+S.assets.length+' ASSETS</span>'
+    +'<div style="display:flex;gap:2px">'+asBtn('name','name')+asBtn('price','price')+asBtn('Δ%','change')+asBtn('grade','grade')+'</div></div>'
+    +sortedAssets.map(function(a){var sel=a.id===S.buyId,ch=(a.currentPrice-a.startPrice)/a.startPrice;
     var exp=S.expA===a.id;
     var h='<div style="margin-bottom:2px;border-radius:3px;background:'+(exp?'rgba(255,255,255,.03)':'rgba(255,255,255,.01)')+';border:1px solid '+(exp?a.color+'33':'rgba(255,255,255,.04)')+';overflow:hidden">';
     // Header row (always visible)
