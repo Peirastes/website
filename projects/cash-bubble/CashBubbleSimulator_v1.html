@@ -381,7 +381,7 @@ html,body{margin:0;min-height:100vh;overflow:auto;padding:10px;
   <div class="main-grid">
     <!-- LEFT -->
     <div class="sub-panel" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:620px">
-      <div class="scr-bezel" style="height:220px">
+      <div class="scr-bezel" style="flex:1;min-height:220px">
         <span class="slbl">ASSET REGISTRY</span>
         <div class="bbolt" style="top:3px;left:3px"></div><div class="bbolt" style="top:1px;left:25%"></div><div class="bbolt" style="top:1px;left:50%"></div><div class="bbolt" style="top:1px;left:75%"></div><div class="bbolt" style="top:3px;right:3px"></div>
         <div class="bbolt" style="bottom:3px;left:3px"></div><div class="bbolt" style="bottom:1px;left:25%"></div><div class="bbolt" style="bottom:1px;left:50%"></div><div class="bbolt" style="bottom:1px;left:75%"></div><div class="bbolt" style="bottom:3px;right:3px"></div>
@@ -475,22 +475,7 @@ html,body{margin:0;min-height:100vh;overflow:auto;padding:10px;
           <div class="mode-btn" onclick="doSave()" style="--mc:#00ccdd;--mg:rgba(0,204,221,.1);padding:3px 12px;flex:1;text-align:center">SAVE</div>
           <div class="mode-btn" onclick="doLoad()" style="--mc:#00ccdd;--mg:rgba(0,204,221,.1);padding:3px 12px;flex:1;text-align:center">LOAD</div>
           <div class="mode-btn" onclick="doReset()" style="--mc:#ff3344;--mg:rgba(255,51,68,.1);padding:3px 12px;flex:1;text-align:center">RESET</div>
-        </div>
-      </div>
-      <!-- PROJECT DESCRIPTION -->
-      <div class="scr-bezel" id="aboutPanel" style="flex:1;min-height:60px;display:flex;flex-direction:column;">
-        <span class="slbl">ABOUT THIS INSTRUMENT</span>
-        <div class="bbolt" style="top:3px;left:3px"></div><div class="bbolt" style="top:1px;left:50%"></div><div class="bbolt" style="top:3px;right:3px"></div>
-        <div class="bbolt" style="bottom:3px;left:3px"></div><div class="bbolt" style="bottom:1px;left:50%"></div><div class="bbolt" style="bottom:3px;right:3px"></div>
-        <div class="scr-well" style="flex:1;height:auto;overflow:hidden;">
-          <div class="scr-glass" style="height:100%;overflow-y:auto;padding:6px 8px;">
-            <div style="font-size:7.5px;color:rgba(51,255,102,.55);line-height:1.5;font-family:'Courier New',monospace;">
-              Cash accounts behave as reservoirs of <span style="color:rgba(0,204,221,.6);">incompressible fluid</span> governed by conservation laws. Investments behave as <span style="color:rgba(255,136,34,.6);">compressible gas bubbles</span> whose expansion and compression follow thermodynamic principles.<br><br>
-              <span style="color:rgba(122,134,144,.5);">ΔU = δQ − δW</span> — The First Law of Thermodynamics applied to your portfolio: unrealized gains are heat input (<span style="color:rgba(255,136,34,.5);">δQ</span>), realized gains are work extracted (<span style="color:rgba(51,255,102,.5);">δW</span>).<br><br>
-              Bubbles rise when profitable, sink when losing value. Their depth in the cylinder represents percent return — the surface is breakeven. Temperature controls market volatility. Inflation shifts the equilibrium.<br><br>
-              <span style="color:rgba(122,134,144,.4);font-size:6.5px;">Load a portfolio JSON or add assets manually. Select an asset, inject capital to buy, extract work to sell. Run market simulations to watch thermodynamic forces act on your bubbles in real time.</span>
-            </div>
-          </div>
+          <div class="mode-btn" onclick="toggleAbout()" style="--mc:#8a9094;--mg:rgba(138,144,148,.1);padding:3px 12px;flex:1;text-align:center">ABOUT</div>
         </div>
       </div>
     </div>
@@ -554,12 +539,30 @@ html,body{margin:0;min-height:100vh;overflow:auto;padding:10px;
         <div class="scr-well"><div class="scr-glass"><div class="scr-c" id="ABD"></div></div></div>
       </div>
       <!-- Signal dynamics -->
-      <div class="scr-bezel" id="sigPanel" style="min-height:105px">
+      <div class="scr-bezel" id="sigPanel" style="flex:1;min-height:105px">
         <span class="slbl">SIGNAL DYNAMICS</span>
         <div class="bbolt" style="top:3px;left:3px"></div><div class="bbolt" style="top:1px;left:25%"></div><div class="bbolt" style="top:1px;left:50%"></div><div class="bbolt" style="top:1px;left:75%"></div><div class="bbolt" style="top:3px;right:3px"></div>
         <div class="bbolt" style="bottom:3px;left:3px"></div><div class="bbolt" style="bottom:1px;left:25%"></div><div class="bbolt" style="bottom:1px;left:50%"></div><div class="bbolt" style="bottom:1px;left:75%"></div><div class="bbolt" style="bottom:3px;right:3px"></div>
         <div class="bbolt" style="top:50%;left:1px"></div><div class="bbolt" style="top:50%;right:1px"></div>
         <div class="scr-well"><div class="scr-glass"><canvas id="oscC" style="width:100%;height:100%;display:block;position:relative;z-index:1"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+  <!-- ABOUT MODAL -->
+  <div id="aboutModal" onclick="if(event.target===this)toggleAbout()" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center">
+    <div class="scr-bezel" style="width:420px;max-width:90%;position:relative">
+      <span class="slbl">ABOUT THIS INSTRUMENT</span>
+      <div class="bbolt" style="top:3px;left:3px"></div><div class="bbolt" style="top:1px;left:50%"></div><div class="bbolt" style="top:3px;right:3px"></div>
+      <div class="bbolt" style="bottom:3px;left:3px"></div><div class="bbolt" style="bottom:1px;left:50%"></div><div class="bbolt" style="bottom:3px;right:3px"></div>
+      <div class="scr-well" style="height:auto;overflow:hidden;">
+        <div class="scr-glass" style="overflow-y:auto;padding:10px 12px;">
+          <div style="font-size:8px;color:rgba(51,255,102,.55);line-height:1.6;font-family:'Courier New',monospace;">
+            Cash accounts behave as reservoirs of <span style="color:rgba(0,204,221,.6);">incompressible fluid</span> governed by conservation laws. Investments behave as <span style="color:rgba(255,136,34,.6);">compressible gas bubbles</span> whose expansion and compression follow thermodynamic principles.<br><br>
+            <span style="color:rgba(122,134,144,.5);">ΔU = δQ − δW</span> — The First Law of Thermodynamics applied to your portfolio: unrealized gains are heat input (<span style="color:rgba(255,136,34,.5);">δQ</span>), realized gains are work extracted (<span style="color:rgba(51,255,102,.5);">δW</span>).<br><br>
+            Bubbles rise when profitable, sink when losing value. Their depth in the cylinder represents percent return — the surface is breakeven. Temperature controls market volatility. Inflation shifts the equilibrium.<br><br>
+            <span style="color:rgba(122,134,144,.4);font-size:7px;">Load a portfolio JSON or add assets manually. Select an asset, inject capital to buy, extract work to sell. Run market simulations to watch thermodynamic forces act on your bubbles in real time.</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1151,6 +1154,6 @@ function mainLoop(){
   requestAnimationFrame(mainLoop);}
 requestAnimationFrame(mainLoop);
 // Sync Signal Dynamics height to About panel
-function syncPanels(){var ap=$('aboutPanel'),sp=$('sigPanel');if(ap&&sp){sp.style.height=ap.offsetHeight+'px';}requestAnimationFrame(syncPanels);}
-requestAnimationFrame(syncPanels);
+function toggleAbout(){var m=$('aboutModal');m.style.display=m.style.display==='flex'?'none':'flex';}
+
 </script></body></html>
