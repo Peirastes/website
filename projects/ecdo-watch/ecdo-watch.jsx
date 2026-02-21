@@ -698,14 +698,33 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       return new Map(Object.entries(raw));
     } catch { return new Map(); }
   });
+  const [pinMode, setPinMode] = useState(null);          // null or { monumentName, origLat, origLng }
+  const [pinOverrides, setPinOverrides] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('ecdo-watch-pins') || '{}');
+      return new Map(Object.entries(raw));
+    } catch { return new Map(); }
+  });
   const axisModeRef = useRef(null);
+  const pinModeRef = useRef(null);
   const previewEntityRef = useRef(null);
 
   useEffect(() => { axisModeRef.current = axisMode; }, [axisMode]);
+  useEffect(() => { pinModeRef.current = pinMode; }, [pinMode]);
+
+  // Resolve a monument's effective position (override or original)
+  const resolvePin = (m) => {
+    const ov = pinOverrides.get(m.name);
+    return ov ? { lat: ov.lat, lng: ov.lng } : { lat: m.lat, lng: m.lng };
+  };
 
   const startAxisDrawing = (monumentName, lat, lng) => {
     setAxisMode({ monumentName, lat, lng });
     setAxisPreview(null);
+  };
+
+  const startPinReplace = (monumentName, lat, lng) => {
+    setPinMode({ monumentName, origLat: lat, origLng: lng });
   };
 
   // Load monuments data
@@ -781,7 +800,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     // Click handler
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
     handler.setInputAction((click) => {
-      if (axisModeRef.current) return;
+      if (axisModeRef.current || pinModeRef.current) return;
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id && picked.id._customData) {
         setSelectedPoint(picked.id._customData);
@@ -897,11 +916,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
     // 4. Ancient monuments (gold; plausible = yellow outline, verified = green outline)
     monuments.forEach(m => {
+      const pin = resolvePin(m);
       const mStatus = verified.get(m.name); // undefined | 'plausible' | 'verified'
       const outlineColor = mStatus === 'verified' ? '#22c55e' : mStatus === 'plausible' ? '#eab308' : '#ffffff';
       const outlineWidth = mStatus ? 2.5 : 1.5;
       ds.monuments.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(m.lng, m.lat),
+        position: Cesium.Cartesian3.fromDegrees(pin.lng, pin.lat),
         point: {
           pixelSize: 8,
           color: Cesium.Color.fromCssColorString('#f59e0b'),
@@ -909,10 +929,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           outlineWidth,
         },
         _customData: {
-          type: 'monument', lat: m.lat, lng: m.lng,
+          type: 'monument', lat: pin.lat, lng: pin.lng,
           mName: m.name, mRegion: m.region,
           mAge: m.est_age, mNotes: m.notes,
-          mStatus,
+          mStatus, pinOverridden: pinOverrides.has(m.name),
         },
       });
     });
@@ -933,10 +953,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
     // 5. Bearing lines: measured axis (cyan solid) + ideal to Np' (gold dashed) for comparison
     monuments.forEach(m => {
+      const pin = resolvePin(m);
       const axis = measuredAxes.get(m.name);
       if (!axis) return; // No tautological line — only show when measured axis exists
       // Measured axis line (cyan solid)
-      const measuredArc = interpolateGreatCircle(m.lat, m.lng, axis.endLat, axis.endLng);
+      const measuredArc = interpolateGreatCircle(pin.lat, pin.lng, axis.endLat, axis.endLng);
       const measuredFlat = measuredArc.flatMap(([lat, lng]) => [lng, lat]);
       ds.bearingLines.entities.add({
         polyline: {
@@ -947,7 +968,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         },
       });
       // Ideal line to Np' (gold dashed) for comparison
-      const idealArc = interpolateGreatCircle(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
+      const idealArc = interpolateGreatCircle(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
       const idealFlat = idealArc.flatMap(([lat, lng]) => [lng, lat]);
       ds.bearingLines.entities.add({
         polyline: {
@@ -971,7 +992,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.bearingLines.show = layers.bearingLines;
     ds.measuredAxes.show = layers.bearingLines;
 
-  }, [seismicEvents, volcData, layers, monuments, verified, measuredAxes]);
+  }, [seismicEvents, volcData, layers, monuments, verified, measuredAxes, pinOverrides]);
 
   // Fly to clicked monument
   useEffect(() => {
@@ -1075,6 +1096,55 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     previewEntityRef.current = entity;
   }, [axisMode, axisPreview]);
 
+  // Pin-replace mode: click globe to reposition a monument pin
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !pinMode) return;
+
+    const container = cesiumContainerRef.current;
+    if (container) container.style.cursor = 'crosshair';
+
+    const pinHandler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+
+    // LEFT_CLICK: place pin at new position
+    pinHandler.setInputAction((click) => {
+      const ray = viewer.camera.getPickRay(click.position);
+      if (!ray) return;
+      const cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      if (!cartesian) return;
+      const carto = Cesium.Cartographic.fromCartesian(cartesian);
+      const newLat = Cesium.Math.toDegrees(carto.latitude);
+      const newLng = Cesium.Math.toDegrees(carto.longitude);
+      const mode = pinModeRef.current;
+      if (!mode) return;
+      setPinOverrides(prev => {
+        const next = new Map(prev);
+        next.set(mode.monumentName, { lat: newLat, lng: newLng });
+        localStorage.setItem('ecdo-watch-pins', JSON.stringify(Object.fromEntries(next)));
+        return next;
+      });
+      // Update selectedPoint so the info panel reflects new coords
+      setSelectedPoint(prev => prev && prev.mName === mode.monumentName
+        ? { ...prev, lat: newLat, lng: newLng, pinOverridden: true }
+        : prev
+      );
+      setPinMode(null);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // RIGHT_CLICK: cancel
+    pinHandler.setInputAction(() => { setPinMode(null); }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+    // Escape key: cancel
+    const onKeyDown = (e) => { if (e.key === 'Escape') setPinMode(null); };
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      pinHandler.destroy();
+      document.removeEventListener('keydown', onKeyDown);
+      if (container) container.style.cursor = 'grab';
+    };
+  }, [pinMode]);
+
   const toggleLayer = (key) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -1113,6 +1183,26 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           </div>
           <div style={{ color: '#e8e8ed', fontSize: 11, marginTop: 4 }}>
             Click on the globe to set the axis endpoint for <span style={{ color: '#00e5ff', fontWeight: 600 }}>{axisMode.monumentName}</span>
+          </div>
+          <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 2 }}>
+            Right-click or Esc to cancel
+          </div>
+        </div>
+      )}
+
+      {/* Pin replace mode banner */}
+      {pinMode && (
+        <div style={{
+          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1100, background: 'rgba(245,158,11,0.12)', border: '1px solid #f59e0b',
+          borderRadius: 8, padding: '10px 20px', textAlign: 'center',
+          backdropFilter: 'blur(8px)', pointerEvents: 'none',
+        }}>
+          <div style={{ color: '#f59e0b', fontFamily: 'monospace', fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>
+            PIN REPLACE MODE
+          </div>
+          <div style={{ color: '#e8e8ed', fontSize: 11, marginTop: 4 }}>
+            Click on the globe to reposition <span style={{ color: '#f59e0b', fontWeight: 600 }}>{pinMode.monumentName}</span>
           </div>
           <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 2 }}>
             Right-click or Esc to cancel
@@ -1268,25 +1358,50 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                       </>
                     );
                   })()}
-                  <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
-                  {(() => {
-                    const st = verified.get(d.mName);
-                    const clr = st === 'verified' ? '#22c55e' : st === 'plausible' ? '#eab308' : '#7a7a8c';
-                    const label = st === 'verified' ? '\u2713 VERIFIED' : st === 'plausible' ? '~ PLAUSIBLE' : 'MARK PLAUSIBLE';
-                    return (
-                      <button onClick={() => cycleVerified(d.mName)} style={{
-                        marginTop: 8, padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
-                        fontWeight: 600, border: `1px solid ${clr}`, borderRadius: 4,
-                        background: st ? clr + '22' : 'transparent',
-                        color: clr, cursor: 'pointer',
-                      }}>{label}</button>
-                    );
-                  })()}
-                  <button onClick={() => startAxisDrawing(d.mName, d.lat, d.lng)} style={{
-                    marginTop: 4, padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
-                    fontWeight: 600, border: '1px solid #00e5ff', borderRadius: 4,
-                    background: 'rgba(0,229,255,0.08)', color: '#00e5ff', cursor: 'pointer',
-                  }}>{axis ? 'REDRAW AXIS' : 'DRAW AXIS'}</button>
+                  <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>
+                    {d.lat.toFixed(3)}, {d.lng.toFixed(3)}
+                    {d.pinOverridden && (
+                      <span style={{ color: '#f59e0b', marginLeft: 6 }}>(moved)
+                        <button onClick={() => {
+                          setPinOverrides(prev => {
+                            const next = new Map(prev);
+                            next.delete(d.mName);
+                            localStorage.setItem('ecdo-watch-pins', JSON.stringify(Object.fromEntries(next)));
+                            return next;
+                          });
+                        }} style={{
+                          marginLeft: 4, padding: '0 4px', fontSize: 8, fontFamily: 'monospace',
+                          border: '1px solid #7a7a8c', borderRadius: 3,
+                          background: 'transparent', color: '#7a7a8c', cursor: 'pointer',
+                        }}>reset</button>
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
+                    {(() => {
+                      const st = verified.get(d.mName);
+                      const clr = st === 'verified' ? '#22c55e' : st === 'plausible' ? '#eab308' : '#7a7a8c';
+                      const label = st === 'verified' ? '\u2713 VERIFIED' : st === 'plausible' ? '~ PLAUSIBLE' : 'MARK PLAUSIBLE';
+                      return (
+                        <button onClick={() => cycleVerified(d.mName)} style={{
+                          padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                          fontWeight: 600, border: `1px solid ${clr}`, borderRadius: 4,
+                          background: st ? clr + '22' : 'transparent',
+                          color: clr, cursor: 'pointer',
+                        }}>{label}</button>
+                      );
+                    })()}
+                    <button onClick={() => startPinReplace(d.mName, d.lat, d.lng)} style={{
+                      padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                      fontWeight: 600, border: '1px solid #f59e0b', borderRadius: 4,
+                      background: 'rgba(245,158,11,0.08)', color: '#f59e0b', cursor: 'pointer',
+                    }}>{d.pinOverridden ? 'MOVE PIN' : 'REPLACE PIN'}</button>
+                    <button onClick={() => startAxisDrawing(d.mName, d.lat, d.lng)} style={{
+                      padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                      fontWeight: 600, border: '1px solid #00e5ff', borderRadius: 4,
+                      background: 'rgba(0,229,255,0.08)', color: '#00e5ff', cursor: 'pointer',
+                    }}>{axis ? 'REDRAW AXIS' : 'DRAW AXIS'}</button>
+                  </div>
                 </>
               );
             })()}
