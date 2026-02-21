@@ -646,7 +646,7 @@ const calcBearing = (lat1, lng1, lat2, lng2) => {
   return ((toDeg(Math.atan2(y, x)) % 360) + 360) % 360;
 };
 
-// Interpolate great circle arc as array of [lat,lng] pairs (for Leaflet polylines)
+// Interpolate great circle arc as array of [lat,lng] pairs
 const interpolateGreatCircle = (lat1, lng1, lat2, lng2, numPoints = 60) => {
   const toRad = d => d * Math.PI / 180;
   const toDeg = r => r * 180 / Math.PI;
@@ -671,21 +671,17 @@ const interpolateGreatCircle = (lat1, lng1, lat2, lng2, numPoints = 60) => {
   return points;
 };
 
-// Globe component using globe.gl
+// Globe component using CesiumJS
 const GlobeView = ({ seismicEvents, volcData }) => {
-  const globeContainerRef = useRef(null);
-  const globeInstanceRef = useRef(null);
+  const cesiumContainerRef = useRef(null);
+  const viewerRef = useRef(null);
+  const dataSourcesRef = useRef({});
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
-  const [platePaths, setPlatePaths] = useState([]);
   const [layers, setLayers] = useState({
     plates: true, earthquakes: true, volcanoes: true,
     stations: true, monuments: true, bearingLines: true,
   });
-  const [viewMode, setViewMode] = useState('globe');
-  const mapContainerRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const mapLayerGroupsRef = useRef(null);
 
   // Load monuments data
   useEffect(() => {
@@ -695,498 +691,253 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       .catch(() => {});
   }, []);
 
+  // CesiumJS Viewer init (runs once)
   useEffect(() => {
-    if (!globeContainerRef.current || typeof Globe === 'undefined') return;
+    if (!cesiumContainerRef.current || typeof Cesium === 'undefined') return;
+    if (viewerRef.current) return;
 
-    // Only create the globe once
-    if (globeInstanceRef.current) return;
+    Cesium.Ion.defaultAccessToken = undefined;
 
-    const container = globeContainerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight || Math.max(400, width * 0.75);
+    const viewer = new Cesium.Viewer(cesiumContainerRef.current, {
+      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+        Cesium.ArcGisMapServerImageryProvider.fromUrl(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+        )
+      ),
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      navigationHelpButton: false,
+      animation: false,
+      timeline: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+    });
 
-    const globe = Globe()
-      .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg')
-      .backgroundColor('rgba(0,0,0,0)')
-      .showAtmosphere(true)
-      .atmosphereColor('#3a228a')
-      .atmosphereAltitude(0.15)
-      .width(width)
-      .height(height)
-      .pointOfView({ lat: 10, lng: 170, altitude: 2.2 })
-      (container);
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#08080c');
+    viewer.scene.skyBox.show = false;
+    viewer.scene.sun.show = false;
+    viewer.scene.moon.show = false;
+    viewer.scene.skyAtmosphere.show = true;
 
-    // Auto-rotate
-    globe.controls().autoRotate = true;
-    globe.controls().autoRotateSpeed = 0.3;
-    globe.controls().enableZoom = true;
+    // Initial camera (lat:10, lng:170)
+    viewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(170, 10, 20000000),
+    });
 
-    globeInstanceRef.current = globe;
+    // Create CustomDataSources for each layer
+    const ds = {
+      plates: new Cesium.CustomDataSource('plates'),
+      earthquakes: new Cesium.CustomDataSource('earthquakes'),
+      volcanoes: new Cesium.CustomDataSource('volcanoes'),
+      stations: new Cesium.CustomDataSource('stations'),
+      monuments: new Cesium.CustomDataSource('monuments'),
+      bearingLines: new Cesium.CustomDataSource('bearingLines'),
+    };
+    Object.values(ds).forEach(d => viewer.dataSources.add(d));
+    dataSourcesRef.current = ds;
 
-    // Configure path rendering (tectonic plates) - set once
-    globe
-      .pathPoints('points')
-      .pathPointLat(p => p[1])
-      .pathPointLng(p => p[0])
-      .pathColor(() => 'rgba(245, 158, 11, 0.25)')
-      .pathStroke(0.4)
-      .pathTransitionDuration(0);
+    // Click handler
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+    handler.setInputAction((click) => {
+      const picked = viewer.scene.pick(click.position);
+      if (Cesium.defined(picked) && picked.id && picked.id._customData) {
+        setSelectedPoint(picked.id._customData);
+      } else {
+        setSelectedPoint(null);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-    // Configure arc rendering (bearing lines to Np') - set once
-    globe
-      .arcStartLat('startLat')
-      .arcStartLng('startLng')
-      .arcEndLat('endLat')
-      .arcEndLng('endLng')
-      .arcColor(() => ['rgba(245, 158, 11, 0.6)', 'rgba(34, 197, 94, 0.6)'])
-      .arcStroke(0.5)
-      .arcAltitudeAutoScale(0.3)
-      .arcDashLength(0.4)
-      .arcDashGap(0.2)
-      .arcDashAnimateTime(2000);
+    viewerRef.current = viewer;
 
-    // Fetch tectonic plate boundaries
+    // Fetch tectonic plates -> add to ds.plates as polyline entities
     fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data || !data.features) return;
-        const paths = [];
         data.features.forEach(f => {
           const lines = f.geometry.type === 'MultiLineString'
-            ? f.geometry.coordinates
-            : [f.geometry.coordinates];
+            ? f.geometry.coordinates : [f.geometry.coordinates];
           lines.forEach(line => {
-            paths.push({ points: line });
+            const flat = line.flatMap(([lng, lat]) => [lng, lat]);
+            ds.plates.entities.add({
+              polyline: {
+                positions: Cesium.Cartesian3.fromDegreesArray(flat),
+                width: 1,
+                material: Cesium.Color.fromCssColorString('rgba(245, 158, 11, 0.3)'),
+                clampToGround: true,
+              },
+            });
           });
         });
-        setPlatePaths(paths);
       })
       .catch(() => {});
 
-    // Use ResizeObserver to track container size changes (grid layout, window resize)
-    const ro = new ResizeObserver(() => {
-      if (globeInstanceRef.current && globeContainerRef.current) {
-        const w = globeContainerRef.current.clientWidth;
-        const h = globeContainerRef.current.clientHeight;
-        if (w > 0 && h > 0) {
-          globeInstanceRef.current.width(w).height(h);
-        }
-      }
-    });
-    ro.observe(container);
-
     return () => {
-      ro.disconnect();
+      handler.destroy();
+      viewer.destroy();
+      viewerRef.current = null;
     };
   }, []);
 
   // Update data layers when data or toggles change
   useEffect(() => {
-    if (!globeInstanceRef.current) return;
-    const globe = globeInstanceRef.current;
+    const ds = dataSourcesRef.current;
+    if (!ds.earthquakes) return;
 
-    // Build combined points data
-    const pointsData = [];
+    // Clear dynamic data sources (not plates — those are static from init)
+    ds.earthquakes.entities.removeAll();
+    ds.volcanoes.entities.removeAll();
+    ds.stations.entities.removeAll();
+    ds.monuments.entities.removeAll();
+    ds.bearingLines.entities.removeAll();
 
     // 1. Earthquake epicenters (purple) - scaled by magnitude
-    if (layers.earthquakes && seismicEvents && seismicEvents.events) {
+    if (seismicEvents && seismicEvents.events) {
       seismicEvents.events.forEach(ev => {
-        pointsData.push({
-          lat: ev.lat, lng: ev.lon,
-          size: Math.max(0.4, (ev.mag - 3.5) * 0.4),
-          color: ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6',
-          altitude: 0.005, type: 'earthquake',
-          mag: ev.mag, depth_km: ev.depth_km,
-          date: ev.date, datetime: ev.datetime || ev.date,
+        const color = ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6';
+        ds.earthquakes.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(ev.lon, ev.lat),
+          point: {
+            pixelSize: Math.max(5, (ev.mag - 3.5) * 4),
+            color: Cesium.Color.fromCssColorString(color),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 0.5,
+          },
+          _customData: {
+            type: 'earthquake', lat: ev.lat, lng: ev.lon,
+            mag: ev.mag, depth_km: ev.depth_km,
+            date: ev.date, datetime: ev.datetime || ev.date,
+          },
         });
       });
     }
 
     // 2. Active volcanoes (red)
-    if (layers.volcanoes && volcData && volcData.current_volcanoes) {
+    if (volcData && volcData.current_volcanoes) {
       volcData.current_volcanoes.forEach(v => {
-        pointsData.push({
-          lat: v.lat, lng: v.lon,
-          size: 0.4, color: '#ef4444',
-          altitude: 0.01, type: 'volcano',
-          vName: v.name, vStatus: v.status,
-          vStartDate: v.start_date || null,
-          vVei: v.vei != null ? v.vei : null,
+        ds.volcanoes.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(v.lon, v.lat),
+          point: {
+            pixelSize: 6,
+            color: Cesium.Color.fromCssColorString('#ef4444'),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 0.5,
+          },
+          _customData: {
+            type: 'volcano', lat: v.lat, lng: v.lon,
+            vName: v.name, vStatus: v.status,
+            vStartDate: v.start_date || null,
+            vVei: v.vei != null ? v.vei : null,
+          },
         });
       });
     }
 
     // 3. Magnetometer stations (blue)
-    if (layers.stations) {
-      MAG_STATION_COORDS.forEach(s => {
-        pointsData.push({
-          lat: s.lat, lng: s.lng,
-          size: 0.35, color: '#4a9eff',
-          altitude: 0.015, type: 'station',
+    MAG_STATION_COORDS.forEach(s => {
+      ds.stations.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(s.lng, s.lat),
+        point: {
+          pixelSize: 6,
+          color: Cesium.Color.fromCssColorString('#4a9eff'),
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 0.5,
+        },
+        _customData: {
+          type: 'station', lat: s.lat, lng: s.lng,
           sCode: s.code, sName: s.name,
-        });
+        },
       });
-    }
+    });
 
-    // 4. Ancient monuments (gold) + Np' (green)
-    if (layers.monuments) {
-      monuments.forEach(m => {
-        pointsData.push({
-          lat: m.lat, lng: m.lng,
-          size: 0.5, color: '#f59e0b',
-          altitude: 0.02, type: 'monument',
+    // 4. Ancient monuments (gold)
+    monuments.forEach(m => {
+      ds.monuments.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(m.lng, m.lat),
+        point: {
+          pixelSize: 8,
+          color: Cesium.Color.fromCssColorString('#f59e0b'),
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 1.5,
+        },
+        _customData: {
+          type: 'monument', lat: m.lat, lng: m.lng,
           mName: m.name, mRegion: m.region,
           mAge: m.est_age, mNotes: m.notes,
-        });
+        },
       });
-      // Np' special marker
-      pointsData.push({
-        lat: NP_PRIME.lat, lng: NP_PRIME.lng,
-        size: 0.7, color: '#22c55e',
-        altitude: 0.02, type: 'np_prime',
-      });
-    }
-
-    const tooltipStyle = 'background:rgba(15,15,21,0.95);border:1px solid #252532;border-radius:6px;padding:8px 12px;font-family:Inter,system-ui,sans-serif;font-size:11px;color:#e8e8ed;line-height:1.5;max-width:220px;pointer-events:none;';
-    const dimStyle = 'color:#7a7a8c;font-size:10px;';
-    const valStyle = 'font-family:monospace;font-weight:600;';
-
-    globe
-      .pointsData(pointsData)
-      .pointLat('lat')
-      .pointLng('lng')
-      .pointAltitude('altitude')
-      .pointRadius('size')
-      .pointColor('color')
-      .pointLabel(d => {
-        if (d.type === 'earthquake') {
-          return `<div style="${tooltipStyle}border-left:3px solid #8b5cf6;">
-            <div style="margin-bottom:4px;"><span style="${dimStyle}">DEEP EARTHQUAKE</span></div>
-            <div><span style="${valStyle}color:#c084fc;">M${d.mag}</span> <span style="${dimStyle}">| ${d.depth_km.toFixed(0)}km depth</span></div>
-            <div style="${dimStyle}">${d.date}</div>
-            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
-          </div>`;
-        }
-        if (d.type === 'volcano') {
-          const statusColor = d.vStatus === 'erupting' ? '#ef4444' : d.vStatus === 'elevated' ? '#f59e0b' : '#7a7a8c';
-          return `<div style="${tooltipStyle}border-left:3px solid #ef4444;">
-            <div style="margin-bottom:4px;"><span style="${dimStyle}">VOLCANO</span></div>
-            <div style="${valStyle}">${d.vName}</div>
-            <div><span style="color:${statusColor};font-size:10px;font-weight:600;text-transform:uppercase;">${d.vStatus || 'active'}</span></div>
-            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
-          </div>`;
-        }
-        if (d.type === 'station') {
-          return `<div style="${tooltipStyle}border-left:3px solid #4a9eff;">
-            <div style="margin-bottom:4px;"><span style="${dimStyle}">MAG STATION</span></div>
-            <div style="${valStyle}">${d.sCode}</div>
-            <div style="${dimStyle}">${d.sName}</div>
-            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
-          </div>`;
-        }
-        if (d.type === 'monument') {
-          const bearing = calcBearing(d.lat, d.lng, NP_PRIME.lat, NP_PRIME.lng);
-          return `<div style="${tooltipStyle}border-left:3px solid #f59e0b;">
-            <div style="margin-bottom:4px;"><span style="${dimStyle}">ANCIENT MONUMENT</span></div>
-            <div style="${valStyle}">${d.mName}</div>
-            <div style="${dimStyle}">${d.mRegion} | ${d.mAge}</div>
-            <div style="${dimStyle}">Bearing to Np\u2032: ${bearing.toFixed(1)}\u00b0</div>
-            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
-          </div>`;
-        }
-        if (d.type === 'np_prime') {
-          return `<div style="${tooltipStyle}border-left:3px solid #22c55e;">
-            <div style="margin-bottom:4px;"><span style="${dimStyle}">HYPOTHESIZED POLE</span></div>
-            <div style="${valStyle}color:#22c55e;">Np\u2032 (Former North Pole)</div>
-            <div style="${dimStyle}">14\u00b0S, 31\u00b0E</div>
-            <div style="${dimStyle}">ECDO Theory reference point</div>
-          </div>`;
-        }
-        return '';
-      })
-      .pointsMerge(false)
-      .onPointClick(d => {
-        setSelectedPoint(d);
-        if (globeInstanceRef.current) {
-          globeInstanceRef.current.controls().autoRotate = false;
-          globeInstanceRef.current.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.8 }, 600);
-        }
-      })
-      .onGlobeClick(() => {
-        setSelectedPoint(null);
-        if (globeInstanceRef.current) {
-          globeInstanceRef.current.controls().autoRotate = true;
-        }
-      });
-
-    // Rings
-    const ringsData = [];
-    if (layers.earthquakes && seismicEvents && seismicEvents.events) {
-      seismicEvents.events.forEach(ev => {
-        ringsData.push({
-          lat: ev.lat, lng: ev.lon,
-          maxR: (ev.mag - 3.5) * 1.5,
-          propagationSpeed: 1,
-          repeatPeriod: ev.mag >= 5.5 ? 1200 : 2000,
-          color: ev.mag >= 6.0 ? 'rgba(192,132,252,0.6)' : 'rgba(139,92,246,0.4)',
-        });
-      });
-    }
-
-    if (layers.volcanoes && volcData && volcData.current_volcanoes) {
-      const now = Date.now();
-      volcData.current_volcanoes.forEach(v => {
-        const vei = v.vei != null ? v.vei : 1;
-        let daysSinceStart = 3650;
-        if (v.start_date) {
-          const sd = new Date(v.start_date);
-          if (!isNaN(sd)) daysSinceStart = Math.max(1, (now - sd) / 86400000);
-        }
-        const recency = Math.max(0.15, 1.0 - Math.log10(daysSinceStart) / Math.log10(3650));
-        const maxR = 0.8 + vei * 0.55;
-        const repeatPeriod = Math.round(1000 + (1 - recency) * 3000);
-        const alpha = (0.25 + recency * 0.45).toFixed(2);
-        ringsData.push({
-          lat: v.lat, lng: v.lon,
-          maxR, propagationSpeed: 0.6 + recency * 0.8,
-          repeatPeriod, color: `rgba(239, 68, 68, ${alpha})`,
-        });
-      });
-    }
-
-    // Np' pulsing ring
-    if (layers.monuments) {
-      ringsData.push({
-        lat: NP_PRIME.lat, lng: NP_PRIME.lng,
-        maxR: 2, propagationSpeed: 1.5,
-        repeatPeriod: 1500,
-        color: 'rgba(34, 197, 94, 0.5)',
-      });
-    }
-
-    globe
-      .ringsData(ringsData)
-      .ringLat('lat')
-      .ringLng('lng')
-      .ringMaxRadius('maxR')
-      .ringPropagationSpeed('propagationSpeed')
-      .ringRepeatPeriod('repeatPeriod')
-      .ringColor('color');
-
-    // Tectonic plate paths (toggle-aware)
-    globe.pathsData(layers.plates ? platePaths : []);
-
-    // Bearing arc lines from monuments to Np'
-    if (layers.bearingLines && layers.monuments && monuments.length > 0) {
-      globe.arcsData(monuments.map(m => ({
-        startLat: m.lat, startLng: m.lng,
-        endLat: NP_PRIME.lat, endLng: NP_PRIME.lng,
-      })));
-    } else {
-      globe.arcsData([]);
-    }
-
-  }, [seismicEvents, volcData, layers, monuments, platePaths]);
-
-  // --- Leaflet map init (runs once) ---
-  useEffect(() => {
-    if (!mapContainerRef.current || typeof L === 'undefined') return;
-    if (mapInstanceRef.current) return;
-
-    const map = L.map(mapContainerRef.current, {
-      center: [10, 170],
-      zoom: 2,
-      zoomControl: true,
-      attributionControl: false,
     });
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 18,
-    }).addTo(map);
-
-    // Create layer groups for toggle control
-    const groups = {
-      plates: L.layerGroup().addTo(map),
-      earthquakes: L.layerGroup().addTo(map),
-      volcanoes: L.layerGroup().addTo(map),
-      stations: L.layerGroup().addTo(map),
-      monuments: L.layerGroup().addTo(map),
-      bearingLines: L.layerGroup().addTo(map),
-    };
-    mapLayerGroupsRef.current = groups;
-
-    // Fetch tectonic plates GeoJSON
-    fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data) return;
-        L.geoJSON(data, {
-          style: () => ({ color: 'rgba(245, 158, 11, 0.35)', weight: 1 }),
-        }).addTo(groups.plates);
-      })
-      .catch(() => {});
-
-    mapInstanceRef.current = map;
-
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-      mapLayerGroupsRef.current = null;
-    };
-  }, []);
-
-  // --- Leaflet data-update (mirrors globe data) ---
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    const groups = mapLayerGroupsRef.current;
-    if (!map || !groups) return;
-
-    // Clear data layers (not plates — those are static)
-    groups.earthquakes.clearLayers();
-    groups.volcanoes.clearLayers();
-    groups.stations.clearLayers();
-    groups.monuments.clearLayers();
-    groups.bearingLines.clearLayers();
-
-    const popupOpts = { className: '', maxWidth: 220 };
-
-    // Earthquakes
-    if (seismicEvents && seismicEvents.events) {
-      seismicEvents.events.forEach(ev => {
-        const r = Math.max(3, (ev.mag - 3.5) * 3);
-        const color = ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6';
-        L.circleMarker([ev.lat, ev.lon], {
-          radius: r, color, fillColor: color, fillOpacity: 0.7, weight: 1,
-        }).bindPopup(`<div style="line-height:1.5"><b style="color:#c084fc">M${ev.mag}</b> | ${ev.depth_km.toFixed(0)}km depth<br><span style="color:#7a7a8c">${ev.date}</span><br><span style="color:#7a7a8c">${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}</span></div>`, popupOpts)
-          .addTo(groups.earthquakes);
-      });
-    }
-
-    // Volcanoes
-    if (volcData && volcData.current_volcanoes) {
-      volcData.current_volcanoes.forEach(v => {
-        L.circleMarker([v.lat, v.lon], {
-          radius: 4, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.7, weight: 1,
-        }).bindPopup(`<div style="line-height:1.5"><b>${v.name}</b><br><span style="color:#ef4444;text-transform:uppercase;font-size:10px">${v.status || 'active'}</span><br><span style="color:#7a7a8c">${v.lat.toFixed(2)}, ${v.lon.toFixed(2)}</span></div>`, popupOpts)
-          .addTo(groups.volcanoes);
-      });
-    }
-
-    // Mag stations
-    MAG_STATION_COORDS.forEach(s => {
-      L.circleMarker([s.lat, s.lng], {
-        radius: 4, color: '#4a9eff', fillColor: '#4a9eff', fillOpacity: 0.7, weight: 1,
-      }).bindPopup(`<div style="line-height:1.5"><b style="color:#4a9eff">${s.code}</b><br>${s.name}<br><span style="color:#7a7a8c">${s.lat.toFixed(2)}, ${s.lng.toFixed(2)}</span></div>`, popupOpts)
-        .addTo(groups.stations);
+    // Np' special marker (green)
+    ds.monuments.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(NP_PRIME.lng, NP_PRIME.lat),
+      point: {
+        pixelSize: 10,
+        color: Cesium.Color.fromCssColorString('#22c55e'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+      },
+      _customData: {
+        type: 'np_prime', lat: NP_PRIME.lat, lng: NP_PRIME.lng,
+      },
     });
 
-    // Monuments + Np' + bearing lines
+    // 5. Bearing lines from monuments to Np' (gold dashed polylines)
     monuments.forEach(m => {
-      const bearing = calcBearing(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:10px;height:10px;background:#f59e0b;border:1.5px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(245,158,11,0.6);"></div>`,
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
+      const arcPts = interpolateGreatCircle(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
+      const flat = arcPts.flatMap(([lat, lng]) => [lng, lat]);
+      ds.bearingLines.entities.add({
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray(flat),
+          width: 1.5,
+          material: new Cesium.PolylineDashMaterialProperty({
+            color: Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.6),
+            dashLength: 12,
+          }),
+          clampToGround: true,
+        },
       });
-      L.marker([m.lat, m.lng], { icon })
-        .bindPopup(`<div style="line-height:1.5"><b style="color:#f59e0b">${m.name}</b><br>${m.region} | ${m.est_age}<br>Bearing to Np\u2032: <b style="color:#22c55e">${bearing.toFixed(1)}\u00b0</b><br><span style="color:#7a7a8c">${m.lat.toFixed(2)}, ${m.lng.toFixed(2)}</span>${m.notes ? `<br><span style="color:#7a7a8c;font-size:10px">${m.notes}</span>` : ''}</div>`, popupOpts)
-        .addTo(groups.monuments);
-
-      // Bearing line
-      const arc = interpolateGreatCircle(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
-      L.polyline(arc, {
-        color: '#f59e0b', weight: 1.2, opacity: 0.5,
-        dashArray: '6, 4',
-      }).addTo(groups.bearingLines);
     });
 
-    // Np' marker
-    const npIcon = L.divIcon({
-      className: '',
-      html: `<div style="width:12px;height:12px;background:#22c55e;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(34,197,94,0.7);"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
-    });
-    L.marker([NP_PRIME.lat, NP_PRIME.lng], { icon: npIcon })
-      .bindPopup(`<div style="line-height:1.5"><b style="color:#22c55e">Np\u2032 (Former North Pole)</b><br>14\u00b0S, 31\u00b0E<br><span style="color:#7a7a8c">ECDO Theory reference point</span></div>`, popupOpts)
-      .addTo(groups.monuments);
-
-    // Sync layer visibility with toggle state
-    Object.keys(groups).forEach(key => {
-      if (layers[key]) {
-        if (!map.hasLayer(groups[key])) map.addLayer(groups[key]);
-      } else {
-        if (map.hasLayer(groups[key])) map.removeLayer(groups[key]);
-      }
-    });
+    // Sync layer visibility
+    ds.plates.show = layers.plates;
+    ds.earthquakes.show = layers.earthquakes;
+    ds.volcanoes.show = layers.volcanoes;
+    ds.stations.show = layers.stations;
+    ds.monuments.show = layers.monuments;
+    ds.bearingLines.show = layers.bearingLines;
 
   }, [seismicEvents, volcData, layers, monuments]);
 
-  // --- invalidateSize when switching to map ---
+  // Fly to clicked monument
   useEffect(() => {
-    if (viewMode === 'map' && mapInstanceRef.current) {
-      const timer = setTimeout(() => {
-        mapInstanceRef.current.invalidateSize();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [viewMode]);
+    if (!selectedPoint || !viewerRef.current) return;
+    const d = selectedPoint;
+    const lng = d.lng != null ? d.lng : d.lon;
+    if (lng == null || d.lat == null) return;
+    viewerRef.current.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(lng, d.lat, 50000),
+      duration: 1.0,
+    });
+  }, [selectedPoint]);
 
   const toggleLayer = (key) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const toggleBtnStyle = (active) => ({
-    padding: '4px 10px',
-    fontSize: 10,
-    fontFamily: 'monospace',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all 0.15s ease',
-    background: active ? '#252532' : 'transparent',
-    color: active ? '#e8e8ed' : '#7a7a8c',
-  });
-
   return (
     <div style={{ position: 'relative', height: '100%', minHeight: 400 }}>
 
-      {/* Globe/Map toggle */}
-      <div style={{
-        position: 'absolute', top: 12, left: 12, zIndex: 1000,
-        display: 'flex', background: 'rgba(15,15,21,0.9)',
-        border: '1px solid #252532', borderRadius: 4, overflow: 'hidden',
-      }}>
-        <button onClick={() => setViewMode('globe')} style={toggleBtnStyle(viewMode === 'globe')}>Globe</button>
-        <button onClick={() => setViewMode('map')} style={toggleBtnStyle(viewMode === 'map')}>Map</button>
-      </div>
-
-      {/* Globe container */}
+      {/* Cesium container */}
       <div
-        ref={globeContainerRef}
-        style={{
-          width: '100%', height: '100%', cursor: 'grab',
-          ...(viewMode === 'globe'
-            ? { position: 'relative' }
-            : { position: 'absolute', top: 0, left: 0, visibility: 'hidden', pointerEvents: 'none' }),
-        }}
+        ref={cesiumContainerRef}
+        style={{ width: '100%', height: '100%', cursor: 'grab' }}
       />
 
-      {/* Map container */}
-      <div
-        ref={mapContainerRef}
-        style={{
-          width: '100%', height: '100%',
-          ...(viewMode === 'map'
-            ? { position: 'relative' }
-            : { position: 'absolute', top: 0, left: 0, visibility: 'hidden', pointerEvents: 'none' }),
-        }}
-      />
-
-      {/* Layer toggle panel (shared) */}
+      {/* Layer toggle panel */}
       <div style={{
         position: 'absolute', bottom: 12, left: 12, zIndex: 1000,
         background: 'rgba(15,15,21,0.9)', border: '1px solid #252532',
@@ -1232,8 +983,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         ))}
       </div>
 
-      {/* Click info panel (globe only) */}
-      {viewMode === 'globe' && selectedPoint && (() => {
+      {/* Click info panel */}
+      {selectedPoint && (() => {
         const d = selectedPoint;
         const borderColor = d.type === 'earthquake' ? '#8b5cf6'
           : d.type === 'volcano' ? '#ef4444'
@@ -1258,7 +1009,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                  : 'Mag Station'}
               </span>
               <button
-                onClick={(e) => { e.stopPropagation(); setSelectedPoint(null); if (globeInstanceRef.current) globeInstanceRef.current.controls().autoRotate = true; }}
+                onClick={(e) => { e.stopPropagation(); setSelectedPoint(null); }}
                 style={{ background: 'transparent', border: 'none', color: '#7a7a8c', fontSize: 16, cursor: 'pointer', padding: 0, lineHeight: 1 }}
               >&#215;</button>
             </div>
