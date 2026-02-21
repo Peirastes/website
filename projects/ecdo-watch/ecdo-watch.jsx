@@ -633,11 +633,38 @@ const MAG_STATION_COORDS = [
   { code: 'HON', name: 'Honolulu', lat: 21.3155, lng: -157.9241 },
 ];
 
+// Hypothesized former/future North Pole position (Np')
+const NP_PRIME = { lat: -14, lng: 31 };
+
+// Calculate initial bearing from point A to point B (degrees)
+const calcBearing = (lat1, lng1, lat2, lng2) => {
+  const toRad = d => d * Math.PI / 180;
+  const toDeg = r => r * 180 / Math.PI;
+  const dLng = toRad(lng2 - lng1);
+  const y = Math.sin(dLng) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
+  return ((toDeg(Math.atan2(y, x)) % 360) + 360) % 360;
+};
+
 // Globe component using globe.gl
 const GlobeView = ({ seismicEvents, volcData }) => {
   const globeContainerRef = useRef(null);
   const globeInstanceRef = useRef(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
+  const [monuments, setMonuments] = useState([]);
+  const [platePaths, setPlatePaths] = useState([]);
+  const [layers, setLayers] = useState({
+    plates: true, earthquakes: true, volcanoes: true,
+    stations: true, monuments: true, bearingLines: true,
+  });
+
+  // Load monuments data
+  useEffect(() => {
+    fetch('./assets/monuments.json')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMonuments(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!globeContainerRef.current || typeof Globe === 'undefined') return;
@@ -667,11 +694,34 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
     globeInstanceRef.current = globe;
 
-    // Fetch tectonic plate boundaries and render as paths
+    // Configure path rendering (tectonic plates) - set once
+    globe
+      .pathPoints('points')
+      .pathPointLat(p => p[1])
+      .pathPointLng(p => p[0])
+      .pathColor(() => 'rgba(245, 158, 11, 0.25)')
+      .pathStroke(0.4)
+      .pathTransitionDuration(0);
+
+    // Configure arc rendering (bearing lines to Np') - set once
+    globe
+      .arcStartLat('startLat')
+      .arcStartLng('startLng')
+      .arcEndLat('endLat')
+      .arcEndLng('endLng')
+      .arcColor(() => ['rgba(245, 158, 11, 0.6)', 'rgba(34, 197, 94, 0.6)'])
+      .arcStroke(0.5)
+      .arcAltitudeAutoScale(0.3)
+      .arcDashLength(0.4)
+      .arcDashGap(0.2)
+      .arcDashAnimateTime(2000)
+      .arcTransitionDuration(0);
+
+    // Fetch tectonic plate boundaries
     fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data || !data.features || !globeInstanceRef.current) return;
+        if (!data || !data.features) return;
         const paths = [];
         data.features.forEach(f => {
           const lines = f.geometry.type === 'MultiLineString'
@@ -681,16 +731,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             paths.push({ points: line });
           });
         });
-        globeInstanceRef.current
-          .pathsData(paths)
-          .pathPoints('points')
-          .pathPointLat(p => p[1])
-          .pathPointLng(p => p[0])
-          .pathColor(() => 'rgba(245, 158, 11, 0.25)')
-          .pathStroke(0.4)
-          .pathTransitionDuration(0);
+        setPlatePaths(paths);
       })
-      .catch(() => {}); // fail silently
+      .catch(() => {});
 
     // Use ResizeObserver to track container size changes (grid layout, window resize)
     const ro = new ResizeObserver(() => {
@@ -709,7 +752,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     };
   }, []);
 
-  // Update data layers when data changes
+  // Update data layers when data or toggles change
   useEffect(() => {
     if (!globeInstanceRef.current) return;
     const globe = globeInstanceRef.current;
@@ -718,35 +761,27 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     const pointsData = [];
 
     // 1. Earthquake epicenters (purple) - scaled by magnitude
-    if (seismicEvents && seismicEvents.events) {
+    if (layers.earthquakes && seismicEvents && seismicEvents.events) {
       seismicEvents.events.forEach(ev => {
         pointsData.push({
-          lat: ev.lat,
-          lng: ev.lon,
+          lat: ev.lat, lng: ev.lon,
           size: Math.max(0.4, (ev.mag - 3.5) * 0.4),
           color: ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6',
-          altitude: 0.005,
-          type: 'earthquake',
-          mag: ev.mag,
-          depth_km: ev.depth_km,
-          date: ev.date,
-          datetime: ev.datetime || ev.date,
+          altitude: 0.005, type: 'earthquake',
+          mag: ev.mag, depth_km: ev.depth_km,
+          date: ev.date, datetime: ev.datetime || ev.date,
         });
       });
     }
 
     // 2. Active volcanoes (red)
-    if (volcData && volcData.current_volcanoes) {
+    if (layers.volcanoes && volcData && volcData.current_volcanoes) {
       volcData.current_volcanoes.forEach(v => {
         pointsData.push({
-          lat: v.lat,
-          lng: v.lon,
-          size: 0.4,
-          color: '#ef4444',
-          altitude: 0.01,
-          type: 'volcano',
-          vName: v.name,
-          vStatus: v.status,
+          lat: v.lat, lng: v.lon,
+          size: 0.4, color: '#ef4444',
+          altitude: 0.01, type: 'volcano',
+          vName: v.name, vStatus: v.status,
           vStartDate: v.start_date || null,
           vVei: v.vei != null ? v.vei : null,
         });
@@ -754,18 +789,35 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     }
 
     // 3. Magnetometer stations (blue)
-    MAG_STATION_COORDS.forEach(s => {
-      pointsData.push({
-        lat: s.lat,
-        lng: s.lng,
-        size: 0.35,
-        color: '#4a9eff',
-        altitude: 0.015,
-        type: 'station',
-        sCode: s.code,
-        sName: s.name,
+    if (layers.stations) {
+      MAG_STATION_COORDS.forEach(s => {
+        pointsData.push({
+          lat: s.lat, lng: s.lng,
+          size: 0.35, color: '#4a9eff',
+          altitude: 0.015, type: 'station',
+          sCode: s.code, sName: s.name,
+        });
       });
-    });
+    }
+
+    // 4. Ancient monuments (gold) + Np' (green)
+    if (layers.monuments) {
+      monuments.forEach(m => {
+        pointsData.push({
+          lat: m.lat, lng: m.lng,
+          size: 0.5, color: '#f59e0b',
+          altitude: 0.02, type: 'monument',
+          mName: m.name, mRegion: m.region,
+          mAge: m.est_age, mNotes: m.notes,
+        });
+      });
+      // Np' special marker
+      pointsData.push({
+        lat: NP_PRIME.lat, lng: NP_PRIME.lng,
+        size: 0.7, color: '#22c55e',
+        altitude: 0.02, type: 'np_prime',
+      });
+    }
 
     const tooltipStyle = 'background:rgba(15,15,21,0.95);border:1px solid #252532;border-radius:6px;padding:8px 12px;font-family:Inter,system-ui,sans-serif;font-size:11px;color:#e8e8ed;line-height:1.5;max-width:220px;pointer-events:none;';
     const dimStyle = 'color:#7a7a8c;font-size:10px;';
@@ -804,6 +856,24 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
           </div>`;
         }
+        if (d.type === 'monument') {
+          const bearing = calcBearing(d.lat, d.lng, NP_PRIME.lat, NP_PRIME.lng);
+          return `<div style="${tooltipStyle}border-left:3px solid #f59e0b;">
+            <div style="margin-bottom:4px;"><span style="${dimStyle}">ANCIENT MONUMENT</span></div>
+            <div style="${valStyle}">${d.mName}</div>
+            <div style="${dimStyle}">${d.mRegion} | ${d.mAge}</div>
+            <div style="${dimStyle}">Bearing to Np\u2032: ${bearing.toFixed(1)}\u00b0</div>
+            <div style="${dimStyle}">${d.lat.toFixed(2)}, ${d.lng.toFixed(2)}</div>
+          </div>`;
+        }
+        if (d.type === 'np_prime') {
+          return `<div style="${tooltipStyle}border-left:3px solid #22c55e;">
+            <div style="margin-bottom:4px;"><span style="${dimStyle}">HYPOTHESIZED POLE</span></div>
+            <div style="${valStyle}color:#22c55e;">Np\u2032 (Former North Pole)</div>
+            <div style="${dimStyle}">14\u00b0S, 31\u00b0E</div>
+            <div style="${dimStyle}">ECDO Theory reference point</div>
+          </div>`;
+        }
         return '';
       })
       .pointsMerge(false)
@@ -811,7 +881,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         setSelectedPoint(d);
         if (globeInstanceRef.current) {
           globeInstanceRef.current.controls().autoRotate = false;
-          // Focus the globe on the clicked point
           globeInstanceRef.current.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.8 }, 600);
         }
       })
@@ -822,13 +891,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         }
       });
 
-    // Add rings around earthquake epicenters for visibility
+    // Rings
     const ringsData = [];
-    if (seismicEvents && seismicEvents.events) {
+    if (layers.earthquakes && seismicEvents && seismicEvents.events) {
       seismicEvents.events.forEach(ev => {
         ringsData.push({
-          lat: ev.lat,
-          lng: ev.lon,
+          lat: ev.lat, lng: ev.lon,
           maxR: (ev.mag - 3.5) * 1.5,
           propagationSpeed: 1,
           repeatPeriod: ev.mag >= 5.5 ? 1200 : 2000,
@@ -837,33 +905,34 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     }
 
-    // Add rings around volcanoes — intensity from VEI, speed from recency
-    if (volcData && volcData.current_volcanoes) {
+    if (layers.volcanoes && volcData && volcData.current_volcanoes) {
       const now = Date.now();
       volcData.current_volcanoes.forEach(v => {
         const vei = v.vei != null ? v.vei : 1;
-        // Recency: days since eruption started (capped at 10 years)
         let daysSinceStart = 3650;
         if (v.start_date) {
           const sd = new Date(v.start_date);
           if (!isNaN(sd)) daysSinceStart = Math.max(1, (now - sd) / 86400000);
         }
-        // Recency factor: 1.0 for today, decays toward 0.15 for very old eruptions
         const recency = Math.max(0.15, 1.0 - Math.log10(daysSinceStart) / Math.log10(3650));
-        // Ring size: VEI 0→0.8, VEI 2→1.6, VEI 4→2.8, VEI 7→4.6
         const maxR = 0.8 + vei * 0.55;
-        // Pulse faster for recent eruptions
         const repeatPeriod = Math.round(1000 + (1 - recency) * 3000);
-        // Brighter for recent, dimmer for old
         const alpha = (0.25 + recency * 0.45).toFixed(2);
         ringsData.push({
-          lat: v.lat,
-          lng: v.lon,
-          maxR,
-          propagationSpeed: 0.6 + recency * 0.8,
-          repeatPeriod,
-          color: `rgba(239, 68, 68, ${alpha})`,
+          lat: v.lat, lng: v.lon,
+          maxR, propagationSpeed: 0.6 + recency * 0.8,
+          repeatPeriod, color: `rgba(239, 68, 68, ${alpha})`,
         });
+      });
+    }
+
+    // Np' pulsing ring
+    if (layers.monuments) {
+      ringsData.push({
+        lat: NP_PRIME.lat, lng: NP_PRIME.lng,
+        maxR: 2, propagationSpeed: 1.5,
+        repeatPeriod: 1500,
+        color: 'rgba(34, 197, 94, 0.5)',
       });
     }
 
@@ -876,40 +945,83 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       .ringRepeatPeriod('repeatPeriod')
       .ringColor('color');
 
-  }, [seismicEvents, volcData]);
+    // Tectonic plate paths (toggle-aware)
+    globe.pathsData(layers.plates ? platePaths : []);
+
+    // Bearing arc lines from monuments to Np'
+    if (layers.bearingLines && layers.monuments && monuments.length > 0) {
+      globe.arcsData(monuments.map(m => ({
+        startLat: m.lat, startLng: m.lng,
+        endLat: NP_PRIME.lat, endLng: NP_PRIME.lng,
+      })));
+    } else {
+      globe.arcsData([]);
+    }
+
+  }, [seismicEvents, volcData, layers, monuments, platePaths]);
+
+  const toggleLayer = (key) => {
+    setLayers(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div style={{ position: 'relative', height: '100%', minHeight: 400 }}>
       <div ref={globeContainerRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />
-      {/* Legend overlay */}
+
+      {/* Layer toggle panel */}
       <div style={{
         position: 'absolute', bottom: 12, left: 12,
-        background: 'rgba(15,15,21,0.85)', border: '1px solid #252532',
-        borderRadius: 6, padding: '8px 12px', fontSize: 10, color: '#a8a8bc',
-        display: 'flex', flexDirection: 'column', gap: 4,
+        background: 'rgba(15,15,21,0.9)', border: '1px solid #252532',
+        borderRadius: 6, padding: '8px 10px', fontSize: 10, color: '#a8a8bc',
+        display: 'flex', flexDirection: 'column', gap: 3, userSelect: 'none',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6', display: 'inline-block' }} />
-          Deep EQ (>300km)
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-          Active Volcanoes
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a9eff', display: 'inline-block' }} />
-          Mag Stations
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 12, height: 2, background: 'rgba(245, 158, 11, 0.5)', display: 'inline-block' }} />
-          Plate Boundaries
-        </div>
+        {[
+          { key: 'plates', label: 'Plate Boundaries', color: 'rgba(245, 158, 11, 0.5)', shape: 'line' },
+          { key: 'earthquakes', label: 'Deep EQ (>300km)', color: '#8b5cf6', shape: 'dot' },
+          { key: 'volcanoes', label: 'Active Volcanoes', color: '#ef4444', shape: 'dot' },
+          { key: 'stations', label: 'Mag Stations', color: '#4a9eff', shape: 'dot' },
+          { key: 'monuments', label: 'Ancient Monuments', color: '#f59e0b', shape: 'dot' },
+          { key: 'bearingLines', label: "Np\u2032 Bearing Lines", color: '#22c55e', shape: 'line' },
+        ].map(item => (
+          <label key={item.key} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            cursor: 'pointer', opacity: layers[item.key] ? 1 : 0.4,
+            transition: 'opacity 0.15s ease',
+          }}>
+            <input
+              type="checkbox"
+              checked={layers[item.key]}
+              onChange={() => toggleLayer(item.key)}
+              style={{ display: 'none' }}
+            />
+            {item.shape === 'dot' ? (
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: layers[item.key] ? item.color : '#333',
+                display: 'inline-block', flexShrink: 0,
+                transition: 'background 0.15s ease',
+              }} />
+            ) : (
+              <span style={{
+                width: 12, height: 2,
+                background: layers[item.key] ? item.color : '#333',
+                display: 'inline-block', flexShrink: 0,
+                transition: 'background 0.15s ease',
+              }} />
+            )}
+            <span style={{ fontSize: 10 }}>{item.label}</span>
+          </label>
+        ))}
       </div>
 
       {/* Click info panel */}
       {selectedPoint && (() => {
         const d = selectedPoint;
-        const borderColor = d.type === 'earthquake' ? '#8b5cf6' : d.type === 'volcano' ? '#ef4444' : '#4a9eff';
+        const borderColor = d.type === 'earthquake' ? '#8b5cf6'
+          : d.type === 'volcano' ? '#ef4444'
+          : d.type === 'monument' ? '#f59e0b'
+          : d.type === 'np_prime' ? '#22c55e'
+          : '#4a9eff';
         return (
           <div style={{
             position: 'absolute', top: 12, right: 12,
@@ -921,7 +1033,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
               <span style={{ fontSize: 9, color: '#7a7a8c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {d.type === 'earthquake' ? 'Deep Earthquake' : d.type === 'volcano' ? 'Volcano' : 'Mag Station'}
+                {d.type === 'earthquake' ? 'Deep Earthquake'
+                 : d.type === 'volcano' ? 'Volcano'
+                 : d.type === 'monument' ? 'Ancient Monument'
+                 : d.type === 'np_prime' ? 'Hypothesized Pole'
+                 : 'Mag Station'}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); setSelectedPoint(null); if (globeInstanceRef.current) globeInstanceRef.current.controls().autoRotate = true; }}
@@ -960,6 +1076,27 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: '#4a9eff', marginBottom: 4 }}>{d.sCode}</div>
                 <div style={{ color: '#a8a8bc' }}>{d.sName}</div>
                 <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+              </>
+            )}
+            {d.type === 'monument' && (() => {
+              const bearing = calcBearing(d.lat, d.lng, NP_PRIME.lat, NP_PRIME.lng);
+              return (
+                <>
+                  <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>{d.mName}</div>
+                  <div style={{ color: '#a8a8bc' }}>Region: <span style={{ color: '#e8e8ed' }}>{d.mRegion}</span></div>
+                  <div style={{ color: '#a8a8bc' }}>Est. age: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.mAge}</span></div>
+                  {d.mNotes && <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>{d.mNotes}</div>}
+                  <div style={{ color: '#a8a8bc', marginTop: 4 }}>Bearing to Np&#8242;: <span style={{ color: '#22c55e', fontFamily: 'monospace', fontWeight: 600 }}>{bearing.toFixed(1)}&deg;</span></div>
+                  <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
+                </>
+              );
+            })()}
+            {d.type === 'np_prime' && (
+              <>
+                <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#22c55e', marginBottom: 4 }}>Np&#8242; (Former North Pole)</div>
+                <div style={{ color: '#a8a8bc' }}>ECDO Theory reference point</div>
+                <div style={{ color: '#a8a8bc', marginTop: 4 }}>Position: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>14&deg;S, 31&deg;E</span></div>
+                <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>Hypothesized former/future North Pole per ECDO theory. ~200 ancient monuments allegedly align structural axes toward this point.</div>
               </>
             )}
           </div>
@@ -1535,10 +1672,11 @@ function ECDOWatchDashboard() {
         <div style={{ marginBottom: 12 }}>
           <div style={{ border: '1px solid #1e3a5f', borderRadius: 10, boxShadow: '0 0 20px rgba(74,158,255,0.05)' }}>
             <Card title="Geophysical Spatial Monitor" info={{
-              description: "Interactive 3D globe showing the spatial distribution of deep earthquakes, active volcanoes, and magnetometer stations. The polar motion spiral reveals the Chandler wobble \u2014 a ~433-day oscillation with ~6m amplitude.",
+              description: "Interactive 3D globe showing deep earthquakes, active volcanoes, magnetometer stations, and ancient monument alignments toward Np\u2032 (hypothesized former North Pole at 14\u00b0S, 31\u00b0E). Use the layer toggles to show/hide each data layer.",
               lookingFor: [
                 "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
                 "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
+                "Ancient monument structural axes converging toward Np\u2032 (31\u00b0E, 14\u00b0S)",
                 "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
                 "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
               ],
