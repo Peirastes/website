@@ -1343,7 +1343,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                             {axis && (() => {
                               const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
                               const dev = Math.abs(axis.bearing - ideal);
-                              const deviation = dev > 180 ? 360 - dev : dev;
+                              const deviation = dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
                               const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
                               return (
                                 <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace' }}>
@@ -1440,7 +1440,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                   <div style={{ color: '#a8a8bc', marginTop: 4 }}>Ideal bearing to Np&#8242;: <span style={{ color: '#f59e0b', fontFamily: 'monospace', fontWeight: 600 }}>{idealBearing.toFixed(1)}&deg;</span></div>
                   {axis && (() => {
                     const dev = Math.abs(axis.bearing - idealBearing);
-                    const deviation = dev > 180 ? 360 - dev : dev;
+                    const deviation = dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
                     const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
                     return (
                       <>
