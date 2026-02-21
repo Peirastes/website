@@ -731,7 +731,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
   // Load monuments data
   useEffect(() => {
-    fetch('./assets/monuments.json')
+    fetch('./assets/monuments.json?v=' + Date.now())
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         const arr = Array.isArray(data) ? data : [];
