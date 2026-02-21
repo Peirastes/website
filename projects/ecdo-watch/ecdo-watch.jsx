@@ -714,8 +714,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       .arcAltitudeAutoScale(0.3)
       .arcDashLength(0.4)
       .arcDashGap(0.2)
-      .arcDashAnimateTime(2000)
-      .arcTransitionDuration(0);
+      .arcDashAnimateTime(2000);
 
     // Fetch tectonic plate boundaries
     fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
