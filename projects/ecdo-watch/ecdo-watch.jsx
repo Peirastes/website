@@ -696,14 +696,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     if (!cesiumContainerRef.current || typeof Cesium === 'undefined') return;
     if (viewerRef.current) return;
 
-    Cesium.Ion.defaultAccessToken = undefined;
-
     const viewer = new Cesium.Viewer(cesiumContainerRef.current, {
-      baseLayer: Cesium.ImageryLayer.fromProviderAsync(
-        Cesium.ArcGisMapServerImageryProvider.fromUrl(
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
-        )
-      ),
+      baseLayer: false,
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -716,10 +711,19 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       selectionIndicator: false,
     });
 
+    // Add ESRI World Imagery manually (avoids Promise-in-constructor issues)
+    Cesium.ArcGisMapServerImageryProvider.fromUrl(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+    ).then(provider => {
+      if (!viewer.isDestroyed()) {
+        viewer.imageryLayers.addImageryProvider(provider);
+      }
+    }).catch(() => {});
+
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#08080c');
-    viewer.scene.skyBox.show = false;
-    viewer.scene.sun.show = false;
-    viewer.scene.moon.show = false;
+    if (viewer.scene.skyBox) viewer.scene.skyBox.show = false;
+    if (viewer.scene.sun) viewer.scene.sun.show = false;
+    if (viewer.scene.moon) viewer.scene.moon.show = false;
     viewer.scene.skyAtmosphere.show = true;
 
     // Initial camera (lat:10, lng:170)
