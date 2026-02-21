@@ -646,6 +646,31 @@ const calcBearing = (lat1, lng1, lat2, lng2) => {
   return ((toDeg(Math.atan2(y, x)) % 360) + 360) % 360;
 };
 
+// Interpolate great circle arc as array of [lat,lng] pairs (for Leaflet polylines)
+const interpolateGreatCircle = (lat1, lng1, lat2, lng2, numPoints = 60) => {
+  const toRad = d => d * Math.PI / 180;
+  const toDeg = r => r * 180 / Math.PI;
+  const phi1 = toRad(lat1), lam1 = toRad(lng1);
+  const phi2 = toRad(lat2), lam2 = toRad(lng2);
+  // Angular distance (haversine)
+  const d = 2 * Math.asin(Math.sqrt(
+    Math.pow(Math.sin((phi2 - phi1) / 2), 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.pow(Math.sin((lam2 - lam1) / 2), 2)
+  ));
+  if (d < 1e-10) return [[lat1, lng1], [lat2, lng2]];
+  const points = [];
+  for (let i = 0; i <= numPoints; i++) {
+    const f = i / numPoints;
+    const A = Math.sin((1 - f) * d) / Math.sin(d);
+    const B = Math.sin(f * d) / Math.sin(d);
+    const x = A * Math.cos(phi1) * Math.cos(lam1) + B * Math.cos(phi2) * Math.cos(lam2);
+    const y = A * Math.cos(phi1) * Math.sin(lam1) + B * Math.cos(phi2) * Math.sin(lam2);
+    const z = A * Math.sin(phi1) + B * Math.sin(phi2);
+    points.push([toDeg(Math.atan2(z, Math.sqrt(x * x + y * y))), toDeg(Math.atan2(y, x))]);
+  }
+  return points;
+};
+
 // Globe component using globe.gl
 const GlobeView = ({ seismicEvents, volcData }) => {
   const globeContainerRef = useRef(null);
@@ -657,6 +682,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     plates: true, earthquakes: true, volcanoes: true,
     stations: true, monuments: true, bearingLines: true,
   });
+  const [viewMode, setViewMode] = useState('globe');
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const mapLayerGroupsRef = useRef(null);
 
   // Load monuments data
   useEffect(() => {
@@ -959,17 +988,207 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
   }, [seismicEvents, volcData, layers, monuments, platePaths]);
 
+  // --- Leaflet map init (runs once) ---
+  useEffect(() => {
+    if (!mapContainerRef.current || typeof L === 'undefined') return;
+    if (mapInstanceRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: [10, 170],
+      zoom: 2,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 18,
+    }).addTo(map);
+
+    // Create layer groups for toggle control
+    const groups = {
+      plates: L.layerGroup().addTo(map),
+      earthquakes: L.layerGroup().addTo(map),
+      volcanoes: L.layerGroup().addTo(map),
+      stations: L.layerGroup().addTo(map),
+      monuments: L.layerGroup().addTo(map),
+      bearingLines: L.layerGroup().addTo(map),
+    };
+    mapLayerGroupsRef.current = groups;
+
+    // Fetch tectonic plates GeoJSON
+    fetch('https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        L.geoJSON(data, {
+          style: () => ({ color: 'rgba(245, 158, 11, 0.35)', weight: 1 }),
+        }).addTo(groups.plates);
+      })
+      .catch(() => {});
+
+    mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+      mapLayerGroupsRef.current = null;
+    };
+  }, []);
+
+  // --- Leaflet data-update (mirrors globe data) ---
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const groups = mapLayerGroupsRef.current;
+    if (!map || !groups) return;
+
+    // Clear data layers (not plates — those are static)
+    groups.earthquakes.clearLayers();
+    groups.volcanoes.clearLayers();
+    groups.stations.clearLayers();
+    groups.monuments.clearLayers();
+    groups.bearingLines.clearLayers();
+
+    const popupOpts = { className: '', maxWidth: 220 };
+
+    // Earthquakes
+    if (seismicEvents && seismicEvents.events) {
+      seismicEvents.events.forEach(ev => {
+        const r = Math.max(3, (ev.mag - 3.5) * 3);
+        const color = ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6';
+        L.circleMarker([ev.lat, ev.lon], {
+          radius: r, color, fillColor: color, fillOpacity: 0.7, weight: 1,
+        }).bindPopup(`<div style="line-height:1.5"><b style="color:#c084fc">M${ev.mag}</b> | ${ev.depth_km.toFixed(0)}km depth<br><span style="color:#7a7a8c">${ev.date}</span><br><span style="color:#7a7a8c">${ev.lat.toFixed(2)}, ${ev.lon.toFixed(2)}</span></div>`, popupOpts)
+          .addTo(groups.earthquakes);
+      });
+    }
+
+    // Volcanoes
+    if (volcData && volcData.current_volcanoes) {
+      volcData.current_volcanoes.forEach(v => {
+        L.circleMarker([v.lat, v.lon], {
+          radius: 4, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.7, weight: 1,
+        }).bindPopup(`<div style="line-height:1.5"><b>${v.name}</b><br><span style="color:#ef4444;text-transform:uppercase;font-size:10px">${v.status || 'active'}</span><br><span style="color:#7a7a8c">${v.lat.toFixed(2)}, ${v.lon.toFixed(2)}</span></div>`, popupOpts)
+          .addTo(groups.volcanoes);
+      });
+    }
+
+    // Mag stations
+    MAG_STATION_COORDS.forEach(s => {
+      L.circleMarker([s.lat, s.lng], {
+        radius: 4, color: '#4a9eff', fillColor: '#4a9eff', fillOpacity: 0.7, weight: 1,
+      }).bindPopup(`<div style="line-height:1.5"><b style="color:#4a9eff">${s.code}</b><br>${s.name}<br><span style="color:#7a7a8c">${s.lat.toFixed(2)}, ${s.lng.toFixed(2)}</span></div>`, popupOpts)
+        .addTo(groups.stations);
+    });
+
+    // Monuments + Np' + bearing lines
+    monuments.forEach(m => {
+      const bearing = calcBearing(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:10px;height:10px;background:#f59e0b;border:1.5px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(245,158,11,0.6);"></div>`,
+        iconSize: [10, 10],
+        iconAnchor: [5, 5],
+      });
+      L.marker([m.lat, m.lng], { icon })
+        .bindPopup(`<div style="line-height:1.5"><b style="color:#f59e0b">${m.name}</b><br>${m.region} | ${m.est_age}<br>Bearing to Np\u2032: <b style="color:#22c55e">${bearing.toFixed(1)}\u00b0</b><br><span style="color:#7a7a8c">${m.lat.toFixed(2)}, ${m.lng.toFixed(2)}</span>${m.notes ? `<br><span style="color:#7a7a8c;font-size:10px">${m.notes}</span>` : ''}</div>`, popupOpts)
+        .addTo(groups.monuments);
+
+      // Bearing line
+      const arc = interpolateGreatCircle(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
+      L.polyline(arc, {
+        color: '#f59e0b', weight: 1.2, opacity: 0.5,
+        dashArray: '6, 4',
+      }).addTo(groups.bearingLines);
+    });
+
+    // Np' marker
+    const npIcon = L.divIcon({
+      className: '',
+      html: `<div style="width:12px;height:12px;background:#22c55e;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(34,197,94,0.7);"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6],
+    });
+    L.marker([NP_PRIME.lat, NP_PRIME.lng], { icon: npIcon })
+      .bindPopup(`<div style="line-height:1.5"><b style="color:#22c55e">Np\u2032 (Former North Pole)</b><br>14\u00b0S, 31\u00b0E<br><span style="color:#7a7a8c">ECDO Theory reference point</span></div>`, popupOpts)
+      .addTo(groups.monuments);
+
+    // Sync layer visibility with toggle state
+    Object.keys(groups).forEach(key => {
+      if (layers[key]) {
+        if (!map.hasLayer(groups[key])) map.addLayer(groups[key]);
+      } else {
+        if (map.hasLayer(groups[key])) map.removeLayer(groups[key]);
+      }
+    });
+
+  }, [seismicEvents, volcData, layers, monuments]);
+
+  // --- invalidateSize when switching to map ---
+  useEffect(() => {
+    if (viewMode === 'map' && mapInstanceRef.current) {
+      const timer = setTimeout(() => {
+        mapInstanceRef.current.invalidateSize();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode]);
+
   const toggleLayer = (key) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const toggleBtnStyle = (active) => ({
+    padding: '4px 10px',
+    fontSize: 10,
+    fontFamily: 'monospace',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    background: active ? '#252532' : 'transparent',
+    color: active ? '#e8e8ed' : '#7a7a8c',
+  });
+
   return (
     <div style={{ position: 'relative', height: '100%', minHeight: 400 }}>
-      <div ref={globeContainerRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />
 
-      {/* Layer toggle panel */}
+      {/* Globe/Map toggle */}
       <div style={{
-        position: 'absolute', bottom: 12, left: 12,
+        position: 'absolute', top: 12, left: 12, zIndex: 1000,
+        display: 'flex', background: 'rgba(15,15,21,0.9)',
+        border: '1px solid #252532', borderRadius: 4, overflow: 'hidden',
+      }}>
+        <button onClick={() => setViewMode('globe')} style={toggleBtnStyle(viewMode === 'globe')}>Globe</button>
+        <button onClick={() => setViewMode('map')} style={toggleBtnStyle(viewMode === 'map')}>Map</button>
+      </div>
+
+      {/* Globe container */}
+      <div
+        ref={globeContainerRef}
+        style={{
+          width: '100%', height: '100%', cursor: 'grab',
+          ...(viewMode === 'globe'
+            ? { position: 'relative' }
+            : { position: 'absolute', top: 0, left: 0, visibility: 'hidden', pointerEvents: 'none' }),
+        }}
+      />
+
+      {/* Map container */}
+      <div
+        ref={mapContainerRef}
+        style={{
+          width: '100%', height: '100%',
+          ...(viewMode === 'map'
+            ? { position: 'relative' }
+            : { position: 'absolute', top: 0, left: 0, visibility: 'hidden', pointerEvents: 'none' }),
+        }}
+      />
+
+      {/* Layer toggle panel (shared) */}
+      <div style={{
+        position: 'absolute', bottom: 12, left: 12, zIndex: 1000,
         background: 'rgba(15,15,21,0.9)', border: '1px solid #252532',
         borderRadius: 6, padding: '8px 10px', fontSize: 10, color: '#a8a8bc',
         display: 'flex', flexDirection: 'column', gap: 3, userSelect: 'none',
@@ -1013,8 +1232,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         ))}
       </div>
 
-      {/* Click info panel */}
-      {selectedPoint && (() => {
+      {/* Click info panel (globe only) */}
+      {viewMode === 'globe' && selectedPoint && (() => {
         const d = selectedPoint;
         const borderColor = d.type === 'earthquake' ? '#8b5cf6'
           : d.type === 'volcano' ? '#ef4444'
@@ -1023,7 +1242,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           : '#4a9eff';
         return (
           <div style={{
-            position: 'absolute', top: 12, right: 12,
+            position: 'absolute', top: 12, right: 12, zIndex: 1000,
             background: 'rgba(15,15,21,0.95)', border: '1px solid #252532',
             borderLeft: `3px solid ${borderColor}`,
             borderRadius: 6, padding: '12px 16px', fontSize: 11, color: '#e8e8ed',
