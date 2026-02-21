@@ -592,6 +592,19 @@ var fmt=function(v){return"$"+Math.abs(v||0).toLocaleString("en-US",{maximumFrac
 var fmtP=function(v){return"$"+(v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})};
 var fmtPct=function(v){return(v>=0?"+":"")+(v*100).toFixed(1)+"%"};
 
+// ═══ SPECTRUM DATA ═══
+var spectrumData=null,spectrumLoading=false;
+function loadSpectrum(){if(spectrumData||spectrumLoading)return;spectrumLoading=true;
+  fetch('../market-analytics-dashboard/assets/spectrum_summary.json')
+  .then(function(r){return r.json()})
+  .then(function(d){spectrumData=d;spectrumLoading=false;dirty=true})
+  .catch(function(){spectrumLoading=false})}
+var spectrumMap={"MPT":"MPW"};
+function getSpectrum(name){if(!spectrumData)return null;var t=spectrumMap[name]||name;return spectrumData.tickers[t]||null}
+function specGradeColor(g){return g==='A+'||g==='A'||g==='B+'?'#33ff66':g==='B'||g==='C'?'#ff8822':'#ff3344'}
+function specDimColor(v){return v>65?'#33ff66':v>40?'#ff8822':'#ff3344'}
+loadSpectrum();
+
 // ═══ CACHE ALL DOM REFS ═══
 var $=function(id){return document.getElementById(id)};
 var D={chC:$('chC'),oscC:$('oscC'),LS:$('LS'),RS:$('RS'),
@@ -972,6 +985,7 @@ function updateDOM(){
     h+='<div style="display:flex;justify-content:space-between;padding:2px 4px;cursor:pointer;align-items:center" onclick="S.buyId='+a.id+';S.expA='+(exp?'null':a.id)+';dirty=true">'
       +'<span><span style="color:'+a.color+'">●</span> '+a.name+' <span style="color:rgba(51,255,102,.12);font-size:7px">'+(a.fullName||'')+'</span></span>'
       +'<span style="color:#8a9094;font-size:9px">'+fmtP(a.currentPrice)+' <span style="color:'+(ch>=0?'#33ff66':'#ff3344')+'">'+fmtPct(ch)+'</span>'
+      +(function(){var sp=getSpectrum(a.name);return sp?' <span style="color:'+specGradeColor(sp.grade)+';font-size:7px;font-weight:700">'+sp.grade+sp.composite+'</span>':''})()
       +(a.manual?' <span style="color:#ffd700;font-size:7px">M</span>':'')+'</span></div>';
     // Expanded panel
     if(exp){
@@ -993,7 +1007,43 @@ function updateDOM(){
       h+='<div style="padding:2px 6px;font-size:7px;border-radius:2px;cursor:pointer;'
         +'background:rgba(255,68,102,.08);border:1px solid rgba(255,68,102,.25);color:#ff4466'
         +'" onclick="removeAsset('+a.id+')">✕</div>';
-      h+='</div></div>';}
+      h+='</div>';
+      // SPECTRUM analytics
+      var sp=getSpectrum(a.name);
+      if(sp){
+        h+='<div style="margin-top:4px;padding-top:4px;border-top:1px solid rgba(51,255,102,.06)">';
+        h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+          +'<span style="font-size:8px;color:rgba(51,255,102,.25)">SPECTRUM</span>'
+          +'<span><span style="color:'+specGradeColor(sp.grade)+';font-size:10px;font-weight:700">'+sp.grade+'</span>'
+          +'<span style="color:rgba(51,255,102,.3);font-size:8px"> '+sp.composite+'</span>'
+          +' <span style="font-size:7px;color:'+(sp.signal==='BULLISH'?'#33ff66':sp.signal==='BEARISH'?'#ff3344':'#8a9094')+'">'+sp.signal+'</span></span></div>';
+        var dims=[['F',sp.dimensions.F],['T',sp.dimensions.T],['V',sp.dimensions.V],['M',sp.dimensions.M],['A',sp.dimensions.A]];
+        h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;margin-bottom:3px">';
+        dims.forEach(function(d){var pct=Math.round(d[1]);
+          h+='<div style="display:flex;align-items:center;gap:3px;font-size:7px">'
+            +'<span style="color:rgba(51,255,102,.3);width:8px">'+d[0]+'</span>'
+            +'<div style="flex:1;height:3px;background:rgba(255,255,255,.06);border-radius:1px">'
+            +'<div style="width:'+pct+'%;height:100%;background:'+specDimColor(pct)+';border-radius:1px;opacity:.7"></div></div>'
+            +'<span style="color:rgba(51,255,102,.2);width:16px;text-align:right">'+pct+'</span></div>';
+        });
+        h+='</div>';
+        var km=sp.keyMetrics;
+        if(km){h+='<div style="font-size:7px;color:rgba(51,255,102,.2);margin-bottom:2px">';
+          var parts=[];
+          if(km.rsi!=null)parts.push('RSI:'+km.rsi);
+          if(km.pe!=null)parts.push('P/E:'+km.pe);
+          if(km.margin)parts.push('MRG:'+km.margin);
+          if(km.targetUpside)parts.push('TGT:'+km.targetUpside);
+          if(km.shortRatio!=null)parts.push('SHR:'+km.shortRatio);
+          h+=parts.join(' | ')+'</div>';}
+        if(sp.intel){
+          if(sp.intel.thesis)h+='<div style="font-size:6px;color:rgba(51,255,102,.15);margin-bottom:1px"><span style="color:rgba(51,255,102,.25)">THESIS:</span> '+sp.intel.thesis.substring(0,120)+(sp.intel.thesis.length>120?'...':'')+'</div>';
+          if(sp.intel.risk)h+='<div style="font-size:6px;color:rgba(51,255,102,.15);margin-bottom:1px"><span style="color:rgba(255,136,34,.25)">RISK:</span> '+sp.intel.risk.substring(0,120)+(sp.intel.risk.length>120?'...':'')+'</div>';
+          if(sp.intel.watch)h+='<div style="font-size:6px;color:rgba(51,255,102,.15)"><span style="color:rgba(0,204,221,.25)">WATCH:</span> '+sp.intel.watch.substring(0,120)+(sp.intel.watch.length>120?'...':'')+'</div>';
+        }
+        h+='</div>';
+      }
+      h+='</div>';}
     h+='</div>';return h}).join('');
   // Right screen
   var pc=pnl>=0?'#33ff66':'#ff3344';

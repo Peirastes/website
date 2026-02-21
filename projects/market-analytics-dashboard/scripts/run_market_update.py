@@ -28,6 +28,7 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 
 DATA_SCRIPT = SCRIPTS_DIR / "generate_market_data.py"
+SUMMARY_SCRIPT = SCRIPTS_DIR / "generate_spectrum_summary.py"
 STATUS_FILE = LOGS_DIR / "last_run_status.json"
 
 TIMEOUT_SECONDS = 300  # 5 minutes max
@@ -231,6 +232,25 @@ def main():
 
     # Run the update
     result = run_data_generator()
+
+    # Generate SPECTRUM summary (lightweight scoring file for Lab integration)
+    if result == 0:
+        try:
+            logger.info("Generating SPECTRUM summary...")
+            summary_result = subprocess.run(
+                [sys.executable, str(SUMMARY_SCRIPT)],
+                capture_output=True, text=True, timeout=60,
+                cwd=str(SCRIPTS_DIR)
+            )
+            if summary_result.returncode == 0:
+                logger.info("[OK] SPECTRUM summary generated")
+                if summary_result.stdout:
+                    for line in summary_result.stdout.strip().split('\n'):
+                        logger.info(f"  {line}")
+            else:
+                logger.warning(f"[WARN] SPECTRUM summary failed: {summary_result.stderr[:200]}")
+        except Exception as e:
+            logger.warning(f"[WARN] SPECTRUM summary error: {e}")
 
     # If successful and not --no-push, commit and push
     if result == 0 and not args.no_push:
