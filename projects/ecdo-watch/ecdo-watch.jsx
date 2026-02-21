@@ -690,6 +690,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     plates: true, earthquakes: true, volcanoes: true,
     stations: true, monuments: true, bearingLines: true,
   });
+  const [monListOpen, setMonListOpen] = useState(false);
+  const [monSections, setMonSections] = useState({ verified: true, plausible: true, unconfirmed: true });
   const [axisMode, setAxisMode] = useState(null);       // null or { monumentName, lat, lng }
   const [axisPreview, setAxisPreview] = useState(null);  // null or { lat, lng }
   const [measuredAxes, setMeasuredAxes] = useState(() => {
@@ -1259,6 +1261,97 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           {[...verified.values()].filter(v => v === 'verified').length} &#10003; {[...verified.values()].filter(v => v === 'plausible').length} ~ / {monuments.length}
         </div>
       </div>
+
+      {/* Monument list panel */}
+      {(() => {
+        const groups = { verified: [], plausible: [], unconfirmed: [] };
+        monuments.forEach(m => {
+          const st = verified.get(m.name);
+          if (st === 'verified') groups.verified.push(m);
+          else if (st === 'plausible') groups.plausible.push(m);
+          else groups.unconfirmed.push(m);
+        });
+        const sectionDefs = [
+          { key: 'verified', label: 'Confirmed', color: '#22c55e', icon: '\u2713' },
+          { key: 'plausible', label: 'Plausible', color: '#eab308', icon: '~' },
+          { key: 'unconfirmed', label: 'Unconfirmed', color: '#7a7a8c', icon: '\u2022' },
+        ];
+        return (
+          <div style={{
+            position: 'absolute', top: 12, left: 12, zIndex: 1000,
+            userSelect: 'none',
+          }}>
+            <button onClick={() => setMonListOpen(p => !p)} style={{
+              background: 'rgba(15,15,21,0.9)', border: '1px solid #252532',
+              borderRadius: 6, padding: '6px 12px', fontSize: 10, fontFamily: 'monospace',
+              color: '#f59e0b', cursor: 'pointer', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: 8, transition: 'transform 0.15s', transform: monListOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>{'\u25B6'}</span>
+              Monuments ({monuments.length})
+            </button>
+            {monListOpen && (
+              <div style={{
+                marginTop: 4, background: 'rgba(15,15,21,0.95)', border: '1px solid #252532',
+                borderRadius: 6, padding: '6px 0', maxHeight: 350, overflowY: 'auto',
+                minWidth: 200, maxWidth: 260,
+              }}>
+                {sectionDefs.map(sec => {
+                  const items = groups[sec.key];
+                  if (items.length === 0) return null;
+                  const open = monSections[sec.key];
+                  return (
+                    <div key={sec.key}>
+                      <div
+                        onClick={() => setMonSections(p => ({ ...p, [sec.key]: !p[sec.key] }))}
+                        style={{
+                          padding: '4px 12px', fontSize: 10, fontFamily: 'monospace',
+                          fontWeight: 700, color: sec.color, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          borderBottom: '1px solid #1a1a2e',
+                        }}
+                      >
+                        <span style={{ fontSize: 7, transition: 'transform 0.15s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>{'\u25B6'}</span>
+                        {sec.icon} {sec.label} ({items.length})
+                      </div>
+                      {open && items.map(m => {
+                        const pin = resolvePin(m);
+                        const isSelected = selectedPoint && selectedPoint.mName === m.name;
+                        const axis = measuredAxes.get(m.name);
+                        return (
+                          <div
+                            key={m.name}
+                            onClick={() => {
+                              const mStatus = verified.get(m.name);
+                              setSelectedPoint({
+                                type: 'monument', lat: pin.lat, lng: pin.lng,
+                                mName: m.name, mRegion: m.region,
+                                mAge: m.est_age, mNotes: m.notes,
+                                mStatus, pinOverridden: pinOverrides.has(m.name),
+                              });
+                            }}
+                            style={{
+                              padding: '3px 12px 3px 24px', fontSize: 10, color: isSelected ? '#f59e0b' : '#a8a8bc',
+                              cursor: 'pointer', background: isSelected ? 'rgba(245,158,11,0.08)' : 'transparent',
+                              transition: 'background 0.1s',
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4,
+                            }}
+                            onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                            onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                          >
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                            {axis && <span style={{ fontSize: 8, color: '#00e5ff', flexShrink: 0 }}>{axis.bearing.toFixed(0)}&deg;</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Click info panel */}
       {selectedPoint && (() => {
