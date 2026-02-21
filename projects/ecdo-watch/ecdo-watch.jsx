@@ -690,6 +690,23 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     plates: true, earthquakes: true, volcanoes: true,
     stations: true, monuments: true, bearingLines: true,
   });
+  const [axisMode, setAxisMode] = useState(null);       // null or { monumentName, lat, lng }
+  const [axisPreview, setAxisPreview] = useState(null);  // null or { lat, lng }
+  const [measuredAxes, setMeasuredAxes] = useState(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('ecdo-watch-axes') || '{}');
+      return new Map(Object.entries(raw));
+    } catch { return new Map(); }
+  });
+  const axisModeRef = useRef(null);
+  const previewEntityRef = useRef(null);
+
+  useEffect(() => { axisModeRef.current = axisMode; }, [axisMode]);
+
+  const startAxisDrawing = (monumentName, lat, lng) => {
+    setAxisMode({ monumentName, lat, lng });
+    setAxisPreview(null);
+  };
 
   // Load monuments data
   useEffect(() => {
@@ -756,6 +773,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       stations: new Cesium.CustomDataSource('stations'),
       monuments: new Cesium.CustomDataSource('monuments'),
       bearingLines: new Cesium.CustomDataSource('bearingLines'),
+      measuredAxes: new Cesium.CustomDataSource('measuredAxes'),
     };
     Object.values(ds).forEach(d => viewer.dataSources.add(d));
     dataSourcesRef.current = ds;
@@ -763,6 +781,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     // Click handler
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
     handler.setInputAction((click) => {
+      if (axisModeRef.current) return;
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id && picked.id._customData) {
         setSelectedPoint(picked.id._customData);
@@ -814,6 +833,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.stations.entities.removeAll();
     ds.monuments.entities.removeAll();
     ds.bearingLines.entities.removeAll();
+    ds.measuredAxes.entities.removeAll();
+    previewEntityRef.current = null;
 
     // 1. Earthquake epicenters (purple) - scaled by magnitude
     if (seismicEvents && seismicEvents.events) {
@@ -910,13 +931,27 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       },
     });
 
-    // 5. Bearing lines from monuments to Np' (gold dashed polylines)
+    // 5. Bearing lines: measured axis (cyan solid) + ideal to Np' (gold dashed) for comparison
     monuments.forEach(m => {
-      const arcPts = interpolateGreatCircle(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
-      const flat = arcPts.flatMap(([lat, lng]) => [lng, lat]);
+      const axis = measuredAxes.get(m.name);
+      if (!axis) return; // No tautological line — only show when measured axis exists
+      // Measured axis line (cyan solid)
+      const measuredArc = interpolateGreatCircle(m.lat, m.lng, axis.endLat, axis.endLng);
+      const measuredFlat = measuredArc.flatMap(([lat, lng]) => [lng, lat]);
       ds.bearingLines.entities.add({
         polyline: {
-          positions: Cesium.Cartesian3.fromDegreesArray(flat),
+          positions: Cesium.Cartesian3.fromDegreesArray(measuredFlat),
+          width: 2,
+          material: Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.85),
+          clampToGround: true,
+        },
+      });
+      // Ideal line to Np' (gold dashed) for comparison
+      const idealArc = interpolateGreatCircle(m.lat, m.lng, NP_PRIME.lat, NP_PRIME.lng);
+      const idealFlat = idealArc.flatMap(([lat, lng]) => [lng, lat]);
+      ds.bearingLines.entities.add({
+        polyline: {
+          positions: Cesium.Cartesian3.fromDegreesArray(idealFlat),
           width: 1.5,
           material: new Cesium.PolylineDashMaterialProperty({
             color: Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.6),
@@ -934,8 +969,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.stations.show = layers.stations;
     ds.monuments.show = layers.monuments;
     ds.bearingLines.show = layers.bearingLines;
+    ds.measuredAxes.show = layers.bearingLines;
 
-  }, [seismicEvents, volcData, layers, monuments, verified]);
+  }, [seismicEvents, volcData, layers, monuments, verified, measuredAxes]);
 
   // Fly to clicked monument
   useEffect(() => {
@@ -948,6 +984,96 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       duration: 1.0,
     });
   }, [selectedPoint]);
+
+  // Axis-drawing mode: register event handlers
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !axisMode) return;
+
+    const container = cesiumContainerRef.current;
+    if (container) container.style.cursor = 'crosshair';
+
+    const drawHandler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+
+    // MOUSE_MOVE: update preview endpoint
+    drawHandler.setInputAction((movement) => {
+      const ray = viewer.camera.getPickRay(movement.endPosition);
+      if (!ray) return;
+      const cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      if (!cartesian) return;
+      const carto = Cesium.Cartographic.fromCartesian(cartesian);
+      setAxisPreview({
+        lat: Cesium.Math.toDegrees(carto.latitude),
+        lng: Cesium.Math.toDegrees(carto.longitude),
+      });
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    // LEFT_CLICK: finalize axis
+    drawHandler.setInputAction((click) => {
+      const ray = viewer.camera.getPickRay(click.position);
+      if (!ray) return;
+      const cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      if (!cartesian) return;
+      const carto = Cesium.Cartographic.fromCartesian(cartesian);
+      const endLat = Cesium.Math.toDegrees(carto.latitude);
+      const endLng = Cesium.Math.toDegrees(carto.longitude);
+      const mode = axisModeRef.current;
+      if (!mode) return;
+      const bearing = calcBearing(mode.lat, mode.lng, endLat, endLng);
+      setMeasuredAxes(prev => {
+        const next = new Map(prev);
+        next.set(mode.monumentName, { endLat, endLng, bearing });
+        localStorage.setItem('ecdo-watch-axes', JSON.stringify(Object.fromEntries(next)));
+        return next;
+      });
+      setAxisMode(null);
+      setAxisPreview(null);
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // RIGHT_CLICK: cancel
+    drawHandler.setInputAction(() => {
+      setAxisMode(null);
+      setAxisPreview(null);
+    }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+    // Escape key: cancel
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setAxisMode(null);
+        setAxisPreview(null);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      drawHandler.destroy();
+      document.removeEventListener('keydown', onKeyDown);
+      if (container) container.style.cursor = 'grab';
+    };
+  }, [axisMode]);
+
+  // Preview line: draw cyan polyline from monument to cursor
+  useEffect(() => {
+    const ds = dataSourcesRef.current;
+    if (!ds.measuredAxes) return;
+    // Remove old preview
+    if (previewEntityRef.current) {
+      ds.measuredAxes.entities.remove(previewEntityRef.current);
+      previewEntityRef.current = null;
+    }
+    if (!axisMode || !axisPreview) return;
+    const arcPts = interpolateGreatCircle(axisMode.lat, axisMode.lng, axisPreview.lat, axisPreview.lng);
+    const flat = arcPts.flatMap(([lat, lng]) => [lng, lat]);
+    const entity = ds.measuredAxes.entities.add({
+      polyline: {
+        positions: Cesium.Cartesian3.fromDegreesArray(flat),
+        width: 2,
+        material: Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.7),
+        clampToGround: true,
+      },
+    });
+    previewEntityRef.current = entity;
+  }, [axisMode, axisPreview]);
 
   const toggleLayer = (key) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
@@ -973,6 +1099,26 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         ref={cesiumContainerRef}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, cursor: 'grab' }}
       />
+
+      {/* Axis drawing mode banner */}
+      {axisMode && (
+        <div style={{
+          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1100, background: 'rgba(0,229,255,0.12)', border: '1px solid #00e5ff',
+          borderRadius: 8, padding: '10px 20px', textAlign: 'center',
+          backdropFilter: 'blur(8px)', pointerEvents: 'none',
+        }}>
+          <div style={{ color: '#00e5ff', fontFamily: 'monospace', fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>
+            AXIS DRAWING MODE
+          </div>
+          <div style={{ color: '#e8e8ed', fontSize: 11, marginTop: 4 }}>
+            Click on the globe to set the axis endpoint for <span style={{ color: '#00e5ff', fontWeight: 600 }}>{axisMode.monumentName}</span>
+          </div>
+          <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 2 }}>
+            Right-click or Esc to cancel
+          </div>
+        </div>
+      )}
 
       {/* Layer toggle panel */}
       <div style={{
@@ -1089,14 +1235,39 @@ const GlobeView = ({ seismicEvents, volcData }) => {
               </>
             )}
             {d.type === 'monument' && (() => {
-              const bearing = calcBearing(d.lat, d.lng, NP_PRIME.lat, NP_PRIME.lng);
+              const idealBearing = calcBearing(d.lat, d.lng, NP_PRIME.lat, NP_PRIME.lng);
+              const axis = measuredAxes.get(d.mName);
               return (
                 <>
                   <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>{d.mName}</div>
                   <div style={{ color: '#a8a8bc' }}>Region: <span style={{ color: '#e8e8ed' }}>{d.mRegion}</span></div>
                   <div style={{ color: '#a8a8bc' }}>Est. age: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.mAge}</span></div>
                   {d.mNotes && <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>{d.mNotes}</div>}
-                  <div style={{ color: '#a8a8bc', marginTop: 4 }}>Bearing to Np&#8242;: <span style={{ color: '#22c55e', fontFamily: 'monospace', fontWeight: 600 }}>{bearing.toFixed(1)}&deg;</span></div>
+                  <div style={{ color: '#a8a8bc', marginTop: 4 }}>Ideal bearing to Np&#8242;: <span style={{ color: '#f59e0b', fontFamily: 'monospace', fontWeight: 600 }}>{idealBearing.toFixed(1)}&deg;</span></div>
+                  {axis && (() => {
+                    const dev = Math.abs(axis.bearing - idealBearing);
+                    const deviation = dev > 180 ? 360 - dev : dev;
+                    const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
+                    return (
+                      <>
+                        <div style={{ color: '#a8a8bc' }}>Measured axis: <span style={{ color: '#00e5ff', fontFamily: 'monospace', fontWeight: 600 }}>{axis.bearing.toFixed(1)}&deg;</span></div>
+                        <div style={{ color: '#a8a8bc' }}>Deviation: <span style={{ color: devColor, fontFamily: 'monospace', fontWeight: 600 }}>{deviation.toFixed(1)}&deg;</span>
+                          <button onClick={() => {
+                            setMeasuredAxes(prev => {
+                              const next = new Map(prev);
+                              next.delete(d.mName);
+                              localStorage.setItem('ecdo-watch-axes', JSON.stringify(Object.fromEntries(next)));
+                              return next;
+                            });
+                          }} style={{
+                            marginLeft: 8, padding: '1px 5px', fontSize: 9, fontFamily: 'monospace',
+                            border: '1px solid #7a7a8c', borderRadius: 3,
+                            background: 'transparent', color: '#7a7a8c', cursor: 'pointer',
+                          }}>x clear</button>
+                        </div>
+                      </>
+                    );
+                  })()}
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
                   {(() => {
                     const st = verified.get(d.mName);
@@ -1111,6 +1282,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                       }}>{label}</button>
                     );
                   })()}
+                  <button onClick={() => startAxisDrawing(d.mName, d.lat, d.lng)} style={{
+                    marginTop: 4, padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                    fontWeight: 600, border: '1px solid #00e5ff', borderRadius: 4,
+                    background: 'rgba(0,229,255,0.08)', color: '#00e5ff', cursor: 'pointer',
+                  }}>{axis ? 'REDRAW AXIS' : 'DRAW AXIS'}</button>
                 </>
               );
             })()}
