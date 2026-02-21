@@ -2100,17 +2100,11 @@ function ECDOWatchDashboard() {
               ],
               dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
             }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-                gap: 16,
-              }}>
-                <div style={{ minHeight: 400 }}>
-                  <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
-                </div>
-                <div>
-                  <PolarMotionCharts polarMotionData={polarMotionData} />
-                </div>
+              <div style={{ minHeight: 500 }}>
+                <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <PolarMotionCharts polarMotionData={polarMotionData} />
               </div>
             </Card>
           </div>
