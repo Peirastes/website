@@ -679,8 +679,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
   const [verified, setVerified] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('ecdo-watch-verified') || '[]')); }
-    catch { return new Set(); }
+    try {
+      const raw = JSON.parse(localStorage.getItem('ecdo-watch-verified') || '{}');
+      // Migrate legacy array format (all entries become 'verified')
+      if (Array.isArray(raw)) return new Map(raw.map(n => [n, 'verified']));
+      return new Map(Object.entries(raw));
+    } catch { return new Map(); }
   });
   const [layers, setLayers] = useState({
     plates: true, earthquakes: true, volcanoes: true,
@@ -695,9 +699,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         const arr = Array.isArray(data) ? data : [];
         setMonuments(arr);
         setVerified(prev => {
-          const merged = new Set(prev);
-          arr.forEach(m => { if (m.verified) merged.add(m.name); });
-          localStorage.setItem('ecdo-watch-verified', JSON.stringify([...merged]));
+          const merged = new Map(prev);
+          arr.forEach(m => { if (m.verified && !merged.has(m.name)) merged.set(m.name, m.verified === 'plausible' ? 'plausible' : 'verified'); });
+          localStorage.setItem('ecdo-watch-verified', JSON.stringify(Object.fromEntries(merged)));
           return merged;
         });
       })
@@ -870,22 +874,24 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     });
 
-    // 4. Ancient monuments (gold; verified = green outline)
+    // 4. Ancient monuments (gold; plausible = yellow outline, verified = green outline)
     monuments.forEach(m => {
-      const mVerified = verified.has(m.name);
+      const mStatus = verified.get(m.name); // undefined | 'plausible' | 'verified'
+      const outlineColor = mStatus === 'verified' ? '#22c55e' : mStatus === 'plausible' ? '#eab308' : '#ffffff';
+      const outlineWidth = mStatus ? 2.5 : 1.5;
       ds.monuments.entities.add({
         position: Cesium.Cartesian3.fromDegrees(m.lng, m.lat),
         point: {
           pixelSize: 8,
           color: Cesium.Color.fromCssColorString('#f59e0b'),
-          outlineColor: mVerified ? Cesium.Color.fromCssColorString('#22c55e') : Cesium.Color.WHITE,
-          outlineWidth: mVerified ? 2.5 : 1.5,
+          outlineColor: Cesium.Color.fromCssColorString(outlineColor),
+          outlineWidth,
         },
         _customData: {
           type: 'monument', lat: m.lat, lng: m.lng,
           mName: m.name, mRegion: m.region,
           mAge: m.est_age, mNotes: m.notes,
-          mVerified,
+          mStatus,
         },
       });
     });
@@ -947,11 +953,14 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const toggleVerified = (name) => {
+  const cycleVerified = (name) => {
     setVerified(prev => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name); else next.add(name);
-      localStorage.setItem('ecdo-watch-verified', JSON.stringify([...next]));
+      const next = new Map(prev);
+      const cur = next.get(name);
+      if (!cur) next.set(name, 'plausible');
+      else if (cur === 'plausible') next.set(name, 'verified');
+      else next.delete(name);
+      localStorage.setItem('ecdo-watch-verified', JSON.stringify(Object.fromEntries(next)));
       return next;
     });
   };
@@ -1011,7 +1020,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         ))}
         <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid #252532',
           fontSize: 9, color: '#7a7a8c', fontFamily: 'monospace' }}>
-          &#10003; {verified.size} / {monuments.length} verified
+          {[...verified.values()].filter(v => v === 'verified').length} &#10003; {[...verified.values()].filter(v => v === 'plausible').length} ~ / {monuments.length}
         </div>
       </div>
 
@@ -1089,14 +1098,19 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                   {d.mNotes && <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>{d.mNotes}</div>}
                   <div style={{ color: '#a8a8bc', marginTop: 4 }}>Bearing to Np&#8242;: <span style={{ color: '#22c55e', fontFamily: 'monospace', fontWeight: 600 }}>{bearing.toFixed(1)}&deg;</span></div>
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
-                  <button onClick={() => toggleVerified(d.mName)} style={{
-                    marginTop: 8, padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
-                    fontWeight: 600, border: `1px solid ${verified.has(d.mName) ? '#22c55e' : '#7a7a8c'}`, borderRadius: 4,
-                    background: verified.has(d.mName) ? '#22c55e22' : 'transparent',
-                    color: verified.has(d.mName) ? '#22c55e' : '#7a7a8c', cursor: 'pointer',
-                  }}>
-                    {verified.has(d.mName) ? '\u2713 VERIFIED' : 'MARK VERIFIED'}
-                  </button>
+                  {(() => {
+                    const st = verified.get(d.mName);
+                    const clr = st === 'verified' ? '#22c55e' : st === 'plausible' ? '#eab308' : '#7a7a8c';
+                    const label = st === 'verified' ? '\u2713 VERIFIED' : st === 'plausible' ? '~ PLAUSIBLE' : 'MARK PLAUSIBLE';
+                    return (
+                      <button onClick={() => cycleVerified(d.mName)} style={{
+                        marginTop: 8, padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                        fontWeight: 600, border: `1px solid ${clr}`, borderRadius: 4,
+                        background: st ? clr + '22' : 'transparent',
+                        color: clr, cursor: 'pointer',
+                      }}>{label}</button>
+                    );
+                  })()}
                 </>
               );
             })()}
