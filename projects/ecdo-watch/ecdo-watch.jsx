@@ -678,14 +678,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const dataSourcesRef = useRef({});
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
-  const [verified, setVerified] = useState(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('ecdo-watch-verified') || '{}');
-      // Migrate legacy array format (all entries become 'verified')
-      if (Array.isArray(raw)) return new Map(raw.map(n => [n, 'verified']));
-      return new Map(Object.entries(raw));
-    } catch { return new Map(); }
-  });
+  const [verified, setVerified] = useState(() => new Map());
   const [layers, setLayers] = useState({
     plates: true, earthquakes: true, volcanoes: true,
     stations: true, monuments: true, bearingLines: true,
@@ -694,19 +687,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [monSections, setMonSections] = useState({ verified: true, plausible: true, unconfirmed: true });
   const [axisMode, setAxisMode] = useState(null);       // null or { monumentName, lat, lng }
   const [axisPreview, setAxisPreview] = useState(null);  // null or { lat, lng }
-  const [measuredAxes, setMeasuredAxes] = useState(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('ecdo-watch-axes') || '{}');
-      return new Map(Object.entries(raw));
-    } catch { return new Map(); }
-  });
+  const [measuredAxes, setMeasuredAxes] = useState(() => new Map());
   const [pinMode, setPinMode] = useState(null);          // null or { monumentName, origLat, origLng }
-  const [pinOverrides, setPinOverrides] = useState(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem('ecdo-watch-pins') || '{}');
-      return new Map(Object.entries(raw));
-    } catch { return new Map(); }
-  });
+  const [pinOverrides, setPinOverrides] = useState(() => new Map());
   const axisModeRef = useRef(null);
   const pinModeRef = useRef(null);
   const previewEntityRef = useRef(null);
@@ -736,14 +719,38 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       .then(data => {
         const arr = Array.isArray(data) ? data : [];
         setMonuments(arr);
-        setVerified(prev => {
-          const merged = new Map(prev);
-          arr.forEach(m => { if (m.verified && !merged.has(m.name)) merged.set(m.name, m.verified === 'plausible' ? 'plausible' : 'verified'); });
-          localStorage.setItem('ecdo-watch-verified', JSON.stringify(Object.fromEntries(merged)));
-          return merged;
-        });
       })
       .catch(() => {});
+  }, []);
+
+  // Load shared measurements baseline, then overlay localStorage draft
+  useEffect(() => {
+    fetch('./assets/measurements.json?v=' + Date.now())
+      .then(r => r.ok ? r.json() : {})
+      .then(shared => {
+        // Helper: merge shared baseline with localStorage overrides
+        const mergeLayer = (sharedObj, localKey) => {
+          const base = sharedObj || {};
+          try {
+            const local = JSON.parse(localStorage.getItem(localKey) || '{}');
+            return { ...base, ...local };
+          } catch { return base; }
+        };
+
+        const mergedVerified = mergeLayer(shared.verified, 'ecdo-watch-verified');
+        const mergedAxes = mergeLayer(shared.axes, 'ecdo-watch-axes');
+        const mergedPins = mergeLayer(shared.pins, 'ecdo-watch-pins');
+
+        setVerified(new Map(Object.entries(mergedVerified)));
+        setMeasuredAxes(new Map(Object.entries(mergedAxes)));
+        setPinOverrides(new Map(Object.entries(mergedPins)));
+      })
+      .catch(() => {
+        // Fallback: load from localStorage only
+        try { setVerified(new Map(Object.entries(JSON.parse(localStorage.getItem('ecdo-watch-verified') || '{}')))); } catch {}
+        try { setMeasuredAxes(new Map(Object.entries(JSON.parse(localStorage.getItem('ecdo-watch-axes') || '{}')))); } catch {}
+        try { setPinOverrides(new Map(Object.entries(JSON.parse(localStorage.getItem('ecdo-watch-pins') || '{}')))); } catch {}
+      });
   }, []);
 
   // CesiumJS Viewer init (runs once)
@@ -1151,6 +1158,21 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const exportMeasurements = () => {
+    const data = {
+      axes: Object.fromEntries(measuredAxes),
+      pins: Object.fromEntries(pinOverrides),
+      verified: Object.fromEntries(verified),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'measurements.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const cycleVerified = (name) => {
     setVerified(prev => {
       const next = new Map(prev);
@@ -1260,6 +1282,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           fontSize: 9, color: '#7a7a8c', fontFamily: 'monospace' }}>
           {[...verified.values()].filter(v => v === 'verified').length} &#10003; {[...verified.values()].filter(v => v === 'plausible').length} ~ / {monuments.length}
         </div>
+        <button onClick={exportMeasurements} style={{
+          marginTop: 4, padding: '3px 8px', fontSize: 9, fontFamily: 'monospace',
+          fontWeight: 600, border: '1px solid #4a9eff', borderRadius: 4,
+          background: 'rgba(74,158,255,0.08)', color: '#4a9eff', cursor: 'pointer',
+          width: '100%',
+        }}>EXPORT MEASUREMENTS</button>
       </div>
 
       {/* Monument list panel */}
