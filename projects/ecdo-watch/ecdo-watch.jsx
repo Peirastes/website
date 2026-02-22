@@ -3082,6 +3082,91 @@ function ECDOWatchDashboard() {
               )}
             </StackedChartRow>
 
+            {/* Historical Context (collapsible, inside left panel) */}
+            <div style={{ borderTop: '1px solid #252532' }}>
+              <div
+                onClick={() => setHistoricalExpanded(!historicalExpanded)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 8px', cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                <span style={{ fontSize: 10, color: '#7a7a8c', transition: 'transform 0.2s', display: 'inline-block', transform: historicalExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#e8e8ed' }}>Century-Scale Historical Context</span>
+                <div style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
+                  {[10, 50, 100, 150].map(y => (
+                    <button key={y} onClick={(e) => { e.stopPropagation(); setHistoricalTimeRange(y); if (!historicalExpanded) setHistoricalExpanded(true); }} style={{
+                      background: historicalTimeRange === y ? '#4a9eff' : '#16161f',
+                      border: '1px solid #252532', color: historicalTimeRange === y ? '#fff' : '#7a7a8c',
+                      padding: '1px 6px', borderRadius: 3, fontSize: 9, fontFamily: 'monospace', cursor: 'pointer',
+                    }}>{y}Y</button>
+                  ))}
+                </div>
+              </div>
+              {historicalExpanded && (
+                <div style={{ padding: '0 8px 8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div>
+                      <h4 style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>Geomagnetic Ap Index (since 1932)</h4>
+                      <div style={{ height: 100 }}>
+                        <ChartComponent
+                          type="line"
+                          height={100}
+                          data={{
+                            labels: aaData.labels,
+                            datasets: [{
+                              data: aaData.data,
+                              borderColor: '#f59e0b',
+                              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                              fill: true, tension: 0.3, pointRadius: 0,
+                            }]
+                          }}
+                          options={{
+                            ...darkThemeOptions,
+                            scales: {
+                              ...darkThemeOptions.scales,
+                              x: { ...darkThemeOptions.scales.x, display: false },
+                              y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>Polar Motion Amplitude (since 1846)</h4>
+                      <div style={{ height: 100 }}>
+                        <ChartComponent
+                          type="line"
+                          height={100}
+                          data={{
+                            labels: pmData.labels,
+                            datasets: [{
+                              data: pmData.data,
+                              borderColor: '#10b981',
+                              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                              fill: true, tension: 0.3, pointRadius: 0,
+                            }]
+                          }}
+                          options={{
+                            ...darkThemeOptions,
+                            scales: {
+                              ...darkThemeOptions.scales,
+                              x: { ...darkThemeOptions.scales.x, display: true, ticks: { ...darkThemeOptions.scales.x.ticks, maxTicksLimit: 10 } },
+                              y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 10, color: '#7a7a8c' }}>
+                    Sources: GFZ (Ap, 1932–), IERS C01 (PM, 1846–), IERS (LOD, 1623–)
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* RIGHT PANEL: Square charts */}
@@ -3105,97 +3190,6 @@ function ECDOWatchDashboard() {
             </div>
           </div>
 
-        </div>
-
-        {/* Row 5: Historical Context (collapsible) */}
-        <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-          <div
-            onClick={() => setHistoricalExpanded(!historicalExpanded)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '12px 16px', cursor: 'pointer',
-              background: '#16161f', userSelect: 'none',
-            }}
-          >
-            <span style={{ fontSize: 10, color: '#7a7a8c', transition: 'transform 0.2s', display: 'inline-block', transform: historicalExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>Century-Scale Historical Context</h3>
-          </div>
-          {historicalExpanded && (
-            <div style={{ padding: 16 }}>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                {[10, 50, 100, 150].map(y => (
-                  <button key={y} onClick={() => setHistoricalTimeRange(y)} style={{
-                    background: historicalTimeRange === y ? '#4a9eff' : '#16161f',
-                    border: '1px solid #252532', color: historicalTimeRange === y ? '#fff' : '#7a7a8c',
-                    padding: '4px 12px', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', cursor: 'pointer',
-                  }}>{y}Y</button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div>
-                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 4 }}>Geomagnetic Ap Index (since 1932)</h4>
-                  <div style={{ height: 120 }}>
-                    <ChartComponent
-                      type="line"
-                      height={120}
-                      data={{
-                        labels: aaData.labels,
-                        datasets: [{
-                          data: aaData.data,
-                          borderColor: '#f59e0b',
-                          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                          fill: true, tension: 0.3, pointRadius: 0,
-                        }]
-                      }}
-                      options={{
-                        ...darkThemeOptions,
-                        scales: {
-                          ...darkThemeOptions.scales,
-                          x: { ...darkThemeOptions.scales.x, display: false },
-                          y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 4 }}>Polar Motion Amplitude (since 1846)</h4>
-                  <div style={{ height: 120 }}>
-                    <ChartComponent
-                      type="line"
-                      height={120}
-                      data={{
-                        labels: pmData.labels,
-                        datasets: [{
-                          data: pmData.data,
-                          borderColor: '#10b981',
-                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                          fill: true, tension: 0.3, pointRadius: 0,
-                        }]
-                      }}
-                      options={{
-                        ...darkThemeOptions,
-                        scales: {
-                          ...darkThemeOptions.scales,
-                          x: { ...darkThemeOptions.scales.x, display: true, ticks: { ...darkThemeOptions.scales.x.ticks, maxTicksLimit: 10 } },
-                          y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
-                <Metric label="Ap Record" value="1932&#8211;Now" />
-                <Metric label="PM Record" value="1846&#8211;Now" />
-                <Metric label="LOD Record" value="1623&#8211;Now" />
-                <Metric label="Current Regime" value="Within Bounds" status="positive" />
-              </div>
-              <div style={{ marginTop: 16, padding: 12, background: '#16161f', borderRadius: 6, fontSize: 11, color: '#7a7a8c' }}>
-                <strong>Data sources:</strong> Ap index from GFZ (1932&#8211;present); Polar motion from IERS C01 (1846&#8211;present); LOD from IERS (yearly since 1623).
-              </div>
-            </div>
-          )}
         </div>
 
         <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
