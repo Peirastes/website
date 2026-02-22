@@ -1,7 +1,7 @@
 # Project Overview Document (POD)
 
 **Project Title:** ECDO Watch
-**Date:** January 30, 2026 | **Version:** 1.0
+**Date:** February 14, 2026 | **Version:** 2.0
 **Lead:** Cole Prather
 
 ---
@@ -9,29 +9,30 @@
 ## 1. Purpose
 
 ### What is this project?
-A real-time geophysics monitoring system tracking Earth-system anomalies across four independent data channels: solar wind energy input (Kp index), planetary rotation rate (Earth Orientation/LOD), ground magnetic fields (multi-station magnetometer), and mass distribution (C20 gravity harmonics). The system applies a falsification-first methodology requiring quiet-day gating, baseline-normalized z-scores, and multi-channel coherence detection to distinguish signal from noise.
+A real-time geophysics monitoring system tracking Earth-system anomalies across seven independent data channels: solar wind energy input (Kp index), Earth orientation parameters (LOD + polar motion), degree-2 gravity harmonics (C20), ground magnetic fields (multi-station magnetometer), cross-channel coherence analysis, deep seismicity (>300 km), and global volcanic activity. The system applies a falsification-first methodology requiring quiet-day gating, baseline-normalized z-scores, and multi-channel coherence detection to distinguish signal from noise. An interactive 3D globe provides geospatial visualization of earthquakes, volcanoes, magnetometer stations, and tectonic plate boundaries.
 
 ### Why does it matter?
-Understanding Earth's dynamical response to external (solar wind) and internal (rotation, magnetic) forcing requires integrating diverse data streams and sophisticated statistical filtering. ECDO Watch automates daily data retrieval, processing, and anomaly detection—enabling real-time monitoring of coupled Earth systems. The falsification-first approach prevents false alarms while capturing genuine anomalies when multiple independent channels show coherent signals.
+Understanding Earth's dynamical response to external (solar wind) and internal (rotation, magnetic, seismic, volcanic) forcing requires integrating diverse data streams and sophisticated statistical filtering. ECDO Watch automates daily data retrieval, processing, and anomaly detection—enabling real-time monitoring of coupled Earth systems. The falsification-first approach prevents false alarms while capturing genuine anomalies when multiple independent channels show coherent signals.
 
 ### What is the driving question?
-How can multiple independent geophysical channels (solar forcing, planetary rotation, magnetic fields, gravity harmonics) be integrated into a coherent monitoring system that reliably detects Earth-system anomalies while minimizing false positives?
+How can multiple independent geophysical channels (solar forcing, planetary rotation, magnetic fields, gravity harmonics, seismicity, volcanism) be integrated into a coherent monitoring system that reliably detects Earth-system anomalies while minimizing false positives?
 
 ---
 
 ## 2. Objectives & Goals
 
 ### Primary Objective
-Deliver a production-ready automated monitoring system with daily data fetching, sophisticated statistical filtering, multi-channel coherence detection, and web-based real-time dashboard for geophysics research and operational monitoring.
+Deliver a production-ready automated monitoring system with daily data fetching, sophisticated statistical filtering, multi-channel coherence detection, geospatial visualization, and web-based real-time dashboard for geophysics research and operational monitoring.
 
 ### Supporting Goals
-1. **Integrate four independent data channels** (Kp, LOD, magnetometer, C20) with robust API fallbacks
+1. **Integrate seven independent data channels** (Kp, EOP/LOD, C20, magnetometer, coherence, deep seismicity, volcanic activity) with robust API fallbacks
 2. **Implement quiet-day gating logic** (Kp ≤ 4 AND Dst ≥ -50) to suppress geomagnetic storm interference
 3. **Apply baseline normalization** (rolling median/MAD z-scores) to identify statistically significant anomalies
 4. **Enable multi-channel coherence detection** to escalate alert levels when 2+ channels show correlated anomalies
 5. **Automate daily data pipeline** with Windows Task Scheduler (06:00 UTC) and comprehensive logging
-6. **Develop responsive web dashboard** with time-range controls, status indicators, and source attribution
+6. **Develop command center dashboard** with compact grid layout, interactive 3D globe, and time-range controls
 7. **Implement caching and fallback strategies** to maximize system resilience and data availability
+8. **Provide geospatial visualization** via interactive globe with earthquake epicenters, active volcanoes, magnetometer stations, and tectonic plate boundaries
 
 ---
 
@@ -39,9 +40,9 @@ Deliver a production-ready automated monitoring system with daily data fetching,
 
 | Dimension | Description |
 |-----------|-------------|
-| **Novelty** | Falsification-first methodology requiring multi-channel coherence before escalating alert levels. Quiet-day gating automatically suppresses geomagnetic storm noise. Camera-aligned approach distinguishes signal from external forcing artifacts. |
-| **Utility** | Fully automated daily monitoring with comprehensive logging. Four-hour freshness guarantee (typically <24h). Historical context (50+ years) for comparative analysis. Public dashboard accessible to researchers, educators, and public stakeholders. |
-| **Gap Addressed** | Existing monitoring systems focus on single channels (Kp, magnetometer) or require manual data compilation. ECDO Watch provides integrated, automated, multi-channel analysis with falsification safeguards. |
+| **Novelty** | Falsification-first methodology requiring multi-channel coherence before escalating alert levels. Seven independent channels spanning atmospheric, rotational, gravitational, magnetic, seismic, and volcanic domains. Quiet-day gating automatically suppresses geomagnetic storm noise. Interactive 3D globe with click-to-inspect event details. |
+| **Utility** | Fully automated daily monitoring with comprehensive logging. Historical context (50+ years) for comparative analysis. Command center layout provides at-a-glance situational awareness. Public dashboard accessible to researchers, educators, and public stakeholders. |
+| **Gap Addressed** | Existing monitoring systems focus on single channels (Kp, magnetometer) or require manual data compilation. ECDO Watch provides integrated, automated, seven-channel analysis with falsification safeguards and geospatial visualization. |
 
 ---
 
@@ -49,14 +50,19 @@ Deliver a production-ready automated monitoring system with daily data fetching,
 
 ### In Scope
 - Real-time Kp index (solar wind energy proxy) with 3-hourly updates
-- Earth Orientation (LOD rotation rate) with daily IERS rapid estimates
-- Multi-station ground magnetometer (USGS, INTERMAGNET fallback)
+- Earth Orientation Parameters (LOD rotation rate + polar motion) with daily IERS rapid estimates
 - Degree-2 gravity harmonics (NASA GSFC C20, monthly updates)
+- Multi-station ground magnetometer (USGS, INTERMAGNET fallback)
+- Cross-channel coherence analysis (EOP × MAG on quiet days with rolling correlation)
+- Deep seismicity monitoring (>300 km depth, M4.5+) via USGS FDSN with 10-year history
+- Global volcanic activity (continuing eruptions) via Smithsonian GVP WFS with VEI data
+- Interactive 3D globe (globe.gl) with earthquake epicenters, active volcanoes, magnetometer stations, tectonic plate boundaries, and click-to-inspect info panels
+- Polar motion visualization (X/Y spiral plot + Chandler wobble residual)
 - Quiet-day gating logic (Kp ≤ 4, Dst ≥ -50)
 - Z-score normalization with rolling median/MAD
 - Multi-channel coherence detection (2+ channels required)
-- Web-based dashboard with Chart.js visualizations
-- Time-range controls (30d, 90d, 1y, 5y, 10y)
+- Command center dashboard layout with responsive CSS grid
+- Time-range controls (30d, 90d, 1y, 5y, 10y) for all 7 channels
 - Status levels (NOMINAL, ELEVATED_DIAGNOSTIC, WATCH)
 - Daily automation via Windows Task Scheduler or cron
 - Comprehensive logging and health checks
@@ -79,27 +85,32 @@ Deliver a production-ready automated monitoring system with daily data fetching,
 ## 5. Current Status
 
 ### Phase
-☑️ Complete / Operational
+☑️ Complete / Operational — Active Enhancement
 
 ### Progress Summary
-ECDO Watch is **production-ready with all 7 implementation phases complete**. Daily automation is active (Windows Task Scheduler, 06:00 UTC). Web dashboard is live with real-time data display. Recent bug fixes (January 27, 2026) resolved Kp Index data display and time-range selector issues. All four data channels operational: Kp (NOAA), LOD (IERS), Magnetometer (USGS + INTERMAGNET fallback), C20 (NASA GSFC). System is stable with comprehensive logging and fallback strategies in place.
+ECDO Watch is **production-ready with all 7 monitoring channels operational**. Daily automation is active (Windows Task Scheduler, 06:00 UTC). The dashboard was restructured into a command center layout (February 14, 2026) with a 5-row grid design centered on an interactive 3D globe. Seven data channels operational: Kp (NOAA), EOP/LOD (IERS), C20 (NASA GSFC), Magnetometer (USGS + INTERMAGNET), Cross-Channel Coherence (derived), Deep Seismicity (USGS FDSN), Volcanic Activity (Smithsonian GVP). All channels support multi-range time scaling (30d–10y).
 
 ### Key Achievements
-- ✅ All 7 implementation phases complete and tested
-- ✅ 4 data channels integrated with robust fallback strategies
+- ✅ 7 monitoring channels integrated with robust fallback strategies
+- ✅ Interactive 3D globe with earthquake epicenters, active volcanoes, magnetometer stations, tectonic plate boundaries
+- ✅ Click-to-inspect info panels on globe events (full datetime, depth, magnitude, VEI, eruption start date)
+- ✅ Animated radial rings on earthquakes (magnitude-scaled) and volcanoes (VEI + recency-scaled)
+- ✅ Command center layout: compact 4-col / 3-col responsive grid with collapsible historical section
+- ✅ Polar motion visualization (X/Y spiral + Chandler wobble residual)
+- ✅ Cross-channel coherence analysis (EOP × MAG correlation on quiet days)
+- ✅ Deep seismicity channel (M4.5+, >300 km depth, 10-year cache)
+- ✅ Volcanic activity channel (34 continuing eruptions, Smithsonian GVP WFS)
+- ✅ All 7 channels scale with time-range selector (30d, 90d, 1y, 5y, 10y)
 - ✅ Quiet-day gating logic implemented and operational
-- ✅ Web dashboard deployed with time-range controls
 - ✅ Daily automation via Windows Task Scheduler
 - ✅ Comprehensive logging with per-run status tracking
-- ✅ Multi-channel coherence detection functional
 - ✅ API caching reducing calls by 85% (IERS weekly cache)
-- ✅ Bug fixes deployed: time range selector, Kp Index display
-- ✅ Health check and data quality monitoring scripts
 
 ### Open Items
 - Email/Slack alerting configured but disabled by default (safety-first)
 - Percentile thresholds (baselines.json) ready to generate on demand
-- Real-time streaming deferred (daily batch adequate for use case)
+- Magnetometer APIs (USGS + INTERMAGNET) intermittently unavailable; historical cache mitigates
+- Volcanic activity weekly history sparse (started Feb 2026); will grow over time
 
 ---
 
@@ -161,11 +172,11 @@ ECDO Watch is **production-ready with all 7 implementation phases complete**. Da
 ## 7. Resources & Context
 
 ### Key Resources
-- Python 3.8+ with pandas, numpy, requests libraries
+- Python 3.14+ with pandas, numpy, requests libraries
 - Windows Task Scheduler (or cron on Linux) for automation
-- Chart.js for web visualization
-- React CDN for dashboard interactivity
-- Four public APIs: NOAA SWPC, IERS, USGS Geomag, NASA GSFC
+- Chart.js for chart visualization, globe.gl for 3D globe
+- React 18 CDN + Babel for dashboard interactivity
+- Seven public APIs: NOAA SWPC, IERS, GFZ, USGS Geomag, NASA GSFC, USGS FDSN, Smithsonian GVP
 
 ### Dependencies
 - Internet connectivity for API data fetching
@@ -186,57 +197,82 @@ ECDO Watch is **production-ready with all 7 implementation phases complete**. Da
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 2.0 | 2026-02-14 | Cole Prather | Major update: 7 channels, globe, command center layout, multi-range coherence/C20/volcanic |
 | 1.0 | 2026-01-30 | Cole Prather | Converted to 2-page template format with complete Phase 7 integration |
 | 1.0 | 2026-01-27 | Cole Prather | All 7 phases complete; time range and Kp Index bugs fixed |
 
 ---
 
-## Recent Updates (2026-01-27)
+## Recent Updates
 
-### Bug Fixes Deployed
-1. **Fixed Time Range Selector** (commit: 5b4bdbf)
-   - Issue: Clicking time range buttons (30d, 1y, 5y, 10y) had no effect
-   - Root Cause: Failed C20 data file fetch caused `fetchDataFromJSON` to return null
-   - Solution: Removed failed C20 fetch; C20 now uses LOD data as fallback (acceptable since C20 is confirmatory channel only)
-   - Impact: All time ranges now load correctly with real data
+### 2026-02-14: Command Center Layout & Globe Enhancements
+1. **Command center layout reorganization** — 5-row grid replaces vertical stack (~50% less scroll)
+2. **Volcano animated rings** — VEI-scaled radius, recency-scaled pulse speed and brightness
+3. **Date/time in info panels** — Full UTC datetime for earthquakes, eruption start date + VEI for volcanoes
+4. **Multi-range coherence** — `coherence_30d.json` through `coherence_10y.json`
+5. **Multi-range C20 and volcanic** — All 7 channels now scale with time range selector
+6. **Click-to-inspect globe events** — Persistent info panel with auto-rotation pause and zoom
+7. **Tectonic plate boundaries** — PB2002 GeoJSON overlay on globe
+8. **Earthquake visibility** — Magnitude-scaled points with animated expanding rings
 
-2. **Fixed Kp Index Data Display** (commit: f5ff1b5)
-   - Issue: Kp Index chart remained empty/invisible despite data loading
-   - Root Cause: Missing else clause in `alignRecentData` function when Kp had more data points than LOD baseline
-   - Solution: Added proper handling for longer data arrays (mirrors magnetometer alignment logic)
-   - Impact: Kp Index now displays on all time ranges regardless of data length
+### 2026-02-05: EOP Composite & Coherence Analysis
+1. **Polar motion z-scores** and EOP composite added
+2. **Real cross-channel coherence** (EOP × MAG on quiet days) replacing hardcoded values
+3. **C20 data fetch fixed** (was aliased to LOD)
 
-**Commits:**
-- `5b4bdbf` - Fix ECDO Watch time range selector not updating
-- `f5ff1b5` - Fix Kp Index data not displaying - handle longer data arrays
+### 2026-02-14: Deep Seismicity & Volcanic Activity
+1. **Step 6: Deep Seismicity** — USGS FDSN API, >300 km depth, M4.5+, 10yr cache
+2. **Step 7: Volcanic Activity** — Smithsonian GVP WFS, continuing eruptions
+3. **Geophysical globe** — Interactive 3D visualization with earthquake/volcano/station markers
+4. **Polar motion charts** — X/Y spiral plot + Chandler wobble residual
+
+### 2026-01-27: Bug Fixes
+1. **Fixed Time Range Selector** (commit: 5b4bdbf) — Failed C20 fetch cascading failure
+2. **Fixed Kp Index Data Display** (commit: f5ff1b5) — Missing else clause in array alignment
 
 ---
 
 ## Project Scope
 
 ### What It Does
-ECDO Watch monitors **four scientific measurements** in near-real-time:
+ECDO Watch monitors **seven scientific measurements** in near-real-time:
 
-1. **Kp Index (External Forcing Gate)**
+1. **Kp Index (External Forcing Gate)** — S1
    - Solar wind energy input (NOAA SWPC)
    - Acts as "gate" to suppress internal inference during storms
    - Baseline: 5-year historical (GFZ since 1932)
 
-2. **Earth Orientation - Length of Day (LOD)**
-   - Rotation rate anomalies
+2. **Earth Orientation Parameters (EOP/LOD)** — S2
+   - LOD rotation rate anomalies + polar motion speed
+   - EOP composite z-score (LOD + PM combined)
    - Baseline: 10-year historical (IERS)
-   - Z-score normalized with rolling median/MAD
 
-3. **Ground Magnetometer (Multi-Station)**
+3. **Degree-2 Gravity Harmonics (C20)** — S3
+   - Mass distribution indicator
+   - NASA GSFC SLR data (~monthly updates)
+   - Time-range scaling: 10 pts at 1y, 62 at 5y, 127 at 10y
+
+4. **Ground Magnetometer (Multi-Station)** — S4
    - Horizontal intensity (H component)
    - 4 stations: Boulder, Fredericksburg, Barrow, Honolulu (USGS)
    - Fallback: INTERMAGNET if USGS unavailable
    - Z-score composite across stations
 
-4. **Degree-2 Gravity Harmonics (C20)** (Phase 7)
-   - Mass distribution indicator
-   - NASA GSFC SLR data
-   - Lagged confirmatory channel
+5. **Cross-Channel Coherence** — S5
+   - EOP composite vs. MAG composite correlation on quiet days
+   - Rolling 30-day Pearson correlation
+   - Gated watch score (0–100 scale)
+   - Badge: GREEN / YELLOW / ORANGE
+
+6. **Deep Seismicity** — S6
+   - Earthquakes >300 km depth, M4.5+ (USGS FDSN API)
+   - 10-year cached history with daily event counts
+   - Energy release (log10 scale) and maximum magnitude tracking
+
+7. **Volcanic Activity** — S7
+   - Global continuing eruptions (Smithsonian GVP WFS)
+   - Active volcano count, new eruptions, geographic dispersion
+   - VEI (Volcanic Explosivity Index) for each eruption
 
 ### Methodology
 - **Quiet-Day Gating:** Kp ≤ 4 AND Dst ≥ -50 required for internal inference
@@ -255,10 +291,11 @@ ECDO Watch monitors **four scientific measurements** in near-real-time:
 - **Caching:** Filesystem (weekly for IERS CSV, 30d for C20)
 
 ### Frontend
-- **Framework:** React (via CDN)
+- **Framework:** React 18 (via CDN, Babel transpiled in-browser)
 - **Charts:** Chart.js
-- **Styling:** Inline CSS (dark theme)
-- **Format:** Single HTML file with embedded JSX
+- **Globe:** globe.gl (Three.js-based 3D globe)
+- **Styling:** Inline CSS (dark theme, responsive CSS grid)
+- **Format:** Single HTML file + JSX module
 
 ### Automation
 - **Scheduler:** Windows Task Scheduler (daily 06:00 UTC)
@@ -271,7 +308,10 @@ ECDO Watch monitors **four scientific measurements** in near-real-time:
 3. **GFZ** (Historical Kp since 1932, daily updates)
 4. **USGS Geomag Web Service** (Magnetometer, real-time)
 5. **INTERMAGNET** (Magnetometer fallback)
-6. **NASA GSFC** (C20 gravity harmonics)
+6. **NASA GSFC** (C20 gravity harmonics, monthly)
+7. **USGS FDSN** (Deep earthquakes, >300 km, M4.5+, real-time)
+8. **Smithsonian GVP WFS** (Continuing eruptions, VEI, weekly)
+9. **GitHub/tectonicplates** (PB2002 plate boundary GeoJSON, static)
 
 ---
 
@@ -281,21 +321,27 @@ ECDO Watch monitors **four scientific measurements** in near-real-time:
 ```
 Scheduled Run (06:00 UTC)
     ↓
-[1] Fetch Data
+[1] Fetch Data (7 channels)
     - NOAA SWPC (Kp, Dst) with retry logic
-    - IERS EOP (LOD) with weekly caching
+    - IERS EOP (LOD + polar motion) with weekly caching
     - GFZ Historical Kp with 24h caching
-    - USGS Magnetometer with INTERMAGNET fallback
     - NASA GSFC C20 with 30d caching
+    - USGS Magnetometer with INTERMAGNET fallback
+    - USGS FDSN deep earthquakes (>300km, M4.5+) with 10yr cache
+    - Smithsonian GVP WFS continuing eruptions with 7d cache
     ↓
 [2] Process Data
-    - Calculate z-scores (rolling median/MAD)
+    - Calculate z-scores (rolling median/MAD) for all channels
     - Compute quiet-day flags (Kp ≤ 4, Dst ≥ -50)
+    - Compute EOP composite (LOD + PM speed z-scores)
+    - Compute cross-channel coherence (EOP × MAG on quiet days)
     - Add freshness metadata (timestamps, sources, status)
-    - Generate multi-range datasets (30d, 90d, 1y, 5y, 10y)
+    - Generate multi-range datasets (30d, 90d, 1y, 5y, 10y) for all channels
+    - Generate individual seismic events JSON (globe display)
+    - Generate polar motion data (spiral + Chandler wobble)
     ↓
 [3] Validate Output
-    - Check all JSON files generated
+    - Check all JSON files generated (~35 files)
     - Verify data structure and content
     - Check file freshness (< 24 hours old)
     ↓
@@ -308,28 +354,36 @@ Scheduled Run (06:00 UTC)
 ### Frontend Architecture
 ```
 ecdo-watch.html (entry point)
-    ├── Load React + Chart.js from CDN
-    ├── Load ecdo-watch.jsx
+    ├── Load React + Chart.js + globe.gl from CDN
+    ├── Load ecdo-watch.jsx (Babel transpiled)
     └──
         ecdo-watch.jsx (application)
         ├── State Management
         │   ├── Time range selection (30d-10y)
-        │   ├── Data caching (kp, lod, mag, c20)
+        │   ├── Data for all 7 channels + polar motion + seismic events
         │   ├── Metadata (freshness, sources)
+        │   ├── Responsive width tracking (useWindowWidth hook)
         │   └── Metrics (z-scores, status level)
+        ├── Layout: Command Center (5-Row Grid)
+        │   ├── Row 1: Merged header bar (status + time range + freshness)
+        │   ├── Row 2: 4-col monitoring grid (Kp, EOP, Mag, C20)
+        │   ├── Row 3: Globe centerpiece + polar motion charts
+        │   ├── Row 4: 3-col analysis grid (Coherence, Deep Seis, Volcanic)
+        │   └── Row 5: Collapsible historical context (50+ years)
         ├── Components
-        │   ├── Status Banner (NOMINAL/ELEVATED/WATCH)
-        │   ├── Data Freshness Indicator (header)
-        │   ├── 5 Analysis Cards
-        │   │   ├── Step 1: Kp Gate (with quiet-day visualization)
-        │   │   ├── Step 2: LOD
-        │   │   ├── Step 3: C20
-        │   │   ├── Step 4: Magnetometer (4 stations)
-        │   │   └── Step 5: Coherence
-        │   ├── Data Source Footer
-        │   └── Historical Context (50+ years)
+        │   ├── CompactCard (32px header, inline status badges)
+        │   ├── CompactMetric (compact stat badges)
+        │   ├── GlobeView (interactive 3D globe)
+        │   │   ├── Earthquake epicenters (purple, magnitude-scaled)
+        │   │   ├── Active volcanoes (red, VEI-scaled rings)
+        │   │   ├── Magnetometer stations (blue)
+        │   │   ├── Tectonic plate boundaries (amber paths)
+        │   │   ├── Animated radial rings (earthquakes + volcanoes)
+        │   │   └── Click-to-inspect info panels (datetime, depth, VEI)
+        │   ├── PolarMotionCharts (X/Y spiral + Chandler wobble)
+        │   └── Historical Context (Ap index + polar motion, 50+ years)
         └── Chart.js Integration
-            ├── Standard line charts (dark theme)
+            ├── Compact line charts (dark theme, reduced heights)
             ├── Quiet-day background plugin
             └── Multi-dataset overlay (aligned to common time axis)
 ```
@@ -338,19 +392,29 @@ ecdo-watch.html (entry point)
 ```
 projects/ecdo-watch/
 ├── ecdo-watch.html              Main dashboard (entry point)
-├── ecdo-watch.jsx               React application code
+├── ecdo-watch.jsx               React application code (~1800 lines)
 ├──
 ├── assets/                       Data files (generated daily)
 │   ├── kp_*.json               14-day + multi-range Kp data
-│   ├── lod_*.json              90-day + multi-range LOD data
+│   ├── lod_*.json              90-day + multi-range LOD/EOP data
 │   ├── mag_*.json              60-day + multi-range magnetometer
-│   ├── c20_*.json              C20 data (Phase 7)
-│   ├── historical_aa.json      50-year Kp annual average
+│   ├── c20_*.json              C20 data (multi-range: 1y, 5y, 10y)
+│   ├── coherence_*.json        Cross-channel coherence (multi-range)
+│   ├── seis_*.json             Deep seismicity (multi-range)
+│   ├── volc_*.json             Volcanic activity (multi-range)
+│   ├── seismic_events.json     Individual earthquake events (globe)
+│   ├── volcanic_activity_data.json  Active volcanoes (globe)
+│   ├── deep_seismicity_data.json    Deep EQ daily aggregates
+│   ├── polar_motion_data.json  Polar motion (spiral + Chandler)
+│   ├── historical_aa.json      50-year Ap index annual average
 │   ├── historical_pm.json      50-year polar motion amplitude
 │   ├── cache/                  Cached API responses
-│   │   ├── finals2000A.all.csv    IERS LOD (weekly cache)
+│   │   ├── finals2000A.all.csv    IERS EOP (weekly cache)
 │   │   ├── gfz_kp_daily_*.txt     GFZ Kp (24h cache)
-│   │   └── gsfc_slr_c20_*.txt     NASA C20 (30d cache)
+│   │   ├── gsfc_slr_c20_*.txt     NASA C20 (30d cache)
+│   │   ├── deep_eq_history.csv    Deep EQ 10-year cache
+│   │   ├── volcanic_activity_cache.json  GVP WFS cache (7d)
+│   │   └── volcanic_history.csv   Weekly volcanic snapshots
 │   └── baselines.json          Percentile thresholds (optional)
 ├──
 ├── scripts/                     Automation and utilities
@@ -448,12 +512,15 @@ projects/ecdo-watch/
 |---|---|---|---|---|---|
 | **Kp (recent)** | NOAA SWPC | 3-hourly | 24h | GFZ historical | Active |
 | **Kp (historical)** | GFZ | Daily | 24h | Built-in archive | Active |
-| **LOD (recent)** | IERS Rapid | Daily | No | IERS All-Time | Active |
-| **LOD (historical)** | IERS All-Time | As needed | Weekly (168h) | File cache | Active |
+| **EOP/LOD (recent)** | IERS Rapid | Daily | No | IERS All-Time | Active |
+| **EOP/LOD (historical)** | IERS All-Time | As needed | Weekly (168h) | File cache | Active |
 | **Dst** | NOAA SWPC | Daily | 24h | N/A | Active |
-| **Magnetometer (H)** | USGS Geomag WS | Real-time | No | INTERMAGNET | Active |
-| **Magnetometer (fallback)** | INTERMAGNET | Real-time | No | None | Integrated |
+| **Magnetometer (H)** | USGS Geomag WS | Real-time | No | INTERMAGNET | Active (intermittent) |
+| **Magnetometer (fallback)** | INTERMAGNET | Real-time | No | None | Intermittent |
 | **C20** | NASA GSFC SLR | Monthly | 30d | None | Active |
+| **Deep Seismicity** | USGS FDSN | Real-time | 10yr history | None | Active |
+| **Volcanic Activity** | Smithsonian GVP WFS | Weekly | 7d | None | Active |
+| **Tectonic Plates** | GitHub/tectonicplates | Static | Browser cache | None | Active |
 
 ---
 
@@ -461,22 +528,28 @@ projects/ecdo-watch/
 
 ### Core Monitoring
 - ✓ Real-time Kp index (external forcing gate)
-- ✓ 10-year LOD baseline (internal dynamics)
+- ✓ EOP/LOD baseline (rotation rate + polar motion, 10-year history)
+- ✓ C20 gravity harmonics (mass distribution, multi-range)
 - ✓ Multi-station magnetometer (ground magnetic field)
-- ✓ C20 gravity harmonics (mass distribution)
+- ✓ Cross-channel coherence (EOP × MAG, quiet-day correlation)
+- ✓ Deep seismicity (>300 km, M4.5+, 10-year history)
+- ✓ Volcanic activity (continuing eruptions, VEI, dispersion)
 - ✓ Quiet-day gating (Kp ≤ 4, Dst ≥ -50)
 - ✓ Z-score normalization (rolling MAD-based)
 - ✓ Multi-channel coherence detection
 
 ### User Interface
-- ✓ Dark theme responsive dashboard
-- ✓ Five analysis steps with info panels
-- ✓ Time-range buttons (30d, 90d, 1y, 5y, 10y)
-- ✓ Status banner (NOMINAL/ELEVATED_DIAGNOSTIC/WATCH)
-- ✓ Data freshness indicator (color-coded)
-- ✓ Source attribution footer
-- ✓ Historical context (50+ years)
-- ✓ Interactive charts (Chart.js)
+- ✓ Command center layout (5-row responsive grid)
+- ✓ Seven compact analysis cards with inline status badges
+- ✓ Interactive 3D globe (globe.gl) — centerpiece
+- ✓ Click-to-inspect info panels on globe events
+- ✓ Animated radial rings (earthquakes + volcanoes)
+- ✓ Tectonic plate boundary overlay
+- ✓ Polar motion charts (X/Y spiral + Chandler wobble)
+- ✓ Time-range buttons (30d, 90d, 1y, 5y, 10y) — all 7 channels
+- ✓ Merged header bar (status + time range + freshness)
+- ✓ Collapsible historical context (50+ years)
+- ✓ Interactive charts (Chart.js, compact dark theme)
 - ✓ Quiet-day visualization (green backgrounds)
 
 ### Operations
@@ -532,10 +605,10 @@ projects/ecdo-watch/
 ## Key Metrics
 
 ### Performance
-- **Execution Time:** ~4 minutes per daily run
-- **API Efficiency:** 85% reduction (weekly IERS caching)
-- **Data Points:** 22+ JSON files daily
-- **Historical Depth:** 50-10 years depending on channel
+- **Execution Time:** ~8 minutes per daily run (7 channels + multi-range generation)
+- **API Efficiency:** 85% reduction (weekly IERS caching, 10yr deep EQ cache, 7d GVP cache)
+- **Data Points:** ~35 JSON files daily (7 channels × 5 ranges + events + polar motion + historical)
+- **Historical Depth:** 50 years (Ap/PM), 10 years (deep EQ, Kp, EOP), 5 years (C20)
 - **Freshness:** < 24 hours by default, < 168 hours with caching
 
 ### Reliability
@@ -557,19 +630,22 @@ projects/ecdo-watch/
 ## Known Limitations
 
 ### Data Constraints
-1. **Magnetometer:** Limited to ~60-90 days due to USGS API limitations
-2. **C20:** Monthly update frequency (not daily)
+1. **Magnetometer:** Limited to ~60-90 days due to USGS API limitations; both USGS and INTERMAGNET intermittently unavailable (Feb 2026)
+2. **C20:** Monthly update frequency (~90-day lag from NASA GSFC); no data for 30d/90d ranges
 3. **Real-time Kp:** Updated 3-hourly, not continuously
-4. **Synthetic Data:** No synthetic fallback if all APIs fail (but caching mitigates)
+4. **Volcanic History:** Weekly snapshot collection started Feb 2026; sparse for first months
+5. **Deep EQ Cache:** 10-year history cached locally; initial fetch is slow (~2 min)
 
 ### API Dependencies
 1. **IERS:** If both daily and all-time CSV unavailable → uses fallback
-2. **USGS:** If unavailable → falls back to INTERMAGNET
-3. **INTERMAGNET:** Limited coverage (BOU, FRD, BRW, HON may not all be available)
+2. **USGS Geomag:** If unavailable → falls back to INTERMAGNET (also intermittent Feb 2026)
+3. **INTERMAGNET:** Limited coverage; 400 errors observed for some stations
 4. **NASA GSFC C20:** No fallback if unavailable
+5. **USGS FDSN:** No fallback for deep seismicity data
+6. **Smithsonian GVP WFS:** No fallback; USGS VHAP API is broken (returns 404-like errors)
 
 ### Current Environment
-1. **Test Env:** USGS rate-limited (normal in dev)
+1. **Mag APIs:** USGS and INTERMAGNET both returning errors as of Feb 2026; historical cache provides continuity
 2. **Alerting:** Not configured (disabled by default, safe)
 3. **Percentile Thresholds:** Not yet generated (optional, ready to compute)
 
@@ -686,14 +762,15 @@ Get-Content logs/ecdo_watch_*.log -Tail 50
 
 **Status:** HEALTHY ✓
 
-- All 7 phases implemented and tested
-- No critical issues or blockers
-- Documentation complete
-- Ready for production deployment
-- All APIs responding normally
+- All 7 monitoring channels implemented and operational
+- Interactive 3D globe with geospatial event visualization
+- Command center layout with responsive grid design
+- All channels scale with time-range selector (30d–10y)
+- Daily automation active (Windows Task Scheduler)
+- Magnetometer APIs intermittent but historical cache provides continuity
 - Safe defaults in place
 
-**Last Verified:** 2026-01-27 23:45 UTC (after bug fixes deployed)
+**Last Verified:** 2026-02-14 21:00 UTC (after multi-range and globe enhancements)
 
 ---
 
