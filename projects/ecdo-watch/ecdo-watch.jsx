@@ -633,8 +633,27 @@ const MAG_STATION_COORDS = [
   { code: 'HON', name: 'Honolulu', lat: 21.3155, lng: -157.9241 },
 ];
 
-// Hypothesized former/future North Pole position (Np')
+// Hypothesized former/future North Pole position (Np') and its antipode (Sp')
 const NP_PRIME = { lat: -14, lng: 31 };
+const SP_PRIME = { lat: 14, lng: -149 };
+
+// Angular distance in degrees between two points on a sphere
+const angularDistance = (lat1, lng1, lat2, lng2) => {
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 180 / Math.PI;
+};
+
+// Minimum angular distance to Np' or Sp'; returns { dist, pole }
+const poleProximity = (lat, lng) => {
+  const dNp = angularDistance(lat, lng, NP_PRIME.lat, NP_PRIME.lng);
+  const dSp = angularDistance(lat, lng, SP_PRIME.lat, SP_PRIME.lng);
+  return dNp <= dSp ? { dist: dNp, pole: "Np\u2032" } : { dist: dSp, pole: "Sp\u2032" };
+};
+
+const POLE_PROXIMITY_THRESHOLD = 20; // degrees — azimuth unreliable within this
 
 // Calculate initial bearing from point A to point B (degrees)
 const calcBearing = (lat1, lng1, lat2, lng2) => {
@@ -1537,7 +1556,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         // Summary stats (computed over all monuments, not just filtered)
         const measuredCount = effectiveMonuments.filter(m => measuredAxes.has(m.name)).length;
         const confirmedCount = [...verified.values()].filter(v => v === 'verified').length;
-        const allDeviations = effectiveMonuments.map(m => getDeviation(m)).filter(d => d !== null);
+        const allDeviations = effectiveMonuments
+          .filter(m => { const p = resolvePin(m); return poleProximity(p.lat, p.lng).dist >= POLE_PROXIMITY_THRESHOLD; })
+          .map(m => getDeviation(m)).filter(d => d !== null);
         const avgDev = allDeviations.length > 0 ? (allDeviations.reduce((a, b) => a + b, 0) / allDeviations.length) : null;
 
         // Sort by deviation (flat list) or group alphabetically
@@ -1602,16 +1623,23 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
               </span>
-              {axis && (() => {
+              {(() => {
+                const prox = poleProximity(pin.lat, pin.lng);
+                const nearPole = prox.dist < POLE_PROXIMITY_THRESHOLD;
+                if (nearPole && !axis) return (
+                  <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace', color: '#f59e0b' }} title={`${prox.dist.toFixed(0)}\u00b0 from ${prox.pole} \u2014 azimuth unreliable`}>~{prox.pole}</span>
+                );
+                if (!axis) return null;
                 const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
                 let deviation = Math.abs(axis.bearing - ideal);
                 if (deviation > 180) deviation = 360 - deviation;
                 if (deviation > 90) deviation = 180 - deviation;
-                const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
+                const devColor = nearPole ? '#7a7a8c' : deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
                 return (
                   <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace' }}>
-                    <span style={{ color: '#00e5ff' }}>{axis.bearing.toFixed(0)}&deg;</span>
-                    {' '}<span style={{ color: devColor }}>({deviation.toFixed(1)}&deg;)</span>
+                    <span style={{ color: nearPole ? '#7a7a8c' : '#00e5ff' }}>{axis.bearing.toFixed(0)}&deg;</span>
+                    {' '}<span style={{ color: devColor }}>({nearPole ? '~' : ''}{deviation.toFixed(1)}&deg;)</span>
+                    {nearPole && <span style={{ color: '#f59e0b', marginLeft: 2 }} title={`${prox.dist.toFixed(0)}\u00b0 from ${prox.pole}`}>*</span>}
                   </span>
                 );
               })()}
@@ -1791,13 +1819,24 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             {d.type === 'monument' && (() => {
               const idealBearing = calcBearing(d.lat, d.lng, NP_PRIME.lat, NP_PRIME.lng);
               const axis = measuredAxes.get(d.mName);
+              const prox = poleProximity(d.lat, d.lng);
+              const nearPole = prox.dist < POLE_PROXIMITY_THRESHOLD;
               return (
                 <>
                   <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>{d.mName}</div>
                   <div style={{ color: '#a8a8bc' }}>Region: <span style={{ color: '#e8e8ed' }}>{d.mRegion}</span></div>
                   <div style={{ color: '#a8a8bc' }}>Est. age: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.mAge}</span></div>
                   {d.mNotes && <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>{d.mNotes}</div>}
-                  <div style={{ color: '#a8a8bc', marginTop: 4 }}>Ideal bearing to Np&#8242;: <span style={{ color: '#f59e0b', fontFamily: 'monospace', fontWeight: 600 }}>{idealBearing.toFixed(1)}&deg;</span></div>
+                  {nearPole && (
+                    <div style={{
+                      marginTop: 6, padding: '4px 8px', background: 'rgba(245,158,11,0.1)',
+                      border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4,
+                      fontSize: 9, color: '#f59e0b', fontFamily: 'monospace',
+                    }}>
+                      {prox.dist.toFixed(0)}&deg; from {prox.pole} &mdash; azimuth unreliable near pole
+                    </div>
+                  )}
+                  <div style={{ color: '#a8a8bc', marginTop: 4 }}>Ideal bearing to Np&#8242;: <span style={{ color: nearPole ? '#7a7a8c' : '#f59e0b', fontFamily: 'monospace', fontWeight: 600 }}>{idealBearing.toFixed(1)}&deg;</span>{nearPole && <span style={{ color: '#7a7a8c', fontSize: 9 }}> (unreliable)</span>}</div>
                   {axis && (() => {
                     let deviation = Math.abs(axis.bearing - idealBearing);
                     if (deviation > 180) deviation = 360 - deviation;
