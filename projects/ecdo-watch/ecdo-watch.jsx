@@ -1051,6 +1051,20 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       },
     });
 
+    // Sp' special marker (amber)
+    ds.monuments.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(SP_PRIME.lng, SP_PRIME.lat),
+      point: {
+        pixelSize: 10,
+        color: Cesium.Color.fromCssColorString('#f59e0b'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+      },
+      _customData: {
+        type: 'sp_prime', lat: SP_PRIME.lat, lng: SP_PRIME.lng,
+      },
+    });
+
     // 5. Bearing lines: measured axis (cyan solid) + ideal to Np' (gold dashed) for comparison
     effectiveMonuments.forEach(m => {
       const pin = resolvePin(m);
@@ -1528,6 +1542,18 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             fontWeight: 600, border: '1px solid #22c55e', borderRadius: 4,
             background: 'rgba(34,197,94,0.08)', color: '#22c55e', cursor: 'pointer',
           }} title="Fly to Np' reference point">Np&#8242;</button>
+          <button onClick={() => {
+            if (viewerRef.current) {
+              viewerRef.current.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(SP_PRIME.lng, SP_PRIME.lat, 5000000),
+                duration: 1.0,
+              });
+            }
+          }} style={{
+            flex: 1, padding: '3px 8px', fontSize: 9, fontFamily: 'monospace',
+            fontWeight: 600, border: '1px solid #f59e0b', borderRadius: 4,
+            background: 'rgba(245,158,11,0.08)', color: '#f59e0b', cursor: 'pointer',
+          }} title="Fly to Sp' (antipode of Np')">Sp&#8242;</button>
         </div>
       </div>
 
@@ -1755,6 +1781,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           : d.type === 'volcano' ? '#ef4444'
           : d.type === 'monument' ? '#f59e0b'
           : d.type === 'np_prime' ? '#22c55e'
+          : d.type === 'sp_prime' ? '#f59e0b'
           : '#4a9eff';
         return (
           <div style={{
@@ -1771,6 +1798,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                  : d.type === 'volcano' ? 'Volcano'
                  : d.type === 'monument' ? 'Ancient Monument'
                  : d.type === 'np_prime' ? 'Hypothesized Pole'
+                 : d.type === 'sp_prime' ? 'Hypothesized Pole'
                  : 'Mag Station'}
               </span>
               <button
@@ -1935,6 +1963,14 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 <div style={{ color: '#a8a8bc' }}>ECDO Theory reference point</div>
                 <div style={{ color: '#a8a8bc', marginTop: 4 }}>Position: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>14&deg;S, 31&deg;E</span></div>
                 <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>Hypothesized former/future North Pole per ECDO theory. ~200 ancient monuments allegedly align structural axes toward this point.</div>
+              </>
+            )}
+            {d.type === 'sp_prime' && (
+              <>
+                <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Sp&#8242; (Former South Pole)</div>
+                <div style={{ color: '#a8a8bc' }}>Antipode of Np&#8242;</div>
+                <div style={{ color: '#a8a8bc', marginTop: 4 }}>Position: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>14&deg;N, 149&deg;W</span></div>
+                <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>Monuments within ~20&deg; of either pole have unreliable azimuth measurements due to great circle degeneracy.</div>
               </>
             )}
           </div>
