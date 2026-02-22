@@ -1656,6 +1656,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                         >
                           <span style={{ fontSize: 7, transition: 'transform 0.15s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>{'\u25B6'}</span>
                           {sec.icon} {sec.label} ({items.length})
+                          {(() => {
+                            const devs = items.map(m => getDeviation(m)).filter(d => d !== null);
+                            if (devs.length === 0) return null;
+                            const avg = devs.reduce((a, b) => a + b, 0) / devs.length;
+                            return <span style={{ marginLeft: 'auto', fontSize: 8, color: avg < 10 ? '#22c55e' : '#eab308' }}>{avg.toFixed(1)}&deg;</span>;
+                          })()}
                         </div>
                         {open && items.map(m => renderMonumentItem(m))}
                       </div>
