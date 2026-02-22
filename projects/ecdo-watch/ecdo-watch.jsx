@@ -2592,6 +2592,7 @@ function ECDOWatchDashboard() {
   const [compositeMetrics, setCompositeMetrics] = useState({ z: 0, flag: false, maxZ: 0 });
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [showStatusInfo, setShowStatusInfo] = useState(false);
+  const [activeTab, setActiveTab] = useState('globe');
   const [historicalExpanded, setHistoricalExpanded] = useState(false);
   const width = useWindowWidth();
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
@@ -2754,7 +2755,48 @@ function ECDOWatchDashboard() {
           </div>
         )}
 
+        {/* Tab bar: Spatial Monitor / Watch Analysis */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: '#0f0f15', border: '1px solid #252532',
+          borderRadius: 8, padding: '6px 12px', marginBottom: 12,
+          flexWrap: 'wrap', gap: 8,
+        }}>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[
+              { key: 'globe', label: 'Spatial Monitor' },
+              { key: 'analysis', label: 'Watch Analysis' },
+            ].map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                background: activeTab === tab.key ? '#4a9eff' : '#16161f',
+                border: '1px solid #252532',
+                color: activeTab === tab.key ? '#fff' : '#7a7a8c',
+                padding: '4px 12px', borderRadius: 4, fontSize: 11,
+                fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s ease',
+              }}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {activeTab === 'analysis' && (
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['30d', '90d', '1y', '5y', '10y'].map(range => (
+                <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
+                  background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
+                  border: '1px solid #252532',
+                  color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
+                  padding: '2px 8px', borderRadius: 3, fontSize: 9,
+                  fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
+                }}>
+                  {range}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Globe: Geophysical Spatial Monitor */}
+        {activeTab === 'globe' && (
         <div style={{ marginBottom: 12 }}>
           <div style={{ border: '1px solid #1e3a5f', borderRadius: 10, boxShadow: '0 0 20px rgba(74,158,255,0.05)' }}>
             <Card title="Geophysical Spatial Monitor" info={{
@@ -2774,34 +2816,10 @@ function ECDOWatchDashboard() {
             </Card>
           </div>
         </div>
-
-        {/* Watch Analysis heading + time range selector */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: '#0f0f15', border: '1px solid #252532',
-          borderRadius: 8, padding: '8px 16px', marginBottom: 12,
-          flexWrap: 'wrap', gap: 8,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>Watch Analysis</h3>
-            <span style={{ fontSize: 10, color: '#7a7a8c' }}>Channel diagnostics</span>
-          </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {['30d', '90d', '1y', '5y', '10y'].map(range => (
-              <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
-                background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
-                border: '1px solid #252532',
-                color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
-                padding: '2px 8px', borderRadius: 3, fontSize: 9,
-                fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
-              }}>
-                {range}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Two-column layout: stacked charts left, square charts right */}
+        {activeTab === 'analysis' && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexDirection: width >= 1000 ? 'row' : 'column' }}>
 
           {/* LEFT PANEL: Stacked line charts */}
@@ -3196,6 +3214,7 @@ function ECDOWatchDashboard() {
           </div>
 
         </div>
+        )}
 
         <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
 
