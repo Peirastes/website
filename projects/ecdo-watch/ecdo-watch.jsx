@@ -2315,6 +2315,39 @@ function ECDOWatchDashboard() {
           </div>
         )}
 
+        {/* Globe: Geophysical Spatial Monitor */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ border: '1px solid #1e3a5f', borderRadius: 10, boxShadow: '0 0 20px rgba(74,158,255,0.05)' }}>
+            <Card title="Geophysical Spatial Monitor" info={{
+              description: "Interactive 3D globe showing deep earthquakes, active volcanoes, magnetometer stations, and ancient monument alignments toward Np\u2032 (hypothesized former North Pole at 14\u00b0S, 31\u00b0E). Use the layer toggles to show/hide each data layer.",
+              lookingFor: [
+                "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
+                "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
+                "Ancient monument structural axes converging toward Np\u2032 (31\u00b0E, 14\u00b0S)",
+                "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
+                "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
+              ],
+              dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
+            }}>
+              <div style={{ height: 1000 }}>
+                <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <PolarMotionCharts polarMotionData={polarMotionData} />
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Watch Analysis heading */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          marginBottom: 12, paddingLeft: 4,
+        }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>Watch Analysis</h3>
+          <span style={{ fontSize: 10, color: '#7a7a8c' }}>Channel diagnostics</span>
+        </div>
+
         {/* Row 2: Monitoring Panels - 4 column grid */}
         <div style={{ display: 'grid', gridTemplateColumns: gridCols4, gap: 12, marginBottom: 12 }}>
 
@@ -2515,30 +2548,6 @@ function ECDOWatchDashboard() {
               <CompactMetric label="vs GIA" value="Normal" status="positive" />
             </div>
           </CompactCard>
-        </div>
-
-        {/* Row 3: Globe Centerpiece */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ border: '1px solid #1e3a5f', borderRadius: 10, boxShadow: '0 0 20px rgba(74,158,255,0.05)' }}>
-            <Card title="Geophysical Spatial Monitor" info={{
-              description: "Interactive 3D globe showing deep earthquakes, active volcanoes, magnetometer stations, and ancient monument alignments toward Np\u2032 (hypothesized former North Pole at 14\u00b0S, 31\u00b0E). Use the layer toggles to show/hide each data layer.",
-              lookingFor: [
-                "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
-                "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
-                "Ancient monument structural axes converging toward Np\u2032 (31\u00b0E, 14\u00b0S)",
-                "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
-                "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
-              ],
-              dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
-            }}>
-              <div style={{ height: 1000 }}>
-                <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <PolarMotionCharts polarMotionData={polarMotionData} />
-              </div>
-            </Card>
-          </div>
         </div>
 
         {/* Row 4: Analysis Panels - 3 column grid */}
