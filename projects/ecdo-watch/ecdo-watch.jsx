@@ -2926,6 +2926,7 @@ function ECDOWatchDashboard() {
             <StackedChartRow step={5} title="Coherence" status={coherenceData && coherenceData.badge === 'ORANGE' ? 'ELEVATED' : 'NOMINAL'} metrics={
               coherenceData ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}><span style={{ display: 'inline-block', width: 8, height: 2, background: '#4a9eff', borderRadius: 1, marginRight: 3, verticalAlign: 'middle' }}></span>EOP <span style={{ display: 'inline-block', width: 8, height: 2, background: '#f59e0b', borderRadius: 1, marginLeft: 4, marginRight: 3, verticalAlign: 'middle' }}></span>MAG</div>
                   <div style={{ fontSize: 9, color: '#7a7a8c' }}>r: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{coherenceData.correlation != null ? coherenceData.correlation.toFixed(2) : "n/a"}</span></div>
                   <div style={{ fontSize: 9, color: '#7a7a8c' }}>Score: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "\u2014"}</span></div>
                 </div>
@@ -2944,10 +2945,6 @@ function ECDOWatchDashboard() {
                   }}
                   options={{
                     ...darkThemeOptions,
-                    plugins: {
-                      ...darkThemeOptions.plugins,
-                      legend: { display: true, position: 'left', labels: { color: '#7a7a8c', boxWidth: 8, padding: 3, font: { size: 8 } } }
-                    },
                     scales: {
                       x: { ...darkThemeOptions.scales.x, display: false },
                       y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
@@ -3007,6 +3004,7 @@ function ECDOWatchDashboard() {
             })()} metrics={
               seisData ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}><span style={{ display: 'inline-block', width: 8, height: 2, background: '#8b5cf6', borderRadius: 1, marginRight: 3, verticalAlign: 'middle' }}></span>Daily <span style={{ display: 'inline-block', width: 8, height: 2, background: '#ffffff', borderRadius: 1, marginLeft: 4, marginRight: 3, verticalAlign: 'middle' }}></span>30d</div>
                   <div style={{ fontSize: 9, color: '#7a7a8c' }}>30d: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = seisData.rolling_30d_count || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(1) : "\u2014"; })()}</span></div>
                   <div style={{ fontSize: 9, color: '#7a7a8c' }}>z14: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null); return arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))).toFixed(2) : "\u2014"; })()}</span></div>
                 </div>
@@ -3025,10 +3023,6 @@ function ECDOWatchDashboard() {
                   }}
                   options={{
                     ...darkThemeOptions,
-                    plugins: {
-                      ...darkThemeOptions.plugins,
-                      legend: { display: true, position: 'left', labels: { color: '#7a7a8c', boxWidth: 8, padding: 3, font: { size: 8 } } }
-                    },
                     scales: {
                       x: { ...darkThemeOptions.scales.x, display: false },
                       y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
