@@ -1119,18 +1119,20 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       const pin = resolvePin(m);
       const axis = measuredAxes.get(m.name);
       if (!axis) return; // No tautological line — only show when measured axis exists
-      // Measured axis line (cyan solid)
+      const mStatus = verified.get(m.name);
+      const isConfirmed = mStatus === 'verified';
+      // Measured axis line (green if confirmed, cyan otherwise)
       const measuredArc = interpolateGreatCircle(pin.lat, pin.lng, axis.endLat, axis.endLng);
       const measuredFlat = measuredArc.flatMap(([lat, lng]) => [lng, lat]);
       ds.bearingLines.entities.add({
         polyline: {
           positions: Cesium.Cartesian3.fromDegreesArray(measuredFlat),
           width: 2,
-          material: Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.85),
+          material: Cesium.Color.fromCssColorString(isConfirmed ? '#22c55e' : '#00e5ff').withAlpha(0.85),
           clampToGround: true,
         },
       });
-      // Ideal line to Np' (gold dashed) for comparison
+      // Ideal line to Np' (green if confirmed, gold otherwise)
       const idealArc = interpolateGreatCircle(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
       const idealFlat = idealArc.flatMap(([lat, lng]) => [lng, lat]);
       ds.bearingLines.entities.add({
@@ -1138,7 +1140,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           positions: Cesium.Cartesian3.fromDegreesArray(idealFlat),
           width: 1.5,
           material: new Cesium.PolylineDashMaterialProperty({
-            color: Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.6),
+            color: Cesium.Color.fromCssColorString(isConfirmed ? '#22c55e' : '#f59e0b').withAlpha(0.6),
             dashLength: 12,
           }),
           clampToGround: true,
