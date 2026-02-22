@@ -679,8 +679,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
   const [verified, setVerified] = useState(() => new Map());
+  const [holoceneVolcanoes, setHoloceneVolcanoes] = useState([]);
   const [layers, setLayers] = useState({
-    plates: true, earthquakes: true, volcanoes: true,
+    plates: true, earthquakes: true, volcanoes: true, allVolcanoes: false,
     stations: true, monuments: true, bearingLines: true,
   });
   const [monListOpen, setMonListOpen] = useState(false);
@@ -731,6 +732,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         const arr = Array.isArray(data) ? data : [];
         setMonuments(arr);
       })
+      .catch(() => {});
+    // Load all Holocene volcanoes
+    fetch('./assets/holocene_volcanoes.json?v=' + Date.now())
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setHoloceneVolcanoes(data); })
       .catch(() => {});
   }, []);
 
@@ -836,6 +842,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       plates: new Cesium.CustomDataSource('plates'),
       earthquakes: new Cesium.CustomDataSource('earthquakes'),
       volcanoes: new Cesium.CustomDataSource('volcanoes'),
+      allVolcanoes: new Cesium.CustomDataSource('allVolcanoes'),
       stations: new Cesium.CustomDataSource('stations'),
       monuments: new Cesium.CustomDataSource('monuments'),
       bearingLines: new Cesium.CustomDataSource('bearingLines'),
@@ -896,6 +903,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     // Clear dynamic data sources (not plates — those are static from init)
     ds.earthquakes.entities.removeAll();
     ds.volcanoes.entities.removeAll();
+    ds.allVolcanoes.entities.removeAll();
     ds.stations.entities.removeAll();
     ds.monuments.entities.removeAll();
     ds.bearingLines.entities.removeAll();
@@ -923,7 +931,32 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     }
 
-    // 2. Active volcanoes (red)
+    // 2a. All Holocene volcanoes (dim orange, smaller)
+    if (holoceneVolcanoes.length > 0) {
+      const activeNames = new Set((volcData && volcData.current_volcanoes || []).map(v => v.name));
+      holoceneVolcanoes.forEach(v => {
+        if (activeNames.has(v.name)) return; // skip active ones (shown in layer above)
+        ds.allVolcanoes.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(v.lon, v.lat),
+          point: {
+            pixelSize: 4,
+            color: Cesium.Color.fromCssColorString('rgba(239,68,68,0.25)'),
+            outlineColor: Cesium.Color.fromCssColorString('rgba(255,255,255,0.15)'),
+            outlineWidth: 0.5,
+          },
+          _customData: {
+            type: 'volcano', lat: v.lat, lng: v.lon,
+            vName: v.name, vStatus: 'holocene',
+            vType: v.type || null,
+            vElevation: v.elevation || null,
+            vLastEruption: v.last_eruption || null,
+            vCountry: v.country || null,
+          },
+        });
+      });
+    }
+
+    // 2b. Active volcanoes (red)
     if (volcData && volcData.current_volcanoes) {
       volcData.current_volcanoes.forEach(v => {
         ds.volcanoes.entities.add({
@@ -1035,12 +1068,13 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.plates.show = layers.plates;
     ds.earthquakes.show = layers.earthquakes;
     ds.volcanoes.show = layers.volcanoes;
+    ds.allVolcanoes.show = layers.allVolcanoes;
     ds.stations.show = layers.stations;
     ds.monuments.show = layers.monuments;
     ds.bearingLines.show = layers.bearingLines;
     ds.measuredAxes.show = layers.bearingLines;
 
-  }, [seismicEvents, volcData, layers, effectiveMonuments, verified, measuredAxes, pinOverrides]);
+  }, [seismicEvents, volcData, holoceneVolcanoes, layers, effectiveMonuments, verified, measuredAxes, pinOverrides]);
 
   // Fly to clicked monument
   useEffect(() => {
@@ -1391,6 +1425,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           { key: 'plates', label: 'Plate Boundaries', color: 'rgba(245, 158, 11, 0.5)', shape: 'line' },
           { key: 'earthquakes', label: 'Deep EQ (>300km)', color: '#8b5cf6', shape: 'dot' },
           { key: 'volcanoes', label: 'Active Volcanoes', color: '#ef4444', shape: 'dot' },
+          { key: 'allVolcanoes', label: 'All Volcanoes', color: 'rgba(239,68,68,0.4)', shape: 'dot' },
           { key: 'stations', label: 'Mag Stations', color: '#4a9eff', shape: 'dot' },
           { key: 'monuments', label: 'Ancient Monuments', color: '#f59e0b', shape: 'dot' },
           { key: 'bearingLines', label: "Np\u2032 Bearing Lines", color: '#22c55e', shape: 'line' },
@@ -1731,13 +1766,17 @@ const GlobeView = ({ seismicEvents, volcData }) => {
               );
             })()}
             {d.type === 'volcano' && (() => {
-              const statusColor = d.vStatus === 'erupting' ? '#ef4444' : d.vStatus === 'elevated' ? '#f59e0b' : '#7a7a8c';
+              const statusColor = d.vStatus === 'erupting' ? '#ef4444' : d.vStatus === 'elevated' ? '#f59e0b' : d.vStatus === 'holocene' ? '#a8a8bc' : '#7a7a8c';
               return (
                 <>
                   <div style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, color: '#e8e8ed', marginBottom: 4 }}>{d.vName}</div>
                   <div style={{ color: '#a8a8bc' }}>Status: <span style={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', fontSize: 10 }}>{d.vStatus || 'active'}</span></div>
                   {d.vVei != null && <div style={{ color: '#a8a8bc' }}>VEI: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vVei}</span></div>}
                   {d.vStartDate && <div style={{ color: '#a8a8bc' }}>Eruption start: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vStartDate}</span></div>}
+                  {d.vType && <div style={{ color: '#a8a8bc' }}>Type: <span style={{ color: '#e8e8ed' }}>{d.vType}</span></div>}
+                  {d.vElevation != null && <div style={{ color: '#a8a8bc' }}>Elevation: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vElevation}m</span></div>}
+                  {d.vLastEruption && <div style={{ color: '#a8a8bc' }}>Last eruption: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vLastEruption}</span></div>}
+                  {d.vCountry && <div style={{ color: '#a8a8bc' }}>Country: <span style={{ color: '#e8e8ed' }}>{d.vCountry}</span></div>}
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
                 </>
               );

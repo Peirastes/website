@@ -56,6 +56,7 @@ WDC_MAGNETOMETER = "https://www.ngdc.noaa.gov/products/data-access-system/data/d
 USGS_EQ_FDSN = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 USGS_VHAP_ACTIVITY = "https://volcanoes.usgs.gov/hans-public/api/volcano/activityReport"
 GVP_WFS_ERUPTIONS = "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/wfs"
+GVP_WFS_HOLOCENE = "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/wfs"
 
 # INTERMAGNET station codes (map USGS codes to INTERMAGNET equivalents)
 INTERMAGNET_STATIONS = {
@@ -990,6 +991,69 @@ def generate_volcanic_activity_json(volcanic_data: dict) -> dict:
     }
 
 
+def load_holocene_volcanoes(cache_dir: Path) -> list:
+    """Fetch all Holocene volcanoes from Smithsonian GVP WFS.
+
+    Cached for 30 days since this data changes on geological timescales.
+    Returns list of {name, lat, lon, elevation, type, last_eruption, country}.
+    """
+    cache_file = cache_dir / "holocene_volcanoes_cache.json"
+    now = utcnow()
+
+    # Check cache (30-day)
+    if cache_file.exists():
+        mtime = datetime.fromtimestamp(cache_file.stat().st_mtime, tz=timezone.utc)
+        age_d = (now - mtime).total_seconds() / 86400.0
+        if age_d <= 30.0:
+            try:
+                volcanoes = json.loads(cache_file.read_text(encoding="utf-8"))
+                print(f"    Using cached Holocene volcanoes ({age_d:.0f}d old, {len(volcanoes)} volcanoes)")
+                return volcanoes
+            except Exception:
+                pass
+
+    print("    Fetching Holocene volcanoes from GVP WFS...")
+    try:
+        url = (
+            f"{GVP_WFS_HOLOCENE}?service=WFS&version=1.1.0"
+            f"&request=GetFeature&typeName=GVP-VOTW:E3WebApp_HoloceneVolcanoes"
+            f"&outputFormat=application%2Fjson&maxFeatures=2000"
+        )
+        data = fetch_json(url, timeout_s=90, max_retries=3)
+        features = data.get("features", [])
+        volcanoes = []
+        for feat in features:
+            props = feat.get("properties", {})
+            lat = props.get("LatitudeDecimal")
+            lon = props.get("LongitudeDecimal")
+            if lat is None or lon is None:
+                continue
+            volcanoes.append({
+                "name": props.get("VolcanoName", "Unknown"),
+                "lat": float(lat),
+                "lon": float(lon),
+                "elevation": props.get("Elevation"),
+                "type": props.get("VolcanoType", ""),
+                "last_eruption": props.get("LastEruption", ""),
+                "country": props.get("Country", ""),
+            })
+        print(f"      GVP WFS: {len(volcanoes)} Holocene volcanoes")
+
+        # Cache result
+        ensure_dir(cache_file.parent)
+        cache_file.write_text(json.dumps(volcanoes), encoding="utf-8")
+        return volcanoes
+    except Exception as e:
+        print(f"      Holocene volcano fetch failed: {type(e).__name__}: {str(e)[:100]}")
+        # Try stale cache
+        if cache_file.exists():
+            try:
+                return json.loads(cache_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return []
+
+
 # -------------------------
 # Main Script
 # -------------------------
@@ -1613,6 +1677,15 @@ def main():
         print(f"    [OK] volcanic_activity_data.json ({n_volc} active volcanoes)")
     except Exception as e:
         print(f"    Warning: Volcanic activity fetch failed: {e}")
+
+    # 7b. Holocene Volcanoes (all known volcanoes, 30-day cache)
+    print("  Fetching Holocene volcano database...")
+    try:
+        holocene = load_holocene_volcanoes(cache_dir)
+        (assets_dir / "holocene_volcanoes.json").write_text(json.dumps(holocene))
+        print(f"    [OK] holocene_volcanoes.json ({len(holocene)} volcanoes)")
+    except Exception as e:
+        print(f"    Warning: Holocene volcano fetch failed: {e}")
 
     # 8. Polar Motion (spiral plot + Chandler wobble)
     print("  Generating polar motion data...")
