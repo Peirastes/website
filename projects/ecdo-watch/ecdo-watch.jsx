@@ -3105,63 +3105,64 @@ function ECDOWatchDashboard() {
                 </div>
               </div>
               {historicalExpanded && (
-                <div style={{ padding: '0 8px 8px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div>
-                      <h4 style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>Geomagnetic Ap Index (since 1932)</h4>
-                      <div style={{ height: 100 }}>
-                        <ChartComponent
-                          type="line"
-                          height={100}
-                          data={{
-                            labels: aaData.labels,
-                            datasets: [{
-                              data: aaData.data,
-                              borderColor: '#f59e0b',
-                              backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                              fill: true, tension: 0.3, pointRadius: 0,
-                            }]
-                          }}
-                          options={{
-                            ...darkThemeOptions,
-                            scales: {
-                              ...darkThemeOptions.scales,
-                              x: { ...darkThemeOptions.scales.x, display: false },
-                              y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
-                            }
-                          }}
-                        />
-                      </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: '0 8px 8px' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', padding: '4px 0', borderBottom: '1px solid #1e1e2a' }}>
+                    <div style={{ flex: '0 0 130px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#e8e8ed' }}>Ap Index</div>
+                      <div style={{ fontSize: 9, color: '#7a7a8c' }}>Geomagnetic (1932–)</div>
                     </div>
-                    <div>
-                      <h4 style={{ fontSize: 10, color: '#7a7a8c', marginBottom: 4 }}>Polar Motion Amplitude (since 1846)</h4>
-                      <div style={{ height: 100 }}>
-                        <ChartComponent
-                          type="line"
-                          height={100}
-                          data={{
-                            labels: pmData.labels,
-                            datasets: [{
-                              data: pmData.data,
-                              borderColor: '#10b981',
-                              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                              fill: true, tension: 0.3, pointRadius: 0,
-                            }]
-                          }}
-                          options={{
-                            ...darkThemeOptions,
-                            scales: {
-                              ...darkThemeOptions.scales,
-                              x: { ...darkThemeOptions.scales.x, display: true, ticks: { ...darkThemeOptions.scales.x.ticks, maxTicksLimit: 10 } },
-                              y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
-                            }
-                          }}
-                        />
-                      </div>
+                    <div style={{ flex: 1, height: 80, minWidth: 0 }}>
+                      <ChartComponent
+                        type="line"
+                        height={80}
+                        data={{
+                          labels: aaData.labels,
+                          datasets: [{
+                            data: aaData.data,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true, tension: 0.3, pointRadius: 0,
+                          }]
+                        }}
+                        options={{
+                          ...darkThemeOptions,
+                          scales: {
+                            ...darkThemeOptions.scales,
+                            x: { ...darkThemeOptions.scales.x, display: false },
+                            y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                          }
+                        }}
+                      />
                     </div>
                   </div>
-                  <div style={{ marginTop: 8, fontSize: 10, color: '#7a7a8c' }}>
-                    Sources: GFZ (Ap, 1932–), IERS C01 (PM, 1846–), IERS (LOD, 1623–)
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', padding: '4px 0' }}>
+                    <div style={{ flex: '0 0 130px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#e8e8ed' }}>PM Amplitude</div>
+                      <div style={{ fontSize: 9, color: '#7a7a8c' }}>Polar motion (1846–)</div>
+                    </div>
+                    <div style={{ flex: 1, height: 80, minWidth: 0 }}>
+                      <ChartComponent
+                        type="line"
+                        height={80}
+                        data={{
+                          labels: pmData.labels,
+                          datasets: [{
+                            data: pmData.data,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true, tension: 0.3, pointRadius: 0,
+                          }]
+                        }}
+                        options={{
+                          ...darkThemeOptions,
+                          scales: {
+                            ...darkThemeOptions.scales,
+                            x: { ...darkThemeOptions.scales.x, display: true, ticks: { ...darkThemeOptions.scales.x.ticks, maxTicksLimit: 10 } },
+                            y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
