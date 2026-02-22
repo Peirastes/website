@@ -2604,6 +2604,7 @@ function ECDOWatchDashboard() {
   const [statusLevel, setStatusLevel] = useState('NOMINAL');
   const [showStatusInfo, setShowStatusInfo] = useState(false);
   const [activeTab, setActiveTab] = useState('globe');
+  const [showGlobeInfo, setShowGlobeInfo] = useState(false);
   const [historicalExpanded, setHistoricalExpanded] = useState(false);
   const width = useWindowWidth();
   const [alignedData, setAlignedData] = useState(() => alignRecentData(kpData, lodData, magData));
@@ -2697,83 +2698,104 @@ function ECDOWatchDashboard() {
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
 
-        {/* Row 1: Merged Header Bar */}
+        {/* Unified header bar */}
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: '#0f0f15', border: '1px solid #252532',
-          borderRadius: 8, padding: '8px 16px', marginBottom: 12,
-          flexWrap: 'wrap', gap: 8, minHeight: 50,
+          borderRadius: activeTab === 'globe' ? '10px 10px 0 0' : showGlobeInfo ? '10px 10px 0 0' : 10,
+          marginBottom: activeTab === 'analysis' && !showGlobeInfo ? 12 : 0,
+          padding: '10px 16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: 8,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>ECDO Watch</h1>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[
+                { key: 'globe', label: 'Spatial Monitor' },
+                { key: 'analysis', label: 'Earth Signals' },
+              ].map(tab => (
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                  background: activeTab === tab.key ? '#4a9eff' : '#16161f',
+                  border: '1px solid #252532',
+                  color: activeTab === tab.key ? '#fff' : '#7a7a8c',
+                  padding: '4px 12px', borderRadius: 4, fontSize: 11,
+                  fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s ease',
+                }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {activeTab === 'analysis' && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {['30d', '90d', '1y', '5y', '10y'].map(range => (
+                  <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
+                    background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
+                    border: '1px solid #252532',
+                    color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
+                    padding: '2px 8px', borderRadius: 3, fontSize: 9,
+                    fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
+                  }}>
+                    {range}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <DataFreshnessIndicator metadata={kpMetadata} />
             <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', fontSize: 10 }}>
               Exothermic Core-Mantle Decoupling Dzhanibekov Oscillation — The Ethical Skeptic
             </a>
+            <button
+              onClick={() => setShowGlobeInfo(!showGlobeInfo)}
+              style={{
+                background: 'transparent', border: '1px solid #7a7a8c', color: '#7a7a8c',
+                borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 'bold',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0, transition: 'all 0.2s ease', flexShrink: 0,
+              }}
+            >i</button>
           </div>
         </div>
 
-        {/* Tab bar: Spatial Monitor / Earth Signals */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: '#0f0f15', border: '1px solid #252532',
-          borderRadius: 8, padding: '6px 12px', marginBottom: 12,
-          flexWrap: 'wrap', gap: 8,
-        }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {[
-              { key: 'globe', label: 'Spatial Monitor' },
-              { key: 'analysis', label: 'Earth Signals' },
-            ].map(tab => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-                background: activeTab === tab.key ? '#4a9eff' : '#16161f',
-                border: '1px solid #252532',
-                color: activeTab === tab.key ? '#fff' : '#7a7a8c',
-                padding: '4px 12px', borderRadius: 4, fontSize: 11,
-                fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s ease',
-              }}>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {activeTab === 'analysis' && (
-            <div style={{ display: 'flex', gap: 4 }}>
-              {['30d', '90d', '1y', '5y', '10y'].map(range => (
-                <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
-                  background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
-                  border: '1px solid #252532',
-                  color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
-                  padding: '2px 8px', borderRadius: 3, fontSize: 9,
-                  fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
-                }}>
-                  {range}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Globe: Geophysical Spatial Monitor */}
-        {activeTab === 'globe' && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ border: '1px solid #1e3a5f', borderRadius: 10, boxShadow: '0 0 20px rgba(74,158,255,0.05)' }}>
-            <Card title="Geophysical Spatial Monitor" info={{
-              description: "Interactive 3D globe showing deep earthquakes, active volcanoes, magnetometer stations, and ancient monument alignments toward Np\u2032 (hypothesized former North Pole at 14\u00b0S, 31\u00b0E). Use the layer toggles to show/hide each data layer.",
-              lookingFor: [
-                "Geographic clustering of deep EQ along subduction zones (Ring of Fire)",
-                "Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)",
-                "Ancient monument structural axes converging toward Np\u2032 (31\u00b0E, 14\u00b0S)",
-                "Polar motion spiral showing stable Chandler wobble amplitude (~0.1-0.2 arcsec)",
-                "Changes in Chandler wobble amplitude or phase may indicate internal mass redistribution"
-              ],
-              dataSource: "USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion)"
-            }}>
-              <div style={{ height: 1000 }}>
-                <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
+        {/* Info panel */}
+        {showGlobeInfo && (
+          <div style={{
+            background: '#16161f', border: '1px solid #252532', borderTop: 'none',
+            borderRadius: activeTab === 'globe' ? 0 : '0 0 10px 10px',
+            marginBottom: activeTab === 'analysis' ? 12 : 0,
+            padding: 16, fontSize: 13, color: '#e8e8ed',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <div>
+                <strong style={{ color: '#4a9eff', fontSize: 14 }}>About ECDO Watch</strong>
+                <p style={{ margin: '8px 0', color: '#a8a8bc', lineHeight: 1.5 }}>
+                  Interactive 3D globe showing deep earthquakes, active volcanoes, magnetometer stations, and ancient monument alignments toward Np&#x2032; (hypothesized former North Pole at 14&deg;S, 31&deg;E). Earth Signals provides time-series analysis across independent geophysical channels.
+                </p>
+                <strong style={{ color: '#4a9eff', display: 'block', marginTop: 12, fontSize: 12 }}>What we're looking for:</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
+                  <li>Geographic clustering of deep EQ along subduction zones (Ring of Fire)</li>
+                  <li>Global dispersion of volcanic activity (widely separated eruptions suggest mantle-wide stress)</li>
+                  <li>Ancient monument structural axes converging toward Np&#x2032; (31&deg;E, 14&deg;S)</li>
+                  <li>Correlated anomalies across independent geophysical channels (Kp, LOD, MAG, seismicity)</li>
+                  <li>Changes in Chandler wobble amplitude or phase indicating internal mass redistribution</li>
+                </ul>
+                <strong style={{ color: '#4a9eff', display: 'block', marginTop: 12, fontSize: 12 }}>Data sources:</strong>
+                <p style={{ margin: '4px 0 0 0', color: '#a8a8bc' }}>USGS FDSN (earthquakes), Smithsonian GVP (volcanoes), IERS finals2000A (polar motion), GFZ (Kp), IERS (LOD), INTERMAGNET (MAG), NASA GSFC (C20)</p>
               </div>
-            </Card>
+              <button onClick={() => setShowGlobeInfo(false)} style={{
+                background: 'transparent', border: 'none', color: '#7a7a8c',
+                fontSize: 18, cursor: 'pointer', padding: 0, minWidth: 20,
+              }}>&#215;</button>
+            </div>
+          </div>
+        )}
+
+        {/* Globe: Spatial Monitor */}
+        {activeTab === 'globe' && (
+        <div style={{ marginBottom: 12, background: '#0f0f15', border: '1px solid #252532', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
+          <div style={{ height: 1000 }}>
+            <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
           </div>
         </div>
         )}
