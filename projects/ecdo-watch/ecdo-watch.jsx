@@ -1037,7 +1037,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         const color = ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6';
         const cesiumColor = Cesium.Color.fromCssColorString(color);
         const phaseOffset = (idx * 700) % eqPulsePeriod;
-        const maxRadius = Math.max(20000, (ev.mag - 3.5) * 15000);
+        const maxRadius = Math.max(150000, (ev.mag - 3.5) * 120000);
         ds.earthquakes.entities.add({
           position: Cesium.Cartesian3.fromDegrees(ev.lon, ev.lat),
           point: {
@@ -1049,11 +1049,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           ellipse: {
             semiMajorAxis: new Cesium.CallbackProperty(() => {
               const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
-              return 2000 + t * maxRadius;
+              return 30000 + t * maxRadius;
             }, false),
             semiMinorAxis: new Cesium.CallbackProperty(() => {
               const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
-              return 2000 + t * maxRadius;
+              return 30000 + t * maxRadius;
             }, false),
             material: new Cesium.ColorMaterialProperty(
               new Cesium.CallbackProperty(() => {
@@ -1116,11 +1116,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           ellipse: {
             semiMajorAxis: new Cesium.CallbackProperty(() => {
               const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
-              return 2000 + t * 25000;
+              return 30000 + t * 200000;
             }, false),
             semiMinorAxis: new Cesium.CallbackProperty(() => {
               const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
-              return 2000 + t * 25000;
+              return 30000 + t * 200000;
             }, false),
             material: new Cesium.ColorMaterialProperty(
               new Cesium.CallbackProperty(() => {
