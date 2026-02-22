@@ -3131,13 +3131,13 @@ function ECDOWatchDashboard() {
                   }}>{y}Y</button>
                 ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div>
-                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Geomagnetic Ap Index (since 1932)</h4>
-                  <div style={{ height: 160 }}>
+                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 4 }}>Geomagnetic Ap Index (since 1932)</h4>
+                  <div style={{ height: 120 }}>
                     <ChartComponent
                       type="line"
-                      height={160}
+                      height={120}
                       data={{
                         labels: aaData.labels,
                         datasets: [{
@@ -3151,19 +3151,19 @@ function ECDOWatchDashboard() {
                         ...darkThemeOptions,
                         scales: {
                           ...darkThemeOptions.scales,
-                          x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
-                          y: { ...darkThemeOptions.scales.y },
+                          x: { ...darkThemeOptions.scales.x, display: false },
+                          y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
                         }
                       }}
                     />
                   </div>
                 </div>
                 <div>
-                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Polar Motion Amplitude (since 1846)</h4>
-                  <div style={{ height: 160 }}>
+                  <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 4 }}>Polar Motion Amplitude (since 1846)</h4>
+                  <div style={{ height: 120 }}>
                     <ChartComponent
                       type="line"
-                      height={160}
+                      height={120}
                       data={{
                         labels: pmData.labels,
                         datasets: [{
@@ -3177,8 +3177,8 @@ function ECDOWatchDashboard() {
                         ...darkThemeOptions,
                         scales: {
                           ...darkThemeOptions.scales,
-                          x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 10 } },
-                          y: { ...darkThemeOptions.scales.y },
+                          x: { ...darkThemeOptions.scales.x, display: true, ticks: { ...darkThemeOptions.scales.x.ticks, maxTicksLimit: 10 } },
+                          y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
                         }
                       }}
                     />
