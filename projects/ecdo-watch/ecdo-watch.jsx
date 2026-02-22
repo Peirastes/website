@@ -904,15 +904,17 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         }
       }
       ctx.putImageData(imgData, 0, 0);
-      const layer = viewer.imageryLayers.addImageryProvider(
-        new Cesium.SingleTileImageryProvider({
-          url: canvas.toDataURL(),
-          rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90),
-        })
-      );
-      layer.alpha = 0.4;
-      layer.show = false; // hidden by default
-      signalOverlayRef.current = layer;
+      Cesium.SingleTileImageryProvider.fromUrl(
+        canvas.toDataURL(),
+        { rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90) }
+      ).then(provider => {
+        if (!viewer.isDestroyed()) {
+          const layer = viewer.imageryLayers.addImageryProvider(provider);
+          layer.alpha = 0.4;
+          layer.show = false; // hidden by default
+          signalOverlayRef.current = layer;
+        }
+      }).catch(() => {});
     })();
 
     // Initial camera (lat:10, lng:170)
