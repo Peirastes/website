@@ -762,7 +762,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [pinOverrides, setPinOverrides] = useState(() => new Map());
   const [customPins, setCustomPins] = useState([]);
   const [hiddenPins, setHiddenPins] = useState(() => new Set());
-  const [hiddenLines, setHiddenLines] = useState(() => new Set());
+  const [toggledLines, setToggledLines] = useState(() => new Set());
   const [addPinMode, setAddPinMode] = useState(false);
   const [addPinForm, setAddPinForm] = useState(null);
   const [addPinError, setAddPinError] = useState(null);
@@ -783,6 +783,13 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const resolvePin = (m) => {
     const ov = pinOverrides.get(m.name);
     return ov ? { lat: ov.lat, lng: ov.lng } : { lat: m.lat, lng: m.lng };
+  };
+
+  // Lines default ON for verified, OFF for plausible/unconfirmed. Toggle flips from default.
+  const isLineHidden = (name) => {
+    const isVerified = verified.get(name) === 'verified';
+    const toggled = toggledLines.has(name);
+    return isVerified ? toggled : !toggled;
   };
 
   const startAxisDrawing = (monumentName, lat, lng) => {
@@ -1236,7 +1243,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       const pin = resolvePin(m);
       const axis = measuredAxes.get(m.name);
       if (!axis) return; // No tautological line — only show when measured axis exists
-      if (hiddenLines.has(m.name)) return; // Per-monument line toggle
+      if (isLineHidden(m.name)) return; // Per-monument line toggle
       const mStatus = verified.get(m.name);
       const isConfirmed = mStatus === 'verified';
       // Measured axis line (green if confirmed, cyan otherwise) with dark outline
@@ -1325,7 +1332,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.measuredAxes.show = layers.bearingLines;
     if (signalOverlayRef.current) signalOverlayRef.current.show = layers.signalOverlay;
 
-  }, [seismicEvents, volcData, holoceneVolcanoes, layers, effectiveMonuments, verified, measuredAxes, pinOverrides, hiddenLines]);
+  }, [seismicEvents, volcData, holoceneVolcanoes, layers, effectiveMonuments, verified, measuredAxes, pinOverrides, toggledLines]);
 
   // Fly to clicked monument
   useEffect(() => {
@@ -2180,10 +2187,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                       background: 'rgba(0,229,255,0.08)', color: '#00e5ff', cursor: 'pointer',
                     }}>{axis ? 'REDRAW AXIS' : 'DRAW AXIS'}</button>
                     {axis && (() => {
-                      const linesHidden = hiddenLines.has(d.mName);
+                      const linesHidden = isLineHidden(d.mName);
                       return (
                         <button onClick={() => {
-                          setHiddenLines(prev => {
+                          setToggledLines(prev => {
                             const next = new Set(prev);
                             if (next.has(d.mName)) next.delete(d.mName);
                             else next.add(d.mName);
@@ -2711,8 +2718,8 @@ function ECDOWatchDashboard() {
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>ECDO Watch</h1>
             <div style={{ display: 'flex', gap: 4 }}>
               {[
-                { key: 'globe', label: 'Spatial Monitor' },
-                { key: 'analysis', label: 'Earth Signals' },
+                { key: 'globe', label: 'Globe' },
+                { key: 'analysis', label: 'Signals' },
               ].map(tab => (
                 <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
                   background: activeTab === tab.key ? '#4a9eff' : '#16161f',
