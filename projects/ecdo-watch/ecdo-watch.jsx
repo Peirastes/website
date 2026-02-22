@@ -716,6 +716,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [pinOverrides, setPinOverrides] = useState(() => new Map());
   const [customPins, setCustomPins] = useState([]);
   const [hiddenPins, setHiddenPins] = useState(() => new Set());
+  const [hiddenLines, setHiddenLines] = useState(() => new Set());
   const [addPinMode, setAddPinMode] = useState(false);
   const [addPinForm, setAddPinForm] = useState(null);
   const [addPinError, setAddPinError] = useState(null);
@@ -1119,6 +1120,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       const pin = resolvePin(m);
       const axis = measuredAxes.get(m.name);
       if (!axis) return; // No tautological line — only show when measured axis exists
+      if (hiddenLines.has(m.name)) return; // Per-monument line toggle
       const mStatus = verified.get(m.name);
       const isConfirmed = mStatus === 'verified';
       // Measured axis line (green if confirmed, cyan otherwise) with dark outline
@@ -1136,8 +1138,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           clampToGround: true,
         },
       });
-      // Projected measured bearing toward Np' (confirmed only — dashed extension)
-      if (isConfirmed) {
+      // Projected measured bearing toward Np' (confirmed + plausible — dashed extension)
+      if (isConfirmed || mStatus === 'plausible') {
         const toRad = Math.PI / 180;
         const toDeg = 180 / Math.PI;
         const lat1r = pin.lat * toRad;
@@ -1206,7 +1208,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.bearingLines.show = layers.bearingLines;
     ds.measuredAxes.show = layers.bearingLines;
 
-  }, [seismicEvents, volcData, holoceneVolcanoes, layers, effectiveMonuments, verified, measuredAxes, pinOverrides]);
+  }, [seismicEvents, volcData, holoceneVolcanoes, layers, effectiveMonuments, verified, measuredAxes, pinOverrides, hiddenLines]);
 
   // Fly to clicked monument
   useEffect(() => {
@@ -2042,6 +2044,24 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                       fontWeight: 600, border: '1px solid #00e5ff', borderRadius: 4,
                       background: 'rgba(0,229,255,0.08)', color: '#00e5ff', cursor: 'pointer',
                     }}>{axis ? 'REDRAW AXIS' : 'DRAW AXIS'}</button>
+                    {axis && (() => {
+                      const linesHidden = hiddenLines.has(d.mName);
+                      return (
+                        <button onClick={() => {
+                          setHiddenLines(prev => {
+                            const next = new Set(prev);
+                            if (next.has(d.mName)) next.delete(d.mName);
+                            else next.add(d.mName);
+                            return next;
+                          });
+                        }} style={{
+                          padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                          fontWeight: 600, border: `1px solid ${linesHidden ? '#7a7a8c' : '#22c55e'}`, borderRadius: 4,
+                          background: linesHidden ? 'transparent' : 'rgba(34,197,94,0.08)',
+                          color: linesHidden ? '#7a7a8c' : '#22c55e', cursor: 'pointer',
+                        }}>{linesHidden ? 'SHOW LINES' : 'HIDE LINES'}</button>
+                      );
+                    })()}
                     {removeConfirm === d.mName ? (
                       <>
                         <button onClick={() => { removePin(d.mName, d._custom); setRemoveConfirm(null); }} style={{
