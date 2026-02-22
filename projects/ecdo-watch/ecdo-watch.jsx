@@ -895,7 +895,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             g = Math.round(68 + t * (179 - 68));
             b = Math.round(68 + t * (8 - 68));
           }
-          const alpha = Math.round(90 + quality * 60); // 90..150 out of 255
+          const alpha = Math.round(180 + quality * 75); // 180..255 out of 255
           const idx = (py * w + px) * 4;
           imgData.data[idx] = r;
           imgData.data[idx + 1] = g;
@@ -910,7 +910,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       ).then(provider => {
         if (!viewer.isDestroyed()) {
           const layer = viewer.imageryLayers.addImageryProvider(provider);
-          layer.alpha = 0.4;
+          layer.alpha = 0.7;
           layer.show = false; // hidden by default
           signalOverlayRef.current = layer;
         }
