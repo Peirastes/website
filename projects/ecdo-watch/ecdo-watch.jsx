@@ -2946,7 +2946,7 @@ function ECDOWatchDashboard() {
                     ...darkThemeOptions,
                     plugins: {
                       ...darkThemeOptions.plugins,
-                      legend: { display: true, position: 'top', labels: { color: '#7a7a8c', boxWidth: 8, padding: 4, font: { size: 8 } } }
+                      legend: { display: true, position: 'left', labels: { color: '#7a7a8c', boxWidth: 8, padding: 3, font: { size: 8 } } }
                     },
                     scales: {
                       x: { ...darkThemeOptions.scales.x, display: false },
@@ -3027,7 +3027,7 @@ function ECDOWatchDashboard() {
                     ...darkThemeOptions,
                     plugins: {
                       ...darkThemeOptions.plugins,
-                      legend: { display: true, position: 'top', labels: { color: '#7a7a8c', boxWidth: 8, padding: 4, font: { size: 8 } } }
+                      legend: { display: true, position: 'left', labels: { color: '#7a7a8c', boxWidth: 8, padding: 3, font: { size: 8 } } }
                     },
                     scales: {
                       x: { ...darkThemeOptions.scales.x, display: false },
