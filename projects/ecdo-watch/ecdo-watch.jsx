@@ -929,17 +929,40 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.measuredAxes.entities.removeAll();
     previewEntityRef.current = null;
 
-    // 1. Earthquake epicenters (purple) - scaled by magnitude
+    // 1. Earthquake epicenters (purple) - scaled by magnitude with radial pulse
     if (seismicEvents && seismicEvents.events) {
-      seismicEvents.events.forEach(ev => {
+      const eqPulseStart = Date.now();
+      const eqPulsePeriod = 3000;
+      seismicEvents.events.forEach((ev, idx) => {
         const color = ev.mag >= 6.0 ? '#c084fc' : ev.mag >= 5.0 ? '#a78bfa' : '#8b5cf6';
+        const cesiumColor = Cesium.Color.fromCssColorString(color);
+        const phaseOffset = (idx * 700) % eqPulsePeriod;
+        const maxRadius = Math.max(20000, (ev.mag - 3.5) * 15000);
         ds.earthquakes.entities.add({
           position: Cesium.Cartesian3.fromDegrees(ev.lon, ev.lat),
           point: {
             pixelSize: Math.max(5, (ev.mag - 3.5) * 4),
-            color: Cesium.Color.fromCssColorString(color),
+            color: cesiumColor,
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 0.5,
+          },
+          ellipse: {
+            semiMajorAxis: new Cesium.CallbackProperty(() => {
+              const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
+              return 2000 + t * maxRadius;
+            }, false),
+            semiMinorAxis: new Cesium.CallbackProperty(() => {
+              const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
+              return 2000 + t * maxRadius;
+            }, false),
+            material: new Cesium.ColorMaterialProperty(
+              new Cesium.CallbackProperty(() => {
+                const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
+                return cesiumColor.withAlpha(0.3 * (1 - t));
+              }, false)
+            ),
+            height: 0,
+            outline: false,
           },
           _customData: {
             type: 'earthquake', lat: ev.lat, lng: ev.lon,
@@ -975,16 +998,38 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     }
 
-    // 2b. Active volcanoes (red)
+    // 2b. Active volcanoes (red) with radial pulse
     if (volcData && volcData.current_volcanoes) {
-      volcData.current_volcanoes.forEach(v => {
+      const vPulseStart = Date.now();
+      const vPulsePeriod = 2500;
+      const vCesiumColor = Cesium.Color.fromCssColorString('#ef4444');
+      volcData.current_volcanoes.forEach((v, idx) => {
+        const phaseOffset = (idx * 500) % vPulsePeriod;
         ds.volcanoes.entities.add({
           position: Cesium.Cartesian3.fromDegrees(v.lon, v.lat),
           point: {
             pixelSize: 6,
-            color: Cesium.Color.fromCssColorString('#ef4444'),
+            color: vCesiumColor,
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 0.5,
+          },
+          ellipse: {
+            semiMajorAxis: new Cesium.CallbackProperty(() => {
+              const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
+              return 2000 + t * 25000;
+            }, false),
+            semiMinorAxis: new Cesium.CallbackProperty(() => {
+              const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
+              return 2000 + t * 25000;
+            }, false),
+            material: new Cesium.ColorMaterialProperty(
+              new Cesium.CallbackProperty(() => {
+                const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
+                return vCesiumColor.withAlpha(0.35 * (1 - t));
+              }, false)
+            ),
+            height: 0,
+            outline: false,
           },
           _customData: {
             type: 'volcano', lat: v.lat, lng: v.lon,
