@@ -920,34 +920,33 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       const toRad = Math.PI / 180;
       const npLat = NP_PRIME.lat * toRad, npLng = NP_PRIME.lng * toRad;
       const spLat = SP_PRIME.lat * toRad, spLng = SP_PRIME.lng * toRad;
+      // 9 discrete bands: band 0 = worst (near pole), band 8 = best (equidistant from both)
+      const bandColors = [
+        [220, 38, 38],   // band 0 — red
+        [239, 68, 68],   // band 1
+        [245, 158, 11],  // band 2 — amber
+        [234, 179, 8],   // band 3 — yellow
+        [132, 204, 22],  // band 4 — lime
+        [34, 197, 94],   // band 5 — green
+        [16, 185, 129],  // band 6 — emerald
+        [6, 182, 212],   // band 7 — cyan
+        [59, 130, 246],  // band 8 — blue (center, best)
+      ];
       for (let py = 0; py < h; py++) {
         const lat = (90 - py * 180 / h) * toRad;
         const sinLat = Math.sin(lat), cosLat = Math.cos(lat);
         for (let px = 0; px < w; px++) {
           const lng = (-180 + px * 360 / w) * toRad;
-          // Angular distance to Np'
           const dNp = Math.acos(Math.min(1, Math.max(-1,
             sinLat * Math.sin(npLat) + cosLat * Math.cos(npLat) * Math.cos(lng - npLng)
           ))) / toRad;
-          // Angular distance to Sp'
           const dSp = Math.acos(Math.min(1, Math.max(-1,
             sinLat * Math.sin(spLat) + cosLat * Math.cos(spLat) * Math.cos(lng - spLng)
           ))) / toRad;
           const quality = Math.min(dNp, dSp) / 90; // 0..1
-          // Color: green (high quality) → yellow → red (low quality)
-          let r, g, b;
-          if (quality > 0.5) {
-            const t = (quality - 0.5) * 2; // 0..1
-            r = Math.round(34 + (1 - t) * (234 - 34));
-            g = Math.round(197 + (1 - t) * (179 - 197));
-            b = Math.round(94 + (1 - t) * (8 - 94));
-          } else {
-            const t = quality * 2; // 0..1
-            r = Math.round(239 + t * (234 - 239));
-            g = Math.round(68 + t * (179 - 68));
-            b = Math.round(68 + t * (8 - 68));
-          }
-          const alpha = Math.round(180 + quality * 75); // 180..255 out of 255
+          const band = Math.min(8, Math.floor(quality * 9));
+          const [r, g, b] = bandColors[band];
+          const alpha = 180 + band * 8; // 180..244
           const idx = (py * w + px) * 4;
           imgData.data[idx] = r;
           imgData.data[idx + 1] = g;
