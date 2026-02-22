@@ -1121,14 +1121,18 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       if (!axis) return; // No tautological line — only show when measured axis exists
       const mStatus = verified.get(m.name);
       const isConfirmed = mStatus === 'verified';
-      // Measured axis line (green if confirmed, cyan otherwise)
+      // Measured axis line (green if confirmed, cyan otherwise) with dark outline
       const measuredArc = interpolateGreatCircle(pin.lat, pin.lng, axis.endLat, axis.endLng);
       const measuredFlat = measuredArc.flatMap(([lat, lng]) => [lng, lat]);
       ds.bearingLines.entities.add({
         polyline: {
           positions: Cesium.Cartesian3.fromDegreesArray(measuredFlat),
-          width: 2,
-          material: Cesium.Color.fromCssColorString(isConfirmed ? '#22c55e' : '#00e5ff').withAlpha(0.85),
+          width: 4,
+          material: new Cesium.PolylineOutlineMaterialProperty({
+            color: Cesium.Color.fromCssColorString(isConfirmed ? '#22c55e' : '#00e5ff'),
+            outlineColor: Cesium.Color.BLACK.withAlpha(0.5),
+            outlineWidth: 2,
+          }),
           clampToGround: true,
         },
       });
@@ -1167,10 +1171,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         ds.bearingLines.entities.add({
           polyline: {
             positions: Cesium.Cartesian3.fromDegreesArray(projFlat),
-            width: 1.5,
+            width: 2.5,
             material: new Cesium.PolylineDashMaterialProperty({
-              color: Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.45),
-              dashLength: 8,
+              color: Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.6),
+              dashLength: 10,
             }),
             clampToGround: true,
           },
@@ -1182,10 +1186,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       ds.bearingLines.entities.add({
         polyline: {
           positions: Cesium.Cartesian3.fromDegreesArray(idealFlat),
-          width: 1.5,
+          width: 2.5,
           material: new Cesium.PolylineDashMaterialProperty({
-            color: Cesium.Color.fromCssColorString(isConfirmed ? '#22c55e' : '#f59e0b').withAlpha(0.6),
-            dashLength: 12,
+            color: Cesium.Color.fromCssColorString(isConfirmed ? '#22c55e' : '#f59e0b').withAlpha(0.75),
+            dashLength: 14,
           }),
           clampToGround: true,
         },
