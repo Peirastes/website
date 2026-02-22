@@ -694,6 +694,11 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [hiddenPins, setHiddenPins] = useState(() => new Set());
   const [addPinMode, setAddPinMode] = useState(false);
   const [addPinForm, setAddPinForm] = useState(null);
+  const [addPinError, setAddPinError] = useState(null);
+  const [monSearchQuery, setMonSearchQuery] = useState('');
+  const [monSortBy, setMonSortBy] = useState('alpha');
+  const [monFilterUnmeasured, setMonFilterUnmeasured] = useState(false);
+  const [removeConfirm, setRemoveConfirm] = useState(null);
   const axisModeRef = useRef(null);
   const pinModeRef = useRef(null);
   const addPinModeRef = useRef(false);
@@ -1222,6 +1227,24 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     };
   }, [addPinMode]);
 
+  // Global Escape handler: close info panel when no drawing mode is active
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !axisModeRef.current && !pinModeRef.current && !addPinModeRef.current) {
+        if (addPinForm) {
+          setAddPinForm(null);
+          setAddPinError(null);
+        } else if (removeConfirm) {
+          setRemoveConfirm(null);
+        } else if (selectedPoint) {
+          setSelectedPoint(null);
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [selectedPoint, addPinForm, removeConfirm]);
+
   const toggleLayer = (key) => {
     setLayers(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -1426,22 +1449,137 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             }} style={{ color: '#4a9eff', cursor: 'pointer', textDecoration: 'underline' }}>restore</span>
           </div>
         )}
+        <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+          <button onClick={() => {
+            if (viewerRef.current) {
+              viewerRef.current.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(170, 10, 20000000),
+                duration: 1.0,
+              });
+            }
+          }} style={{
+            flex: 1, padding: '3px 8px', fontSize: 9, fontFamily: 'monospace',
+            fontWeight: 600, border: '1px solid #7a7a8c', borderRadius: 4,
+            background: 'transparent', color: '#7a7a8c', cursor: 'pointer',
+          }} title="Reset camera to initial view">HOME</button>
+          <button onClick={() => {
+            if (viewerRef.current) {
+              viewerRef.current.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(NP_PRIME.lng, NP_PRIME.lat, 5000000),
+                duration: 1.0,
+              });
+            }
+          }} style={{
+            flex: 1, padding: '3px 8px', fontSize: 9, fontFamily: 'monospace',
+            fontWeight: 600, border: '1px solid #22c55e', borderRadius: 4,
+            background: 'rgba(34,197,94,0.08)', color: '#22c55e', cursor: 'pointer',
+          }} title="Fly to Np' reference point">Np&#8242;</button>
+        </div>
       </div>
 
       {/* Monument list panel */}
       {(() => {
+        // Search filter
+        const query = monSearchQuery.toLowerCase();
+        const filtered = effectiveMonuments.filter(m => {
+          if (query && !m.name.toLowerCase().includes(query) && !(m.region || '').toLowerCase().includes(query)) return false;
+          if (monFilterUnmeasured && measuredAxes.has(m.name)) return false;
+          return true;
+        });
+
+        // Deviation helper
+        const getDeviation = (m) => {
+          const axis = measuredAxes.get(m.name);
+          if (!axis) return null;
+          const pin = resolvePin(m);
+          const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
+          const dev = Math.abs(axis.bearing - ideal);
+          return dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
+        };
+
+        // Summary stats (computed over all monuments, not just filtered)
+        const measuredCount = effectiveMonuments.filter(m => measuredAxes.has(m.name)).length;
+        const confirmedCount = [...verified.values()].filter(v => v === 'verified').length;
+        const allDeviations = effectiveMonuments.map(m => getDeviation(m)).filter(d => d !== null);
+        const avgDev = allDeviations.length > 0 ? (allDeviations.reduce((a, b) => a + b, 0) / allDeviations.length) : null;
+
+        // Sort by deviation (flat list) or group alphabetically
+        let sortedFiltered;
+        if (monSortBy === 'deviation') {
+          sortedFiltered = [...filtered].sort((a, b) => {
+            const da = getDeviation(a);
+            const db = getDeviation(b);
+            if (da === null && db === null) return a.name.localeCompare(b.name);
+            if (da === null) return 1;
+            if (db === null) return -1;
+            return da - db;
+          });
+        }
+
         const groups = { verified: [], plausible: [], unconfirmed: [] };
-        effectiveMonuments.forEach(m => {
+        filtered.forEach(m => {
           const st = verified.get(m.name);
           if (st === 'verified') groups.verified.push(m);
           else if (st === 'plausible') groups.plausible.push(m);
           else groups.unconfirmed.push(m);
         });
+
         const sectionDefs = [
           { key: 'verified', label: 'Confirmed', color: '#22c55e', icon: '\u2713' },
           { key: 'plausible', label: 'Plausible', color: '#eab308', icon: '~' },
           { key: 'unconfirmed', label: 'Unconfirmed', color: '#7a7a8c', icon: '\u2022' },
         ];
+
+        const renderMonumentItem = (m) => {
+          const pin = resolvePin(m);
+          const isSelected = selectedPoint && selectedPoint.mName === m.name;
+          const axis = measuredAxes.get(m.name);
+          const hasMeasurement = !!axis;
+          return (
+            <div
+              key={m.name}
+              onClick={() => {
+                const mStatus = verified.get(m.name);
+                setSelectedPoint({
+                  type: 'monument', lat: pin.lat, lng: pin.lng,
+                  mName: m.name, mRegion: m.region,
+                  mAge: m.est_age, mNotes: m.notes,
+                  mStatus, pinOverridden: pinOverrides.has(m.name),
+                  _custom: !!m._custom,
+                });
+              }}
+              style={{
+                padding: '3px 12px 3px 20px', fontSize: 10, color: isSelected ? '#f59e0b' : '#a8a8bc',
+                cursor: 'pointer', background: isSelected ? 'rgba(245,158,11,0.08)' : 'transparent',
+                transition: 'background 0.1s',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4,
+              }}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+              onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', minWidth: 0 }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                  background: hasMeasurement ? '#00e5ff' : 'transparent',
+                  border: hasMeasurement ? 'none' : '1px solid #444',
+                }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+              </span>
+              {axis && (() => {
+                const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
+                const dev = Math.abs(axis.bearing - ideal);
+                const deviation = dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
+                const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
+                return (
+                  <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace' }}>
+                    <span style={{ color: '#00e5ff' }}>{axis.bearing.toFixed(0)}&deg;</span>
+                    {' '}<span style={{ color: devColor }}>({deviation.toFixed(1)}&deg;)</span>
+                  </span>
+                );
+              })()}
+            </div>
+          );
+        };
         return (
           <div style={{
             position: 'absolute', top: 12, left: 12, zIndex: 1000,
@@ -1459,72 +1597,79 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             {monListOpen && (
               <div style={{
                 marginTop: 4, background: 'rgba(15,15,21,0.95)', border: '1px solid #252532',
-                borderRadius: 6, padding: '6px 0', maxHeight: 350, overflowY: 'auto',
-                minWidth: 200, maxWidth: 260,
+                borderRadius: 6, maxHeight: 420, overflowY: 'auto',
+                minWidth: 220, maxWidth: 280,
               }}>
-                {sectionDefs.map(sec => {
-                  const items = groups[sec.key];
-                  if (items.length === 0) return null;
-                  const open = monSections[sec.key];
-                  return (
-                    <div key={sec.key}>
-                      <div
-                        onClick={() => setMonSections(p => ({ ...p, [sec.key]: !p[sec.key] }))}
-                        style={{
-                          padding: '4px 12px', fontSize: 10, fontFamily: 'monospace',
-                          fontWeight: 700, color: sec.color, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 6,
-                          borderBottom: '1px solid #1a1a2e',
-                        }}
-                      >
-                        <span style={{ fontSize: 7, transition: 'transform 0.15s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>{'\u25B6'}</span>
-                        {sec.icon} {sec.label} ({items.length})
+                {/* Search bar */}
+                <div style={{ padding: '6px 8px', borderBottom: '1px solid #1a1a2e', position: 'sticky', top: 0, background: 'rgba(15,15,21,0.98)', zIndex: 1 }}>
+                  <input
+                    type="text"
+                    placeholder="Search monuments..."
+                    value={monSearchQuery}
+                    onChange={e => setMonSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%', padding: '4px 6px', fontSize: 10,
+                      fontFamily: 'monospace', background: '#1a1a2e', border: '1px solid #252532',
+                      borderRadius: 3, color: '#e8e8ed', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                {/* Sort + filter controls */}
+                <div style={{ padding: '4px 8px', borderBottom: '1px solid #1a1a2e', display: 'flex', gap: 4, alignItems: 'center', position: 'sticky', top: 33, background: 'rgba(15,15,21,0.98)', zIndex: 1 }}>
+                  <button onClick={() => setMonSortBy(s => s === 'alpha' ? 'deviation' : 'alpha')} style={{
+                    padding: '2px 6px', fontSize: 8, fontFamily: 'monospace', fontWeight: 600,
+                    border: '1px solid #252532', borderRadius: 3,
+                    background: monSortBy === 'deviation' ? 'rgba(0,229,255,0.12)' : 'transparent',
+                    color: monSortBy === 'deviation' ? '#00e5ff' : '#7a7a8c', cursor: 'pointer',
+                  }}>{monSortBy === 'alpha' ? 'A\u2193Z' : '\u0394\u2191'}</button>
+                  <button onClick={() => setMonFilterUnmeasured(f => !f)} style={{
+                    padding: '2px 6px', fontSize: 8, fontFamily: 'monospace', fontWeight: 600,
+                    border: '1px solid #252532', borderRadius: 3,
+                    background: monFilterUnmeasured ? 'rgba(245,158,11,0.12)' : 'transparent',
+                    color: monFilterUnmeasured ? '#f59e0b' : '#7a7a8c', cursor: 'pointer',
+                  }}>{monFilterUnmeasured ? 'UNMEASURED' : 'ALL'}</button>
+                  <span style={{ fontSize: 8, color: '#7a7a8c', fontFamily: 'monospace', marginLeft: 'auto' }}>
+                    {filtered.length}/{effectiveMonuments.length}
+                  </span>
+                </div>
+                {/* Monument items */}
+                {monSortBy === 'deviation' ? (
+                  sortedFiltered.map(m => renderMonumentItem(m))
+                ) : (
+                  sectionDefs.map(sec => {
+                    const items = groups[sec.key];
+                    if (items.length === 0) return null;
+                    const open = monSections[sec.key];
+                    return (
+                      <div key={sec.key}>
+                        <div
+                          onClick={() => setMonSections(p => ({ ...p, [sec.key]: !p[sec.key] }))}
+                          style={{
+                            padding: '4px 12px', fontSize: 10, fontFamily: 'monospace',
+                            fontWeight: 700, color: sec.color, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            borderBottom: '1px solid #1a1a2e',
+                          }}
+                        >
+                          <span style={{ fontSize: 7, transition: 'transform 0.15s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>{'\u25B6'}</span>
+                          {sec.icon} {sec.label} ({items.length})
+                        </div>
+                        {open && items.map(m => renderMonumentItem(m))}
                       </div>
-                      {open && items.map(m => {
-                        const pin = resolvePin(m);
-                        const isSelected = selectedPoint && selectedPoint.mName === m.name;
-                        const axis = measuredAxes.get(m.name);
-                        return (
-                          <div
-                            key={m.name}
-                            onClick={() => {
-                              const mStatus = verified.get(m.name);
-                              setSelectedPoint({
-                                type: 'monument', lat: pin.lat, lng: pin.lng,
-                                mName: m.name, mRegion: m.region,
-                                mAge: m.est_age, mNotes: m.notes,
-                                mStatus, pinOverridden: pinOverrides.has(m.name),
-                                _custom: !!m._custom,
-                              });
-                            }}
-                            style={{
-                              padding: '3px 12px 3px 24px', fontSize: 10, color: isSelected ? '#f59e0b' : '#a8a8bc',
-                              cursor: 'pointer', background: isSelected ? 'rgba(245,158,11,0.08)' : 'transparent',
-                              transition: 'background 0.1s',
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4,
-                            }}
-                            onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-                            onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
-                          >
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                            {axis && (() => {
-                              const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
-                              const dev = Math.abs(axis.bearing - ideal);
-                              const deviation = dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
-                              const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
-                              return (
-                                <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace' }}>
-                                  <span style={{ color: '#00e5ff' }}>{axis.bearing.toFixed(0)}&deg;</span>
-                                  {' '}<span style={{ color: devColor }}>({deviation.toFixed(1)}&deg;)</span>
-                                </span>
-                              );
-                            })()}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
+                {/* Summary stats */}
+                <div style={{
+                  padding: '6px 8px', borderTop: '1px solid #1a1a2e',
+                  fontSize: 9, fontFamily: 'monospace', color: '#7a7a8c',
+                  display: 'flex', gap: 8, justifyContent: 'center',
+                  position: 'sticky', bottom: 0, background: 'rgba(15,15,21,0.98)',
+                }}>
+                  <span><span style={{ color: '#00e5ff' }}>{measuredCount}</span> measured</span>
+                  <span>avg: <span style={{ color: avgDev !== null && avgDev < 10 ? '#22c55e' : '#eab308' }}>{avgDev !== null ? avgDev.toFixed(1) + '\u00b0' : '\u2014'}</span></span>
+                  <span><span style={{ color: '#22c55e' }}>{confirmedCount}</span> confirmed</span>
+                </div>
               </div>
             )}
           </div>
@@ -1672,11 +1817,26 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                       fontWeight: 600, border: '1px solid #00e5ff', borderRadius: 4,
                       background: 'rgba(0,229,255,0.08)', color: '#00e5ff', cursor: 'pointer',
                     }}>{axis ? 'REDRAW AXIS' : 'DRAW AXIS'}</button>
-                    <button onClick={() => removePin(d.mName, d._custom)} style={{
-                      padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
-                      fontWeight: 600, border: '1px solid #ef4444', borderRadius: 4,
-                      background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer',
-                    }}>REMOVE</button>
+                    {removeConfirm === d.mName ? (
+                      <>
+                        <button onClick={() => { removePin(d.mName, d._custom); setRemoveConfirm(null); }} style={{
+                          padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                          fontWeight: 600, border: '1px solid #ef4444', borderRadius: 4,
+                          background: 'rgba(239,68,68,0.25)', color: '#ef4444', cursor: 'pointer',
+                        }}>CONFIRM</button>
+                        <button onClick={() => setRemoveConfirm(null)} style={{
+                          padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                          fontWeight: 600, border: '1px solid #7a7a8c', borderRadius: 4,
+                          background: 'transparent', color: '#7a7a8c', cursor: 'pointer',
+                        }}>CANCEL</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setRemoveConfirm(d.mName)} style={{
+                        padding: '4px 10px', fontSize: 10, fontFamily: 'monospace',
+                        fontWeight: 600, border: '1px solid #ef4444', borderRadius: 4,
+                        background: 'rgba(239,68,68,0.08)', color: '#ef4444', cursor: 'pointer',
+                      }}>REMOVE</button>
+                    )}
                   </div>
                 </>
               );
@@ -1714,6 +1874,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             const fd = new FormData(e.target);
             const name = fd.get('name')?.trim();
             if (!name) return;
+            const allNames = [...effectiveMonuments.map(m => m.name), ...customPins.map(p => p.name)];
+            if (allNames.some(n => n.toLowerCase() === name.toLowerCase())) {
+              setAddPinError('A pin with this name already exists');
+              return;
+            }
+            setAddPinError(null);
             const pin = {
               name,
               lat: addPinForm.lat,
@@ -1729,12 +1895,14 @@ const GlobeView = ({ seismicEvents, volcData }) => {
               return next;
             });
             setAddPinForm(null);
+            setAddPinError(null);
           }}>
-            <input name="name" placeholder="Name (required)" required autoFocus style={{
+            <input name="name" placeholder="Name (required)" required autoFocus onChange={() => setAddPinError(null)} style={{
               width: '100%', marginBottom: 4, padding: '4px 6px', fontSize: 10,
-              fontFamily: 'monospace', background: '#1a1a2e', border: '1px solid #252532',
+              fontFamily: 'monospace', background: '#1a1a2e', border: addPinError ? '1px solid #ef4444' : '1px solid #252532',
               borderRadius: 3, color: '#e8e8ed', outline: 'none', boxSizing: 'border-box',
             }} />
+            {addPinError && <div style={{ fontSize: 9, color: '#ef4444', marginBottom: 4, fontFamily: 'monospace' }}>{addPinError}</div>}
             <input name="region" placeholder="Region (optional)" style={{
               width: '100%', marginBottom: 4, padding: '4px 6px', fontSize: 10,
               fontFamily: 'monospace', background: '#1a1a2e', border: '1px solid #252532',
@@ -2168,8 +2336,16 @@ function ECDOWatchDashboard() {
               />
             </div>
             <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-              <CompactMetric label="Kp Max" value="2.3" status="positive" />
-              <CompactMetric label="Dst" value="-12 nT" status="positive" />
+              <CompactMetric
+                label="Kp Max"
+                value={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); return arr.length > 0 ? Math.max(...arr).toFixed(1) : "\u2014"; })()}
+                status={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); const max = arr.length > 0 ? Math.max(...arr) : 0; return max >= 5 ? "negative" : max >= 4 ? "warning" : "positive"; })()}
+              />
+              <CompactMetric
+                label="Kp Avg"
+                value={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); return arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : "\u2014"; })()}
+                status={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); const avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; return avg >= 4 ? "warning" : "positive"; })()}
+              />
               <CompactMetric
                 label="Quiet"
                 value={kpData && kpData.is_quiet ? `${kpData.is_quiet.filter(x => x).length}/${kpData.is_quiet.length}` : "\u2014"}
