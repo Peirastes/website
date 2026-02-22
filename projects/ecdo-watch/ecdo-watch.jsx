@@ -2690,26 +2690,11 @@ function ECDOWatchDashboard() {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: '#0f0f15', border: '1px solid #252532',
-          borderLeft: `4px solid ${statusColor}`,
           borderRadius: 8, padding: '8px 16px', marginBottom: 12,
           flexWrap: 'wrap', gap: 8, minHeight: 50,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>ECDO Watch</h1>
-            <div style={{
-              width: 10, height: 10, borderRadius: '50%', background: statusColor,
-              animation: 'pulse 2s infinite', flexShrink: 0,
-            }} />
-            <span style={{ fontFamily: 'monospace', fontSize: 12, color: statusColor, fontWeight: 600 }}>{statusLevel}</span>
-            <button
-              onClick={() => setShowStatusInfo(!showStatusInfo)}
-              style={{
-                background: 'transparent', border: '1px solid #7a7a8c', color: '#7a7a8c',
-                borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 'bold',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, transition: 'all 0.2s ease', flexShrink: 0,
-              }}
-            >i</button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <DataFreshnessIndicator metadata={kpMetadata} />
@@ -2719,43 +2704,7 @@ function ECDOWatchDashboard() {
           </div>
         </div>
 
-        {/* Status info expandable panel */}
-        {showStatusInfo && (
-          <div style={{
-            background: '#16161f', border: `1px solid ${statusColor}`, borderRadius: 8,
-            padding: 16, marginBottom: 12, fontSize: 13, color: '#e8e8ed',
-            borderLeft: `4px solid ${statusColor}`,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <div>
-                <strong style={{ color: statusColor }}>What does this mean?</strong>
-                <p style={{ margin: '8px 0 0 0', color: '#a8a8bc' }}>
-                  {statusLevel === 'WATCH' ? 'Multiple independent geophysical channels are showing correlated anomalies. This indicates a potential system-wide geophysical perturbation and warrants close observation.' :
-                   statusLevel === 'ELEVATED_DIAGNOSTIC' ? 'One monitoring channel has detected a statistical anomaly. This may represent normal variability or the beginning of a multi-channel event.' :
-                   'All monitored geophysical signals are within their normal historical ranges. No anomalies detected.'}
-                </p>
-                <strong style={{ color: statusColor, display: 'block', marginTop: 12 }}>What we monitor:</strong>
-                <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
-                  <li>External Forcing (Kp index) - Solar wind energy coupling</li>
-                  <li>Earth Orientation (LOD) - Rotational dynamics</li>
-                  <li>Ground Magnetometer - Multi-station magnetic field anomalies</li>
-                  <li>Cross-channel Coherence - Correlated signals across independent systems</li>
-                  <li>Deep Seismicity - Mantle stress via deep earthquakes (&gt;300km)</li>
-                  <li>Volcanic Activity - Global eruption monitoring and dispersion</li>
-                </ul>
-                <div style={{ marginTop: 8, fontSize: 11, color: '#7a7a8c' }}>
-                  Experimental analysis tool, NOT a prediction system
-                </div>
-              </div>
-              <button onClick={() => setShowStatusInfo(false)} style={{
-                background: 'transparent', border: 'none', color: '#7a7a8c',
-                fontSize: 18, cursor: 'pointer', padding: 0, minWidth: 20,
-              }}>&#215;</button>
-            </div>
-          </div>
-        )}
-
-        {/* Tab bar: Spatial Monitor / Watch Analysis */}
+        {/* Tab bar: Spatial Monitor / Earth Signals */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: '#0f0f15', border: '1px solid #252532',
@@ -2765,7 +2714,7 @@ function ECDOWatchDashboard() {
           <div style={{ display: 'flex', gap: 4 }}>
             {[
               { key: 'globe', label: 'Spatial Monitor' },
-              { key: 'analysis', label: 'Watch Analysis' },
+              { key: 'analysis', label: 'Earth Signals' },
             ].map(tab => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
                 background: activeTab === tab.key ? '#4a9eff' : '#16161f',
@@ -2818,8 +2767,69 @@ function ECDOWatchDashboard() {
         </div>
         )}
 
+        {/* Earth Signals content */}
+        {activeTab === 'analysis' && (<>
+
+        {/* Status bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#0f0f15', border: '1px solid #252532',
+          borderLeft: `4px solid ${statusColor}`,
+          borderRadius: 8, padding: '8px 16px', marginBottom: 12,
+        }}>
+          <div style={{
+            width: 10, height: 10, borderRadius: '50%', background: statusColor,
+            animation: 'pulse 2s infinite', flexShrink: 0,
+          }} />
+          <span style={{ fontFamily: 'monospace', fontSize: 12, color: statusColor, fontWeight: 600 }}>{statusLevel}</span>
+          <button
+            onClick={() => setShowStatusInfo(!showStatusInfo)}
+            style={{
+              background: 'transparent', border: '1px solid #7a7a8c', color: '#7a7a8c',
+              borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 'bold',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0, transition: 'all 0.2s ease', flexShrink: 0,
+            }}
+          >i</button>
+        </div>
+
+        {/* Status info expandable panel */}
+        {showStatusInfo && (
+          <div style={{
+            background: '#16161f', border: `1px solid ${statusColor}`, borderRadius: 8,
+            padding: 16, marginBottom: 12, fontSize: 13, color: '#e8e8ed',
+            borderLeft: `4px solid ${statusColor}`,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+              <div>
+                <strong style={{ color: statusColor }}>What does this mean?</strong>
+                <p style={{ margin: '8px 0 0 0', color: '#a8a8bc' }}>
+                  {statusLevel === 'WATCH' ? 'Multiple independent geophysical channels are showing correlated anomalies. This indicates a potential system-wide geophysical perturbation and warrants close observation.' :
+                   statusLevel === 'ELEVATED_DIAGNOSTIC' ? 'One monitoring channel has detected a statistical anomaly. This may represent normal variability or the beginning of a multi-channel event.' :
+                   'All monitored geophysical signals are within their normal historical ranges. No anomalies detected.'}
+                </p>
+                <strong style={{ color: statusColor, display: 'block', marginTop: 12 }}>What we monitor:</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, color: '#a8a8bc' }}>
+                  <li>External Forcing (Kp index) - Solar wind energy coupling</li>
+                  <li>Earth Orientation (LOD) - Rotational dynamics</li>
+                  <li>Ground Magnetometer - Multi-station magnetic field anomalies</li>
+                  <li>Cross-channel Coherence - Correlated signals across independent systems</li>
+                  <li>Deep Seismicity - Mantle stress via deep earthquakes (&gt;300km)</li>
+                  <li>Volcanic Activity - Global eruption monitoring and dispersion</li>
+                </ul>
+                <div style={{ marginTop: 8, fontSize: 11, color: '#7a7a8c' }}>
+                  Experimental analysis tool, NOT a prediction system
+                </div>
+              </div>
+              <button onClick={() => setShowStatusInfo(false)} style={{
+                background: 'transparent', border: 'none', color: '#7a7a8c',
+                fontSize: 18, cursor: 'pointer', padding: 0, minWidth: 20,
+              }}>&#215;</button>
+            </div>
+          </div>
+        )}
+
         {/* Two-column layout: stacked charts left, square charts right */}
-        {activeTab === 'analysis' && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexDirection: width >= 1000 ? 'row' : 'column' }}>
 
           {/* LEFT PANEL: Stacked line charts */}
@@ -3214,7 +3224,7 @@ function ECDOWatchDashboard() {
           </div>
 
         </div>
-        )}
+        </>)}
 
         <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
 
