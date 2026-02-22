@@ -198,6 +198,17 @@ const fetchDataFromJSON = async (timeRange = '90d') => {
       seismicEventsData = seRes.ok ? await seRes.json() : null;
     } catch { /* ignore */ }
 
+    // Backfill metadata from base files if time-ranged files lack it
+    if (!kpData.metadata || !kpData.metadata.generated_at) {
+      try { const r = await fetch('./assets/kp_data.json'); if (r.ok) { const d = await r.json(); if (d.metadata) kpData.metadata = d.metadata; } } catch {}
+    }
+    if (!lodData.metadata || !lodData.metadata.generated_at) {
+      try { const r = await fetch('./assets/lod_data.json'); if (r.ok) { const d = await r.json(); if (d.metadata) lodData.metadata = d.metadata; } } catch {}
+    }
+    if (!magData.metadata || !magData.metadata.generated_at) {
+      try { const r = await fetch('./assets/mag_data.json'); if (r.ok) { const d = await r.json(); if (d.metadata) magData.metadata = d.metadata; } } catch {}
+    }
+
     return { kpData, lodData, c20Data, aaData: aaData || generateHistoricalAA(50), pmData: pmData || generateHistoricalPM(50), magData, coherenceData, seisData, volcData, polarMotionData, seismicEventsData };
   } catch (error) {
     console.warn('Could not load real data, using fallback:', error);
@@ -2699,7 +2710,7 @@ function ECDOWatchDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <DataFreshnessIndicator metadata={kpMetadata} />
             <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', fontSize: 10 }}>
-              ECDO Theory
+              Exothermic Core-Mantle Decoupling Dzhanibekov Oscillation — The Ethical Skeptic
             </a>
           </div>
         </div>
