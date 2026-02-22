@@ -2297,19 +2297,6 @@ function ECDOWatchDashboard() {
               }}
             >i</button>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {['30d', '90d', '1y', '5y', '10y'].map(range => (
-              <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
-                background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
-                border: '1px solid #252532',
-                color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
-                padding: '2px 8px', borderRadius: 3, fontSize: 9,
-                fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
-              }}>
-                {range}
-              </button>
-            ))}
-          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <DataFreshnessIndicator metadata={kpMetadata} />
             <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', fontSize: 10 }}>
@@ -2371,20 +2358,41 @@ function ECDOWatchDashboard() {
               <div style={{ height: 1000 }}>
                 <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
               </div>
-              <div style={{ marginTop: 16 }}>
-                <PolarMotionCharts polarMotionData={polarMotionData} />
-              </div>
             </Card>
           </div>
         </div>
 
-        {/* Watch Analysis heading */}
+        {/* Watch Analysis heading + time range selector */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          marginBottom: 12, paddingLeft: 4,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: '#0f0f15', border: '1px solid #252532',
+          borderRadius: 8, padding: '8px 16px', marginBottom: 12,
+          flexWrap: 'wrap', gap: 8,
         }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>Watch Analysis</h3>
-          <span style={{ fontSize: 10, color: '#7a7a8c' }}>Channel diagnostics</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#e8e8ed' }}>Watch Analysis</h3>
+            <span style={{ fontSize: 10, color: '#7a7a8c' }}>Channel diagnostics</span>
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['30d', '90d', '1y', '5y', '10y'].map(range => (
+              <button key={range} onClick={() => setSelectedTimeRange(range)} style={{
+                background: selectedTimeRange === range ? '#4a9eff' : '#16161f',
+                border: '1px solid #252532',
+                color: selectedTimeRange === range ? '#fff' : '#7a7a8c',
+                padding: '2px 8px', borderRadius: 3, fontSize: 9,
+                fontFamily: 'monospace', cursor: 'pointer', transition: 'all 0.2s ease',
+              }}>
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Polar Motion Charts */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, padding: 16 }}>
+            <PolarMotionCharts polarMotionData={polarMotionData} />
+          </div>
         </div>
 
         {/* Row 2: Monitoring Panels - 4 column grid */}
