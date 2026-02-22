@@ -1058,11 +1058,16 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             material: new Cesium.ColorMaterialProperty(
               new Cesium.CallbackProperty(() => {
                 const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
-                return cesiumColor.withAlpha(0.6 * (1 - t));
+                return cesiumColor.withAlpha(0.4 * (1 - t));
               }, false)
             ),
             height: 0,
-            outline: false,
+            outline: true,
+            outlineColor: new Cesium.CallbackProperty(() => {
+              const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
+              return cesiumColor.withAlpha(0.9 * (1 - t));
+            }, false),
+            outlineWidth: 2,
           },
           _customData: {
             type: 'earthquake', lat: ev.lat, lng: ev.lon,
@@ -1125,11 +1130,16 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             material: new Cesium.ColorMaterialProperty(
               new Cesium.CallbackProperty(() => {
                 const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
-                return vCesiumColor.withAlpha(0.6 * (1 - t));
+                return vCesiumColor.withAlpha(0.4 * (1 - t));
               }, false)
             ),
             height: 0,
-            outline: false,
+            outline: true,
+            outlineColor: new Cesium.CallbackProperty(() => {
+              const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
+              return vCesiumColor.withAlpha(0.9 * (1 - t));
+            }, false),
+            outlineWidth: 2,
           },
           _customData: {
             type: 'volcano', lat: v.lat, lng: v.lon,
