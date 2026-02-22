@@ -1132,6 +1132,50 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           clampToGround: true,
         },
       });
+      // Projected measured bearing toward Np' (confirmed only — dashed extension)
+      if (isConfirmed) {
+        const toRad = Math.PI / 180;
+        const toDeg = 180 / Math.PI;
+        const lat1r = pin.lat * toRad;
+        const lng1r = pin.lng * toRad;
+        const npLatR = NP_PRIME.lat * toRad;
+        const npLngR = NP_PRIME.lng * toRad;
+        // Angular distance from pin to Np'
+        const angDist = Math.acos(Math.min(1, Math.max(-1,
+          Math.sin(lat1r) * Math.sin(npLatR) +
+          Math.cos(lat1r) * Math.cos(npLatR) * Math.cos(npLngR - lng1r)
+        )));
+        // Choose bearing direction closest to Np'
+        const idealBrg = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
+        let projBearing = axis.bearing;
+        let brgDiff = Math.abs(projBearing - idealBrg);
+        if (brgDiff > 180) brgDiff = 360 - brgDiff;
+        if (brgDiff > 90) projBearing = (projBearing + 180) % 360;
+        // Project endpoint 10% past Np' along measured bearing
+        const extDist = angDist * 1.1;
+        const bearRad = projBearing * toRad;
+        const projLat = Math.asin(
+          Math.sin(lat1r) * Math.cos(extDist) +
+          Math.cos(lat1r) * Math.sin(extDist) * Math.cos(bearRad)
+        );
+        const projLng = lng1r + Math.atan2(
+          Math.sin(bearRad) * Math.sin(extDist) * Math.cos(lat1r),
+          Math.cos(extDist) - Math.sin(lat1r) * Math.sin(projLat)
+        );
+        const projArc = interpolateGreatCircle(pin.lat, pin.lng, projLat * toDeg, projLng * toDeg);
+        const projFlat = projArc.flatMap(([lat, lng]) => [lng, lat]);
+        ds.bearingLines.entities.add({
+          polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(projFlat),
+            width: 1.5,
+            material: new Cesium.PolylineDashMaterialProperty({
+              color: Cesium.Color.fromCssColorString('#00e5ff').withAlpha(0.45),
+              dashLength: 8,
+            }),
+            clampToGround: true,
+          },
+        });
+      }
       // Ideal line to Np' (green if confirmed, gold otherwise)
       const idealArc = interpolateGreatCircle(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
       const idealFlat = idealArc.flatMap(([lat, lng]) => [lng, lat]);
