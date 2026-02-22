@@ -2725,6 +2725,7 @@ function ECDOWatchDashboard() {
                 </button>
               ))}
             </div>
+            <DataFreshnessIndicator metadata={kpMetadata} />
             {activeTab === 'analysis' && (
               <div style={{ display: 'flex', gap: 4 }}>
                 {['30d', '90d', '1y', '5y', '10y'].map(range => (
@@ -2742,7 +2743,6 @@ function ECDOWatchDashboard() {
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <DataFreshnessIndicator metadata={kpMetadata} />
             <a href="https://theethicalskeptic.com/2024/05/23/master-exothermic-core-mantle-decoupling-dzhanibekov-oscillation-theory/" target="_blank" rel="noopener noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', fontSize: 10 }}>
               Exothermic Core-Mantle Decoupling Dzhanibekov Oscillation — The Ethical Skeptic
             </a>
