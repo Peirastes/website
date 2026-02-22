@@ -498,6 +498,40 @@ const CompactMetric = ({ label, value, status }) => {
   );
 };
 
+const StackedChartRow = ({ step, title, metrics, children, isLast, status }) => {
+  const statusColors = {
+    OPEN: '#10b981', NOMINAL: '#10b981', OK: '#10b981',
+    CLOSED: '#ef4444', SUPPRESSED: '#ef4444',
+    ELEVATED: '#f59e0b',
+  };
+  return (
+    <div style={{
+      display: 'flex', gap: 8, alignItems: 'stretch',
+      background: '#0f0f15', borderRadius: 4, padding: '4px 8px',
+      borderBottom: isLast ? 'none' : '1px solid #1e1e2a',
+    }}>
+      <div style={{
+        flex: '0 0 130px', display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', gap: 2, padding: '4px 0',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {step && <span style={{ fontFamily: 'monospace', fontSize: 9, color: '#7a7a8c', background: '#252532', padding: '1px 5px', borderRadius: 3 }}>S{step}</span>}
+          {status && <span style={{
+            fontFamily: 'monospace', fontSize: 8, fontWeight: 600,
+            padding: '1px 4px', borderRadius: 3, textTransform: 'uppercase',
+            background: (statusColors[status] || '#6b7280') + '22', color: statusColors[status] || '#6b7280',
+          }}>{status}</span>}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: '#e8e8ed' }}>{title}</div>
+        {metrics}
+      </div>
+      <div style={{ flex: 1, height: 80, minWidth: 0 }}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
 // Plugin to draw background colors for quiet days
 const quietDayPlugin = {
   id: 'quietDayBackground',
@@ -2271,28 +2305,22 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 };
 
 // Polar motion spiral + Chandler residual charts
-const PolarMotionCharts = ({ polarMotionData }) => {
+const PolarMotionSpiral = ({ polarMotionData }) => {
   const spiralRef = useRef(null);
-  const chandlerRef = useRef(null);
   const spiralChartRef = useRef(null);
-  const chandlerChartRef = useRef(null);
 
   useEffect(() => {
     if (!polarMotionData || !polarMotionData.labels || polarMotionData.labels.length === 0) return;
-
-    // --- Chart 1: X/Y Spiral Plot ---
     if (spiralChartRef.current) spiralChartRef.current.destroy();
 
     const n = polarMotionData.labels.length;
-    // Color gradient: blue (old) to orange (recent)
     const spiralPoints = polarMotionData.pm_x.map((x, i) => ({
       x: x,
       y: polarMotionData.pm_y[i],
     }));
 
-    // Create gradient colors for each point
     const colors = polarMotionData.labels.map((_, i) => {
-      const t = i / (n - 1); // 0..1
+      const t = i / (n - 1);
       const r = Math.round(74 + t * (245 - 74));
       const g = Math.round(158 + t * (158 - 158));
       const b = Math.round(255 + t * (11 - 255));
@@ -2332,112 +2360,205 @@ const PolarMotionCharts = ({ polarMotionData }) => {
         },
         scales: {
           x: {
-            title: { display: true, text: 'PM X (arcsec)', color: '#7a7a8c', font: { size: 10 } },
+            title: { display: true, text: 'PM X (arcsec)', color: '#7a7a8c', font: { size: 9 } },
             grid: { color: '#1e1e2a' },
-            ticks: { color: '#7a7a8c', font: { size: 9 } },
+            ticks: { color: '#7a7a8c', font: { size: 8 } },
           },
           y: {
-            title: { display: true, text: 'PM Y (arcsec)', color: '#7a7a8c', font: { size: 10 } },
+            title: { display: true, text: 'PM Y (arcsec)', color: '#7a7a8c', font: { size: 9 } },
             grid: { color: '#1e1e2a' },
-            ticks: { color: '#7a7a8c', font: { size: 9 } },
+            ticks: { color: '#7a7a8c', font: { size: 8 } },
           }
         }
       }
     });
 
-    // --- Chart 2: Chandler Residual Time Series ---
-    if (chandlerChartRef.current) chandlerChartRef.current.destroy();
+    return () => { if (spiralChartRef.current) spiralChartRef.current.destroy(); };
+  }, [polarMotionData]);
 
-    // Downsample for performance (every 3rd point)
-    const step = 3;
-    const dsLabels = polarMotionData.labels.filter((_, i) => i % step === 0);
-    const dsX = polarMotionData.pm_x_chandler.filter((_, i) => i % step === 0);
-    const dsY = polarMotionData.pm_y_chandler.filter((_, i) => i % step === 0);
+  if (!polarMotionData || !polarMotionData.labels || polarMotionData.labels.length === 0) {
+    return <div style={{ padding: 12, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>No polar motion data</div>;
+  }
 
-    chandlerChartRef.current = new Chart(chandlerRef.current.getContext('2d'), {
-      type: 'line',
+  return (
+    <div>
+      <canvas ref={spiralRef} />
+      <div style={{ fontSize: 9, color: '#7a7a8c', textAlign: 'center', marginTop: 4 }}>
+        <span style={{ color: '#4a9eff' }}>blue</span> = older, <span style={{ color: '#f59e0b' }}>orange</span> = recent
+      </div>
+    </div>
+  );
+};
+
+const ChandlerLissajous = ({ polarMotionData }) => {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    if (!polarMotionData || !polarMotionData.pm_x_chandler || polarMotionData.pm_x_chandler.length === 0) return;
+    if (chartRef.current) chartRef.current.destroy();
+
+    const n = polarMotionData.pm_x_chandler.length;
+    const points = polarMotionData.pm_x_chandler.map((x, i) => ({
+      x: x,
+      y: polarMotionData.pm_y_chandler[i],
+    }));
+
+    const colors = polarMotionData.labels.map((_, i) => {
+      const t = i / (n - 1);
+      const r = Math.round(74 + t * (245 - 74));
+      const g = Math.round(158 + t * (158 - 158));
+      const b = Math.round(255 + t * (11 - 255));
+      return `rgb(${r},${g},${b})`;
+    });
+
+    chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
+      type: 'scatter',
       data: {
-        labels: dsLabels,
-        datasets: [
-          {
-            label: 'Chandler X',
-            data: dsX,
-            borderColor: '#4a9eff',
-            borderWidth: 1.5,
-            tension: 0.3,
-            pointRadius: 0,
-          },
-          {
-            label: 'Chandler Y',
-            data: dsY,
-            borderColor: '#f59e0b',
-            borderWidth: 1.5,
-            tension: 0.3,
-            pointRadius: 0,
-          }
-        ]
+        datasets: [{
+          data: points,
+          pointBackgroundColor: colors,
+          pointBorderColor: colors,
+          pointRadius: 1,
+          pointHoverRadius: 3,
+        }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
         plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            labels: { color: '#7a7a8c', boxWidth: 12, padding: 8, font: { size: 10 } }
-          },
+          legend: { display: false },
           tooltip: {
             backgroundColor: '#16161f',
             borderColor: '#252532',
             borderWidth: 1,
             titleColor: '#e8e8ed',
             bodyColor: '#7a7a8c',
+            callbacks: {
+              label: (ctx) => {
+                const idx = ctx.dataIndex;
+                return `${polarMotionData.labels[idx]} | X: ${ctx.parsed.x.toFixed(4)}″ Y: ${ctx.parsed.y.toFixed(4)}″`;
+              }
+            }
           }
         },
         scales: {
           x: {
-            grid: { display: false },
-            ticks: { color: '#7a7a8c', font: { size: 9 }, maxTicksLimit: 8 },
+            title: { display: true, text: 'Chandler X (arcsec)', color: '#7a7a8c', font: { size: 9 } },
+            grid: { color: '#1e1e2a' },
+            ticks: { color: '#7a7a8c', font: { size: 8 } },
           },
           y: {
-            title: { display: true, text: 'arcsec', color: '#7a7a8c', font: { size: 10 } },
+            title: { display: true, text: 'Chandler Y (arcsec)', color: '#7a7a8c', font: { size: 9 } },
             grid: { color: '#1e1e2a' },
-            ticks: { color: '#7a7a8c', font: { size: 9 } },
+            ticks: { color: '#7a7a8c', font: { size: 8 } },
           }
         }
       }
     });
 
-    return () => {
-      if (spiralChartRef.current) spiralChartRef.current.destroy();
-      if (chandlerChartRef.current) chandlerChartRef.current.destroy();
-    };
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
   }, [polarMotionData]);
 
-  if (!polarMotionData || !polarMotionData.labels || polarMotionData.labels.length === 0) {
-    return (
-      <div style={{ padding: 20, textAlign: 'center', color: '#7a7a8c', fontSize: 13 }}>
-        Polar motion data not yet available. Run the data pipeline to generate.
-      </div>
-    );
+  if (!polarMotionData || !polarMotionData.pm_x_chandler || polarMotionData.pm_x_chandler.length === 0) {
+    return <div style={{ padding: 12, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>No Chandler data</div>;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Polar Motion Spiral (10yr)</h4>
-        <div style={{ maxWidth: 360, margin: '0 auto' }}>
-          <canvas ref={spiralRef} />
-        </div>
-        <div style={{ fontSize: 10, color: '#7a7a8c', textAlign: 'center', marginTop: 4 }}>
-          Color: <span style={{ color: '#4a9eff' }}>blue</span> = older → <span style={{ color: '#f59e0b' }}>orange</span> = recent
-        </div>
+    <div>
+      <canvas ref={canvasRef} />
+      <div style={{ fontSize: 9, color: '#7a7a8c', textAlign: 'center', marginTop: 4 }}>
+        <span style={{ color: '#4a9eff' }}>blue</span> = older, <span style={{ color: '#f59e0b' }}>orange</span> = recent
       </div>
-      <div>
-        <h4 style={{ fontSize: 12, color: '#7a7a8c', marginBottom: 8 }}>Chandler Wobble Residual (~433d period)</h4>
-        <div style={{ height: 160 }}>
-          <canvas ref={chandlerRef} />
-        </div>
+    </div>
+  );
+};
+
+const WatchScoreGauge = ({ coherenceData }) => {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+
+  const score = coherenceData && coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score : 0;
+  const badge = coherenceData && coherenceData.badge ? coherenceData.badge : 'GREEN';
+  const correlation = coherenceData && coherenceData.correlation != null ? coherenceData.correlation : null;
+
+  useEffect(() => {
+    if (chartRef.current) chartRef.current.destroy();
+    if (!canvasRef.current) return;
+
+    const scoreVal = Math.max(0, Math.min(100, score));
+    const remaining = 100 - scoreVal;
+
+    // Color based on score
+    let arcColor = '#10b981'; // green
+    if (scoreVal >= 66) arcColor = '#f59e0b'; // orange
+    else if (scoreVal >= 33) arcColor = '#eab308'; // yellow
+
+    chartRef.current = new Chart(canvasRef.current.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [scoreVal, remaining],
+          backgroundColor: [arcColor, '#1e1e2a'],
+          borderWidth: 0,
+          circumference: 270,
+          rotation: 225,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        cutout: '75%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false },
+        },
+      },
+      plugins: [{
+        id: 'centerText',
+        afterDraw(chart) {
+          const { ctx, chartArea } = chart;
+          const cx = (chartArea.left + chartArea.right) / 2;
+          const cy = (chartArea.top + chartArea.bottom) / 2;
+
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Score number
+          ctx.fillStyle = '#e8e8ed';
+          ctx.font = 'bold 22px monospace';
+          ctx.fillText(Math.round(scoreVal), cx, cy - 6);
+
+          // Badge label
+          ctx.fillStyle = arcColor;
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(badge, cx, cy + 14);
+
+          ctx.restore();
+        }
+      }]
+    });
+
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
+  }, [score, badge]);
+
+  return (
+    <div>
+      <canvas ref={canvasRef} />
+      <div style={{ textAlign: 'center', marginTop: 4 }}>
+        {correlation != null && (
+          <div style={{ fontSize: 10, color: '#7a7a8c' }}>
+            EOP↔MAG r: <span style={{ color: Math.abs(correlation) >= 0.5 ? '#f59e0b' : '#10b981', fontFamily: 'monospace' }}>{correlation.toFixed(2)}</span>
+          </div>
+        )}
+        {coherenceData && coherenceData.quiet_day_count != null && (
+          <div style={{ fontSize: 10, color: '#7a7a8c' }}>
+            Quiet days: <span style={{ fontFamily: 'monospace', color: '#e8e8ed' }}>{coherenceData.quiet_day_count}/{coherenceData.total_days}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2547,8 +2668,6 @@ function ECDOWatchDashboard() {
   // Compute layout values
   const statusColorMap = { NOMINAL: '#10b981', ELEVATED_DIAGNOSTIC: '#f59e0b', WATCH: '#ef4444' };
   const statusColor = statusColorMap[statusLevel] || '#10b981';
-  const gridCols4 = width >= 1000 ? 'repeat(4, 1fr)' : width >= 600 ? 'repeat(2, 1fr)' : '1fr';
-  const gridCols3 = width >= 1000 ? 'repeat(3, 1fr)' : width >= 600 ? 'repeat(2, 1fr)' : '1fr';
 
   return (
     <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -2672,19 +2791,23 @@ function ECDOWatchDashboard() {
           </div>
         </div>
 
-        {/* Polar Motion Charts */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, padding: 16 }}>
-            <PolarMotionCharts polarMotionData={polarMotionData} />
-          </div>
-        </div>
+        {/* Two-column layout: stacked charts left, square charts right */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexDirection: width >= 1000 ? 'row' : 'column' }}>
 
-        {/* Row 2: Monitoring Panels - 4 column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: gridCols4, gap: 12, marginBottom: 12 }}>
+          {/* LEFT PANEL: Stacked line charts */}
+          <div style={{
+            flex: '1 1 0%', display: 'flex', flexDirection: 'column', gap: 0,
+            background: '#0f0f15', border: '1px solid #252532', borderRadius: 8,
+            overflow: 'hidden',
+          }}>
 
-          {/* S1: Kp Gate */}
-          <CompactCard step={1} title="Kp Gate" status="OPEN">
-            <div style={{ height: 80 }}>
+            {/* S1: Kp Gate */}
+            <StackedChartRow step={1} title="Kp Gate" status="OPEN" metrics={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>Max: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); return arr.length > 0 ? Math.max(...arr).toFixed(1) : "\u2014"; })()}</span></div>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>Avg: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); return arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : "\u2014"; })()}</span></div>
+              </div>
+            }>
               <ChartComponent
                 type="line"
                 height={80}
@@ -2708,56 +2831,25 @@ function ECDOWatchDashboard() {
                   }
                 }}
               />
-            </div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-              <CompactMetric
-                label="Kp Max"
-                value={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); return arr.length > 0 ? Math.max(...arr).toFixed(1) : "\u2014"; })()}
-                status={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); const max = arr.length > 0 ? Math.max(...arr) : 0; return max >= 5 ? "negative" : max >= 4 ? "warning" : "positive"; })()}
-              />
-              <CompactMetric
-                label="Kp Avg"
-                value={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); return arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : "\u2014"; })()}
-                status={(() => { const arr = (alignedData.kpData.data || []).filter(v => v != null); const avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; return avg >= 4 ? "warning" : "positive"; })()}
-              />
-              <CompactMetric
-                label="Quiet"
-                value={kpData && kpData.is_quiet ? `${kpData.is_quiet.filter(x => x).length}/${kpData.is_quiet.length}` : "\u2014"}
-                status="positive"
-              />
-            </div>
-          </CompactCard>
+            </StackedChartRow>
 
-          {/* S2: EOP / LOD */}
-          <CompactCard step={2} title="EOP / LOD" status="NOMINAL">
-            <div style={{ height: 100 }}>
+            {/* S2: EOP / LOD */}
+            <StackedChartRow step={2} title="EOP / LOD" status="NOMINAL" metrics={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>LOD z: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}</span></div>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>PM z: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}</span></div>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>EOP: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}</span></div>
+              </div>
+            }>
               <ChartComponent
                 type="line"
-                height={100}
+                height={80}
                 data={{
                   labels: lodData.labels || [],
                   datasets: [
-                    {
-                      data: lodData.z_lod || [],
-                      borderColor: '#4a9eff',
-                      borderWidth: 1.5,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      data: lodData.z_pm_speed || [],
-                      borderColor: '#f59e0b',
-                      borderWidth: 1.5,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      data: lodData.eop_composite || [],
-                      borderColor: '#ffffff',
-                      borderWidth: 2,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    }
+                    { data: lodData.z_lod || [], borderColor: '#4a9eff', borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                    { data: lodData.z_pm_speed || [], borderColor: '#f59e0b', borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                    { data: lodData.eop_composite || [], borderColor: '#ffffff', borderWidth: 2, tension: 0.3, pointRadius: 0 },
                   ]
                 }}
                 options={{
@@ -2768,70 +2860,27 @@ function ECDOWatchDashboard() {
                   }
                 }}
               />
-            </div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-              <CompactMetric
-                label="LOD z"
-                value={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}
-                status={(() => { const arr = lodData.z_lod || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
-              />
-              <CompactMetric
-                label="PM z"
-                value={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}
-                status={(() => { const arr = lodData.z_pm_speed || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
-              />
-              <CompactMetric
-                label="EOP"
-                value={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(2) : "\u2014"; })()}
-                status={(() => { const arr = lodData.eop_composite || []; const v = arr[arr.length - 1]; return v != null && Math.abs(v) >= 2.5 ? "warning" : "positive"; })()}
-              />
-            </div>
-          </CompactCard>
+            </StackedChartRow>
 
-          {/* S4: Magnetometer (visual order: after EOP) */}
-          <CompactCard step={4} title="Magnetometer" status="NOMINAL">
-            <div style={{ height: 100 }}>
+            {/* S4: Magnetometer */}
+            <StackedChartRow step={4} title="Magnetometer" status="NOMINAL" metrics={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>Comp z: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{compositeMetrics.z}</span></div>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>Max 14d: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{compositeMetrics.maxZ}</span></div>
+                <div style={{ fontSize: 9, color: compositeMetrics.flag ? '#f59e0b' : '#10b981' }}>{compositeMetrics.flag ? "\u26a0 Flag" : "\u2713 OK"}</div>
+              </div>
+            }>
               <ChartComponent
                 type="line"
-                height={100}
+                height={80}
                 data={{
                   labels: alignedData.magData.labels,
                   datasets: [
-                    {
-                      data: alignedData.magData.bou,
-                      borderColor: 'rgba(74, 158, 255, 0.15)',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      data: alignedData.magData.frd,
-                      borderColor: 'rgba(245, 158, 11, 0.15)',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      data: alignedData.magData.brw,
-                      borderColor: 'rgba(16, 185, 129, 0.15)',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      data: alignedData.magData.hon,
-                      borderColor: 'rgba(139, 92, 246, 0.15)',
-                      borderWidth: 1,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    },
-                    {
-                      data: alignedData.magData.composite,
-                      borderColor: '#ffffff',
-                      borderWidth: 2,
-                      tension: 0.3,
-                      pointRadius: 0,
-                    }
+                    { data: alignedData.magData.bou, borderColor: 'rgba(74, 158, 255, 0.15)', borderWidth: 1, tension: 0.3, pointRadius: 0 },
+                    { data: alignedData.magData.frd, borderColor: 'rgba(245, 158, 11, 0.15)', borderWidth: 1, tension: 0.3, pointRadius: 0 },
+                    { data: alignedData.magData.brw, borderColor: 'rgba(16, 185, 129, 0.15)', borderWidth: 1, tension: 0.3, pointRadius: 0 },
+                    { data: alignedData.magData.hon, borderColor: 'rgba(139, 92, 246, 0.15)', borderWidth: 1, tension: 0.3, pointRadius: 0 },
+                    { data: alignedData.magData.composite, borderColor: '#ffffff', borderWidth: 2, tension: 0.3, pointRadius: 0 },
                   ]
                 }}
                 options={{
@@ -2842,17 +2891,15 @@ function ECDOWatchDashboard() {
                   }
                 }}
               />
-            </div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-              <CompactMetric label="Comp z" value={compositeMetrics.z} status={Math.abs(parseFloat(compositeMetrics.z)) >= 2.5 ? "negative" : "positive"} />
-              <CompactMetric label="Max 14d" value={compositeMetrics.maxZ} status={compositeMetrics.flag ? "warning" : "positive"} />
-              <CompactMetric label="Flag" value={compositeMetrics.flag ? "\u26a0" : "\u2713"} status={compositeMetrics.flag ? "warning" : "positive"} />
-            </div>
-          </CompactCard>
+            </StackedChartRow>
 
-          {/* S3: C20 */}
-          <CompactCard step={3} title="C20 Mass" status="OK" subtitle={c20Data && c20Data.labels ? `${c20Data.labels.length}d` : ''}>
-            <div style={{ height: 80 }}>
+            {/* S3: C20 Mass */}
+            <StackedChartRow step={3} title="C20 Mass" status="OK" metrics={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>C20 z: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{c20Data && c20Data.data && c20Data.data.length > 0 && c20Data.data[c20Data.data.length - 1] !== null ? c20Data.data[c20Data.data.length - 1].toFixed(2) : "\u2014"}</span></div>
+                <div style={{ fontSize: 9, color: '#7a7a8c' }}>vs GIA: <span style={{ color: '#10b981', fontFamily: 'monospace' }}>Normal</span></div>
+              </div>
+            }>
               <ChartComponent
                 type="line"
                 height={80}
@@ -2873,310 +2920,191 @@ function ECDOWatchDashboard() {
                   }
                 }}
               />
+            </StackedChartRow>
+
+            {/* S5: Coherence (EOP + MAG) */}
+            <StackedChartRow step={5} title="Coherence" status={coherenceData && coherenceData.badge === 'ORANGE' ? 'ELEVATED' : 'NOMINAL'} metrics={
+              coherenceData ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>r: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{coherenceData.correlation != null ? coherenceData.correlation.toFixed(2) : "n/a"}</span></div>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>Score: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "\u2014"}</span></div>
+                </div>
+              ) : null
+            }>
+              {coherenceData && coherenceData.labels && coherenceData.labels.length > 0 ? (
+                <ChartComponent
+                  type="line"
+                  height={80}
+                  data={{
+                    labels: coherenceData.labels,
+                    datasets: [
+                      { label: 'EOP', data: coherenceData.eop_composite, borderColor: '#4a9eff', borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                      { label: 'MAG', data: coherenceData.mag_composite, borderColor: '#f59e0b', borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                    ]
+                  }}
+                  options={{
+                    ...darkThemeOptions,
+                    plugins: {
+                      ...darkThemeOptions.plugins,
+                      legend: { display: true, position: 'top', labels: { color: '#7a7a8c', boxWidth: 8, padding: 4, font: { size: 8 } } }
+                    },
+                    scales: {
+                      x: { ...darkThemeOptions.scales.x, display: false },
+                      y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                    }
+                  }}
+                />
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a7a8c', fontSize: 10 }}>No coherence data</div>
+              )}
+            </StackedChartRow>
+
+            {/* Watch Score (area chart 0-100) */}
+            <StackedChartRow step="" title="Watch Score" status={coherenceData && coherenceData.badge ? coherenceData.badge : ''} metrics={
+              coherenceData ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>Now: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "\u2014"}</span></div>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>Quiet: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{coherenceData.quiet_day_count}/{coherenceData.total_days}</span></div>
+                </div>
+              ) : null
+            }>
+              {coherenceData && coherenceData.watch_score && coherenceData.watch_score.length > 0 ? (
+                <ChartComponent
+                  type="line"
+                  height={80}
+                  data={{
+                    labels: coherenceData.labels,
+                    datasets: [{
+                      data: coherenceData.watch_score,
+                      borderColor: '#10b981',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      fill: true,
+                      tension: 0.3,
+                      pointRadius: 0,
+                    }]
+                  }}
+                  options={{
+                    ...darkThemeOptions,
+                    plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
+                    scales: {
+                      x: { ...darkThemeOptions.scales.x, display: false },
+                      y: { ...darkThemeOptions.scales.y, min: 0, max: 100, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                    }
+                  }}
+                  quietFlags={coherenceData.quiet}
+                />
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a7a8c', fontSize: 10 }}>No watch score data</div>
+              )}
+            </StackedChartRow>
+
+            {/* S6: Deep Seismicity */}
+            <StackedChartRow step={6} title="Deep Seismicity" status={(() => {
+              if (!seisData || !seisData.z_eq_count) return 'NOMINAL';
+              const recent = seisData.z_eq_count.slice(-14).filter(v => v != null);
+              const maxZ = recent.length > 0 ? Math.max(...recent.map(v => Math.abs(v))) : 0;
+              return maxZ >= 2.5 ? 'ELEVATED' : 'NOMINAL';
+            })()} metrics={
+              seisData ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>30d: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = seisData.rolling_30d_count || []; const v = arr[arr.length - 1]; return v != null ? v.toFixed(1) : "\u2014"; })()}</span></div>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>z14: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null); return arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))).toFixed(2) : "\u2014"; })()}</span></div>
+                </div>
+              ) : null
+            }>
+              {seisData && seisData.labels && seisData.labels.length > 0 ? (
+                <ChartComponent
+                  type="line"
+                  height={80}
+                  data={{
+                    labels: seisData.labels,
+                    datasets: [
+                      { label: 'Daily', data: seisData.eq_count, borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true, borderWidth: 1.5, tension: 0.3, pointRadius: 0 },
+                      { label: '30d', data: seisData.rolling_30d_count, borderColor: '#ffffff', borderWidth: 2, borderDash: [5, 3], tension: 0.3, pointRadius: 0 },
+                    ]
+                  }}
+                  options={{
+                    ...darkThemeOptions,
+                    plugins: {
+                      ...darkThemeOptions.plugins,
+                      legend: { display: true, position: 'top', labels: { color: '#7a7a8c', boxWidth: 8, padding: 4, font: { size: 8 } } }
+                    },
+                    scales: {
+                      x: { ...darkThemeOptions.scales.x, display: false },
+                      y: { ...darkThemeOptions.scales.y, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                    }
+                  }}
+                />
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a7a8c', fontSize: 10 }}>No seismicity data</div>
+              )}
+            </StackedChartRow>
+
+            {/* S7: Volcanic (last row — show x-axis) */}
+            <StackedChartRow step={7} title="Volcanic" isLast={true} status={(() => {
+              if (!volcData || !volcData.z_active_count) return 'NOMINAL';
+              const recent = volcData.z_active_count.filter(v => v != null);
+              const latest = recent.length > 0 ? recent[recent.length - 1] : 0;
+              return Math.abs(latest) >= 2.0 ? 'ELEVATED' : 'NOMINAL';
+            })()} metrics={
+              volcData ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>Active: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = volcData.active_count || []; return arr.length > 0 ? arr[arr.length - 1] : "\u2014"; })()}</span></div>
+                  <div style={{ fontSize: 9, color: '#7a7a8c' }}>New: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{(() => { const arr = volcData.new_eruptions || []; return arr.length > 0 ? arr[arr.length - 1] : "\u2014"; })()}</span></div>
+                </div>
+              ) : null
+            }>
+              {volcData && volcData.labels && volcData.labels.length > 0 ? (
+                <ChartComponent
+                  type="bar"
+                  height={80}
+                  data={{
+                    labels: volcData.labels,
+                    datasets: [{
+                      data: volcData.active_count,
+                      backgroundColor: volcData.z_active_count
+                        ? volcData.z_active_count.map(z => z != null && Math.abs(z) >= 2.0 ? '#ef4444' : '#f59e0b')
+                        : '#f59e0b',
+                      borderRadius: 2,
+                    }]
+                  }}
+                  options={{
+                    ...darkThemeOptions,
+                    plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
+                    scales: {
+                      x: { ...darkThemeOptions.scales.x, display: true, ticks: { ...darkThemeOptions.scales.x.ticks, maxTicksLimit: 6 } },
+                      y: { ...darkThemeOptions.scales.y, beginAtZero: true, ticks: { ...darkThemeOptions.scales.y.ticks, maxTicksLimit: 3 } },
+                    }
+                  }}
+                />
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7a7a8c', fontSize: 10 }}>No volcanic data</div>
+              )}
+            </StackedChartRow>
+
+          </div>
+
+          {/* RIGHT PANEL: Square charts */}
+          <div style={{
+            flex: width >= 1000 ? '0 0 280px' : '1 1 100%',
+            display: 'flex',
+            flexDirection: width >= 1000 ? 'column' : (width >= 600 ? 'row' : 'column'),
+            gap: 12,
+          }}>
+            <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, padding: 12, flex: width >= 600 && width < 1000 ? '1 1 0%' : undefined }}>
+              <h4 style={{ fontSize: 11, color: '#7a7a8c', margin: '0 0 8px 0' }}>Polar Motion Spiral (10yr)</h4>
+              <PolarMotionSpiral polarMotionData={polarMotionData} />
             </div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-              <CompactMetric label="C20 z" value={c20Data && c20Data.data && c20Data.data.length > 0 && c20Data.data[c20Data.data.length - 1] !== null ? c20Data.data[c20Data.data.length - 1].toFixed(2) : "\u2014"} status="positive" />
-              <CompactMetric label="vs GIA" value="Normal" status="positive" />
+            <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, padding: 12, flex: width >= 600 && width < 1000 ? '1 1 0%' : undefined }}>
+              <h4 style={{ fontSize: 11, color: '#7a7a8c', margin: '0 0 8px 0' }}>Chandler Wobble (X vs Y)</h4>
+              <ChandlerLissajous polarMotionData={polarMotionData} />
             </div>
-          </CompactCard>
-        </div>
+            <div style={{ background: '#0f0f15', border: '1px solid #252532', borderRadius: 8, padding: 12, flex: width >= 600 && width < 1000 ? '1 1 0%' : undefined }}>
+              <h4 style={{ fontSize: 11, color: '#7a7a8c', margin: '0 0 8px 0' }}>Watch Score</h4>
+              <WatchScoreGauge coherenceData={coherenceData} />
+            </div>
+          </div>
 
-        {/* Row 4: Analysis Panels - 3 column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: gridCols3, gap: 12, marginBottom: 12 }}>
-
-          {/* S5: Coherence */}
-          <CompactCard step={5} title="Coherence" status={coherenceData && coherenceData.badge === 'ORANGE' ? 'ELEVATED' : 'NOMINAL'}>
-            {coherenceData && coherenceData.labels && coherenceData.labels.length > 0 ? (
-              <>
-                <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
-                  <CompactMetric
-                    label="Quiet Days"
-                    value={`${coherenceData.quiet_day_count}/${coherenceData.total_days}`}
-                    status="positive"
-                  />
-                  <CompactMetric
-                    label="Score"
-                    value={coherenceData.latest_watch_score != null ? coherenceData.latest_watch_score.toFixed(0) : "\u2014"}
-                    status={coherenceData.badge === 'GREEN' ? 'positive' : coherenceData.badge === 'YELLOW' ? 'warning' : coherenceData.badge === 'ORANGE' ? 'negative' : undefined}
-                  />
-                  <CompactMetric
-                    label="Badge"
-                    value={coherenceData.badge}
-                    status={coherenceData.badge === 'GREEN' ? 'positive' : coherenceData.badge === 'YELLOW' ? 'warning' : coherenceData.badge === 'ORANGE' ? 'negative' : undefined}
-                  />
-                </div>
-                <div style={{ height: 100, marginBottom: 8 }}>
-                  <ChartComponent
-                    type="line"
-                    height={100}
-                    data={{
-                      labels: coherenceData.labels,
-                      datasets: [
-                        {
-                          label: 'EOP',
-                          data: coherenceData.eop_composite,
-                          borderColor: '#4a9eff',
-                          borderWidth: 1.5,
-                          tension: 0.3,
-                          pointRadius: 0,
-                        },
-                        {
-                          label: 'MAG',
-                          data: coherenceData.mag_composite,
-                          borderColor: '#f59e0b',
-                          borderWidth: 1.5,
-                          tension: 0.3,
-                          pointRadius: 0,
-                        }
-                      ]
-                    }}
-                    options={{
-                      ...darkThemeOptions,
-                      plugins: {
-                        ...darkThemeOptions.plugins,
-                        legend: {
-                          display: true,
-                          position: 'top',
-                          labels: { color: '#7a7a8c', boxWidth: 8, padding: 6, font: { size: 9 } }
-                        }
-                      },
-                      scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 5 } },
-                        y: { ...darkThemeOptions.scales.y },
-                      }
-                    }}
-                  />
-                </div>
-                <div style={{ height: 60, marginBottom: 8 }}>
-                  <ChartComponent
-                    type="line"
-                    height={60}
-                    data={{
-                      labels: coherenceData.labels,
-                      quietFlags: coherenceData.quiet,
-                      datasets: [{
-                        data: coherenceData.watch_score,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 0,
-                      }]
-                    }}
-                    options={{
-                      ...darkThemeOptions,
-                      plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
-                      scales: {
-                        x: { ...darkThemeOptions.scales.x, display: false },
-                        y: { ...darkThemeOptions.scales.y, min: 0, max: 100 },
-                      }
-                    }}
-                    quietFlags={coherenceData.quiet}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <CompactMetric
-                    label="EOP&#8596;MAG r"
-                    value={coherenceData.correlation != null ? coherenceData.correlation.toFixed(2) : "n/a"}
-                    status={coherenceData.correlation != null && Math.abs(coherenceData.correlation) >= 0.5 ? "warning" : "positive"}
-                  />
-                  <CompactMetric
-                    label="N quiet"
-                    value={`${coherenceData.quiet_day_count}`}
-                    status={coherenceData.quiet_day_count >= 10 ? "positive" : "warning"}
-                  />
-                </div>
-              </>
-            ) : (
-              <div style={{ padding: 16, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>
-                Coherence data not yet available.
-              </div>
-            )}
-          </CompactCard>
-
-          {/* S6: Deep Seismicity */}
-          <CompactCard step={6} title="Deep Seismicity" status={(() => {
-            if (!seisData || !seisData.z_eq_count) return 'NOMINAL';
-            const recent = seisData.z_eq_count.slice(-14).filter(v => v != null);
-            const maxZ = recent.length > 0 ? Math.max(...recent.map(v => Math.abs(v))) : 0;
-            return maxZ >= 2.5 ? 'ELEVATED' : 'NOMINAL';
-          })()}>
-            {seisData && seisData.labels && seisData.labels.length > 0 ? (
-              <>
-                <div style={{ height: 120 }}>
-                  <ChartComponent
-                    type="line"
-                    height={120}
-                    data={{
-                      labels: seisData.labels,
-                      datasets: [
-                        {
-                          label: 'Daily deep EQ',
-                          data: seisData.eq_count,
-                          borderColor: '#8b5cf6',
-                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                          fill: true,
-                          borderWidth: 1.5,
-                          tension: 0.3,
-                          pointRadius: 0,
-                        },
-                        {
-                          label: '30d avg',
-                          data: seisData.rolling_30d_count,
-                          borderColor: '#ffffff',
-                          borderWidth: 2,
-                          borderDash: [5, 3],
-                          tension: 0.3,
-                          pointRadius: 0,
-                        }
-                      ]
-                    }}
-                    options={{
-                      ...darkThemeOptions,
-                      plugins: {
-                        ...darkThemeOptions.plugins,
-                        legend: {
-                          display: true,
-                          position: 'top',
-                          labels: { color: '#7a7a8c', boxWidth: 8, padding: 6, font: { size: 9 } }
-                        }
-                      },
-                      scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 5 } },
-                        y: { ...darkThemeOptions.scales.y },
-                      }
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-                  <CompactMetric
-                    label="30d avg"
-                    value={(() => {
-                      const arr = seisData.rolling_30d_count || [];
-                      const v = arr[arr.length - 1];
-                      return v != null ? v.toFixed(1) : "\u2014";
-                    })()}
-                    status="positive"
-                  />
-                  <CompactMetric
-                    label="Max z 14d"
-                    value={(() => {
-                      const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null);
-                      return arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))).toFixed(2) : "\u2014";
-                    })()}
-                    status={(() => {
-                      const arr = (seisData.z_eq_count || []).slice(-14).filter(v => v != null);
-                      const maxZ = arr.length > 0 ? Math.max(...arr.map(v => Math.abs(v))) : 0;
-                      return maxZ >= 2.5 ? "warning" : "positive";
-                    })()}
-                  />
-                  <CompactMetric
-                    label="Energy"
-                    value={(() => {
-                      const arr = (seisData.energy_log10 || []).slice(-30).filter(v => v != null);
-                      if (arr.length === 0) return "\u2014";
-                      return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1);
-                    })()}
-                    status="positive"
-                  />
-                </div>
-              </>
-            ) : (
-              <div style={{ padding: 16, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>
-                Deep seismicity data not yet available.
-              </div>
-            )}
-          </CompactCard>
-
-          {/* S7: Volcanic */}
-          <CompactCard step={7} title="Volcanic" status={(() => {
-            if (!volcData || !volcData.z_active_count) return 'NOMINAL';
-            const recent = volcData.z_active_count.filter(v => v != null);
-            const latest = recent.length > 0 ? recent[recent.length - 1] : 0;
-            return Math.abs(latest) >= 2.0 ? 'ELEVATED' : 'NOMINAL';
-          })()}>
-            {volcData && volcData.labels && volcData.labels.length > 0 ? (
-              <>
-                <div style={{ height: 100 }}>
-                  <ChartComponent
-                    type="bar"
-                    height={100}
-                    data={{
-                      labels: volcData.labels,
-                      datasets: [{
-                        data: volcData.active_count,
-                        backgroundColor: volcData.z_active_count
-                          ? volcData.z_active_count.map(z => z != null && Math.abs(z) >= 2.0 ? '#ef4444' : '#f59e0b')
-                          : '#f59e0b',
-                        borderRadius: 2,
-                      }]
-                    }}
-                    options={{
-                      ...darkThemeOptions,
-                      plugins: { ...darkThemeOptions.plugins, legend: { display: false } },
-                      scales: {
-                        x: { ...darkThemeOptions.scales.x, display: true, ticks: { maxTicksLimit: 5 } },
-                        y: { ...darkThemeOptions.scales.y, beginAtZero: true },
-                      }
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-                  <CompactMetric
-                    label="Active"
-                    value={(() => {
-                      const arr = volcData.active_count || [];
-                      return arr.length > 0 ? arr[arr.length - 1] : "\u2014";
-                    })()}
-                    status="positive"
-                  />
-                  <CompactMetric
-                    label="New 30d"
-                    value={(() => {
-                      const arr = volcData.new_eruptions || [];
-                      return arr.length > 0 ? arr[arr.length - 1] : "\u2014";
-                    })()}
-                    status={(() => {
-                      const arr = volcData.new_eruptions || [];
-                      const v = arr.length > 0 ? arr[arr.length - 1] : 0;
-                      return v >= 3 ? "warning" : "positive";
-                    })()}
-                  />
-                  <CompactMetric
-                    label="Disp km"
-                    value={(() => {
-                      const arr = volcData.dispersion_km || [];
-                      const v = arr.length > 0 ? arr[arr.length - 1] : null;
-                      return v != null ? Math.round(v).toLocaleString() : "\u2014";
-                    })()}
-                    status="positive"
-                  />
-                </div>
-                {volcData.current_volcanoes && volcData.current_volcanoes.length > 0 && (
-                  <div style={{ marginTop: 8, padding: 8, background: '#16161f', borderRadius: 4, fontSize: 10, color: '#a8a8bc', maxHeight: 60, overflowY: 'auto' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {volcData.current_volcanoes.slice(0, 15).map((v, idx) => (
-                        <span key={idx} style={{
-                          padding: '1px 6px', borderRadius: 3, fontSize: 9,
-                          background: v.status === 'erupting' ? 'rgba(239,68,68,0.2)' : 'rgba(107,114,128,0.2)',
-                          color: v.status === 'erupting' ? '#ef4444' : '#7a7a8c',
-                        }}>
-                          {v.name}
-                        </span>
-                      ))}
-                      {volcData.current_volcanoes.length > 15 && (
-                        <span style={{ color: '#7a7a8c', fontSize: 9 }}>+{volcData.current_volcanoes.length - 15}</span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div style={{ padding: 16, textAlign: 'center', color: '#7a7a8c', fontSize: 11 }}>
-                Volcanic data not yet available.
-              </div>
-            )}
-          </CompactCard>
         </div>
 
         {/* Row 5: Historical Context (collapsible) */}
