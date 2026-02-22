@@ -1058,7 +1058,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             material: new Cesium.ColorMaterialProperty(
               new Cesium.CallbackProperty(() => {
                 const t = ((Date.now() - eqPulseStart + phaseOffset) % eqPulsePeriod) / eqPulsePeriod;
-                return cesiumColor.withAlpha(0.3 * (1 - t));
+                return cesiumColor.withAlpha(0.6 * (1 - t));
               }, false)
             ),
             height: 0,
@@ -1125,7 +1125,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             material: new Cesium.ColorMaterialProperty(
               new Cesium.CallbackProperty(() => {
                 const t = ((Date.now() - vPulseStart + phaseOffset) % vPulsePeriod) / vPulsePeriod;
-                return vCesiumColor.withAlpha(0.35 * (1 - t));
+                return vCesiumColor.withAlpha(0.6 * (1 - t));
               }, false)
             ),
             height: 0,
