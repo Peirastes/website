@@ -1073,7 +1073,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       });
     }
 
-    // 2a. All Holocene volcanoes (dim orange, smaller)
+    // 2a. All Holocene volcanoes (solid red, same style as active but no animation)
     if (holoceneVolcanoes.length > 0) {
       const activeNames = new Set((volcData && volcData.current_volcanoes || []).map(v => v.name));
       holoceneVolcanoes.forEach(v => {
@@ -1081,9 +1081,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
         ds.allVolcanoes.entities.add({
           position: Cesium.Cartesian3.fromDegrees(v.lon, v.lat),
           point: {
-            pixelSize: 4,
-            color: Cesium.Color.fromCssColorString('rgba(239,68,68,0.25)'),
-            outlineColor: Cesium.Color.fromCssColorString('rgba(255,255,255,0.15)'),
+            pixelSize: 5,
+            color: Cesium.Color.fromCssColorString('#ef4444'),
+            outlineColor: Cesium.Color.WHITE,
             outlineWidth: 0.5,
           },
           _customData: {
