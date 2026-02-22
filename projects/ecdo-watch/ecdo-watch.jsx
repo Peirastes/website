@@ -1688,7 +1688,13 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           .map(m => getDeviation(m)).filter(d => d !== null);
         const avgDev = allDeviations.length > 0 ? (allDeviations.reduce((a, b) => a + b, 0) / allDeviations.length) : null;
 
-        // Sort by deviation (flat list) or group alphabetically
+        // Signal quality helper
+        const getSignalQuality = (m) => {
+          const pin = resolvePin(m);
+          return poleProximity(pin.lat, pin.lng).quality;
+        };
+
+        // Sort: deviation, signal, or group alphabetically
         let sortedFiltered;
         if (monSortBy === 'deviation') {
           sortedFiltered = [...filtered].sort((a, b) => {
@@ -1698,6 +1704,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             if (da === null) return 1;
             if (db === null) return -1;
             return da - db;
+          });
+        } else if (monSortBy === 'signal') {
+          sortedFiltered = [...filtered].sort((a, b) => {
+            return getSignalQuality(b) - getSignalQuality(a); // highest first
           });
         }
 
@@ -1815,12 +1825,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 </div>
                 {/* Sort + filter controls */}
                 <div style={{ padding: '4px 8px', borderBottom: '1px solid #1a1a2e', display: 'flex', gap: 4, alignItems: 'center', position: 'sticky', top: 33, background: 'rgba(15,15,21,0.98)', zIndex: 1 }}>
-                  <button onClick={() => setMonSortBy(s => s === 'alpha' ? 'deviation' : 'alpha')} style={{
+                  <button onClick={() => setMonSortBy(s => s === 'alpha' ? 'deviation' : s === 'deviation' ? 'signal' : 'alpha')} style={{
                     padding: '2px 6px', fontSize: 8, fontFamily: 'monospace', fontWeight: 600,
                     border: '1px solid #252532', borderRadius: 3,
-                    background: monSortBy === 'deviation' ? 'rgba(0,229,255,0.12)' : 'transparent',
-                    color: monSortBy === 'deviation' ? '#00e5ff' : '#7a7a8c', cursor: 'pointer',
-                  }}>{monSortBy === 'alpha' ? 'A\u2193Z' : '\u0394\u2191'}</button>
+                    background: monSortBy !== 'alpha' ? (monSortBy === 'signal' ? 'rgba(34,197,94,0.12)' : 'rgba(0,229,255,0.12)') : 'transparent',
+                    color: monSortBy === 'signal' ? '#22c55e' : monSortBy === 'deviation' ? '#00e5ff' : '#7a7a8c', cursor: 'pointer',
+                  }} title={monSortBy === 'alpha' ? 'Sort alphabetically' : monSortBy === 'deviation' ? 'Sort by deviation' : 'Sort by signal quality'}>{monSortBy === 'alpha' ? 'A\u2193Z' : monSortBy === 'deviation' ? '\u0394\u2191' : 'SQ\u2193'}</button>
                   <button onClick={() => setMonFilterUnmeasured(f => !f)} style={{
                     padding: '2px 6px', fontSize: 8, fontFamily: 'monospace', fontWeight: 600,
                     border: '1px solid #252532', borderRadius: 3,
@@ -1832,7 +1842,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                   </span>
                 </div>
                 {/* Monument items */}
-                {monSortBy === 'deviation' ? (
+                {(monSortBy === 'deviation' || monSortBy === 'signal') ? (
                   sortedFiltered.map(m => renderMonumentItem(m))
                 ) : (
                   sectionDefs.map(sec => {
