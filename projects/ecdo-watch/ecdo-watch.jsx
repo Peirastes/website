@@ -1493,8 +1493,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           if (!axis) return null;
           const pin = resolvePin(m);
           const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
-          const dev = Math.abs(axis.bearing - ideal);
-          return dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
+          let deviation = Math.abs(axis.bearing - ideal);
+          if (deviation > 180) deviation = 360 - deviation;
+          if (deviation > 90) deviation = 180 - deviation;
+          return deviation;
         };
 
         // Summary stats (computed over all monuments, not just filtered)
@@ -1567,8 +1569,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
               </span>
               {axis && (() => {
                 const ideal = calcBearing(pin.lat, pin.lng, NP_PRIME.lat, NP_PRIME.lng);
-                const dev = Math.abs(axis.bearing - ideal);
-                const deviation = dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
+                let deviation = Math.abs(axis.bearing - ideal);
+                if (deviation > 180) deviation = 360 - deviation;
+                if (deviation > 90) deviation = 180 - deviation;
                 const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
                 return (
                   <span style={{ fontSize: 8, flexShrink: 0, fontFamily: 'monospace' }}>
@@ -1751,8 +1754,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                   {d.mNotes && <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4 }}>{d.mNotes}</div>}
                   <div style={{ color: '#a8a8bc', marginTop: 4 }}>Ideal bearing to Np&#8242;: <span style={{ color: '#f59e0b', fontFamily: 'monospace', fontWeight: 600 }}>{idealBearing.toFixed(1)}&deg;</span></div>
                   {axis && (() => {
-                    const dev = Math.abs(axis.bearing - idealBearing);
-                    const deviation = dev > 180 ? 360 - dev : dev > 90 ? 180 - dev : dev;
+                    let deviation = Math.abs(axis.bearing - idealBearing);
+                    if (deviation > 180) deviation = 360 - deviation;
+                    if (deviation > 90) deviation = 180 - deviation;
                     const devColor = deviation < 5 ? '#22c55e' : deviation < 15 ? '#eab308' : '#ef4444';
                     return (
                       <>
