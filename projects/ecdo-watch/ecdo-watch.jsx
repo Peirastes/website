@@ -699,13 +699,14 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const cesiumContainerRef = useRef(null);
   const viewerRef = useRef(null);
   const dataSourcesRef = useRef({});
+  const signalOverlayRef = useRef(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
   const [verified, setVerified] = useState(() => new Map());
   const [holoceneVolcanoes, setHoloceneVolcanoes] = useState([]);
   const [layers, setLayers] = useState({
     plates: true, earthquakes: true, volcanoes: true, allVolcanoes: false,
-    stations: true, monuments: true, bearingLines: true,
+    stations: true, monuments: true, bearingLines: true, signalOverlay: false,
   });
   const [monListOpen, setMonListOpen] = useState(false);
   const [monSections, setMonSections] = useState({ verified: true, plausible: true, unconfirmed: true });
@@ -855,6 +856,64 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     if (viewer.scene.sun) viewer.scene.sun.show = false;
     if (viewer.scene.moon) viewer.scene.moon.show = false;
     viewer.scene.skyAtmosphere.show = true;
+
+    // Generate signal quality overlay canvas
+    (() => {
+      const w = 720, h = 360;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.createImageData(w, h);
+      const toRad = Math.PI / 180;
+      const npLat = NP_PRIME.lat * toRad, npLng = NP_PRIME.lng * toRad;
+      const spLat = SP_PRIME.lat * toRad, spLng = SP_PRIME.lng * toRad;
+      for (let py = 0; py < h; py++) {
+        const lat = (90 - py * 180 / h) * toRad;
+        const sinLat = Math.sin(lat), cosLat = Math.cos(lat);
+        for (let px = 0; px < w; px++) {
+          const lng = (-180 + px * 360 / w) * toRad;
+          // Angular distance to Np'
+          const dNp = Math.acos(Math.min(1, Math.max(-1,
+            sinLat * Math.sin(npLat) + cosLat * Math.cos(npLat) * Math.cos(lng - npLng)
+          ))) / toRad;
+          // Angular distance to Sp'
+          const dSp = Math.acos(Math.min(1, Math.max(-1,
+            sinLat * Math.sin(spLat) + cosLat * Math.cos(spLat) * Math.cos(lng - spLng)
+          ))) / toRad;
+          const quality = Math.min(dNp, dSp) / 90; // 0..1
+          // Color: green (high quality) → yellow → red (low quality)
+          let r, g, b;
+          if (quality > 0.5) {
+            const t = (quality - 0.5) * 2; // 0..1
+            r = Math.round(34 + (1 - t) * (234 - 34));
+            g = Math.round(197 + (1 - t) * (179 - 197));
+            b = Math.round(94 + (1 - t) * (8 - 94));
+          } else {
+            const t = quality * 2; // 0..1
+            r = Math.round(239 + t * (234 - 239));
+            g = Math.round(68 + t * (179 - 68));
+            b = Math.round(68 + t * (8 - 68));
+          }
+          const alpha = Math.round(90 + quality * 60); // 90..150 out of 255
+          const idx = (py * w + px) * 4;
+          imgData.data[idx] = r;
+          imgData.data[idx + 1] = g;
+          imgData.data[idx + 2] = b;
+          imgData.data[idx + 3] = alpha;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      const layer = viewer.imageryLayers.addImageryProvider(
+        new Cesium.SingleTileImageryProvider({
+          url: canvas.toDataURL(),
+          rectangle: Cesium.Rectangle.fromDegrees(-180, -90, 180, 90),
+        })
+      );
+      layer.alpha = 0.4;
+      layer.show = false; // hidden by default
+      signalOverlayRef.current = layer;
+    })();
 
     // Initial camera (lat:10, lng:170)
     viewer.camera.setView({
@@ -1207,6 +1266,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.monuments.show = layers.monuments;
     ds.bearingLines.show = layers.bearingLines;
     ds.measuredAxes.show = layers.bearingLines;
+    if (signalOverlayRef.current) signalOverlayRef.current.show = layers.signalOverlay;
 
   }, [seismicEvents, volcData, holoceneVolcanoes, layers, effectiveMonuments, verified, measuredAxes, pinOverrides, hiddenLines]);
 
@@ -1563,6 +1623,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           { key: 'stations', label: 'Mag Stations', color: '#4a9eff', shape: 'dot' },
           { key: 'monuments', label: 'Ancient Monuments', color: '#f59e0b', shape: 'dot' },
           { key: 'bearingLines', label: "Np\u2032 Bearing Lines", color: '#22c55e', shape: 'line' },
+          { key: 'signalOverlay', label: 'Signal Quality', color: '#22c55e', shape: 'fill' },
         ].map(item => (
           <label key={item.key} style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -1581,6 +1642,13 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 background: layers[item.key] ? item.color : '#333',
                 display: 'inline-block', flexShrink: 0,
                 transition: 'background 0.15s ease',
+              }} />
+            ) : item.shape === 'fill' ? (
+              <span style={{
+                width: 10, height: 8, borderRadius: 2,
+                background: layers[item.key] ? `linear-gradient(90deg, #ef4444, #eab308, #22c55e)` : '#333',
+                display: 'inline-block', flexShrink: 0,
+                transition: 'background 0.15s ease', opacity: layers[item.key] ? 0.7 : 1,
               }} />
             ) : (
               <span style={{
