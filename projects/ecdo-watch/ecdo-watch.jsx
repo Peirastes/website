@@ -976,9 +976,9 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       smokeCanvas.height = 64;
       const sCtx = smokeCanvas.getContext('2d');
       const grad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      grad.addColorStop(0, 'rgba(180,180,180,0.6)');
-      grad.addColorStop(0.5, 'rgba(160,160,160,0.3)');
-      grad.addColorStop(1, 'rgba(140,140,140,0)');
+      grad.addColorStop(0, 'rgba(60,60,60,0.85)');
+      grad.addColorStop(0.5, 'rgba(80,80,80,0.5)');
+      grad.addColorStop(1, 'rgba(100,100,100,0)');
       sCtx.fillStyle = grad;
       sCtx.fillRect(0, 0, 64, 64);
       smokeTextureRef.current = smokeCanvas.toDataURL();
@@ -1209,7 +1209,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 }, false),
                 color: new Cesium.CallbackProperty(() => {
                   const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
-                  return Cesium.Color.WHITE.withAlpha(0.5 * (1 - t));
+                  return Cesium.Color.WHITE.withAlpha(0.8 * (1 - t));
                 }, false),
                 disableDepthTestDistance: Number.POSITIVE_INFINITY,
               },
