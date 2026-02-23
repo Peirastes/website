@@ -975,12 +975,18 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       smokeCanvas.width = 64;
       smokeCanvas.height = 64;
       const sCtx = smokeCanvas.getContext('2d');
-      const grad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      grad.addColorStop(0, 'rgba(60,60,60,0.85)');
-      grad.addColorStop(0.5, 'rgba(80,80,80,0.5)');
+      const grad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 26);
+      grad.addColorStop(0, 'rgba(50,50,50,0.9)');
+      grad.addColorStop(0.6, 'rgba(70,70,70,0.7)');
+      grad.addColorStop(0.85, 'rgba(90,90,90,0.4)');
       grad.addColorStop(1, 'rgba(100,100,100,0)');
       sCtx.fillStyle = grad;
       sCtx.fillRect(0, 0, 64, 64);
+      sCtx.beginPath();
+      sCtx.arc(32, 32, 22, 0, 2 * Math.PI);
+      sCtx.strokeStyle = 'rgba(40,40,40,0.5)';
+      sCtx.lineWidth = 1.5;
+      sCtx.stroke();
       smokeTextureRef.current = smokeCanvas.toDataURL();
     })();
 
