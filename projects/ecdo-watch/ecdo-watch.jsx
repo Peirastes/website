@@ -745,13 +745,12 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const viewerRef = useRef(null);
   const dataSourcesRef = useRef({});
   const signalOverlayRef = useRef(null);
-  const smokeTextureRef = useRef(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
   const [verified, setVerified] = useState(() => new Map());
   const [holoceneVolcanoes, setHoloceneVolcanoes] = useState([]);
   const [layers, setLayers] = useState({
-    plates: true, earthquakes: true, volcanoes: true, smokePlumes: true, allVolcanoes: false,
+    plates: true, earthquakes: true, volcanoes: true, allVolcanoes: false,
     stations: true, monuments: true, bearingLines: true, signalOverlay: false,
   });
   const [monListOpen, setMonListOpen] = useState(false);
@@ -969,27 +968,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       }).catch(() => {});
     })();
 
-    // Generate smoke billboard texture (64x64 radial gradient)
-    (() => {
-      const smokeCanvas = document.createElement('canvas');
-      smokeCanvas.width = 64;
-      smokeCanvas.height = 64;
-      const sCtx = smokeCanvas.getContext('2d');
-      const grad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 26);
-      grad.addColorStop(0, 'rgba(50,50,50,0.9)');
-      grad.addColorStop(0.6, 'rgba(70,70,70,0.7)');
-      grad.addColorStop(0.85, 'rgba(90,90,90,0.4)');
-      grad.addColorStop(1, 'rgba(100,100,100,0)');
-      sCtx.fillStyle = grad;
-      sCtx.fillRect(0, 0, 64, 64);
-      sCtx.beginPath();
-      sCtx.arc(32, 32, 22, 0, 2 * Math.PI);
-      sCtx.strokeStyle = 'rgba(40,40,40,0.5)';
-      sCtx.lineWidth = 1.5;
-      sCtx.stroke();
-      smokeTextureRef.current = smokeCanvas.toDataURL();
-    })();
-
     // Initial camera (lat:10, lng:170)
     viewer.camera.setView({
       destination: Cesium.Cartesian3.fromDegrees(170, 10, 20000000),
@@ -1000,7 +978,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       plates: new Cesium.CustomDataSource('plates'),
       earthquakes: new Cesium.CustomDataSource('earthquakes'),
       volcanoes: new Cesium.CustomDataSource('volcanoes'),
-      smokePlumes: new Cesium.CustomDataSource('smokePlumes'),
       allVolcanoes: new Cesium.CustomDataSource('allVolcanoes'),
       stations: new Cesium.CustomDataSource('stations'),
       monuments: new Cesium.CustomDataSource('monuments'),
@@ -1192,8 +1169,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             vRecentDate: v.recent_date || null,
           },
         });
-        // Smoke plume for recently active volcanoes (disabled for now)
-        // if (v.recently_active && smokeTextureRef.current) { ... }
       });
     }
 
@@ -1353,7 +1328,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.plates.show = layers.plates;
     ds.earthquakes.show = layers.earthquakes;
     ds.volcanoes.show = layers.volcanoes;
-    ds.smokePlumes.show = layers.smokePlumes;
     ds.allVolcanoes.show = layers.allVolcanoes;
     ds.stations.show = layers.stations;
     ds.monuments.show = layers.monuments;
@@ -1712,7 +1686,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           { key: 'plates', label: 'Plate Boundaries', color: 'rgba(245, 158, 11, 0.5)', shape: 'line' },
           { key: 'earthquakes', label: 'Deep EQ (>300km)', color: '#8b5cf6', shape: 'dot' },
           { key: 'volcanoes', label: 'Active Volcanoes', color: '#ef4444', shape: 'dot' },
-          // { key: 'smokePlumes', label: 'Recently Erupting', color: '#b4b4b4', shape: 'smoke' },
           { key: 'allVolcanoes', label: 'All Volcanoes', color: 'rgba(239,68,68,0.4)', shape: 'dot' },
           { key: 'stations', label: 'Mag Stations', color: '#4a9eff', shape: 'dot' },
           { key: 'monuments', label: 'Ancient Monuments', color: '#f59e0b', shape: 'dot' },
@@ -1734,13 +1707,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
               <span style={{
                 width: 8, height: 8, borderRadius: '50%',
                 background: layers[item.key] ? item.color : '#333',
-                display: 'inline-block', flexShrink: 0,
-                transition: 'background 0.15s ease',
-              }} />
-            ) : item.shape === 'smoke' ? (
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: layers[item.key] ? 'radial-gradient(circle, rgba(180,180,180,0.6), transparent)' : '#333',
                 display: 'inline-block', flexShrink: 0,
                 transition: 'background 0.15s ease',
               }} />
