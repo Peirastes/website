@@ -1192,36 +1192,8 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             vRecentDate: v.recent_date || null,
           },
         });
-        // Smoke plume for recently active volcanoes
-        if (v.recently_active && smokeTextureRef.current) {
-          const smokePeriod = 4000;
-          const smokeStart = Date.now();
-          [0, 1, 2].forEach(p => {
-            const pOffset = (idx * 1300 + p * (smokePeriod / 3)) % smokePeriod;
-            ds.smokePlumes.entities.add({
-              position: new Cesium.CallbackProperty(() => {
-                const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
-                return Cesium.Cartesian3.fromDegrees(v.lon, v.lat, 5000 + t * 80000);
-              }, false),
-              billboard: {
-                image: smokeTextureRef.current,
-                width: new Cesium.CallbackProperty(() => {
-                  const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
-                  return 12 + t * 20;
-                }, false),
-                height: new Cesium.CallbackProperty(() => {
-                  const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
-                  return 12 + t * 20;
-                }, false),
-                color: new Cesium.CallbackProperty(() => {
-                  const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
-                  return Cesium.Color.WHITE.withAlpha(0.8 * (1 - t));
-                }, false),
-                disableDepthTestDistance: Number.POSITIVE_INFINITY,
-              },
-            });
-          });
-        }
+        // Smoke plume for recently active volcanoes (disabled for now)
+        // if (v.recently_active && smokeTextureRef.current) { ... }
       });
     }
 
@@ -1740,7 +1712,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           { key: 'plates', label: 'Plate Boundaries', color: 'rgba(245, 158, 11, 0.5)', shape: 'line' },
           { key: 'earthquakes', label: 'Deep EQ (>300km)', color: '#8b5cf6', shape: 'dot' },
           { key: 'volcanoes', label: 'Active Volcanoes', color: '#ef4444', shape: 'dot' },
-          { key: 'smokePlumes', label: 'Recently Erupting', color: '#b4b4b4', shape: 'smoke' },
+          // { key: 'smokePlumes', label: 'Recently Erupting', color: '#b4b4b4', shape: 'smoke' },
           { key: 'allVolcanoes', label: 'All Volcanoes', color: 'rgba(239,68,68,0.4)', shape: 'dot' },
           { key: 'stations', label: 'Mag Stations', color: '#4a9eff', shape: 'dot' },
           { key: 'monuments', label: 'Ancient Monuments', color: '#f59e0b', shape: 'dot' },
