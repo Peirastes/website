@@ -751,7 +751,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const [verified, setVerified] = useState(() => new Map());
   const [holoceneVolcanoes, setHoloceneVolcanoes] = useState([]);
   const [layers, setLayers] = useState({
-    plates: true, earthquakes: true, volcanoes: true, allVolcanoes: false,
+    plates: true, earthquakes: true, volcanoes: true, smokePlumes: true, allVolcanoes: false,
     stations: true, monuments: true, bearingLines: true, signalOverlay: false,
   });
   const [monListOpen, setMonListOpen] = useState(false);
@@ -994,6 +994,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       plates: new Cesium.CustomDataSource('plates'),
       earthquakes: new Cesium.CustomDataSource('earthquakes'),
       volcanoes: new Cesium.CustomDataSource('volcanoes'),
+      smokePlumes: new Cesium.CustomDataSource('smokePlumes'),
       allVolcanoes: new Cesium.CustomDataSource('allVolcanoes'),
       stations: new Cesium.CustomDataSource('stations'),
       monuments: new Cesium.CustomDataSource('monuments'),
@@ -1191,7 +1192,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           const smokeStart = Date.now();
           [0, 1, 2].forEach(p => {
             const pOffset = (idx * 1300 + p * (smokePeriod / 3)) % smokePeriod;
-            ds.volcanoes.entities.add({
+            ds.smokePlumes.entities.add({
               position: new Cesium.CallbackProperty(() => {
                 const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
                 return Cesium.Cartesian3.fromDegrees(v.lon, v.lat, 5000 + t * 80000);
@@ -1374,6 +1375,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
     ds.plates.show = layers.plates;
     ds.earthquakes.show = layers.earthquakes;
     ds.volcanoes.show = layers.volcanoes;
+    ds.smokePlumes.show = layers.smokePlumes;
     ds.allVolcanoes.show = layers.allVolcanoes;
     ds.stations.show = layers.stations;
     ds.monuments.show = layers.monuments;
@@ -1732,6 +1734,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           { key: 'plates', label: 'Plate Boundaries', color: 'rgba(245, 158, 11, 0.5)', shape: 'line' },
           { key: 'earthquakes', label: 'Deep EQ (>300km)', color: '#8b5cf6', shape: 'dot' },
           { key: 'volcanoes', label: 'Active Volcanoes', color: '#ef4444', shape: 'dot' },
+          { key: 'smokePlumes', label: 'Recently Erupting', color: '#b4b4b4', shape: 'smoke' },
           { key: 'allVolcanoes', label: 'All Volcanoes', color: 'rgba(239,68,68,0.4)', shape: 'dot' },
           { key: 'stations', label: 'Mag Stations', color: '#4a9eff', shape: 'dot' },
           { key: 'monuments', label: 'Ancient Monuments', color: '#f59e0b', shape: 'dot' },
@@ -1756,6 +1759,13 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                 display: 'inline-block', flexShrink: 0,
                 transition: 'background 0.15s ease',
               }} />
+            ) : item.shape === 'smoke' ? (
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: layers[item.key] ? 'radial-gradient(circle, rgba(180,180,180,0.6), transparent)' : '#333',
+                display: 'inline-block', flexShrink: 0,
+                transition: 'background 0.15s ease',
+              }} />
             ) : item.shape === 'fill' ? (
               <span style={{
                 width: 10, height: 8, borderRadius: 2,
@@ -1774,10 +1784,6 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             <span style={{ fontSize: 10 }}>{item.label}</span>
           </label>
         ))}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, paddingLeft: 14, opacity: 0.7 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,180,180,0.6), transparent)', display: 'inline-block', flexShrink: 0 }} />
-          <span style={{ fontSize: 9, color: '#7a7a8c' }}>Recently Erupting</span>
-        </div>
         <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid #252532',
           fontSize: 9, color: '#7a7a8c', fontFamily: 'monospace' }}>
           {[...verified.values()].filter(v => v === 'verified').length} &#10003; {[...verified.values()].filter(v => v === 'plausible').length} ~ / {effectiveMonuments.length}
