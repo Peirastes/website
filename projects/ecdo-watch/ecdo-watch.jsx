@@ -1774,6 +1774,10 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             <span style={{ fontSize: 10 }}>{item.label}</span>
           </label>
         ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, paddingLeft: 14, opacity: 0.7 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,180,180,0.6), transparent)', display: 'inline-block', flexShrink: 0 }} />
+          <span style={{ fontSize: 9, color: '#7a7a8c' }}>Recently Erupting</span>
+        </div>
         <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid #252532',
           fontSize: 9, color: '#7a7a8c', fontFamily: 'monospace' }}>
           {[...verified.values()].filter(v => v === 'verified').length} &#10003; {[...verified.values()].filter(v => v === 'plausible').length} ~ / {effectiveMonuments.length}
