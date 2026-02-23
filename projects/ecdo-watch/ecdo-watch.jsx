@@ -2378,6 +2378,35 @@ const GlobeView = ({ seismicEvents, volcData }) => {
           </form>
         </div>
       )}
+
+      {/* Eruption ticker */}
+      {volcData && volcData.current_volcanoes && volcData.current_volcanoes.length > 0 && (() => {
+        const items = volcData.current_volcanoes.map(v => {
+          const vei = v.vei != null ? `VEI ${v.vei}` : '';
+          const alert = v.recently_active && v.recent_alert ? v.recent_alert : v.alert || '';
+          const parts = [v.name, vei, alert].filter(Boolean);
+          return parts.join(' \u2014 ');
+        });
+        const ticker = items.join('   \u00b7   ');
+        const doubled = ticker + '   \u00b7   ' + ticker;
+        return (
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 900,
+            background: 'rgba(15,15,21,0.85)', borderTop: '1px solid #252532',
+            height: 24, overflow: 'hidden', display: 'flex', alignItems: 'center',
+          }}>
+            <style>{`
+              @keyframes ecdo-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+            `}</style>
+            <div style={{
+              whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: 10, color: '#a8a8bc',
+              animation: `ecdo-ticker ${Math.max(30, items.length * 3)}s linear infinite`,
+            }}>
+              {doubled}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
