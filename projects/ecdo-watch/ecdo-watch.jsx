@@ -1723,7 +1723,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
 
       {/* Layer toggle panel */}
       <div style={{
-        position: 'absolute', bottom: 12, left: 12, zIndex: 1000,
+        position: 'absolute', bottom: 36, left: 12, zIndex: 1000,
         background: 'rgba(15,15,21,0.9)', border: '1px solid #252532',
         borderRadius: 6, padding: '8px 10px', fontSize: 10, color: '#a8a8bc',
         display: 'flex', flexDirection: 'column', gap: 3, userSelect: 'none',
