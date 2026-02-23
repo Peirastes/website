@@ -375,13 +375,22 @@
                     }
                 }
 
+                // Show badge if published or updated within last 30 days
+                const recentDate = project.updated || project.published;
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const isRecent = recentDate && new Date(recentDate + 'T12:00:00') >= thirtyDaysAgo;
+                const badgeHTML = isRecent
+                    ? `<span class="badge-recent">${project.updated ? 'UPDATED' : 'NEW'}</span>`
+                    : '';
+
                 const year = project.published ? new Date(project.published + 'T12:00:00').getFullYear() : '';
 
                 cardsHTML += `
                     <div class="project-card" data-category="${project.category}" id="${project.id}" data-tags="${year}, ${project.tags.join(', ')}">
                         <div class="project-content">
                             <div class="project-text">
-                                <h2><a href="${project.link}">${project.title}</a></h2>
+                                <h2><a href="${project.link}">${project.title}</a>${badgeHTML}</h2>
                                 ${metaHTML ? `<div class="project-meta">${metaHTML}</div>` : ''}
                                 <p>${project.description}</p>
                                 <div class="project-tags">
