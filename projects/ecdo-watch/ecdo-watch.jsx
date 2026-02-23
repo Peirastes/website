@@ -745,6 +745,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
   const viewerRef = useRef(null);
   const dataSourcesRef = useRef({});
   const signalOverlayRef = useRef(null);
+  const smokeTextureRef = useRef(null);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [monuments, setMonuments] = useState([]);
   const [verified, setVerified] = useState(() => new Map());
@@ -968,6 +969,21 @@ const GlobeView = ({ seismicEvents, volcData }) => {
       }).catch(() => {});
     })();
 
+    // Generate smoke billboard texture (64x64 radial gradient)
+    (() => {
+      const smokeCanvas = document.createElement('canvas');
+      smokeCanvas.width = 64;
+      smokeCanvas.height = 64;
+      const sCtx = smokeCanvas.getContext('2d');
+      const grad = sCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, 'rgba(180,180,180,0.6)');
+      grad.addColorStop(0.5, 'rgba(160,160,160,0.3)');
+      grad.addColorStop(1, 'rgba(140,140,140,0)');
+      sCtx.fillStyle = grad;
+      sCtx.fillRect(0, 0, 64, 64);
+      smokeTextureRef.current = smokeCanvas.toDataURL();
+    })();
+
     // Initial camera (lat:10, lng:170)
     viewer.camera.setView({
       destination: Cesium.Cartesian3.fromDegrees(170, 10, 20000000),
@@ -1163,8 +1179,42 @@ const GlobeView = ({ seismicEvents, volcData }) => {
             vName: v.name, vStatus: v.status,
             vStartDate: v.start_date || null,
             vVei: v.vei != null ? v.vei : null,
+            vRecentlyActive: v.recently_active || false,
+            vRecentSource: v.recent_source || null,
+            vRecentAlert: v.recent_alert || null,
+            vRecentDate: v.recent_date || null,
           },
         });
+        // Smoke plume for recently active volcanoes
+        if (v.recently_active && smokeTextureRef.current) {
+          const smokePeriod = 4000;
+          const smokeStart = Date.now();
+          [0, 1, 2].forEach(p => {
+            const pOffset = (idx * 1300 + p * (smokePeriod / 3)) % smokePeriod;
+            ds.volcanoes.entities.add({
+              position: new Cesium.CallbackProperty(() => {
+                const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
+                return Cesium.Cartesian3.fromDegrees(v.lon, v.lat, 5000 + t * 80000);
+              }, false),
+              billboard: {
+                image: smokeTextureRef.current,
+                width: new Cesium.CallbackProperty(() => {
+                  const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
+                  return 12 + t * 20;
+                }, false),
+                height: new Cesium.CallbackProperty(() => {
+                  const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
+                  return 12 + t * 20;
+                }, false),
+                color: new Cesium.CallbackProperty(() => {
+                  const t = ((Date.now() - smokeStart + pOffset) % smokePeriod) / smokePeriod;
+                  return Cesium.Color.WHITE.withAlpha(0.5 * (1 - t));
+                }, false),
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              },
+            });
+          });
+        }
       });
     }
 
@@ -2081,6 +2131,7 @@ const GlobeView = ({ seismicEvents, volcData }) => {
                   {d.vElevation != null && <div style={{ color: '#a8a8bc' }}>Elevation: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vElevation}m</span></div>}
                   {d.vLastEruption && <div style={{ color: '#a8a8bc' }}>Last eruption: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vLastEruption}</span></div>}
                   {d.vCountry && <div style={{ color: '#a8a8bc' }}>Country: <span style={{ color: '#e8e8ed' }}>{d.vCountry}</span></div>}
+                  {d.vRecentlyActive && <div style={{ color: '#f59e0b', marginTop: 4 }}>Recent activity: <span style={{ color: '#e8e8ed', fontFamily: 'monospace' }}>{d.vRecentSource || 'GDACS'} alert{d.vRecentDate ? ` (${d.vRecentDate.split('T')[0]})` : ''}</span></div>}
                   <div style={{ color: '#7a7a8c', fontSize: 10, marginTop: 4, fontFamily: 'monospace' }}>{d.lat.toFixed(3)}, {d.lng.toFixed(3)}</div>
                 </>
               );

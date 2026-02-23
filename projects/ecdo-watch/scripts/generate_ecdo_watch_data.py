@@ -7,7 +7,9 @@ import io
 import json
 import math
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -55,6 +57,8 @@ INTERMAGNET_HAPI = "https://imag-data.bgs.ac.uk/GIN_V1/hapi/data"
 WDC_MAGNETOMETER = "https://www.ngdc.noaa.gov/products/data-access-system/data/datasets/earth-magnetic-field/"
 USGS_EQ_FDSN = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 USGS_VHAP_ACTIVITY = "https://volcanoes.usgs.gov/hans-public/api/volcano/activityReport"
+USGS_HANS_CAP_ELEVATED = "https://volcanoes.usgs.gov/hans-public/api/volcano/getCapElevated"
+GDACS_RSS_7D = "https://www.gdacs.org/xml/rss_7d.xml"
 GVP_WFS_ERUPTIONS = "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/wfs"
 GVP_WFS_HOLOCENE = "https://webservices.volcano.si.edu/geoserver/GVP-VOTW/wfs"
 
@@ -966,6 +970,148 @@ def load_volcanic_activity(cache_dir: Path) -> dict:
     return {"current_volcanoes": current_volcanoes, "history": history, "source": source}
 
 
+def fetch_recently_active_volcanoes(current_volcanoes: list) -> list:
+    """Flag volcanoes with recent activity using GDACS RSS and USGS HANS CAP.
+
+    Fetches near-real-time eruption alerts from GDACS (global, ~6-min refresh)
+    and USGS HANS (US volcanoes, elevated alerts). Cross-references with existing
+    GVP volcano list by proximity (0.5 deg). Adds recently_active flag to matches.
+    Returns the updated current_volcanoes list (modifies in place).
+    """
+    now = utcnow()
+    cutoff = now - timedelta(hours=48)
+    recent_entries = []  # list of {name, lat, lon, source, alert, date}
+
+    # --- GDACS RSS ---
+    try:
+        print("    Fetching GDACS volcano alerts (RSS)...")
+        resp = requests.get(GDACS_RSS_7D, timeout=30)
+        resp.raise_for_status()
+        root = ET.fromstring(resp.content)
+
+        ns = {
+            'gdacs': 'http://www.gdacs.org',
+            'georss': 'http://www.georss.org/georss',
+        }
+
+        for item in root.findall('.//item'):
+            event_type = item.findtext('gdacs:eventtype', default='', namespaces=ns).strip()
+            if event_type != 'VO':
+                continue
+
+            from_date_str = item.findtext('gdacs:fromdate', default='', namespaces=ns).strip()
+            if not from_date_str:
+                continue
+
+            # Parse GDACS date (RFC 2822: "Thu, 19 Feb 2026 09:07:00 GMT")
+            event_date = None
+            try:
+                event_date = parsedate_to_datetime(from_date_str)
+                if event_date.tzinfo is None:
+                    event_date = event_date.replace(tzinfo=timezone.utc)
+            except Exception:
+                pass
+            if event_date is None or event_date < cutoff:
+                continue
+
+            # Prefer gdacs:eventname for clean volcano name, fall back to title
+            name = item.findtext('gdacs:eventname', default='', namespaces=ns).strip()
+            if not name:
+                name = item.findtext('title', default='Unknown')
+            alert_level = item.findtext('gdacs:alertlevel', default='', namespaces=ns).strip()
+
+            # Lat/lon from georss:point ("lat lon" space-separated)
+            point_str = item.findtext('georss:point', default='', namespaces=ns).strip()
+            if point_str:
+                parts = point_str.split()
+                if len(parts) == 2:
+                    recent_entries.append({
+                        'name': name,
+                        'lat': float(parts[0]),
+                        'lon': float(parts[1]),
+                        'source': 'GDACS',
+                        'alert': alert_level or 'Unknown',
+                        'date': event_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    })
+        print(f"      GDACS: {len(recent_entries)} volcano events in last 48h")
+    except Exception as e:
+        print(f"      GDACS RSS failed: {type(e).__name__}: {str(e)[:100]}")
+
+    # --- USGS HANS CAP (elevated US volcanoes) ---
+    hans_count = 0
+    try:
+        print("    Fetching USGS HANS elevated volcanoes...")
+        data = fetch_json(USGS_HANS_CAP_ELEVATED, timeout_s=30, max_retries=2)
+        if isinstance(data, list):
+            for entry in data:
+                name = entry.get('volcano_name_appended') or entry.get('volcanoName') or entry.get('title', 'Unknown')
+                # Strip " Volcano" suffix if present for better matching
+                if name.endswith(' Volcano'):
+                    name = name[:-8]
+                lat = entry.get('latitude')
+                lon = entry.get('longitude')
+                alert_level = entry.get('alert_level') or entry.get('alertLevel', 'ELEVATED')
+                color_code = entry.get('color_code') or entry.get('colorCode', '')
+                if lat is not None and lon is not None:
+                    recent_entries.append({
+                        'name': name,
+                        'lat': float(lat),
+                        'lon': float(lon),
+                        'source': 'USGS HANS',
+                        'alert': f"{alert_level}" + (f" ({color_code})" if color_code else ""),
+                        'date': now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    })
+                    hans_count += 1
+            print(f"      HANS: {hans_count} elevated volcanoes")
+    except Exception as e:
+        print(f"      USGS HANS failed: {type(e).__name__}: {str(e)[:100]}")
+
+    if not recent_entries:
+        print("    No recently active volcanoes found from GDACS/HANS")
+        return current_volcanoes
+
+    # --- Cross-reference with existing GVP list by proximity ---
+    PROXIMITY_DEG = 0.5
+    matched_indices = set()
+
+    for recent in recent_entries:
+        best_dist = float('inf')
+        best_idx = -1
+        for i, v in enumerate(current_volcanoes):
+            dlat = abs(v['lat'] - recent['lat'])
+            dlon = abs(v['lon'] - recent['lon'])
+            dist = math.sqrt(dlat**2 + dlon**2)
+            if dist < best_dist:
+                best_dist = dist
+                best_idx = i
+
+        if best_dist <= PROXIMITY_DEG and best_idx >= 0:
+            # Flag existing volcano
+            current_volcanoes[best_idx]['recently_active'] = True
+            if 'recent_source' not in current_volcanoes[best_idx]:
+                current_volcanoes[best_idx]['recent_source'] = recent['source']
+                current_volcanoes[best_idx]['recent_alert'] = recent['alert']
+                current_volcanoes[best_idx]['recent_date'] = recent['date']
+            matched_indices.add(best_idx)
+        else:
+            # Add as a new entry (GDACS/HANS volcano not in GVP list)
+            current_volcanoes.append({
+                'name': recent['name'],
+                'lat': recent['lat'],
+                'lon': recent['lon'],
+                'status': 'erupting',
+                'alert': recent['alert'],
+                'recently_active': True,
+                'recent_source': recent['source'],
+                'recent_alert': recent['alert'],
+                'recent_date': recent['date'],
+            })
+
+    flagged = sum(1 for v in current_volcanoes if v.get('recently_active'))
+    print(f"    Flagged {flagged} volcanoes as recently active")
+    return current_volcanoes
+
+
 def generate_volcanic_activity_json(volcanic_data: dict) -> dict:
     """Generate JSON output for volcanic activity channel."""
     history = volcanic_data.get("history", pd.DataFrame())
@@ -1670,11 +1816,20 @@ def main():
     volcanic_data = {}
     try:
         volcanic_data = load_volcanic_activity(cache_dir)
+        # 7a. Flag recently active volcanoes via GDACS + USGS HANS
+        if volcanic_data.get("current_volcanoes"):
+            try:
+                volcanic_data["current_volcanoes"] = fetch_recently_active_volcanoes(
+                    volcanic_data["current_volcanoes"]
+                )
+            except Exception as e:
+                print(f"    Warning: Recent activity flagging failed: {e}")
         volc_json = generate_volcanic_activity_json(volcanic_data)
         volc_json = add_metadata(volc_json, volcanic_data.get("source", "USGS VHAP / Smithsonian GVP"), source_status="ok" if volcanic_data.get("current_volcanoes") else "failed")
         (assets_dir / "volcanic_activity_data.json").write_text(json.dumps(volc_json))
         n_volc = len(volcanic_data.get("current_volcanoes", []))
-        print(f"    [OK] volcanic_activity_data.json ({n_volc} active volcanoes)")
+        n_recent = sum(1 for v in volcanic_data.get("current_volcanoes", []) if v.get("recently_active"))
+        print(f"    [OK] volcanic_activity_data.json ({n_volc} active volcanoes, {n_recent} recently active)")
     except Exception as e:
         print(f"    Warning: Volcanic activity fetch failed: {e}")
 
