@@ -49,7 +49,7 @@ def save_projects(projects):
         json.dump(projects, f, indent=2)
     print("✓ projects.json updated")
 
-def generate_html_file(title, filename):
+def generate_html_file(title, filename, description=''):
     """Generate HTML file from template"""
     template_path = Path('projects/template.html')
 
@@ -62,6 +62,8 @@ def generate_html_file(title, filename):
 
     # Replace placeholders
     content = content.replace('{{PROJECT_TITLE}}', title)
+    content = content.replace('{{PROJECT_DESCRIPTION}}', description)
+    content = content.replace('{{PROJECT_FILENAME}}', filename)
 
     # Write new HTML file
     output_path = Path('projects') / filename
@@ -144,7 +146,7 @@ def main():
     project_id = get_next_project_id(projects)
 
     # Create HTML file
-    generate_html_file(title, filename)
+    generate_html_file(title, filename, description)
 
     # Create project entry
     new_project = {
