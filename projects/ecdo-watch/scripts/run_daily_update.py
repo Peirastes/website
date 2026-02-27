@@ -271,7 +271,7 @@ def validate_output():
             # Validate file-specific structure
             if fpath.name == "mag_data.json":
                 # Magnetometer has station fields instead of generic "data"
-                required_fields = {"bou", "hon", "sjg", "composite"}
+                required_fields = {"bou", "hon", "frd", "composite"}
                 if not all(field in data for field in required_fields):
                     logger.error(f"Invalid format: {fpath.name} (missing station fields)")
                     all_valid = False
