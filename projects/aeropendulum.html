@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Control of an Aeropendulum</title>
+    <meta name="description" content="A propeller-driven pendulum testbed for investigating classical PID and energy-based control strategies on a nonlinear physical oscillator with real sensor noise, actuator latency, and friction.">
+    <meta property="og:title" content="Dynamic Control of an Aeropendulum - Peirastes">
+    <meta property="og:description" content="Feedback control systems research using a propeller-driven pendulum with dual-sensor fusion and four control modes.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://peirastes.com/projects/aeropendulum.html">
+    <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/main.js"></script>
+    <style>
+        .project-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .project-content h2 {
+            margin-top: 2rem;
+            color: var(--primary-accent);
+        }
+        .project-content h3 {
+            margin-top: 1.5rem;
+        }
+        .driving-question {
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+        }
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .spec-card {
+            background: var(--bg-card);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-accent);
+        }
+        .spec-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+            font-size: 0.95rem;
+        }
+        .spec-card ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+        }
+        .spec-card li {
+            margin-bottom: 0.3rem;
+        }
+        .mode-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .mode-table th, .mode-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .mode-table th {
+            background: var(--bg-card);
+            font-weight: 600;
+        }
+        .documents-section {
+            margin-top: 2rem;
+        }
+        .doc-embed {
+            margin: 1.5rem 0;
+        }
+        .doc-embed h3 {
+            margin-bottom: 0.75rem;
+        }
+        @media (max-width: 768px) {
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Peirastes</h1>
+        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
+    </header>
+
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
+
+    <div class="content">
+        <main>
+            <div class="project-content">
+                <h2>Dynamic Control of an Aeropendulum</h2>
+
+                <p class="driving-question">
+                    Can classical PID and energy-based control strategies effectively control a nonlinear physical oscillator with real sensor noise, actuator latency, and friction?
+                </p>
+
+                <p>
+                    Textbook control theory teaches linear, noise-free, friction-free systems. Real physical systems have sensor noise, actuator deadbands, nonlinear dynamics, and coupling between modes. The aeropendulum &mdash; a propeller-driven pendulum with real-time feedback control &mdash; is a testbed for investigating what control theories survive contact with reality.
+                </p>
+
+                <h3>Control Modes</h3>
+                <table class="mode-table">
+                    <thead>
+                        <tr>
+                            <th>Mode</th>
+                            <th>Strategy</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Manual</strong></td>
+                            <td>Open-loop</td>
+                            <td>Button-driven throttle for direct motor control</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Static Hold</strong></td>
+                            <td>PID</td>
+                            <td>Closed-loop angle hold at a target setpoint (Kp, Ki, Kd)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Oscillation</strong></td>
+                            <td>Energy pumping</td>
+                            <td>Amplitude-regulated oscillation via energy injection and braking at the swing nadir</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Active Damping</strong></td>
+                            <td>Adaptive braking</td>
+                            <td>Amplitude-dependent gate widths with speed-normalized braking gain to bring the pendulum to rest</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>System Architecture</h3>
+                <div class="specs-grid">
+                    <div class="spec-card">
+                        <h4>Sensors</h4>
+                        <ul>
+                            <li>AS5600 magnetic encoder (12-bit, I2C) &mdash; absolute angular position</li>
+                            <li>MPU6050 IMU &mdash; angular velocity via gyroscope</li>
+                            <li>Circular-mean tare calibration</li>
+                            <li>Wrap-safe EMA angle filtering</li>
+                            <li>Gyro low-pass filtering</li>
+                        </ul>
+                    </div>
+                    <div class="spec-card">
+                        <h4>Controller</h4>
+                        <ul>
+                            <li>Anti-windup integral clamp</li>
+                            <li>PWM slew rate limiter</li>
+                            <li>Actuator deadband compensation</li>
+                            <li>Auto IMU reinit on sensor stall</li>
+                            <li>Real-time serial parameter tuning</li>
+                        </ul>
+                    </div>
+                    <div class="spec-card">
+                        <h4>Hardware</h4>
+                        <ul>
+                            <li>Propeller-driven pendulum arm</li>
+                            <li>Custom 3D-printed enclosure</li>
+                            <li>18+ CAD iterations (FreeCAD)</li>
+                            <li>60+ STL component files</li>
+                        </ul>
+                    </div>
+                    <div class="spec-card">
+                        <h4>Firmware</h4>
+                        <ul>
+                            <li>21 versions (v0.1&ndash;v4.0)</li>
+                            <li>5 months of iterative development</li>
+                            <li>Arduino-based control loop</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <section class="documents-section">
+                    <h2>Project Documents</h2>
+
+                    <div class="doc-embed">
+                        <h3>Project Overview Document (POD)</h3>
+                        <iframe src="project-documents/propendulum_POD.pdf" width="100%" height="600px" style="border: none;"></iframe>
+                        <a href="project-documents/propendulum_POD.pdf" class="button">Download POD (PDF)</a>
+                    </div>
+
+                    <div class="doc-embed">
+                        <h3>Project Status Report (PSR)</h3>
+                        <iframe src="project-documents/propendulum_PSR.pdf" width="100%" height="600px" style="border: none;"></iframe>
+                        <a href="project-documents/propendulum_PSR.pdf" class="button">Download PSR (PDF)</a>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Cole Prather</p>
+    </footer>
+
+    <div id="lightbox-overlay">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Full Image">
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const overlay = document.getElementById("lightbox-overlay");
+            if (!overlay) return;
+
+            const closeBtn = document.getElementById("lightbox-close");
+            document.querySelectorAll(".lightbox-trigger").forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const img = document.getElementById("lightbox-img");
+                    img.src = this.getAttribute("href");
+                    overlay.style.display = "flex";
+                });
+            });
+
+            closeBtn.addEventListener("click", function() {
+                overlay.style.display = "none";
+            });
+
+            overlay.addEventListener("click", function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = "none";
+                }
+            });
+        });
+    </script>
+
+</html>
