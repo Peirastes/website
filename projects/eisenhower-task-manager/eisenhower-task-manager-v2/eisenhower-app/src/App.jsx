@@ -764,6 +764,7 @@ const EisenhowerTaskManager = () => {
             setShowForm={setShowForm}
             deleteTask={deleteTask}
             calculateTaskScore={calculateTaskScore}
+            settings={settings}
           />
         ) : view === 'gantt' ? (
           <GanttView
@@ -774,6 +775,7 @@ const EisenhowerTaskManager = () => {
             setEditingTask={setEditingTask}
             setShowForm={setShowForm}
             deleteTask={deleteTask}
+            settings={settings}
           />
         ) : view === 'calendar' ? (
           <CalendarView
@@ -787,6 +789,7 @@ const EisenhowerTaskManager = () => {
             setShowForm={setShowForm}
             deleteTask={deleteTask}
             setDefaultDueDate={setDefaultDueDate}
+            settings={settings}
           />
         ) : (
           <AnalyticsView
@@ -1243,7 +1246,7 @@ const TaskCard = ({ task, calculatePriority, toggleComplete, onEdit, onDelete, c
   );
 };
 
-const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore }) => {
+const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings }) => {
   const filteredTasks = tasks.filter(task => {
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
@@ -1328,8 +1331,9 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
           className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
         >
           <option value="all">All Categories</option>
-          <option value="Career">Career</option>
-          <option value="Personal">Personal</option>
+          {settings.categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
         </select>
 
         <select
@@ -2006,7 +2010,7 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
   );
 };
 
-const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask }) => {
+const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, settings }) => {
   const [filters, setFilters] = useState({
     quadrant: 'all',
     category: 'all',
@@ -2234,8 +2238,9 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
             className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
           >
             <option value="all">All Categories</option>
-            <option value="Career">Career</option>
-            <option value="Personal">Personal</option>
+            {settings.categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
 
           <div className="flex items-center gap-2">
@@ -2601,7 +2606,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   );
 };
 
-const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, setDefaultDueDate }) => {
+const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, setDefaultDueDate, settings }) => {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [expandedDay, setExpandedDay] = useState(null);
 
@@ -2721,8 +2726,9 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
           className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
         >
           <option value="all">All Categories</option>
-          <option value="Career">Career</option>
-          <option value="Personal">Personal</option>
+          {settings.categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
         </select>
       </div>
 
