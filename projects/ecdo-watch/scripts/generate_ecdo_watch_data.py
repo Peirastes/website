@@ -1417,11 +1417,13 @@ def _generate_coherence_data(assets_dir: Path, eop_baseline: pd.DataFrame, mag_h
             latest_quiet = True
             break
 
+    # Thresholds validated via 10-year backtesting (backtest_thresholds.py, 2026-02-28)
+    # p90 = 53.7 (~10% quiet-day false positive), p99 = 77.0 (~1% false positive)
     if not latest_quiet or latest_score is None:
         badge = "GRAY"
-    elif latest_score < 35:
+    elif latest_score < 54:
         badge = "GREEN"
-    elif latest_score < 65:
+    elif latest_score < 77:
         badge = "YELLOW"
     else:
         badge = "ORANGE"
