@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3 } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar, Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 import { PINModal } from './components/PINModal';
 
 const EisenhowerTaskManager = () => {
@@ -25,6 +29,7 @@ const EisenhowerTaskManager = () => {
   const [view, setView] = useState('matrix');
   const [editingTask, setEditingTask] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [defaultDueDate, setDefaultDueDate] = useState('');
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completingTask, setCompletingTask] = useState(null);
@@ -654,6 +659,28 @@ const EisenhowerTaskManager = () => {
                   <BarChart3 size={16} />
                   <span className="font-medium">Gantt</span>
                 </button>
+                <button
+                  onClick={() => setView('analytics')}
+                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
+                    view === 'analytics'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <TrendingUp size={16} />
+                  <span className="font-medium">Analytics</span>
+                </button>
+                <button
+                  onClick={() => setView('calendar')}
+                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
+                    view === 'calendar'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Calendar size={16} />
+                  <span className="font-medium">Calendar</span>
+                </button>
               </div>
               <button
                 onClick={() => {
@@ -738,7 +765,7 @@ const EisenhowerTaskManager = () => {
             deleteTask={deleteTask}
             calculateTaskScore={calculateTaskScore}
           />
-        ) : (
+        ) : view === 'gantt' ? (
           <GanttView
             tasks={tasks}
             getQuadrant={getQuadrant}
@@ -747,6 +774,24 @@ const EisenhowerTaskManager = () => {
             setEditingTask={setEditingTask}
             setShowForm={setShowForm}
             deleteTask={deleteTask}
+          />
+        ) : view === 'calendar' ? (
+          <CalendarView
+            tasks={tasks}
+            filters={filters}
+            setFilters={setFilters}
+            getQuadrant={getQuadrant}
+            calculatePriority={calculatePriority}
+            toggleComplete={toggleComplete}
+            setEditingTask={setEditingTask}
+            setShowForm={setShowForm}
+            deleteTask={deleteTask}
+            setDefaultDueDate={setDefaultDueDate}
+          />
+        ) : (
+          <AnalyticsView
+            tasks={tasks}
+            calculateTaskScore={calculateTaskScore}
           />
         )}
       </main>
@@ -804,10 +849,12 @@ const EisenhowerTaskManager = () => {
       {showForm && (
         <TaskForm
           task={editingTask}
+          defaultDueDate={defaultDueDate}
           onSave={editingTask ? updateTask : addTask}
           onCancel={() => {
             setShowForm(false);
             setEditingTask(null);
+            setDefaultDueDate('');
           }}
           settings={settings}
         />
@@ -1437,7 +1484,7 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
   );
 };
 
-const TaskForm = ({ task, onSave, onCancel, settings }) => {
+const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
   const [formData, setFormData] = useState(
     task || {
       task: '',
@@ -1447,7 +1494,7 @@ const TaskForm = ({ task, onSave, onCancel, settings }) => {
       isNecessary: false,
       rank: 2,
       assignedDate: new Date().toISOString().split('T')[0],
-      dueDate: '',
+      dueDate: defaultDueDate || '',
       percentComplete: 0,
       isRecurring: false,
       recurringPattern: 'once',
@@ -1713,6 +1760,248 @@ const TaskForm = ({ task, onSave, onCancel, settings }) => {
           </div>
         </form>
       </div>
+    </div>
+  );
+};
+
+// ─── Analytics View ───────────────────────────────────────────────
+const AnalyticsView = ({ tasks, calculateTaskScore }) => {
+  const completed = tasks.filter(t => t.percentComplete === 100 && t.completedDate);
+  const withRatings = completed.filter(t => t.qualityRating != null && t.easeRating != null);
+  const withDates = completed.filter(t => t.assignedDate && t.dueDate && t.completedDate && t.assignedDate !== t.dueDate);
+
+  if (completed.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+        <TrendingUp size={48} strokeWidth={1.5} />
+        <p className="mt-4 text-lg font-medium">No completed tasks yet</p>
+        <p className="text-sm">Complete some tasks to see analytics here.</p>
+      </div>
+    );
+  }
+
+  // --- Summary stats ---
+  const avgQuality = withRatings.length > 0
+    ? (withRatings.reduce((s, t) => s + t.qualityRating, 0) / withRatings.length)
+    : null;
+  const avgEase = withRatings.length > 0
+    ? (withRatings.reduce((s, t) => s + t.easeRating, 0) / withRatings.length)
+    : null;
+
+  const scores = withDates.map(t => calculateTaskScore(t)).filter(s => s !== null);
+  const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+
+  const durationErrors = withDates.map(t => {
+    const due = new Date(t.dueDate).getTime();
+    const done = new Date(t.completedDate).getTime();
+    return (done - due) / (1000 * 60 * 60 * 24);
+  });
+  const sortedErrors = [...durationErrors].sort((a, b) => a - b);
+  const medianError = sortedErrors.length > 0
+    ? sortedErrors[Math.floor(sortedErrors.length / 2)]
+    : null;
+
+  // --- Score distribution data ---
+  const qualityCounts = [0, 0, 0, 0, 0];
+  const easeCounts = [0, 0, 0, 0, 0];
+  withRatings.forEach(t => {
+    qualityCounts[t.qualityRating - 1]++;
+    easeCounts[t.easeRating - 1]++;
+  });
+
+  const scoreDistData = {
+    labels: ['1', '2', '3', '4', '5'],
+    datasets: [
+      {
+        label: 'Quality',
+        data: qualityCounts,
+        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+        borderColor: 'rgb(99, 102, 241)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Ease',
+        data: easeCounts,
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+        borderColor: 'rgb(59, 130, 246)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const scoreDistOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: 'Score Distribution', font: { size: 14 } },
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 } },
+      x: { title: { display: true, text: 'Rating' } },
+    },
+  };
+
+  // --- Duration accuracy data ---
+  const recentWithDates = [...withDates]
+    .sort((a, b) => new Date(a.completedDate) - new Date(b.completedDate))
+    .slice(-20);
+
+  const durationData = {
+    labels: recentWithDates.map(t => t.task.length > 20 ? t.task.slice(0, 20) + '...' : t.task),
+    datasets: [
+      {
+        label: 'Planned (days)',
+        data: recentWithDates.map(t => {
+          const assigned = new Date(t.assignedDate).getTime();
+          const due = new Date(t.dueDate).getTime();
+          return Math.round((due - assigned) / (1000 * 60 * 60 * 24));
+        }),
+        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+        borderColor: 'rgb(99, 102, 241)',
+        borderWidth: 1,
+      },
+      {
+        label: 'Actual (days)',
+        data: recentWithDates.map(t => {
+          const assigned = new Date(t.assignedDate).getTime();
+          const done = new Date(t.completedDate).getTime();
+          return Math.round((done - assigned) / (1000 * 60 * 60 * 24));
+        }),
+        backgroundColor: recentWithDates.map(t => {
+          const due = new Date(t.dueDate).getTime();
+          const done = new Date(t.completedDate).getTime();
+          return done <= due ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)';
+        }),
+        borderColor: recentWithDates.map(t => {
+          const due = new Date(t.dueDate).getTime();
+          const done = new Date(t.completedDate).getTime();
+          return done <= due ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)';
+        }),
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const durationOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: 'Duration: Planned vs Actual (recent 20)', font: { size: 14 } },
+    },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: 'Days' } },
+      x: { ticks: { maxRotation: 45, minRotation: 45 } },
+    },
+  };
+
+  // --- Trends data ---
+  const chronological = [...withRatings]
+    .filter(t => t.completedDate)
+    .sort((a, b) => new Date(a.completedDate) - new Date(b.completedDate));
+
+  const rollingAvg = (arr, windowSize) => {
+    return arr.map((_, i) => {
+      const start = Math.max(0, i - windowSize + 1);
+      const window = arr.slice(start, i + 1);
+      return window.reduce((a, b) => a + b, 0) / window.length;
+    });
+  };
+
+  const trendLabels = chronological.map(t => {
+    const d = new Date(t.completedDate);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  });
+  const qualityValues = chronological.map(t => t.qualityRating);
+  const easeValues = chronological.map(t => t.easeRating);
+  const scoreValues = chronological.map(t => {
+    const s = calculateTaskScore(t);
+    return s !== null ? Math.round(s * 5 * 100) / 100 : null;
+  });
+
+  const windowSize = Math.min(5, chronological.length);
+
+  const trendData = {
+    labels: trendLabels,
+    datasets: [
+      {
+        label: 'Quality (rolling avg)',
+        data: rollingAvg(qualityValues, windowSize),
+        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        tension: 0.3,
+        fill: false,
+      },
+      {
+        label: 'Ease (rolling avg)',
+        data: rollingAvg(easeValues, windowSize),
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.3,
+        fill: false,
+      },
+      {
+        label: 'Task Score (scaled 0-5)',
+        data: rollingAvg(scoreValues.map(v => v ?? 0), windowSize),
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.3,
+        fill: false,
+        borderDash: [5, 5],
+      },
+    ],
+  };
+
+  const trendOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: 'Trends Over Time (rolling average)', font: { size: 14 } },
+    },
+    scales: {
+      y: { min: 0, max: 5, title: { display: true, text: 'Rating / Score' } },
+    },
+  };
+
+  const statCards = [
+    { label: 'Completed', value: completed.length, color: 'text-indigo-600' },
+    { label: 'Avg Quality', value: avgQuality !== null ? avgQuality.toFixed(1) : '—', color: 'text-indigo-600' },
+    { label: 'Avg Ease', value: avgEase !== null ? avgEase.toFixed(1) : '—', color: 'text-blue-600' },
+    { label: 'Avg Score', value: avgScore !== null ? avgScore.toFixed(2) : '—', color: 'text-green-600' },
+    { label: 'Median Deadline Error', value: medianError !== null ? `${medianError > 0 ? '+' : ''}${medianError.toFixed(1)}d` : '—', color: medianError !== null && medianError > 0 ? 'text-red-500' : 'text-green-600' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {statCards.map((card) => (
+          <div key={card.label} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{card.label}</p>
+            <p className={`text-2xl font-bold mt-1 ${card.color}`}>{card.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Score distribution */}
+      {withRatings.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <Bar data={scoreDistData} options={scoreDistOptions} />
+        </div>
+      )}
+
+      {/* Duration accuracy */}
+      {recentWithDates.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <Bar data={durationData} options={durationOptions} />
+        </div>
+      )}
+
+      {/* Trends */}
+      {chronological.length >= 3 && (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <Line data={trendData} options={trendOptions} />
+        </div>
+      )}
     </div>
   );
 };
@@ -2306,6 +2595,260 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
           <div>• Diamond indicates task without time estimate (milestone)</div>
           <div>• Red line shows today's date</div>
           <div>• Gray shading indicates weekends</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, setDefaultDueDate }) => {
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [expandedDay, setExpandedDay] = useState(null);
+
+  const generateMonthGrid = (year, month) => {
+    const firstDay = new Date(year, month, 1);
+    const startDay = new Date(firstDay);
+    startDay.setDate(startDay.getDate() - firstDay.getDay());
+    const days = [];
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(startDay);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  };
+
+  const toDateStr = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const filteredTasks = tasks.filter(task => {
+    if (filters.status === 'active' && task.percentComplete === 100) return false;
+    if (filters.status === 'completed' && task.percentComplete < 100) return false;
+    if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
+    if (filters.category !== 'all' && task.category !== filters.category) return false;
+    return true;
+  });
+
+  const datedTasks = filteredTasks.filter(t => t.dueDate);
+  const undatedCount = filteredTasks.filter(t => !t.dueDate).length;
+
+  const tasksByDate = new Map();
+  datedTasks.forEach(task => {
+    const key = task.dueDate;
+    if (!tasksByDate.has(key)) tasksByDate.set(key, []);
+    tasksByDate.get(key).push(task);
+  });
+
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const days = generateMonthGrid(year, month);
+  const todayStr = toDateStr(new Date());
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  const prevMonth = () => setCalendarDate(new Date(year, month - 1, 1));
+  const nextMonth = () => setCalendarDate(new Date(year, month + 1, 1));
+  const goToday = () => setCalendarDate(new Date());
+
+  const quadrantColors = {
+    'do-first': { border: 'border-l-red-500', bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+    'schedule': { border: 'border-l-blue-500', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
+    'delegate': { border: 'border-l-amber-500', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
+    'eliminate': { border: 'border-l-slate-400', bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-400' }
+  };
+
+  const handleDayClick = (dateStr) => {
+    setDefaultDueDate(dateStr);
+    setEditingTask(null);
+    setShowForm(true);
+  };
+
+  const MAX_VISIBLE = 3;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <button onClick={prevMonth} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors">
+            <ChevronLeft size={20} className="text-slate-600" />
+          </button>
+          <h2 className="text-xl font-bold text-slate-900 min-w-[200px] text-center">
+            {monthNames[month]} {year}
+          </h2>
+          <button onClick={nextMonth} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors">
+            <ChevronRight size={20} className="text-slate-600" />
+          </button>
+          <button onClick={goToday} className="ml-2 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors">
+            Today
+          </button>
+        </div>
+        {undatedCount > 0 && (
+          <div className="text-sm text-slate-500">
+            {undatedCount} task{undatedCount !== 1 ? 's' : ''} with no due date
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-4 flex-wrap">
+        <select
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+        >
+          <option value="active">Active Tasks</option>
+          <option value="completed">Completed</option>
+          <option value="all">All Tasks</option>
+        </select>
+        <select
+          value={filters.quadrant}
+          onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
+          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+        >
+          <option value="all">All Quadrants</option>
+          <option value="do-first">Do First</option>
+          <option value="schedule">Schedule</option>
+          <option value="delegate">Delegate</option>
+          <option value="eliminate">Eliminate</option>
+        </select>
+        <select
+          value={filters.category}
+          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+        >
+          <option value="all">All Categories</option>
+          <option value="Career">Career</option>
+          <option value="Personal">Personal</option>
+        </select>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        {/* Day-of-week header */}
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="px-2 py-2.5 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Day cells - 6 rows */}
+        <div className="grid grid-cols-7">
+          {days.map((day, idx) => {
+            const dateStr = toDateStr(day);
+            const isCurrentMonth = day.getMonth() === month;
+            const isToday = dateStr === todayStr;
+            const dayTasks = tasksByDate.get(dateStr) || [];
+            const isExpanded = expandedDay === dateStr;
+            const visibleTasks = isExpanded ? dayTasks : dayTasks.slice(0, MAX_VISIBLE);
+            const hiddenCount = dayTasks.length - MAX_VISIBLE;
+
+            return (
+              <div
+                key={idx}
+                className={`min-h-[110px] border-b border-r border-slate-100 p-1.5 transition-colors ${
+                  isCurrentMonth ? 'bg-white' : 'bg-slate-50/50'
+                } ${isToday ? 'bg-indigo-50 ring-1 ring-inset ring-indigo-300' : ''}`}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget || e.target.closest('[data-day-bg]')) {
+                    handleDayClick(dateStr);
+                  }
+                }}
+              >
+                {/* Day number */}
+                <div className="flex items-center justify-between mb-1" data-day-bg>
+                  <span className={`text-sm font-medium leading-none ${
+                    isToday ? 'bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center' :
+                    isCurrentMonth ? 'text-slate-700' : 'text-slate-400'
+                  }`}>
+                    {day.getDate()}
+                  </span>
+                </div>
+
+                {/* Task pills */}
+                <div className="space-y-0.5">
+                  {visibleTasks.map(task => {
+                    const quadrant = getQuadrant(task);
+                    const colors = quadrantColors[quadrant] || quadrantColors['eliminate'];
+                    const isOverdue = calculatePriority(task) < 0 && task.percentComplete < 100;
+                    const isCompleted = task.percentComplete === 100;
+                    const isRecurring = task.recurringPattern && task.recurringPattern !== 'once';
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={`group flex items-center gap-1 px-1.5 py-0.5 rounded text-xs cursor-pointer border-l-2 ${colors.border} ${colors.bg} hover:brightness-95 transition-all ${isCompleted ? 'opacity-60' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTask(task);
+                          setShowForm(true);
+                        }}
+                        title={`${task.task} — ${quadrant}`}
+                      >
+                        <span className={`truncate flex-1 ${isOverdue ? 'text-red-600 font-semibold' : colors.text} ${isCompleted ? 'line-through' : ''}`}>
+                          {task.task}
+                        </span>
+                        {isRecurring && <Repeat size={10} className={colors.text} />}
+                      </div>
+                    );
+                  })}
+                  {!isExpanded && hiddenCount > 0 && (
+                    <button
+                      className="text-xs text-indigo-600 font-medium hover:text-indigo-800 pl-1.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedDay(dateStr);
+                      }}
+                    >
+                      +{hiddenCount} more
+                    </button>
+                  )}
+                  {isExpanded && dayTasks.length > MAX_VISIBLE && (
+                    <button
+                      className="text-xs text-slate-500 font-medium hover:text-slate-700 pl-1.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedDay(null);
+                      }}
+                    >
+                      show less
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="bg-white border border-slate-200 rounded-lg p-4">
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          {[
+            { label: 'Do First', color: 'bg-red-500' },
+            { label: 'Schedule', color: 'bg-blue-500' },
+            { label: 'Delegate', color: 'bg-amber-500' },
+            { label: 'Eliminate', color: 'bg-slate-400' }
+          ].map(item => (
+            <div key={item.label} className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 rounded ${item.color}`} />
+              <span className="text-slate-600">{item.label}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-1.5 ml-2">
+            <span className="text-red-600 font-semibold text-xs">Overdue</span>
+            <span className="text-slate-400">= red text</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Repeat size={12} className="text-slate-500" />
+            <span className="text-slate-600">= recurring</span>
+          </div>
+          <div className="text-slate-500 ml-auto text-xs">Click empty space to add a task on that date</div>
         </div>
       </div>
     </div>
