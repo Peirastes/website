@@ -699,13 +699,13 @@ const SYSTEMS = {
     category: 'A',
     categoryName: 'Growth & Relaxation',
     description: 'RC discharge, Newton cooling, radioactive decay. First-order approach to equilibrium.',
-    equations: 'dT/dt = -(T - T_env)/τ',
+    equations: 'dT/dt = -(T - T_env)/\u03C4',
     rhs: rhsRelaxation,
     defaultParams: { tau: 2, T_env: 0 },
     defaultZ0: [1],
     defaultTSpan: [0, 15],
     stateLabels: ['T'],
-    paramLabels: { tau: 'Time constant τ', T_env: 'Environment T_env' },
+    paramLabels: { tau: 'Time constant \u03C4', T_env: 'Environment T_env' },
     paramRanges: { tau: [0.1, 10], T_env: [-5, 5] },
   },
   
@@ -716,13 +716,13 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Mass-spring system, LC circuit. Undamped sinusoidal motion.',
-    equations: 'ẍ + ω₀²x = 0',
+    equations: '\u1E8D + \u03C9\u2080\u00B2x = 0',
     rhs: rhsLinearOscillator,
     defaultParams: { omega0: 1, zeta: 0, F0: 0, omegaDrive: 0 },
     defaultZ0: [1, 0],
     defaultTSpan: [0, 30],
     stateLabels: ['x', 'v'],
-    paramLabels: { omega0: 'Natural freq ω₀', zeta: 'Damping ζ', F0: 'Drive amplitude', omegaDrive: 'Drive freq' },
+    paramLabels: { omega0: 'Natural freq \u03C9\u2080', zeta: 'Damping \u03B6', F0: 'Drive amplitude', omegaDrive: 'Drive freq' },
     paramRanges: { omega0: [0.1, 5], zeta: [0, 1], F0: [0, 2], omegaDrive: [0, 5] },
   },
   dampedOscillator: {
@@ -731,13 +731,13 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Energy dissipation through friction. Underdamped, critical, overdamped regimes.',
-    equations: 'ẍ + 2ζω₀ẋ + ω₀²x = 0',
+    equations: '\u1E8D + 2\u03B6\u03C9\u2080\u1E8B + \u03C9\u2080\u00B2x = 0',
     rhs: rhsLinearOscillator,
     defaultParams: { omega0: 1, zeta: 0.15, F0: 0, omegaDrive: 0 },
     defaultZ0: [1, 0],
     defaultTSpan: [0, 30],
     stateLabels: ['x', 'v'],
-    paramLabels: { omega0: 'Natural freq ω₀', zeta: 'Damping ζ', F0: 'Drive amplitude', omegaDrive: 'Drive freq' },
+    paramLabels: { omega0: 'Natural freq \u03C9\u2080', zeta: 'Damping \u03B6', F0: 'Drive amplitude', omegaDrive: 'Drive freq' },
     paramRanges: { omega0: [0.1, 5], zeta: [0, 2], F0: [0, 2], omegaDrive: [0, 5] },
   },
   drivenOscillator: {
@@ -746,13 +746,13 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Resonance, beating, forced response. Foundation of spectroscopy.',
-    equations: 'ẍ + 2ζω₀ẋ + ω₀²x = F₀cos(ωt)',
+    equations: '\u1E8D + 2\u03B6\u03C9\u2080\u1E8B + \u03C9\u2080\u00B2x = F\u2080cos(\u03C9t)',
     rhs: rhsLinearOscillator,
     defaultParams: { omega0: 1, zeta: 0.1, F0: 0.5, omegaDrive: 1.0 },
     defaultZ0: [0, 0],
     defaultTSpan: [0, 60],
     stateLabels: ['x', 'v'],
-    paramLabels: { omega0: 'Natural freq ω₀', zeta: 'Damping ζ', F0: 'Drive amplitude', omegaDrive: 'Drive freq' },
+    paramLabels: { omega0: 'Natural freq \u03C9\u2080', zeta: 'Damping \u03B6', F0: 'Drive amplitude', omegaDrive: 'Drive freq' },
     paramRanges: { omega0: [0.1, 5], zeta: [0, 1], F0: [0, 3], omegaDrive: [0, 5] },
   },
   pendulum: {
@@ -761,13 +761,13 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Large-angle swings. Period depends on amplitude, unlike linear oscillators.',
-    equations: 'θ̈ + (g/L)sin(θ) = 0',
+    equations: '\u03B8\u0308 + (g/L)sin(\u03B8) = 0',
     rhs: rhsPendulum,
     defaultParams: { g: 9.81, L: 1, zeta: 0.02, F0: 0, omegaDrive: 0 },
     defaultZ0: [2.5, 0],
     defaultTSpan: [0, 20],
-    stateLabels: ['θ', 'ω'],
-    paramLabels: { g: 'Gravity g', L: 'Length L', zeta: 'Damping ζ', F0: 'Drive torque', omegaDrive: 'Drive freq' },
+    stateLabels: ['\u03B8', '\u03C9'],
+    paramLabels: { g: 'Gravity g', L: 'Length L', zeta: 'Damping \u03B6', F0: 'Drive torque', omegaDrive: 'Drive freq' },
     paramRanges: { g: [1, 20], L: [0.1, 5], zeta: [0, 0.5], F0: [0, 2], omegaDrive: [0, 5] },
   },
   vanDerPol: {
@@ -776,13 +776,13 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Self-sustained oscillation. Negative damping at small amplitude, positive at large. Relaxation oscillations.',
-    equations: 'ẍ - μ(1-x²)ẋ + x = 0',
+    equations: '\u1E8D - \u03BC(1-x\u00B2)\u1E8B + x = 0',
     rhs: rhsVanDerPol,
     defaultParams: { mu: 1.5 },
     defaultZ0: [0.1, 0],
     defaultTSpan: [0, 40],
-    stateLabels: ['x', 'ẋ'],
-    paramLabels: { mu: 'Nonlinearity μ' },
+    stateLabels: ['x', '\u1E8B'],
+    paramLabels: { mu: 'Nonlinearity \u03BC' },
     paramRanges: { mu: [0.1, 8] },
   },
   hopf: {
@@ -790,14 +790,14 @@ const SYSTEMS = {
     name: 'Hopf Bifurcation',
     category: 'B',
     categoryName: 'Oscillators',
-    description: 'Normal form for birth of limit cycle. Supercritical Hopf at λ=0.',
-    equations: 'ẋ = (λ-r²)x - ωy, ẏ = (λ-r²)y + ωx',
+    description: 'Normal form for birth of limit cycle. Supercritical Hopf at \u03BB=0.',
+    equations: '\u1E8B = (\u03BB-r\u00B2)x - \u03C9y, \u1E8F = (\u03BB-r\u00B2)y + \u03C9x',
     rhs: rhsHopf,
     defaultParams: { lambda: 0.5, omega: 1 },
     defaultZ0: [0.1, 0],
     defaultTSpan: [0, 30],
     stateLabels: ['x', 'y'],
-    paramLabels: { lambda: 'Bifurcation λ', omega: 'Angular freq ω' },
+    paramLabels: { lambda: 'Bifurcation \u03BB', omega: 'Angular freq \u03C9' },
     paramRanges: { lambda: [-1, 2], omega: [0.1, 5] },
   },
   duffing: {
@@ -806,13 +806,13 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Cubic nonlinearity. Hardening/softening springs. Route to chaos under forcing.',
-    equations: 'ẍ + δẋ + αx + βx³ = γcos(ωt)',
+    equations: '\u1E8D + \u03B4\u1E8B + \u03B1x + \u03B2x\u00B3 = \u03B3cos(\u03C9t)',
     rhs: rhsDuffing,
     defaultParams: { alpha: -1, beta: 1, delta: 0.2, gamma: 0.3, omegaDrive: 1.2 },
     defaultZ0: [0.5, 0],
     defaultTSpan: [0, 100],
     stateLabels: ['x', 'v'],
-    paramLabels: { alpha: 'Linear α', beta: 'Cubic β', delta: 'Damping δ', gamma: 'Drive γ', omegaDrive: 'Drive freq ω' },
+    paramLabels: { alpha: 'Linear \u03B1', beta: 'Cubic \u03B2', delta: 'Damping \u03B4', gamma: 'Drive \u03B3', omegaDrive: 'Drive freq \u03C9' },
     paramRanges: { alpha: [-2, 2], beta: [-2, 2], delta: [0, 1], gamma: [0, 1], omegaDrive: [0.5, 2] },
   },
   
@@ -823,7 +823,7 @@ const SYSTEMS = {
     category: 'C',
     categoryName: 'Bifurcations & Manifolds',
     description: 'Bistability. Two stable equilibria separated by an unstable saddle. Phase transitions.',
-    equations: 'ẋ = ax - bx³',
+    equations: '\u1E8B = ax - bx\u00B3',
     rhs: rhsDoubleWell,
     defaultParams: { a: 1, b: 1 },
     defaultZ0: [0.1],
@@ -838,7 +838,7 @@ const SYSTEMS = {
     category: 'C',
     categoryName: 'Bifurcations & Manifolds',
     description: 'Birth/death of fixed points. Canonical fold catastrophe.',
-    equations: 'ẋ = r + x²',
+    equations: '\u1E8B = r + x\u00B2',
     rhs: rhsSaddleNode,
     defaultParams: { r: -0.25 },
     defaultZ0: [0.3],
@@ -853,7 +853,7 @@ const SYSTEMS = {
     category: 'C',
     categoryName: 'Bifurcations & Manifolds',
     description: 'Symmetry breaking. One stable state splits into two. Supercritical form.',
-    equations: 'ẋ = rx - x³',
+    equations: '\u1E8B = rx - x\u00B3',
     rhs: rhsPitchfork,
     defaultParams: { r: 1 },
     defaultZ0: [0.1],
@@ -870,22 +870,22 @@ const SYSTEMS = {
     category: 'D',
     categoryName: 'Chaos & Strange Attractors',
     description: 'The butterfly. Deterministic chaos, sensitive dependence. Atmospheric convection model.',
-    equations: 'ẋ = σ(y-x), ẏ = x(ρ-z)-y, ż = xy-βz',
+    equations: '\u1E8B = \u03C3(y-x), \u1E8F = x(\u03C1-z)-y, \u017C = xy-\u03B2z',
     rhs: rhsLorenz,
     defaultParams: { sigma: 10, rho: 28, beta: 8/3 },
     defaultZ0: [1, 1, 1],
     defaultTSpan: [0, 50],
     stateLabels: ['x', 'y', 'z'],
-    paramLabels: { sigma: 'Prandtl σ', rho: 'Rayleigh ρ', beta: 'Geometry β' },
+    paramLabels: { sigma: 'Prandtl \u03C3', rho: 'Rayleigh \u03C1', beta: 'Geometry \u03B2' },
     paramRanges: { sigma: [1, 20], rho: [0, 50], beta: [0.5, 5] },
   },
   rossler: {
     id: 'rossler',
-    name: 'Rössler Attractor',
+    name: 'R\u00F6ssler Attractor',
     category: 'D',
     categoryName: 'Chaos & Strange Attractors',
     description: 'Simpler than Lorenz. Single spiral with occasional large excursions. Period-doubling route to chaos.',
-    equations: 'ẋ = -y-z, ẏ = x+ay, ż = b+z(x-c)',
+    equations: '\u1E8B = -y-z, \u1E8F = x+ay, \u017C = b+z(x-c)',
     rhs: rhsRossler,
     defaultParams: { a: 0.2, b: 0.2, c: 5.7 },
     defaultZ0: [1, 1, 1],
@@ -900,13 +900,13 @@ const SYSTEMS = {
     category: 'D',
     categoryName: 'Chaos & Strange Attractors',
     description: 'Electronic chaos. Piecewise-linear nonlinearity. Double-scroll attractor.',
-    equations: 'ẋ = α(y-x-h(x)), ẏ = x-y+z, ż = -βy',
+    equations: '\u1E8B = \u03B1(y-x-h(x)), \u1E8F = x-y+z, \u017C = -\u03B2y',
     rhs: rhsChua,
     defaultParams: { alpha: 15.6, beta: 28, m0: -1.143, m1: -0.714 },
     defaultZ0: [0.1, 0, 0],
     defaultTSpan: [0, 50],
     stateLabels: ['x', 'y', 'z'],
-    paramLabels: { alpha: 'α', beta: 'β', m0: 'Inner slope m₀', m1: 'Outer slope m₁' },
+    paramLabels: { alpha: '\u03B1', beta: '\u03B2', m0: 'Inner slope m\u2080', m1: 'Outer slope m\u2081' },
     paramRanges: { alpha: [8, 20], beta: [15, 35], m0: [-1.5, -0.8], m1: [-1, -0.5] },
   },
   
@@ -917,7 +917,7 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Parabolic flight under gravity. Optional drag and ground collision.',
-    equations: 'ẍ = -drag·ẋ, ÿ = -g - drag·ẏ',
+    equations: '\u1E8D = -drag\u00B7\u1E8B, \u00FF = -g - drag\u00B7\u1E8F',
     rhs: rhsProjectile,
     defaultParams: { g: 9.81, drag: 0, e: 0.6 },
     defaultZ0: [0, 0, 15, 20],
@@ -933,13 +933,13 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Central inverse-square force. Ellipses, parabolas, hyperbolas. Conservation of angular momentum.',
-    equations: 'r̈ = -μr/|r|³',
+    equations: 'r\u0308 = -\u03BCr/|r|\u00B3',
     rhs: rhsKepler,
     defaultParams: { mu: 1 },
     defaultZ0: [1, 0, 0, 0.8],
     defaultTSpan: [0, 20],
     stateLabels: ['x', 'y', 'vx', 'vy'],
-    paramLabels: { mu: 'Grav. parameter μ' },
+    paramLabels: { mu: 'Grav. parameter \u03BC' },
     paramRanges: { mu: [0.1, 5] },
   },
   uniformB: {
@@ -948,7 +948,7 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Charged particle in uniform magnetic field. Circular motion at Larmor frequency.',
-    equations: 'v̇ = (q/m)v × B',
+    equations: 'v\u0307 = (q/m)v \u00D7 B',
     rhs: rhsUniformB,
     defaultParams: { qOverM: 1, Bz: 1 },
     defaultZ0: [0, 0, 1, 0],
@@ -963,12 +963,12 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Gravitational chaos. No general closed-form solution. Figure-8 and other choreographies.',
-    equations: 'r̈ᵢ = Σⱼ Gmⱼ(rⱼ-rᵢ)/|rⱼ-rᵢ|³',
+    equations: 'r\u0308\u1D62 = \u03A3\u2C7C Gm\u2C7C(r\u2C7C-r\u1D62)/|r\u2C7C-r\u1D62|\u00B3',
     rhs: rhsThreeBody,
     defaultParams: { m1: 1, m2: 1, m3: 1, G: 1 },
     defaultZ0: [-1, 0, 1, 0, 0, 1.732, 0.347, 0.532, 0.347, 0.532, -0.694, -1.064],
     defaultTSpan: [0, 20],
-    stateLabels: ['x₁', 'y₁', 'x₂', 'y₂', 'x₃', 'y₃', 'vx₁', 'vy₁', 'vx₂', 'vy₂', 'vx₃', 'vy₃'],
+    stateLabels: ['x\u2081', 'y\u2081', 'x\u2082', 'y\u2082', 'x\u2083', 'y\u2083', 'vx\u2081', 'vy\u2081', 'vx\u2082', 'vy\u2082', 'vx\u2083', 'vy\u2083'],
     paramLabels: { m1: 'Mass 1', m2: 'Mass 2', m3: 'Mass 3', G: 'Grav. constant G' },
     paramRanges: { m1: [0.1, 3], m2: [0.1, 3], m3: [0.1, 3], G: [0.1, 3] },
   },
@@ -980,13 +980,13 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Coupled population oscillations. Foxes and rabbits. Neutral cycles.',
-    equations: 'ẋ = αx - βxy, ẏ = δxy - γy',
+    equations: '\u1E8B = \u03B1x - \u03B2xy, \u1E8F = \u03B4xy - \u03B3y',
     rhs: rhsLotkaVolterra,
     defaultParams: { alpha: 1.5, beta: 1, delta: 1, gamma: 3 },
     defaultZ0: [1, 0.5],
     defaultTSpan: [0, 30],
     stateLabels: ['Prey', 'Predator'],
-    paramLabels: { alpha: 'Prey growth α', beta: 'Predation β', delta: 'Conversion δ', gamma: 'Predator death γ' },
+    paramLabels: { alpha: 'Prey growth \u03B1', beta: 'Predation \u03B2', delta: 'Conversion \u03B4', gamma: 'Predator death \u03B3' },
     paramRanges: { alpha: [0.1, 5], beta: [0.1, 5], delta: [0.1, 5], gamma: [0.1, 5] },
   },
   competition: {
@@ -995,13 +995,13 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Two species competing for same resource. Coexistence, exclusion, or bistability.',
-    equations: 'ẋ = r₁x(1-(x+α₁₂y)/K₁)',
+    equations: '\u1E8B = r\u2081x(1-(x+\u03B1\u2081\u2082y)/K\u2081)',
     rhs: rhsCompetition,
     defaultParams: { r1: 1, r2: 1, K1: 1, K2: 1, a12: 0.5, a21: 0.5 },
     defaultZ0: [0.5, 0.3],
     defaultTSpan: [0, 30],
     stateLabels: ['Species 1', 'Species 2'],
-    paramLabels: { r1: 'Growth r₁', r2: 'Growth r₂', K1: 'Capacity K₁', K2: 'Capacity K₂', a12: 'Competition α₁₂', a21: 'Competition α₂₁' },
+    paramLabels: { r1: 'Growth r\u2081', r2: 'Growth r\u2082', K1: 'Capacity K\u2081', K2: 'Capacity K\u2082', a12: 'Competition \u03B1\u2081\u2082', a21: 'Competition \u03B1\u2082\u2081' },
     paramRanges: { r1: [0.1, 3], r2: [0.1, 3], K1: [0.5, 2], K2: [0.5, 2], a12: [0, 2], a21: [0, 2] },
   },
   sir: {
@@ -1009,14 +1009,14 @@ const SYSTEMS = {
     name: 'SIR Epidemic',
     category: 'F',
     categoryName: 'Ecological & Epidemic',
-    description: 'Susceptible-Infected-Recovered. Herd immunity threshold. Basic reproduction number R₀.',
-    equations: 'Ṡ = -βSI, İ = βSI - γI, Ṙ = γI',
+    description: 'Susceptible-Infected-Recovered. Herd immunity threshold. Basic reproduction number R\u2080.',
+    equations: '\u1E60 = -\u03B2SI, \u0130 = \u03B2SI - \u03B3I, \u1E58 = \u03B3I',
     rhs: rhsSIR,
     defaultParams: { beta: 0.4, gamma: 0.1 },
     defaultZ0: [0.99, 0.01, 0],
     defaultTSpan: [0, 100],
     stateLabels: ['S', 'I', 'R'],
-    paramLabels: { beta: 'Infection rate β', gamma: 'Recovery rate γ' },
+    paramLabels: { beta: 'Infection rate \u03B2', gamma: 'Recovery rate \u03B3' },
     paramRanges: { beta: [0.1, 1], gamma: [0.01, 0.5] },
   },
   seir: {
@@ -1025,13 +1025,13 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Adds Exposed compartment. Incubation period before infectiousness.',
-    equations: 'Ṡ = -βSI, Ė = βSI - σE, İ = σE - γI, Ṙ = γI',
+    equations: '\u1E60 = -\u03B2SI, \u0116 = \u03B2SI - \u03C3E, \u0130 = \u03C3E - \u03B3I, \u1E58 = \u03B3I',
     rhs: rhsSEIR,
     defaultParams: { beta: 0.5, sigma: 0.2, gamma: 0.1 },
     defaultZ0: [0.99, 0, 0.01, 0],
     defaultTSpan: [0, 150],
     stateLabels: ['S', 'E', 'I', 'R'],
-    paramLabels: { beta: 'Infection rate β', sigma: 'Incubation rate σ', gamma: 'Recovery rate γ' },
+    paramLabels: { beta: 'Infection rate \u03B2', sigma: 'Incubation rate \u03C3', gamma: 'Recovery rate \u03B3' },
     paramRanges: { beta: [0.1, 1], sigma: [0.05, 0.5], gamma: [0.01, 0.5] },
   },
   
@@ -1041,8 +1041,8 @@ const SYSTEMS = {
     name: 'Brusselator',
     category: 'G',
     categoryName: 'Chemical Oscillators',
-    description: 'Autocatalytic chemical oscillator. Hopf bifurcation at B = 1 + A².',
-    equations: 'ẋ = A + x²y - (B+1)x, ẏ = Bx - x²y',
+    description: 'Autocatalytic chemical oscillator. Hopf bifurcation at B = 1 + A\u00B2.',
+    equations: '\u1E8B = A + x\u00B2y - (B+1)x, \u1E8F = Bx - x\u00B2y',
     rhs: rhsBrusselator,
     defaultParams: { A: 1, B: 3 },
     defaultZ0: [1, 1],
@@ -1057,13 +1057,13 @@ const SYSTEMS = {
     category: 'G',
     categoryName: 'Chemical Oscillators',
     description: 'Belousov-Zhabotinsky reaction model. Relaxation oscillations, spiral waves.',
-    equations: 'εẋ = qy - xy + x(1-x), δẏ = -qy - xy + fz, ż = x - z',
+    equations: '\u03B5\u1E8B = qy - xy + x(1-x), \u03B4\u1E8F = -qy - xy + fz, \u017C = x - z',
     rhs: rhsOregonator,
     defaultParams: { epsilon: 0.04, delta: 0.0004, q: 0.0008, f: 1 },
     defaultZ0: [0.5, 0.1, 0.1],
     defaultTSpan: [0, 500],
-    stateLabels: ['HBrO₂', 'Br⁻', 'Ce⁴⁺'],
-    paramLabels: { epsilon: 'Fast scale ε', delta: 'Slow scale δ', q: 'Parameter q', f: 'Stoichiometry f' },
+    stateLabels: ['HBrO\u2082', 'Br\u207B', 'Ce\u2074\u207A'],
+    paramLabels: { epsilon: 'Fast scale \u03B5', delta: 'Slow scale \u03B4', q: 'Parameter q', f: 'Stoichiometry f' },
     paramRanges: { epsilon: [0.01, 0.1], delta: [0.0001, 0.001], q: [0.0001, 0.005], f: [0.5, 2] },
   },
   
@@ -1074,13 +1074,13 @@ const SYSTEMS = {
     category: 'H',
     categoryName: 'Neuronal Models',
     description: 'Reduced Hodgkin-Huxley. Excitability, spiking, bistability.',
-    equations: 'v̇ = v - v³/3 - w + I, τẇ = v + a - bw',
+    equations: 'v\u0307 = v - v\u00B3/3 - w + I, \u03C4\u1E87 = v + a - bw',
     rhs: rhsFitzHughNagumo,
     defaultParams: { a: 0.7, b: 0.8, tau: 12.5, I: 0.5 },
     defaultZ0: [-1, -0.5],
     defaultTSpan: [0, 100],
     stateLabels: ['v (voltage)', 'w (recovery)'],
-    paramLabels: { a: 'Parameter a', b: 'Parameter b', tau: 'Time scale τ', I: 'Input current I' },
+    paramLabels: { a: 'Parameter a', b: 'Parameter b', tau: 'Time scale \u03C4', I: 'Input current I' },
     paramRanges: { a: [0.1, 1.5], b: [0.1, 1.5], tau: [1, 30], I: [0, 1] },
   },
   hindmarshRose: {
@@ -1089,13 +1089,13 @@ const SYSTEMS = {
     category: 'H',
     categoryName: 'Neuronal Models',
     description: 'Bursting neuron model. Slow adaptation variable enables spike trains.',
-    equations: 'ẋ = y - ax³ + bx² - z + I, ẏ = c - dx² - y, ż = r[s(x-xᵣ) - z]',
+    equations: '\u1E8B = y - ax\u00B3 + bx\u00B2 - z + I, \u1E8F = c - dx\u00B2 - y, \u017C = r[s(x-x\u1D63) - z]',
     rhs: rhsHindmarshRose,
     defaultParams: { a: 1, b: 3, c: 1, d: 5, r: 0.006, s: 4, xR: -1.6, I: 3.25 },
     defaultZ0: [-1.5, -10, 2],
     defaultTSpan: [0, 800],
     stateLabels: ['x (membrane)', 'y (fast)', 'z (slow)'],
-    paramLabels: { a: 'a', b: 'b', c: 'c', d: 'd', r: 'Slow rate r', s: 's', xR: 'Rest xᵣ', I: 'Current I' },
+    paramLabels: { a: 'a', b: 'b', c: 'c', d: 'd', r: 'Slow rate r', s: 's', xR: 'Rest x\u1D63', I: 'Current I' },
     paramRanges: { a: [0.5, 2], b: [1, 5], c: [0.5, 2], d: [1, 10], r: [0.001, 0.02], s: [1, 8], xR: [-2, -1], I: [1, 5] },
   },
   
@@ -1108,9 +1108,9 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'heat',
     description: 'Parabolic PDE. Fourier heat conduction, diffusion of temperature or concentration.',
-    equations: '∂T/∂t = α∇²T',
+    equations: '\u2202T/\u2202t = \u03B1\u2207\u00B2T',
     defaultParams: { alpha: 0.5, nx: 80, ny: 80 },
-    paramLabels: { alpha: 'Diffusivity α' },
+    paramLabels: { alpha: 'Diffusivity \u03B1' },
     paramRanges: { alpha: [0.1, 2] },
   },
   
@@ -1123,7 +1123,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'wave1d',
     description: 'Hyperbolic PDE. Standing waves, harmonics, plucked string dynamics.',
-    equations: '∂²u/∂t² = c²∂²u/∂x²',
+    equations: '\u2202\u00B2u/\u2202t\u00B2 = c\u00B2\u2202\u00B2u/\u2202x\u00B2',
     defaultParams: { c: 1, damping: 0.002, nx: 200 },
     paramLabels: { c: 'Wave speed c', damping: 'Damping' },
     paramRanges: { c: [0.5, 3], damping: [0, 0.01] },
@@ -1136,7 +1136,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'wave2d',
     description: 'Drumhead vibration. Circular wave propagation, interference, reflection from boundaries and obstacles.',
-    equations: '∂²u/∂t² = c²∇²u',
+    equations: '\u2202\u00B2u/\u2202t\u00B2 = c\u00B2\u2207\u00B2u',
     defaultParams: { 
       c: 1, 
       damping: 0.01, 
@@ -1172,7 +1172,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'doppler',
     description: '3D visualization of moving source wavefront propagation. Shows frequency shift from retarded-time phase calculation.',
-    equations: 'f_obs = f₀ · c / (c − v_s)',
+    equations: 'f_obs = f\u2080 \u00B7 c / (c \u2212 v_s)',
     defaultParams: {
       waveSpeed: 4.0,
       sourceSpeed: 1.5,
@@ -1183,7 +1183,7 @@ const SYSTEMS = {
     paramLabels: {
       waveSpeed: 'Wave speed c',
       sourceSpeed: 'Source speed v',
-      frequency: 'Source freq f₀',
+      frequency: 'Source freq f\u2080',
       amplitude: 'Amplitude',
     },
     paramRanges: {
@@ -1209,7 +1209,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'grayscott',
     description: 'Pattern formation via Turing instability. Spots, stripes, mitosis, coral growth.',
-    equations: '∂u/∂t = Du∇²u - uv² + f(1-u), ∂v/∂t = Dv∇²v + uv² - (f+k)v',
+    equations: '\u2202u/\u2202t = Du\u2207\u00B2u - uv\u00B2 + f(1-u), \u2202v/\u2202t = Dv\u2207\u00B2v + uv\u00B2 - (f+k)v',
     defaultParams: { Du: 0.16, Dv: 0.08, f: 0.035, k: 0.065, nx: 128, ny: 128 },
     paramLabels: { f: 'Feed rate f', k: 'Kill rate k' },
     paramRanges: { f: [0.01, 0.08], k: [0.03, 0.08] },
@@ -1230,10 +1230,10 @@ const SYSTEMS = {
     categoryName: 'Fluid Dynamics',
     type: 'pde',
     pdeType: 'lbm',
-    description: 'Mesoscopic fluid simulation. Von Kármán vortex streets, flow around obstacles.',
-    equations: 'fᵢ(x+eᵢ,t+1) = fᵢ - ω(fᵢ - fᵢᵉᑫ)',
+    description: 'Mesoscopic fluid simulation. Von K\u00E1rm\u00E1n vortex streets, flow around obstacles.',
+    equations: 'f\u1D62(x+e\u1D62,t+1) = f\u1D62 - \u03C9(f\u1D62 - f\u1D62\u1D49\u146B)',
     defaultParams: { omega: 1.85, nx: 200, ny: 80 },
-    paramLabels: { omega: 'Relaxation ω' },
+    paramLabels: { omega: 'Relaxation \u03C9' },
     paramRanges: { omega: [1.0, 1.95] },
   },
 };
@@ -2070,7 +2070,7 @@ function DopplerFrequencyPlot({ frequencies, sourceFreq, theoreticalFreq, width 
     ctx.fillStyle = '#ef4444';
     ctx.font = '9px ui-monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(`f₀=${sourceFreq.toFixed(2)}`, width - margin.right - 3, sy(sourceFreq) - 3);
+    ctx.fillText(`f\u2080=${sourceFreq.toFixed(2)}`, width - margin.right - 3, sy(sourceFreq) - 3);
     
     // Measured data
     if (frequencies.length > 0) {
@@ -2392,7 +2392,7 @@ function UnifiedPhysicsLab() {
           </span>
         </div>
         <div style={{ fontSize: '11px', color: '#666' }}>
-          {Object.keys(SYSTEMS).length} systems • RK4 integrator
+          {Object.keys(SYSTEMS).length} systems \u2022 RK4 integrator
         </div>
       </header>
       
@@ -2437,7 +2437,7 @@ function UnifiedPhysicsLab() {
                   }} />
                   <span style={{ flex: 1 }}>{cat.name}</span>
                   <span style={{ color: '#444' }}>{systemsInCat.length}</span>
-                  <span style={{ color: '#444', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>›</span>
+                  <span style={{ color: '#444', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>\u203A</span>
                 </button>
                 
                 {isExpanded && (
@@ -2582,7 +2582,7 @@ function UnifiedPhysicsLab() {
                   <span style={{ color: '#666' }}>Initial:</span>
                   {z0.map((val, idx) => (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ color: '#888' }}>{system.stateLabels?.[idx]}₀ =</span>
+                      <span style={{ color: '#888' }}>{system.stateLabels?.[idx]}\u2080 =</span>
                       <input
                         type="number"
                         value={val}
@@ -2641,7 +2641,7 @@ function UnifiedPhysicsLab() {
                       fontWeight: 500,
                     }}
                   >
-                    {isRunning ? '■ Stop' : '▶ Run'}
+                    {isRunning ? '\u25A0 Stop' : '\u25B6 Run'}
                   </button>
                   <button
                     onClick={resetPDE}
@@ -2823,7 +2823,7 @@ function UnifiedPhysicsLab() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Source f₀</span>
+                            <span style={{ fontSize: 11, color: '#888' }}>Source f\u2080</span>
                             <span style={{ fontSize: 13, color: '#ef4444', fontFamily: 'ui-monospace' }}>
                               {params.frequency?.toFixed(3) || '0.500'} Hz
                             </span>
@@ -2831,13 +2831,13 @@ function UnifiedPhysicsLab() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: 11, color: '#888' }}>Measured f</span>
                             <span style={{ fontSize: 13, color: '#4a9eff', fontFamily: 'ui-monospace', fontWeight: 600 }}>
-                              {dopplerState?.lastFrequency?.toFixed(3) || '—'} Hz
+                              {dopplerState?.lastFrequency?.toFixed(3) || '\u2014'} Hz
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: 11, color: '#888' }}>Theoretical</span>
                             <span style={{ fontSize: 13, color: '#22c55e', fontFamily: 'ui-monospace' }}>
-                              {dopplerState?.theoreticalFreq?.toFixed(3) || '—'} Hz
+                              {dopplerState?.theoreticalFreq?.toFixed(3) || '\u2014'} Hz
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2849,8 +2849,8 @@ function UnifiedPhysicsLab() {
                               fontWeight: 600
                             }}>
                               {dopplerState?.lastFrequency 
-                                ? `${(dopplerState.lastFrequency / params.frequency).toFixed(3)}×` 
-                                : '—'}
+                                ? `${(dopplerState.lastFrequency / params.frequency).toFixed(3)}\u00D7` 
+                                : '\u2014'}
                             </span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
