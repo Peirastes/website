@@ -2602,7 +2602,7 @@ function UnifiedPhysicsLab() {
                   <span style={{ color: '#666' }}>Initial:</span>
                   {z0.map((val, idx) => (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ color: '#888' }}>{system.stateLabels?.[idx]}\u2080 =</span>
+                      <span style={{ color: '#888' }}>{system.stateLabels?.[idx] + '\u2080'} =</span>
                       <input
                         type="number"
                         value={val}
