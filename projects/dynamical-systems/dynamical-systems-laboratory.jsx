@@ -3,6 +3,27 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const THREE = window.THREE;
 
 // ============================================================================
+// KATEX FORMULA COMPONENT
+// ============================================================================
+
+function KaTeXFormula({ tex, color, style }) {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(tex, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      return tex;
+    }
+  }, [tex]);
+  return (
+    <span
+      className="katex-equation"
+      style={{ color, ...style }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+// ============================================================================
 // NUMERICAL INTEGRATORS
 // ============================================================================
 
@@ -684,7 +705,7 @@ const SYSTEMS = {
     category: 'A',
     categoryName: 'Growth & Relaxation',
     description: 'Population growth with carrying capacity. The canonical S-curve.',
-    equations: 'dx/dt = rx(1 - x/K)',
+    equations: '\\dot{x} = rx(1 - x/K)',
     rhs: rhsLogistic,
     defaultParams: { r: 1, K: 1 },
     defaultZ0: [0.1],
@@ -699,7 +720,7 @@ const SYSTEMS = {
     category: 'A',
     categoryName: 'Growth & Relaxation',
     description: 'RC discharge, Newton cooling, radioactive decay. First-order approach to equilibrium.',
-    equations: 'dT/dt = -(T - T_env)/\u03C4',
+    equations: '\\dot{T} = -(T - T_{\\text{env}})/\\tau',
     rhs: rhsRelaxation,
     defaultParams: { tau: 2, T_env: 0 },
     defaultZ0: [1],
@@ -716,7 +737,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Mass-spring system, LC circuit. Undamped sinusoidal motion.',
-    equations: '\u1E8D + \u03C9\u2080\u00B2x = 0',
+    equations: '\\ddot{x} + \\omega_0^2 x = 0',
     rhs: rhsLinearOscillator,
     defaultParams: { omega0: 1, zeta: 0, F0: 0, omegaDrive: 0 },
     defaultZ0: [1, 0],
@@ -731,7 +752,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Energy dissipation through friction. Underdamped, critical, overdamped regimes.',
-    equations: '\u1E8D + 2\u03B6\u03C9\u2080\u1E8B + \u03C9\u2080\u00B2x = 0',
+    equations: '\\ddot{x} + 2\\zeta\\omega_0\\dot{x} + \\omega_0^2 x = 0',
     rhs: rhsLinearOscillator,
     defaultParams: { omega0: 1, zeta: 0.15, F0: 0, omegaDrive: 0 },
     defaultZ0: [1, 0],
@@ -746,7 +767,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Resonance, beating, forced response. Foundation of spectroscopy.',
-    equations: '\u1E8D + 2\u03B6\u03C9\u2080\u1E8B + \u03C9\u2080\u00B2x = F\u2080cos(\u03C9t)',
+    equations: '\\ddot{x} + 2\\zeta\\omega_0\\dot{x} + \\omega_0^2 x = F_0\\cos(\\omega t)',
     rhs: rhsLinearOscillator,
     defaultParams: { omega0: 1, zeta: 0.1, F0: 0.5, omegaDrive: 1.0 },
     defaultZ0: [0, 0],
@@ -761,7 +782,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Large-angle swings. Period depends on amplitude, unlike linear oscillators.',
-    equations: '\u03B8\u0308 + (g/L)sin(\u03B8) = 0',
+    equations: '\\ddot{\\theta} + (g/L)\\sin\\theta = 0',
     rhs: rhsPendulum,
     defaultParams: { g: 9.81, L: 1, zeta: 0.02, F0: 0, omegaDrive: 0 },
     defaultZ0: [2.5, 0],
@@ -776,7 +797,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Self-sustained oscillation. Negative damping at small amplitude, positive at large. Relaxation oscillations.',
-    equations: '\u1E8D - \u03BC(1-x\u00B2)\u1E8B + x = 0',
+    equations: '\\ddot{x} - \\mu(1-x^2)\\dot{x} + x = 0',
     rhs: rhsVanDerPol,
     defaultParams: { mu: 1.5 },
     defaultZ0: [0.1, 0],
@@ -791,7 +812,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Normal form for birth of limit cycle. Supercritical Hopf at \u03BB=0.',
-    equations: '\u1E8B = (\u03BB-r\u00B2)x - \u03C9y, \u1E8F = (\u03BB-r\u00B2)y + \u03C9x',
+    equations: '\\dot{x} = (\\lambda - r^2)x - \\omega y,\\; \\dot{y} = (\\lambda - r^2)y + \\omega x',
     rhs: rhsHopf,
     defaultParams: { lambda: 0.5, omega: 1 },
     defaultZ0: [0.1, 0],
@@ -806,7 +827,7 @@ const SYSTEMS = {
     category: 'B',
     categoryName: 'Oscillators',
     description: 'Cubic nonlinearity. Hardening/softening springs. Route to chaos under forcing.',
-    equations: '\u1E8D + \u03B4\u1E8B + \u03B1x + \u03B2x\u00B3 = \u03B3cos(\u03C9t)',
+    equations: '\\ddot{x} + \\delta\\dot{x} + \\alpha x + \\beta x^3 = \\gamma\\cos(\\omega t)',
     rhs: rhsDuffing,
     defaultParams: { alpha: -1, beta: 1, delta: 0.2, gamma: 0.3, omegaDrive: 1.2 },
     defaultZ0: [0.5, 0],
@@ -823,7 +844,7 @@ const SYSTEMS = {
     category: 'C',
     categoryName: 'Bifurcations & Manifolds',
     description: 'Bistability. Two stable equilibria separated by an unstable saddle. Phase transitions.',
-    equations: '\u1E8B = ax - bx\u00B3',
+    equations: '\\dot{x} = ax - bx^3',
     rhs: rhsDoubleWell,
     defaultParams: { a: 1, b: 1 },
     defaultZ0: [0.1],
@@ -838,7 +859,7 @@ const SYSTEMS = {
     category: 'C',
     categoryName: 'Bifurcations & Manifolds',
     description: 'Birth/death of fixed points. Canonical fold catastrophe.',
-    equations: '\u1E8B = r + x\u00B2',
+    equations: '\\dot{x} = r + x^2',
     rhs: rhsSaddleNode,
     defaultParams: { r: -0.25 },
     defaultZ0: [0.3],
@@ -853,7 +874,7 @@ const SYSTEMS = {
     category: 'C',
     categoryName: 'Bifurcations & Manifolds',
     description: 'Symmetry breaking. One stable state splits into two. Supercritical form.',
-    equations: '\u1E8B = rx - x\u00B3',
+    equations: '\\dot{x} = rx - x^3',
     rhs: rhsPitchfork,
     defaultParams: { r: 1 },
     defaultZ0: [0.1],
@@ -870,7 +891,7 @@ const SYSTEMS = {
     category: 'D',
     categoryName: 'Chaos & Strange Attractors',
     description: 'The butterfly. Deterministic chaos, sensitive dependence. Atmospheric convection model.',
-    equations: '\u1E8B = \u03C3(y-x), \u1E8F = x(\u03C1-z)-y, \u017C = xy-\u03B2z',
+    equations: '\\dot{x} = \\sigma(y-x),\\; \\dot{y} = x(\\rho-z)-y,\\; \\dot{z} = xy-\\beta z',
     rhs: rhsLorenz,
     defaultParams: { sigma: 10, rho: 28, beta: 8/3 },
     defaultZ0: [1, 1, 1],
@@ -885,7 +906,7 @@ const SYSTEMS = {
     category: 'D',
     categoryName: 'Chaos & Strange Attractors',
     description: 'Simpler than Lorenz. Single spiral with occasional large excursions. Period-doubling route to chaos.',
-    equations: '\u1E8B = -y-z, \u1E8F = x+ay, \u017C = b+z(x-c)',
+    equations: '\\dot{x} = -y-z,\\; \\dot{y} = x+ay,\\; \\dot{z} = b+z(x-c)',
     rhs: rhsRossler,
     defaultParams: { a: 0.2, b: 0.2, c: 5.7 },
     defaultZ0: [1, 1, 1],
@@ -900,7 +921,7 @@ const SYSTEMS = {
     category: 'D',
     categoryName: 'Chaos & Strange Attractors',
     description: 'Electronic chaos. Piecewise-linear nonlinearity. Double-scroll attractor.',
-    equations: '\u1E8B = \u03B1(y-x-h(x)), \u1E8F = x-y+z, \u017C = -\u03B2y',
+    equations: '\\dot{x} = \\alpha(y-x-h(x)),\\; \\dot{y} = x-y+z,\\; \\dot{z} = -\\beta y',
     rhs: rhsChua,
     defaultParams: { alpha: 15.6, beta: 28, m0: -1.143, m1: -0.714 },
     defaultZ0: [0.1, 0, 0],
@@ -917,7 +938,7 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Parabolic flight under gravity. Optional drag and ground collision.',
-    equations: '\u1E8D = -drag\u00B7\u1E8B, \u00FF = -g - drag\u00B7\u1E8F',
+    equations: '\\ddot{x} = -\\text{drag}\\cdot\\dot{x},\\; \\ddot{y} = -g - \\text{drag}\\cdot\\dot{y}',
     rhs: rhsProjectile,
     defaultParams: { g: 9.81, drag: 0, e: 0.6 },
     defaultZ0: [0, 0, 15, 20],
@@ -933,7 +954,7 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Central inverse-square force. Ellipses, parabolas, hyperbolas. Conservation of angular momentum.',
-    equations: 'r\u0308 = -\u03BCr/|r|\u00B3',
+    equations: '\\ddot{\\mathbf{r}} = -\\mu\\mathbf{r}/|\\mathbf{r}|^3',
     rhs: rhsKepler,
     defaultParams: { mu: 1 },
     defaultZ0: [1, 0, 0, 0.8],
@@ -948,7 +969,7 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Charged particle in uniform magnetic field. Circular motion at Larmor frequency.',
-    equations: 'v\u0307 = (q/m)v \u00D7 B',
+    equations: '\\dot{\\mathbf{v}} = (q/m)\\mathbf{v} \\times \\mathbf{B}',
     rhs: rhsUniformB,
     defaultParams: { qOverM: 1, Bz: 1 },
     defaultZ0: [0, 0, 1, 0],
@@ -963,7 +984,7 @@ const SYSTEMS = {
     category: 'E',
     categoryName: 'Particle Dynamics',
     description: 'Gravitational chaos. No general closed-form solution. Figure-8 and other choreographies.',
-    equations: 'r\u0308\u1D62 = \u03A3\u2C7C Gm\u2C7C(r\u2C7C-r\u1D62)/|r\u2C7C-r\u1D62|\u00B3',
+    equations: '\\ddot{\\mathbf{r}}_i = \\sum_j Gm_j(\\mathbf{r}_j - \\mathbf{r}_i)/|\\mathbf{r}_j - \\mathbf{r}_i|^3',
     rhs: rhsThreeBody,
     defaultParams: { m1: 1, m2: 1, m3: 1, G: 1 },
     defaultZ0: [-1, 0, 1, 0, 0, 1.732, 0.347, 0.532, 0.347, 0.532, -0.694, -1.064],
@@ -980,7 +1001,7 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Coupled population oscillations. Foxes and rabbits. Neutral cycles.',
-    equations: '\u1E8B = \u03B1x - \u03B2xy, \u1E8F = \u03B4xy - \u03B3y',
+    equations: '\\dot{x} = \\alpha x - \\beta xy,\\; \\dot{y} = \\delta xy - \\gamma y',
     rhs: rhsLotkaVolterra,
     defaultParams: { alpha: 1.5, beta: 1, delta: 1, gamma: 3 },
     defaultZ0: [1, 0.5],
@@ -995,7 +1016,7 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Two species competing for same resource. Coexistence, exclusion, or bistability.',
-    equations: '\u1E8B = r\u2081x(1-(x+\u03B1\u2081\u2082y)/K\u2081)',
+    equations: '\\dot{x} = r_1 x(1-(x+\\alpha_{12}y)/K_1)',
     rhs: rhsCompetition,
     defaultParams: { r1: 1, r2: 1, K1: 1, K2: 1, a12: 0.5, a21: 0.5 },
     defaultZ0: [0.5, 0.3],
@@ -1010,7 +1031,7 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Susceptible-Infected-Recovered. Herd immunity threshold. Basic reproduction number R\u2080.',
-    equations: '\u1E60 = -\u03B2SI, \u0130 = \u03B2SI - \u03B3I, \u1E58 = \u03B3I',
+    equations: '\\dot{S} = -\\beta SI,\\; \\dot{I} = \\beta SI - \\gamma I,\\; \\dot{R} = \\gamma I',
     rhs: rhsSIR,
     defaultParams: { beta: 0.4, gamma: 0.1 },
     defaultZ0: [0.99, 0.01, 0],
@@ -1025,7 +1046,7 @@ const SYSTEMS = {
     category: 'F',
     categoryName: 'Ecological & Epidemic',
     description: 'Adds Exposed compartment. Incubation period before infectiousness.',
-    equations: '\u1E60 = -\u03B2SI, \u0116 = \u03B2SI - \u03C3E, \u0130 = \u03C3E - \u03B3I, \u1E58 = \u03B3I',
+    equations: '\\dot{S} = -\\beta SI,\\; \\dot{E} = \\beta SI - \\sigma E,\\; \\dot{I} = \\sigma E - \\gamma I,\\; \\dot{R} = \\gamma I',
     rhs: rhsSEIR,
     defaultParams: { beta: 0.5, sigma: 0.2, gamma: 0.1 },
     defaultZ0: [0.99, 0, 0.01, 0],
@@ -1042,7 +1063,7 @@ const SYSTEMS = {
     category: 'G',
     categoryName: 'Chemical Oscillators',
     description: 'Autocatalytic chemical oscillator. Hopf bifurcation at B = 1 + A\u00B2.',
-    equations: '\u1E8B = A + x\u00B2y - (B+1)x, \u1E8F = Bx - x\u00B2y',
+    equations: '\\dot{x} = A + x^2y - (B+1)x,\\; \\dot{y} = Bx - x^2y',
     rhs: rhsBrusselator,
     defaultParams: { A: 1, B: 3 },
     defaultZ0: [1, 1],
@@ -1057,7 +1078,7 @@ const SYSTEMS = {
     category: 'G',
     categoryName: 'Chemical Oscillators',
     description: 'Belousov-Zhabotinsky reaction model. Relaxation oscillations, spiral waves.',
-    equations: '\u03B5\u1E8B = qy - xy + x(1-x), \u03B4\u1E8F = -qy - xy + fz, \u017C = x - z',
+    equations: '\\varepsilon\\dot{x} = qy - xy + x(1-x),\\; \\delta\\dot{y} = -qy - xy + fz,\\; \\dot{z} = x - z',
     rhs: rhsOregonator,
     defaultParams: { epsilon: 0.04, delta: 0.0004, q: 0.0008, f: 1 },
     defaultZ0: [0.5, 0.1, 0.1],
@@ -1074,7 +1095,7 @@ const SYSTEMS = {
     category: 'H',
     categoryName: 'Neuronal Models',
     description: 'Reduced Hodgkin-Huxley. Excitability, spiking, bistability.',
-    equations: 'v\u0307 = v - v\u00B3/3 - w + I, \u03C4\u1E87 = v + a - bw',
+    equations: '\\dot{v} = v - v^3/3 - w + I,\\; \\tau\\dot{w} = v + a - bw',
     rhs: rhsFitzHughNagumo,
     defaultParams: { a: 0.7, b: 0.8, tau: 12.5, I: 0.5 },
     defaultZ0: [-1, -0.5],
@@ -1089,7 +1110,7 @@ const SYSTEMS = {
     category: 'H',
     categoryName: 'Neuronal Models',
     description: 'Bursting neuron model. Slow adaptation variable enables spike trains.',
-    equations: '\u1E8B = y - ax\u00B3 + bx\u00B2 - z + I, \u1E8F = c - dx\u00B2 - y, \u017C = r[s(x-x\u1D63) - z]',
+    equations: '\\dot{x} = y - ax^3 + bx^2 - z + I,\\; \\dot{y} = c - dx^2 - y,\\; \\dot{z} = r[s(x - x_r) - z]',
     rhs: rhsHindmarshRose,
     defaultParams: { a: 1, b: 3, c: 1, d: 5, r: 0.006, s: 4, xR: -1.6, I: 3.25 },
     defaultZ0: [-1.5, -10, 2],
@@ -1108,7 +1129,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'heat',
     description: 'Parabolic PDE. Fourier heat conduction, diffusion of temperature or concentration.',
-    equations: '\u2202T/\u2202t = \u03B1\u2207\u00B2T',
+    equations: '\\partial T/\\partial t = \\alpha\\nabla^2 T',
     defaultParams: { alpha: 0.5, nx: 80, ny: 80 },
     paramLabels: { alpha: 'Diffusivity \u03B1' },
     paramRanges: { alpha: [0.1, 2] },
@@ -1123,7 +1144,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'wave1d',
     description: 'Hyperbolic PDE. Standing waves, harmonics, plucked string dynamics.',
-    equations: '\u2202\u00B2u/\u2202t\u00B2 = c\u00B2\u2202\u00B2u/\u2202x\u00B2',
+    equations: '\\partial^2 u/\\partial t^2 = c^2\\,\\partial^2 u/\\partial x^2',
     defaultParams: { c: 1, damping: 0.002, nx: 200 },
     paramLabels: { c: 'Wave speed c', damping: 'Damping' },
     paramRanges: { c: [0.5, 3], damping: [0, 0.01] },
@@ -1136,7 +1157,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'wave2d',
     description: 'Drumhead vibration. Circular wave propagation, interference, reflection from boundaries and obstacles.',
-    equations: '\u2202\u00B2u/\u2202t\u00B2 = c\u00B2\u2207\u00B2u',
+    equations: '\\partial^2 u/\\partial t^2 = c^2\\nabla^2 u',
     defaultParams: { 
       c: 1, 
       damping: 0.01, 
@@ -1172,7 +1193,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'doppler',
     description: '3D visualization of moving source wavefront propagation. Shows frequency shift from retarded-time phase calculation.',
-    equations: 'f_obs = f\u2080 \u00B7 c / (c \u2212 v_s)',
+    equations: 'f_{\\text{obs}} = f_0 \\cdot c / (c - v_s)',
     defaultParams: {
       waveSpeed: 4.0,
       sourceSpeed: 1.5,
@@ -1209,7 +1230,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'grayscott',
     description: 'Pattern formation via Turing instability. Spots, stripes, mitosis, coral growth.',
-    equations: '\u2202u/\u2202t = Du\u2207\u00B2u - uv\u00B2 + f(1-u), \u2202v/\u2202t = Dv\u2207\u00B2v + uv\u00B2 - (f+k)v',
+    equations: '\\partial_t u = D_u\\nabla^2 u - uv^2 + f(1-u),\\; \\partial_t v = D_v\\nabla^2 v + uv^2 - (f+k)v',
     defaultParams: { Du: 0.16, Dv: 0.08, f: 0.035, k: 0.065, nx: 128, ny: 128 },
     paramLabels: { f: 'Feed rate f', k: 'Kill rate k' },
     paramRanges: { f: [0.01, 0.08], k: [0.03, 0.08] },
@@ -1231,7 +1252,7 @@ const SYSTEMS = {
     type: 'pde',
     pdeType: 'lbm',
     description: 'Mesoscopic fluid simulation. Von K\u00E1rm\u00E1n vortex streets, flow around obstacles.',
-    equations: 'f\u1D62(x+e\u1D62,t+1) = f\u1D62 - \u03C9(f\u1D62 - f\u1D62\u1D49\u146B)',
+    equations: 'f_i(x+e_i,\\, t+1) = f_i - \\omega(f_i - f_i^{\\text{eq}})',
     defaultParams: { omega: 1.85, nx: 200, ny: 80 },
     paramLabels: { omega: 'Relaxation \u03C9' },
     paramRanges: { omega: [1.0, 1.95] },
@@ -2491,16 +2512,15 @@ function UnifiedPhysicsLab() {
                     <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>
                       {system.description}
                     </p>
-                    <code style={{
+                    <div style={{
                       display: 'inline-block',
                       background: '#14141c',
                       padding: '4px 8px',
                       borderRadius: '4px',
                       fontSize: '11px',
-                      color: categoryColor,
                     }}>
-                      {system.equations}
-                    </code>
+                      <KaTeXFormula tex={system.equations} color={categoryColor} />
+                    </div>
                   </div>
                   
                   <button
