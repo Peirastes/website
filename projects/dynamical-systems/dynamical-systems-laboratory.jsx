@@ -2437,7 +2437,7 @@ function UnifiedPhysicsLab() {
                   }} />
                   <span style={{ flex: 1 }}>{cat.name}</span>
                   <span style={{ color: '#444' }}>{systemsInCat.length}</span>
-                  <span style={{ color: '#444', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>\u203A</span>
+                  <span style={{ color: '#444', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>{'\u203A'}</span>
                 </button>
                 
                 {isExpanded && (
@@ -2823,7 +2823,7 @@ function UnifiedPhysicsLab() {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: 11, color: '#888' }}>Source f\u2080</span>
+                            <span style={{ fontSize: 11, color: '#888' }}>Source f{'\u2080'}</span>
                             <span style={{ fontSize: 13, color: '#ef4444', fontFamily: 'ui-monospace' }}>
                               {params.frequency?.toFixed(3) || '0.500'} Hz
                             </span>
