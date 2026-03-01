@@ -2517,7 +2517,7 @@ function UnifiedPhysicsLab() {
                       background: '#14141c',
                       padding: '4px 8px',
                       borderRadius: '4px',
-                      fontSize: '11px',
+                      fontSize: '14px',
                     }}>
                       <KaTeXFormula tex={system.equations} color={categoryColor} />
                     </div>
