@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Capacitor Dielectric Lab — Stylesheet
+   PSE-II RC Circuit / Dielectric Module
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+
+/* ── CSS Variables — texture overlays ──────────────────────────────────── */
+:root {
+  --tex-metal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
+  --tex-brush: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.005 0.05' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='200' filter='url(%23b)' opacity='0.12'/%3E%3C/svg%3E");
+  --tex-rust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.25' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.12 0.5 0 0 0 0.04 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23r)' opacity='0.1'/%3E%3C/svg%3E");
+  --tex-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='turbulence' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* ── Animations ────────────────────────────────────────────────────────── */
+@keyframes hum     { 0%, 100% { opacity: .92 } 50% { opacity: 1 } }
+@keyframes warmup  { 0% { opacity: 0; filter: brightness(.2) } 50% { opacity: .7 } 100% { opacity: 1; filter: brightness(1) } }
+@keyframes blink   { 0%, 85%, 100% { opacity: 1 } 90% { opacity: .3 } }
+
+/* ── Page ──────────────────────────────────────────────────────────────── */
+html, body {
+  margin: 0; height: 100vh; overflow: hidden; padding: 8px;
+  background: radial-gradient(ellipse at 50% 40%, #141618, #090a0c 65%, #040506);
+  display: flex; justify-content: center; align-items: center;
+  font-family: 'Rajdhani', sans-serif; color: #8899aa;
+}
+
+/* ── Chassis — main instrument housing ─────────────────────────────────── */
+.chassis {
+  width: 100%; max-width: 1340px;
+  aspect-ratio: 3 / 2; max-height: calc(100vh - 16px);
+  position: relative; border-radius: 4px;
+  border: 3px solid #060810; padding: 0 10px 10px;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: linear-gradient(178deg, #383e44 0%, #282c30 10%, #1e2024 35%, #111418 70%, #090a0c 100%);
+  box-shadow: 0 18px 60px rgba(0,0,0,.9), 0 4px 20px rgba(0,0,0,.7),
+    inset 0 1px 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(0,0,0,.4);
+}
+.chassis > .tex { position: absolute; inset: 0; border-radius: 3px; pointer-events: none; z-index: 0 }
+.chassis::before {
+  content: ''; position: absolute; top: 0; left: 10px; right: 10px; height: 1px; z-index: 1;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.05) 20%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.05) 80%, transparent);
+}
+
+/* ── Texture layers ────────────────────────────────────────────────────── */
+.tex-m { background-image: var(--tex-metal); background-size: 300px; opacity: .55 }
+.tex-b { background-image: var(--tex-brush); background-size: 400px 200px; opacity: .45 }
+.tex-r { background-image: var(--tex-rust);  background-size: 200px; opacity: .3; mix-blend-mode: overlay }
+.tex-g { background-image: var(--tex-grain); background-size: 150px; opacity: .4 }
+
+/* ── Rivets ────────────────────────────────────────────────────────────── */
+.rivet {
+  position: absolute; width: 8px; height: 8px; border-radius: 50%; z-index: 3;
+  border: 1px solid #060810;
+  background: radial-gradient(circle at 35% 28%, #5a5e60, #3e4244 30%, #282c30 60%, #181c20);
+  box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.04);
+}
+
+/* ── Sub-panels ────────────────────────────────────────────────────────── */
+.sub-panel {
+  border-radius: 3px; position: relative; overflow: hidden;
+  background: linear-gradient(178deg, #1e2228 0%, #141820 30%, #0c1018 70%, #080c14 100%);
+  border: 2px solid #0a0e12; border-top: 2px solid #3e444a; border-bottom: 3px solid #0a0e12;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.5), inset 0 -1px 6px rgba(0,0,0,.3),
+    0 4px 12px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
+}
+.sub-panel > .tex { position: absolute; inset: 0; pointer-events: none; z-index: 0 }
+
+/* Top edge highlight */
+.sub-panel::before {
+  content: ''; position: absolute; top: 0; left: 10px; right: 10px; height: 1px; z-index: 5;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.06) 30%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.06) 70%, transparent);
+  pointer-events: none;
+}
+
+/* Bottom ambient glow bleed */
+.sub-panel::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40%; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 100%, var(--panel-glow, rgba(0,180,220,.03)), transparent 70%);
+}
+
+/* ── Panel header — visor style ────────────────────────────────────────── */
+.sp-hdr {
+  padding: 6px 12px 5px 14px; display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 2;
+  background: linear-gradient(180deg, #1a1e24, #141820 40%, #10141cee 80%, #0c1018cc);
+  border-bottom: 1px solid #0a0e12;
+  box-shadow: 0 3px 10px rgba(0,0,0,.6), 0 6px 16px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.4);
+}
+.sp-lbl { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-shadow: 0 0 8px currentColor }
+.sp-body { padding: 10px 12px 12px; position: relative; z-index: 1 }
+
+/* ── Screen housing — deep recess with warm ambient ────────────────────── */
+.scr-housing {
+  position: relative; overflow: hidden;
+  background: linear-gradient(180deg, #04060a, #080c12 40%, #0c1018);
+  border: 2px solid #0a0e12; border-top: 3px solid #3e444a;
+  border-radius: 3px; padding: 4px;
+  box-shadow: inset 0 4px 14px rgba(0,0,0,.8), inset 0 -2px 10px rgba(0,0,0,.4),
+    inset 0 0 30px rgba(200,150,60,.04), 0 2px 8px rgba(0,0,0,.5);
+}
+/* Screen visor */
+.scr-housing::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; z-index: 5; pointer-events: none;
+  background: linear-gradient(180deg, #0e1216, #0c1014ee 60%, transparent);
+  box-shadow: 0 3px 10px rgba(0,0,0,.6), 0 6px 16px rgba(0,0,0,.3);
+}
+/* Screen glass highlight */
+.scr-housing::before {
+  content: ''; position: absolute; top: 6px; left: 6%; width: 25%; height: 5px;
+  background: linear-gradient(90deg, transparent, rgba(255,220,160,.03), transparent);
+  border-radius: 50%; pointer-events: none; z-index: 6;
+}
+
+/* ── Nameplate bar ─────────────────────────────────────────────────────── */
+.np-bar {
+  display: inline-block; padding: 8px 28px; border-radius: 2px; position: relative;
+  background: linear-gradient(180deg, #1a1e24, #141820 30%, #0c1018 70%, #080c14);
+  box-shadow: 0 4px 14px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04),
+    inset 0 -1px 6px rgba(0,0,0,.4), 0 0 20px rgba(0,221,238,.04);
+  border: 2px solid #0a0e12; border-top: 2px solid #3e444a;
+}
+
+/* ── Main 3-column grid ────────────────────────────────────────────────── */
+.main-grid {
+  display: grid; grid-template-columns: 1fr 260px 1fr;
+  gap: 6px; position: relative; z-index: 2; margin-top: 2px;
+  flex: 1; min-height: 0; overflow: hidden;
+}
+.main-grid > .col {
+  overflow-y: auto; overflow-x: hidden;
+  scrollbar-width: thin; scrollbar-color: #1e2024 transparent;
+}
+.main-grid > .col::-webkit-scrollbar       { width: 3px }
+.main-grid > .col::-webkit-scrollbar-track  { background: transparent }
+.main-grid > .col::-webkit-scrollbar-thumb  { background: #2e3438; border-radius: 2px }
+.main-grid > .col:first-child,
+.main-grid > .col:last-child { zoom: 0.8 }
+
+.col { display: flex; flex-direction: column; gap: 5px }
+
+/* ── Readout rows ──────────────────────────────────────────────────────── */
+.readout {
+  padding: 5px 0; border-bottom: 1px solid rgba(14,18,22,.6);
+  display: flex; justify-content: space-between; align-items: baseline;
+  position: relative;
+}
+.readout::after {
+  content: ''; position: absolute; bottom: 0; left: 5%; right: 5%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.015), transparent);
+}
+
+/* ── Readout shadowbox ─────────────────────────────────────────────────── */
+.ro-box {
+  position: relative; overflow: hidden; border-radius: 2px;
+  border: 2px solid #0a0e12;
+  background: linear-gradient(180deg, #04060a 0%, #080c12 40%, #0c1018 100%);
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.7), inset 0 -2px 8px rgba(0,0,0,.3),
+    inset 0 0 16px rgba(0,0,0,.4), 0 2px 5px rgba(0,0,0,.4);
+}
+.ro-box::before {
+  content: ''; position: absolute; bottom: -4px; left: 10%; right: 10%; height: 60%;
+  background: radial-gradient(ellipse at 50% 100%,
+    var(--eq-glow, rgba(255,200,80,.06)),
+    var(--eq-glow2, rgba(255,170,40,.02)) 50%, transparent 80%);
+  pointer-events: none; z-index: 0;
+}
+.ro-visor {
+  position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 2; pointer-events: none;
+  background: linear-gradient(180deg, #0e1216, #0c1014ee 60%, transparent);
+  box-shadow: 0 3px 8px rgba(0,0,0,.6), 0 6px 14px rgba(0,0,0,.3);
+}
+.ro-inner {
+  position: relative; z-index: 1; padding: 8px 10px 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
+/* ── Equation boxes ────────────────────────────────────────────────────── */
+.eq-box {
+  position: relative; overflow: hidden; padding: 0;
+  border-radius: 2px; border: 2px solid #0a0e12;
+  background: linear-gradient(180deg, #04060a 0%, #080c12 40%, #0c1018 100%);
+  box-shadow: inset 0 4px 14px rgba(0,0,0,.8), inset 0 -2px 10px rgba(0,0,0,.4),
+    inset 0 0 20px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.5);
+}
+/* Backlight glow — warm uplight from bottom */
+.eq-box::before {
+  content: ''; position: absolute; bottom: -4px; left: 10%; right: 10%; height: 60%;
+  background: radial-gradient(ellipse at 50% 100%,
+    var(--eq-glow, rgba(255,200,80,.08)),
+    var(--eq-glow2, rgba(255,170,40,.03)) 50%, transparent 80%);
+  pointer-events: none; z-index: 0;
+}
+/* Shroud — slim visor overhang at top */
+.eq-box::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; z-index: 2; pointer-events: none;
+  background: linear-gradient(180deg, #0e1216, #0c1014ee 60%, transparent);
+  box-shadow: 0 4px 12px rgba(0,0,0,.7), 0 8px 20px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.5);
+}
+/* Inner content */
+.eq-inner {
+  position: relative; z-index: 1; padding: 12px 10px 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 64px;
+}
+.eq-lbl {
+  font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 4px; color: #506070; text-shadow: 0 1px 2px rgba(0,0,0,.8);
+}
+
+/* Frame bevel — raised metal lip */
+.eq-frame {
+  position: absolute; inset: 0; border-radius: 2px; pointer-events: none; z-index: 3;
+  border-top: 2px solid #3e444a; border-left: 1px solid #2e3438;
+  border-right: 1px solid #2e3438; border-bottom: 1px solid #1c2026;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+/* Glass highlight — top left specular */
+.eq-glass {
+  position: absolute; top: 4px; left: 8%; width: 30%; height: 6px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.025), transparent);
+  border-radius: 50%; pointer-events: none; z-index: 4;
+}
+
+/* ── KaTeX overrides ───────────────────────────────────────────────────── */
+.eq-box .katex          { font-size: 14px }
+.eq-box .katex .base    { color: inherit }
+.eq-box .katex-display  { margin: 2px 0 }
+.ktx                    { min-height: 20px }
+
+/* Readout KaTeX */
+.ro-ktx .katex          { font-size: 18px }
+.ro-ktx .katex .base    { color: inherit }
+.ro-ktx                 { white-space: nowrap }
+
+/* Knob KaTeX */
+.knob-ktx .katex        { font-size: 13px }
+.knob-ktx .katex .base  { color: inherit }
+.knob-ktx               { white-space: nowrap }
+
+/* ── Mode buttons (Explore / Guided) ───────────────────────────────────── */
+.mode-btn {
+  padding: 4px 12px; text-align: center; cursor: pointer; user-select: none;
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  transition: all .12s;
+  border: 2px solid #1c2026; border-top: 1px solid #3e444a;
+  background: linear-gradient(180deg, #1a1e24, #0c1018); color: #506070;
+  font-family: 'Rajdhani', sans-serif;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 2px 6px rgba(0,0,0,.4);
+}
+
+/* ── Material push buttons ─────────────────────────────────────────────── */
+.pbtn {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px; letter-spacing: .4px;
+  min-width: 34px; border: none; border-radius: 2px;
+  cursor: pointer; position: relative; transition: all .08s;
+  padding: 2px 5px 4px; text-align: center;
+}
+
+/* ── Status strip ──────────────────────────────────────────────────────── */
+.ss {
+  display: flex; gap: 2px; padding: 3px 4px;
+  background: #060810; border: 1px solid #0a0e12; border-top: 1px solid #2e3438;
+  border-radius: 1px; box-shadow: inset 0 2px 6px rgba(0,0,0,.5);
+}
+.ss i {
+  display: block; width: 8px; height: 8px; border-radius: 1px; font-style: normal;
+}
