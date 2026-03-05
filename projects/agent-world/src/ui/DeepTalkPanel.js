@@ -125,23 +125,13 @@ export class DeepTalkPanel {
     this._scrollBottom();
   }
 
-  appendToolUse(name, input) {
-    this._currentAssistantBlock = null;
-    const div = document.createElement('div');
-    div.className = 'dt-msg dt-msg-tool';
-
-    let summary = '';
-    if (input) {
-      if (name === 'Bash' && input.command) summary = input.command;
-      else if (input.file_path) summary = input.file_path;
-      else if (input.pattern) summary = input.pattern;
-      else if (input.query) summary = input.query;
-      else if (input.url) summary = input.url;
-      else summary = JSON.stringify(input).slice(0, 200);
-    }
-
-    div.innerHTML = `<span class="dt-tool-badge">${this._escapeHtml(name)}</span> <span class="dt-tool-summary">${this._escapeHtml(summary)}</span>`;
-    this.output.appendChild(div);
+  appendToolUse(name) {
+    // Compact inline badge — don't break the assistant text flow
+    const badge = document.createElement('span');
+    badge.className = 'dt-tool-inline';
+    badge.textContent = `[${name}]`;
+    this.output.appendChild(badge);
+    this._currentAssistantBlock = null;  // next text starts a new block
     this._scrollBottom();
   }
 

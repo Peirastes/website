@@ -157,7 +157,7 @@ export class DialogSystem {
           const task = activeTasks[idx];
           if (task && task.prompt) {
             this.close();
-            this.deepTalkSystem.start(typeId, task.prompt);
+            this.deepTalkSystem.start(typeId, task.prompt, task);
           }
         });
       });

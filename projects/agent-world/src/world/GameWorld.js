@@ -9,6 +9,9 @@ import { InteriorSystem } from '../systems/InteriorSystem.js';
 import { INTERIOR_PALETTES } from '../data/interiorPalettes.js';
 import { AGENT_TYPES } from '../data/agentDefinitions.js';
 import { UIManager } from '../ui/UIManager.js';
+import { ForumThinker } from '../entities/ForumThinker.js';
+import { FORUM_THINKERS, FORUM_THINKER_IDS } from '../data/forumDefinitions.js';
+import { FORUM_CHARACTER_CONFIGS } from '../data/forumCharacterConfigs.js';
 
 const MAP_W = 30;
 const MAP_H = 24;
@@ -47,8 +50,10 @@ export class GameWorld {
       { id: 'TA', x: 23, y: 9,  w: 6,  h: 5 },
       { id: 'SA', x: 23, y: 16, w: 6,  h: 5 },
     ];
+    this.forumBuilding = { id: 'FORUM', x: 9, y: 18, w: 12, h: 6 };
     this.buildingMap = {};
     for (const b of this.buildings) this.buildingMap[b.id] = b;
+    this.buildingMap['FORUM'] = this.forumBuilding;
 
     // ─── Detail layer (furniture) ───
     this.detailLayer = new TileLayer(scene);
@@ -84,6 +89,11 @@ export class GameWorld {
       this.captureInterior(bldg, agent);
     }
     this.loadSavedState();
+
+    // ─── Forum Thinkers ───
+    this.forumThinkers = {};
+    this.playerInForum = false;
+    this._spawnForumThinkers();
 
     // ─── Nearby agent tracking ───
     this.nearbyAgent = null;
@@ -190,6 +200,12 @@ export class GameWorld {
       // Q/E for camera rotation (only Q since E is interact)
       if (e.key === 'q' || e.key === 'Q') {
         this.orbit.angle -= 0.15;
+      }
+      // F to open Forum
+      if (e.key === 'f' || e.key === 'F') {
+        if (this.playerInForum) {
+          this.events.emit('openForum');
+        }
       }
     });
 
@@ -470,6 +486,49 @@ export class GameWorld {
     });
   }
 
+  // ─── Forum Thinkers ──────────────────────────────────────────────────────
+
+  _spawnForumThinkers() {
+    const cx = 15;
+    const stageZ = 23;
+    const forumCenter = { x: cx, z: stageZ };
+    const halfArc = 70 * Math.PI / 180;
+
+    // Sort thinkers into tier buckets
+    const tiers = { Elite: [], Strong: [], Middle: [], 'On Notice': [] };
+    for (const id of FORUM_THINKER_IDS) {
+      const t = FORUM_THINKERS[id];
+      if (tiers[t.tier]) tiers[t.tier].push(id);
+    }
+
+    // Row assignments matching seat geometry in CampusBuilder
+    // Row 1 (front, 6 seats): 4 Elite + 2 Strong
+    // Row 2 (middle, 8 seats): remaining 7 Strong
+    // Row 3 (back, 10 seats): 7 Middle + 3 On Notice
+    const rows = [
+      { ids: [...tiers.Elite, ...tiers.Strong.slice(0, 2)], radius: 2.5, count: 6 },
+      { ids: tiers.Strong.slice(2),                         radius: 3.5, count: 8 },
+      { ids: [...tiers.Middle, ...tiers['On Notice']],      radius: 4.0, count: 10 },
+    ];
+
+    for (const row of rows) {
+      for (let i = 0; i < row.ids.length; i++) {
+        const t = (i + 0.5) / row.count;
+        const angle = -halfArc + t * halfArc * 2;
+        const sx = cx + row.radius * Math.sin(angle);
+        const sz = stageZ - row.radius * Math.cos(angle);
+
+        const id = row.ids[i];
+        const config = FORUM_CHARACTER_CONFIGS[id];
+        if (config) {
+          this.forumThinkers[id] = new ForumThinker(
+            this.scene, sx, sz, id, config, forumCenter
+          );
+        }
+      }
+    }
+  }
+
   // ─── Update Loop ───────────────────────────────────────────────────────────
 
   update(delta) {
@@ -482,6 +541,19 @@ export class GameWorld {
     for (const npc of Object.values(this.agentNPCs)) {
       npc.update(delta, this.camera, collCheck, this.orbit.angle);
     }
+
+    // Forum thinkers (idle animation + label billboard)
+    for (const thinker of Object.values(this.forumThinkers)) {
+      thinker.update(delta);
+    }
+
+    // Forum proximity detection
+    const fb = this.forumBuilding;
+    const px = this.player.x, pz = this.player.z;
+    this.playerInForum = (
+      px >= fb.x && px < fb.x + fb.w &&
+      pz >= fb.y && pz < fb.y + fb.h
+    );
 
     // Nearby agent detection
     let closest = null, closestDist = Infinity;
@@ -499,7 +571,14 @@ export class GameWorld {
     const panel = document.getElementById('dialog-panel');
     const dialogOpen = panel && panel.classList.contains('visible');
 
-    if (closest && !dialogOpen) {
+    const forumOpen = document.getElementById('forum-panel')?.classList.contains('visible');
+    const deepTalkActive = document.querySelector('.deep-talk-panel')?.style.display === 'flex';
+
+    if (this.playerInForum && !dialogOpen && !deepTalkActive && !forumOpen && !closest) {
+      prompt.textContent = 'Press F to open the Forum';
+      prompt.classList.add('visible');
+      this.nearbyAgent = null;
+    } else if (closest && !dialogOpen && !forumOpen) {
       prompt.textContent = `Press E to talk to ${AGENT_TYPES[closest].shortName}`;
       prompt.classList.add('visible');
       this.nearbyAgent = closest;

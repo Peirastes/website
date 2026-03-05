@@ -135,8 +135,9 @@ function buildHead(cfg, parent) {
   parent.add(mp(new THREE.BoxGeometry(0.032, 0.007, 0.007), '#9a5050', 0, mouthY - 0.004, mouthZ + 0.002, 0.5));
 
   buildHair(cfg, parent, HC);
+  buildBeard(cfg, parent);
   if (cfg.accessories?.includes('glasses')) buildGlasses(cfg, parent, eyeX, eyeY, eyeZ);
-  if (cfg.accessories?.includes('hat')) buildHat(cfg, parent, HC);
+  buildHeadwear(cfg, parent, HC);
 }
 
 // ─── HAIR ────────────────────────────────────────────────────────────────────
@@ -233,26 +234,35 @@ function buildHat(cfg, parent, HC) {
 
 function buildTorso(cfg, parent) {
   const torsoGeo = profileGeo([
-    { y:  0.20, rx: 0.19, rz: 0.10 },  // shoulders
-    { y:  0.16, rx: 0.18, rz: 0.11 },  // upper chest
-    { y:  0.08, rx: 0.17, rz: 0.11 },  // chest
-    { y:  0.00, rx: 0.14, rz: 0.10 },  // waist (narrowest)
-    { y: -0.08, rx: 0.15, rz: 0.10 },  // lower waist
-    { y: -0.15, rx: 0.16, rz: 0.10 },  // hips
-    { y: -0.20, rx: 0.16, rz: 0.10 },  // bottom
+    { y:  0.20, rx: 0.22, rz: 0.12 },  // shoulders — broad, flat
+    { y:  0.16, rx: 0.21, rz: 0.13 },  // upper chest
+    { y:  0.08, rx: 0.19, rz: 0.13 },  // chest
+    { y:  0.00, rx: 0.13, rz: 0.09 },  // waist — pinched
+    { y: -0.08, rx: 0.14, rz: 0.10 },  // lower waist
+    { y: -0.15, rx: 0.16, rz: 0.11 },  // hips
+    { y: -0.20, rx: 0.16, rz: 0.11 },  // bottom
   ], 12);
   parent.add(mp(torsoGeo, cfg.shirtColor, 0, 0.75, 0));
 
   // Shoulder caps
   for (const s of [-1, 1])
-    parent.add(mp(new THREE.SphereGeometry(0.052, 8, 6), cfg.shirtColor, s * 0.19, 0.94, 0));
+    parent.add(mp(new THREE.SphereGeometry(0.065, 8, 6), cfg.shirtColor, s * 0.20, 0.95, 0));
+
+  // Shoulder bridge — fills the gap across the top
+  const bridge = mp(new THREE.CylinderGeometry(0.22, 0.20, 0.04, 12), cfg.shirtColor, 0, 0.96, 0);
+  bridge.scale.z = 0.55;  // oval like torso top
+  parent.add(bridge);
 
   // Belt
-  parent.add(mp(new THREE.CylinderGeometry(0.165, 0.165, 0.04, 12), cfg.beltColor, 0, 0.57, 0, 0.5));
-  parent.add(mp(new THREE.BoxGeometry(0.035, 0.030, 0.012), cfg.beltBuckle, 0, 0.57, 0.17, 0.3));
+  const belt = mp(new THREE.CylinderGeometry(0.145, 0.145, 0.04, 12), cfg.beltColor, 0, 0.57, 0, 0.5);
+  belt.scale.z = 0.70;  // oval to match waist (rz/rx ≈ 0.09/0.13)
+  parent.add(belt);
+  parent.add(mp(new THREE.BoxGeometry(0.035, 0.030, 0.012), cfg.beltBuckle, 0, 0.57, 0.10, 0.3));
 
   // Collar
-  parent.add(mp(new THREE.CylinderGeometry(0.10, 0.12, 0.03, 10), cfg.collarColor || cfg.shirtHighlight, 0, 0.97, 0.01));
+  const collar = mp(new THREE.CylinderGeometry(0.10, 0.12, 0.03, 10), cfg.collarColor || cfg.shirtHighlight, 0, 0.97, 0.01);
+  collar.scale.z = 0.80;
+  parent.add(collar);
   parent.add(mp(new THREE.BoxGeometry(0.03, 0.03, 0.02), cfg.skinColor, 0, 0.965, 0.11, 0.82));
 }
 
@@ -261,10 +271,10 @@ function buildTorso(cfg, parent) {
 function buildArm(cfg, shoulder) {
   // Upper arm (longer: 0.22)
   const upperGeo = profileGeo([
-    { y:  0.00, rx: 0.048, rz: 0.044 },
-    { y: -0.06, rx: 0.046, rz: 0.042 },
-    { y: -0.15, rx: 0.040, rz: 0.038 },
-    { y: -0.22, rx: 0.036, rz: 0.036 },
+    { y:  0.00, rx: 0.052, rz: 0.050 },
+    { y: -0.06, rx: 0.050, rz: 0.048 },
+    { y: -0.15, rx: 0.044, rz: 0.042 },
+    { y: -0.22, rx: 0.039, rz: 0.039 },
   ], 8);
   shoulder.add(mp(upperGeo, cfg.shirtColor, 0, -0.01, 0));
 
@@ -278,7 +288,7 @@ function buildArm(cfg, shoulder) {
     { y: -0.05, rx: 0.036, rz: 0.034 },
     { y: -0.14, rx: 0.030, rz: 0.029 },
   ], 8);
-  elbow.add(mp(foreGeo, cfg.shirtColor, 0, 0, 0));
+  elbow.add(mp(foreGeo, cfg.skinColor, 0, 0, 0, 0.82));
 
   // Wrist cuff
   elbow.add(mp(new THREE.CylinderGeometry(0.033, 0.033, 0.010, 8), cfg.shirtHighlight || cfg.shirtColor, 0, -0.135, 0));
@@ -296,11 +306,11 @@ function buildArm(cfg, shoulder) {
 function buildLeg(cfg, hip) {
   // Thigh (longer: 0.25)
   const thighGeo = profileGeo([
-    { y:  0.00, rx: 0.062, rz: 0.055 },
-    { y: -0.06, rx: 0.058, rz: 0.052 },
-    { y: -0.14, rx: 0.050, rz: 0.048 },
-    { y: -0.22, rx: 0.044, rz: 0.044 },
-    { y: -0.25, rx: 0.042, rz: 0.042 },
+    { y:  0.00, rx: 0.072, rz: 0.065 },
+    { y: -0.06, rx: 0.067, rz: 0.060 },
+    { y: -0.14, rx: 0.058, rz: 0.055 },
+    { y: -0.22, rx: 0.051, rz: 0.051 },
+    { y: -0.25, rx: 0.048, rz: 0.048 },
   ], 8);
   hip.add(mp(thighGeo, cfg.pantsColor, 0, 0, 0));
 
@@ -313,11 +323,11 @@ function buildLeg(cfg, hip) {
 
   // Calf (longer: 0.23)
   const calfGeo = profileGeo([
-    { y:  0.00, rx: 0.043, rz: 0.042 },
-    { y: -0.05, rx: 0.046, rz: 0.046 },  // calf bulge
-    { y: -0.12, rx: 0.040, rz: 0.038 },
-    { y: -0.18, rx: 0.033, rz: 0.032 },
-    { y: -0.23, rx: 0.028, rz: 0.028 },  // ankle
+    { y:  0.00, rx: 0.049, rz: 0.048 },
+    { y: -0.05, rx: 0.052, rz: 0.052 },  // calf bulge
+    { y: -0.12, rx: 0.045, rz: 0.043 },
+    { y: -0.18, rx: 0.037, rz: 0.036 },
+    { y: -0.23, rx: 0.031, rz: 0.031 },  // ankle
   ], 8);
   knee.add(mp(calfGeo, cfg.pantsColor, 0, 0, 0));
 
@@ -343,6 +353,178 @@ function buildBackpack(cfg, parent) {
   }
 }
 
+// ─── GARMENTS ─────────────────────────────────────────────────────────────
+
+function buildGarment(cfg, parent) {
+  const type = cfg.garment || 'default';
+  switch (type) {
+    case 'tunic': buildTunic(cfg, parent); break;
+    case 'robe':  buildRobe(cfg, parent);  break;
+    case 'coat':  buildCoat(cfg, parent);  break;
+  }
+}
+
+function buildTunic(cfg, parent) {
+  const gc = cfg.garmentColor || cfg.shirtColor;
+  const ac = cfg.garmentAccent || cfg.collarColor;
+  // Tunic from waist (y≈0.58) to above-knee (y≈0.28), flared
+  const tunicGeo = profileGeo([
+    { y:  0.04, rx: 0.17, rz: 0.13 },  // waist (top of tunic)
+    { y:  0.00, rx: 0.17, rz: 0.13 },
+    { y: -0.08, rx: 0.18, rz: 0.13 },
+    { y: -0.16, rx: 0.19, rz: 0.14 },
+    { y: -0.24, rx: 0.19, rz: 0.14 },  // hem
+    { y: -0.28, rx: 0.20, rz: 0.14 },  // subtle A-line
+  ], 12);
+  parent.add(mp(tunicGeo, gc, 0, 0.56, 0));
+  // Accent belt/trim at hem
+  parent.add(mp(new THREE.CylinderGeometry(0.205, 0.21, 0.025, 12), ac, 0, 0.29, 0, 0.5));
+}
+
+function buildRobe(cfg, parent) {
+  const gc = cfg.garmentColor || cfg.shirtColor;
+  const ac = cfg.garmentAccent || cfg.collarColor;
+  // Full-length robe from just below shoulders to near ground
+  const robeGeo = profileGeo([
+    { y:  0.16, rx: 0.20, rz: 0.14 },  // upper chest
+    { y:  0.10, rx: 0.20, rz: 0.14 },
+    { y:  0.00, rx: 0.19, rz: 0.13 },  // waist
+    { y: -0.10, rx: 0.19, rz: 0.14 },
+    { y: -0.25, rx: 0.20, rz: 0.14 },
+    { y: -0.40, rx: 0.21, rz: 0.15 },
+    { y: -0.55, rx: 0.21, rz: 0.15 },
+    { y: -0.65, rx: 0.22, rz: 0.16 },  // near ground
+    { y: -0.68, rx: 0.22, rz: 0.16 },  // bottom edge
+  ], 12);
+  parent.add(mp(robeGeo, gc, 0, 0.76, 0));
+  // Accent sash at waist
+  parent.add(mp(new THREE.CylinderGeometry(0.195, 0.195, 0.05, 12), ac, 0, 0.72, 0, 0.5));
+}
+
+function buildCoat(cfg, parent) {
+  const gc = cfg.garmentColor || cfg.shirtColor;
+  const ac = cfg.garmentAccent || cfg.collarColor;
+  // Coat from shoulders to mid-thigh, fitted at waist, flared below
+  const coatGeo = profileGeo([
+    { y:  0.18, rx: 0.20, rz: 0.14 },  // shoulders
+    { y:  0.12, rx: 0.20, rz: 0.14 },  // upper chest
+    { y:  0.04, rx: 0.19, rz: 0.13 },
+    { y: -0.02, rx: 0.17, rz: 0.12 },  // waist (fitted)
+    { y: -0.10, rx: 0.18, rz: 0.13 },  // flare begins
+    { y: -0.22, rx: 0.19, rz: 0.14 },  // mid-thigh
+    { y: -0.28, rx: 0.20, rz: 0.14 },  // hem
+  ], 12);
+  parent.add(mp(coatGeo, gc, 0, 0.76, 0));
+  // Lapel rectangles at front
+  for (const s of [-1, 1])
+    parent.add(mp(new THREE.BoxGeometry(0.04, 0.12, 0.01), ac, s * 0.06, 0.88, 0.13));
+  // Buttons down center
+  for (let i = 0; i < 3; i++)
+    parent.add(mp(new THREE.SphereGeometry(0.008, 5, 4), ac, 0, 0.82 - i * 0.07, 0.14, 0.3));
+}
+
+// ─── FACIAL HAIR ──────────────────────────────────────────────────────────
+
+function buildBeard(cfg, parent) {
+  const style = cfg.facialHair || 'none';
+  if (style === 'none') return;
+
+  const HC = 0.20;  // head center (same as buildHead)
+  const bc = cfg.facialHairColor || cfg.hairColor;
+  const mouthY = HC - 0.07;
+  const HR = 0.20;
+  const mzSq = HR * HR * 0.90 - 0.07 * 0.07;
+  const chinZ = (mzSq > 0 ? Math.sqrt(mzSq) : 0.16);
+
+  // Mustache — shared by mustache, short, full, goatee, long
+  if (style !== 'none') {
+    // All beard styles that have a mustache component
+    if (['mustache', 'short', 'full', 'goatee', 'long'].includes(style)) {
+      parent.add(mp(new THREE.BoxGeometry(0.06, 0.012, 0.018), bc, 0, mouthY + 0.018, chinZ + 0.006, 0.6));
+      // Side droops
+      for (const s of [-1, 1])
+        parent.add(mp(new THREE.BoxGeometry(0.012, 0.022, 0.014), bc, s * 0.028, mouthY + 0.006, chinZ + 0.004, 0.6));
+    }
+  }
+
+  // Short beard — half-sphere lower face
+  if (style === 'short' || style === 'full' || style === 'long') {
+    const beardGeo = new THREE.SphereGeometry(
+      style === 'short' ? 0.10 : 0.12, 8, 6,
+      0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55
+    );
+    parent.add(mp(beardGeo, bc, 0, HC - 0.04, 0.02, 0.6));
+  }
+
+  // Full beard — chin box
+  if (style === 'full' || style === 'long') {
+    parent.add(mp(new THREE.BoxGeometry(0.08, 0.06, 0.06), bc, 0, mouthY - 0.040, chinZ - 0.01, 0.6));
+  }
+
+  // Long beard — extended chin pieces
+  if (style === 'long') {
+    parent.add(mp(new THREE.BoxGeometry(0.06, 0.10, 0.04), bc, 0, mouthY - 0.090, chinZ - 0.02, 0.6));
+    parent.add(mp(new THREE.BoxGeometry(0.04, 0.06, 0.03), bc, 0, mouthY - 0.140, chinZ - 0.03, 0.6));
+  }
+
+  // Goatee — chin tuft only (mustache already added above)
+  if (style === 'goatee') {
+    parent.add(mp(new THREE.BoxGeometry(0.04, 0.05, 0.04), bc, 0, mouthY - 0.030, chinZ, 0.6));
+  }
+}
+
+// ─── HEADWEAR ─────────────────────────────────────────────────────────────
+
+function buildHeadwear(cfg, parent, HC) {
+  // Check new headwear key first, fall back to accessories array for backward compat
+  const type = cfg.headwear || (cfg.accessories?.includes('hat') ? 'hat' : 'none');
+  switch (type) {
+    case 'hat':    buildHat(cfg, parent, HC);    break;
+    case 'laurel': buildLaurel(cfg, parent, HC); break;
+    case 'hood':   buildHood(cfg, parent, HC);   break;
+    case 'beret':  buildBeret(cfg, parent, HC);  break;
+  }
+}
+
+function buildLaurel(cfg, parent, HC) {
+  const gc = cfg.garmentAccent || '#ccaa44';
+  // Wreath torus
+  parent.add(mp(new THREE.TorusGeometry(0.19, 0.012, 6, 16), gc, 0, HC + 0.18, -0.01, 0.4));
+  // 8 leaf boxes around the wreath
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const lx = Math.cos(a) * 0.19;
+    const lz = Math.sin(a) * 0.19 - 0.01;
+    const leaf = mp(new THREE.BoxGeometry(0.025, 0.04, 0.008), gc, lx, HC + 0.19, lz, 0.4);
+    leaf.rotation.y = -a;
+    leaf.rotation.z = 0.3;
+    parent.add(leaf);
+  }
+}
+
+function buildHood(cfg, parent, HC) {
+  const hc = cfg.garmentColor || cfg.shirtColor;
+  // Half-sphere draped behind head
+  const hoodGeo = new THREE.SphereGeometry(0.25, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6);
+  parent.add(mp(hoodGeo, hc, 0, HC + 0.06, -0.04, 0.6));
+  // Side panels draping down
+  for (const s of [-1, 1]) {
+    parent.add(mp(new THREE.BoxGeometry(0.04, 0.16, 0.10), hc, s * 0.18, HC - 0.06, -0.06, 0.6));
+  }
+  // Back drape
+  parent.add(mp(new THREE.BoxGeometry(0.22, 0.18, 0.03), hc, 0, HC - 0.06, -0.18, 0.6));
+}
+
+function buildBeret(cfg, parent, HC) {
+  const bc = cfg.garmentColor || cfg.shirtColor;
+  // Flat tilted cylinder
+  const beret = mp(new THREE.CylinderGeometry(0.17, 0.16, 0.04, 10), bc, 0.03, HC + 0.22, 0, 0.5);
+  beret.rotation.z = 0.15; // slight tilt
+  parent.add(beret);
+  // Nub on top
+  parent.add(mp(new THREE.SphereGeometry(0.015, 5, 4), bc, 0.03, HC + 0.25, 0, 0.5));
+}
+
 // ─── BUILDER ─────────────────────────────────────────────────────────────────
 
 export class VoxelCharacterBuilder {
@@ -355,16 +537,17 @@ export class VoxelCharacterBuilder {
 
     const headJoint = new THREE.Group();
     headJoint.position.set(0, 0.98, 0);
+    headJoint.scale.set(0.58, 0.58, 0.58);  // RS-style proportions
     buildHead(cfg, headJoint);
     body.add(headJoint);
 
     const lSh = new THREE.Group();
-    lSh.position.set(-0.19, 0.93, 0);
+    lSh.position.set(-0.22, 0.93, 0);
     const lEl = buildArm(cfg, lSh);
     body.add(lSh);
 
     const rSh = new THREE.Group();
-    rSh.position.set(0.19, 0.93, 0);
+    rSh.position.set(0.22, 0.93, 0);
     const rEl = buildArm(cfg, rSh);
     body.add(rSh);
 
@@ -379,6 +562,7 @@ export class VoxelCharacterBuilder {
     body.add(rHip);
 
     if (cfg.accessories?.includes('backpack')) buildBackpack(cfg, body);
+    buildGarment(cfg, body);
 
     root.userData.joints = {
       bodyGroup: body, headJoint,
@@ -419,8 +603,8 @@ export class VoxelCharacterAnimator {
 
     this.lHip.rotation.x = s * 0.5;   this.rHip.rotation.x = -s * 0.5;
     this.lKn.rotation.x = s > 0 ? 0 : a * 0.6; this.rKn.rotation.x = s < 0 ? 0 : a * 0.6;
-    this.lSh.rotation.x = -s * 0.6;   this.rSh.rotation.x = s * 0.6;
-    this.lEl.rotation.x = s < 0 ? a * 0.3 : 0; this.rEl.rotation.x = s > 0 ? a * 0.3 : 0;
+    this.lSh.rotation.x = -s * 0.35;  this.rSh.rotation.x = s * 0.35;
+    this.lEl.rotation.x = s < 0 ? a * 0.5 : 0.1; this.rEl.rotation.x = s > 0 ? a * 0.5 : 0.1;
 
     const bob = Math.abs(Math.sin(p * 2)) * 0.02;
     this.body.position.y = moving ? bob : 0;

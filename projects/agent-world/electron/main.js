@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { ClaudeService } = require('./services/claudeService');
 const { AgentExecutionService } = require('./services/agentExecutionService');
+const { ForumService } = require('./services/forumService');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const PROJECT_ROOT = path.resolve(__dirname, '..');
@@ -124,6 +125,10 @@ const claudeService = new ClaudeService();
 
 // ─── Agent Execution Service ────────────────────────────────────────────────
 const executionService = new AgentExecutionService();
+
+// ─── Forum Service ──────────────────────────────────────────────────────────
+const forumService = new ForumService();
+const ROSTER_PATH = path.resolve(PROJECT_ROOT, '..', 'assembly_of_greatest_minds.md');
 
 function buildWorkloadSummary() {
   const all = readAllDirectives();
@@ -324,6 +329,23 @@ function setupIPC() {
 
   ipcMain.handle('deepTalk:status', (event, agentTypeId) => {
     return executionService.getSessionInfo(agentTypeId);
+  });
+
+  // Forum debate
+  ipcMain.handle('forum:loadRoster', () => forumService.loadRoster(ROSTER_PATH));
+  ipcMain.handle('forum:startDebate', async (event, topic, thinkerIds) => {
+    // Lazy-load roster on first debate
+    if (!forumService.rosterData) {
+      forumService.loadRoster(ROSTER_PATH);
+    }
+    return forumService.debate(topic, thinkerIds);
+  });
+  ipcMain.handle('forum:followUp', async (event, message) => {
+    return forumService.followUp(message);
+  });
+  ipcMain.handle('forum:stop', () => {
+    forumService.stop();
+    return { success: true };
   });
 
   startWatching((agentTypeId, content) => {

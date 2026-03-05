@@ -1,6 +1,7 @@
 import { DialogSystem } from '../systems/DialogSystem.js';
 import { ChatSystem } from '../systems/ChatSystem.js';
 import { DeepTalkSystem } from '../systems/DeepTalkSystem.js';
+import { ForumSystem } from '../systems/ForumSystem.js';
 import { AGENT_TYPES } from '../data/agentDefinitions.js';
 
 /**
@@ -14,6 +15,8 @@ export class UIManager {
     this.allTasksOpen = false;
 
     this.deepTalkSystem = new DeepTalkSystem();
+    this.deepTalkSystem.agentManager = gameWorld.agentManager;
+    this.forumSystem = new ForumSystem();
     this.dialogSystem = new DialogSystem(gameWorld.agentManager, this.deepTalkSystem);
     this.chatSystem = new ChatSystem(gameWorld.agentManager);
     this.chatSystem.initInput();
@@ -28,6 +31,16 @@ export class UIManager {
       this.dialogSystem.close();
     });
 
+    // Forum events
+    gameWorld.events.on('openForum', () => {
+      if (this.deepTalkSystem.isActive) return;
+      if (this.dialogSystem.isOpen) this.dialogSystem.close();
+      this.forumSystem.open();
+    });
+    gameWorld.events.on('closeForum', () => {
+      this.forumSystem.close();
+    });
+
     // T key → free-form Deep Talk
     document.addEventListener('keydown', (e) => {
       if (e.key === 't' || e.key === 'T') {
@@ -36,13 +49,19 @@ export class UIManager {
         if (this.dialogSystem.isOpen && this.dialogSystem.currentAgent) {
           const agentTypeId = this.dialogSystem.currentAgent;
           this.dialogSystem.close();
-          this.deepTalkSystem.start(agentTypeId);
+          this.deepTalkSystem.reopen(agentTypeId);
         }
       }
       if (e.key === 'Escape' && this.deepTalkSystem.isActive) {
         this.deepTalkSystem.close();
       }
+      if (e.key === 'Escape' && this.forumSystem.isOpen) {
+        this.forumSystem.close();
+      }
     });
+
+    // Bind Forum UI events (submit, follow-up, close)
+    this.forumSystem.bindEvents();
 
     gameWorld.events.on('directivesUpdated', (agentTypeId) => {
       this.dialogSystem.refresh();

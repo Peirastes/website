@@ -9,6 +9,8 @@ export class DeepTalkSystem {
     this.isActive = false;
     this.currentAgent = null;
     this.hasSession = false;
+    this.currentTask = null;    // task object from directives (if executing a task)
+    this.agentManager = null;   // set externally after construction
 
     this.panel = new DeepTalkPanel();
 
@@ -37,12 +39,19 @@ export class DeepTalkSystem {
    * @param {string} agentTypeId
    * @param {string} [prompt] - If provided, execute immediately. Otherwise wait for player input.
    */
-  start(agentTypeId, prompt) {
+  start(agentTypeId, prompt, task = null) {
     this.currentAgent = agentTypeId;
     this.isActive = true;
     this.hasSession = false;
+    this.currentTask = task;
 
     this.panel.open(agentTypeId);
+
+    // Mark task as in-progress
+    if (task) {
+      task.status = 'In Progress (executing)';
+      this._refreshDialog();
+    }
 
     if (prompt) {
       this.executePrompt(prompt);
@@ -93,54 +102,42 @@ export class DeepTalkSystem {
     switch (event.type) {
       case 'system':
         if (event.subtype === 'init') {
-          this.panel.appendSystemMessage(`Session: ${event.session_id || 'connected'}`);
-        } else {
-          this.panel.appendSystemMessage(event.message || JSON.stringify(event));
+          this.panel.appendSystemMessage('Connected.');
         }
+        // Skip other system messages (noisy)
         break;
 
       case 'assistant':
-        // Content block array
+        // Only show text blocks — skip tool_use and tool_result details
         if (event.content) {
           for (const block of event.content) {
             if (block.type === 'text') {
               this.panel.appendAssistantText(block.text);
             } else if (block.type === 'tool_use') {
-              this.panel.appendToolUse(block.name, block.input);
-            } else if (block.type === 'tool_result') {
-              const text = typeof block.content === 'string'
-                ? block.content
-                : JSON.stringify(block.content);
-              this.panel.appendToolResult(text, block.is_error);
+              this.panel.appendToolUse(block.name);
             }
+            // Skip tool_result — too verbose
           }
         }
-        // Single message field
-        if (event.message) {
-          this.panel.appendAssistantText(event.message);
+        if (event.message && !event.content) {
+          const msg = typeof event.message === 'string' ? event.message : JSON.stringify(event.message);
+          this.panel.appendAssistantText(msg);
         }
         break;
 
       case 'content_block_start':
-        if (event.content_block) {
-          if (event.content_block.type === 'tool_use') {
-            this.panel.appendToolUse(event.content_block.name, event.content_block.input);
-          }
+        if (event.content_block?.type === 'tool_use') {
+          this.panel.appendToolUse(event.content_block.name);
         }
         break;
 
       case 'content_block_delta':
-        if (event.delta) {
-          if (event.delta.type === 'text_delta') {
-            this.panel.appendAssistantText(event.delta.text);
-          } else if (event.delta.type === 'input_json_delta') {
-            // Tool input streaming — skip (we show it on tool_use)
-          }
+        if (event.delta?.type === 'text_delta') {
+          this.panel.appendAssistantText(event.delta.text);
         }
         break;
 
       case 'result':
-        // Final result from claude CLI
         if (event.result) {
           this.panel.appendAssistantText(event.result);
         }
@@ -149,23 +146,12 @@ export class DeepTalkSystem {
         }
         break;
 
-      case 'raw':
-        this.panel.appendSystemMessage(event.text);
-        break;
-
-      case 'stderr':
-        this.panel.appendSystemMessage(event.text);
-        break;
-
       case 'error':
         this.panel.appendSystemMessage(event.message || 'Unknown error', true);
         break;
 
+      // Skip raw, stderr, and unknown events — too noisy
       default:
-        // Unknown event type — show as system message
-        if (event.type) {
-          this.panel.appendSystemMessage(`[${event.type}] ${event.message || ''}`);
-        }
         break;
     }
   }
@@ -174,10 +160,32 @@ export class DeepTalkSystem {
     this.panel.setRunning(false);
     if (exitCode === 0) {
       this.panel.appendSystemMessage('Agent finished successfully.');
+      // Mark task complete
+      if (this.currentTask) {
+        this.currentTask.status = 'Complete';
+        this.currentTask.isComplete = true;
+        this._refreshDialog();
+      }
     } else if (exitCode === null || exitCode === 143) {
       this.panel.appendSystemMessage('Agent stopped by player.');
+      if (this.currentTask) {
+        this.currentTask.status = 'Stopped by player';
+        this._refreshDialog();
+      }
     } else {
       this.panel.appendSystemMessage(`Agent exited with code ${exitCode}.`, true);
+      if (this.currentTask) {
+        this.currentTask.status = `Failed (exit ${exitCode})`;
+        this._refreshDialog();
+      }
+    }
+    this.currentTask = null;
+  }
+
+  /** Refresh the dialog panel if it exists */
+  _refreshDialog() {
+    if (this.agentManager) {
+      this.agentManager.updateMood(this.currentAgent);
     }
   }
 
@@ -190,12 +198,24 @@ export class DeepTalkSystem {
   }
 
   close() {
-    if (this.panel.running) {
-      this.stopAgent();
-    }
+    // Hide the panel but let the agent keep running in the background
     this.panel.close();
     this.isActive = false;
-    this.currentAgent = null;
-    this.hasSession = false;
+    // Preserve currentAgent and hasSession so we can reopen
+  }
+
+  /**
+   * Reopen the panel for a background-running agent (or start fresh).
+   */
+  reopen(agentTypeId) {
+    if (this.currentAgent === agentTypeId && this.hasSession) {
+      // Agent still running — just show the panel again with existing output
+      this.isActive = true;
+      this.panel.el.style.display = 'flex';
+      this.panel.isOpen = true;
+      return;
+    }
+    // No existing session — start fresh
+    this.start(agentTypeId);
   }
 }

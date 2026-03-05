@@ -29,5 +29,11 @@ contextBridge.exposeInMainWorld('agentWorld', {
   },
   onDeepTalkExit: (callback) => {
     ipcRenderer.on('deepTalk:exit', (event, data) => callback(data));
-  }
+  },
+
+  // Forum debate
+  loadForumRoster: () => ipcRenderer.invoke('forum:loadRoster'),
+  startForumDebate: (topic, thinkerIds) => ipcRenderer.invoke('forum:startDebate', topic, thinkerIds),
+  forumFollowUp: (message) => ipcRenderer.invoke('forum:followUp', message),
+  stopForum: () => ipcRenderer.invoke('forum:stop'),
 });

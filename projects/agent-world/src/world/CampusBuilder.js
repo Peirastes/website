@@ -92,7 +92,6 @@ export class CampusBuilder {
     for (let x = 23; x <= 27; x++) { paintConc(x, 7); paintConc(x, 15); }
     for (let x = 10; x <= 19; x++) paintConc(x, 5);
     for (let x = 20; x <= 27; x++) paintConc(x, 6);
-
     // Central plaza pavers
     for (let x = 12; x <= 17; x++) {
       for (let y = 9; y <= 14; y++) {
@@ -136,6 +135,11 @@ export class CampusBuilder {
       this.scene.add(group);
       this.buildingRefs[def.id] = { x: def.x, y: def.y, w: def.w, h: def.h, group };
     }
+
+    // Forum building — classical amphitheater
+    const forumGroup = this.buildForumBuilding();
+    this.scene.add(forumGroup);
+    this.buildingRefs['FORUM'] = { x: 9, y: 18, w: 12, h: 6, group: forumGroup };
   }
 
   buildOneBuilding({ id, x, y, w, h, color, floorType }) {
@@ -269,12 +273,181 @@ export class CampusBuilder {
     return group;
   }
 
+  // ─── Forum (Open-Air Amphitheater Sector) ──────────────────────────────────
+
+  buildForumBuilding() {
+    const group = new THREE.Group();
+    const cx = 15;         // center x of sector
+    const stageZ = 23;     // stage/podium at south end
+    const halfArc = 70 * Math.PI / 180; // ±70° from north = 140° sector
+
+    // After rotation.x = -PI/2: ring angle 0 = +X (east), PI/2 = north (-Z)
+    const thetaStart = Math.PI / 2 - halfArc;
+    const thetaLength = halfArc * 2;
+
+    // Materials
+    const stoneMat = new THREE.MeshStandardMaterial({
+      color: '#b8a888', roughness: 0.85, metalness: 0.05,
+    });
+    const stoneAccent = new THREE.MeshStandardMaterial({
+      color: '#a09070', roughness: 0.8, metalness: 0.05,
+    });
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: '#c8b898', roughness: 0.7,
+    });
+    const podiumMat = new THREE.MeshStandardMaterial({
+      color: '#d4c8a8', roughness: 0.5, metalness: 0.1,
+    });
+    const columnMat = new THREE.MeshStandardMaterial({
+      color: '#ccc0a0', roughness: 0.6, metalness: 0.1,
+    });
+    const seatMat = new THREE.MeshStandardMaterial({
+      color: '#a09478', roughness: 0.8,
+    });
+
+    // Sector-shaped stone floor (pie slice from stage outward)
+    const sectorFloor = new THREE.Mesh(
+      new THREE.CircleGeometry(4.8, 48, thetaStart, thetaLength),
+      floorMat
+    );
+    sectorFloor.rotation.x = -Math.PI / 2;
+    sectorFloor.position.set(cx, 0.01, stageZ);
+    sectorFloor.receiveShadow = true;
+    group.add(sectorFloor);
+
+    // Stage circle floor (covers southern half around podium)
+    const stageFloor = new THREE.Mesh(
+      new THREE.CircleGeometry(1.5, 16),
+      floorMat
+    );
+    stageFloor.rotation.x = -Math.PI / 2;
+    stageFloor.position.set(cx, 0.01, stageZ);
+    stageFloor.receiveShadow = true;
+    group.add(stageFloor);
+
+    // Podium
+    const podGeo = new THREE.CylinderGeometry(0.8, 1.0, 0.35, 12);
+    const podium = new THREE.Mesh(podGeo, podiumMat);
+    podium.position.set(cx, 0.175, stageZ);
+    podium.castShadow = true;
+    podium.receiveShadow = true;
+    group.add(podium);
+
+    // Lectern
+    const lecternGeo = new THREE.BoxGeometry(0.5, 0.6, 0.3);
+    const lectern = new THREE.Mesh(lecternGeo, stoneAccent);
+    lectern.position.set(cx, 0.65, stageZ);
+    lectern.castShadow = true;
+    group.add(lectern);
+
+    // Podium wall tile (only collision in the forum)
+    this.wallTiles.add(`${Math.floor(cx)},${Math.floor(stageZ)}`);
+
+    // 3 curved seat rows fanning northward from the stage
+    const rows = [
+      { radius: 2.5, count: 6,  tierHeight: 0.15 },
+      { radius: 3.5, count: 8,  tierHeight: 0.30 },
+      { radius: 4.0, count: 10, tierHeight: 0.45 },
+    ];
+
+    for (const row of rows) {
+      // Stepped stone tier platform
+      const stepGeo = new THREE.RingGeometry(
+        row.radius - 0.35, row.radius + 0.35, 32, 1,
+        thetaStart, thetaLength
+      );
+      const step = new THREE.Mesh(stepGeo, floorMat);
+      step.rotation.x = -Math.PI / 2;
+      step.position.set(cx, row.tierHeight, stageZ);
+      step.receiveShadow = true;
+      group.add(step);
+
+      // Individual stone seat blocks
+      for (let i = 0; i < row.count; i++) {
+        const t = (i + 0.5) / row.count;
+        const angle = -halfArc + t * halfArc * 2;
+        const sx = cx + row.radius * Math.sin(angle);
+        const sz = stageZ - row.radius * Math.cos(angle);
+
+        const seat = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.3, 0.35),
+          seatMat
+        );
+        seat.position.set(sx, row.tierHeight + 0.15, sz);
+        seat.rotation.y = angle;
+        seat.castShadow = true;
+        seat.receiveShadow = true;
+        group.add(seat);
+      }
+    }
+
+    // Doric columns along outer arc (back row perimeter)
+    const colRadius = 0.18;
+    const colHeight = 3.0;
+    const colGeo = new THREE.CylinderGeometry(colRadius, colRadius * 1.15, colHeight, 10);
+    const capGeo = new THREE.BoxGeometry(0.5, 0.12, 0.5);
+    const colArcRadius = 4.8;
+
+    for (let i = 0; i < 7; i++) {
+      const t = (i + 0.5) / 7;
+      const angle = -halfArc + t * halfArc * 2;
+      const colX = cx + colArcRadius * Math.sin(angle);
+      const colZ = stageZ - colArcRadius * Math.cos(angle);
+
+      const col = new THREE.Mesh(colGeo, columnMat);
+      col.position.set(colX, colHeight / 2, colZ);
+      col.castShadow = true;
+      group.add(col);
+
+      const capital = new THREE.Mesh(capGeo, stoneAccent);
+      capital.position.set(colX, colHeight, colZ);
+      group.add(capital);
+
+      const base = new THREE.Mesh(capGeo, stoneAccent);
+      base.position.set(colX, 0.06, colZ);
+      group.add(base);
+    }
+
+    // Low stone curb along outer arc edge
+    for (let i = 0; i < 20; i++) {
+      const t = (i + 0.5) / 20;
+      const angle = -halfArc + t * halfArc * 2;
+      const bx = cx + 4.5 * Math.sin(angle);
+      const bz = stageZ - 4.5 * Math.cos(angle);
+
+      const curb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.3, 0.15),
+        stoneMat
+      );
+      curb.position.set(bx, 0.15, bz);
+      curb.rotation.y = angle;
+      curb.castShadow = true;
+      group.add(curb);
+    }
+
+    // Warm amber point lights at ground level
+    const warmColor = '#ffcc88';
+    const lightPositions = [
+      [cx, 0.5, stageZ],
+      [cx - 3, 0.5, stageZ - 3],
+      [cx + 3, 0.5, stageZ - 3],
+      [cx, 0.5, stageZ - 4.5],
+    ];
+    for (const [lx, ly, lz] of lightPositions) {
+      const light = new THREE.PointLight(warmColor, 0.6, 8, 2);
+      light.position.set(lx, ly, lz);
+      group.add(light);
+    }
+
+    return group;
+  }
+
   // ─── Trees ─────────────────────────────────────────────────────────────────
 
   buildTrees() {
     const positions = [
       [0, 0], [29, 0], [0, 23], [29, 23],
-      [8, 1], [8, 22], [21, 22],
+      [8, 1], [8, 22],
       [8, 7], [8, 15], [21, 8], [21, 15],
       [12, 8], [17, 8], [12, 15], [17, 15]
     ];

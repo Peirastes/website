@@ -10,6 +10,13 @@ class AgentExecutionService {
     this.sessions = new Map(); // agentTypeId → { process, sessionId, buffer }
   }
 
+  /** Return process.env without CLAUDECODE so child claude sessions don't reject nesting */
+  _cleanEnv() {
+    const env = { ...process.env };
+    delete env.CLAUDECODE;
+    return env;
+  }
+
   /**
    * Start a new Claude CLI session for an agent.
    */
@@ -21,17 +28,23 @@ class AgentExecutionService {
 
     const args = [
       '-p',
+      '--verbose',
       '--output-format', 'stream-json',
       '--model', 'sonnet',
       '--dangerously-skip-permissions',
-      prompt
+      '-'  // read prompt from stdin
     ];
 
+    console.log(`[AgentExec] Spawning claude for ${agentTypeId}`);
     const proc = spawn('claude', args, {
       cwd: 'C:\\Users\\Cole\\Dropbox',
       shell: true,
-      env: { ...process.env }
+      env: this._cleanEnv()
     });
+
+    // Pipe prompt via stdin to avoid shell escaping issues
+    proc.stdin.write(prompt);
+    proc.stdin.end();
 
     const session = {
       process: proc,
@@ -41,8 +54,8 @@ class AgentExecutionService {
 
     this.sessions.set(agentTypeId, session);
 
-    // Parse NDJSON from stdout
     proc.stdout.on('data', (chunk) => {
+      console.log(`[AgentExec] stdout: ${chunk.toString().slice(0, 200)}`);
       session.buffer += chunk.toString();
       const lines = session.buffer.split('\n');
       // Keep last incomplete line in buffer
@@ -66,15 +79,18 @@ class AgentExecutionService {
     });
 
     proc.stderr.on('data', (chunk) => {
+      console.log(`[AgentExec] stderr: ${chunk.toString().slice(0, 300)}`);
       onEvent({ type: 'stderr', text: chunk.toString() });
     });
 
     proc.on('close', (code) => {
+      console.log(`[AgentExec] process closed with code ${code}`);
       this.sessions.delete(agentTypeId);
       onExit(code);
     });
 
     proc.on('error', (err) => {
+      console.log(`[AgentExec] process error: ${err.message}`);
       onEvent({ type: 'error', message: err.message });
       this.sessions.delete(agentTypeId);
       onExit(1);
@@ -100,17 +116,21 @@ class AgentExecutionService {
 
     const args = [
       '-p',
+      '--verbose',
       '--output-format', 'stream-json',
       '--resume', sessionId,
       '--dangerously-skip-permissions',
-      message
+      '-'  // read message from stdin
     ];
 
     const proc = spawn('claude', args, {
       cwd: 'C:\\Users\\Cole\\Dropbox',
       shell: true,
-      env: { ...process.env }
+      env: this._cleanEnv()
     });
+
+    proc.stdin.write(message);
+    proc.stdin.end();
 
     const session = {
       process: proc,

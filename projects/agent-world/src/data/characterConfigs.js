@@ -20,6 +20,9 @@ export const CHARACTER_CONFIGS = {
     hatColor: '#2a3040', hatBand: '#808090',
     hairStyle: 'short',
     accessories: [],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'none',
     walkAnimSpeed: 8,
   },
   CE: {
@@ -35,6 +38,9 @@ export const CHARACTER_CONFIGS = {
     hatColor: '#3a6eaa', hatBand: '#2a5e99',
     hairStyle: 'buzz',
     accessories: ['glasses'],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'none',
     walkAnimSpeed: 7,
   },
   CD: {
@@ -50,6 +56,9 @@ export const CHARACTER_CONFIGS = {
     hatColor: '#7844aa', hatBand: '#cc3080',
     hairStyle: 'mohawk',
     accessories: [],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'none',
     walkAnimSpeed: 7,
   },
   PM: {
@@ -64,7 +73,10 @@ export const CHARACTER_CONFIGS = {
     beltColor: '#222230', beltBuckle: '#cc9930',
     hatColor: '#303030', hatBand: '#cc9930',
     hairStyle: 'parted',
-    accessories: ['hat'],
+    accessories: [],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'hat',
     walkAnimSpeed: 6,
   },
   RA: {
@@ -80,6 +92,9 @@ export const CHARACTER_CONFIGS = {
     hatColor: '#208070', hatBand: '#4a3018',
     hairStyle: 'long',
     accessories: ['backpack'],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'none',
     walkAnimSpeed: 7,
   },
   SA: {
@@ -95,6 +110,9 @@ export const CHARACTER_CONFIGS = {
     hatColor: '#bb3030', hatBand: '#aa2020',
     hairStyle: 'short',
     accessories: [],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'none',
     walkAnimSpeed: 8,
   },
   TA: {
@@ -110,6 +128,9 @@ export const CHARACTER_CONFIGS = {
     hatColor: '#2e7830', hatBand: '#4a3820',
     hairStyle: 'parted',
     accessories: ['glasses'],
+    garment: 'default',
+    facialHair: 'none',
+    headwear: 'none',
     walkAnimSpeed: 7,
   },
 };
