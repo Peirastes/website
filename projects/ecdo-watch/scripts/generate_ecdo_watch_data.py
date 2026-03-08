@@ -17,6 +17,15 @@ import requests
 import pandas as pd
 import numpy as np
 
+# Optional: VirES client for INTERMAGNET ground data (primary magnetometer source)
+# Install: pip install viresclient
+# Setup: python -c "from viresclient import set_token; set_token('https://vires.services/ows', set_default=True)"
+try:
+    from viresclient import SwarmRequest
+    VIRES_AVAILABLE = True
+except ImportError:
+    VIRES_AVAILABLE = False
+
 # -------------------------
 # Config
 # -------------------------
@@ -444,6 +453,68 @@ def load_usgs_mag_timeseries_H_chunked(station: str, start: datetime, end: datet
         return combined.reset_index(drop=True)
     else:
         return pd.DataFrame()
+
+def load_vires_mag_timeseries_H(station: str, start: datetime, end: datetime) -> pd.DataFrame:
+    """Fetch H component from INTERMAGNET via VirES (primary magnetometer source).
+
+    Uses viresclient to access SW_OPER_AUX_OBSM2_ (1-minute INTERMAGNET data).
+    H = sqrt(N^2 + E^2) computed from B_NEC vector components.
+    35-year archive, 10-20 minute near-real-time latency.
+    """
+    if not VIRES_AVAILABLE:
+        return pd.DataFrame()
+
+    try:
+        request = SwarmRequest("https://vires.services/ows")
+        collection = f"SW_OPER_AUX_OBSM2_:{station}"
+        request.set_collection(collection)
+        request.set_products(["B_NEC"])
+
+        data = request.get_between(start_time=start, end_time=end)
+        ds = data.as_xarray()
+
+        if ds.sizes.get("Timestamp", 0) == 0:
+            return pd.DataFrame()
+
+        # B_NEC: [North, East, Center] in geodetic frame (nT)
+        # H = sqrt(N^2 + E^2) matches USGS H-component convention
+        N = ds["B_NEC"].values[:, 0]
+        E = ds["B_NEC"].values[:, 1]
+        H = np.sqrt(N**2 + E**2)
+
+        df = pd.DataFrame({
+            "timestamp": pd.to_datetime(ds["Timestamp"].values, utc=True),
+            "value": H,
+        })
+
+        # Filter missing data
+        df = df[df["value"].notna() & (df["value"] < 99999)]
+        return df.sort_values("timestamp").reset_index(drop=True)
+
+    except Exception:
+        return pd.DataFrame()
+
+
+def load_vires_mag_timeseries_H_chunked(station: str, start: datetime, end: datetime, chunk_days: int = 90) -> pd.DataFrame:
+    """Fetch VirES magnetometer data in chunks (API prefers < 1-year windows)."""
+    all_data = []
+    current = start
+
+    while current < end:
+        chunk_end = min(current + timedelta(days=chunk_days), end)
+        try:
+            df = load_vires_mag_timeseries_H(station, current, chunk_end)
+            if not df.empty:
+                all_data.append(df)
+        except Exception as e:
+            print(f"      VirES chunk {current.date()} to {chunk_end.date()} failed: {e}")
+        current = chunk_end
+
+    if all_data:
+        combined = pd.concat(all_data, ignore_index=True).drop_duplicates(subset=['timestamp']).sort_values('timestamp')
+        return combined.reset_index(drop=True)
+    return pd.DataFrame()
+
 
 def load_intermagnet_mag_timeseries_H(station: str, start: datetime, end: datetime) -> pd.DataFrame:
     """Fetch H component from INTERMAGNET HAPI service (fallback source).
@@ -1627,76 +1698,60 @@ def main():
     mag_station_status = {}  # Track which stations succeeded
     mag_station_sources = {}  # Track which source was used
 
-    # Attempt to fetch from multiple sources and time periods
+    # Attempt to fetch from multiple sources with priority chain:
+    #   1. VirES INTERMAGNET (primary — 35yr archive, 10-20min latency)
+    #   2. USGS geomag web service (secondary)
+    #   3. BGS INTERMAGNET HAPI (tertiary)
     for station, label in MAG_STATIONS:
         all_mag_data = []
         station_status = "failed"
         station_source = "none"
 
-        # Try recent 60 days from USGS (primary source)
-        try:
-            print(f"    Fetching {station} from {start_time.date()} to {end_time.date()} (USGS)...")
-            df = load_usgs_mag_timeseries_H(station, start_time, end_time)
-            if not df.empty:
-                all_mag_data.append(df)
-                n_records = len(df)
-                print(f"      {station}: {n_records} records from USGS ✓")
-                station_status = "ok"
-                station_source = "USGS"
-            else:
-                print(f"      {station}: Empty response from USGS, trying INTERMAGNET...")
-                # Try INTERMAGNET as fallback
-                try:
-                    df_intermagnet = load_intermagnet_mag_timeseries_H(station, start_time, end_time)
-                    if not df_intermagnet.empty:
-                        all_mag_data.append(df_intermagnet)
-                        n_records = len(df_intermagnet)
-                        print(f"      {station}: {n_records} records from INTERMAGNET ✓")
-                        station_status = "ok"
-                        station_source = "INTERMAGNET"
-                    else:
-                        print(f"      {station}: No data from INTERMAGNET either")
-                except Exception as e:
-                    print(f"      {station}: INTERMAGNET also failed: {type(e).__name__}")
-
-        except requests.Timeout:
-            print(f"    Warning: USGS {station} timeout, trying INTERMAGNET...")
+        # Source 1: VirES INTERMAGNET (primary)
+        if VIRES_AVAILABLE:
             try:
-                df_intermagnet = load_intermagnet_mag_timeseries_H(station, start_time, end_time)
-                if not df_intermagnet.empty:
-                    all_mag_data.append(df_intermagnet)
-                    n_records = len(df_intermagnet)
-                    print(f"      {station}: {n_records} records from INTERMAGNET ✓")
+                print(f"    Fetching {station} from {start_time.date()} to {end_time.date()} (VirES)...")
+                df = load_vires_mag_timeseries_H(station, start_time, end_time)
+                if not df.empty:
+                    all_mag_data.append(df)
+                    print(f"      {station}: {len(df)} records from VirES ✓")
+                    station_status = "ok"
+                    station_source = "VirES"
+                else:
+                    print(f"      {station}: Empty response from VirES")
+            except Exception as e:
+                print(f"      {station}: VirES failed: {type(e).__name__}")
+
+        # Source 2: USGS (secondary — only if VirES didn't succeed)
+        if station_status != "ok":
+            try:
+                source_label = "USGS" + (" fallback" if VIRES_AVAILABLE else "")
+                print(f"    Fetching {station} ({source_label})...")
+                df = load_usgs_mag_timeseries_H(station, start_time, end_time)
+                if not df.empty:
+                    all_mag_data.append(df)
+                    print(f"      {station}: {len(df)} records from USGS ✓")
+                    station_status = "ok"
+                    station_source = "USGS"
+                else:
+                    print(f"      {station}: Empty response from USGS")
+            except Exception as e:
+                print(f"      {station}: USGS failed: {type(e).__name__}")
+
+        # Source 3: BGS INTERMAGNET HAPI (tertiary)
+        if station_status != "ok":
+            try:
+                print(f"    Fetching {station} (BGS HAPI fallback)...")
+                df = load_intermagnet_mag_timeseries_H(station, start_time, end_time)
+                if not df.empty:
+                    all_mag_data.append(df)
+                    print(f"      {station}: {len(df)} records from BGS HAPI ✓")
                     station_status = "ok"
                     station_source = "INTERMAGNET"
-            except Exception as e2:
-                print(f"      {station}: INTERMAGNET fallback also failed")
-
-        except requests.ConnectionError:
-            print(f"    Warning: USGS {station} connection error, trying INTERMAGNET...")
-            try:
-                df_intermagnet = load_intermagnet_mag_timeseries_H(station, start_time, end_time)
-                if not df_intermagnet.empty:
-                    all_mag_data.append(df_intermagnet)
-                    n_records = len(df_intermagnet)
-                    print(f"      {station}: {n_records} records from INTERMAGNET ✓")
-                    station_status = "ok"
-                    station_source = "INTERMAGNET"
-            except Exception as e2:
-                print(f"      {station}: INTERMAGNET fallback also failed")
-
-        except Exception as e:
-            print(f"    Warning: USGS {station} failed, trying INTERMAGNET...")
-            try:
-                df_intermagnet = load_intermagnet_mag_timeseries_H(station, start_time, end_time)
-                if not df_intermagnet.empty:
-                    all_mag_data.append(df_intermagnet)
-                    n_records = len(df_intermagnet)
-                    print(f"      {station}: {n_records} records from INTERMAGNET ✓")
-                    station_status = "ok"
-                    station_source = "INTERMAGNET"
-            except Exception as e2:
-                print(f"      {station}: INTERMAGNET fallback also failed")
+                else:
+                    print(f"      {station}: No data from BGS HAPI either")
+            except Exception as e:
+                print(f"      {station}: BGS HAPI also failed: {type(e).__name__}")
 
         # Combine all data and compute daily means with dates
         if all_mag_data:
