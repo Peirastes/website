@@ -131,8 +131,12 @@ def send_webhook_alert(message: str, alert_config: dict):
 
     return success
 
-def send_alerts(alert_type: str, error_message: str = "", alert_config: dict = None):
-    """Send alerts based on type and configuration."""
+def send_alerts(alert_type: str, error_message: str = "", alert_config: dict = None, **kwargs):
+    """Send alerts based on type and configuration.
+
+    Template placeholders are filled from kwargs, with timestamp and error_message
+    always available. Unknown placeholders are left as-is (no KeyError).
+    """
     if alert_config is None:
         alert_config = load_alert_config()
 
@@ -145,11 +149,22 @@ def send_alerts(alert_type: str, error_message: str = "", alert_config: dict = N
     if not alert_def.get("enabled"):
         return
 
-    # Format message
-    message = alert_def.get("template", "ECDO Watch Alert").format(
-        timestamp=utcnow().isoformat(),
-        error_message=error_message[:200] if error_message else "Unknown error"
-    )
+    # Build format dict — kwargs override defaults
+    fmt = {
+        "timestamp": utcnow().isoformat(),
+        "error_message": error_message[:200] if error_message else "Unknown error",
+    }
+    fmt.update(kwargs)
+
+    # Safe format: leave unknown placeholders intact instead of raising KeyError
+    template = alert_def.get("template", "ECDO Watch Alert")
+    try:
+        message = template.format(**fmt)
+    except KeyError:
+        # Fallback: use template as-is if formatting fails
+        message = template
+
+    logger.info(f"Sending alert: {alert_type} — {message}")
 
     # Send email
     if alert_def.get("email"):
@@ -158,6 +173,100 @@ def send_alerts(alert_type: str, error_message: str = "", alert_config: dict = N
     # Send webhooks
     if alert_def.get("webhook"):
         send_webhook_alert(f"*ECDO Watch*: {message}", alert_config)
+
+WATCH_BADGE_FILE = LOGS_DIR / "last_watch_badge.json"
+
+# Badge severity order for detecting elevations
+BADGE_SEVERITY = {"GRAY": 0, "GREEN": 1, "YELLOW": 2, "ORANGE": 3, "RED": 4}
+
+def get_current_watch_badge():
+    """Read the current watch badge from the 90-day coherence file."""
+    coherence_file = ASSETS_DIR / "coherence_90d.json"
+    if not coherence_file.exists():
+        return None, None
+    try:
+        data = json.loads(coherence_file.read_text(encoding='utf-8'))
+        return data.get("badge", "GRAY"), data.get("latest_watch_score")
+    except Exception as e:
+        logger.warning(f"Failed to read coherence badge: {e}")
+        return None, None
+
+def load_previous_badge():
+    """Load the badge from the previous run."""
+    if WATCH_BADGE_FILE.exists():
+        try:
+            data = json.loads(WATCH_BADGE_FILE.read_text(encoding='utf-8'))
+            return data.get("badge", "GRAY")
+        except Exception:
+            pass
+    return "GRAY"
+
+def save_current_badge(badge, score):
+    """Persist the current badge for next-run comparison."""
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    WATCH_BADGE_FILE.write_text(json.dumps({
+        "badge": badge,
+        "score": score,
+        "timestamp": utcnow().isoformat()
+    }, indent=2), encoding='utf-8')
+
+def check_watch_level_transition(alert_config):
+    """Compare current badge to previous. Alert on elevation (not de-escalation)."""
+    current_badge, current_score = get_current_watch_badge()
+    if current_badge is None:
+        logger.info("No coherence badge available — skipping watch-level check")
+        return
+
+    previous_badge = load_previous_badge()
+    save_current_badge(current_badge, current_score)
+
+    prev_sev = BADGE_SEVERITY.get(previous_badge, 0)
+    curr_sev = BADGE_SEVERITY.get(current_badge, 0)
+
+    if curr_sev > prev_sev and curr_sev >= BADGE_SEVERITY["YELLOW"]:
+        logger.warning(f"WATCH LEVEL ELEVATED: {previous_badge} -> {current_badge} (score: {current_score})")
+        send_alerts(
+            "watch_level_triggered",
+            alert_config=alert_config,
+            previous_badge=previous_badge,
+            current_badge=current_badge,
+            score=f"{current_score:.1f}" if current_score is not None else "N/A",
+        )
+    elif curr_sev < prev_sev:
+        logger.info(f"Watch level de-escalated: {previous_badge} -> {current_badge} (score: {current_score})")
+    else:
+        logger.info(f"Watch level unchanged: {current_badge} (score: {current_score})")
+
+def test_alerts():
+    """Send a test alert through all configured channels to verify the setup."""
+    alert_config = load_alert_config()
+
+    if not alert_config.get("alerts_enabled"):
+        logger.error("Alerts are disabled in alert_config.json — set alerts_enabled: true")
+        return 1
+
+    logger.info("=" * 70)
+    logger.info("ECDO Watch Alert Test")
+    logger.info("=" * 70)
+
+    # Test script_failure alert
+    logger.info("Testing: script_failure alert...")
+    send_alerts("script_failure", "THIS IS A TEST — no actual failure occurred", alert_config)
+
+    # Test watch_level_triggered alert
+    logger.info("Testing: watch_level_triggered alert...")
+    send_alerts(
+        "watch_level_triggered",
+        alert_config=alert_config,
+        previous_badge="GREEN",
+        current_badge="YELLOW",
+        score="58.3",
+    )
+
+    logger.info("=" * 70)
+    logger.info("Test complete. Check your configured channels for messages.")
+    logger.info("=" * 70)
+    return 0
 
 def is_data_healthy():
     """Check if essential data files are fresh (< 24 hours old)."""
@@ -342,7 +451,10 @@ def main():
             send_alerts("script_failure", error_msg, alert_config)
             return 1
 
-        # 3. Check data health
+        # 3. Check watch-level transitions (before freshness check)
+        check_watch_level_transition(alert_config)
+
+        # 4. Check data health
         check_data_freshness()
 
         if not is_data_healthy():
@@ -354,7 +466,7 @@ def main():
             })
             return 1
 
-        # 4. Success
+        # 5. Success
         duration = (utcnow() - start_time).total_seconds()
         logger.info("=" * 70)
         logger.info(f"[OK] ECDO Watch Update SUCCESSFUL ({duration:.1f}s)")
@@ -379,4 +491,7 @@ def main():
         return 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    if "--test-alerts" in sys.argv:
+        sys.exit(test_alerts())
+    else:
+        sys.exit(main())

@@ -30,12 +30,6 @@ function initializeTheme() {
   const savedTheme = getTheme();
   document.documentElement.setAttribute('data-theme', savedTheme);
 
-  // Update dropdown if it exists
-  const themeSelect = document.getElementById('theme-select');
-  if (themeSelect) {
-    themeSelect.value = savedTheme;
-  }
-
   // Inject nav theme toggle if not already present
   const nav = document.querySelector('nav');
   if (nav && !document.getElementById('theme-toggle')) {
