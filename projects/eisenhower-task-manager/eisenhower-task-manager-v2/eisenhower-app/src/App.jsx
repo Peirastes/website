@@ -6,6 +6,24 @@ import { Bar, Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 import { PINModal } from './components/PINModal';
 
+const API_BASE = 'http://localhost:3001/api';
+
+async function apiFetch(path) {
+  const res = await fetch(`${API_BASE}${path}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json();
+}
+
 const EisenhowerTaskManager = () => {
   // PIN Protection
   const [isUnlocked, setIsUnlocked] = useState(() => {
@@ -211,36 +229,61 @@ const EisenhowerTaskManager = () => {
     }
   ];
 
-  // Load data on mount
+  // Load data on mount — try server first, fall back to localStorage
   useEffect(() => {
     const loadData = async () => {
+      let serverAvailable = false;
+
+      // Tasks: server → localStorage → sampleTasks
       try {
-        const tasksData = localStorage.getItem('eisenhower-tasks');
-        if (tasksData) {
-          setTasks(JSON.parse(tasksData));
-        } else {
+        const serverTasks = await apiFetch('/tasks');
+        if (Array.isArray(serverTasks) && serverTasks.length > 0) {
+          setTasks(serverTasks);
+          serverAvailable = true;
+        }
+      } catch (e) { /* server not available */ }
+
+      if (!serverAvailable) {
+        try {
+          const tasksData = localStorage.getItem('eisenhower-tasks');
+          if (tasksData) {
+            setTasks(JSON.parse(tasksData));
+          } else {
+            setTasks(sampleTasks);
+          }
+        } catch (e) {
           setTasks(sampleTasks);
         }
-      } catch (e) {
-        setTasks(sampleTasks);
       }
 
+      // Settings: server → localStorage → defaults
       try {
-        const settingsData = localStorage.getItem('eisenhower-settings');
-        if (settingsData) {
-          setSettings(JSON.parse(settingsData));
+        const serverSettings = await apiFetch('/settings');
+        if (serverSettings) {
+          setSettings(serverSettings);
         }
       } catch (e) {
-        // Use default settings
+        try {
+          const settingsData = localStorage.getItem('eisenhower-settings');
+          if (settingsData) {
+            setSettings(JSON.parse(settingsData));
+          }
+        } catch (e2) { /* use defaults */ }
       }
 
+      // Backup metadata: server → localStorage → defaults
       try {
-        const backupData = localStorage.getItem('eisenhower-backup-metadata');
-        if (backupData) {
-          setBackupMetadata(JSON.parse(backupData));
+        const serverBackup = await apiFetch('/backup-metadata');
+        if (serverBackup) {
+          setBackupMetadata(serverBackup);
         }
       } catch (e) {
-        // Use default backup metadata
+        try {
+          const backupData = localStorage.getItem('eisenhower-backup-metadata');
+          if (backupData) {
+            setBackupMetadata(JSON.parse(backupData));
+          }
+        } catch (e2) { /* use defaults */ }
       }
 
       setIsLoading(false);
@@ -248,36 +291,50 @@ const EisenhowerTaskManager = () => {
     loadData();
   }, []);
 
-  // Save tasks when they change
+  // Save tasks when they change — server + localStorage
   useEffect(() => {
     if (!isLoading) {
-      const saveData = () => {
+      const saveData = async () => {
+        // Always save to localStorage as local cache
         try {
           localStorage.setItem('eisenhower-tasks', JSON.stringify(tasks));
-          
-          const updatedMetadata = {
-            ...backupMetadata,
-            lastAutoSave: new Date().toISOString()
-          };
-          setBackupMetadata(updatedMetadata);
-          localStorage.setItem('eisenhower-backup-metadata', JSON.stringify(updatedMetadata));
         } catch (e) {
-          console.error('Failed to save tasks:', e);
+          console.error('Failed to save tasks to localStorage:', e);
         }
+
+        // Try to save to server
+        try {
+          await apiPost('/tasks', tasks);
+        } catch (e) { /* server not available — localStorage is the backup */ }
+
+        const updatedMetadata = {
+          ...backupMetadata,
+          lastAutoSave: new Date().toISOString()
+        };
+        setBackupMetadata(updatedMetadata);
+        try {
+          localStorage.setItem('eisenhower-backup-metadata', JSON.stringify(updatedMetadata));
+        } catch (e) { /* ignore */ }
+        try {
+          await apiPost('/backup-metadata', updatedMetadata);
+        } catch (e) { /* server not available */ }
       };
       saveData();
     }
   }, [tasks, isLoading]);
 
-  // Save settings when they change
+  // Save settings when they change — server + localStorage
   useEffect(() => {
     if (!isLoading) {
-      const saveSettings = () => {
+      const saveSettings = async () => {
         try {
           localStorage.setItem('eisenhower-settings', JSON.stringify(settings));
         } catch (e) {
-          console.error('Failed to save settings:', e);
+          console.error('Failed to save settings to localStorage:', e);
         }
+        try {
+          await apiPost('/settings', settings);
+        } catch (e) { /* server not available */ }
       };
       saveSettings();
     }
