@@ -397,18 +397,13 @@ const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:
 const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 
 // Domain angles for radial layout (degrees)
-// Skills are mapped to knowledge domains by getRadialDomain(), so agent sectors
-// only contain skills that don't map to a specific knowledge domain (CE tech, PM ops, SA publishing)
+// ALL nodes map to knowledge domains via getRadialDomain() — no agent sectors
 const DOMAIN_ANGLES = {
   foundation: null, // tier 0 nodes spread evenly at center
-  // Knowledge domains — user-specified order:
-  // PHYS→EPI→PED (core teaching/research), TES (methodology), ECDO→ARCH (hypothesis→evidence)
-  // DSL→TF (theoretical frameworks)
-  PHYS: 130, EPI: 160, PED: 190, tes: 220, ECDO: 250, ARCH: 280, DSL: 310, TF: 340,
-  // Quotes near philosophy/pedagogy
-  quotes: 95,
-  // Operational fields — CE near PED/PHYS (builds for both)
-  CE: 15, CD: 30, PM: 45, SA: 60, ai_shared: 75
+  // Knowledge domains — PHYS→EPI→PED (core), TES (methodology),
+  // ECDO→ARCH (research), DSL→TF (frameworks), quotes (reference)
+  PHYS: 120, EPI: 155, PED: 190, tes: 225, ECDO: 260, ARCH: 295, DSL: 330,
+  TF: 5, quotes: 45, ai_shared: 80
 };
 
 const CLUSTER_HUMAN = {
@@ -710,16 +705,37 @@ function computeRadialPositions(nodes, links, width, height) {
   function getRadialDomain(n) {
     // HSK nodes: map skillDomain to knowledge domain
     if (n.type === 'hsk') {
-      const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', DEV:'CE', BIZ:'TF' };
-      return sdMap[n.skillDomain] || n.domain;
+      const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', DEV:'PHYS', BIZ:'TF' };
+      return sdMap[n.skillDomain] || 'EPI';
     }
-    // Only map agents whose skills ARE the knowledge domain
-    // TA agent skills → PED (TA's work IS pedagogy)
-    if ((n.type === 'sop' || n.type === 'skl') && n.owner === 'TA') return 'PED';
-    // RA agent skills → EPI (RA's work IS research methodology)
-    if ((n.type === 'sop' || n.type === 'skl') && n.owner === 'RA') return 'EPI';
-    // CD, CE, PM, SA keep their own sectors — they're operational, serving many domains
-    // Tools: keep in ai_shared (they serve across domains)
+    // ALL agent skills map to knowledge domains — no agent sectors
+    if (n.type === 'sop' || n.type === 'skl') {
+      // TA → Pedagogy (teaching IS pedagogy)
+      if (n.owner === 'TA') return 'PED';
+      // RA → Research & Epistemology (research IS epistemology)
+      if (n.owner === 'RA') return 'EPI';
+      // CE → Physics (most CE work builds physics simulations/tools)
+      //   except pipeline/infra skills → DSL (engineering systems)
+      if (n.owner === 'CE') {
+        const title = (n.title || '').toLowerCase();
+        if (title.includes('simulation') || title.includes('numerical') || title.includes('scientific') || title.includes('physics')) return 'PHYS';
+        return 'DSL'; // engineering/systems work → dynamical systems
+      }
+      // CD → Pedagogy (content creation primarily serves teaching/books)
+      if (n.owner === 'CD') {
+        const title = (n.title || '').toLowerCase();
+        if (title.includes('pedagogy') || title.includes('course') || title.includes('lesson')) return 'PED';
+        if (title.includes('debate') || title.includes('philosophical') || title.includes('voice')) return 'EPI';
+        return 'PED'; // default: content serves pedagogy
+      }
+      // PM → Research & Epistemology (project management serves the research mission)
+      if (n.owner === 'PM') return 'EPI';
+      // SA → Pedagogy (publishing serves the teaching/outreach mission)
+      if (n.owner === 'SA') return 'PED';
+    }
+    // IFC interfaces → EPI (coordination methodology)
+    if (n.type === 'ifc') return 'EPI';
+    // Everything else: use original domain
     return n.domain;
   }
 
@@ -1777,28 +1793,19 @@ function buildToolbar() {
 
 function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
-  const humanDomains = [
-    ['foundation','Foundation'], ['EPI','Research & Epistemology'], ['ECDO','ECDO Theory'], ['TF','Thermofluidic Finance'],
-    ['DSL','Dynamical Systems'], ['PED','Pedagogy & Assessment'], ['ARCH','Archaeoastronomy'], ['PHYS','Physics'], ['tes','TES Concepts'], ['quotes','Quotes']
-  ];
-  const aiDomains = [
-    ['CE','Comp. Engineering'], ['CD','Content & Comms'], ['PM','Project Mgmt'],
-    ['SA','Publishing'], ['ai_shared','Shared Tools']
+  const allDomains = [
+    ['foundation','Foundation'], ['PHYS','Physics'], ['EPI','Research & Epistemology'],
+    ['PED','Pedagogy & Assessment'], ['tes','TES Concepts'],
+    ['ECDO','ECDO Theory'], ['ARCH','Archaeoastronomy'],
+    ['DSL','Dynamical Systems'], ['TF','Thermofluidic Finance'],
+    ['quotes','Quotes'], ['ai_shared','Shared Tools']
   ];
 
   let html = '';
-  if (layerMode !== 'ai') {
-    html += `<div class="filter-heading">Knowledge Domains</div>`;
-    html += humanDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
-      <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
-      <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
-  }
-  if (layerMode !== 'human') {
-    html += `<div class="filter-heading" style="${layerMode!=='ai'?'margin-top:8px':''}">Operational Fields</div>`;
-    html += aiDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
-      <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
-      <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
-  }
+  html += `<div class="filter-heading">Domains</div>`;
+  html += allDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
+    <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
+    <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
   // Ring mode + tier filter buttons (shown when in radial layout)
   if (layout === 'radial') {
     // Ring mode toggle: Tiers (dependency depth) vs Method (TES scientific method stages)
