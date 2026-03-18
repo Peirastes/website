@@ -734,18 +734,30 @@ function computeRadialPositions(nodes, links, width, height) {
   function getRadialDomain(n) {
     // FP nodes: use data-driven domain assignment
     if (n.type === 'fp') return fpDomainMap.get(n.id) || 'EPI';
-    // HSK nodes: map skillDomain to knowledge domain
+    // HSK nodes: skills go in the domain of the PRACTICE, not the subject matter
+    // Teaching physics is a PED skill (pedagogy), not a PHYS skill (physics knowledge)
     if (n.type === 'hsk') {
-      const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', BIZ:'EPI' };
-      // DEV skills: map by specific skill
-      if (n.skillDomain === 'DEV') {
-        const t = (n.title || '').toLowerCase();
-        if (t.includes('physics') || t.includes('simulation') || t.includes('python scientific')) return 'PHYS';
-        if (t.includes('3d') || t.includes('visualization') || t.includes('data viz')) return 'PHYS';
-        if (t.includes('dashboard') || t.includes('monitoring')) return 'TF';
-        return 'ai_shared';
+      const t = (n.title || '').toLowerCase();
+      // PHYS-domain HSKs are teaching/assessment skills → PED
+      if (n.skillDomain === 'PHYS') return 'PED';
+      // PED skills → PED
+      if (n.skillDomain === 'PED') return 'PED';
+      // RES skills → EPI
+      if (n.skillDomain === 'RES') return 'EPI';
+      // ENG skills → DSL
+      if (n.skillDomain === 'ENG') return 'DSL';
+      // BIZ: product strategy → TF, agent orchestration → EPI
+      if (n.skillDomain === 'BIZ') {
+        if (t.includes('agent') || t.includes('orchestrat')) return 'EPI';
+        return 'TF';
       }
-      return sdMap[n.skillDomain] || 'EPI';
+      // DEV skills: map by what they serve
+      if (n.skillDomain === 'DEV') {
+        if (t.includes('simulation') || t.includes('python scientific')) return 'PHYS';
+        if (t.includes('dashboard') || t.includes('monitoring')) return 'TF';
+        return 'ai_shared'; // general dev tools
+      }
+      return 'ai_shared';
     }
     // ALL agent skills map to knowledge domains — no agent sectors
     if (n.type === 'sop' || n.type === 'skl') {
