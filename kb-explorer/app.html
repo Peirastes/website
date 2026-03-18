@@ -616,8 +616,8 @@ function computeRadialPositions(nodes, links, width, height) {
 
   // Large radii — fitAll() will zoom out to show everything,
   // then user zooms in to see detail (semantic zoom handles density)
-  const minRadius = 80;
-  const maxRadius = Math.min(width, height) * 1.4;
+  const minRadius = 120;
+  const maxRadius = Math.min(width, height) * 1.5;
 
   function tierRadius(t) {
     if (t === 0) return minRadius;
@@ -733,7 +733,7 @@ function renderGraph(nodes, links) {
       .attr('fill','#00d4aa').attr('fill-opacity',0.3).attr('font-size',14).attr('font-family','sans-serif');
   }
 
-  // Radial layout: compute positions and draw ring guides
+  // Radial layout: compute positions, draw sector wedges and ring guides
   let radialTiers = null;
   if (layout === 'radial') {
     radialTiers = computeRadialPositions(nodes, links, width, height);
@@ -741,40 +741,82 @@ function renderGraph(nodes, links) {
     const minR = 80, maxR = Math.min(width, height) * 1.4;
 
     const ringGroup = container.append('g').attr('class', 'tier-rings');
-    for (let t = 0; t <= maxTier + 1; t++) {
-      const r = t === 0 ? minR : minR + (t / maxTier) * (maxR - minR);
-      ringGroup.append('circle')
-        .attr('cx', cx).attr('cy', cy).attr('r', r)
-        .attr('fill', 'none')
+
+    // Sector wedges — colored pie slices for each domain
+    const sortedDomains = Object.entries(DOMAIN_ANGLES)
+      .filter(([,a]) => a !== null)
+      .sort((a,b) => a[1] - b[1]);
+    for (let i = 0; i < sortedDomains.length; i++) {
+      const [domain, angleDeg] = sortedDomains[i];
+      const nextAngle = i < sortedDomains.length - 1 ? sortedDomains[i+1][1] : sortedDomains[0][1] + 360;
+      const halfGap = (nextAngle - angleDeg) / 2;
+      const a1 = (angleDeg - halfGap) * Math.PI / 180;
+      const a2 = (angleDeg + halfGap) * Math.PI / 180;
+      const outerR = maxR + 40;
+      // Wedge path from center to outer
+      const arc = d3.arc()
+        .innerRadius(minR * 0.5)
+        .outerRadius(outerR)
+        .startAngle(a1 - Math.PI/2)
+        .endAngle(a2 - Math.PI/2);
+      ringGroup.append('path')
+        .attr('d', arc())
+        .attr('transform', `translate(${cx},${cy})`)
+        .attr('fill', COLORS[domain] || '#333')
+        .attr('fill-opacity', 0.03)
+        .attr('stroke', COLORS[domain] || '#333')
+        .attr('stroke-opacity', 0.08)
+        .attr('stroke-width', 0.5);
+
+      // Radial divider line at sector boundary
+      const divAngle = (angleDeg - halfGap) * Math.PI / 180;
+      ringGroup.append('line')
+        .attr('x1', cx + minR * 0.5 * Math.cos(divAngle))
+        .attr('y1', cy + minR * 0.5 * Math.sin(divAngle))
+        .attr('x2', cx + outerR * Math.cos(divAngle))
+        .attr('y2', cy + outerR * Math.sin(divAngle))
         .attr('stroke', '#1a1e30')
         .attr('stroke-width', 0.5)
-        .attr('stroke-opacity', 0.5);
-      // Tier label
-      const label = t === 0 ? 'Principles' : t === 1 ? 'Axioms' : t === maxTier + 1 ? 'References' : 'Tier ' + t;
-      ringGroup.append('text')
-        .attr('x', cx + r + 4).attr('y', cy - 4)
-        .text(label)
-        .attr('font-size', 8)
-        .attr('fill', '#2a3050')
-        .attr('font-family', 'sans-serif');
-    }
+        .attr('stroke-opacity', 0.4);
 
-    // Domain sector labels along outer ring
-    const labelR = maxR + 20;
-    for (const [domain, angleDeg] of Object.entries(DOMAIN_ANGLES)) {
-      if (angleDeg === null) continue;
+      // Domain name along the sector center line
+      const labelR = maxR + 55;
       const a = angleDeg * Math.PI / 180;
       const name = DOMAIN_NAMES[domain] || domain;
       ringGroup.append('text')
         .attr('x', cx + labelR * Math.cos(a))
         .attr('y', cy + labelR * Math.sin(a))
         .text(name)
-        .attr('font-size', 9)
+        .attr('font-size', 11)
         .attr('fill', COLORS[domain] || '#3a4560')
-        .attr('fill-opacity', 0.5)
+        .attr('fill-opacity', 0.7)
+        .attr('font-weight', 600)
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'middle')
-        .attr('font-family', 'sans-serif');
+        .attr('font-family', "'Segoe UI', system-ui, sans-serif")
+        .attr('transform', `rotate(${angleDeg > 90 && angleDeg < 270 ? angleDeg + 180 : angleDeg}, ${cx + labelR * Math.cos(a)}, ${cy + labelR * Math.sin(a)})`);
+    }
+
+    // Tier ring guides (on top of wedges)
+    for (let t = 0; t <= maxTier + 1; t++) {
+      const r = t === 0 ? minR : minR + (t / maxTier) * (maxR - minR);
+      ringGroup.append('circle')
+        .attr('cx', cx).attr('cy', cy).attr('r', r)
+        .attr('fill', 'none')
+        .attr('stroke', '#2a3050')
+        .attr('stroke-width', t === 0 ? 1 : 0.5)
+        .attr('stroke-opacity', t === 0 ? 0.6 : 0.3)
+        .attr('stroke-dasharray', t === 0 ? null : '4,4');
+      // Tier label at top of ring
+      const label = t === 0 ? 'Principles' : t === 1 ? 'Axioms' : t === maxTier + 1 ? 'References' : 'Tier ' + t;
+      ringGroup.append('text')
+        .attr('x', cx).attr('y', cy - r - 4)
+        .text(label)
+        .attr('font-size', 9)
+        .attr('fill', '#3a4560')
+        .attr('text-anchor', 'middle')
+        .attr('font-family', "'Segoe UI', system-ui, sans-serif")
+        .attr('font-weight', 500);
     }
   }
 
@@ -999,11 +1041,29 @@ function renderGraph(nodes, links) {
     .attr('font-size', d => (d.type==='fp'||d.type==='hsk') ? 10 : (d.type==='da'||d.type==='sop') ? 9 : d.type==='quote' ? 7 : 8)
     .attr('fill', d => nColor(d))
     .attr('fill-opacity', d => (layout === 'radial' || labelVisible(d)) ? 0.9 : 0)
-    .attr('text-anchor','middle')
-    .attr('dy', d => -nRadius(d)-5)
     .attr('pointer-events','none')
     .attr('font-family',"'Segoe UI', system-ui, sans-serif")
-    .attr('font-weight', d => (d.type==='fp'||d.type==='hsk') ? 600 : 400);
+    .attr('font-weight', d => (d.type==='fp'||d.type==='hsk') ? 600 : 400)
+    .each(function(d) {
+      const el = d3.select(this);
+      if (layout === 'radial' && d.x !== undefined) {
+        // Position labels radially outward from center
+        const { width: w, height: h } = graphSize();
+        const dx = d.x - w/2, dy = d.y - h/2;
+        const angle = Math.atan2(dy, dx);
+        const offset = nRadius(d) + 8;
+        // Place label outward from node along the radial direction
+        el.attr('x', d.x + Math.cos(angle) * offset)
+          .attr('y', d.y + Math.sin(angle) * offset)
+          .attr('text-anchor', Math.abs(angle) > Math.PI/2 ? 'end' : 'start')
+          .attr('dominant-baseline', 'middle')
+          .attr('dy', 0);
+      } else {
+        // Force layout: labels above nodes
+        el.attr('text-anchor', 'middle')
+          .attr('dy', -nRadius(d) - 5);
+      }
+    });
 
   if (layout === 'radial') {
     // Radial layout: positions pre-computed, no force simulation
@@ -1016,7 +1076,7 @@ function renderGraph(nodes, links) {
     linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
       .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
     nodeEls.attr('transform',d=>`translate(${d.x},${d.y})`);
-    labelEls.attr('x',d=>d.x).attr('y',d=>d.y-nRadius(d)-4);
+    // Labels already positioned radially in .each() above — no need to reposition
     simulation = null;
   } else {
     // Force — Venn mode uses different cluster positions
