@@ -387,10 +387,10 @@ const COLORS = {
   CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
 const DOMAIN_NAMES = {
-  foundation:'Foundation', EPI:'Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
-  DSL:'Dynamical Systems', PED:'Pedagogy', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
-  ai_shared:'Shared', human_skills:'Human Skills',
-  CE:'CE Agent', CD:'CD Agent', PM:'PM Agent', RA:'RA Agent', SA:'SA Agent', TA:'TA Agent'
+  foundation:'Foundation', EPI:'Research & Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
+  DSL:'Dynamical Systems', PED:'Pedagogy & Assessment', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
+  ai_shared:'Shared Tools', human_skills:'Human Skills',
+  CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
 };
 const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
   Active:1, Draft:0.6, Deprecated:0.25, Proposed:0.7 };
@@ -1772,24 +1772,23 @@ function buildToolbar() {
 function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
   const humanDomains = [
-    ['foundation','Foundation'], ['EPI','Epistemology'], ['ECDO','ECDO Theory'], ['TF','Thermofluidic Finance'],
-    ['DSL','Dynamical Systems'], ['PED','Pedagogy'], ['ARCH','Archaeoastronomy'], ['PHYS','Physics'], ['tes','TES Concepts'], ['quotes','Quotes'],
-    ['human_skills','My Skills']
+    ['foundation','Foundation'], ['EPI','Research & Epistemology'], ['ECDO','ECDO Theory'], ['TF','Thermofluidic Finance'],
+    ['DSL','Dynamical Systems'], ['PED','Pedagogy & Assessment'], ['ARCH','Archaeoastronomy'], ['PHYS','Physics'], ['tes','TES Concepts'], ['quotes','Quotes']
   ];
   const aiDomains = [
-    ['CE','CE Agent'], ['CD','CD Agent'], ['PM','PM Agent'],
-    ['RA','RA Agent'], ['SA','SA Agent'], ['TA','TA Agent'], ['ai_shared','Shared']
+    ['CE','Comp. Engineering'], ['CD','Content & Comms'], ['PM','Project Mgmt'],
+    ['SA','Publishing'], ['ai_shared','Shared Tools']
   ];
 
   let html = '';
   if (layerMode !== 'ai') {
-    html += `<div class="filter-heading">Human</div>`;
+    html += `<div class="filter-heading">Knowledge Domains</div>`;
     html += humanDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
       <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
       <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
   }
   if (layerMode !== 'human') {
-    html += `<div class="filter-heading" style="${layerMode!=='ai'?'margin-top:8px':''}">AI</div>`;
+    html += `<div class="filter-heading" style="${layerMode!=='ai'?'margin-top:8px':''}">Operational Fields</div>`;
     html += aiDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
       <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
       <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
