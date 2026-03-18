@@ -614,8 +614,10 @@ function computeRadialPositions(nodes, links, width, height) {
   const tiers = computeTiers(nodes, links);
   const maxTier = Math.max(...tiers.values(), 1);
 
-  const minRadius = 40;
-  const maxRadius = Math.min(width, height) * 0.42;
+  // Large radii — fitAll() will zoom out to show everything,
+  // then user zooms in to see detail (semantic zoom handles density)
+  const minRadius = 80;
+  const maxRadius = Math.min(width, height) * 1.4;
 
   function tierRadius(t) {
     if (t === 0) return minRadius;
@@ -649,8 +651,8 @@ function computeRadialPositions(nodes, links, width, height) {
       baseAngle = idx >= 0 ? (360 / Math.max(tier0Nodes.length, 1)) * idx : 0;
     }
 
-    // Spread nodes within same domain+tier group
-    const spreadAngle = Math.min(25, 360 / (maxTier + 2));
+    // Spread nodes within same domain+tier group — generous spacing
+    const spreadAngle = Math.min(40, 360 / (maxTier + 2));
     const angleOffset = groupSize > 1
       ? (indexInGroup - (groupSize - 1) / 2) * (spreadAngle / Math.max(groupSize - 1, 1))
       : 0;
@@ -733,7 +735,7 @@ function renderGraph(nodes, links) {
   if (layout === 'radial') {
     radialTiers = computeRadialPositions(nodes, links, width, height);
     const maxTier = Math.max(...radialTiers.values(), 1);
-    const minR = 40, maxR = Math.min(width, height) * 0.42;
+    const minR = 80, maxR = Math.min(width, height) * 1.4;
 
     const ringGroup = container.append('g').attr('class', 'tier-rings');
     for (let t = 0; t <= maxTier + 1; t++) {
@@ -773,17 +775,76 @@ function renderGraph(nodes, links) {
     }
   }
 
-  // Zoom — set up once, select container dynamically to survive re-renders
+  // Zoom — set up once, with semantic zoom (show/hide by importance at different zoom levels)
   if (!zoomBehavior) {
-    zoomBehavior = d3.zoom().scaleExtent([0.15,5])
+    zoomBehavior = d3.zoom().scaleExtent([0.05, 8])
       .on('zoom', e => {
         svg.select('.graph-container').attr('transform', e.transform);
+        const k = e.transform.k;
+
+        // Semantic zoom: node visibility based on importance + zoom level
+        if (nodeEls) {
+          nodeEls.style('opacity', d => {
+            if (focusedIds.size > 0) return focusedIds.has(d.id) ? 1 : 0.06;
+            // Always show: FPs, DAs, high-fanout
+            if (d.type === 'fp' || d.type === 'da') return 1;
+            if (d.fanOut >= 3) return 1;
+            // Tier 2: show at k > 0.4
+            if (d.type === 'sop' || d.type === 'hsk' || d.type === 'claim') {
+              if (k < 0.4) return 0.05;
+              if (k < 0.7) return 0.3;
+              return 1;
+            }
+            // Tier 3: skills, tools — show at k > 0.7
+            if (d.type === 'skl' || d.type === 'tool') {
+              if (k < 0.7) return 0.05;
+              if (k < 1.0) return 0.3;
+              return 1;
+            }
+            // TES, quotes, interfaces — show at k > 1.0
+            if (k < 1.0) return 0.03;
+            if (k < 1.5) return 0.3;
+            return 0.7;
+          });
+        }
+
+        // Semantic zoom: labels
         if (labelEls && window._labelVisible) {
-          const k = e.transform.k;
           labelEls.attr('fill-opacity', d => {
             if (focusedIds.size > 0) return focusedIds.has(d.id) ? 1 : 0.04;
-            if (window._labelVisible(d)) return 0.9;
-            return k > 1.2 ? Math.min((k - 1.2) * 1.5, 0.75) : 0;
+            // FPs always labeled
+            if (d.type === 'fp') return 0.9;
+            // DAs at k > 0.3
+            if (d.type === 'da') return k > 0.3 ? 0.9 : 0;
+            // SOPs, HSKs at k > 0.5
+            if (d.type === 'sop' || d.type === 'hsk') return k > 0.5 ? 0.9 : 0;
+            // High-fanout claims at k > 0.5
+            if (d.fanOut >= 3) return k > 0.5 ? 0.8 : 0;
+            // Regular claims at k > 0.8
+            if (d.type === 'claim') return k > 0.8 ? 0.7 : 0;
+            // Skills at k > 1.0
+            if (d.type === 'skl' || d.type === 'tool') return k > 1.0 ? 0.7 : 0;
+            // Everything else at k > 1.5
+            return k > 1.5 ? 0.6 : 0;
+          });
+        }
+
+        // Links also fade with nodes
+        if (linkEls) {
+          linkEls.attr('stroke-opacity', d => {
+            if (focusedIds.size > 0) {
+              const s=typeof d.source==='string'?d.source:d.source.id;
+              const t=typeof d.target==='string'?d.target:d.target.id;
+              return (focusedIds.has(s)&&focusedIds.has(t)) ? 0.8 : 0.02;
+            }
+            // Base opacity by type
+            let base = d.type==='quote-resonance'?0.12:d.type==='tes-reference'?0.3:
+              d.type==='requires-knowledge'?0.4:d.type==='delegates-to'?0.35:
+              d.type==='ai-interface'?0.35:0.5;
+            // Fade links to hidden nodes at low zoom
+            if (k < 0.5) base *= 0.3;
+            else if (k < 0.8) base *= 0.6;
+            return base;
           });
         }
       });
