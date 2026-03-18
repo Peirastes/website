@@ -702,8 +702,38 @@ function computeRadialPositions(nodes, links, width, height) {
     return tierRadii.get(t) || minRadius;
   }
 
-  // Map skills to their KNOWLEDGE domain (not owner) for sector placement
+  // For FPs: compute which domain uses each FP most (data-driven sector assignment)
+  const fpDomainMap = new Map();
+  for (const n of nodes) {
+    if (n.type !== 'fp') continue;
+    // Count which radial domains reference this FP via requires-knowledge or dependency
+    const domainCounts = {};
+    for (const l of links) {
+      if (l.type !== 'requires-knowledge' && l.type !== 'dependency') continue;
+      const srcId = typeof l.source === 'string' ? l.source : l.source.id;
+      const tgtId = typeof l.target === 'string' ? l.target : l.target.id;
+      if (srcId !== n.id) continue;
+      const tgtNode = nodes.find(nn => nn.id === tgtId);
+      if (!tgtNode) continue;
+      // Get the target's domain (not radial domain — use original to avoid recursion)
+      const d = tgtNode.domain;
+      if (d && d !== 'foundation' && d !== 'unknown') {
+        domainCounts[d] = (domainCounts[d] || 0) + 1;
+      }
+    }
+    // Pick the domain with most references
+    let bestDomain = 'EPI'; // default: most FPs are epistemological
+    let bestCount = 0;
+    for (const [d, c] of Object.entries(domainCounts)) {
+      if (c > bestCount) { bestCount = c; bestDomain = d; }
+    }
+    fpDomainMap.set(n.id, bestDomain);
+  }
+
+  // Map ALL nodes to knowledge domains for sector placement
   function getRadialDomain(n) {
+    // FP nodes: use data-driven domain assignment
+    if (n.type === 'fp') return fpDomainMap.get(n.id) || 'EPI';
     // HSK nodes: map skillDomain to knowledge domain
     if (n.type === 'hsk') {
       const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', BIZ:'EPI' };
