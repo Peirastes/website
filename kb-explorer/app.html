@@ -684,16 +684,18 @@ function computeRadialPositions(nodes, links, width, height) {
   }
 
   // Compute cumulative radii: each ring's space is baseSpacing + extra for node density
+  // Capped so no single ring creates a disproportionate gap
   const tierRadii = new Map();
   tierRadii.set(0, minRadius);
   const sortedTiers = [...new Set(tiers.values())].sort((a,b) => a - b);
+  const maxSpacing = 120; // cap so dense outermost ring doesn't fly away
+  const minSpacing = 30;  // even 1-node tiers get minimal gap
   for (let i = 1; i < sortedTiers.length; i++) {
     const t = sortedTiers[i];
     const prevT = sortedTiers[i-1];
     const prevR = tierRadii.get(prevT);
     const count = tierCounts.get(t) || 1;
-    // More nodes → more space, but use sqrt to moderate
-    const space = baseSpacing + Math.sqrt(count) * 12;
+    const space = Math.max(minSpacing, Math.min(maxSpacing, baseSpacing + Math.sqrt(count) * 8));
     tierRadii.set(t, prevR + space);
   }
 
