@@ -397,11 +397,16 @@ const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:
 const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 
 // Domain angles for radial layout (degrees)
+// Skills are mapped to knowledge domains by getRadialDomain(), so agent sectors
+// only contain skills that don't map to a specific knowledge domain (CE tech, PM ops, SA publishing)
 const DOMAIN_ANGLES = {
   foundation: null, // tier 0 nodes spread evenly at center
-  PHYS: 170, EPI: 200, ECDO: 230, TF: 260, DSL: 290, PED: 320, ARCH: 350,
-  human_skills: 140, tes: 110, quotes: 80,
-  CE: 10, CD: 35, PM: 55, ai_shared: 70, RA: 90, SA: 120, TA: 150
+  // Knowledge domains (the primary sectors — skills AND knowledge live here together)
+  PHYS: 160, EPI: 200, ECDO: 240, TF: 270, DSL: 300, PED: 330, ARCH: 360,
+  // Reference material
+  tes: 110, quotes: 80,
+  // Operational domains (skills without a clear knowledge domain)
+  CE: 15, PM: 40, SA: 55, ai_shared: 70
 };
 
 const CLUSTER_HUMAN = {
@@ -699,11 +704,35 @@ function computeRadialPositions(nodes, links, width, height) {
     return tierRadii.get(t) || minRadius;
   }
 
-  // Group nodes by (tier, domain)
+  // Map skills to their KNOWLEDGE domain (not owner) for sector placement
+  function getRadialDomain(n) {
+    // HSK nodes: map skillDomain to knowledge domain
+    if (n.type === 'hsk') {
+      const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', DEV:'CE', BIZ:'TF' };
+      return sdMap[n.skillDomain] || n.domain;
+    }
+    // TA agent skills → PED (they do pedagogy work)
+    if ((n.type === 'sop' || n.type === 'skl') && n.owner === 'TA') return 'PED';
+    // RA agent skills → EPI (they do research/epistemology)
+    if ((n.type === 'sop' || n.type === 'skl') && n.owner === 'RA') return 'EPI';
+    // CD agent skills → EPI (content creation serves the knowledge mission)
+    if ((n.type === 'sop' || n.type === 'skl') && n.owner === 'CD') return 'EPI';
+    // Tools: distribute by primary contributing agent's domain
+    if (n.type === 'tool') {
+      const contrib = (n.contributors || '').toUpperCase();
+      if (contrib.includes('TA')) return 'PED';
+      if (contrib.includes('RA')) return 'EPI';
+    }
+    // CE, PM, SA, IFC, and generic tools keep their original domain
+    return n.domain;
+  }
+
+  // Group nodes by (tier, radial domain)
   const groups = new Map();
   for (const n of nodes) {
     const t = tiers.get(n.id) || 0;
-    const key = `${t}:${n.domain}`;
+    const rd = getRadialDomain(n);
+    const key = `${t}:${rd}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(n);
   }
@@ -714,12 +743,13 @@ function computeRadialPositions(nodes, links, width, height) {
   for (const n of nodes) {
     const t = tiers.get(n.id) || 0;
     const r = tierRadius(t);
-    const key = `${t}:${n.domain}`;
+    const rd = getRadialDomain(n);
+    const key = `${t}:${rd}`;
     const group = groups.get(key);
     const indexInGroup = group.indexOf(n);
     const groupSize = group.length;
 
-    let baseAngle = DOMAIN_ANGLES[n.domain];
+    let baseAngle = DOMAIN_ANGLES[rd];
     if (baseAngle === null || baseAngle === undefined) {
       // Foundation tier 0: spread evenly around center
       const idx = tier0Nodes.indexOf(n);
