@@ -214,6 +214,7 @@
     .badge-speculative { background: #f8717118; color: var(--accent-red); }
     .badge-layer-human { background: #8090b015; color: #8090b0; border: 1px solid #8090b030; }
     .badge-layer-ai { background: #00d4aa15; color: #00d4aa; border: 1px solid #00d4aa30; }
+    .badge-layer-shared { background: #b090d015; color: #b090d0; border: 1px solid #b090d030; }
     .badge-active { background: #00d4aa20; color: #00d4aa; }
     .badge-draft { background: #77aaff20; color: #77aaff; }
 
@@ -299,52 +300,81 @@
     .lg-shape.hexagon { background: #00d4aa; clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); }
     .lg-shape.pentagon { background: #77aaff; clip-path: polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%); }
     .lg-shape.tool-sq { background: #7a8a9a; border-radius: 3px; }
+    .lg-shape.octagon { background: #e8a040; clip-path: polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%); }
 
     @keyframes pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 0.5; } }
     .pulse { animation: pulse 2.5s ease-in-out infinite; }
 
     .p-placeholder { padding: 40px 16px; text-align: center; color: var(--text-muted); font-size: 12px; }
+
+    /* --- Query Panel ------------------------------------------------------ */
+    #query-panel {
+      position: fixed; top: 40px; left: 0; width: 170px; bottom: 26px;
+      background: var(--bg-toolbar); border-right: 1px solid var(--border);
+      padding: 12px 14px; z-index: 90; display: none;
+      flex-direction: column; gap: 4px; backdrop-filter: blur(8px); overflow-y: auto;
+    }
+    .query-btn {
+      display: block; width: 100%; text-align: left;
+      background: var(--bg-input); border: 1px solid #2a3050; color: var(--text-dim);
+      padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+      margin-bottom: 4px; transition: all 0.15s;
+    }
+    .query-btn:hover { background: #252a40; color: var(--text); }
+    .query-result {
+      padding: 8px 10px; margin-bottom: 6px; border-left: 2px solid #2a3050;
+      cursor: pointer; font-size: 11px; transition: background 0.15s;
+    }
+    .query-result:hover { background: #1a1e30; }
   </style>
 </head>
 <body>
 
 <div id="toolbar"></div>
 <div id="filter-panel"></div>
+<div id="query-panel"></div>
 <svg id="graph"></svg>
 <div id="panel"><div class="p-placeholder">Click a node to inspect</div></div>
 <div id="stats"></div>
 <div id="tooltip"></div>
 
 <div id="legend">
+  <div style="font-size:8px;color:#3a4560;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Human KB</div>
   <div class="lg-row"><span class="lg-shape diamond"></span> First Principle</div>
   <div class="lg-row"><span class="lg-shape square"></span> Domain Axiom</div>
   <div class="lg-row"><span class="lg-shape circle"></span> Claim</div>
   <div class="lg-row"><span class="lg-shape tri"></span> TES Concept</div>
   <div class="lg-row"><span class="lg-shape ring"></span> Quote</div>
+  <div class="lg-row"><span class="lg-shape octagon"></span> Human Skill</div>
   <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;font-size:8px;color:#3a4560;text-transform:uppercase;letter-spacing:1px">AI KB</div>
-  <div class="lg-row"><span class="lg-shape diamond" style="background:#90a8c0"></span> Agent Principle</div>
   <div class="lg-row"><span class="lg-shape hexagon"></span> SOP</div>
   <div class="lg-row"><span class="lg-shape pentagon"></span> Skill</div>
   <div class="lg-row"><span class="lg-shape tool-sq"></span> Tool</div>
+  <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;">
+    <div class="lg-group" style="font-size:8px;color:#3a4560;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Edges</div>
+    <div style="font-size:8px">Solid = dependency</div>
+    <div style="font-size:8px">Dashed = K&rarr;S bridge</div>
+  </div>
   <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;">
     <div>Solid = Established</div>
     <div>Pulsing = Hypothesized</div>
     <div>Faint = Speculative</div>
   </div>
-  <div style="margin-top:3px;color:#2a3050">Keys: 1/2 mode &middot; 3/4/5 layer &middot; F fit &middot; Esc close</div>
+  <div style="margin-top:3px;color:#2a3050">Keys: 1/2/Q mode &middot; 3/4/5/V layer &middot; F fit &middot; Esc close</div>
 </div>
 <script>
 // --- Constants ----------------------------------------------------------------
 const COLORS = {
   foundation:'#8090b0', EPI:'#6ea8fe', ECDO:'#e07050', TF:'#50c878',
   DSL:'#c084fc', PED:'#fbbf24', ARCH:'#f87171', tes:'#607080', quotes:'#a08850', unknown:'#555',
-  ai_foundation:'#90a8c0', ai_shared:'#7a8a9a',
+  ai_shared:'#7a8a9a', human_skills:'#e8a040',
   CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
 const DOMAIN_NAMES = {
   foundation:'Foundation', EPI:'Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
   DSL:'Dynamical Systems', PED:'Pedagogy', ARCH:'Archaeoastronomy', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
-  ai_foundation:'Agent Principles', ai_shared:'Shared', CE:'CE Agent', CD:'CD Agent', PM:'PM Agent', RA:'RA Agent', SA:'SA Agent', TA:'TA Agent'
+  ai_shared:'Shared', human_skills:'Human Skills',
+  CE:'CE Agent', CD:'CD Agent', PM:'PM Agent', RA:'RA Agent', SA:'SA Agent', TA:'TA Agent'
 };
 const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
   Active:1, Draft:0.6, Deprecated:0.25, Proposed:0.7 };
@@ -353,17 +383,17 @@ const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 const CLUSTER_HUMAN = {
   foundation:{x:0,y:-120}, EPI:{x:-160,y:-50}, ECDO:{x:160,y:-50},
   TF:{x:-120,y:80}, DSL:{x:-30,y:120}, PED:{x:120,y:80}, ARCH:{x:180,y:30},
-  tes:{x:0,y:0}, quotes:{x:0,y:200}
+  tes:{x:0,y:0}, quotes:{x:0,y:200}, human_skills:{x:0,y:250}
 };
 const CLUSTER_AI = {
-  ai_foundation:{x:0,y:-120}, ai_shared:{x:0,y:0},
+  ai_shared:{x:0,y:0},
   CE:{x:-160,y:-50}, CD:{x:160,y:-50}, PM:{x:0,y:-80},
   RA:{x:-120,y:80}, SA:{x:120,y:80}, TA:{x:0,y:120}
 };
 
 function getClusterPos(d) {
   const dom = d.domain;
-  if (layerMode === 'both') {
+  if (layerMode === 'both' || layerMode === 'venn') {
     if (CLUSTER_HUMAN[dom]) return { x: CLUSTER_HUMAN[dom].x - 200, y: CLUSTER_HUMAN[dom].y };
     if (CLUSTER_AI[dom]) return { x: CLUSTER_AI[dom].x + 200, y: CLUSTER_AI[dom].y };
     return { x: 0, y: 0 };
@@ -375,9 +405,9 @@ function nColor(n) { return COLORS[n.domain] || COLORS.unknown; }
 function nOpacity(n) {
   if (n.type==='fp') return 1; if (n.type==='da') return 0.95;
   if (n.type==='tes') return 0.6; if (n.type==='quote') return 0.4;
-  if (n.type==='ap') return 1.0;
   if (n.type==='tool') return 0.85;
   if (n.type==='ifc') return 0.7;
+  if (n.type==='hsk') return PROFICIENCY_OP[n.proficiency] || STATUS_OP[n.status] || 0.8;
   if (n.type==='sop') return STATUS_OP[n.status] || 0.8;
   if (n.type==='skl') return PROFICIENCY_OP[n.proficiency] || 0.5;
   return STATUS_OP[n.status] || 0.5;
@@ -387,7 +417,7 @@ function nRadius(n) {
   if (n.type==='quote') return 2.5;
   if (n.type==='fp') return 6 + Math.sqrt(n.fanOut)*2.5;
   if (n.type==='da') return 5 + Math.sqrt(n.fanOut)*2;
-  if (n.type==='ap') return 6 + Math.sqrt(n.fanOut)*2.5;
+  if (n.type==='hsk') return 5 + Math.sqrt(n.fanOut)*2.5;
   if (n.type==='sop') return 6 + Math.sqrt(n.fanOut)*2;
   if (n.type==='skl') return 4 + Math.sqrt(n.fanOut)*2;
   if (n.type==='tool') return 4 + Math.sqrt(n.fanOut)*2;
@@ -411,6 +441,14 @@ function pentPath(r) {
   }
   return `M${pts.join('L')}Z`;
 }
+function octPath(r) {
+  const pts = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI/4)*i - Math.PI/8;
+    pts.push(`${r*Math.cos(a)},${r*Math.sin(a)}`);
+  }
+  return `M${pts.join('L')}Z`;
+}
 
 // --- State --------------------------------------------------------------------
 let mode = 'survey';
@@ -419,6 +457,8 @@ let focusedIds = new Set();
 let simulation, nodeEls, linkEls, labelEls, zoomBehavior;
 let graphData;
 let quotesByNode = new Map();
+let pendingQuery = null;
+let vennCircles = null;
 
 // --- ID Rename System ---------------------------------------------------------
 const idRenames = JSON.parse(localStorage.getItem('kb-id-renames') || '{}');
@@ -439,8 +479,12 @@ function saveRename(originalId, newName) {
 // --- Visible Data Filter ------------------------------------------------------
 function getVisibleData() {
   let vn = graphData.nodes;
-  if (layerMode === 'human') vn = vn.filter(n => n.layer === 'human');
-  else if (layerMode === 'ai') vn = vn.filter(n => n.layer === 'ai');
+  if (layerMode === 'human') vn = vn.filter(n => n.layer === 'human' || n.layer === 'shared');
+  else if (layerMode === 'ai') vn = vn.filter(n => n.layer === 'ai' || n.layer === 'shared');
+  else if (layerMode === 'venn') {
+    // Venn mode shows all nodes
+    vn = graphData.nodes;
+  }
   const ids = new Set(vn.map(n => n.id));
   const vl = graphData.links.filter(l => {
     const s = typeof l.source === 'string' ? l.source : l.source.id;
@@ -480,13 +524,15 @@ async function init() {
 
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
-    if (e.key === 'Escape') { closePanel(); clearFocus(); }
+    if (e.key === 'Escape') { closePanel(); clearFocus(); pendingQuery = null; }
     if (e.key === 'f' || e.key === 'F') fitAll();
     if (e.key === '1') setMode('survey');
     if (e.key === '2') setMode('focus');
+    if (e.key === 'q' || e.key === 'Q') setMode('query');
     if (e.key === '3') setLayer('human');
     if (e.key === '4') setLayer('both');
     if (e.key === '5') setLayer('ai');
+    if (e.key === 'v' || e.key === 'V') setLayer('venn');
   });
 }
 
@@ -510,8 +556,27 @@ function renderGraph(nodes, links) {
     .attr('id','arr-ai').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
     .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
     .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#2a5a50');
+  defs.append('marker')
+    .attr('id','arr-kb').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
+    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+    .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#605020');
 
   const container = svg.append('g');
+
+  // Venn mode background circles
+  const cx = width/2, cy = height/2;
+  if (layerMode === 'venn') {
+    container.insert('circle', ':first-child')
+      .attr('cx', cx+120).attr('cy', cy).attr('r', 280)
+      .attr('fill','none').attr('stroke','#00d4aa').attr('stroke-width',1).attr('stroke-opacity',0.15);
+    container.insert('circle', ':first-child')
+      .attr('cx', cx-120).attr('cy', cy).attr('r', 280)
+      .attr('fill','none').attr('stroke','#8090b0').attr('stroke-width',1).attr('stroke-opacity',0.15);
+    container.append('text').attr('x', cx-280).attr('y', cy-260).text('Human')
+      .attr('fill','#8090b0').attr('fill-opacity',0.3).attr('font-size',14).attr('font-family','sans-serif');
+    container.append('text').attr('x', cx+220).attr('y', cy-260).text('AI')
+      .attr('fill','#00d4aa').attr('fill-opacity',0.3).attr('font-size',14).attr('font-family','sans-serif');
+  }
 
   // Zoom
   zoomBehavior = d3.zoom().scaleExtent([0.15,5])
@@ -529,7 +594,7 @@ function renderGraph(nodes, links) {
   svg.call(zoomBehavior);
 
   svg.on('click', e => {
-    if (e.target === svg.node()) { closePanel(); clearFocus(); }
+    if (e.target === svg.node()) { closePanel(); clearFocus(); pendingQuery = null; }
   });
 
   // Links
@@ -540,11 +605,15 @@ function renderGraph(nodes, links) {
       if (d.type==='ai-dependency') return '#1a4a40';
       if (d.type==='ai-supports') return '#2a4a50';
       if (d.type==='ai-interface') return '#3a3a50';
+      if (d.type==='requires-knowledge') return '#605020';
+      if (d.type==='delegates-to') return '#806020';
       return '#3a4560';
     })
     .attr('stroke-width', d => {
       if (d.type==='tes-reference' || d.type==='quote-resonance') return 0.5;
       if (d.type==='ai-interface') return 0.5;
+      if (d.type==='requires-knowledge') return 0.8;
+      if (d.type==='delegates-to') return 1;
       return 1;
     })
     .attr('stroke-opacity', d => {
@@ -553,11 +622,19 @@ function renderGraph(nodes, links) {
       if (d.type==='ai-dependency') return 0.5;
       if (d.type==='ai-supports') return 0.5;
       if (d.type==='ai-interface') return 0.35;
+      if (d.type==='requires-knowledge') return 0.4;
+      if (d.type==='delegates-to') return 0.35;
       return 0.5;
+    })
+    .attr('stroke-dasharray', d => {
+      if (d.type==='requires-knowledge') return '4,3';
+      if (d.type==='delegates-to') return '6,4';
+      return null;
     })
     .attr('marker-end', d => {
       if (d.type==='dependency') return 'url(#arr)';
       if (d.type==='ai-dependency' || d.type==='ai-supports') return 'url(#arr-ai)';
+      if (d.type==='requires-knowledge' || d.type==='delegates-to') return 'url(#arr-kb)';
       return null;
     });
 
@@ -569,7 +646,15 @@ function renderGraph(nodes, links) {
       .on('drag', (e,d) => { d.fx=e.x; d.fy=e.y; })
       .on('end', (e,d) => { if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; })
     )
-    .on('click', (e,d) => { e.stopPropagation(); if(mode==='focus') setFocus(d); showPanel(d); })
+    .on('click', (e,d) => {
+      e.stopPropagation();
+      if (pendingQuery) {
+        handlePendingQueryClick(d);
+        return;
+      }
+      if(mode==='focus') setFocus(d);
+      showPanel(d);
+    })
     .on('mouseenter', (e,d) => {
       showTooltip(d,e);
       labelEls.filter(ld => ld.id === d.id).attr('fill-opacity', 0.9);
@@ -583,7 +668,7 @@ function renderGraph(nodes, links) {
 
   nodeEls.each(function(d) {
     const g = d3.select(this); const r = nRadius(d);
-    if (d.type==='fp' || d.type==='ap') {
+    if (d.type==='fp') {
       g.append('path').attr('d',`M0,${-r} L${r},0 L0,${r} L${-r},0 Z`)
         .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
     } else if (d.type==='da') {
@@ -597,6 +682,9 @@ function renderGraph(nodes, links) {
         .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
     } else if (d.type==='skl') {
       g.append('path').attr('d', pentPath(r))
+        .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
+    } else if (d.type==='hsk') {
+      g.append('path').attr('d', octPath(r))
         .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
     } else if (d.type==='ifc') {
       const tr = r;
@@ -618,12 +706,12 @@ function renderGraph(nodes, links) {
   function labelText(d) {
     if (d.type==='quote') return d.author || d.id;
     const name = d.title || d.concept || d.id;
-    const max = (d.type==='fp'||d.type==='ap') ? 22 : (d.type==='da'||d.type==='sop') ? 18 : 16;
+    const max = (d.type==='fp'||d.type==='hsk') ? 22 : (d.type==='da'||d.type==='sop') ? 18 : 16;
     return name.length > max ? name.slice(0, max-1) + '\u2026' : name;
   }
   function labelVisible(d) {
     if (d.type==='tes' || d.type==='quote' || d.type==='ifc') return false;
-    if (d.type==='fp' || d.type==='da' || d.type==='ap' || d.type==='sop') return true;
+    if (d.type==='fp' || d.type==='da' || d.type==='sop' || d.type==='hsk') return true;
     return d.fanOut >= 2;
   }
   // Expose for hover/focus use outside renderGraph
@@ -632,17 +720,23 @@ function renderGraph(nodes, links) {
   labelEls = container.append('g').selectAll('text')
     .data(nodes.filter(d => d.type!=='tes' && d.type!=='ifc')).join('text')
     .text(d => labelText(d))
-    .attr('font-size', d => (d.type==='fp'||d.type==='ap') ? 10 : (d.type==='da'||d.type==='sop') ? 9 : d.type==='quote' ? 7 : 8)
+    .attr('font-size', d => (d.type==='fp'||d.type==='hsk') ? 10 : (d.type==='da'||d.type==='sop') ? 9 : d.type==='quote' ? 7 : 8)
     .attr('fill', d => nColor(d))
     .attr('fill-opacity', d => labelVisible(d) ? 0.9 : 0)
     .attr('text-anchor','middle')
     .attr('dy', d => -nRadius(d)-5)
     .attr('pointer-events','none')
     .attr('font-family',"'Segoe UI', system-ui, sans-serif")
-    .attr('font-weight', d => (d.type==='fp'||d.type==='ap') ? 600 : 400);
+    .attr('font-weight', d => (d.type==='fp'||d.type==='hsk') ? 600 : 400);
 
-  // Force
-  const cx = width/2, cy = height/2;
+  // Force — Venn mode uses different cluster positions
+  let clusterFn;
+  if (layerMode === 'venn') {
+    clusterFn = getVennClusterPos;
+  } else {
+    clusterFn = getClusterPos;
+  }
+
   simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d=>d.id)
       .distance(d => {
@@ -650,6 +744,8 @@ function renderGraph(nodes, links) {
         if (d.type==='tes-reference') return 80;
         if (d.type==='ai-supports') return 40;
         if (d.type==='ai-interface') return 70;
+        if (d.type==='requires-knowledge') return 60;
+        if (d.type==='delegates-to') return 50;
         return 50;
       })
       .strength(d => {
@@ -657,6 +753,8 @@ function renderGraph(nodes, links) {
         if (d.type==='tes-reference') return 0.1;
         if (d.type==='ai-supports') return 0.4;
         if (d.type==='ai-interface') return 0.15;
+        if (d.type==='requires-knowledge') return 0.2;
+        if (d.type==='delegates-to') return 0.25;
         return 0.3;
       }))
     .force('charge', d3.forceManyBody().strength(d => {
@@ -665,8 +763,8 @@ function renderGraph(nodes, links) {
       return -120 - d.fanOut*20;
     }))
     .force('center', d3.forceCenter(cx,cy).strength(0.05))
-    .force('cx', d3.forceX(d => cx + getClusterPos(d).x).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
-    .force('cy', d3.forceY(d => cy + getClusterPos(d).y).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
+    .force('cx', d3.forceX(d => cx + clusterFn(d).x).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
+    .force('cy', d3.forceY(d => cy + clusterFn(d).y).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
     .force('collide', d3.forceCollide().radius(d => {
       if (d.type==='quote') return 3;
       if (d.type==='tes' || d.type==='ifc') return 5;
@@ -678,6 +776,57 @@ function renderGraph(nodes, links) {
       nodeEls.attr('transform',d=>`translate(${d.x},${d.y})`);
       labelEls.attr('x',d=>d.x).attr('y',d=>d.y-nRadius(d)-4);
     });
+}
+
+// --- Venn Cluster Positions ---------------------------------------------------
+function getVennClusterPos(d) {
+  // Classify for Venn: human-only, ai-only, shared
+  const vennCat = getVennCategory(d);
+  if (vennCat === 'human') return { x: -250, y: (CLUSTER_HUMAN[d.domain]||{y:0}).y };
+  if (vennCat === 'ai') return { x: 250, y: (CLUSTER_AI[d.domain]||{y:0}).y };
+  return { x: 0, y: 0 }; // shared — center
+}
+
+function getVennCategory(d) {
+  if (d.layer === 'shared') return 'shared';
+  if (d.layer === 'human' && d.type !== 'hsk') return 'human';
+  if (d.layer === 'ai') return 'ai';
+  // HSK nodes are human but check if they have cross-boundary edges
+  if (d.type === 'hsk') {
+    const hasKB = graphData.links.some(l => {
+      const lt = l.type;
+      if (lt !== 'requires-knowledge' && lt !== 'delegates-to') return false;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      const t = typeof l.target==='string'?l.target:l.target.id;
+      return s === d.id || t === d.id;
+    });
+    return hasKB ? 'shared' : 'human';
+  }
+  // Check if knowledge node is referenced by both layers
+  if (d.layer === 'human') {
+    const refByAI = graphData.links.some(l => {
+      if (l.type !== 'requires-knowledge') return false;
+      const t = typeof l.target==='string'?l.target:l.target.id;
+      if (t !== d.id) return false;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      const sNode = graphData.nodes.find(n => n.id === s);
+      return sNode && sNode.layer === 'ai';
+    });
+    return refByAI ? 'shared' : 'human';
+  }
+  return d.layer === 'ai' ? 'ai' : 'human';
+}
+
+function getVennStats() {
+  const vis = getVisibleData();
+  let hCount = 0, aiCount = 0, sharedCount = 0;
+  for (const n of vis.nodes) {
+    const cat = getVennCategory(n);
+    if (cat === 'human') hCount++;
+    else if (cat === 'ai') aiCount++;
+    else sharedCount++;
+  }
+  return { human: hCount, ai: aiCount, shared: sharedCount };
 }
 
 // --- Focus Mode ---------------------------------------------------------------
@@ -694,7 +843,7 @@ function clearFocus() {
 function getChain(id) {
   const ids = new Set([id]);
   const { links } = graphData;
-  const depTypes = new Set(['dependency','ai-dependency','ai-supports']);
+  const depTypes = new Set(['dependency','ai-dependency','ai-supports','requires-knowledge','delegates-to']);
   // Ancestors
   let q = [id];
   while (q.length) {
@@ -741,6 +890,8 @@ function applyFocusStyles() {
       if (d.type==='ai-dependency') return 0.5;
       if (d.type==='ai-supports') return 0.5;
       if (d.type==='ai-interface') return 0.35;
+      if (d.type==='requires-knowledge') return 0.4;
+      if (d.type==='delegates-to') return 0.35;
       return 0.5;
     }
     const s=typeof d.source==='string'?d.source:d.source.id;
@@ -790,11 +941,12 @@ function showPanel(n) {
         ${renderClaimQuotes(n)}
       </div>`;
   } else if (n.type === 'fp') {
+    const layerBadge = n.layer === 'shared' ? '<span class="badge badge-layer-shared">Shared</span>' : '<span class="badge badge-layer-human">Human KB</span>';
     p.innerHTML = `
       <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
         <div class="p-title">${n.title}</div>
         ${idEditHtml(n.id, c)}
-        <div class="p-badges"><span class="badge badge-layer-human">Human KB</span><span class="badge" style="background:#8090b018;color:#8090b0">First Principle</span></div>
+        <div class="p-badges">${layerBadge}<span class="badge" style="background:#8090b018;color:#8090b0">First Principle</span></div>
       </div>
       <div class="p-body">
         <div class="p-section"><div class="s-label">Statement</div><div class="s-text">${n.statement}</div></div>
@@ -826,19 +978,8 @@ function showPanel(n) {
         ${n.fpLinks?.length?`<div class="p-section"><div class="s-label">Resonates With</div>
           <div class="dep-list">${n.fpLinks.map(fp=>`<span class="dep-link" onclick="navTo('${fp}')">${displayId(fp)}</span>`).join(' ')}</div></div>`:''}
       </div>`;
-  } else if (n.type === 'ap') {
-    p.innerHTML = `
-      <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
-        <div class="p-title">${n.title}</div>
-        ${idEditHtml(n.id, c)}
-        <div class="p-badges"><span class="badge badge-layer-ai">AI KB</span><span class="badge" style="background:#90a8c018;color:#90a8c0">Agent Principle</span></div>
-      </div>
-      <div class="p-body">
-        <div class="p-section"><div class="s-label">Statement</div><div class="s-text">${n.statement}</div></div>
-        ${n.source?`<div class="p-meta"><span class="mk">Source:</span> ${n.source}</div>`:''}
-        ${n.appliedBy?`<div class="p-meta"><span class="mk">Applied by:</span> ${n.appliedBy}</div>`:''}
-        <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
-      </div>`;
+  } else if (n.type === 'hsk') {
+    renderHSK(n);
   } else if (n.type === 'sop') {
     p.innerHTML = `
       <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
@@ -944,6 +1085,36 @@ function showPanel(n) {
   }
 }
 
+// --- HSK Side Panel -----------------------------------------------------------
+function renderHSK(n) {
+  const p = document.getElementById('panel');
+  const c = nColor(n);
+  const profBadge = n.proficiency ? `<span class="badge">${n.proficiency}</span>` : '';
+  p.innerHTML = `
+    <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+      <div class="p-title">${n.title}</div>
+      ${idEditHtml(n.id, c)}
+      <div class="p-badges">
+        <span class="badge" style="background:${c}18;color:${c}">${DOMAIN_NAMES[n.domain]||n.domain}</span>
+        ${profBadge}
+        <span class="badge badge-layer-human">Human</span>
+      </div>
+    </div>
+    <div class="p-body">
+      ${n.description?`<div class="p-section"><div class="s-label">Description</div><div class="s-text">${n.description}</div></div>`:''}
+      <div class="p-meta">
+        ${n.owner?`<div><span class="mk">Owner:</span> ${n.owner}</div>`:''}
+        ${n.proficiency?`<div><span class="mk">Proficiency:</span> ${n.proficiency}</div>`:''}
+        ${n.lastExercised?`<div><span class="mk">Last Exercised:</span> ${n.lastExercised}</div>`:''}
+        ${n.exerciseFrequency?`<div><span class="mk">Exercise Frequency:</span> ${n.exerciseFrequency}</div>`:''}
+        ${n.delegatedTo?`<div><span class="mk">Delegated To:</span> ${n.delegatedTo}</div>`:''}
+      </div>
+      ${n.requiresKnowledge?.length?`<div class="p-section"><div class="s-label">Requires Knowledge</div>
+        <div class="dep-list">${n.requiresKnowledge.map(d=>`<span class="dep-link" onclick="navTo('${d}')">${displayId(d)}</span>`).join(' ')}</div></div>`:''}
+      <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
+    </div>`;
+}
+
 function renderClaimQuotes(claim) {
   const seen = new Set();
   const quotes = [];
@@ -1015,7 +1186,7 @@ function refreshLabels() {
   labelEls.text(d => {
     if (d.type === 'quote') return d.author || d.id;
     const name = d.title || d.concept || displayId(d.id);
-    const max = (d.type==='fp'||d.type==='ap') ? 22 : (d.type==='da'||d.type==='sop') ? 18 : 16;
+    const max = (d.type==='fp'||d.type==='hsk') ? 22 : (d.type==='da'||d.type==='sop') ? 18 : 16;
     return name.length > max ? name.slice(0, max-1) + '\u2026' : name;
   });
 }
@@ -1049,7 +1220,7 @@ function showTooltip(n, e) {
     else if (n.type==='fp') h += `<span class="tt-meta"> \u00b7 First Principle</span>`;
     else if (n.type==='da') h += `<span class="tt-meta"> \u00b7 ${DOMAIN_NAMES[n.domain]||n.domain} Axiom \u00b7 ${n.status}</span>`;
     else if (n.type==='tes') h += `<span class="tt-meta"> \u00b7 TES Concept</span>`;
-    else if (n.type==='ap') h += `<span class="tt-meta"> \u00b7 Agent Principle</span>`;
+    else if (n.type==='hsk') h += `<span class="tt-meta"> \u00b7 Human Skill \u00b7 ${n.proficiency||''} \u00b7 ${n.exerciseFrequency||''}</span>`;
     else if (n.type==='sop') h += `<span class="tt-meta"> \u00b7 SOP \u00b7 ${n.owner||''} \u00b7 ${n.status||''}</span>`;
     else if (n.type==='skl') h += `<span class="tt-meta"> \u00b7 Skill \u00b7 ${n.owner||''} \u00b7 ${n.proficiency||''}</span>`;
     else if (n.type==='tool') h += `<span class="tt-meta"> \u00b7 ${n.category||'Tool'} \u00b7 Used by: ${n.usedBy||''}</span>`;
@@ -1071,11 +1242,13 @@ function buildToolbar() {
     <div class="tb-section">
       <button class="mode-btn active" onclick="setMode('survey')">Survey</button>
       <button class="mode-btn" onclick="setMode('focus')">Focus</button>
+      <button class="mode-btn" onclick="setMode('query')">Query</button>
     </div>
     <div class="tb-section">
       <button class="layer-btn" onclick="setLayer('human')">Human</button>
       <button class="layer-btn active" onclick="setLayer('both')">Both</button>
       <button class="layer-btn" onclick="setLayer('ai')">AI</button>
+      <button class="layer-btn" onclick="setLayer('venn')">Venn</button>
     </div>
     <div class="tb-section search">
       <input type="text" class="search-input" placeholder="Search ideas..." oninput="onSearch(this.value)">
@@ -1084,16 +1257,18 @@ function buildToolbar() {
   `;
 
   buildFilterPanel();
+  buildQueryPanel();
 }
 
 function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
   const humanDomains = [
     ['foundation','Foundation'], ['EPI','Epistemology'], ['ECDO','ECDO Theory'], ['TF','Thermofluidic Finance'],
-    ['DSL','Dynamical Systems'], ['PED','Pedagogy'], ['ARCH','Archaeoastronomy'], ['tes','TES Concepts'], ['quotes','Quotes']
+    ['DSL','Dynamical Systems'], ['PED','Pedagogy'], ['ARCH','Archaeoastronomy'], ['tes','TES Concepts'], ['quotes','Quotes'],
+    ['human_skills','My Skills']
   ];
   const aiDomains = [
-    ['ai_foundation','Agent Principles'], ['CE','CE Agent'], ['CD','CD Agent'], ['PM','PM Agent'],
+    ['CE','CE Agent'], ['CD','CD Agent'], ['PM','PM Agent'],
     ['RA','RA Agent'], ['SA','SA Agent'], ['TA','TA Agent'], ['ai_shared','Shared']
   ];
 
@@ -1113,10 +1288,35 @@ function buildFilterPanel() {
   fp.innerHTML = html;
 }
 
+function buildQueryPanel() {
+  const qp = document.getElementById('query-panel');
+  qp.innerHTML = `
+    <div class="filter-heading">Queries</div>
+    <button class="query-btn" onclick="runQuery('gap')">Gap Analysis</button>
+    <button class="query-btn" onclick="runQuery('impact')">Impact Cascade</button>
+    <button class="query-btn" onclick="runQuery('learning')">Learning Path</button>
+    <button class="query-btn" onclick="runQuery('delegation')">Delegation Readiness</button>
+    <button class="query-btn" onclick="runQuery('leverage')">Highest Leverage</button>
+    <button class="query-btn" onclick="runQuery('decay')">Decay Detection</button>
+    <button class="query-btn" onclick="runQuery('scope')">Scope Guard</button>
+  `;
+}
+
 function setMode(m) {
   mode = m;
+  pendingQuery = null;
   if (m==='survey') clearFocus();
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase()===m));
+  // Show/hide panels based on mode
+  const fp = document.getElementById('filter-panel');
+  const qp = document.getElementById('query-panel');
+  if (m === 'query') {
+    fp.style.display = 'none';
+    qp.style.display = 'flex';
+  } else {
+    fp.style.display = 'flex';
+    qp.style.display = 'none';
+  }
 }
 
 function setLayer(m) {
@@ -1183,6 +1383,8 @@ function fitAll() {
 function buildStats() {
   const s = graphData.stats;
   const vis = getVisibleData();
+  // Count cross-boundary links
+  const crossLinks = graphData.links.filter(l => l.type === 'requires-knowledge' || l.type === 'delegates-to').length;
   let html = `
     <span>${vis.nodes.length} nodes</span><span>${vis.links.length} edges</span><span class="sep">|</span>
     <span>${s.claims} claims</span>
@@ -1190,15 +1392,469 @@ function buildStats() {
     <span style="color:var(--accent-amber)">${s.hypothesized} hypothesized</span>
     <span style="color:var(--accent-red)">${s.speculative} speculative</span>
     <span class="sep">|</span><span style="color:#a08850">${s.quotes||0} quotes</span>`;
+  if (s.humanSkills) {
+    html += `<span style="color:#e8a040">${s.humanSkills} my skills</span>`;
+  }
   if (s.sops || s.skills || s.tools) {
     html += `<span class="sep">|</span>
       <span style="color:#00d4aa">${s.sops||0} SOPs</span>
       <span style="color:#77aaff">${s.skills||0} skills</span>
       <span style="color:#7a8a9a">${s.tools||0} tools</span>`;
   }
+  if (crossLinks > 0) {
+    html += `<span class="sep">|</span><span style="color:#806020">${crossLinks} K\u2192S bridges</span>`;
+  }
+  if (layerMode === 'venn') {
+    const vs = getVennStats();
+    html += `<span class="sep">|</span><span style="color:#8090b0">Human: ${vs.human}</span>
+      <span style="color:#b090d0">Shared: ${vs.shared}</span>
+      <span style="color:#00d4aa">AI: ${vs.ai}</span>`;
+  }
   html += `<span class="sep">|</span>
     <span>Generated ${new Date(graphData.generated).toLocaleDateString()}</span>`;
   document.getElementById('stats').innerHTML = html;
+}
+
+// --- Query Mode ---------------------------------------------------------------
+function runQuery(type) {
+  pendingQuery = null;
+  switch (type) {
+    case 'gap': queryGap(); break;
+    case 'impact': queryImpactPrompt(); break;
+    case 'learning': queryLearningPrompt(); break;
+    case 'delegation': queryDelegation(); break;
+    case 'leverage': queryLeverage(); break;
+    case 'decay': queryDecay(); break;
+    case 'scope': queryScopePrompt(); break;
+  }
+}
+
+function handlePendingQueryClick(d) {
+  const qt = pendingQuery;
+  pendingQuery = null;
+  switch (qt) {
+    case 'impact': queryImpact(d); break;
+    case 'learning': queryLearning(d); break;
+    case 'scope': queryScopeGuard(d); break;
+  }
+}
+
+function highlightNodes(ids) {
+  nodeEls.transition().duration(300).style('opacity', d => ids.has(d.id) ? 1 : 0.08);
+  linkEls.transition().duration(300).attr('stroke-opacity', d => {
+    const s = typeof d.source==='string'?d.source:d.source.id;
+    const t = typeof d.target==='string'?d.target:d.target.id;
+    return (ids.has(s) && ids.has(t)) ? 0.7 : 0.02;
+  });
+  labelEls.transition().duration(300).attr('fill-opacity', d => ids.has(d.id) ? 0.9 : 0.04);
+}
+
+function showQueryResults(title, summary, resultsHtml) {
+  const p = document.getElementById('panel');
+  p.classList.add('open');
+  p.innerHTML = `
+    <div class="p-header">
+      <button class="p-close" onclick="closePanel()">&times;</button>
+      <div class="p-title">${title}</div>
+      <div class="p-id" style="color:#e8a040">${summary}</div>
+    </div>
+    <div class="p-body">${resultsHtml}</div>`;
+}
+
+// --- Gap Analysis ---
+function queryGap() {
+  const skillNodes = graphData.nodes.filter(n => n.type==='sop'||n.type==='skl'||n.type==='hsk');
+  const results = [];
+  for (const skill of skillNodes) {
+    const reqK = (skill.requiresKnowledge || []);
+    if (reqK.length === 0) continue;
+    let weak = 0;
+    const weakDeps = [];
+    for (const kId of reqK) {
+      const kNode = graphData.nodes.find(n => n.id === kId);
+      if (!kNode) { weak++; weakDeps.push({id:kId, reason:'missing'}); continue; }
+      if (kNode.type==='fp') continue; // FPs are axiomatic, always solid
+      if (kNode.status && kNode.status !== 'Established') {
+        weak++; weakDeps.push({id:kId, reason:kNode.status});
+      }
+    }
+    if (weak > 0) {
+      results.push({ skill, weakCount: weak, total: reqK.length, weakDeps,
+        score: weak / reqK.length });
+    }
+  }
+  results.sort((a,b) => b.score - a.score);
+  const highlightIds = new Set();
+  for (const r of results) {
+    highlightIds.add(r.skill.id);
+    for (const d of r.weakDeps) highlightIds.add(d.id);
+  }
+  highlightNodes(highlightIds);
+  showQueryResults('Gap Analysis', `${results.length} skills with weak knowledge foundations`, results.map(r =>
+    `<div class="query-result" onclick="navTo('${r.skill.id}')">
+      <span style="color:${nColor(r.skill)};font-weight:600">${r.skill.id}</span> ${r.skill.title}
+      <div class="tt-meta">${r.weakCount}/${r.total} knowledge deps weak</div>
+      ${r.weakDeps.map(d => `<span class="dep-link" onclick="event.stopPropagation();navTo('${d.id}')" style="border-color:#f87171">${d.id} (${d.reason})</span>`).join(' ')}
+    </div>`
+  ).join(''));
+}
+
+// --- Impact Cascade ---
+function queryImpactPrompt() {
+  pendingQuery = 'impact';
+  showQueryResults('Impact Cascade', 'Click a knowledge node to analyze its cascade...', '');
+}
+
+function queryImpact(startNode) {
+  // BFS downstream via dependency, requires-knowledge, ai-dependency, ai-supports
+  const depTypes = new Set(['dependency','requires-knowledge','ai-dependency','ai-supports']);
+  const visited = new Map(); // id -> depth
+  visited.set(startNode.id, 0);
+  let q = [{id: startNode.id, depth: 0}];
+  while (q.length) {
+    const {id: cId, depth} = q.shift();
+    for (const l of graphData.links) {
+      if (!depTypes.has(l.type)) continue;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      const t = typeof l.target==='string'?l.target:l.target.id;
+      // Follow forward: source=current -> target is downstream
+      if (s === cId && !visited.has(t)) {
+        visited.set(t, depth+1);
+        q.push({id: t, depth: depth+1});
+      }
+    }
+  }
+  const highlightIds = new Set(visited.keys());
+  highlightNodes(highlightIds);
+
+  // Group by type
+  const groups = {claims:[], sops:[], skills:[], hskills:[], other:[]};
+  for (const [id, depth] of visited) {
+    if (id === startNode.id) continue;
+    const n = graphData.nodes.find(nd => nd.id === id);
+    if (!n) continue;
+    const entry = {n, depth};
+    if (n.type==='claim') groups.claims.push(entry);
+    else if (n.type==='sop') groups.sops.push(entry);
+    else if (n.type==='skl') groups.skills.push(entry);
+    else if (n.type==='hsk') groups.hskills.push(entry);
+    else groups.other.push(entry);
+  }
+
+  let html = `<div class="query-result" style="border-left-color:${nColor(startNode)}">
+    <span style="color:${nColor(startNode)};font-weight:600">${startNode.id}</span> ${startNode.title}
+    <div class="tt-meta">Anchor node (depth 0)</div></div>`;
+  const renderGroup = (label, items) => {
+    if (!items.length) return '';
+    return `<div class="s-label" style="margin-top:10px">${label} (${items.length})</div>` +
+      items.sort((a,b)=>a.depth-b.depth).map(({n,depth}) =>
+        `<div class="query-result" onclick="navTo('${n.id}')">
+          <span style="color:${nColor(n)};font-weight:600">${n.id}</span> ${n.title}
+          <div class="tt-meta">Depth ${depth}</div></div>`
+      ).join('');
+  };
+  html += renderGroup('Claims', groups.claims);
+  html += renderGroup('SOPs', groups.sops);
+  html += renderGroup('AI Skills', groups.skills);
+  html += renderGroup('Human Skills', groups.hskills);
+  html += renderGroup('Other', groups.other);
+
+  showQueryResults('Impact Cascade', `${visited.size - 1} nodes downstream of ${startNode.id}`, html);
+}
+
+// --- Learning Path ---
+function queryLearningPrompt() {
+  pendingQuery = 'learning';
+  showQueryResults('Learning Path', 'Click a skill node to trace its learning path...', '');
+}
+
+function queryLearning(startNode) {
+  // Walk backward through requires-knowledge and dependency edges to find all prerequisites
+  const depTypes = new Set(['requires-knowledge','dependency','ai-dependency']);
+  const visited = new Map(); // id -> depth
+  visited.set(startNode.id, 0);
+  let q = [{id: startNode.id, depth: 0}];
+  while (q.length) {
+    const {id: cId, depth} = q.shift();
+    for (const l of graphData.links) {
+      if (!depTypes.has(l.type)) continue;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      const t = typeof l.target==='string'?l.target:l.target.id;
+      // Walk backward: target=current -> source is prerequisite
+      if (t === cId && !visited.has(s)) {
+        visited.set(s, depth+1);
+        q.push({id: s, depth: depth+1});
+      }
+    }
+  }
+
+  // Filter out Established nodes (already learned) except the anchor
+  const needToLearn = [];
+  for (const [id, depth] of visited) {
+    if (id === startNode.id) continue;
+    const n = graphData.nodes.find(nd => nd.id === id);
+    if (!n) continue;
+    if (n.type === 'fp') continue; // FPs are axiomatic
+    if (n.status === 'Established') continue; // Already solid
+    needToLearn.push({n, depth});
+  }
+  needToLearn.sort((a,b) => b.depth - a.depth); // Deepest first = learn first
+
+  const highlightIds = new Set([startNode.id, ...needToLearn.map(x=>x.n.id)]);
+  highlightNodes(highlightIds);
+
+  let html = '';
+  if (needToLearn.length === 0) {
+    html = `<div class="query-result"><div class="tt-meta">All knowledge prerequisites are Established. No gaps to fill.</div></div>`;
+  } else {
+    html = needToLearn.map((item, i) =>
+      `<div class="query-result" onclick="navTo('${item.n.id}')">
+        <span style="color:#e8a040;font-weight:600">${i+1}.</span>
+        <span style="color:${nColor(item.n)};font-weight:600">${item.n.id}</span> ${item.n.title}
+        <div class="tt-meta">${item.n.status || 'Unknown'} \u00b7 Depth ${item.depth}</div>
+      </div>`
+    ).join('');
+  }
+
+  showQueryResults('Learning Path', `${needToLearn.length} nodes to learn for ${startNode.id}`, html);
+}
+
+// --- Delegation Readiness ---
+function queryDelegation() {
+  const hskNodes = graphData.nodes.filter(n => n.type === 'hsk' && n.delegateAgents && n.delegateAgents.length > 0);
+  const results = [];
+
+  for (const hsk of hskNodes) {
+    const hskKnowledge = new Set(hsk.requiresKnowledge || []);
+    if (hskKnowledge.size === 0) continue;
+
+    for (const agent of hsk.delegateAgents) {
+      // Find agent's SOPs
+      const agentSOPs = graphData.nodes.filter(n => n.type === 'sop' && n.domain === agent);
+      // Collect all knowledge deps of those SOPs
+      const agentKnowledge = new Set();
+      for (const sop of agentSOPs) {
+        for (const dep of (sop.requiresKnowledge || [])) {
+          agentKnowledge.add(dep);
+        }
+        for (const dep of (sop.dependencies || [])) {
+          agentKnowledge.add(dep);
+        }
+      }
+      // Calculate overlap
+      let overlap = 0;
+      const missing = [];
+      for (const kId of hskKnowledge) {
+        if (agentKnowledge.has(kId)) overlap++;
+        else missing.push(kId);
+      }
+      const score = overlap / hskKnowledge.size;
+      results.push({ hsk, agent, overlap, total: hskKnowledge.size, missing, score,
+        sopCount: agentSOPs.length });
+    }
+  }
+  results.sort((a,b) => a.score - b.score); // Low overlap first = most risky
+
+  const highlightIds = new Set();
+  for (const r of results) {
+    highlightIds.add(r.hsk.id);
+    for (const m of r.missing) highlightIds.add(m);
+  }
+  highlightNodes(highlightIds);
+
+  showQueryResults('Delegation Readiness', `${results.length} delegation relationships analyzed`, results.map(r => {
+    const safetyColor = r.score >= 0.8 ? '#50c878' : r.score >= 0.5 ? '#fbbf24' : '#f87171';
+    return `<div class="query-result" onclick="navTo('${r.hsk.id}')">
+      <span style="color:#e8a040;font-weight:600">${r.hsk.id}</span> ${r.hsk.title}
+      <div class="tt-meta">\u2192 ${r.agent} (${r.sopCount} SOPs)</div>
+      <div class="tt-meta">Coverage: <span style="color:${safetyColor};font-weight:600">${Math.round(r.score*100)}%</span> (${r.overlap}/${r.total})</div>
+      ${r.missing.length ? `<div style="margin-top:3px">${r.missing.map(m => `<span class="dep-link" onclick="event.stopPropagation();navTo('${m}')" style="border-color:#f87171">${m}</span>`).join(' ')}</div>` : ''}
+    </div>`;
+  }).join(''));
+}
+
+// --- Highest Leverage ---
+function queryLeverage() {
+  // Find knowledge nodes that are NOT Established
+  const weakKnowledge = graphData.nodes.filter(n =>
+    (n.type === 'da' || n.type === 'claim') &&
+    n.status && n.status !== 'Established'
+  );
+
+  const results = [];
+  for (const kNode of weakKnowledge) {
+    // Count skills depending on this knowledge via requires-knowledge
+    const depSkills = [];
+    for (const l of graphData.links) {
+      if (l.type !== 'requires-knowledge') continue;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      const t = typeof l.target==='string'?l.target:l.target.id;
+      // requires-knowledge: source is the knowledge node's ID being required
+      // In our data: link goes from skill -> knowledge (target=knowledge)
+      // OR from knowledge -> skill. Let's check both directions.
+      if (t === kNode.id) {
+        const skillNode = graphData.nodes.find(n => n.id === s);
+        if (skillNode) depSkills.push(skillNode);
+      }
+      if (s === kNode.id) {
+        const skillNode = graphData.nodes.find(n => n.id === t);
+        if (skillNode) depSkills.push(skillNode);
+      }
+    }
+    // Also count dependency links (downstream claims)
+    let downstreamCount = 0;
+    for (const l of graphData.links) {
+      if (l.type !== 'dependency') continue;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      if (s === kNode.id) downstreamCount++;
+    }
+    if (depSkills.length > 0 || downstreamCount > 0) {
+      results.push({ node: kNode, skillCount: depSkills.length, skills: depSkills, downstreamCount });
+    }
+  }
+  results.sort((a,b) => (b.skillCount + b.downstreamCount) - (a.skillCount + a.downstreamCount));
+
+  const highlightIds = new Set();
+  for (const r of results) {
+    highlightIds.add(r.node.id);
+    for (const s of r.skills) highlightIds.add(s.id);
+  }
+  highlightNodes(highlightIds);
+
+  showQueryResults('Highest Leverage', `${results.length} weak knowledge nodes with downstream impact`, results.map(r =>
+    `<div class="query-result" onclick="navTo('${r.node.id}')">
+      <span style="color:${nColor(r.node)};font-weight:600">${r.node.id}</span> ${r.node.title}
+      <div class="tt-meta">${r.node.status} \u00b7 ${r.skillCount} skills depend \u00b7 ${r.downstreamCount} downstream claims</div>
+      ${r.skills.slice(0,5).map(s => `<span class="dep-link" onclick="event.stopPropagation();navTo('${s.id}')">${s.id}</span>`).join(' ')}
+    </div>`
+  ).join(''));
+}
+
+// --- Decay Detection ---
+function queryDecay() {
+  const now = new Date();
+  const results = [];
+
+  // Check HSK nodes
+  const hskNodes = graphData.nodes.filter(n => n.type === 'hsk' && n.lastExercised);
+  for (const n of hskNodes) {
+    const lastDate = new Date(n.lastExercised);
+    const daysSince = Math.floor((now - lastDate) / (1000*60*60*24));
+    let threshold;
+    if (n.proficiency === 'Expert') threshold = 90;
+    else if (n.proficiency === 'Competent') threshold = 60;
+    else threshold = 30; // Learning
+    if (daysSince > threshold) {
+      results.push({ node: n, daysSince, threshold, proficiency: n.proficiency, reason: 'overdue' });
+    }
+  }
+
+  // Check AI skills with Active status but potential staleness
+  const aiSkills = graphData.nodes.filter(n => (n.type === 'sop' || n.type === 'skl') && n.status === 'Active');
+  for (const n of aiSkills) {
+    if (n.lastUpdated) {
+      const lastDate = new Date(n.lastUpdated);
+      const daysSince = Math.floor((now - lastDate) / (1000*60*60*24));
+      if (daysSince > 120) {
+        results.push({ node: n, daysSince, threshold: 120, proficiency: n.status, reason: 'stale AI skill' });
+      }
+    }
+  }
+
+  results.sort((a,b) => b.daysSince - a.daysSince);
+
+  const highlightIds = new Set(results.map(r => r.node.id));
+  highlightNodes(highlightIds);
+
+  showQueryResults('Decay Detection', `${results.length} nodes showing potential decay`, results.map(r => {
+    const urgencyColor = r.daysSince > r.threshold * 2 ? '#f87171' : '#e8a040';
+    return `<div class="query-result" onclick="navTo('${r.node.id}')">
+      <span style="color:${nColor(r.node)};font-weight:600">${r.node.id}</span> ${r.node.title}
+      <div class="tt-meta" style="color:${urgencyColor}">${r.daysSince} days since last exercise (threshold: ${r.threshold})</div>
+      <div class="tt-meta">${r.proficiency} \u00b7 ${r.reason}</div>
+    </div>`;
+  }).join(''));
+}
+
+// --- Scope Guard ---
+function queryScopePrompt() {
+  pendingQuery = 'scope';
+  showQueryResults('Scope Guard', 'Click a node to define your scope anchor...', '');
+}
+
+function queryScopeGuard(anchor) {
+  // BFS in ALL directions up to depth 3
+  const allTypes = new Set(['dependency','ai-dependency','ai-supports','requires-knowledge','delegates-to','quote-resonance','tes-reference','ai-interface']);
+  const visited = new Map(); // id -> depth
+  visited.set(anchor.id, 0);
+  let q = [{id: anchor.id, depth: 0}];
+  while (q.length) {
+    const {id: cId, depth} = q.shift();
+    if (depth >= 3) continue;
+    for (const l of graphData.links) {
+      if (!allTypes.has(l.type)) continue;
+      const s = typeof l.source==='string'?l.source:l.source.id;
+      const t = typeof l.target==='string'?l.target:l.target.id;
+      // Both directions
+      if (s === cId && !visited.has(t)) {
+        visited.set(t, depth+1);
+        q.push({id: t, depth: depth+1});
+      }
+      if (t === cId && !visited.has(s)) {
+        visited.set(s, depth+1);
+        q.push({id: s, depth: depth+1});
+      }
+    }
+  }
+
+  let inScope = 0, adjacent = 0, outOfScope = 0;
+  const visNodes = getVisibleData().nodes;
+  const totalNodes = visNodes.length;
+
+  for (const n of visNodes) {
+    const depth = visited.get(n.id);
+    if (depth !== undefined && depth <= 2) inScope++;
+    else if (depth === 3) adjacent++;
+    else outOfScope++;
+  }
+
+  // Apply visual style
+  nodeEls.transition().duration(300).style('opacity', d => {
+    const depth = visited.get(d.id);
+    if (depth !== undefined && depth <= 2) return 1;
+    if (depth === 3) return 0.3;
+    return 0.05;
+  });
+  linkEls.transition().duration(300).attr('stroke-opacity', d => {
+    const s = typeof d.source==='string'?d.source:d.source.id;
+    const t = typeof d.target==='string'?d.target:d.target.id;
+    const sd = visited.get(s), td = visited.get(t);
+    if (sd !== undefined && sd <= 2 && td !== undefined && td <= 2) return 0.7;
+    if ((sd !== undefined && sd <= 3) && (td !== undefined && td <= 3)) return 0.15;
+    return 0.02;
+  });
+  labelEls.transition().duration(300).attr('fill-opacity', d => {
+    const depth = visited.get(d.id);
+    if (depth !== undefined && depth <= 2) return 0.9;
+    if (depth === 3) return 0.2;
+    return 0.03;
+  });
+
+  showQueryResults('Scope Guard', `Scope centered on ${anchor.id}`,
+    `<div class="query-result" style="border-left-color:${nColor(anchor)}">
+      <span style="color:${nColor(anchor)};font-weight:600">${anchor.id}</span> ${anchor.title || anchor.concept || anchor.id}
+      <div class="tt-meta">Anchor node</div>
+    </div>
+    <div class="p-section" style="margin-top:10px">
+      <div class="s-label">Scope Summary</div>
+      <div class="p-meta">
+        <div><span class="mk" style="color:#50c878">In Scope (depth \u22642):</span> ${inScope} nodes</div>
+        <div><span class="mk" style="color:#fbbf24">Adjacent (depth 3):</span> ${adjacent} nodes</div>
+        <div><span class="mk" style="color:#f87171">Out of Scope:</span> ${outOfScope} nodes</div>
+        <div><span class="mk">Total:</span> ${totalNodes} nodes</div>
+      </div>
+    </div>`
+  );
 }
 
 // --- Boot ---------------------------------------------------------------------
