@@ -890,22 +890,26 @@ function renderGraph(nodes, links) {
         .attr('stroke-width', 0.5)
         .attr('stroke-opacity', 0.4);
 
-      // Domain name along the sector center line
-      const labelR = maxR + 45;
+      // Domain name as large overlay in middle of sector
+      const midR = (actualRadii.get(0) || 60) + (maxR - (actualRadii.get(0) || 60)) * 0.5;
       const a = angleDeg * Math.PI / 180;
       const name = DOMAIN_NAMES[domain] || domain;
+      const lx = cx + midR * Math.cos(a);
+      const ly = cy + midR * Math.sin(a);
+      const rotAngle = angleDeg > 90 && angleDeg < 270 ? angleDeg + 180 : angleDeg;
       ringGroup.append('text')
-        .attr('x', cx + labelR * Math.cos(a))
-        .attr('y', cy + labelR * Math.sin(a))
+        .attr('x', lx).attr('y', ly)
         .text(name)
-        .attr('font-size', 11)
+        .attr('font-size', 16)
         .attr('fill', COLORS[domain] || '#3a4560')
-        .attr('fill-opacity', 0.7)
-        .attr('font-weight', 600)
+        .attr('fill-opacity', 0.18)
+        .attr('font-weight', 700)
         .attr('text-anchor', 'middle')
         .attr('dominant-baseline', 'middle')
         .attr('font-family', "'Segoe UI', system-ui, sans-serif")
-        .attr('transform', `rotate(${angleDeg > 90 && angleDeg < 270 ? angleDeg + 180 : angleDeg}, ${cx + labelR * Math.cos(a)}, ${cy + labelR * Math.sin(a)})`);
+        .attr('letter-spacing', '1px')
+        .attr('pointer-events', 'none')
+        .attr('transform', `rotate(${rotAngle}, ${lx}, ${ly})`);
     }
 
     // Tier ring guides (on top of wedges)
