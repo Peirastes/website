@@ -483,6 +483,8 @@ let simulation, nodeEls, linkEls, labelEls, zoomBehavior;
 let graphData;
 let quotesByNode = new Map();
 let pendingQuery = null;
+let radialAngle = 0; // lazy-susan rotation (degrees)
+let _lastZoomTransform = d3.zoomIdentity;
 let vennCircles = null;
 
 // --- ID Rename System ---------------------------------------------------------
@@ -566,6 +568,21 @@ async function init() {
 function graphSize() {
   const r = d3.select('#graph').node().getBoundingClientRect();
   return { width: r.width || (window.innerWidth - 150), height: r.height || (window.innerHeight - 66) };
+}
+
+function applyContainerTransform(svg) {
+  const container = svg.select('.graph-container');
+  if (layout === 'radial' && radialAngle !== 0) {
+    const { width, height } = graphSize();
+    // Apply zoom transform, then rotate around graph center
+    // We need the center in the zoomed coordinate space
+    const cx = width / 2, cy = height / 2;
+    container.attr('transform',
+      `${_lastZoomTransform} rotate(${radialAngle}, ${cx}, ${cy})`
+    );
+  } else {
+    container.attr('transform', _lastZoomTransform);
+  }
 }
 
 // --- Radial Layout (Structure Mode) -------------------------------------------
@@ -684,10 +701,11 @@ function setLayout(l) {
   document.querySelectorAll('.layout-btn').forEach(b =>
     b.classList.toggle('active', b.textContent.toLowerCase() === l)
   );
-  // Unfix positions and reset tier filter when leaving radial
+  // Unfix positions and reset tier filter + rotation when leaving radial
   if (wasRadial && l !== 'radial') {
     for (const n of graphData.nodes) { n.fx = null; n.fy = null; }
     activeTier = -1;
+    radialAngle = 0;
   }
   rerender();
   buildFilterPanel(); // Rebuild to show/hide tier buttons
@@ -824,7 +842,8 @@ function renderGraph(nodes, links) {
   if (!zoomBehavior) {
     zoomBehavior = d3.zoom().scaleExtent([0.05, 8])
       .on('zoom', e => {
-        svg.select('.graph-container').attr('transform', e.transform);
+        _lastZoomTransform = e.transform;
+        applyContainerTransform(svg);
         const k = e.transform.k;
 
         // Semantic zoom: node visibility based on importance + zoom level
@@ -894,6 +913,44 @@ function renderGraph(nodes, links) {
         }
       });
     svg.call(zoomBehavior);
+
+    // Right-click drag to rotate in radial mode (lazy-susan)
+    let rotateState = null;
+    svg.on('contextmenu.rotate', e => e.preventDefault());
+    svg.on('mousedown.rotate', function(e) {
+      if (e.button !== 2 || layout !== 'radial') return; // right-click only, radial only
+      e.preventDefault();
+      const rect = svg.node().getBoundingClientRect();
+      const { width: w, height: h } = graphSize();
+      const mx = e.clientX - rect.left - w/2;
+      const my = e.clientY - rect.top - h/2;
+      rotateState = { lastAngle: Math.atan2(my, mx) * 180 / Math.PI };
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!rotateState) return;
+      const svgEl = document.getElementById('graph');
+      const rect = svgEl.getBoundingClientRect();
+      const { width: w, height: h } = graphSize();
+      const mx = e.clientX - rect.left - w/2;
+      const my = e.clientY - rect.top - h/2;
+      const currentAngle = Math.atan2(my, mx) * 180 / Math.PI;
+      const delta = currentAngle - rotateState.lastAngle;
+      rotateState.lastAngle = currentAngle;
+      radialAngle += delta;
+      applyContainerTransform(d3.select('#graph'));
+      // Counter-rotate labels to keep them readable
+      if (labelEls) {
+        labelEls.each(function(d) {
+          const el = d3.select(this);
+          if (d.x !== undefined) {
+            el.attr('transform', `rotate(${-radialAngle}, ${d.x}, ${d.y})`);
+          }
+        });
+      }
+    });
+    window.addEventListener('mouseup', function(e) {
+      if (e.button === 2) rotateState = null;
+    });
   }
 
   // Background click — safe to re-bind (replaces previous handler)
