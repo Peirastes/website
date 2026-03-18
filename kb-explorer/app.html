@@ -662,6 +662,7 @@ function computeRadialPositions(nodes, links, width, height) {
     n.y = cy + r * Math.sin(angle);
     n.fx = n.x;
     n.fy = n.y;
+    n._tier = t;  // Store tier on node for filtering/display
   }
 
   return tiers;
@@ -683,11 +684,13 @@ function setLayout(l) {
   document.querySelectorAll('.layout-btn').forEach(b =>
     b.classList.toggle('active', b.textContent.toLowerCase() === l)
   );
-  // Unfix positions when leaving radial
+  // Unfix positions and reset tier filter when leaving radial
   if (wasRadial && l !== 'radial') {
     for (const n of graphData.nodes) { n.fx = null; n.fy = null; }
+    activeTier = -1;
   }
   rerender();
+  buildFilterPanel(); // Rebuild to show/hide tier buttons
 }
 
 function renderGraph(nodes, links) {
@@ -1514,6 +1517,7 @@ function showTooltip(n, e) {
     else if (n.type==='tool') h += `<span class="tt-meta"> \u00b7 ${n.category||'Tool'} \u00b7 Used by: ${n.usedBy||''}</span>`;
     else if (n.type==='ifc') h += `<span class="tt-meta"> \u00b7 ${n.ifcSource||''} \u2192 ${n.ifcTarget||''}</span>`;
     if (n.fanOut) h += `<br><span class="tt-meta">${n.fanOut} dependent(s)</span>`;
+    if (n._tier !== undefined) h += `<span class="tt-meta"> · Tier ${n._tier}</span>`;
   }
   t.innerHTML = h;
   t.style.display = 'block';
@@ -1578,6 +1582,22 @@ function buildFilterPanel() {
       <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
       <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
   }
+  // Tier filter buttons (shown when in radial layout)
+  if (layout === 'radial') {
+    const tierSet = new Set();
+    for (const n of graphData.nodes) { if (n._tier !== undefined) tierSet.add(n._tier); }
+    const tiers = [...tierSet].sort((a,b) => a - b);
+    const tierLabels = { 0:'Principles', 1:'Axioms' };
+    const maxT = Math.max(...tiers);
+    html += `<div class="filter-heading" style="margin-top:8px">Tiers</div>`;
+    html += `<button class="query-btn tier-btn active" onclick="filterTier(-1)" data-tier="-1">All tiers</button>`;
+    for (const t of tiers) {
+      const label = tierLabels[t] || (t === maxT ? 'References' : `Tier ${t}`);
+      const count = graphData.nodes.filter(n => n._tier === t).length;
+      html += `<button class="query-btn tier-btn" onclick="filterTier(${t})" data-tier="${t}">${label} <span style="opacity:0.4">(${count})</span></button>`;
+    }
+  }
+
   fp.innerHTML = html;
 }
 
@@ -1644,6 +1664,82 @@ function toggleDomain(domain, visible) {
     const td = (typeof d.target==='object'?d.target:graphData.nodes.find(n=>n.id===d.target))?.domain;
     return ((sd===domain||td===domain) && hidden) ? 'none' : null;
   });
+}
+
+let activeTier = -1; // -1 = all tiers
+function filterTier(t) {
+  activeTier = t;
+  // Update button active states
+  document.querySelectorAll('.tier-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.tier) === t)
+  );
+  if (t === -1) {
+    // Show all — reset to normal visibility
+    nodeEls.transition().duration(300).style('display', null).style('opacity', 1);
+    labelEls.transition().duration(300).style('display', null)
+      .attr('fill-opacity', d => (layout==='radial'||window._labelVisible(d)) ? 0.9 : 0);
+    linkEls.transition().duration(300).style('display', null).attr('stroke-opacity', d => {
+      if (d.type==='quote-resonance') return 0.12;
+      if (d.type==='tes-reference') return 0.3;
+      return 0.5;
+    });
+    return;
+  }
+  // Highlight selected tier, dim others
+  const tierIds = new Set(graphData.nodes.filter(n => n._tier === t).map(n => n.id));
+  // Also include adjacent tiers (t-1 and t+1) at reduced opacity for context
+  const adjIds = new Set(graphData.nodes.filter(n => n._tier === t-1 || n._tier === t+1).map(n => n.id));
+
+  nodeEls.transition().duration(300)
+    .style('opacity', d => {
+      if (tierIds.has(d.id)) return 1;
+      if (adjIds.has(d.id)) return 0.2;
+      return 0.04;
+    });
+  labelEls.transition().duration(300)
+    .attr('fill-opacity', d => {
+      if (tierIds.has(d.id)) return 0.9;
+      if (adjIds.has(d.id)) return 0.15;
+      return 0;
+    });
+  linkEls.transition().duration(300)
+    .attr('stroke-opacity', d => {
+      const s = typeof d.source==='string'?d.source:d.source.id;
+      const tgt = typeof d.target==='string'?d.target:d.target.id;
+      if (tierIds.has(s) && tierIds.has(tgt)) return 0.7;
+      if ((tierIds.has(s) && adjIds.has(tgt)) || (adjIds.has(s) && tierIds.has(tgt))) return 0.25;
+      return 0.02;
+    });
+
+  // Show tier summary in panel
+  const tierNodes = graphData.nodes.filter(n => n._tier === t);
+  const tierLabels = { 0:'Principles', 1:'Axioms' };
+  const maxTier = Math.max(...graphData.nodes.map(n => n._tier || 0));
+  const tierName = tierLabels[t] || (t === maxTier ? 'References' : `Tier ${t}`);
+  const byDomain = {};
+  for (const n of tierNodes) {
+    const dom = DOMAIN_NAMES[n.domain] || n.domain;
+    if (!byDomain[dom]) byDomain[dom] = [];
+    byDomain[dom].push(n);
+  }
+  const p = document.getElementById('panel');
+  p.classList.add('open');
+  p.innerHTML = `
+    <div class="p-header">
+      <button class="p-close" onclick="closePanel()">&times;</button>
+      <div class="p-title">${tierName}</div>
+      <div class="p-id" style="color:var(--accent-steel)">${tierNodes.length} nodes at depth ${t}</div>
+    </div>
+    <div class="p-body">
+      ${Object.entries(byDomain).map(([dom, nodes]) => `
+        <div class="p-section">
+          <div class="s-label">${dom} (${nodes.length})</div>
+          <div class="dep-list">${nodes.map(n =>
+            `<span class="dep-link" onclick="navTo('${n.id}')" style="color:${nColor(n)}">${n.id}</span>`
+          ).join(' ')}</div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 function onSearch(q) {
