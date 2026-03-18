@@ -116,6 +116,20 @@
     .layer-btn.active { background: #1a4a40; color: #00d4aa; border-color: #2a6a5a; }
     .layer-btn:hover { background: #1a3a35; }
 
+    .layout-btn {
+      background: var(--bg-input);
+      border: 1px solid #2a3050;
+      color: var(--text-dim);
+      padding: 3px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.15s;
+    }
+
+    .layout-btn.active { background: #2a2a50; color: #c084fc; border-color: #5a4a80; }
+    .layout-btn:hover { background: #252040; }
+
     .domain-filter {
       display: flex;
       align-items: center;
@@ -362,7 +376,7 @@
     <div>Pulsing = Hypothesized</div>
     <div>Faint = Speculative</div>
   </div>
-  <div style="margin-top:3px;color:#2a3050">Keys: 1/2/L/Q mode &middot; 3/4/5/V layer &middot; F fit &middot; Esc close</div>
+  <div style="margin-top:3px;color:#2a3050">Keys: 1/2/L/Q mode &middot; R radial &middot; 3/4/5/V layer &middot; F fit &middot; Esc close</div>
 </div>
 <script>
 // --- Constants ----------------------------------------------------------------
@@ -381,6 +395,14 @@ const DOMAIN_NAMES = {
 const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
   Active:1, Draft:0.6, Deprecated:0.25, Proposed:0.7 };
 const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
+
+// Domain angles for radial layout (degrees)
+const DOMAIN_ANGLES = {
+  foundation: null, // tier 0 nodes spread evenly at center
+  PHYS: 170, EPI: 200, ECDO: 230, TF: 260, DSL: 290, PED: 320, ARCH: 350,
+  human_skills: 140, tes: 110, quotes: 80,
+  CE: 10, CD: 35, PM: 55, ai_shared: 70, RA: 90, SA: 120, TA: 150
+};
 
 const CLUSTER_HUMAN = {
   foundation:{x:0,y:-120}, EPI:{x:-160,y:-50}, ECDO:{x:160,y:-50},
@@ -455,6 +477,7 @@ function octPath(r) {
 // --- State --------------------------------------------------------------------
 let mode = 'survey';
 let layerMode = 'both';
+let layout = 'force'; // 'force' or 'radial'
 let focusedIds = new Set();
 let simulation, nodeEls, linkEls, labelEls, zoomBehavior;
 let graphData;
@@ -532,6 +555,7 @@ async function init() {
     if (e.key === '2') setMode('focus');
     if (e.key === 'l' || e.key === 'L') setMode('lineage');
     if (e.key === 'q' || e.key === 'Q') setMode('query');
+    if (e.key === 'r' || e.key === 'R') setLayout(layout === 'radial' ? 'force' : 'radial');
     if (e.key === '3') setLayer('human');
     if (e.key === '4') setLayer('both');
     if (e.key === '5') setLayer('ai');
@@ -542,6 +566,125 @@ async function init() {
 function graphSize() {
   const r = d3.select('#graph').node().getBoundingClientRect();
   return { width: r.width || (window.innerWidth - 150), height: r.height || (window.innerHeight - 66) };
+}
+
+// --- Radial Layout (Structure Mode) -------------------------------------------
+function computeTiers(nodes, links) {
+  const incoming = new Map();
+  for (const n of nodes) incoming.set(n.id, new Set());
+
+  for (const l of links) {
+    if (l.type === 'quote-resonance' || l.type === 'tes-reference') continue;
+    const srcId = typeof l.source === 'string' ? l.source : l.source.id;
+    const tgtId = typeof l.target === 'string' ? l.target : l.target.id;
+    if (incoming.has(tgtId) && incoming.has(srcId)) {
+      incoming.get(tgtId).add(srcId);
+    }
+  }
+
+  const tier = new Map();
+  const nodeIds = new Set(nodes.map(n => n.id));
+
+  function getTier(id, visited) {
+    if (tier.has(id)) return tier.get(id);
+    if (visited.has(id)) return 0;
+    visited.add(id);
+    const deps = incoming.get(id);
+    if (!deps || deps.size === 0) { tier.set(id, 0); return 0; }
+    let maxDep = 0;
+    for (const depId of deps) {
+      if (nodeIds.has(depId)) maxDep = Math.max(maxDep, getTier(depId, visited));
+    }
+    const t = maxDep + 1;
+    tier.set(id, t);
+    return t;
+  }
+
+  for (const n of nodes) getTier(n.id, new Set());
+
+  const maxTier = Math.max(...tier.values(), 0);
+  for (const n of nodes) {
+    if (n.type === 'tes' || n.type === 'quote') tier.set(n.id, maxTier + 1);
+  }
+  return tier;
+}
+
+function computeRadialPositions(nodes, links, width, height) {
+  const cx = width / 2, cy = height / 2;
+  const tiers = computeTiers(nodes, links);
+  const maxTier = Math.max(...tiers.values(), 1);
+
+  const minRadius = 40;
+  const maxRadius = Math.min(width, height) * 0.42;
+
+  function tierRadius(t) {
+    if (t === 0) return minRadius;
+    return minRadius + (t / maxTier) * (maxRadius - minRadius);
+  }
+
+  // Group nodes by (tier, domain)
+  const groups = new Map();
+  for (const n of nodes) {
+    const t = tiers.get(n.id) || 0;
+    const key = `${t}:${n.domain}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(n);
+  }
+
+  // Pre-compute tier-0 node list for foundation spread
+  const tier0Nodes = nodes.filter(nn => (tiers.get(nn.id) || 0) === 0);
+
+  for (const n of nodes) {
+    const t = tiers.get(n.id) || 0;
+    const r = tierRadius(t);
+    const key = `${t}:${n.domain}`;
+    const group = groups.get(key);
+    const indexInGroup = group.indexOf(n);
+    const groupSize = group.length;
+
+    let baseAngle = DOMAIN_ANGLES[n.domain];
+    if (baseAngle === null || baseAngle === undefined) {
+      // Foundation tier 0: spread evenly around center
+      const idx = tier0Nodes.indexOf(n);
+      baseAngle = idx >= 0 ? (360 / Math.max(tier0Nodes.length, 1)) * idx : 0;
+    }
+
+    // Spread nodes within same domain+tier group
+    const spreadAngle = Math.min(25, 360 / (maxTier + 2));
+    const angleOffset = groupSize > 1
+      ? (indexInGroup - (groupSize - 1) / 2) * (spreadAngle / Math.max(groupSize - 1, 1))
+      : 0;
+
+    const angle = (baseAngle + angleOffset) * (Math.PI / 180);
+    n.x = cx + r * Math.cos(angle);
+    n.y = cy + r * Math.sin(angle);
+    n.fx = n.x;
+    n.fy = n.y;
+  }
+
+  return tiers;
+}
+
+function rerender() {
+  if (simulation) { simulation.stop(); simulation = null; }
+  const vis = getVisibleData();
+  const svg = d3.select('#graph');
+  svg.selectAll('*').remove();
+  renderGraph(vis.nodes, vis.links);
+  setTimeout(fitAll, 500);
+}
+
+function setLayout(l) {
+  const wasRadial = layout === 'radial';
+  layout = l;
+  document.querySelectorAll('.layout-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.toLowerCase() === l)
+  );
+  // Unfix positions when leaving radial
+  if (wasRadial && l !== 'radial') {
+    for (const n of graphData.nodes) { n.fx = null; n.fy = null; }
+  }
+  rerender();
 }
 
 function renderGraph(nodes, links) {
@@ -579,6 +722,51 @@ function renderGraph(nodes, links) {
       .attr('fill','#8090b0').attr('fill-opacity',0.3).attr('font-size',14).attr('font-family','sans-serif');
     container.append('text').attr('x', cx+220).attr('y', cy-260).text('AI')
       .attr('fill','#00d4aa').attr('fill-opacity',0.3).attr('font-size',14).attr('font-family','sans-serif');
+  }
+
+  // Radial layout: compute positions and draw ring guides
+  let radialTiers = null;
+  if (layout === 'radial') {
+    radialTiers = computeRadialPositions(nodes, links, width, height);
+    const maxTier = Math.max(...radialTiers.values(), 1);
+    const minR = 40, maxR = Math.min(width, height) * 0.42;
+
+    const ringGroup = container.append('g').attr('class', 'tier-rings');
+    for (let t = 0; t <= maxTier + 1; t++) {
+      const r = t === 0 ? minR : minR + (t / maxTier) * (maxR - minR);
+      ringGroup.append('circle')
+        .attr('cx', cx).attr('cy', cy).attr('r', r)
+        .attr('fill', 'none')
+        .attr('stroke', '#1a1e30')
+        .attr('stroke-width', 0.5)
+        .attr('stroke-opacity', 0.5);
+      // Tier label
+      const label = t === 0 ? 'Principles' : t === 1 ? 'Axioms' : t === maxTier + 1 ? 'References' : 'Tier ' + t;
+      ringGroup.append('text')
+        .attr('x', cx + r + 4).attr('y', cy - 4)
+        .text(label)
+        .attr('font-size', 8)
+        .attr('fill', '#2a3050')
+        .attr('font-family', 'sans-serif');
+    }
+
+    // Domain sector labels along outer ring
+    const labelR = maxR + 20;
+    for (const [domain, angleDeg] of Object.entries(DOMAIN_ANGLES)) {
+      if (angleDeg === null) continue;
+      const a = angleDeg * Math.PI / 180;
+      const name = DOMAIN_NAMES[domain] || domain;
+      ringGroup.append('text')
+        .attr('x', cx + labelR * Math.cos(a))
+        .attr('y', cy + labelR * Math.sin(a))
+        .text(name)
+        .attr('font-size', 9)
+        .attr('fill', COLORS[domain] || '#3a4560')
+        .attr('fill-opacity', 0.5)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('font-family', 'sans-serif');
+    }
   }
 
   // Zoom
@@ -658,9 +846,9 @@ function renderGraph(nodes, links) {
   nodeEls = container.append('g').selectAll('g').data(nodes).join('g')
     .style('cursor','pointer')
     .call(d3.drag()
-      .on('start', (e,d) => { if(!e.active) simulation.alphaTarget(0.1).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('start', (e,d) => { if(simulation && !e.active) simulation.alphaTarget(0.1).restart(); d.fx=d.x; d.fy=d.y; })
       .on('drag', (e,d) => { d.fx=e.x; d.fy=e.y; })
-      .on('end', (e,d) => { if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; })
+      .on('end', (e,d) => { if(simulation && !e.active) simulation.alphaTarget(0); if(layout!=='radial'){d.fx=null;d.fy=null;} })
     )
     .on('click', (e,d) => {
       e.stopPropagation();
@@ -746,53 +934,68 @@ function renderGraph(nodes, links) {
     .attr('font-family',"'Segoe UI', system-ui, sans-serif")
     .attr('font-weight', d => (d.type==='fp'||d.type==='hsk') ? 600 : 400);
 
-  // Force — Venn mode uses different cluster positions
-  let clusterFn;
-  if (layerMode === 'venn') {
-    clusterFn = getVennClusterPos;
+  if (layout === 'radial') {
+    // Radial layout: positions pre-computed, no force simulation
+    // Resolve link source/target references (d3 forceLink normally does this)
+    const nodeById = new Map(nodes.map(n => [n.id, n]));
+    for (const l of links) {
+      if (typeof l.source === 'string') l.source = nodeById.get(l.source) || l.source;
+      if (typeof l.target === 'string') l.target = nodeById.get(l.target) || l.target;
+    }
+    linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+      .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeEls.attr('transform',d=>`translate(${d.x},${d.y})`);
+    labelEls.attr('x',d=>d.x).attr('y',d=>d.y-nRadius(d)-4);
+    simulation = null;
   } else {
-    clusterFn = getClusterPos;
-  }
+    // Force — Venn mode uses different cluster positions
+    let clusterFn;
+    if (layerMode === 'venn') {
+      clusterFn = getVennClusterPos;
+    } else {
+      clusterFn = getClusterPos;
+    }
 
-  simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d=>d.id)
-      .distance(d => {
-        if (d.type==='quote-resonance') return 100;
-        if (d.type==='tes-reference') return 80;
-        if (d.type==='ai-supports') return 40;
-        if (d.type==='ai-interface') return 70;
-        if (d.type==='requires-knowledge') return 60;
-        if (d.type==='delegates-to') return 50;
-        return 50;
-      })
-      .strength(d => {
-        if (d.type==='quote-resonance') return 0.04;
-        if (d.type==='tes-reference') return 0.1;
-        if (d.type==='ai-supports') return 0.4;
-        if (d.type==='ai-interface') return 0.15;
-        if (d.type==='requires-knowledge') return 0.2;
-        if (d.type==='delegates-to') return 0.25;
-        return 0.3;
+    simulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d=>d.id)
+        .distance(d => {
+          if (d.type==='quote-resonance') return 100;
+          if (d.type==='tes-reference') return 80;
+          if (d.type==='ai-supports') return 40;
+          if (d.type==='ai-interface') return 70;
+          if (d.type==='requires-knowledge') return 60;
+          if (d.type==='delegates-to') return 50;
+          return 50;
+        })
+        .strength(d => {
+          if (d.type==='quote-resonance') return 0.04;
+          if (d.type==='tes-reference') return 0.1;
+          if (d.type==='ai-supports') return 0.4;
+          if (d.type==='ai-interface') return 0.15;
+          if (d.type==='requires-knowledge') return 0.2;
+          if (d.type==='delegates-to') return 0.25;
+          return 0.3;
+        }))
+      .force('charge', d3.forceManyBody().strength(d => {
+        if (d.type==='quote') return -15;
+        if (d.type==='tes' || d.type==='ifc') return -30;
+        return -120 - d.fanOut*20;
       }))
-    .force('charge', d3.forceManyBody().strength(d => {
-      if (d.type==='quote') return -15;
-      if (d.type==='tes' || d.type==='ifc') return -30;
-      return -120 - d.fanOut*20;
-    }))
-    .force('center', d3.forceCenter(cx,cy).strength(0.05))
-    .force('cx', d3.forceX(d => cx + clusterFn(d).x).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
-    .force('cy', d3.forceY(d => cy + clusterFn(d).y).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
-    .force('collide', d3.forceCollide().radius(d => {
-      if (d.type==='quote') return 3;
-      if (d.type==='tes' || d.type==='ifc') return 5;
-      return 8 + Math.sqrt(d.fanOut)*3;
-    }).strength(0.7))
-    .alphaDecay(0.02).velocityDecay(0.3)
-    .on('tick', () => {
-      linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
-      nodeEls.attr('transform',d=>`translate(${d.x},${d.y})`);
-      labelEls.attr('x',d=>d.x).attr('y',d=>d.y-nRadius(d)-4);
-    });
+      .force('center', d3.forceCenter(cx,cy).strength(0.05))
+      .force('cx', d3.forceX(d => cx + clusterFn(d).x).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
+      .force('cy', d3.forceY(d => cy + clusterFn(d).y).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
+      .force('collide', d3.forceCollide().radius(d => {
+        if (d.type==='quote') return 3;
+        if (d.type==='tes' || d.type==='ifc') return 5;
+        return 8 + Math.sqrt(d.fanOut)*3;
+      }).strength(0.7))
+      .alphaDecay(0.02).velocityDecay(0.3)
+      .on('tick', () => {
+        linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+        nodeEls.attr('transform',d=>`translate(${d.x},${d.y})`);
+        labelEls.attr('x',d=>d.x).attr('y',d=>d.y-nRadius(d)-4);
+      });
+  }
 }
 
 // --- Venn Cluster Positions ---------------------------------------------------
@@ -1261,6 +1464,10 @@ function buildToolbar() {
       <button class="mode-btn" onclick="setMode('focus')">Focus</button>
       <button class="mode-btn" onclick="setMode('lineage')">Lineage</button>
       <button class="mode-btn" onclick="setMode('query')">Query</button>
+    </div>
+    <div class="tb-section">
+      <button class="layout-btn active" onclick="setLayout('force')">Force</button>
+      <button class="layout-btn" onclick="setLayout('radial')">Radial</button>
     </div>
     <div class="tb-section">
       <button class="layer-btn" onclick="setLayer('human')">Human</button>
