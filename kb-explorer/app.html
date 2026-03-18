@@ -667,6 +667,9 @@ function computeRadialPositions(nodes, links, width, height) {
 
 function rerender() {
   if (simulation) { simulation.stop(); simulation = null; }
+  // Reset zoom transform before re-render
+  const svg = d3.select('#graph');
+  if (zoomBehavior) svg.call(zoomBehavior.transform, d3.zoomIdentity);
   const vis = getVisibleData();
   renderGraph(vis.nodes, vis.links);
   setTimeout(fitAll, 500);
@@ -706,9 +709,9 @@ function renderGraph(nodes, links) {
       .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#605020');
   }
 
-  // Remove old container contents but preserve defs and zoom
-  svg.selectAll('g').remove();
-  const container = svg.append('g');
+  // Remove old container but preserve defs and zoom binding
+  svg.select('.graph-container').remove();
+  const container = svg.append('g').attr('class', 'graph-container');
 
   // Venn mode background circles
   const cx = width/2, cy = height/2;
@@ -774,7 +777,7 @@ function renderGraph(nodes, links) {
   if (!zoomBehavior) {
     zoomBehavior = d3.zoom().scaleExtent([0.15,5])
       .on('zoom', e => {
-        svg.select('g').attr('transform', e.transform);
+        svg.select('.graph-container').attr('transform', e.transform);
         if (labelEls && window._labelVisible) {
           const k = e.transform.k;
           labelEls.attr('fill-opacity', d => {
