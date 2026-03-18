@@ -670,14 +670,33 @@ function computeRadialPositions(nodes, links, width, height) {
     : computeTiers(nodes, links);
   const maxTier = Math.max(...tiers.values(), 1);
 
-  // Large radii — fitAll() will zoom out to show everything,
-  // then user zooms in to see detail (semantic zoom handles density)
-  const minRadius = 120;
-  const maxRadius = Math.min(width, height) * 1.5;
+  // Adaptive ring spacing — denser rings get more radial space
+  const minRadius = 60;
+  const baseSpacing = 50; // minimum spacing between rings
+
+  // Count nodes per tier
+  const tierCounts = new Map();
+  for (const n of nodes) {
+    const t = tiers.get(n.id) || 0;
+    tierCounts.set(t, (tierCounts.get(t) || 0) + 1);
+  }
+
+  // Compute cumulative radii: each ring's space is baseSpacing + extra for node density
+  const tierRadii = new Map();
+  tierRadii.set(0, minRadius);
+  const sortedTiers = [...new Set(tiers.values())].sort((a,b) => a - b);
+  for (let i = 1; i < sortedTiers.length; i++) {
+    const t = sortedTiers[i];
+    const prevT = sortedTiers[i-1];
+    const prevR = tierRadii.get(prevT);
+    const count = tierCounts.get(t) || 1;
+    // More nodes → more space, but use sqrt to moderate
+    const space = baseSpacing + Math.sqrt(count) * 12;
+    tierRadii.set(t, prevR + space);
+  }
 
   function tierRadius(t) {
-    if (t === 0) return minRadius;
-    return minRadius + (t / maxTier) * (maxRadius - minRadius);
+    return tierRadii.get(t) || minRadius;
   }
 
   // Group nodes by (tier, domain)
@@ -795,7 +814,16 @@ function renderGraph(nodes, links) {
   if (layout === 'radial') {
     radialTiers = computeRadialPositions(nodes, links, width, height);
     const maxTier = Math.max(...radialTiers.values(), 1);
-    const minR = 80, maxR = Math.min(width, height) * 1.4;
+    // Get actual computed radii from the node positions
+    const actualRadii = new Map();
+    for (const n of nodes) {
+      const t = radialTiers.get(n.id);
+      if (t !== undefined && !actualRadii.has(t)) {
+        const dx = n.x - cx, dy = n.y - cy;
+        actualRadii.set(t, Math.sqrt(dx*dx + dy*dy));
+      }
+    }
+    const maxR = Math.max(...actualRadii.values(), 200);
 
     const ringGroup = container.append('g').attr('class', 'tier-rings');
 
@@ -809,10 +837,11 @@ function renderGraph(nodes, links) {
       const halfGap = (nextAngle - angleDeg) / 2;
       const a1 = (angleDeg - halfGap) * Math.PI / 180;
       const a2 = (angleDeg + halfGap) * Math.PI / 180;
-      const outerR = maxR + 40;
+      const outerR = maxR + 30;
+      const innerR = Math.max((actualRadii.get(0) || 60) * 0.5, 20);
       // Wedge path from center to outer
       const arc = d3.arc()
-        .innerRadius(minR * 0.5)
+        .innerRadius(innerR)
         .outerRadius(outerR)
         .startAngle(a1 - Math.PI/2)
         .endAngle(a2 - Math.PI/2);
@@ -828,8 +857,8 @@ function renderGraph(nodes, links) {
       // Radial divider line at sector boundary
       const divAngle = (angleDeg - halfGap) * Math.PI / 180;
       ringGroup.append('line')
-        .attr('x1', cx + minR * 0.5 * Math.cos(divAngle))
-        .attr('y1', cy + minR * 0.5 * Math.sin(divAngle))
+        .attr('x1', cx + innerR * Math.cos(divAngle))
+        .attr('y1', cy + innerR * Math.sin(divAngle))
         .attr('x2', cx + outerR * Math.cos(divAngle))
         .attr('y2', cy + outerR * Math.sin(divAngle))
         .attr('stroke', '#1a1e30')
@@ -837,7 +866,7 @@ function renderGraph(nodes, links) {
         .attr('stroke-opacity', 0.4);
 
       // Domain name along the sector center line
-      const labelR = maxR + 55;
+      const labelR = maxR + 45;
       const a = angleDeg * Math.PI / 180;
       const name = DOMAIN_NAMES[domain] || domain;
       ringGroup.append('text')
@@ -855,8 +884,9 @@ function renderGraph(nodes, links) {
     }
 
     // Tier ring guides (on top of wedges)
-    for (let t = 0; t <= maxTier + 1; t++) {
-      const r = t === 0 ? minR : minR + (t / maxTier) * (maxR - minR);
+    const ringTiers = [...actualRadii.keys()].sort((a,b) => a - b);
+    for (const t of ringTiers) {
+      const r = actualRadii.get(t) || 60;
       ringGroup.append('circle')
         .attr('cx', cx).attr('cy', cy).attr('r', r)
         .attr('fill', 'none')
