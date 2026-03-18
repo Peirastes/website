@@ -706,7 +706,15 @@ function computeRadialPositions(nodes, links, width, height) {
   function getRadialDomain(n) {
     // HSK nodes: map skillDomain to knowledge domain
     if (n.type === 'hsk') {
-      const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', DEV:'PHYS', BIZ:'TF' };
+      const sdMap = { PHYS:'PHYS', PED:'PED', RES:'EPI', ENG:'DSL', BIZ:'EPI' };
+      // DEV skills: map by specific skill
+      if (n.skillDomain === 'DEV') {
+        const t = (n.title || '').toLowerCase();
+        if (t.includes('physics') || t.includes('simulation') || t.includes('python scientific')) return 'PHYS';
+        if (t.includes('3d') || t.includes('visualization') || t.includes('data viz')) return 'PHYS';
+        if (t.includes('dashboard') || t.includes('monitoring')) return 'TF';
+        return 'ai_shared';
+      }
       return sdMap[n.skillDomain] || 'EPI';
     }
     // ALL agent skills map to knowledge domains — no agent sectors
@@ -715,24 +723,40 @@ function computeRadialPositions(nodes, links, width, height) {
       if (n.owner === 'TA') return 'PED';
       // RA → Research & Epistemology (research IS epistemology)
       if (n.owner === 'RA') return 'EPI';
-      // CE → Physics (most CE work builds physics simulations/tools)
-      //   except pipeline/infra skills → DSL (engineering systems)
+      // CE → map each skill to the domain it actually serves
       if (n.owner === 'CE') {
-        const title = (n.title || '').toLowerCase();
-        if (title.includes('simulation') || title.includes('numerical') || title.includes('scientific') || title.includes('physics')) return 'PHYS';
-        return 'DSL'; // engineering/systems work → dynamical systems
+        const t = (n.title || '').toLowerCase();
+        // Physics: simulation, numerical methods, scientific viz/docs
+        if (t.includes('simulation') || t.includes('numerical') || t.includes('scientific') || t.includes('physics')) return 'PHYS';
+        // Pedagogy: TA pipeline support, KaTeX math, Manim animations, Quarto docs
+        if (t.includes('ta agent') || t.includes('katex') || t.includes('manim') || t.includes('quarto') || t.includes('pipeline')) return 'PED';
+        // ECDO: geospatial/CesiumJS
+        if (t.includes('cesium') || t.includes('geospatial')) return 'ECDO';
+        // Research: D3 visualization (KB Explorer), Claude API, version control
+        if (t.includes('d3') || t.includes('claude')) return 'EPI';
+        if (t.includes('version control')) return 'ai_shared';
+        // TF: charting/time-series (market dashboards)
+        if (t.includes('chart') || t.includes('time-series')) return 'TF';
+        // General engineering tools → Shared Tools sector
+        return 'ai_shared';
       }
-      // CD → Pedagogy (content creation primarily serves teaching/books)
+      // CD → map by content type
       if (n.owner === 'CD') {
-        const title = (n.title || '').toLowerCase();
-        if (title.includes('pedagogy') || title.includes('course') || title.includes('lesson')) return 'PED';
-        if (title.includes('debate') || title.includes('philosophical') || title.includes('voice')) return 'EPI';
-        return 'PED'; // default: content serves pedagogy
+        const t = (n.title || '').toLowerCase();
+        if (t.includes('pedagogy') || t.includes('course') || t.includes('lesson') || t.includes('ebook')) return 'PED';
+        if (t.includes('debate') || t.includes('philosophical')) return 'EPI';
+        if (t.includes('marketing') || t.includes('brand') || t.includes('audience')) return 'ai_shared';
+        return 'PED';
       }
-      // PM → Research & Epistemology (project management serves the research mission)
+      // PM → EPI (project management uses epistemological reasoning)
       if (n.owner === 'PM') return 'EPI';
-      // SA → Pedagogy (publishing serves the teaching/outreach mission)
-      if (n.owner === 'SA') return 'PED';
+      // SA → map by function
+      if (n.owner === 'SA') {
+        const t = (n.title || '').toLowerCase();
+        if (t.includes('youtube') || t.includes('publish')) return 'PED';
+        if (t.includes('seo') || t.includes('analytics') || t.includes('storefront') || t.includes('payment') || t.includes('web')) return 'ai_shared';
+        return 'ai_shared';
+      }
     }
     // IFC interfaces → EPI (coordination methodology)
     if (n.type === 'ifc') return 'EPI';
