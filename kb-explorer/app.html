@@ -761,8 +761,13 @@ function computeRadialPositions(nodes, links, width, height) {
     }
     // ALL agent skills map to knowledge domains — no agent sectors
     if (n.type === 'sop' || n.type === 'skl') {
-      // TA → Pedagogy (teaching IS pedagogy)
-      if (n.owner === 'TA') return 'PED';
+      // TA → mostly Pedagogy, but some skills are physics or tooling
+      if (n.owner === 'TA') {
+        const t = (n.title || '').toLowerCase();
+        if (t.includes('physics content') || t.includes('figure')) return 'PHYS';
+        if (t.includes('pipeline') || t.includes('document')) return 'ai_shared';
+        return 'PED';
+      }
       // RA → Research & Epistemology (research IS epistemology)
       if (n.owner === 'RA') return 'EPI';
       // CE → map each skill to the domain it actually serves
