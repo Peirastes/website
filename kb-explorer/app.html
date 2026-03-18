@@ -44,7 +44,7 @@
       width: 100vw;
     }
 
-    /* ─── Toolbar ─────────────────────────────────────────────────── */
+    /* --- Toolbar ---------------------------------------------------------- */
     #toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -62,7 +62,7 @@
     .tb-section { display: flex; align-items: center; gap: 6px; }
     .tb-section.search { margin-left: auto; }
 
-    /* ─── Filter Sidebar ─────────────────────────────────────────── */
+    /* --- Filter Sidebar --------------------------------------------------- */
     #filter-panel {
       position: fixed;
       top: 40px; left: 0;
@@ -101,6 +101,20 @@
 
     .mode-btn.active { background: #2a3560; color: var(--text); border-color: var(--border-hover); }
     .mode-btn:hover { background: #252a40; }
+
+    .layer-btn {
+      background: var(--bg-input);
+      border: 1px solid #2a3050;
+      color: var(--text-dim);
+      padding: 3px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.15s;
+    }
+
+    .layer-btn.active { background: #1a4a40; color: #00d4aa; border-color: #2a6a5a; }
+    .layer-btn:hover { background: #1a3a35; }
 
     .domain-filter {
       display: flex;
@@ -141,7 +155,7 @@
 
     .act-btn:hover { background: #252a40; }
 
-    /* ─── Graph ───────────────────────────────────────────────────── */
+    /* --- Graph ------------------------------------------------------------ */
     #graph {
       position: fixed;
       top: 40px; left: 150px; right: 0;
@@ -150,7 +164,7 @@
       height: calc(100vh - 66px);
     }
 
-    /* ─── Side Panel ──────────────────────────────────────────────── */
+    /* --- Side Panel ------------------------------------------------------- */
     #panel {
       position: fixed;
       top: 40px;
@@ -198,6 +212,10 @@
     .badge-established { background: #50c87818; color: var(--accent-green); }
     .badge-hypothesized { background: #fbbf2418; color: var(--accent-amber); }
     .badge-speculative { background: #f8717118; color: var(--accent-red); }
+    .badge-layer-human { background: #8090b015; color: #8090b0; border: 1px solid #8090b030; }
+    .badge-layer-ai { background: #00d4aa15; color: #00d4aa; border: 1px solid #00d4aa30; }
+    .badge-active { background: #00d4aa20; color: #00d4aa; }
+    .badge-draft { background: #77aaff20; color: #77aaff; }
 
     .p-body { padding: 12px 16px; }
     .p-section { margin-bottom: 14px; }
@@ -221,7 +239,7 @@
     }
     .dep-link:hover { background: #2a3560; color: var(--text); border-color: var(--border-hover); }
 
-    /* ─── Stats ───────────────────────────────────────────────────── */
+    /* --- Stats ------------------------------------------------------------ */
     #stats {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -240,7 +258,7 @@
 
     #stats .sep { color: #2a3050; }
 
-    /* ─── Tooltip ─────────────────────────────────────────────────── */
+    /* --- Tooltip ---------------------------------------------------------- */
     #tooltip {
       position: fixed;
       display: none;
@@ -257,7 +275,7 @@
 
     .tt-meta { color: var(--text-dim); font-size: 10px; }
 
-    /* ─── Legend ───────────────────────────────────────────────────── */
+    /* --- Legend ----------------------------------------------------------- */
     #legend {
       position: fixed;
       bottom: 34px; left: 160px;
@@ -278,6 +296,9 @@
     .lg-shape.circle { border-radius: 50%; background: var(--accent-steel); }
     .lg-shape.tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 9px solid var(--accent-gray); }
     .lg-shape.ring { border-radius: 50%; border: 1.5px solid #a08850; }
+    .lg-shape.hexagon { background: #00d4aa; clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%); }
+    .lg-shape.pentagon { background: #77aaff; clip-path: polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%); }
+    .lg-shape.tool-sq { background: #7a8a9a; border-radius: 3px; }
 
     @keyframes pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 0.5; } }
     .pulse { animation: pulse 2.5s ease-in-out infinite; }
@@ -300,34 +321,65 @@
   <div class="lg-row"><span class="lg-shape circle"></span> Claim</div>
   <div class="lg-row"><span class="lg-shape tri"></span> TES Concept</div>
   <div class="lg-row"><span class="lg-shape ring"></span> Quote</div>
+  <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;font-size:8px;color:#3a4560;text-transform:uppercase;letter-spacing:1px">AI KB</div>
+  <div class="lg-row"><span class="lg-shape diamond" style="background:#90a8c0"></span> Agent Principle</div>
+  <div class="lg-row"><span class="lg-shape hexagon"></span> SOP</div>
+  <div class="lg-row"><span class="lg-shape pentagon"></span> Skill</div>
+  <div class="lg-row"><span class="lg-shape tool-sq"></span> Tool</div>
   <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;">
     <div>Solid = Established</div>
     <div>Pulsing = Hypothesized</div>
     <div>Faint = Speculative</div>
   </div>
-  <div style="margin-top:3px;color:#2a3050">Keys: 1/2 mode · F fit · Esc close</div>
+  <div style="margin-top:3px;color:#2a3050">Keys: 1/2 mode &middot; 3/4/5 layer &middot; F fit &middot; Esc close</div>
 </div>
 <script>
-// ─── Constants ───────────────────────────────────────────────────────────────
+// --- Constants ----------------------------------------------------------------
 const COLORS = {
   foundation:'#8090b0', EPI:'#6ea8fe', ECDO:'#e07050', TF:'#50c878',
-  DSL:'#c084fc', PED:'#fbbf24', ARCH:'#f87171', tes:'#607080', quotes:'#a08850', unknown:'#555'
+  DSL:'#c084fc', PED:'#fbbf24', ARCH:'#f87171', tes:'#607080', quotes:'#a08850', unknown:'#555',
+  ai_foundation:'#90a8c0', ai_shared:'#7a8a9a',
+  CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
 const DOMAIN_NAMES = {
   foundation:'Foundation', EPI:'Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
-  DSL:'Dynamical Systems', PED:'Pedagogy', ARCH:'Archaeoastronomy', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown'
+  DSL:'Dynamical Systems', PED:'Pedagogy', ARCH:'Archaeoastronomy', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
+  ai_foundation:'Agent Principles', ai_shared:'Shared', CE:'CE Agent', CD:'CD Agent', PM:'PM Agent', RA:'RA Agent', SA:'SA Agent', TA:'TA Agent'
 };
-const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15 };
-const CLUSTER = {
+const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
+  Active:1, Draft:0.6, Deprecated:0.25, Proposed:0.7 };
+const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
+
+const CLUSTER_HUMAN = {
   foundation:{x:0,y:-120}, EPI:{x:-160,y:-50}, ECDO:{x:160,y:-50},
   TF:{x:-120,y:80}, DSL:{x:-30,y:120}, PED:{x:120,y:80}, ARCH:{x:180,y:30},
   tes:{x:0,y:0}, quotes:{x:0,y:200}
 };
+const CLUSTER_AI = {
+  ai_foundation:{x:0,y:-120}, ai_shared:{x:0,y:0},
+  CE:{x:-160,y:-50}, CD:{x:160,y:-50}, PM:{x:0,y:-80},
+  RA:{x:-120,y:80}, SA:{x:120,y:80}, TA:{x:0,y:120}
+};
+
+function getClusterPos(d) {
+  const dom = d.domain;
+  if (layerMode === 'both') {
+    if (CLUSTER_HUMAN[dom]) return { x: CLUSTER_HUMAN[dom].x - 200, y: CLUSTER_HUMAN[dom].y };
+    if (CLUSTER_AI[dom]) return { x: CLUSTER_AI[dom].x + 200, y: CLUSTER_AI[dom].y };
+    return { x: 0, y: 0 };
+  }
+  return CLUSTER_HUMAN[dom] || CLUSTER_AI[dom] || { x: 0, y: 0 };
+}
 
 function nColor(n) { return COLORS[n.domain] || COLORS.unknown; }
 function nOpacity(n) {
   if (n.type==='fp') return 1; if (n.type==='da') return 0.95;
   if (n.type==='tes') return 0.6; if (n.type==='quote') return 0.4;
+  if (n.type==='ap') return 1.0;
+  if (n.type==='tool') return 0.85;
+  if (n.type==='ifc') return 0.7;
+  if (n.type==='sop') return STATUS_OP[n.status] || 0.8;
+  if (n.type==='skl') return PROFICIENCY_OP[n.proficiency] || 0.5;
   return STATUS_OP[n.status] || 0.5;
 }
 function nRadius(n) {
@@ -335,17 +387,40 @@ function nRadius(n) {
   if (n.type==='quote') return 2.5;
   if (n.type==='fp') return 6 + Math.sqrt(n.fanOut)*2.5;
   if (n.type==='da') return 5 + Math.sqrt(n.fanOut)*2;
+  if (n.type==='ap') return 6 + Math.sqrt(n.fanOut)*2.5;
+  if (n.type==='sop') return 6 + Math.sqrt(n.fanOut)*2;
+  if (n.type==='skl') return 4 + Math.sqrt(n.fanOut)*2;
+  if (n.type==='tool') return 4 + Math.sqrt(n.fanOut)*2;
+  if (n.type==='ifc') return 3.5;
   return 5 + Math.sqrt(n.fanOut)*3;
 }
 
-// ─── State ───────────────────────────────────────────────────────────────────
+function hexPath(r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI/3)*i - Math.PI/2;
+    pts.push(`${r*Math.cos(a)},${r*Math.sin(a)}`);
+  }
+  return `M${pts.join('L')}Z`;
+}
+function pentPath(r) {
+  const pts = [];
+  for (let i = 0; i < 5; i++) {
+    const a = (2*Math.PI/5)*i - Math.PI/2;
+    pts.push(`${r*Math.cos(a)},${r*Math.sin(a)}`);
+  }
+  return `M${pts.join('L')}Z`;
+}
+
+// --- State --------------------------------------------------------------------
 let mode = 'survey';
+let layerMode = 'both';
 let focusedIds = new Set();
 let simulation, nodeEls, linkEls, labelEls, zoomBehavior;
 let graphData;
-let quotesByNode = new Map(); // nodeId → [quote nodes]
+let quotesByNode = new Map();
 
-// ─── ID Rename System ────────────────────────────────────────────────────────
+// --- ID Rename System ---------------------------------------------------------
 const idRenames = JSON.parse(localStorage.getItem('kb-id-renames') || '{}');
 
 function displayId(originalId) {
@@ -361,7 +436,21 @@ function saveRename(originalId, newName) {
   localStorage.setItem('kb-id-renames', JSON.stringify(idRenames));
 }
 
-// ─── Load & Render ───────────────────────────────────────────────────────────
+// --- Visible Data Filter ------------------------------------------------------
+function getVisibleData() {
+  let vn = graphData.nodes;
+  if (layerMode === 'human') vn = vn.filter(n => n.layer === 'human');
+  else if (layerMode === 'ai') vn = vn.filter(n => n.layer === 'ai');
+  const ids = new Set(vn.map(n => n.id));
+  const vl = graphData.links.filter(l => {
+    const s = typeof l.source === 'string' ? l.source : l.source.id;
+    const t = typeof l.target === 'string' ? l.target : l.target.id;
+    return ids.has(s) && ids.has(t);
+  });
+  return { nodes: vn, links: vl };
+}
+
+// --- Load & Render ------------------------------------------------------------
 async function init() {
   const resp = await fetch('kb-data.json');
   graphData = await resp.json();
@@ -385,14 +474,19 @@ async function init() {
 
   buildToolbar();
   buildStats();
-  renderGraph(nodes, links);
+  const vis = getVisibleData();
+  renderGraph(vis.nodes, vis.links);
   setTimeout(fitAll, 2000);
 
   document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
     if (e.key === 'Escape') { closePanel(); clearFocus(); }
-    if ((e.key === 'f' || e.key === 'F') && document.activeElement.tagName !== 'INPUT') fitAll();
+    if (e.key === 'f' || e.key === 'F') fitAll();
     if (e.key === '1') setMode('survey');
     if (e.key === '2') setMode('focus');
+    if (e.key === '3') setLayer('human');
+    if (e.key === '4') setLayer('both');
+    if (e.key === '5') setLayer('ai');
   });
 }
 
@@ -403,13 +497,19 @@ function graphSize() {
 
 function renderGraph(nodes, links) {
   const svg = d3.select('#graph');
+  svg.selectAll('*').remove();
   const { width, height } = graphSize();
 
   // Defs
-  svg.append('defs').append('marker')
+  const defs = svg.append('defs');
+  defs.append('marker')
     .attr('id','arr').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
     .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
     .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#445');
+  defs.append('marker')
+    .attr('id','arr-ai').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
+    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+    .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#2a5a50');
 
   const container = svg.append('g');
 
@@ -417,7 +517,6 @@ function renderGraph(nodes, links) {
   zoomBehavior = d3.zoom().scaleExtent([0.15,5])
     .on('zoom', e => {
       container.attr('transform', e.transform);
-      // Reveal labels for low-fanout claims when zoomed in
       if (labelEls) {
         const k = e.transform.k;
         labelEls.attr('fill-opacity', d => {
@@ -435,10 +534,32 @@ function renderGraph(nodes, links) {
 
   // Links
   linkEls = container.append('g').selectAll('line').data(links).join('line')
-    .attr('stroke', d => d.type==='quote-resonance' ? '#3a3520' : d.type==='tes-reference' ? '#2a3040' : '#3a4560')
-    .attr('stroke-width', d => (d.type==='tes-reference' || d.type==='quote-resonance') ? 0.5 : 1)
-    .attr('stroke-opacity', d => d.type==='quote-resonance' ? 0.12 : d.type==='tes-reference' ? 0.3 : 0.5)
-    .attr('marker-end', d => d.type==='dependency' ? 'url(#arr)' : null);
+    .attr('stroke', d => {
+      if (d.type==='quote-resonance') return '#3a3520';
+      if (d.type==='tes-reference') return '#2a3040';
+      if (d.type==='ai-dependency') return '#1a4a40';
+      if (d.type==='ai-supports') return '#2a4a50';
+      if (d.type==='ai-interface') return '#3a3a50';
+      return '#3a4560';
+    })
+    .attr('stroke-width', d => {
+      if (d.type==='tes-reference' || d.type==='quote-resonance') return 0.5;
+      if (d.type==='ai-interface') return 0.5;
+      return 1;
+    })
+    .attr('stroke-opacity', d => {
+      if (d.type==='quote-resonance') return 0.12;
+      if (d.type==='tes-reference') return 0.3;
+      if (d.type==='ai-dependency') return 0.5;
+      if (d.type==='ai-supports') return 0.5;
+      if (d.type==='ai-interface') return 0.35;
+      return 0.5;
+    })
+    .attr('marker-end', d => {
+      if (d.type==='dependency') return 'url(#arr)';
+      if (d.type==='ai-dependency' || d.type==='ai-supports') return 'url(#arr-ai)';
+      return null;
+    });
 
   // Nodes
   nodeEls = container.append('g').selectAll('g').data(nodes).join('g')
@@ -451,7 +572,6 @@ function renderGraph(nodes, links) {
     .on('click', (e,d) => { e.stopPropagation(); if(mode==='focus') setFocus(d); showPanel(d); })
     .on('mouseenter', (e,d) => {
       showTooltip(d,e);
-      // Reveal this node's label on hover even if normally hidden
       labelEls.filter(ld => ld.id === d.id).attr('fill-opacity', 0.9);
     })
     .on('mouseleave', (e,d) => {
@@ -463,14 +583,26 @@ function renderGraph(nodes, links) {
 
   nodeEls.each(function(d) {
     const g = d3.select(this); const r = nRadius(d);
-    if (d.type==='fp') {
+    if (d.type==='fp' || d.type==='ap') {
       g.append('path').attr('d',`M0,${-r} L${r},0 L0,${r} L${-r},0 Z`)
         .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
     } else if (d.type==='da') {
       g.append('rect').attr('x',-r).attr('y',-r).attr('width',r*2).attr('height',r*2).attr('rx',2)
         .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
+    } else if (d.type==='tool') {
+      g.append('rect').attr('x',-r).attr('y',-r).attr('width',r*2).attr('height',r*2).attr('rx',3)
+        .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
+    } else if (d.type==='sop') {
+      g.append('path').attr('d', hexPath(r))
+        .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
+    } else if (d.type==='skl') {
+      g.append('path').attr('d', pentPath(r))
+        .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
+    } else if (d.type==='ifc') {
+      const tr = r;
+      g.append('path').attr('d',`M0,${-tr} L${tr},${tr*0.7} L${-tr},${tr*0.7} Z`)
+        .attr('fill', COLORS.ai_shared).attr('fill-opacity',nOpacity(d)).attr('stroke', COLORS.ai_shared).attr('stroke-width',0.5).attr('stroke-opacity',0.8);
     } else if (d.type==='quote') {
-      // Open ring — hollow circle with warm stroke
       g.append('circle').attr('r',r)
         .attr('fill','none').attr('stroke',nColor(d)).attr('stroke-width',1).attr('stroke-opacity',nOpacity(d));
     } else {
@@ -482,42 +614,64 @@ function renderGraph(nodes, links) {
 
   nodeEls.filter(d => d.status==='Hypothesized').select('circle,path,rect').classed('pulse',true);
 
-  // Labels — show human-readable titles, not IDs
+  // Labels
   function labelText(d) {
     if (d.type==='quote') return d.author || d.id;
     const name = d.title || d.concept || d.id;
-    const max = d.type==='fp' ? 22 : d.type==='da' ? 18 : 16;
+    const max = (d.type==='fp'||d.type==='ap') ? 22 : (d.type==='da'||d.type==='sop') ? 18 : 16;
     return name.length > max ? name.slice(0, max-1) + '\u2026' : name;
   }
   function labelVisible(d) {
-    if (d.type==='tes' || d.type==='quote') return false;
-    if (d.type==='fp' || d.type==='da') return true;
+    if (d.type==='tes' || d.type==='quote' || d.type==='ifc') return false;
+    if (d.type==='fp' || d.type==='da' || d.type==='ap' || d.type==='sop') return true;
     return d.fanOut >= 2;
   }
+  // Expose for hover/focus use outside renderGraph
+  window._labelVisible = labelVisible;
 
   labelEls = container.append('g').selectAll('text')
-    .data(nodes.filter(d => d.type!=='tes')).join('text')
+    .data(nodes.filter(d => d.type!=='tes' && d.type!=='ifc')).join('text')
     .text(d => labelText(d))
-    .attr('font-size', d => d.type==='fp' ? 10 : d.type==='da' ? 9 : d.type==='quote' ? 7 : 8)
+    .attr('font-size', d => (d.type==='fp'||d.type==='ap') ? 10 : (d.type==='da'||d.type==='sop') ? 9 : d.type==='quote' ? 7 : 8)
     .attr('fill', d => nColor(d))
     .attr('fill-opacity', d => labelVisible(d) ? 0.9 : 0)
     .attr('text-anchor','middle')
     .attr('dy', d => -nRadius(d)-5)
     .attr('pointer-events','none')
     .attr('font-family',"'Segoe UI', system-ui, sans-serif")
-    .attr('font-weight', d => d.type==='fp' ? 600 : 400);
+    .attr('font-weight', d => (d.type==='fp'||d.type==='ap') ? 600 : 400);
 
   // Force
   const cx = width/2, cy = height/2;
   simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d=>d.id)
-      .distance(d => d.type==='quote-resonance'?100:d.type==='tes-reference'?80:50)
-      .strength(d => d.type==='quote-resonance'?0.04:d.type==='tes-reference'?0.1:0.3))
-    .force('charge', d3.forceManyBody().strength(d => d.type==='quote'?-15:d.type==='tes'?-30:-120-d.fanOut*20))
+      .distance(d => {
+        if (d.type==='quote-resonance') return 100;
+        if (d.type==='tes-reference') return 80;
+        if (d.type==='ai-supports') return 40;
+        if (d.type==='ai-interface') return 70;
+        return 50;
+      })
+      .strength(d => {
+        if (d.type==='quote-resonance') return 0.04;
+        if (d.type==='tes-reference') return 0.1;
+        if (d.type==='ai-supports') return 0.4;
+        if (d.type==='ai-interface') return 0.15;
+        return 0.3;
+      }))
+    .force('charge', d3.forceManyBody().strength(d => {
+      if (d.type==='quote') return -15;
+      if (d.type==='tes' || d.type==='ifc') return -30;
+      return -120 - d.fanOut*20;
+    }))
     .force('center', d3.forceCenter(cx,cy).strength(0.05))
-    .force('cx', d3.forceX(d => cx+(CLUSTER[d.domain]||{x:0}).x).strength(d => d.type==='quote'?0.04:0.07))
-    .force('cy', d3.forceY(d => cy+(CLUSTER[d.domain]||{y:0}).y).strength(d => d.type==='quote'?0.04:0.07))
-    .force('collide', d3.forceCollide().radius(d => d.type==='quote'?3:d.type==='tes'?5:8+Math.sqrt(d.fanOut)*3).strength(0.7))
+    .force('cx', d3.forceX(d => cx + getClusterPos(d).x).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
+    .force('cy', d3.forceY(d => cy + getClusterPos(d).y).strength(d => (d.type==='quote'||d.type==='ifc') ? 0.04 : 0.07))
+    .force('collide', d3.forceCollide().radius(d => {
+      if (d.type==='quote') return 3;
+      if (d.type==='tes' || d.type==='ifc') return 5;
+      return 8 + Math.sqrt(d.fanOut)*3;
+    }).strength(0.7))
     .alphaDecay(0.02).velocityDecay(0.3)
     .on('tick', () => {
       linkEls.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
@@ -526,7 +680,7 @@ function renderGraph(nodes, links) {
     });
 }
 
-// ─── Focus Mode ──────────────────────────────────────────────────────────────
+// --- Focus Mode ---------------------------------------------------------------
 function setFocus(node) {
   focusedIds = getChain(node.id);
   applyFocusStyles();
@@ -540,6 +694,7 @@ function clearFocus() {
 function getChain(id) {
   const ids = new Set([id]);
   const { links } = graphData;
+  const depTypes = new Set(['dependency','ai-dependency','ai-supports']);
   // Ancestors
   let q = [id];
   while (q.length) {
@@ -547,17 +702,17 @@ function getChain(id) {
     for (const l of links) {
       const s = typeof l.source==='string'?l.source:l.source.id;
       const t = typeof l.target==='string'?l.target:l.target.id;
-      if (t===c && !ids.has(s) && l.type==='dependency') { ids.add(s); q.push(s); }
+      if (t===c && !ids.has(s) && depTypes.has(l.type)) { ids.add(s); q.push(s); }
     }
   }
-  // Descendants (dependency chain)
+  // Descendants
   q = [id];
   while (q.length) {
     const c = q.shift();
     for (const l of links) {
       const s = typeof l.source==='string'?l.source:l.source.id;
       const t = typeof l.target==='string'?l.target:l.target.id;
-      if (s===c && !ids.has(t) && l.type==='dependency') { ids.add(t); q.push(t); }
+      if (s===c && !ids.has(t) && depTypes.has(l.type)) { ids.add(t); q.push(t); }
     }
   }
   // Include quotes linked to any node in the chain (1-hop)
@@ -571,24 +726,35 @@ function getChain(id) {
   return ids;
 }
 
+function labelVisible(d) {
+  return window._labelVisible ? window._labelVisible(d) : false;
+}
+
 function applyFocusStyles() {
   const f = focusedIds;
   const active = f.size > 0;
   nodeEls.transition().duration(300).style('opacity', d => active ? (f.has(d.id)?1:0.06) : 1);
   linkEls.transition().duration(300).attr('stroke-opacity', d => {
-    if (!active) return d.type==='quote-resonance'?0.12:d.type==='tes-reference'?0.3:0.5;
+    if (!active) {
+      if (d.type==='quote-resonance') return 0.12;
+      if (d.type==='tes-reference') return 0.3;
+      if (d.type==='ai-dependency') return 0.5;
+      if (d.type==='ai-supports') return 0.5;
+      if (d.type==='ai-interface') return 0.35;
+      return 0.5;
+    }
     const s=typeof d.source==='string'?d.source:d.source.id;
     const t=typeof d.target==='string'?d.target:d.target.id;
     if (!(f.has(s)&&f.has(t))) return 0.02;
     return d.type==='quote-resonance'?0.35:0.8;
   });
   labelEls.transition().duration(300).attr('fill-opacity', d => {
-    if (!active) return (d.type==='fp'||d.type==='da'||d.fanOut>=2)?0.9:(d.type==='quote'||d.type==='tes')?0:0.45;
+    if (!active) return labelVisible(d)?0.9:(d.type==='quote'||d.type==='tes'||d.type==='ifc')?0:0.45;
     return f.has(d.id)?1:0.04;
   });
 }
 
-// ─── Side Panel ──────────────────────────────────────────────────────────────
+// --- Side Panel ---------------------------------------------------------------
 function showPanel(n) {
   const p = document.getElementById('panel');
   p.classList.add('open');
@@ -628,7 +794,7 @@ function showPanel(n) {
       <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
         <div class="p-title">${n.title}</div>
         ${idEditHtml(n.id, c)}
-        <div class="p-badges"><span class="badge" style="background:#8090b018;color:#8090b0">First Principle</span></div>
+        <div class="p-badges"><span class="badge badge-layer-human">Human KB</span><span class="badge" style="background:#8090b018;color:#8090b0">First Principle</span></div>
       </div>
       <div class="p-body">
         <div class="p-section"><div class="s-label">Statement</div><div class="s-text">${n.statement}</div></div>
@@ -660,7 +826,111 @@ function showPanel(n) {
         ${n.fpLinks?.length?`<div class="p-section"><div class="s-label">Resonates With</div>
           <div class="dep-list">${n.fpLinks.map(fp=>`<span class="dep-link" onclick="navTo('${fp}')">${displayId(fp)}</span>`).join(' ')}</div></div>`:''}
       </div>`;
+  } else if (n.type === 'ap') {
+    p.innerHTML = `
+      <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+        <div class="p-title">${n.title}</div>
+        ${idEditHtml(n.id, c)}
+        <div class="p-badges"><span class="badge badge-layer-ai">AI KB</span><span class="badge" style="background:#90a8c018;color:#90a8c0">Agent Principle</span></div>
+      </div>
+      <div class="p-body">
+        <div class="p-section"><div class="s-label">Statement</div><div class="s-text">${n.statement}</div></div>
+        ${n.source?`<div class="p-meta"><span class="mk">Source:</span> ${n.source}</div>`:''}
+        ${n.appliedBy?`<div class="p-meta"><span class="mk">Applied by:</span> ${n.appliedBy}</div>`:''}
+        <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
+      </div>`;
+  } else if (n.type === 'sop') {
+    p.innerHTML = `
+      <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+        <div class="p-title">${n.title}</div>
+        ${idEditHtml(n.id, c)}
+        <div class="p-badges">
+          <span class="badge badge-layer-ai">AI KB</span>
+          <span class="badge" style="background:${c}18;color:${c}">${DOMAIN_NAMES[n.domain]||n.domain}</span>
+          <span class="badge badge-${(n.status||'').toLowerCase()}">${n.status||'Active'}</span>
+        </div>
+      </div>
+      <div class="p-body">
+        ${n.description?`<div class="p-section"><div class="s-label">Description</div><div class="s-text">${n.description}</div></div>`:''}
+        <div class="p-meta">
+          ${n.owner?`<div><span class="mk">Owner:</span> ${n.owner}</div>`:''}
+          ${n.contributors?`<div><span class="mk">Contributors:</span> ${n.contributors}</div>`:''}
+          ${n.version?`<div><span class="mk">Version:</span> ${n.version}</div>`:''}
+          ${n.lastUpdated?`<div><span class="mk">Updated:</span> ${n.lastUpdated}</div>`:''}
+          ${n.triggers?`<div><span class="mk">Triggers:</span> ${n.triggers}</div>`:''}
+          ${n.outputs?`<div><span class="mk">Outputs:</span> ${n.outputs}</div>`:''}
+        </div>
+        ${n.dependencies?.length?`<div class="p-section"><div class="s-label">Dependencies</div>
+          <div class="dep-list">${n.dependencies.map(d=>`<span class="dep-link" onclick="navTo('${d}')">${displayId(d)}</span>`).join(' ')}</div></div>`:''}
+        ${n.interfaces?.length?`<div class="p-section"><div class="s-label">Interfaces</div>
+          <div class="dep-list">${n.interfaces.map(d=>`<span class="dep-link" onclick="navTo('${d}')">${displayId(d)}</span>`).join(' ')}</div></div>`:''}
+        ${n.steps?`<div class="p-section"><div class="s-label">Steps</div><div class="s-text">${fmtBullets(n.steps)}</div></div>`:''}
+        ${n.qualityCriteria?`<div class="p-section"><div class="s-label">Quality Criteria</div><div class="s-text">${fmtBullets(n.qualityCriteria)}</div></div>`:''}
+        <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
+      </div>`;
+  } else if (n.type === 'skl') {
+    p.innerHTML = `
+      <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+        <div class="p-title">${n.title}</div>
+        ${idEditHtml(n.id, c)}
+        <div class="p-badges">
+          <span class="badge badge-layer-ai">AI KB</span>
+          <span class="badge" style="background:${c}18;color:${c}">${DOMAIN_NAMES[n.domain]||n.domain}</span>
+          ${n.proficiency?`<span class="badge">${n.proficiency}</span>`:''}
+        </div>
+      </div>
+      <div class="p-body">
+        ${n.description?`<div class="p-section"><div class="s-label">Description</div><div class="s-text">${n.description}</div></div>`:''}
+        <div class="p-meta">
+          ${n.owner?`<div><span class="mk">Owner:</span> ${n.owner}</div>`:''}
+          ${n.status?`<div><span class="mk">Status:</span> ${n.status}</div>`:''}
+          ${n.proficiency?`<div><span class="mk">Proficiency:</span> ${n.proficiency}</div>`:''}
+        </div>
+        ${n.dependencies?.length?`<div class="p-section"><div class="s-label">Dependencies</div>
+          <div class="dep-list">${n.dependencies.map(d=>`<span class="dep-link" onclick="navTo('${d}')">${displayId(d)}</span>`).join(' ')}</div></div>`:''}
+        ${n.appliedIn?.length?`<div class="p-section"><div class="s-label">Applied In</div>
+          <div class="dep-list">${n.appliedIn.map(d=>`<span class="dep-link" onclick="navTo('${d}')">${displayId(d)}</span>`).join(' ')}</div></div>`:''}
+        <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
+      </div>`;
+  } else if (n.type === 'tool') {
+    p.innerHTML = `
+      <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+        <div class="p-title">${n.title}</div>
+        ${idEditHtml(n.id, c)}
+        <div class="p-badges">
+          <span class="badge badge-layer-ai">AI KB</span>
+          ${n.category?`<span class="badge" style="background:#7a8a9a18;color:#7a8a9a">${n.category}</span>`:''}
+        </div>
+      </div>
+      <div class="p-body">
+        ${n.purpose?`<div class="p-section"><div class="s-label">Purpose</div><div class="s-text">${n.purpose}</div></div>`:''}
+        <div class="p-meta">
+          ${n.contributors?`<div><span class="mk">Contributors:</span> ${n.contributors}</div>`:''}
+          ${n.usedBy?`<div><span class="mk">Used by:</span> ${n.usedBy}</div>`:''}
+        </div>
+        <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
+      </div>`;
+  } else if (n.type === 'ifc') {
+    p.innerHTML = `
+      <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+        <div class="p-title">${n.title}</div>
+        ${idEditHtml(n.id, c)}
+        <div class="p-badges">
+          <span class="badge badge-layer-ai">AI KB</span>
+          <span class="badge" style="background:#7a8a9a18;color:#7a8a9a">Interface</span>
+        </div>
+      </div>
+      <div class="p-body">
+        ${n.description?`<div class="p-section"><div class="s-label">Description</div><div class="s-text">${n.description}</div></div>`:''}
+        <div class="p-meta">
+          ${n.ifcSource&&n.ifcTarget?`<div><span class="mk">Direction:</span> ${n.ifcSource} &rarr; ${n.ifcTarget}</div>`:''}
+          ${n.mechanism?`<div><span class="mk">Mechanism:</span> ${n.mechanism}</div>`:''}
+          ${n.contributors?`<div><span class="mk">Contributors:</span> ${n.contributors}</div>`:''}
+        </div>
+        <div class="p-meta"><span class="mk">Fan-out:</span> ${n.fanOut} dependent(s)</div>
+      </div>`;
   } else {
+    // TES concept fallback
     p.innerHTML = `
       <div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
         <div class="p-title">${n.concept||n.id}</div>
@@ -675,7 +945,6 @@ function showPanel(n) {
 }
 
 function renderClaimQuotes(claim) {
-  // Gather quotes from this claim's FP/DA dependencies
   const seen = new Set();
   const quotes = [];
   for (const depId of (claim.dependencies || [])) {
@@ -684,7 +953,6 @@ function renderClaimQuotes(claim) {
     }
   }
   if (quotes.length === 0) return '';
-  // Show max 3 to avoid clutter, pick shortest/punchiest
   const shown = quotes.sort((a,b) => a.text.length - b.text.length).slice(0, 3);
   return `<div class="p-section"><div class="s-label">Related Quotes</div>
     ${shown.map(q => `<div class="quote-item" onclick="navTo('${q.id}')" style="cursor:pointer;padding:6px 10px;margin-bottom:6px;border-left:2px solid #a08850;font-size:11px;line-height:1.5">
@@ -720,7 +988,6 @@ function commitIdRename(input) {
   const newName = input.value.trim();
   saveRename(originalId, newName);
   refreshLabels();
-  // Re-render reset button
   const wrapper = input.parentElement;
   const existing = wrapper.querySelector('.p-id-reset');
   if (idRenames[originalId] && !existing) {
@@ -748,7 +1015,7 @@ function refreshLabels() {
   labelEls.text(d => {
     if (d.type === 'quote') return d.author || d.id;
     const name = d.title || d.concept || displayId(d.id);
-    const max = d.type==='fp' ? 22 : d.type==='da' ? 18 : 16;
+    const max = (d.type==='fp'||d.type==='ap') ? 22 : (d.type==='da'||d.type==='sop') ? 18 : 16;
     return name.length > max ? name.slice(0, max-1) + '\u2026' : name;
   });
 }
@@ -761,10 +1028,10 @@ function navTo(id) {
 }
 
 function fmtBullets(text) {
-  return (text||'').split('\n').filter(l=>l.trim()).map(l=>`<div class="bullet">${l.replace(/^-\s*/,'')}</div>`).join('');
+  return (text||'').split('\n').filter(l=>l.trim()).map(l=>`<div class="bullet">${l.replace(/^[-\d.]+\s*/,'')}</div>`).join('');
 }
 
-// ─── Tooltip ─────────────────────────────────────────────────────────────────
+// --- Tooltip ------------------------------------------------------------------
 function showTooltip(n, e) {
   const t = document.getElementById('tooltip');
   const c = nColor(n);
@@ -773,15 +1040,20 @@ function showTooltip(n, e) {
     const snippet = n.text.length > 120 ? n.text.slice(0,117) + '...' : n.text;
     h = `<span style="color:${c};font-style:italic">\u201C${snippet}\u201D</span>`;
     h += `<br><span style="color:${c};font-weight:600">\u2014 ${n.author}</span>`;
-    h += `<br><span class="tt-meta">${n.tags.join(' · ')}</span>`;
+    h += `<br><span class="tt-meta">${n.tags.join(' \u00b7 ')}</span>`;
   } else {
     const name = n.title || n.concept || n.id;
     h = `<span style="color:${c};font-weight:600">${name}</span>`;
     h += `<br><span class="tt-meta">${displayId(n.id)}</span>`;
-    if (n.type==='claim') h += `<span class="tt-meta"> · ${DOMAIN_NAMES[n.domain]||n.domain} · ${n.status}</span>`;
-    else if (n.type==='fp') h += `<span class="tt-meta"> · First Principle</span>`;
-    else if (n.type==='da') h += `<span class="tt-meta"> · ${DOMAIN_NAMES[n.domain]||n.domain} Axiom · ${n.status}</span>`;
-    else if (n.type==='tes') h += `<span class="tt-meta"> · TES Concept</span>`;
+    if (n.type==='claim') h += `<span class="tt-meta"> \u00b7 ${DOMAIN_NAMES[n.domain]||n.domain} \u00b7 ${n.status}</span>`;
+    else if (n.type==='fp') h += `<span class="tt-meta"> \u00b7 First Principle</span>`;
+    else if (n.type==='da') h += `<span class="tt-meta"> \u00b7 ${DOMAIN_NAMES[n.domain]||n.domain} Axiom \u00b7 ${n.status}</span>`;
+    else if (n.type==='tes') h += `<span class="tt-meta"> \u00b7 TES Concept</span>`;
+    else if (n.type==='ap') h += `<span class="tt-meta"> \u00b7 Agent Principle</span>`;
+    else if (n.type==='sop') h += `<span class="tt-meta"> \u00b7 SOP \u00b7 ${n.owner||''} \u00b7 ${n.status||''}</span>`;
+    else if (n.type==='skl') h += `<span class="tt-meta"> \u00b7 Skill \u00b7 ${n.owner||''} \u00b7 ${n.proficiency||''}</span>`;
+    else if (n.type==='tool') h += `<span class="tt-meta"> \u00b7 ${n.category||'Tool'} \u00b7 Used by: ${n.usedBy||''}</span>`;
+    else if (n.type==='ifc') h += `<span class="tt-meta"> \u00b7 ${n.ifcSource||''} \u2192 ${n.ifcTarget||''}</span>`;
     if (n.fanOut) h += `<br><span class="tt-meta">${n.fanOut} dependent(s)</span>`;
   }
   t.innerHTML = h;
@@ -792,7 +1064,7 @@ function showTooltip(n, e) {
 
 function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
 
-// ─── Toolbar ─────────────────────────────────────────────────────────────────
+// --- Toolbar ------------------------------------------------------------------
 function buildToolbar() {
   const tb = document.getElementById('toolbar');
   tb.innerHTML = `
@@ -800,28 +1072,65 @@ function buildToolbar() {
       <button class="mode-btn active" onclick="setMode('survey')">Survey</button>
       <button class="mode-btn" onclick="setMode('focus')">Focus</button>
     </div>
+    <div class="tb-section">
+      <button class="layer-btn" onclick="setLayer('human')">Human</button>
+      <button class="layer-btn active" onclick="setLayer('both')">Both</button>
+      <button class="layer-btn" onclick="setLayer('ai')">AI</button>
+    </div>
     <div class="tb-section search">
       <input type="text" class="search-input" placeholder="Search ideas..." oninput="onSearch(this.value)">
     </div>
     <div class="tb-section"><button class="act-btn" onclick="fitAll()">Fit</button></div>
   `;
 
-  // Filter sidebar
+  buildFilterPanel();
+}
+
+function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
-  const domains = [
+  const humanDomains = [
     ['foundation','Foundation'], ['EPI','Epistemology'], ['ECDO','ECDO Theory'], ['TF','Thermofluidic Finance'],
     ['DSL','Dynamical Systems'], ['PED','Pedagogy'], ['ARCH','Archaeoastronomy'], ['tes','TES Concepts'], ['quotes','Quotes']
   ];
-  fp.innerHTML = `<div class="filter-heading">Domains</div>
-    ${domains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
+  const aiDomains = [
+    ['ai_foundation','Agent Principles'], ['CE','CE Agent'], ['CD','CD Agent'], ['PM','PM Agent'],
+    ['RA','RA Agent'], ['SA','SA Agent'], ['TA','TA Agent'], ['ai_shared','Shared']
+  ];
+
+  let html = '';
+  if (layerMode !== 'ai') {
+    html += `<div class="filter-heading">Human</div>`;
+    html += humanDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
       <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
-      <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('')}`;
+      <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
+  }
+  if (layerMode !== 'human') {
+    html += `<div class="filter-heading" style="${layerMode!=='ai'?'margin-top:8px':''}">AI</div>`;
+    html += aiDomains.map(([d,l])=>`<label class="domain-filter" style="color:${COLORS[d]}">
+      <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
+      <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
+  }
+  fp.innerHTML = html;
 }
 
 function setMode(m) {
   mode = m;
   if (m==='survey') clearFocus();
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase()===m));
+}
+
+function setLayer(m) {
+  layerMode = m;
+  document.querySelectorAll('.layer-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase()===m));
+  // Re-render the filter sidebar
+  buildFilterPanel();
+  // Stop existing simulation
+  if (simulation) simulation.stop();
+  // Clear and re-render graph
+  const vis = getVisibleData();
+  renderGraph(vis.nodes, vis.links);
+  buildStats();
+  setTimeout(fitAll, 800);
 }
 
 function toggleDomain(domain, visible) {
@@ -843,42 +1152,56 @@ function onSearch(q) {
   }
   const ql = q.toLowerCase();
   const isMatch = d => d.id.toLowerCase().includes(ql) || (d.title||d.concept||'').toLowerCase().includes(ql) ||
-    (d.text||'').toLowerCase().includes(ql) || (d.author||'').toLowerCase().includes(ql);
+    (d.text||'').toLowerCase().includes(ql) || (d.author||'').toLowerCase().includes(ql) ||
+    (d.description||'').toLowerCase().includes(ql);
   nodeEls.transition().duration(200).style('opacity', d => isMatch(d) ? 1 : 0.08);
   labelEls.transition().duration(200).attr('fill-opacity', d => isMatch(d) ? 0.9 : 0.04);
   const matches = graphData.nodes.filter(isMatch);
   if (matches.length===1) { showPanel(matches[0]); if(mode==='focus') setFocus(matches[0]); }
 }
 
-// ─── Fit All ─────────────────────────────────────────────────────────────────
+// --- Fit All ------------------------------------------------------------------
 function fitAll() {
   const svg = d3.select('#graph');
   const { width, height } = graphSize();
-  const ns = graphData.nodes;
+  const vis = getVisibleData();
+  const ns = vis.nodes;
+  if (!ns.length) return;
   let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
-  for (const d of ns) { if(d.x<x0)x0=d.x; if(d.y<y0)y0=d.y; if(d.x>x1)x1=d.x; if(d.y>y1)y1=d.y; }
+  for (const d of ns) {
+    if (d.x===undefined) continue;
+    if(d.x<x0)x0=d.x; if(d.y<y0)y0=d.y; if(d.x>x1)x1=d.x; if(d.y>y1)y1=d.y;
+  }
+  if (!isFinite(x0)) return;
   const pad=60, dx=x1-x0+pad*2, dy=y1-y0+pad*2;
   const scale = Math.min(width/dx, height/dy, 2);
   const tx = width/2-(x0+x1)/2*scale, ty = height/2-(y0+y1)/2*scale;
   svg.transition().duration(500).call(zoomBehavior.transform, d3.zoomIdentity.translate(tx,ty).scale(scale));
 }
 
-// ─── Stats ───────────────────────────────────────────────────────────────────
+// --- Stats --------------------------------------------------------------------
 function buildStats() {
   const s = graphData.stats;
-  document.getElementById('stats').innerHTML = `
-    <span>${s.nodes} nodes</span><span>${s.links} edges</span><span class="sep">|</span>
+  const vis = getVisibleData();
+  let html = `
+    <span>${vis.nodes.length} nodes</span><span>${vis.links.length} edges</span><span class="sep">|</span>
     <span>${s.claims} claims</span>
     <span style="color:var(--accent-green)">${s.established} established</span>
     <span style="color:var(--accent-amber)">${s.hypothesized} hypothesized</span>
     <span style="color:var(--accent-red)">${s.speculative} speculative</span>
-    <span class="sep">|</span><span style="color:#a08850">${s.quotes||0} quotes</span>
-    <span class="sep">|</span>
-    <span>Generated ${new Date(graphData.generated).toLocaleDateString()}</span>
-  `;
+    <span class="sep">|</span><span style="color:#a08850">${s.quotes||0} quotes</span>`;
+  if (s.sops || s.skills || s.tools) {
+    html += `<span class="sep">|</span>
+      <span style="color:#00d4aa">${s.sops||0} SOPs</span>
+      <span style="color:#77aaff">${s.skills||0} skills</span>
+      <span style="color:#7a8a9a">${s.tools||0} tools</span>`;
+  }
+  html += `<span class="sep">|</span>
+    <span>Generated ${new Date(graphData.generated).toLocaleDateString()}</span>`;
+  document.getElementById('stats').innerHTML = html;
 }
 
-// ─── Boot ────────────────────────────────────────────────────────────────────
+// --- Boot ---------------------------------------------------------------------
 init().catch(err => {
   document.body.innerHTML = `<div style="color:var(--accent-red);padding:2em;font-family:monospace">
     Failed to load: ${err.message}</div>`;
