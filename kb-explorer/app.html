@@ -352,15 +352,17 @@
   <div class="lg-row"><span class="lg-shape tool-sq"></span> Tool</div>
   <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;">
     <div class="lg-group" style="font-size:8px;color:#3a4560;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Edges</div>
-    <div style="font-size:8px">Solid = dependency</div>
-    <div style="font-size:8px">Dashed = K&rarr;S bridge</div>
+    <div style="font-size:8px"><span style="display:inline-block;width:20px;border-top:2.2px solid #6ea8fe"></span> Deduction (necessary)</div>
+    <div style="font-size:8px"><span style="display:inline-block;width:20px;border-top:1.2px solid #8090b0"></span> Induction (empirical)</div>
+    <div style="font-size:8px"><span style="display:inline-block;width:20px;border-top:0.8px dashed #607080"></span> Abduction (frontier)</div>
+    <div style="font-size:8px"><span style="display:inline-block;width:20px;border-top:1px dashed #605020"></span> K&rarr;S bridge</div>
   </div>
   <div style="margin-top:3px;border-top:1px solid #1a1e30;padding-top:3px;">
     <div>Solid = Established</div>
     <div>Pulsing = Hypothesized</div>
     <div>Faint = Speculative</div>
   </div>
-  <div style="margin-top:3px;color:#2a3050">Keys: 1/2/Q mode &middot; 3/4/5/V layer &middot; F fit &middot; Esc close</div>
+  <div style="margin-top:3px;color:#2a3050">Keys: 1/2/L/Q mode &middot; 3/4/5/V layer &middot; F fit &middot; Esc close</div>
 </div>
 <script>
 // --- Constants ----------------------------------------------------------------
@@ -528,6 +530,7 @@ async function init() {
     if (e.key === 'f' || e.key === 'F') fitAll();
     if (e.key === '1') setMode('survey');
     if (e.key === '2') setMode('focus');
+    if (e.key === 'l' || e.key === 'L') setMode('lineage');
     if (e.key === 'q' || e.key === 'Q') setMode('query');
     if (e.key === '3') setLayer('human');
     if (e.key === '4') setLayer('both');
@@ -614,6 +617,14 @@ function renderGraph(nodes, links) {
       if (d.type==='ai-interface') return 0.5;
       if (d.type==='requires-knowledge') return 0.8;
       if (d.type==='delegates-to') return 1;
+      if (d.type === 'dependency' || d.type === 'ai-dependency' || d.type === 'ai-supports') {
+        const tgtId = typeof d.target === 'string' ? d.target : d.target.id;
+        const tgtNode = graphData.nodes.find(n => n.id === tgtId);
+        const mode = tgtNode?.inferenceMode;
+        if (mode === 'Deduction') return 2.2;
+        if (mode === 'Abduction') return 0.7;
+        return 1.2;
+      }
       return 1;
     })
     .attr('stroke-opacity', d => {
@@ -629,6 +640,11 @@ function renderGraph(nodes, links) {
     .attr('stroke-dasharray', d => {
       if (d.type==='requires-knowledge') return '4,3';
       if (d.type==='delegates-to') return '6,4';
+      if (d.type === 'dependency' || d.type === 'ai-dependency' || d.type === 'ai-supports') {
+        const tgtId = typeof d.target === 'string' ? d.target : d.target.id;
+        const tgtNode = graphData.nodes.find(n => n.id === tgtId);
+        if (tgtNode?.inferenceMode === 'Abduction') return '3,3';
+      }
       return null;
     })
     .attr('marker-end', d => {
@@ -652,6 +668,7 @@ function renderGraph(nodes, links) {
         handlePendingQueryClick(d);
         return;
       }
+      if(mode==='lineage') { showLineage(d); return; }
       if(mode==='focus') setFocus(d);
       showPanel(d);
     })
@@ -1242,6 +1259,7 @@ function buildToolbar() {
     <div class="tb-section">
       <button class="mode-btn active" onclick="setMode('survey')">Survey</button>
       <button class="mode-btn" onclick="setMode('focus')">Focus</button>
+      <button class="mode-btn" onclick="setMode('lineage')">Lineage</button>
       <button class="mode-btn" onclick="setMode('query')">Query</button>
     </div>
     <div class="tb-section">
@@ -1306,6 +1324,15 @@ function setMode(m) {
   mode = m;
   pendingQuery = null;
   if (m==='survey') clearFocus();
+  if (m==='lineage') {
+    clearFocus();
+    const p = document.getElementById('panel');
+    p.classList.add('open');
+    p.innerHTML = `<div class="p-header"><button class="p-close" onclick="closePanel()">&times;</button>
+      <div class="p-title">Lineage Mode</div>
+      <div class="p-id" style="color:var(--accent-steel)">Click a node to trace its intellectual lineage</div>
+    </div>`;
+  }
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase()===m));
   // Show/hide panels based on mode
   const fp = document.getElementById('filter-panel');
@@ -1855,6 +1882,115 @@ function queryScopeGuard(anchor) {
       </div>
     </div>`
   );
+}
+
+// --- Lineage Mode -------------------------------------------------------------
+function truncate(str, max) {
+  if (!str || str.length <= max) return str || '';
+  return str.slice(0, max-1) + '\u2026';
+}
+
+function getAncestors(nodeId) {
+  const result = new Map(); // id -> {node, depth}
+  const visited = new Set([nodeId]);
+  let frontier = [nodeId];
+  let depth = 1;
+
+  while (frontier.length > 0) {
+    const nextFrontier = [];
+    for (const currentId of frontier) {
+      for (const link of graphData.links) {
+        if (link.type === 'quote-resonance') continue;
+        const srcId = typeof link.source === 'string' ? link.source : link.source.id;
+        const tgtId = typeof link.target === 'string' ? link.target : link.target.id;
+        if (tgtId === currentId && !visited.has(srcId)) {
+          visited.add(srcId);
+          const srcNode = graphData.nodes.find(n => n.id === srcId);
+          if (srcNode) {
+            result.set(srcId, { node: srcNode, depth });
+            nextFrontier.push(srcId);
+          }
+        }
+      }
+    }
+    frontier = nextFrontier;
+    depth++;
+  }
+  return result;
+}
+
+function showLineage(node) {
+  // Walk all ancestors
+  const ancestors = getAncestors(node.id);
+  const chain = [...ancestors.entries()]
+    .sort((a,b) => b[1].depth - a[1].depth)  // deepest (oldest) first
+    .map(([id, info]) => info);
+
+  // Highlight in graph
+  const ids = new Set([node.id, ...ancestors.keys()]);
+  highlightNodes(ids);
+
+  // Build narrative
+  const p = document.getElementById('panel');
+  p.classList.add('open');
+
+  const maxDepth = chain.length > 0 ? Math.max(...chain.map(c => c.depth)) : 0;
+
+  let html = `
+    <div class="p-header">
+      <button class="p-close" onclick="closePanel()">&times;</button>
+      <div class="p-title">Lineage of ${node.title || node.concept || node.id}</div>
+      <div class="p-id" style="color:${nColor(node)}">
+        ${chain.length} ancestor${chain.length !== 1 ? 's' : ''} \u00b7 ${maxDepth} generation${maxDepth !== 1 ? 's' : ''} deep
+      </div>
+    </div>
+    <div class="p-body">`;
+
+  // Render chain from deepest (root) to shallowest (parent of clicked node)
+  let prevDepth = -1;
+  for (const item of chain) {
+    const n = item.node;
+    const c = nColor(n);
+    const depthLabel = item.depth === maxDepth ? 'Root' : 'Depth ' + item.depth;
+    const inferenceLabel = n.inferenceMode ? ' \u00b7 ' + n.inferenceMode : '';
+    const typeLabel = n.type === 'fp' ? 'Principle' : n.type === 'da' ? 'Axiom' : n.type === 'claim' ? 'Claim' : n.type === 'sop' ? 'SOP' : n.type === 'skl' ? 'Skill' : n.type === 'hsk' ? 'Human Skill' : n.type;
+
+    // Show compression arrow between depth levels
+    if (prevDepth !== -1 && item.depth < prevDepth) {
+      const compressionType = n.inferenceMode === 'Deduction' ? 'Deduction \u2193' :
+                              n.inferenceMode === 'Induction' ? 'Induction \u2193' :
+                              n.inferenceMode === 'Abduction' ? 'Abduction \u2193' : '\u2193';
+      html += '<div class="lineage-arrow" style="text-align:center;color:#3a4560;font-size:9px;padding:2px 0;font-style:italic">' + compressionType + '</div>';
+    }
+
+    html += `
+      <div class="lineage-entry" onclick="navTo('${n.id}')" style="
+        cursor:pointer; padding:6px 10px; margin-bottom:2px;
+        border-left:3px solid ${c}; background:${c}08;
+        font-size:11px; transition:background 0.15s;
+      " onmouseenter="this.style.background='${c}15'" onmouseleave="this.style.background='${c}08'">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="color:${c};font-weight:600;font-family:monospace;font-size:10px">${n.id}</span>
+          <span style="color:#3a4560;font-size:8px">${typeLabel}${inferenceLabel}</span>
+        </div>
+        <div style="color:#b0b8c8;margin-top:2px">${n.title || n.concept || ''}</div>
+        ${n.statement ? '<div style="color:#707888;font-size:10px;margin-top:2px;line-height:1.4">' + truncate(n.statement, 120) + '</div>' : ''}
+      </div>`;
+    prevDepth = item.depth;
+  }
+
+  // The target node itself at the bottom (depth 0)
+  const tc = nColor(node);
+  html += `
+    <div class="lineage-arrow" style="text-align:center;color:#3a4560;font-size:9px;padding:4px 0">\u25BC builds to \u25BC</div>
+    <div style="padding:8px 10px;border-left:3px solid ${tc};background:${tc}18;border-radius:0 4px 4px 0">
+      <div style="color:${tc};font-weight:700;font-family:monospace">${node.id}</div>
+      <div style="color:#e0e4f0;font-weight:600;margin-top:2px">${node.title || node.concept || ''}</div>
+      ${node.statement ? '<div style="color:#b0b8c8;font-size:11px;margin-top:4px;line-height:1.5">' + node.statement + '</div>' : ''}
+    </div>`;
+
+  html += '</div>';
+  p.innerHTML = html;
 }
 
 // --- Boot ---------------------------------------------------------------------
