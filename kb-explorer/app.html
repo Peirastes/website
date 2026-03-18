@@ -485,6 +485,7 @@ let quotesByNode = new Map();
 let pendingQuery = null;
 let radialAngle = 0; // lazy-susan rotation (degrees)
 let _lastZoomTransform = d3.zoomIdentity;
+let ringMode = 'tiers'; // 'tiers' (dependency depth) or 'method' (TES scientific method stages)
 let vennCircles = null;
 
 // --- ID Rename System ---------------------------------------------------------
@@ -626,9 +627,47 @@ function computeTiers(nodes, links) {
   return tier;
 }
 
+// Assign rings by TES Scientific Method stages (PSCPR mapping)
+function computeMethodStages(nodes) {
+  const stage = new Map();
+  for (const n of nodes) {
+    // Ring 0: First Principles (meta-method — governs how the pipeline works)
+    if (n.type === 'fp') { stage.set(n.id, 0); continue; }
+    // Ring 5: Applied capability (SOPs, Skills, Human Skills, Tools, Interfaces)
+    if (n.type === 'sop' || n.type === 'skl' || n.type === 'hsk' ||
+        n.type === 'tool' || n.type === 'ifc') { stage.set(n.id, 5); continue; }
+    // Ring 1: TES concepts and Quotes (observations/intelligence from corpus)
+    if (n.type === 'tes' || n.type === 'quote') { stage.set(n.id, 1); continue; }
+    // Claims and DAs: use pscprStage field
+    const pscpr = (n.pscprStage || '').toLowerCase();
+    if (pscpr.includes('observation')) { stage.set(n.id, 1); continue; }
+    if (pscpr.includes('analysis')) { stage.set(n.id, 2); continue; }
+    if (pscpr.includes('inference')) { stage.set(n.id, 3); continue; }
+    if (pscpr.includes('exploration')) { stage.set(n.id, 4); continue; }
+    // Fallback: use status as proxy
+    if (n.type === 'da') { stage.set(n.id, 4); continue; } // DAs are refined axioms
+    if (n.status === 'Established') { stage.set(n.id, 4); continue; }
+    if (n.status === 'Hypothesized') { stage.set(n.id, 3); continue; }
+    if (n.status === 'Speculative') { stage.set(n.id, 2); continue; }
+    stage.set(n.id, 2); // default: analysis
+  }
+  return stage;
+}
+
+const METHOD_RING_LABELS = {
+  0: 'First Principles',
+  1: 'Observation / Intelligence',
+  2: 'Analysis / Construct',
+  3: 'Inference / Testing',
+  4: 'Established / Theory',
+  5: 'Applied Capability'
+};
+
 function computeRadialPositions(nodes, links, width, height) {
   const cx = width / 2, cy = height / 2;
-  const tiers = computeTiers(nodes, links);
+  const tiers = ringMode === 'method'
+    ? computeMethodStages(nodes)
+    : computeTiers(nodes, links);
   const maxTier = Math.max(...tiers.values(), 1);
 
   // Large radii — fitAll() will zoom out to show everything,
@@ -826,7 +865,9 @@ function renderGraph(nodes, links) {
         .attr('stroke-opacity', t === 0 ? 0.6 : 0.3)
         .attr('stroke-dasharray', t === 0 ? null : '4,4');
       // Tier label at top of ring
-      const label = t === 0 ? 'Principles' : t === 1 ? 'Axioms' : t === maxTier + 1 ? 'References' : 'Tier ' + t;
+      const label = ringMode === 'method'
+        ? (METHOD_RING_LABELS[t] || 'Ring ' + t)
+        : (t === 0 ? 'Principles' : t === 1 ? 'Axioms' : t === maxTier + 1 ? 'References' : 'Tier ' + t);
       ringGroup.append('text')
         .attr('x', cx).attr('y', cy - r - 4)
         .text(label)
@@ -1699,15 +1740,23 @@ function buildFilterPanel() {
       <input type="checkbox" checked onchange="toggleDomain('${d}',this.checked)">
       <span class="fdot" style="background:${COLORS[d]}"></span>${l}</label>`).join('');
   }
-  // Tier filter buttons (shown when in radial layout)
+  // Ring mode + tier filter buttons (shown when in radial layout)
   if (layout === 'radial') {
+    // Ring mode toggle: Tiers (dependency depth) vs Method (TES scientific method stages)
+    html += `<div class="filter-heading" style="margin-top:8px">Ring Mode</div>`;
+    html += `<div style="display:flex;gap:4px;margin-bottom:6px">`;
+    html += `<button class="mode-btn ${ringMode==='tiers'?'active':''}" onclick="setRingMode('tiers')" style="flex:1;font-size:10px;padding:3px 6px">Tiers</button>`;
+    html += `<button class="mode-btn ${ringMode==='method'?'active':''}" onclick="setRingMode('method')" style="flex:1;font-size:10px;padding:3px 6px">Method</button>`;
+    html += `</div>`;
+
+    // Tier/stage filter buttons
     const tierSet = new Set();
     for (const n of graphData.nodes) { if (n._tier !== undefined) tierSet.add(n._tier); }
     const tiers = [...tierSet].sort((a,b) => a - b);
-    const tierLabels = { 0:'Principles', 1:'Axioms' };
+    const tierLabels = ringMode === 'method' ? METHOD_RING_LABELS : { 0:'Principles', 1:'Axioms' };
     const maxT = Math.max(...tiers);
-    html += `<div class="filter-heading" style="margin-top:8px">Tiers</div>`;
-    html += `<button class="query-btn tier-btn active" onclick="filterTier(-1)" data-tier="-1">All tiers</button>`;
+    html += `<div class="filter-heading">${ringMode === 'method' ? 'Method Stages' : 'Dependency Tiers'}</div>`;
+    html += `<button class="query-btn tier-btn active" onclick="filterTier(-1)" data-tier="-1">All</button>`;
     for (const t of tiers) {
       const label = tierLabels[t] || (t === maxT ? 'References' : `Tier ${t}`);
       const count = graphData.nodes.filter(n => n._tier === t).length;
@@ -1784,6 +1833,14 @@ function toggleDomain(domain, visible) {
 }
 
 let activeTier = -1; // -1 = all tiers
+
+function setRingMode(m) {
+  ringMode = m;
+  activeTier = -1;
+  radialAngle = 0;
+  rerender();
+  buildFilterPanel();
+}
 function filterTier(t) {
   activeTier = t;
   // Update button active states
