@@ -668,8 +668,6 @@ function computeRadialPositions(nodes, links, width, height) {
 function rerender() {
   if (simulation) { simulation.stop(); simulation = null; }
   const vis = getVisibleData();
-  const svg = d3.select('#graph');
-  svg.selectAll('*').remove();
   renderGraph(vis.nodes, vis.links);
   setTimeout(fitAll, 500);
 }
@@ -689,24 +687,27 @@ function setLayout(l) {
 
 function renderGraph(nodes, links) {
   const svg = d3.select('#graph');
-  svg.selectAll('*').remove();
   const { width, height } = graphSize();
 
-  // Defs
-  const defs = svg.append('defs');
-  defs.append('marker')
-    .attr('id','arr').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
-    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
-    .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#445');
-  defs.append('marker')
-    .attr('id','arr-ai').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
-    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
-    .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#2a5a50');
-  defs.append('marker')
-    .attr('id','arr-kb').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
-    .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
-    .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#605020');
+  // Defs — create once, skip if already present
+  if (svg.select('defs').empty()) {
+    const defs = svg.append('defs');
+    defs.append('marker')
+      .attr('id','arr').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
+      .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#445');
+    defs.append('marker')
+      .attr('id','arr-ai').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
+      .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#2a5a50');
+    defs.append('marker')
+      .attr('id','arr-kb').attr('viewBox','0 -4 8 8').attr('refX',12).attr('refY',0)
+      .attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M0,-3L7,0L0,3').attr('fill','#605020');
+  }
 
+  // Remove old container contents but preserve defs and zoom
+  svg.selectAll('g').remove();
   const container = svg.append('g');
 
   // Venn mode background circles
@@ -769,22 +770,25 @@ function renderGraph(nodes, links) {
     }
   }
 
-  // Zoom
-  zoomBehavior = d3.zoom().scaleExtent([0.15,5])
-    .on('zoom', e => {
-      container.attr('transform', e.transform);
-      if (labelEls) {
-        const k = e.transform.k;
-        labelEls.attr('fill-opacity', d => {
-          if (focusedIds.size > 0) return focusedIds.has(d.id) ? 1 : 0.04;
-          if (labelVisible(d)) return 0.9;
-          return k > 1.2 ? Math.min((k - 1.2) * 1.5, 0.75) : 0;
-        });
-      }
-    });
-  svg.call(zoomBehavior);
+  // Zoom — set up once, select container dynamically to survive re-renders
+  if (!zoomBehavior) {
+    zoomBehavior = d3.zoom().scaleExtent([0.15,5])
+      .on('zoom', e => {
+        svg.select('g').attr('transform', e.transform);
+        if (labelEls && window._labelVisible) {
+          const k = e.transform.k;
+          labelEls.attr('fill-opacity', d => {
+            if (focusedIds.size > 0) return focusedIds.has(d.id) ? 1 : 0.04;
+            if (window._labelVisible(d)) return 0.9;
+            return k > 1.2 ? Math.min((k - 1.2) * 1.5, 0.75) : 0;
+          });
+        }
+      });
+    svg.call(zoomBehavior);
+  }
 
-  svg.on('click', e => {
+  // Background click — safe to re-bind (replaces previous handler)
+  svg.on('click.bg', e => {
     if (e.target === svg.node()) { closePanel(); clearFocus(); pendingQuery = null; }
   });
 
@@ -927,7 +931,7 @@ function renderGraph(nodes, links) {
     .text(d => labelText(d))
     .attr('font-size', d => (d.type==='fp'||d.type==='hsk') ? 10 : (d.type==='da'||d.type==='sop') ? 9 : d.type==='quote' ? 7 : 8)
     .attr('fill', d => nColor(d))
-    .attr('fill-opacity', d => labelVisible(d) ? 0.9 : 0)
+    .attr('fill-opacity', d => (layout === 'radial' || labelVisible(d)) ? 0.9 : 0)
     .attr('text-anchor','middle')
     .attr('dy', d => -nRadius(d)-5)
     .attr('pointer-events','none')
