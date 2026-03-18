@@ -403,7 +403,7 @@ const DOMAIN_ANGLES = {
   // Knowledge domains — PHYS→EPI→PED (core), TES (methodology),
   // ECDO→ARCH (research), DSL→TF (frameworks), quotes (reference)
   PHYS: 120, EPI: 155, PED: 190, tes: 225, ECDO: 260, ARCH: 295, DSL: 330,
-  TF: 5, quotes: 45, ai_shared: 80
+  TF: 5, ai_shared: 45
 };
 
 const CLUSTER_HUMAN = {
@@ -735,6 +735,19 @@ function computeRadialPositions(nodes, links, width, height) {
     }
     // IFC interfaces → EPI (coordination methodology)
     if (n.type === 'ifc') return 'EPI';
+    // Quotes: map by primary tag to knowledge domain
+    if (n.type === 'quote') {
+      const tags = n.tags || [];
+      if (tags.includes('science')) return 'PHYS';
+      if (tags.includes('education')) return 'PED';
+      if (tags.includes('philosophy') || tags.includes('truth') || tags.includes('knowledge')) return 'EPI';
+      if (tags.includes('psychology') || tags.includes('transformation') || tags.includes('suffering')) return 'PED';
+      if (tags.includes('discipline') || tags.includes('stoicism') || tags.includes('virtue')) return 'EPI';
+      if (tags.includes('freedom') || tags.includes('tyranny') || tags.includes('courage')) return 'EPI';
+      if (tags.includes('action')) return 'DSL'; // action/dynamics
+      if (tags.includes('love')) return 'PED';
+      return 'EPI'; // default: philosophical
+    }
     // Everything else: use original domain
     return n.domain;
   }
@@ -1798,7 +1811,7 @@ function buildFilterPanel() {
     ['PED','Pedagogy & Assessment'], ['tes','TES Concepts'],
     ['ECDO','ECDO Theory'], ['ARCH','Archaeoastronomy'],
     ['DSL','Dynamical Systems'], ['TF','Thermofluidic Finance'],
-    ['quotes','Quotes'], ['ai_shared','Shared Tools']
+    ['ai_shared','Shared Tools']
   ];
 
   let html = '';
