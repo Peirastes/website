@@ -381,13 +381,13 @@
 <script>
 // --- Constants ----------------------------------------------------------------
 const COLORS = {
-  foundation:'#d0d8e8', EPI:'#6ea8fe', ECDO:'#e07050', TF:'#50c878',
+  foundation:'#d0d8e8', PHIL:'#b8a0d8', EPI:'#6ea8fe', ECDO:'#e07050', TF:'#50c878',
   DSL:'#c084fc', PED:'#fbbf24', ARCH:'#f87171', PHYS:'#60b8e0', tes:'#607080', quotes:'#a08850', unknown:'#555',
   ai_shared:'#7a8a9a', human_skills:'#e8a040',
   CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
 const DOMAIN_NAMES = {
-  foundation:'Foundation', EPI:'Research & Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
+  foundation:'Foundation', PHIL:'Philosophy & Ethics', EPI:'Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
   DSL:'Dynamical Systems', PED:'Pedagogy & Assessment', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
   ai_shared:'Computer Systems & AI', human_skills:'Human Skills',
   CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
@@ -397,12 +397,18 @@ const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:
 const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 
 // Domain angles for radial layout (degrees, clockwise)
-// ALL nodes map to knowledge domains via getRadialDomain() — no agent sectors
+// ALL nodes map to knowledge domains via getRadialDomain() — no agent/source sectors
+// Genealogical order: Philosophy (root) → core fields → fringe research → back
 const DOMAIN_ANGLES = {
-  foundation: null, // tier 0 nodes spread evenly at center
-  // Clockwise: EPI→PED→TES→ECDO→ARCH→Shared→TF→DSL→PHYS→back to EPI
-  EPI: 0, PED: 40, tes: 80, ECDO: 120, ARCH: 160,
-  ai_shared: 200, TF: 240, DSL: 280, PHYS: 320
+  foundation: null, // tier 0 FPs spread by data-driven domain assignment
+  // Core fields (clockwise from root): Philosophy begets Physics begets frameworks
+  PHIL: 0, PHYS: 40, DSL: 80, TF: 120,
+  // Methodology & practice: how we investigate and teach
+  EPI: 160, PED: 200,
+  // Tools & systems
+  ai_shared: 240,
+  // Fringe research (opposite from core)
+  ARCH: 280, ECDO: 320
 };
 
 // Force layout cluster positions — derived from the locked radial sector angles
@@ -427,7 +433,7 @@ function getClusterPos(d) {
 
 // Lightweight version of getRadialDomain for force layout (no link data needed)
 function getRadialDomainForForce(n) {
-  if (n.type === 'fp') return 'EPI'; // FPs cluster near epistemology in force mode
+  if (n.type === 'fp') return 'PHIL'; // FPs are philosophical axioms
   if (n.type === 'hsk') {
     if (n.skillDomain === 'PHYS') return 'PED';
     if (n.skillDomain === 'PED') return 'PED';
@@ -468,7 +474,7 @@ function getRadialDomainForForce(n) {
     if (n.owner === 'CD') {
       const t = (n.title||'').toLowerCase();
       if (t.includes('pedagogy') || t.includes('course') || t.includes('lesson') || t.includes('ebook')) return 'PED';
-      if (t.includes('debate') || t.includes('philosophical')) return 'EPI';
+      if (t.includes('debate') || t.includes('philosophical')) return 'PHIL';
       return 'ai_shared';
     }
     if (n.owner === 'PM') return 'ai_shared';
@@ -479,14 +485,23 @@ function getRadialDomainForForce(n) {
     }
   }
   if (n.type === 'ifc') return 'EPI';
+  if (n.type === 'tes') {
+    const prefix = n.id.match(/^TES-([A-Z]+)/)?.[1] || '';
+    if (prefix === 'ECDO' || prefix === 'EXO' || prefix === 'ACAN') return 'ECDO';
+    if (prefix === 'COH' || prefix === 'HPS' || prefix === 'INT' || prefix === 'SAI') return 'PHIL';
+    if (prefix === 'EXP') return 'PED';
+    return 'EPI';
+  }
   if (n.type === 'quote') {
     const tags = n.tags || [];
     if (tags.includes('science')) return 'PHYS';
     if (tags.includes('education')) return 'PED';
-    if (tags.includes('philosophy') || tags.includes('truth') || tags.includes('knowledge')) return 'EPI';
-    if (tags.includes('psychology') || tags.includes('transformation') || tags.includes('suffering')) return 'PED';
-    if (tags.includes('action')) return 'DSL';
-    return 'EPI';
+    if (tags.includes('philosophy') || tags.includes('truth') || tags.includes('knowledge')) return 'PHIL';
+    if (tags.includes('psychology') || tags.includes('transformation') || tags.includes('suffering')) return 'PHIL';
+    if (tags.includes('discipline') || tags.includes('stoicism') || tags.includes('virtue')) return 'PHIL';
+    if (tags.includes('freedom') || tags.includes('tyranny') || tags.includes('courage')) return 'PHIL';
+    if (tags.includes('action') || tags.includes('love')) return 'PHIL';
+    return 'PHIL';
   }
   return n.domain;
 }
@@ -857,7 +872,7 @@ function computeRadialPositions(nodes, links, width, height) {
       if (n.owner === 'CD') {
         const t = (n.title || '').toLowerCase();
         if (t.includes('pedagogy') || t.includes('course') || t.includes('lesson') || t.includes('ebook')) return 'PED';
-        if (t.includes('debate') || t.includes('philosophical')) return 'EPI';
+        if (t.includes('debate') || t.includes('philosophical')) return 'PHIL';
         if (t.includes('marketing') || t.includes('brand') || t.includes('audience')) return 'ai_shared';
         return 'PED';
       }
@@ -873,18 +888,32 @@ function computeRadialPositions(nodes, links, width, height) {
     }
     // IFC interfaces → EPI (coordination methodology)
     if (n.type === 'ifc') return 'EPI';
+    // TES concepts: distribute into proper fields
+    if (n.type === 'tes') {
+      const prefix = n.id.match(/^TES-([A-Z]+)/)?.[1] || '';
+      // ECDO/Exothermic/Anomalous → ECDO Theory
+      if (prefix === 'ECDO' || prefix === 'EXO' || prefix === 'ACAN') return 'ECDO';
+      // Coherence pathology, historical/philosophical, orthodoxy → Philosophy
+      if (prefix === 'COH' || prefix === 'HPS') return 'PHIL';
+      // Intent, AI ethics → Philosophy (ethics subfold)
+      if (prefix === 'INT' || prefix === 'SAI') return 'PHIL';
+      // Expert types → Pedagogy
+      if (prefix === 'EXP') return 'PED';
+      // Hypothesis, certainty, reasoning, science, obfuscation, torfuscation → Epistemology
+      return 'EPI';
+    }
     // Quotes: map by primary tag to knowledge domain
     if (n.type === 'quote') {
       const tags = n.tags || [];
       if (tags.includes('science')) return 'PHYS';
       if (tags.includes('education')) return 'PED';
-      if (tags.includes('philosophy') || tags.includes('truth') || tags.includes('knowledge')) return 'EPI';
-      if (tags.includes('psychology') || tags.includes('transformation') || tags.includes('suffering')) return 'PED';
-      if (tags.includes('discipline') || tags.includes('stoicism') || tags.includes('virtue')) return 'EPI';
-      if (tags.includes('freedom') || tags.includes('tyranny') || tags.includes('courage')) return 'EPI';
-      if (tags.includes('action')) return 'DSL'; // action/dynamics
-      if (tags.includes('love')) return 'PED';
-      return 'EPI'; // default: philosophical
+      if (tags.includes('philosophy') || tags.includes('truth') || tags.includes('knowledge')) return 'PHIL';
+      if (tags.includes('psychology') || tags.includes('transformation') || tags.includes('suffering')) return 'PHIL';
+      if (tags.includes('discipline') || tags.includes('stoicism') || tags.includes('virtue')) return 'PHIL';
+      if (tags.includes('freedom') || tags.includes('tyranny') || tags.includes('courage')) return 'PHIL';
+      if (tags.includes('action')) return 'PHIL';
+      if (tags.includes('love')) return 'PHIL';
+      return 'PHIL'; // default: philosophical
     }
     // Everything else: use original domain
     return n.domain;
@@ -1946,11 +1975,11 @@ function buildToolbar() {
 function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
   const allDomains = [
-    ['foundation','Foundation'], ['PHYS','Physics'], ['EPI','Research & Epistemology'],
-    ['PED','Pedagogy & Assessment'], ['tes','TES Concepts'],
-    ['ECDO','ECDO Theory'], ['ARCH','Archaeoastronomy'],
+    ['foundation','Foundation'], ['PHIL','Philosophy & Ethics'], ['PHYS','Physics'],
     ['DSL','Dynamical Systems'], ['TF','Thermofluidic Finance'],
-    ['ai_shared','Computer Systems & AI']
+    ['EPI','Epistemology'], ['PED','Pedagogy & Assessment'],
+    ['ai_shared','Computer Systems & AI'],
+    ['ARCH','Archaeoastronomy'], ['ECDO','ECDO Theory']
   ];
 
   let html = '';
