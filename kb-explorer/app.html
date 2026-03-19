@@ -405,25 +405,89 @@ const DOMAIN_ANGLES = {
   ai_shared: 200, TF: 240, DSL: 280, PHYS: 320
 };
 
-const CLUSTER_HUMAN = {
-  foundation:{x:0,y:-120}, EPI:{x:-160,y:-50}, ECDO:{x:160,y:-50},
-  TF:{x:-120,y:80}, DSL:{x:-30,y:120}, PED:{x:120,y:80}, ARCH:{x:180,y:30},
-  PHYS:{x:-200,y:-150}, tes:{x:0,y:0}, quotes:{x:0,y:200}, human_skills:{x:0,y:250}
-};
-const CLUSTER_AI = {
-  ai_shared:{x:0,y:0},
-  CE:{x:-160,y:-50}, CD:{x:160,y:-50}, PM:{x:0,y:-80},
-  RA:{x:-120,y:80}, SA:{x:120,y:80}, TA:{x:0,y:120}
-};
+// Force layout cluster positions — derived from the locked radial sector angles
+// Same knowledge-domain organization as radial mode
+const FORCE_CLUSTERS = (function() {
+  const r = 200; // cluster spread radius
+  const clusters = {};
+  // Use the same DOMAIN_ANGLES, convert to x,y
+  for (const [domain, deg] of Object.entries(DOMAIN_ANGLES)) {
+    if (deg === null) { clusters[domain] = {x:0, y:0}; continue; }
+    const a = deg * Math.PI / 180;
+    clusters[domain] = { x: r * Math.sin(a), y: -r * Math.cos(a) };
+  }
+  return clusters;
+})();
 
 function getClusterPos(d) {
-  const dom = d.domain;
-  if (layerMode === 'both' || layerMode === 'venn') {
-    if (CLUSTER_HUMAN[dom]) return { x: CLUSTER_HUMAN[dom].x - 200, y: CLUSTER_HUMAN[dom].y };
-    if (CLUSTER_AI[dom]) return { x: CLUSTER_AI[dom].x + 200, y: CLUSTER_AI[dom].y };
-    return { x: 0, y: 0 };
+  // Use getRadialDomainForForce to map nodes to knowledge domains, same as radial
+  const dom = getRadialDomainForForce(d);
+  return FORCE_CLUSTERS[dom] || { x: 0, y: 0 };
+}
+
+// Lightweight version of getRadialDomain for force layout (no link data needed)
+function getRadialDomainForForce(n) {
+  if (n.type === 'fp') return 'EPI'; // FPs cluster near epistemology in force mode
+  if (n.type === 'hsk') {
+    if (n.skillDomain === 'PHYS') return 'PED';
+    if (n.skillDomain === 'PED') return 'PED';
+    if (n.skillDomain === 'RES') return 'EPI';
+    if (n.skillDomain === 'ENG') return 'DSL';
+    if (n.skillDomain === 'BIZ') {
+      const t = (n.title||'').toLowerCase();
+      if (t.includes('agent') || t.includes('orchestrat')) return 'EPI';
+      return 'TF';
+    }
+    if (n.skillDomain === 'DEV') {
+      const t = (n.title||'').toLowerCase();
+      if (t.includes('simulation') || t.includes('python scientific')) return 'PHYS';
+      if (t.includes('dashboard') || t.includes('monitoring')) return 'TF';
+      return 'ai_shared';
+    }
+    return 'ai_shared';
   }
-  return CLUSTER_HUMAN[dom] || CLUSTER_AI[dom] || { x: 0, y: 0 };
+  if (n.type === 'sop' || n.type === 'skl') {
+    if (n.owner === 'TA') {
+      const t = (n.title||'').toLowerCase();
+      if (t.includes('physics content') || t.includes('figure')) return 'PHYS';
+      if (t.includes('pipeline') || t.includes('document')) return 'ai_shared';
+      return 'PED';
+    }
+    if (n.owner === 'RA') return 'EPI';
+    if (n.owner === 'CE') {
+      const t = (n.title||'').toLowerCase();
+      if (t.includes('simulation') || t.includes('numerical') || t.includes('scientific') || t.includes('physics')) return 'PHYS';
+      if (t.includes('ta agent') || t.includes('katex') || t.includes('manim') || t.includes('quarto') || t.includes('pipeline')) return 'PED';
+      if (t.includes('cesium') || t.includes('geospatial')) return 'ECDO';
+      if (t.includes('d3') || t.includes('claude')) return 'EPI';
+      if (t.includes('version control')) return 'ai_shared';
+      if (t.includes('chart') || t.includes('time-series')) return 'TF';
+      return 'ai_shared';
+    }
+    if (n.owner === 'CD') {
+      const t = (n.title||'').toLowerCase();
+      if (t.includes('pedagogy') || t.includes('course') || t.includes('lesson') || t.includes('ebook')) return 'PED';
+      if (t.includes('debate') || t.includes('philosophical')) return 'EPI';
+      return 'ai_shared';
+    }
+    if (n.owner === 'PM') return 'EPI';
+    if (n.owner === 'SA') {
+      const t = (n.title||'').toLowerCase();
+      if (t.includes('youtube') || t.includes('publish')) return 'PED';
+      return 'ai_shared';
+    }
+  }
+  if (n.type === 'ifc') return 'EPI';
+  if (n.type === 'quote') {
+    const tags = n.tags || [];
+    if (tags.includes('science')) return 'PHYS';
+    if (tags.includes('education')) return 'PED';
+    if (tags.includes('philosophy') || tags.includes('truth') || tags.includes('knowledge')) return 'EPI';
+    if (tags.includes('psychology') || tags.includes('transformation') || tags.includes('suffering')) return 'PED';
+    if (tags.includes('action')) return 'DSL';
+    return 'EPI';
+  }
+  return n.domain;
 }
 
 function nColor(n) { return COLORS[n.domain] || COLORS.unknown; }
@@ -1390,11 +1454,11 @@ function renderGraph(nodes, links) {
 
 // --- Venn Cluster Positions ---------------------------------------------------
 function getVennClusterPos(d) {
-  // Classify for Venn: human-only, ai-only, shared
   const vennCat = getVennCategory(d);
-  if (vennCat === 'human') return { x: -250, y: (CLUSTER_HUMAN[d.domain]||{y:0}).y };
-  if (vennCat === 'ai') return { x: 250, y: (CLUSTER_AI[d.domain]||{y:0}).y };
-  return { x: 0, y: 0 }; // shared — center
+  const base = FORCE_CLUSTERS[getRadialDomainForForce(d)] || {x:0,y:0};
+  if (vennCat === 'human') return { x: -200 + base.y * 0.3, y: base.x * 0.5 };
+  if (vennCat === 'ai') return { x: 200 + base.y * 0.3, y: base.x * 0.5 };
+  return { x: 0, y: base.x * 0.3 }; // shared — center
 }
 
 function getVennCategory(d) {
