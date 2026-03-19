@@ -389,7 +389,7 @@ const COLORS = {
 const DOMAIN_NAMES = {
   foundation:'Foundation', EPI:'Research & Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
   DSL:'Dynamical Systems', PED:'Pedagogy & Assessment', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
-  ai_shared:'Shared Tools', human_skills:'Human Skills',
+  ai_shared:'Computer Systems & AI', human_skills:'Human Skills',
   CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
 };
 const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
@@ -435,7 +435,7 @@ function getRadialDomainForForce(n) {
     if (n.skillDomain === 'ENG') return 'DSL';
     if (n.skillDomain === 'BIZ') {
       const t = (n.title||'').toLowerCase();
-      if (t.includes('agent') || t.includes('orchestrat')) return 'EPI';
+      if (t.includes('agent') || t.includes('orchestrat')) return 'ai_shared';
       return 'TF';
     }
     if (n.skillDomain === 'DEV') {
@@ -459,7 +459,8 @@ function getRadialDomainForForce(n) {
       if (t.includes('simulation') || t.includes('numerical') || t.includes('scientific') || t.includes('physics')) return 'PHYS';
       if (t.includes('ta agent') || t.includes('katex') || t.includes('manim') || t.includes('quarto') || t.includes('pipeline')) return 'PED';
       if (t.includes('cesium') || t.includes('geospatial')) return 'ECDO';
-      if (t.includes('d3') || t.includes('claude')) return 'EPI';
+      if (t.includes('d3')) return 'EPI';
+        if (t.includes('claude')) return 'ai_shared';
       if (t.includes('version control')) return 'ai_shared';
       if (t.includes('chart') || t.includes('time-series')) return 'TF';
       return 'ai_shared';
@@ -470,7 +471,7 @@ function getRadialDomainForForce(n) {
       if (t.includes('debate') || t.includes('philosophical')) return 'EPI';
       return 'ai_shared';
     }
-    if (n.owner === 'PM') return 'EPI';
+    if (n.owner === 'PM') return 'ai_shared';
     if (n.owner === 'SA') {
       const t = (n.title||'').toLowerCase();
       if (t.includes('youtube') || t.includes('publish')) return 'PED';
@@ -812,7 +813,7 @@ function computeRadialPositions(nodes, links, width, height) {
       if (n.skillDomain === 'ENG') return 'DSL';
       // BIZ: product strategy → TF, agent orchestration → EPI
       if (n.skillDomain === 'BIZ') {
-        if (t.includes('agent') || t.includes('orchestrat')) return 'EPI';
+        if (t.includes('agent') || t.includes('orchestrat')) return 'ai_shared';
         return 'TF';
       }
       // DEV skills: map by what they serve
@@ -844,7 +845,8 @@ function computeRadialPositions(nodes, links, width, height) {
         // ECDO: geospatial/CesiumJS
         if (t.includes('cesium') || t.includes('geospatial')) return 'ECDO';
         // Research: D3 visualization (KB Explorer), Claude API, version control
-        if (t.includes('d3') || t.includes('claude')) return 'EPI';
+        if (t.includes('d3')) return 'EPI';
+        if (t.includes('claude')) return 'ai_shared';
         if (t.includes('version control')) return 'ai_shared';
         // TF: charting/time-series (market dashboards)
         if (t.includes('chart') || t.includes('time-series')) return 'TF';
@@ -859,8 +861,8 @@ function computeRadialPositions(nodes, links, width, height) {
         if (t.includes('marketing') || t.includes('brand') || t.includes('audience')) return 'ai_shared';
         return 'PED';
       }
-      // PM → EPI (project management uses epistemological reasoning)
-      if (n.owner === 'PM') return 'EPI';
+      // PM → Computer Systems & AI (orchestration, project management)
+      if (n.owner === 'PM') return 'ai_shared';
       // SA → map by function
       if (n.owner === 'SA') {
         const t = (n.title || '').toLowerCase();
@@ -1947,7 +1949,7 @@ function buildFilterPanel() {
     ['PED','Pedagogy & Assessment'], ['tes','TES Concepts'],
     ['ECDO','ECDO Theory'], ['ARCH','Archaeoastronomy'],
     ['DSL','Dynamical Systems'], ['TF','Thermofluidic Finance'],
-    ['ai_shared','Shared Tools']
+    ['ai_shared','Computer Systems & AI']
   ];
 
   let html = '';
