@@ -1026,10 +1026,11 @@ function renderGraph(nodes, links) {
       .sort((a,b) => a[1] - b[1]);
     for (let i = 0; i < sortedDomains.length; i++) {
       const [domain, angleDeg] = sortedDomains[i];
+      const prevAngle = i > 0 ? sortedDomains[i-1][1] : sortedDomains[sortedDomains.length-1][1] - 360;
       const nextAngle = i < sortedDomains.length - 1 ? sortedDomains[i+1][1] : sortedDomains[0][1] + 360;
-      const halfGap = (nextAngle - angleDeg) / 2;
-      const a1 = (angleDeg - halfGap) * Math.PI / 180;
-      const a2 = (angleDeg + halfGap) * Math.PI / 180;
+      // Wedge edges at midpoints between this sector and its neighbors
+      const a1 = ((angleDeg + prevAngle) / 2) * Math.PI / 180;
+      const a2 = ((angleDeg + nextAngle) / 2) * Math.PI / 180;
       const outerR = maxR + 30;
       const innerR = Math.max((actualRadii.get(0) || 60) * 0.5, 20);
       // Wedge path from center to outer
@@ -1047,8 +1048,8 @@ function renderGraph(nodes, links) {
         .attr('stroke-opacity', 0.08)
         .attr('stroke-width', 0.5);
 
-      // Radial divider line at sector boundary
-      const divAngle = (angleDeg - halfGap) * Math.PI / 180;
+      // Radial divider line at sector boundary (left edge of this sector)
+      const divAngle = a1;
       ringGroup.append('line')
         .attr('x1', cx + innerR * Math.cos(divAngle))
         .attr('y1', cy + innerR * Math.sin(divAngle))
