@@ -568,6 +568,7 @@ let radialAngle = 0; // lazy-susan rotation (degrees)
 let _lastZoomTransform = d3.zoomIdentity;
 let ringMode = 'tiers'; // 'tiers' (dependency depth) or 'method' (TES scientific method stages)
 let showDistricts = true; // toggle project district overlays
+let activeDistrict = -1; // -1 = none highlighted, 0+ = index into PROJECT_DISTRICTS
 
 const PROJECT_DISTRICTS = [
   { name: 'On Dynamical Systems',    domains: ['DSL','PHYS'],       color: '#c084fc' },
@@ -2052,11 +2053,16 @@ function buildFilterPanel() {
   // Ring mode + tier filter buttons (shown when in radial layout)
   if (layout === 'radial') {
     // Ring mode toggle: Tiers (dependency depth) vs Method (TES scientific method stages)
-    // Districts toggle
+    // Project districts
     html += `<div class="filter-heading" style="margin-top:8px">Projects</div>`;
     html += `<label class="domain-filter" style="color:#b0b8c8">
       <input type="checkbox" ${showDistricts?'checked':''} onchange="toggleDistricts(this.checked)">
       <span class="fdot" style="background:#b0b8c8"></span>Show Districts</label>`;
+    for (let i = 0; i < PROJECT_DISTRICTS.length; i++) {
+      const d = PROJECT_DISTRICTS[i];
+      const isActive = activeDistrict === i;
+      html += `<button class="query-btn${isActive?' active':''}" onclick="filterDistrict(${isActive?-1:i})" style="color:${d.color};border-color:${isActive?d.color:'#2a3050'}">${d.name}</button>`;
+    }
 
     html += `<div class="filter-heading" style="margin-top:8px">Ring Mode</div>`;
     html += `<div style="display:flex;gap:4px;margin-bottom:6px">`;
@@ -2152,6 +2158,42 @@ let activeTier = -1; // -1 = all tiers
 function toggleDistricts(visible) {
   showDistricts = visible;
   rerender();
+}
+
+function filterDistrict(idx) {
+  activeDistrict = idx;
+  buildFilterPanel();
+  if (idx === -1) {
+    // Reset — show all nodes
+    nodeEls.transition().duration(300).style('opacity', 1);
+    labelEls.transition().duration(300).attr('fill-opacity', d =>
+      (layout === 'radial' || (window._labelVisible && window._labelVisible(d))) ? 0.9 : 0);
+    linkEls.transition().duration(300).attr('stroke-opacity', d => {
+      if (d.type==='quote-resonance') return 0.12;
+      if (d.type==='tes-reference') return 0.3;
+      return 0.5;
+    });
+    return;
+  }
+  const district = PROJECT_DISTRICTS[idx];
+  // Find nodes in this district's domains
+  const districtIds = new Set();
+  for (const n of graphData.nodes) {
+    if (district.domains.includes(getRadialDomainForForce(n))) {
+      districtIds.add(n.id);
+    }
+  }
+  // Highlight district nodes, dim everything else
+  nodeEls.transition().duration(300)
+    .style('opacity', d => districtIds.has(d.id) ? 1 : 0.06);
+  labelEls.transition().duration(300)
+    .attr('fill-opacity', d => districtIds.has(d.id) ? 0.9 : 0.03);
+  linkEls.transition().duration(300)
+    .attr('stroke-opacity', d => {
+      const s = typeof d.source==='string'?d.source:d.source.id;
+      const t = typeof d.target==='string'?d.target:d.target.id;
+      return (districtIds.has(s) && districtIds.has(t)) ? 0.6 : 0.02;
+    });
 }
 
 function setRingMode(m) {
