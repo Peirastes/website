@@ -574,8 +574,8 @@ const PROJECT_DISTRICTS = [
   { name: 'On Dynamical Systems',    domains: ['DSL','PHYS'],       color: '#c084fc' },
   { name: 'Thermofluidic Finance',   domains: ['TF','DSL'],         color: '#50c878' },
   { name: 'Eisenhower Task Manager', domains: ['ai_shared'],        color: '#7a8a9a' },
-  { name: 'Propendulum',             domains: ['DSL','PHYS'],       color: '#ff8866' },
-  { name: 'ECDO Watch',              domains: ['ECDO','ARCH','PHYS'], color: '#e07050' },
+  { name: 'Propendulum',             nodes: ['PHYS-013','PHYS-016','DSL-008','PHYS-030','PHYS-027'], color: '#ff8866' },
+  { name: 'ECDO Watch',              domains: ['ECDO','ARCH'],      color: '#e07050' },
 ];
 let vennCircles = null;
 
@@ -1149,10 +1149,11 @@ function renderGraph(nodes, links) {
     if (showDistricts) {
       const districtGroup = container.append('g').attr('class', 'districts');
       for (const district of PROJECT_DISTRICTS) {
-        // Collect nodes in this district's domains
+        // Collect nodes: by specific IDs if defined, otherwise by domain
         const dNodes = nodes.filter(n => {
-          const rd = getRadialDomainForForce(n);
-          return district.domains.includes(rd);
+          if (district.nodes) return district.nodes.includes(n.id);
+          if (district.domains) return district.domains.includes(getRadialDomainForForce(n));
+          return false;
         }).filter(n => n.x !== undefined && n.y !== undefined);
         if (dNodes.length < 3) continue;
 
@@ -2176,10 +2177,12 @@ function filterDistrict(idx) {
     return;
   }
   const district = PROJECT_DISTRICTS[idx];
-  // Find nodes in this district's domains
+  // Find nodes in this district
   const districtIds = new Set();
   for (const n of graphData.nodes) {
-    if (district.domains.includes(getRadialDomainForForce(n))) {
+    if (district.nodes && district.nodes.includes(n.id)) {
+      districtIds.add(n.id);
+    } else if (district.domains && district.domains.includes(getRadialDomainForForce(n))) {
       districtIds.add(n.id);
     }
   }
