@@ -567,6 +567,13 @@ let pendingQuery = null;
 let radialAngle = 0; // lazy-susan rotation (degrees)
 let _lastZoomTransform = d3.zoomIdentity;
 let ringMode = 'tiers'; // 'tiers' (dependency depth) or 'method' (TES scientific method stages)
+let showDistricts = true; // toggle project district overlays
+
+const PROJECT_DISTRICTS = [
+  { name: 'On Dynamical Systems',   domains: ['DSL','PHYS'],  color: '#c084fc' },
+  { name: 'Thermofluidic Finance',  domains: ['TF','DSL'],    color: '#50c878' },
+  { name: 'Eisenhower Task Manager', domains: ['ai_shared'],  color: '#7a8a9a' },
+];
 let vennCircles = null;
 
 // --- ID Rename System ---------------------------------------------------------
@@ -1133,6 +1140,59 @@ function renderGraph(nodes, links) {
         .attr('text-anchor', 'middle')
         .attr('font-family', "'Segoe UI', system-ui, sans-serif")
         .attr('font-weight', 500);
+    }
+
+    // ─── Project Districts ─────────────────────────────────────────────────
+    if (showDistricts) {
+      const districtGroup = container.append('g').attr('class', 'districts');
+      for (const district of PROJECT_DISTRICTS) {
+        // Collect nodes in this district's domains
+        const dNodes = nodes.filter(n => {
+          const rd = getRadialDomain(n);
+          return district.domains.includes(rd);
+        }).filter(n => n.x !== undefined && n.y !== undefined);
+        if (dNodes.length < 3) continue;
+
+        // Compute convex hull
+        const points = dNodes.map(n => [n.x, n.y]);
+        const hull = d3.polygonHull(points);
+        if (!hull) continue;
+
+        // Expand hull outward by padding for breathing room
+        const padding = 25;
+        const centroid = d3.polygonCentroid(hull);
+        const expanded = hull.map(([px, py]) => {
+          const dx = px - centroid[0], dy = py - centroid[1];
+          const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          return [px + (dx/dist) * padding, py + (dy/dist) * padding];
+        });
+
+        // Draw smooth blob using Catmull-Rom curve
+        const blobPath = d3.line().curve(d3.curveCatmullRomClosed.alpha(0.5));
+        districtGroup.append('path')
+          .attr('d', blobPath(expanded))
+          .attr('fill', district.color)
+          .attr('fill-opacity', 0.06)
+          .attr('stroke', district.color)
+          .attr('stroke-width', 1.5)
+          .attr('stroke-opacity', 0.3)
+          .attr('stroke-dasharray', '8,5')
+          .attr('pointer-events', 'none');
+
+        // Label at centroid
+        districtGroup.append('text')
+          .attr('x', centroid[0])
+          .attr('y', centroid[1])
+          .text(district.name)
+          .attr('font-size', 13)
+          .attr('fill', district.color)
+          .attr('fill-opacity', 0.35)
+          .attr('font-weight', 700)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .attr('font-family', "'Segoe UI', system-ui, sans-serif")
+          .attr('pointer-events', 'none');
+      }
     }
   }
 
@@ -1990,6 +2050,12 @@ function buildFilterPanel() {
   // Ring mode + tier filter buttons (shown when in radial layout)
   if (layout === 'radial') {
     // Ring mode toggle: Tiers (dependency depth) vs Method (TES scientific method stages)
+    // Districts toggle
+    html += `<div class="filter-heading" style="margin-top:8px">Projects</div>`;
+    html += `<label class="domain-filter" style="color:#b0b8c8">
+      <input type="checkbox" ${showDistricts?'checked':''} onchange="toggleDistricts(this.checked)">
+      <span class="fdot" style="background:#b0b8c8"></span>Show Districts</label>`;
+
     html += `<div class="filter-heading" style="margin-top:8px">Ring Mode</div>`;
     html += `<div style="display:flex;gap:4px;margin-bottom:6px">`;
     html += `<button class="mode-btn ${ringMode==='tiers'?'active':''}" onclick="setRingMode('tiers')" style="flex:1;font-size:10px;padding:3px 6px">Tiers</button>`;
@@ -2080,6 +2146,11 @@ function toggleDomain(domain, visible) {
 }
 
 let activeTier = -1; // -1 = all tiers
+
+function toggleDistricts(visible) {
+  showDistricts = visible;
+  rerender();
+}
 
 function setRingMode(m) {
   ringMode = m;
