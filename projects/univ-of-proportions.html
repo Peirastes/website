@@ -21,31 +21,86 @@
 
     <style>
         /* ====================================================================
-           TREATISE PAGE — Template-specific styles
+           DISCOURSE PAGE — Template-specific styles
+           Wide layout WITH text. For presentations, talks, lecture materials.
+           Can embed video, PDF viewer, or app alongside prose.
            ==================================================================== */
 
-        .abstract {
-            background: var(--bg-card);
-            border-left: 4px solid var(--primary-accent);
-            border-radius: 0 8px 8px 0;
-            padding: 1.25rem 1.5rem;
-            margin: 1.5rem 0 2rem 0;
-            font-size: 1rem;
-            line-height: 1.7;
+        /* --- Media embed section (video / PDF / slides) --- */
+        .media-embed {
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Discourse prose content --- */
+        .discourse-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .discourse-content h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .discourse-content h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
             color: var(--text-secondary);
         }
 
-        .abstract h3 {
-            font-family: 'Cinzel', serif;
-            font-size: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin: 0 0 0.5rem 0;
-            color: var(--primary-accent);
+        .discourse-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
         }
 
-        .pub-meta {
+        /* --- Venue / date / audience metadata block --- */
+        .venue-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 1.5rem;
@@ -57,12 +112,14 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
-        .pub-meta .meta-item {
+
+        .venue-meta .meta-item {
             display: flex;
             align-items: center;
             gap: 0.4rem;
         }
-        .pub-meta .meta-label {
+
+        .venue-meta .meta-label {
             font-weight: 700;
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -70,7 +127,6 @@
             color: var(--text-muted);
         }
         .meta-download {
-            margin-left: auto;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -87,49 +143,19 @@
             opacity: 0.8;
         }
 
-        section.project-detail {
-            margin-top: 0;
-        }
-
-        .treatise-body {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem 2rem 1.5rem;
+        /* --- Driving question callout --- */
+        .driving-question {
+            font-style: italic;
             font-size: 1.1rem;
-            line-height: 1.8;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
         }
 
-        .treatise-body h2 {
-            font-family: 'Cinzel', serif;
-            font-weight: 600;
-            font-size: 1.6rem;
-            margin-top: 2.5rem;
-            border-bottom: 3px solid var(--primary-accent);
-            padding-bottom: 0.4rem;
-        }
-
-        .treatise-body h3 {
-            font-family: 'Cinzel', serif;
-            font-weight: 500;
-            font-size: 1.25rem;
-            margin-top: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .treatise-body h4 {
-            font-family: 'Lato', sans-serif;
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin-top: 1.5rem;
-            color: var(--text-secondary);
-        }
-
-        .treatise-body p {
-            text-align: justify;
-            margin-bottom: 1rem;
-        }
-
-        .treatise-body blockquote {
+        /* --- Blockquote with orange left border --- */
+        .discourse-content blockquote {
             border-left: 4px solid var(--primary-accent);
             background-color: rgba(255, 85, 0, 0.03);
             border-radius: 0 4px 4px 0;
@@ -139,30 +165,28 @@
             color: var(--text-secondary);
         }
 
-        .treatise-body figure {
+        /* --- Figure captions --- */
+        .discourse-content figure {
             margin: 2rem 0;
             text-align: center;
         }
 
-        .treatise-body figure img {
+        .discourse-content figure img {
             max-width: 100%;
             height: auto;
             border-radius: 4px;
             box-shadow: 0 2px 8px var(--shadow-sm);
         }
 
-        .treatise-body figcaption {
+        .discourse-content figcaption {
             font-size: 0.9rem;
             color: var(--text-muted);
-            margin-top: 0;
+            margin-top: 0.5rem;
             font-style: italic;
             line-height: 1.5;
         }
 
-        .treatise-body .math.display {
-            overflow-x: auto;
-        }
-
+        /* --- Download buttons row --- */
         .download-row {
             display: flex;
             flex-wrap: wrap;
@@ -194,9 +218,11 @@
             opacity: 1;
         }
 
+        /* --- Cross-links section --- */
         .cross-links {
-            margin-top: 3rem;
-            padding-top: 1.5rem;
+            max-width: 800px;
+            margin: 3rem auto 0 auto;
+            padding: 1.5rem;
             border-top: 2px solid var(--border-light);
         }
 
@@ -206,7 +232,6 @@
             font-weight: 600;
             margin-bottom: 1rem;
             color: var(--text-primary);
-            border-bottom: none;
         }
 
         .cross-links-grid {
@@ -249,68 +274,62 @@
             text-align: left;
         }
 
-        .toc {
-            background: var(--bg-card);
+        /* --- Tables --- */
+        .discourse-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
             border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 1rem 1.5rem;
-            margin: 1.5rem 0 2rem 0;
+            border-radius: 5px;
+            overflow: hidden;
         }
 
-        .toc summary {
-            font-family: 'Cinzel', serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--primary-accent);
-            cursor: pointer;
-            list-style: none;
-        }
-        .toc summary::-webkit-details-marker { display: none; }
-        .toc summary::before {
-            content: '\25B8 ';
-            display: inline-block;
-        }
-        .toc[open] summary::before {
-            content: '\25BE ';
-        }
-        .toc ol {
-            margin-top: 0.5rem;
-            margin: 0;
-            padding-left: 1.5rem;
+        .discourse-content table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
         }
 
-        .toc li {
-            margin-bottom: 0.3rem;
-            font-size: 0.95rem;
+        .discourse-content table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
         }
 
-        .toc a {
-            text-decoration: none;
+        .discourse-content table tr:last-child td {
+            border-bottom: none;
         }
 
-        .toc a:hover {
-            text-decoration: underline;
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .discourse-content .math.display {
+            overflow-x: auto;
         }
 
+        /* --- Responsive --- */
         @media (max-width: 768px) {
-            .treatise-body {
+            .discourse-content {
                 padding: 0.75rem;
                 font-size: 1rem;
                 line-height: 1.7;
             }
 
-            .treatise-body h2 {
+            .discourse-content h2 {
                 font-size: 1.3rem;
             }
 
-            .treatise-body h3 {
+            .discourse-content h3 {
                 font-size: 1.1rem;
             }
 
             .cross-links-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .venue-meta {
+                flex-direction: column;
+                gap: 0.5rem;
             }
 
             .download-row {
@@ -323,9 +342,13 @@
         }
 
         @media (max-width: 480px) {
-            .treatise-body {
+            .discourse-content {
                 padding: 0.5rem;
                 font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
             }
         }
     </style>
@@ -350,51 +373,43 @@
 
     <div class="content">
         <main>
-            <section class="project-detail">
-                <div class="treatise-body">
 
-                    <h2>A Universe of Proportions</h2>
+            <!-- Media embed — PDF slides -->
+            <div class="media-embed">
+                <iframe src="../documents/static-documents/universe-proportions-v1.pdf" title="A Universe of Proportions — Full Slides"></iframe>
+            </div>
 
-                    <!-- Abstract / Summary -->
-                    <div class="abstract">
-                        <h3>Abstract</h3>
-                        <p>An exploration of how ratios and proportions form a universal language underlying physics, engineering, biology, chemistry, mathematics, music, and art. The thesis: anything dimensionally equivalent can be expressed as a ratio, and understanding these proportional relationships reveals the structure of reality itself.</p>
+            <!-- Prose content section -->
+            <div class="discourse-content">
+
+                <h2>A Universe of Proportions</h2>
+
+                <!-- Venue / date / audience metadata -->
+                <div class="venue-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Venue:</span>
+                        <span>University of Central Oklahoma</span>
                     </div>
-
-                    <!-- Publication metadata -->
-                    <div class="pub-meta">
-                        <div class="meta-item">
-                            <span class="meta-label">Published:</span>
-                            <span>2018</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Last Updated:</span>
-                            <span>2018</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Status:</span>
-                            <span>Published</span>
-                        </div>
-                        <div class="meta-item" style="margin-left:auto">
-                            <span class="meta-label">Download:</span>
-                            <a href="../documents/static-documents/universe-proportions-v1.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
-                        </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Date:</span>
+                        <span>2018</span>
                     </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Audience:</span>
+                        <span>Physics &amp; Engineering Students</span>
+                    </div>
+                    <div class="meta-item" style="margin-left:auto">
+                        <span class="meta-label">Download:</span>
+                        <a href="../documents/static-documents/universe-proportions-v1.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                    </div>
+                </div>
 
-                    <!-- Table of Contents -->
-                    <details class="toc">
-                        <summary>Contents</summary>
-                        <ol>
-                            <li><a href="#overview">Overview</a></li>
-                            <li><a href="#analogies-and-cognition">Analogies and Cognition</a></li>
-                            <li><a href="#historical-development">Historical Development</a></li>
-                            <li><a href="#from-ratios-to-equations">From Ratios to Equations</a></li>
-                            <li><a href="#universal-application">Universal Application</a></li>
-                            <li><a href="#the-core-insight">The Core Insight</a></li>
-                        </ol>
-                    </details>
+                <!-- Driving question callout -->
+                <p class="driving-question">
+                    What is the universal language that connects a spiral galaxy to a seashell, Kepler's laws to musical harmony, Newton's second law to the stability of bridges?
+                </p>
 
-                    <!-- QMD_CONTENT_START -->
+                <!-- QMD_CONTENT_START -->
 
 <h2 id="overview">Overview</h2>
 <p>What unites a spiral galaxy, a seashell, a stock market chart, and the structure of DNA? What connects Kepler's laws of planetary motion to the tuning of musical instruments, Archimedes' principle to the efficiency of machines, Newton's second law to the stability of bridges? The answer is proportion—the fundamental relationship between quantities that reveals the deepest patterns in nature and thought.</p>
@@ -416,22 +431,21 @@
 <h2 id="the-core-insight">The Core Insight</h2>
 <p>The central claim is deceptively simple: anything can be expressed as a ratio so long as the compared parameters are dimensionally equivalent. But this simplicity masks a profound truth about the structure of knowledge itself. Ratios are easy to create—any two quantities can be divided. Proportionalities—meaningful equality of ratios that reveal deep structure—are difficult to establish. Discovering proportionalities is the work of science, engineering, and mathematics. Understanding why certain ratios persist across different phenomena, and why others do not, is the path to comprehension.</p>
 
-                    <!-- QMD_CONTENT_END -->
+                <!-- QMD_CONTENT_END -->
 
-                    <!-- Cross-links to related Treatise pages -->
-                    <div class="cross-links">
-                        <h3>Related Work</h3>
-                        <div class="cross-links-grid">
-                            <div class="cross-link-card">
-                                <div class="label">Treatise</div>
-                                <a href="physical-analogies.html">On Physical Analogies</a>
-                                <p>Foundational exploration of structural analogies between physical systems through the unifying concept of sources, fields, and forces.</p>
-                            </div>
+                <!-- Cross-links to related pages -->
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="physical-analogies.html">On Physical Analogies</a>
+                            <p>Foundational exploration of structural analogies between physical systems through the unifying concept of sources, fields, and forces.</p>
                         </div>
                     </div>
-
                 </div>
-            </section>
+
+            </div>
         </main>
     </div>
 
