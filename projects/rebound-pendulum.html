@@ -3,15 +3,393 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Rebound Pendulum - Peirastes</title>
-    <meta name="description" content="Exploring energy loss during impact through the coefficient of restitution, bridging theory and measurement in collision efficiency.">
+
+    <meta name="description" content="Investigating the energy dynamics and coefficient of restitution in a pendulum collision system through first-principles derivation and experimental verification.">
     <meta property="og:title" content="Rebound Pendulum - Peirastes">
-    <meta property="og:description" content="Exploring energy loss during impact through the coefficient of restitution, bridging theory and measurement in collision efficiency.">
-    <meta property="og:type" content="website">
+    <meta property="og:description" content="Investigating the energy dynamics and coefficient of restitution in a pendulum collision system through first-principles derivation and experimental verification.">
+    <meta property="og:type" content="article">
+
     <meta property="og:url" content="https://peirastes.com/projects/rebound-pendulum.html">
+
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           DISCOURSE PAGE — Template-specific styles
+           Wide layout WITH text. For presentations, talks, lecture materials.
+           Can embed video, PDF viewer, or app alongside prose.
+           ==================================================================== */
+
+        /* --- Media embed section (video / PDF / slides) --- */
+        .media-embed {
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Discourse prose content --- */
+        .discourse-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .discourse-content h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .discourse-content h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .discourse-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Venue / date / audience metadata block --- */
+        .venue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .venue-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .venue-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Driving question callout --- */
+        .driving-question {
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .discourse-content blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Specs grid (2-column structured data) --- */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .spec-card {
+            background: var(--bg-card);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-accent);
+        }
+
+        .spec-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+            font-size: 0.95rem;
+        }
+
+        .spec-card ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .spec-card li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* --- Figure captions --- */
+        .discourse-content figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .discourse-content figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .discourse-content figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            max-width: 800px;
+            margin: 3rem auto 0 auto;
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Tables (mode tables, data tables) --- */
+        .discourse-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .discourse-content table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .discourse-content table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .discourse-content table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .discourse-content .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .discourse-content {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .discourse-content h2 {
+                font-size: 1.3rem;
+            }
+
+            .discourse-content h3 {
+                font-size: 1.1rem;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .venue-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .discourse-content {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -22,36 +400,178 @@
     </header>
 
     <nav>
-            <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../current-projects.html">Current Projects</a> 
-            <a href="../previous-work.html">Previous Projects</a>
-            <a href="../timeline.html">Physics Timeline</a> 
-            <a href="../quotes.html">Quotes</a></nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
 
     <div class="content">
-
-
         <main>
-        <section>
-            <h2>SPS Talk</h2>
-            <p></p>
-            <video controls width="100%" poster="video-thumbnail.jpg">
-                <source src="../videos/rebound-pendulum-talk.MP4" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-            <h2>Slide Deck</h2>
-            <iframe src="../documents/static-documents/rebound-pendulum-v3.pdf" width="100%" height="600px" style="border: none;"></iframe>
-            <!-- <embed src="../documents/rebound-pendulum-v3.pdf" type="application/pdf" width="100%" height="600px"> -->
-            <a href="../documents/static-documents/rebound-pendulum-v3.pdf" class="button">Download PDF</a>
-        </section>
-    </main>
 
+            <!-- Media embed — Presentation Slides PDF -->
+            <div class="media-embed">
+                <iframe src="../documents/static-documents/rebound-pendulum-v3.pdf" title="Rebound Pendulum — Presentation Slides" allowfullscreen></iframe>
+            </div>
 
+            <!-- Prose content section -->
+            <div class="discourse-content">
+
+                <h2>Rebound Pendulum</h2>
+
+                <!-- Venue / date / audience metadata -->
+                <div class="venue-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Venue:</span>
+                        <span>University of Central Oklahoma &mdash; Physics</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Date:</span>
+                        <span>2017</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Audience:</span>
+                        <span>Physics Faculty &amp; Students</span>
+                    </div>
+                    <div class="meta-item" style="margin-left:auto">
+                        <span class="meta-label">Download:</span>
+                        <a href="../documents/static-documents/rebound-pendulum-v3.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                    </div>
+                </div>
+
+                <!-- Driving question callout -->
+                <p class="driving-question">
+                    Can the coefficient of restitution, rebound angle, and energy efficiency of a pendulum collision be derived from first principles and measured three independent ways?
+                </p>
+
+                <!-- Main prose body — from Pandoc conversion of docx -->
+                <h3>Motivation</h3>
+
+                <p>Consider the following pendulum. Let's call it a "rebound pendulum", where a rod has a round mass attached to its end, which is designed to collide with a surface and rebound upon impact. Of interest in this device is the interaction and exchange of energy. Anyone who has ever dribbled a basketball knows they need to apply a sufficient impelling force downward to keep the ball bouncing back up to sufficient height. As the collision between the ball and the ground occurs, there is an exchange of energy. Energy is lost in the form of friction, heat, and sound which prevents the ball from rebounding unmotivated (unforced) to its initial height. Even different materials affect the interaction and exchange of this energy.</p>
+
+                <p>In this rebound pendulum, the pendulum collides with a surface and exchanges energy. If it were possible for all energy to be conserved during the exchange, the pendulum would return to its initial release height (or angle). On the contrary, if it were possible for all energy to be absorbed, the pendulum would impact the material and have no rebound whatsoever (also not realistic).</p>
+
+                <p>It then is reasonable to associate the efficiency of the energy exchange with the proportion of release height (or angle) to rebound height (or angle). Though in what way?</p>
+
+                <p>Measuring the release and rebound angles would be reasonable next steps. However, what would one then do with such data? What physics backs this relationship, if any?</p>
+
+                <h3>Connecting Energy to Measurable Quantities</h3>
+
+                <p>Given that this is a collision problem, and that it would likely be difficult to directly measure the loss of energy, it would be more reasonable to measure the velocity of the pendulum before and after impact. Obtaining a measurement of velocity provides information of the kinetic energy of the system before and after impact and adds alternative perspective to the prior and final potential energies of the system having measured height/angle. Knowing both forms of energy before and after the impact provides two perspectives on the efficiency of the collision.</p>
+
+                <p>With measurable data for potential and kinetic energy of the system, this begs the question: What is the underlying physics? How do these parameters (height/angle/velocity) relate to efficiency? Before getting into physics and mathematics, consider how theory and experiment are going to interact.</p>
+
+                <p>The (alternative) hypothesis is that height/angle are somehow direct indicators of efficiency.</p>
+
+                <p>How does one prosecute this claim? Measuring the height/angle is trivial, measuring the energy (efficiency) is not. One is then compelled to measure the energy and compare it to the trivial. And not merely compare them but compare their ratios.</p>
+
+                <h3>Assumptions</h3>
+
+                <p>Along with direct measurement and data analysis (which alone may show a direct relationship), it is important to also consider the underlying physics. And that is the dynamics of the system, which requires some mathematics and some assumptions. To achieve a simplified dynamic analysis of the system, a few assumptions are made.</p>
+
+                <ul>
+                    <li>Pendulum is released from an angle of \(0°\).</li>
+                    <li>Pendulum collides perfectly perpendicular to surface.</li>
+                    <li>The collision surface is stationary.</li>
+                    <li>The pendulum's moment of inertia remains constant throughout collision.</li>
+                    <li>Energy is conserved prior to and following the collision.</li>
+                    <li>Energy is lost during the collision.</li>
+                </ul>
+
+                <h3>Derivation</h3>
+
+                <p>First, the conservation of energy relations before and after the collision, phase 1 and 2 respectively:</p>
+
+                <p>\(KE_{1i} + PE_{1i} = KE_{1f} + PE_{1f}\) &nbsp;&nbsp;&amp;&nbsp;&nbsp; \(KE_{2i} + PE_{2i} = KE_{2f} + PE_{2f}\)</p>
+
+                <p>Simplifying, given the pendulum starts from rest and loses all potential energy in phase 1, while starting with a rebound kinetic energy all being converted to potential energy by the end of phase 2:</p>
+
+                <p>\(PE_{1i} = KE_{1f}\) &nbsp;&nbsp;&amp;&nbsp;&nbsp; \(KE_{2i} = PE_{2f}\)</p>
+
+                <p>Since the pendulum is purely rotating and not translating, kinetic energy only exists in its rotational form. Potential energy purely depends on height:</p>
+
+                <p>\(\text{mg}h_{1i} = \frac{1}{2}I\omega_{1f}^{2}\) &nbsp;&nbsp;&amp;&nbsp;&nbsp; \(\frac{1}{2}I\omega_{2i}^{2} = mgh_{2f}\)</p>
+
+                <p>Note that, assuming the mass and moment of inertia of the pendulum remain constant, the angular velocities are directly proportional to the heights. By solving both relationships for the moment of inertia, \(I\):</p>
+
+                <p>\(I = \frac{2mgh_{1i}}{\omega_{1f}^{2}}\) &nbsp;&nbsp;&amp;&nbsp;&nbsp; \(I = \frac{2mgh_{2f}}{\omega_{2i}^{2}}\)</p>
+
+                <p>The ratio now becomes clear:</p>
+
+                <p class="math display">\[\frac{2mgh_{1i}}{\omega_{1f}^{2}} = \frac{2mgh_{2f}}{\omega_{2i}^{2}}\]</p>
+
+                <p class="math display">\[\frac{h_{1i}}{\omega_{1f}^{2}} = \frac{h_{2f}}{\omega_{2i}^{2}}\]</p>
+
+                <p class="math display">\[\frac{h_{2f}}{h_{1i}} = \frac{\omega_{2i}^{2}}{\omega_{1f}^{2}}\]</p>
+
+                <p>This proportionality essentially says that the ratio of output potential energy to input potential energy is equal to the ratio of output kinetic energy to input kinetic energy.</p>
+
+                <p>This relation further compels the motivation to measure not just height/angle but also velocity. Measuring angular velocity is possible. Relating the angular speed to linear speed is simple, and in fact is identical given the radius of curvature remains constant:</p>
+
+                <p class="math display">\[\frac{h_{2f}}{h_{1i}} = \frac{\omega_{2i}^{2}}{\omega_{1f}^{2}} = \frac{v_{2i}^{2}/r}{v_{1f}^{2}/r} = \frac{v_{2i}^{2}}{v_{1f}^{2}}\]</p>
+
+                <h3>Coefficient of Restitution</h3>
+
+                <p>The connection can be taken further. The ratio of heights can be related to the rebound angle and the ratio of velocities can be related to the coefficient of restitution. The coefficient of restitution for a two-particle collision is defined as:</p>
+
+                <p class="math display">\[e = \frac{v_{B2} - v_{A2}}{v_{A1} - v_{B1}}\]</p>
+
+                <p>Where \(v_{A}\) is the velocity of one particle, and \(v_{B}\) is the velocity of the other particle (1 &ndash; before, 2 &ndash; after). Since the collision material (B) is assumed to be stationary, its velocity is zero before and after the collision. Before the collision, the pendulum (A) is moving left (negative). After the collision, the pendulum is moving right (positive). Then:</p>
+
+                <p class="math display">\[e = \frac{0 - v_{2i}}{-v_{1f} - 0} = \frac{v_{2i}}{v_{1f}}\]</p>
+
+                <p>Which says that the coefficient of restitution for this system is the ratio of the rebound velocity to the inbound velocity. This relates directly to the inbound/rebound heights:</p>
+
+                <p class="math display">\[\frac{h_{2f}}{h_{1i}} = \frac{v_{2i}^{2}}{v_{1f}^{2}} = e^{2}\]</p>
+
+                <h3>Connecting to Rebound Angle</h3>
+
+                <p>Using geometry based on the arc traced out by the radius of the pendulum's center of gravity, the rebound angle can be related to the heights as:</p>
+
+                <p class="math display">\[\cos\theta_{f} = \frac{h_{1i} - h_{2f}}{h_{1i}} = 1 - \frac{h_{2f}}{h_{1i}}\]</p>
+
+                <p>Substituting the coefficient of restitution:</p>
+
+                <p class="math display">\[\cos\theta_{f} = 1 - e^{2}\]</p>
+
+                <p>Consider the two hypothetical extremes. If all energy is conserved, the rebound angle equals the release angle (90&deg;), requiring \(e = 1\). If all energy is absorbed, the rebound angle is 0&deg;, requiring \(e = 0\). The restitution coefficient squared is the efficiency of the collision.</p>
+
+                <h3>Final Result</h3>
+
+                <p>After solving for the coefficient of restitution in terms of the rebound angle, the following master relationship connects efficiency to the coefficient of restitution, rebound angle, heights, and velocities:</p>
+
+                <p class="math display">\[\varepsilon = e^{2} = 1 - \cos\theta_{f} = \frac{h_{2f}}{h_{1i}} = \frac{v_{2i}^{2}}{v_{1f}^{2}}\]</p>
+
+                <p>With these relationships, measurements of the rebound angle, rebound height, and inbound/rebound velocities are motivated. These measurements allow for three independent determinations of the coefficient of restitution, which is itself a measure of collision energy efficiency.</p>
+
+                <h3>Experimental Implications</h3>
+
+                <ul>
+                    <li>Three independent measurement methods (angle, height ratio, velocity ratio) can corroborate the coefficient of restitution.</li>
+                    <li>Materials with known restitution coefficients can be used to predict rebound parameters and compare to theory.</li>
+                    <li>The derived relationship shows no dependency on mass or pendulum length &mdash; a result worth investigating experimentally, since Galileo showed oscillation frequency depends on length but not mass.</li>
+                </ul>
+
+                <!-- Cross-links to related Treatise -->
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="on-dynamical-systems.html">On Dynamical Systems</a>
+                            <p>A mathematical treatment of nonlinear dynamics, stability analysis, and phase-space methods applied to physical systems.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -86,7 +606,5 @@
             });
         });
     </script>
-
 </body>
-
-</html> 
+</html>

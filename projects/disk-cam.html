@@ -3,15 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Disk Cam Synthesis - Peirastes</title>
+
     <meta name="description" content="Custom cam design and optimization tool in VBA with motion profile calculation, animated simulation, and 3D-printer G-code generation.">
     <meta property="og:title" content="Disk Cam Synthesis - Peirastes">
     <meta property="og:description" content="Custom cam design and optimization tool in VBA with motion profile calculation, animated simulation, and 3D-printer G-code generation.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
+
     <meta property="og:url" content="https://peirastes.com/projects/disk-cam.html">
+
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        /* ====================================================================
+           DISCOURSE PAGE — Template-specific styles
+           Wide layout WITH text. For presentations, talks, lecture materials.
+           Can embed video, PDF viewer, or app alongside prose.
+           ==================================================================== */
+
+        /* --- Media embed section (video / PDF / slides) --- */
+        .media-embed {
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Discourse prose content --- */
+        .discourse-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .discourse-content h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .discourse-content h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .discourse-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Venue / date / audience metadata block --- */
+        .venue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .venue-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .venue-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Driving question callout --- */
+        .driving-question {
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .discourse-content blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Specs grid (2-column structured data) --- */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .spec-card {
+            background: var(--bg-card);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-accent);
+        }
+
+        .spec-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+            font-size: 0.95rem;
+        }
+
+        .spec-card ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .spec-card li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* --- Figure captions --- */
+        .discourse-content figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .discourse-content figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .discourse-content figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            max-width: 800px;
+            margin: 3rem auto 0 auto;
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Tables (mode tables, data tables) --- */
+        .discourse-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .discourse-content table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .discourse-content table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .discourse-content table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .discourse-content .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .discourse-content {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .discourse-content h2 {
+                font-size: 1.3rem;
+            }
+
+            .discourse-content h3 {
+                font-size: 1.1rem;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .venue-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .discourse-content {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -22,40 +397,69 @@
     </header>
 
     <nav>
-            <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../current-projects.html">Current Projects</a>
-            <a href="../previous-work.html">Previous Projects</a>
-            <a href="../timeline.html">Physics Timeline</a>
-            <a href="../quotes.html">Quotes</a></nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
 
     <div class="content">
-
-
         <main>
-        <section>
-            <h2>Overview</h2>
-            <p>Cams are among the most elegant solutions in mechanical engineering: simple rotating lobes that convert rotational motion into precisely controlled linear displacement. From engine valve trains to industrial automation, cam mechanisms achieve motion profiles that would be difficult or impossible with alternative linkages. Yet the design process is notoriously complex, involving competing geometric and dynamic constraints. Commercial cam design software exists—but at significant cost, limiting access for educational institutions and individual engineers. In 2017, I developed a custom cam design and optimization tool in Visual Basic for Applications (VBA), creating an affordable, accessible alternative that enables engineering students to design, analyze, and manufacture cams without expensive proprietary software.
-            </p>
 
-            <h2>Technical Implementation</h2>
-            <p>The system consists of a user-friendly VBA interface in Microsoft Excel combined with a comprehensive macro that performs all geometric, kinematic, and dynamic calculations. Users input the desired follower displacement profile (the motion they want to achieve), and the system automatically calculates the required cam geometry, including the precise coordinates of the cam profile. The macro then computes position, velocity, acceleration, and jerk (rate of change of acceleration) across the full rotation cycle. These outputs are critical for design verification: smooth acceleration profiles minimize forces and vibration, while rapid changes cause stresses and noise that degrade reliability. The tool provides real-time visualization through animated plots showing how the cam profile produces the desired motion, and instantaneously exports the cam geometry to CAD software (SolidWorks) for further analysis and visualization.
-            </p>
+            <!-- Media embed — Conference Poster -->
+            <div class="media-embed">
+                <a href="../images/project_images/ncur-disk-cam-poster.jpg" class="lightbox-trigger">
+                    <img src="../images/project_images/ncur-disk-cam-poster.jpg" alt="Disk Cam Synthesis Poster" style="width:100%; border-radius:4px;">
+                </a>
+            </div>
 
-            <h2>Manufacturing Integration</h2>
-            <p>What distinguishes this tool from purely theoretical design packages is its bridge between simulation and physical reality. Once a designer selects an optimized cam configuration, a single button click generates G-code—the machine instructions required for 3D printing and CNC machining. This integration transforms the tool from an educational curiosity into a practical engineering instrument: students can progress from theoretical design through numerical optimization to holding a manufactured part in minutes. The combination of affordability, educational clarity, and direct manufacturability makes this tool valuable both as a learning resource and as a practical engineering instrument for small-scale production and rapid prototyping.
-            </p>
-            <a href="../images/project_images/ncur-disk-cam-poster.jpg" class="lightbox-trigger">
-                <img src="../images/project_images/ncur-disk-cam-poster.jpg" alt="Disk Cam Synthesis Poster" class="autoscaled-img">
-            </a>
-        </section>
-    </main>
+            <!-- Prose content section -->
+            <div class="discourse-content">
 
+                <h2>Disk Cam Synthesis</h2>
 
+                <!-- Venue / date / audience metadata -->
+                <div class="venue-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Venue:</span>
+                        <span>University of Central Oklahoma &mdash; NCUR 2017</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Date:</span>
+                        <span>2017</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Audience:</span>
+                        <span>Academic Conference Attendees</span>
+                    </div>
+                </div>
+
+                <!-- Driving question callout -->
+                <p class="driving-question">
+                    Can an affordable VBA-based tool enable engineering students to design, optimize, and manufacture custom cams without expensive commercial software?
+                </p>
+
+                <!-- Main prose body — preserved from existing page -->
+                <h3>Overview</h3>
+                <p>Cams are among the most elegant solutions in mechanical engineering: simple rotating lobes that convert rotational motion into precisely controlled linear displacement. From engine valve trains to industrial automation, cam mechanisms achieve motion profiles that would be difficult or impossible with alternative linkages. Yet the design process is notoriously complex, involving competing geometric and dynamic constraints. Commercial cam design software exists&mdash;but at significant cost, limiting access for educational institutions and individual engineers. In 2017, I developed a custom cam design and optimization tool in Visual Basic for Applications (VBA), creating an affordable, accessible alternative that enables engineering students to design, analyze, and manufacture cams without expensive proprietary software.
+                </p>
+
+                <h3>Technical Implementation</h3>
+                <p>The system consists of a user-friendly VBA interface in Microsoft Excel combined with a comprehensive macro that performs all geometric, kinematic, and dynamic calculations. Users input the desired follower displacement profile (the motion they want to achieve), and the system automatically calculates the required cam geometry, including the precise coordinates of the cam profile. The macro then computes position, velocity, acceleration, and jerk (rate of change of acceleration) across the full rotation cycle. These outputs are critical for design verification: smooth acceleration profiles minimize forces and vibration, while rapid changes cause stresses and noise that degrade reliability. The tool provides real-time visualization through animated plots showing how the cam profile produces the desired motion, and instantaneously exports the cam geometry to CAD software (SolidWorks) for further analysis and visualization.
+                </p>
+
+                <h3>Manufacturing Integration</h3>
+                <p>What distinguishes this tool from purely theoretical design packages is its bridge between simulation and physical reality. Once a designer selects an optimized cam configuration, a single button click generates G-code&mdash;the machine instructions required for 3D printing and CNC machining. This integration transforms the tool from an educational curiosity into a practical engineering instrument: students can progress from theoretical design through numerical optimization to holding a manufactured part in minutes. The combination of affordability, educational clarity, and direct manufacturability makes this tool valuable both as a learning resource and as a practical engineering instrument for small-scale production and rapid prototyping.
+                </p>
+
+            </div>
+        </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -90,7 +494,5 @@
             });
         });
     </script>
-
 </body>
-
-</html> 
+</html>

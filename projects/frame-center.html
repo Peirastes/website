@@ -3,15 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Horizontal Frame Centering Algorithm - Peirastes</title>
+
     <meta name="description" content="A mathematical solution for evenly spacing picture frames on a wall with analytical formulas for optimal frame placement.">
     <meta property="og:title" content="Horizontal Frame Centering Algorithm - Peirastes">
     <meta property="og:description" content="A mathematical solution for evenly spacing picture frames on a wall with analytical formulas for optimal frame placement.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
+
     <meta property="og:url" content="https://peirastes.com/projects/frame-center.html">
+
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        /* ====================================================================
+           DISCOURSE PAGE — Template-specific styles
+           Wide layout WITH text. For presentations, talks, lecture materials.
+           Can embed video, PDF viewer, or app alongside prose.
+           ==================================================================== */
+
+        /* --- Media embed section (video / PDF / slides) --- */
+        .media-embed {
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Discourse prose content --- */
+        .discourse-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .discourse-content h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .discourse-content h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .discourse-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Venue / date / audience metadata block --- */
+        .venue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .venue-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .venue-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Driving question callout --- */
+        .driving-question {
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .discourse-content blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Specs grid (2-column structured data) --- */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .spec-card {
+            background: var(--bg-card);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-accent);
+        }
+
+        .spec-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+            font-size: 0.95rem;
+        }
+
+        .spec-card ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .spec-card li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* --- Figure captions --- */
+        .discourse-content figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .discourse-content figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .discourse-content figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            max-width: 800px;
+            margin: 3rem auto 0 auto;
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Tables (mode tables, data tables) --- */
+        .discourse-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .discourse-content table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .discourse-content table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .discourse-content table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .discourse-content .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .discourse-content {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .discourse-content h2 {
+                font-size: 1.3rem;
+            }
+
+            .discourse-content h3 {
+                font-size: 1.1rem;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .venue-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .discourse-content {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -31,72 +406,96 @@
     </nav>
 
     <div class="content">
-
-
         <main>
-        <section>
-            <h2>Overview</h2>
-            <p>
-                Hanging picture frames on a wall presents a deceptively simple geometric problem with an elegant
-                mathematical solution. When arranging multiple frames of equal width such that all gaps—between
-                frame edges, between frames and wall edges—are uniform, the spacing between frame centers differs
-                from the distance between wall edges and outer frame centers.
-            </p>
 
-            <h2>The Problem</h2>
-            <p>
-                <strong>Given (Input Parameters):</strong>
-            </p>
-            <ul>
-                <li><em>w</em><sub>wall</sub> = width of the wall</li>
-                <li><em>w</em><sub>frame</sub> = width of each frame (all frames have equal width)</li>
-                <li><em>n</em><sub>frame</sub> = number of frames to space on the wall</li>
-            </ul>
-            <p>
-                <strong>Find (Output Variables):</strong>
-            </p>
-            <ul>
-                <li><em>d</em><sub>edge</sub> = distance between edges of adjacent frames</li>
-                <li><em>d</em><sub>wall-to-center</sub> = distance from wall edge to centers of outer frames</li>
-                <li><em>d</em><sub>center-to-center</sub> = distance between centers of adjacent frames</li>
-                <li><em>x</em><sub>center</sub><em><sub>i</sub></em> = position of the center of frame <em>i</em></li>
-            </ul>
+            <!-- Media embed — Full Document PDF -->
+            <div class="media-embed">
+                <iframe src="../documents/static-documents/frame-centering-v1.pdf" title="Frame Centering Algorithm — Full Document" allowfullscreen></iframe>
+            </div>
 
-            <h2>The Solution</h2>
-            <p>
-                This work derives a set of analytical equations that solve the centering problem directly.
-                By treating frame count as a control variable and wall/frame widths as boundary conditions,
-                we can compute all required distances from first principles. The solution includes verification
-                equations to confirm measurements, as well as generating functions to locate frame centers and edges.
-            </p>
+            <!-- Prose content section -->
+            <div class="discourse-content">
 
-            <h2>Key Result</h2>
-            <p>
-                The fundamental insight is that equal spacing between frame edges does not yield equal spacing
-                between frame centers. The distance between consecutive frame centers is larger than the distance
-                from the wall edge to the outermost frame's center, precisely because the outer frames are offset
-                by half their width relative to the wall boundary.
-            </p>
+                <h2>Horizontal Frame Centering Algorithm</h2>
 
-            <h2>Practical Application</h2>
-            <p>
-                With the derived equations, installing evenly-spaced frames becomes straightforward: measure wall
-                and frame dimensions, apply the formulas, and use the resulting center positions as installation points.
-                This eliminates guesswork and ensures professional results.
-            </p>
+                <!-- Venue / date / audience metadata -->
+                <div class="venue-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Venue:</span>
+                        <span>Personal Project</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Date:</span>
+                        <span>2019</span>
+                    </div>
+                    <div class="meta-item" style="margin-left:auto">
+                        <span class="meta-label">Download:</span>
+                        <a href="../documents/static-documents/frame-centering-v1.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                    </div>
+                </div>
 
-            <h2>Full Document</h2>
-            <iframe src="../documents/static-documents/frame-centering-v1.pdf" width="100%" height="600px" style="border: none;"></iframe>
-            <!-- <embed src="../documents/rebound-pendulum-v3.pdf" type="application/pdf" width="100%" height="600px"> -->
-            <a href="../documents/static-documents/frame-centering-v1.pdf" class="button">Download PDF</a>
-        </section>
-    </main>
+                <!-- Driving question callout -->
+                <p class="driving-question">
+                    Given a wall width, frame width, and frame count, what are the exact positions for perfectly uniform spacing?
+                </p>
 
+                <!-- Main prose body — preserved from existing page -->
+                <h3>Overview</h3>
+                <p>
+                    Hanging picture frames on a wall presents a deceptively simple geometric problem with an elegant
+                    mathematical solution. When arranging multiple frames of equal width such that all gaps—between
+                    frame edges, between frames and wall edges—are uniform, the spacing between frame centers differs
+                    from the distance between wall edges and outer frame centers.
+                </p>
 
+                <h3>The Problem</h3>
+                <p>
+                    <strong>Given (Input Parameters):</strong>
+                </p>
+                <ul>
+                    <li><em>w</em><sub>wall</sub> = width of the wall</li>
+                    <li><em>w</em><sub>frame</sub> = width of each frame (all frames have equal width)</li>
+                    <li><em>n</em><sub>frame</sub> = number of frames to space on the wall</li>
+                </ul>
+                <p>
+                    <strong>Find (Output Variables):</strong>
+                </p>
+                <ul>
+                    <li><em>d</em><sub>edge</sub> = distance between edges of adjacent frames</li>
+                    <li><em>d</em><sub>wall-to-center</sub> = distance from wall edge to centers of outer frames</li>
+                    <li><em>d</em><sub>center-to-center</sub> = distance between centers of adjacent frames</li>
+                    <li><em>x</em><sub>center<sub>i</sub></sub> = position of the center of frame <em>i</em></li>
+                </ul>
+
+                <h3>The Solution</h3>
+                <p>
+                    This work derives a set of analytical equations that solve the centering problem directly.
+                    By treating frame count as a control variable and wall/frame widths as boundary conditions,
+                    we can compute all required distances from first principles. The solution includes verification
+                    equations to confirm measurements, as well as generating functions to locate frame centers and edges.
+                </p>
+
+                <h3>Key Result</h3>
+                <p>
+                    The fundamental insight is that equal spacing between frame edges does not yield equal spacing
+                    between frame centers. The distance between consecutive frame centers is larger than the distance
+                    from the wall edge to the outermost frame's center, precisely because the outer frames are offset
+                    by half their width relative to the wall boundary.
+                </p>
+
+                <h3>Practical Application</h3>
+                <p>
+                    With the derived equations, installing evenly-spaced frames becomes straightforward: measure wall
+                    and frame dimensions, apply the formulas, and use the resulting center positions as installation points.
+                    This eliminates guesswork and ensures professional results.
+                </p>
+
+            </div>
+        </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -131,7 +530,5 @@
             });
         });
     </script>
-
 </body>
-
-</html> 
+</html>
