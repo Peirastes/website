@@ -3,71 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>SPECTRUM Market Analytics - Peirastes</title>
+
     <meta name="description" content="Multi-dimensional market intelligence dashboard with radar charts, price history, sector comparisons, and macro factor visualization.">
     <meta property="og:title" content="SPECTRUM Market Analytics - Peirastes">
     <meta property="og:description" content="Multi-dimensional market intelligence dashboard with radar charts, price history, sector comparisons, and macro factor visualization.">
     <meta property="og:type" content="website">
+
     <meta property="og:url" content="https://peirastes.com/projects/market-analytics-dashboard.html">
+
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
     <style>
-        html, body {
-            height: 100%;
-        }
+        /* ====================================================================
+           INSTRUMENT PAGE — Template-specific styles
+           Wide, app-focused. The tool IS the page.
+           ==================================================================== */
 
-        main {
-            max-width: 100% !important;
-            width: 100% !important;
-            padding: 0 !important;
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
+        /* --- Responsive iframe container --- */
+        .instrument-wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
-
-        .project-detail {
-            padding: 0;
-            max-width: 100% !important;
-            width: 100% !important;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        #app-container {
+        #lab-container {
             width: 100%;
-            height: 100%;
+            height: calc(100vh - 12rem);
             border: none;
             margin: 0;
             padding: 0;
             display: block;
-            flex: 1;
-            min-height: 800px;
         }
 
-        /* Responsive iframe height */
         @media (max-width: 768px) {
-            #app-container {
-                height: 85vh;
-                min-height: 600px;
+            #lab-container {
+                height: 75vh;
             }
         }
 
         @media (max-width: 480px) {
-            #app-container {
-                height: 80vh;
-                min-height: 500px;
+            #lab-container {
+                height: 60vh;
+            }
+        }
+
+        /* Landscape mobile orientation */
+        @media (max-height: 600px) {
+            #lab-container {
+                height: 85vh;
+            }
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+        }
+
+        @media (max-width: 768px) {
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cross-links {
+                padding: 1rem;
             }
         }
     </style>
+
     <script src="../js/main.js"></script>
 </head>
 
-<body>
+<body class="fullwidth-app">
     <header>
         <h1>Peirastes</h1>
         <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
@@ -82,11 +142,33 @@
         <a href="../quotes.html">Quotes</a>
     </nav>
 
-    <main>
-        <section class="project-detail">
-            <iframe id="app-container" src="market-analytics-dashboard/dist/index.html" title="SPECTRUM Market Analytics Dashboard"></iframe>
-        </section>
-    </main>
+    <div class="content">
+        <main>
+            <section class="project-detail">
+                <div class="instrument-wrap">
+                    <iframe id="lab-container" src="market-analytics-dashboard/dist/index.html" title="SPECTRUM Market Analytics"></iframe>
+                </div>
+            </section>
+
+            <!-- Cross-links to related Treatise and Discourse pages -->
+            <div class="cross-links">
+                <h3>Related Work</h3>
+                <div class="cross-links-grid">
+                    <div class="cross-link-card">
+                        <div class="label">Treatise</div>
+                        <a href="cash-bubble.html">Thermofluidic Finance</a>
+                        <p>A mathematical framework treating personal finance as a dynamical system governed by fluid mechanics and thermodynamics.</p>
+                    </div>
+                    <div class="cross-link-card">
+                        <div class="label">Discourse</div>
+                        <!-- TODO: link when available -->
+                        <a href="#">Coming Soon</a>
+                        <p>A discourse on market analytics and multi-dimensional signal processing is in preparation.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <footer>
         <p>&copy; 2026 Cole Prather</p>
@@ -101,19 +183,26 @@
         // Lightbox functionality
         document.addEventListener("DOMContentLoaded", function() {
             const overlay = document.getElementById("lightbox-overlay");
-            const lightboxImg = document.getElementById("lightbox-img");
-            const closeBtn = document.getElementById("lightbox-close");
+            if (!overlay) return;
 
-            document.querySelectorAll(".lightbox-trigger").forEach(img => {
-                img.addEventListener("click", function() {
-                    lightboxImg.src = this.src;
-                    overlay.classList.add("active");
+            const closeBtn = document.getElementById("lightbox-close");
+            document.querySelectorAll(".lightbox-trigger").forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const img = document.getElementById("lightbox-img");
+                    img.src = this.getAttribute("href");
+                    overlay.style.display = "flex";
                 });
             });
 
-            closeBtn.addEventListener("click", () => overlay.classList.remove("active"));
-            overlay.addEventListener("click", e => {
-                if (e.target === overlay) overlay.classList.remove("active");
+            closeBtn.addEventListener("click", function() {
+                overlay.style.display = "none";
+            });
+
+            overlay.addEventListener("click", function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = "none";
+                }
             });
         });
     </script>
