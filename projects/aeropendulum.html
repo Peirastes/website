@@ -3,28 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Control of an Aeropendulum</title>
+
+    <title>Dynamic Control of an Aeropendulum - Peirastes</title>
+
     <meta name="description" content="A propeller-driven pendulum testbed for investigating classical PID and energy-based control strategies on a nonlinear physical oscillator with real sensor noise, actuator latency, and friction.">
     <meta property="og:title" content="Dynamic Control of an Aeropendulum - Peirastes">
     <meta property="og:description" content="Feedback control systems research using a propeller-driven pendulum with dual-sensor fusion and four control modes.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
     <meta property="og:url" content="https://peirastes.com/projects/aeropendulum.html">
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
-    <script src="../js/main.js"></script>
+
     <style>
-        .project-content {
+        /* ====================================================================
+           DISCOURSE PAGE — Template-specific styles
+           Wide layout WITH text. For presentations, talks, lecture materials.
+           Can embed video, PDF viewer, or app alongside prose.
+           ==================================================================== */
+
+        /* --- Media embed section (video / PDF / slides) --- */
+        .media-embed {
             max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Discourse prose content --- */
+        .discourse-content {
+            max-width: 800px;
             margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
         }
-        .project-content h2 {
+
+        .discourse-content h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .discourse-content h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
             margin-top: 2rem;
-            color: var(--primary-accent);
+            color: var(--text-secondary);
         }
-        .project-content h3 {
-            margin-top: 1.5rem;
+
+        .discourse-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
         }
+
+        /* --- Venue / date / audience metadata block --- */
+        .venue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .venue-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .venue-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Driving question callout --- */
         .driving-question {
             font-style: italic;
             font-size: 1.1rem;
@@ -34,61 +150,242 @@
             background: var(--bg-card);
             border-radius: 0 8px 8px 0;
         }
+
+        /* --- Blockquote with orange left border --- */
+        .discourse-content blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Specs grid (2-column structured data) --- */
         .specs-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
             margin: 1.5rem 0;
         }
+
         .spec-card {
             background: var(--bg-card);
             padding: 1.25rem;
             border-radius: 8px;
             border-left: 3px solid var(--primary-accent);
         }
+
         .spec-card h4 {
             margin: 0 0 0.5rem 0;
             color: var(--primary-accent);
             font-size: 0.95rem;
         }
+
         .spec-card ul {
             margin: 0;
             padding-left: 1.2rem;
             font-size: 0.9rem;
         }
+
         .spec-card li {
             margin-bottom: 0.3rem;
         }
-        .mode-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
+
+        /* --- Figure captions --- */
+        .discourse-content figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .discourse-content figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .discourse-content figcaption {
             font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+            line-height: 1.5;
         }
-        .mode-table th, .mode-table td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-light);
-        }
-        .mode-table th {
-            background: var(--bg-card);
-            font-weight: 600;
-        }
-        .documents-section {
-            margin-top: 2rem;
-        }
-        .doc-embed {
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             margin: 1.5rem 0;
         }
-        .doc-embed h3 {
-            margin-bottom: 0.75rem;
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
         }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            max-width: 800px;
+            margin: 3rem auto 0 auto;
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Tables (mode tables, data tables) --- */
+        .discourse-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .discourse-content table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .discourse-content table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .discourse-content table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .discourse-content .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Responsive --- */
         @media (max-width: 768px) {
+            .discourse-content {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .discourse-content h2 {
+                font-size: 1.3rem;
+            }
+
+            .discourse-content h3 {
+                font-size: 1.1rem;
+            }
+
             .specs-grid {
                 grid-template-columns: 1fr;
             }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .venue-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .discourse-content {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
+            }
         }
     </style>
+
+    <script src="../js/main.js"></script>
 </head>
 
 <body>
@@ -108,19 +405,42 @@
 
     <div class="content">
         <main>
-            <div class="project-content">
+
+            <!-- Media embed: add video when available -->
+
+            <!-- Prose content section -->
+            <div class="discourse-content">
+
                 <h2>Dynamic Control of an Aeropendulum</h2>
 
+                <!-- Venue / date / audience metadata -->
+                <div class="venue-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Venue:</span>
+                        <span>University of Central Oklahoma &mdash; ENGR Senior Design</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Date:</span>
+                        <span>Spring 2020</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Audience:</span>
+                        <span>Engineering Faculty &amp; Industry Sponsors</span>
+                    </div>
+                </div>
+
+                <!-- Driving question callout -->
                 <p class="driving-question">
                     Can classical PID and energy-based control strategies effectively control a nonlinear physical oscillator with real sensor noise, actuator latency, and friction?
                 </p>
 
+                <!-- Main prose body -->
                 <p>
                     Textbook control theory teaches linear, noise-free, friction-free systems. Real physical systems have sensor noise, actuator deadbands, nonlinear dynamics, and coupling between modes. The aeropendulum &mdash; a propeller-driven pendulum with real-time feedback control &mdash; is a testbed for investigating what control theories survive contact with reality.
                 </p>
 
                 <h3>Control Modes</h3>
-                <table class="mode-table">
+                <table>
                     <thead>
                         <tr>
                             <th>Mode</th>
@@ -153,6 +473,8 @@
                 </table>
 
                 <h3>System Architecture</h3>
+
+                <!-- Specs grid -->
                 <div class="specs-grid">
                     <div class="spec-card">
                         <h4>Sensors</h4>
@@ -193,21 +515,30 @@
                     </div>
                 </div>
 
-                <section class="documents-section">
-                    <h2>Project Documents</h2>
+                <h2>Project Documents</h2>
 
-                    <div class="doc-embed">
-                        <h3>Project Overview Document (POD)</h3>
-                        <iframe src="project-documents/propendulum_POD.pdf" width="100%" height="600px" style="border: none;"></iframe>
-                        <a href="project-documents/propendulum_POD.pdf" class="button">Download POD (PDF)</a>
-                    </div>
+                <div class="download-row">
+                    <a href="project-documents/propendulum_POD.pdf" class="download-btn" target="_blank">&#x1F4C4; Project Overview Document (POD)</a>
+                    <a href="project-documents/propendulum_PSR.pdf" class="download-btn" target="_blank">&#x1F4C4; Project Status Report (PSR)</a>
+                </div>
 
-                    <div class="doc-embed">
-                        <h3>Project Status Report (PSR)</h3>
-                        <iframe src="project-documents/propendulum_PSR.pdf" width="100%" height="600px" style="border: none;"></iframe>
-                        <a href="project-documents/propendulum_PSR.pdf" class="button">Download PSR (PDF)</a>
+                <!-- Cross-links to related Treatise and Instrument pages -->
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="on-dynamical-systems.html">On Dynamical Systems</a>
+                            <p>A mathematical treatment of nonlinear dynamics, stability analysis, and phase-space methods applied to physical systems.</p>
+                        </div>
+                        <div class="cross-link-card">
+                            <div class="label">Instrument</div>
+                            <a href="dynamical-systems-lab.html">Dynamical Systems Lab</a>
+                            <p>Interactive simulation of pendulum dynamics, phase portraits, and bifurcation diagrams including the driven pendulum.</p>
+                        </div>
                     </div>
-                </section>
+                </div>
+
             </div>
         </main>
     </div>
@@ -222,6 +553,7 @@
     </div>
 
     <script>
+        // Lightbox functionality
         document.addEventListener("DOMContentLoaded", function() {
             const overlay = document.getElementById("lightbox-overlay");
             if (!overlay) return;
@@ -247,7 +579,5 @@
             });
         });
     </script>
-
 </body>
-
 </html>
