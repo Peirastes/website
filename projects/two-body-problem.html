@@ -3,16 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Two-Body Gravitational Free Fall - Peirastes</title>
+
     <meta name="description" content="Analysis of two equal masses falling under mutual gravitational attraction, comparing exact solutions with kinematic approximations.">
     <meta property="og:title" content="Two-Body Gravitational Free Fall - Peirastes">
     <meta property="og:description" content="Analysis of two equal masses falling under mutual gravitational attraction, comparing exact solutions with kinematic approximations.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
+
     <meta property="og:url" content="https://peirastes.com/projects/two-body-problem.html">
+
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           TREATISE PAGE — Template-specific styles
+           Narrow, tall, academic layout for long-form scholarly content.
+           ==================================================================== */
+
+        /* --- Abstract / Summary Block --- */
+        .abstract {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .abstract h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+        }
+
+        /* --- Publication metadata --- */
+        .pub-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .pub-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pub-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Reduce top margin from base .project-detail --- */
+        section.project-detail {
+            margin-top: 0;
+        }
+        /* --- Treatise typography overrides --- */
+        .treatise-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .treatise-body h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .treatise-body h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body h4 {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .treatise-body blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Figure captions --- */
+        .treatise-body figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .treatise-body figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .treatise-body figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .treatise-body .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Table of Contents (inline) --- */
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+        }
+
+        .toc summary {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-accent);
+            cursor: pointer;
+            list-style: none;
+        }
+        .toc summary::-webkit-details-marker { display: none; }
+        .toc summary::before {
+            content: '\25B8 ';
+            display: inline-block;
+        }
+        .toc[open] summary::before {
+            content: '\25BE ';
+        }
+        .toc ol {
+            margin-top: 0.5rem;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .treatise-body {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .treatise-body h2 {
+                font-size: 1.3rem;
+            }
+
+            .treatise-body h3 {
+                font-size: 1.1rem;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .treatise-body {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -24,23 +357,62 @@
 
     <nav>
         <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../current-projects.html">Current Projects</a>
-            <a href="../previous-work.html">Previous Projects</a>
-            <a href="../timeline.html">Physics Timeline</a>
-            <a href="../quotes.html">Quotes</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
     </nav>
 
     <div class="content">
-
-
         <main>
-        <section class="project-detail">
-            <!-- QMD_CONTENT_START -->
+            <section class="project-detail">
+                <div class="treatise-body">
+
+                    <!-- Page title -->
+                    <h2>Two-Body Gravitational Free Fall</h2>
+
+                    <!-- Abstract / Summary -->
+                    <div class="abstract">
+                        <h3>Abstract</h3>
+                        <p>An analysis of two equal masses falling under mutual gravitational attraction, deriving the exact collision time via energy methods and reduced-mass formalism. Starting from conservation of energy, progressing through kinematic approximations, and arriving at the exact integral solution, this treatise demonstrates how gravitational free-fall time scales as the 3/2 power of separation distance.</p>
+                    </div>
+
+                    <!-- Publication metadata -->
+                    <div class="pub-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Published:</span>
+                            <span>November 1, 2025</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Last Updated:</span>
+                            <span>March 2026</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <span>Published</span>
+                        </div>
+                    </div>
+
+                    <!-- Table of Contents -->
+                    <details class="toc">
+                        <summary>Contents</summary>
+                        <ol>
+                            <li><a href="#two-body-gravitational-free-fall">Part 1: Conservation of Energy</a></li>
+                            <li><a href="#discussion">Discussion</a></li>
+                            <li><a href="#first-order-approximation-of-gravitational-potential-energy-at-earths-surface">First-Order Approximation of Gravitational PE</a></li>
+                        </ol>
+                    </details>
+
+                    <!-- ============================================================
+                         QMD CONTENT INJECTION ZONE
+                         Quarto-rendered HTML is injected between these markers by
+                         the Publish workflow in the Agent Pipeline IDE.
+                         ============================================================ -->
+                    <!-- QMD_CONTENT_START -->
 
 <section id="two-body-gravitational-free-fall" class="level1">
 <h1>Two-Body Gravitational Free Fall</h1>
-<div class="project-meta">Published Nov 1, 2025</div>
 <p><img src="../images/two-body-problem.png" class="img-fluid"></p>
 <p>Part 1: Starting with Conservation of Energy</p>
 <p><span class="math display">\[KE_{i} + PE_{i} = KE_{f} + PE_{f}\]</span></p>
@@ -59,12 +431,12 @@
 <p><span class="math display">\[F = G\frac{mm}{R^{2}} = G\frac{m^{2}}{R^{2}}\]</span></p>
 <p>And</p>
 <p><span class="math display">\[F = mg = G\frac{m^{2}}{R^{2}} \rightarrow g = \frac{Gm}{R^{2}}\]</span></p>
-<p>So, “falling” from a max height of <span class="math inline">\(R\)</span>,</p>
+<p>So, "falling" from a max height of <span class="math inline">\(R\)</span>,</p>
 <p><span class="math display">\[v_{f} = \sqrt{\frac{Gm}{R}}\]</span></p>
 <p>For the case of two <span class="math inline">\(0.149\ kg\)</span> baseballs separated by <span class="math inline">\(R = 1\ m\)</span>,</p>
 <p><span class="math display">\[v_{f} = 3.153 \times 10^{- 6}\ m/s\]</span></p>
 <p>But to solve the time to fall using this velocity is tricky...</p>
-<p>Employing kinematics will be inaccurate because the acceleration changes as a function of the separation distance and is not constant! Let’s see what would happen anyway:</p>
+<p>Employing kinematics will be inaccurate because the acceleration changes as a function of the separation distance and is not constant! Let's see what would happen anyway:</p>
 <p><span class="math display">\[y = y_{o} + v_{oy}t - \frac{1}{2}gt^{2}\]</span></p>
 <p>Applying this to one of the masses which travels over a distance of <span class="math inline">\(\frac{R}{2}\)</span>,</p>
 <p><span class="math display">\[0 = \frac{R}{2} - \left( \frac{1}{2} \right)\left( \frac{Gm}{R^{2}} \right)t^{2}\]</span></p>
@@ -83,7 +455,7 @@
 <p>Since acceleration due to gravity on Earth is assumed to be linear and constant, the familiar relationship of potential energy <span class="math inline">\(mgh\)</span> is no longer accurate (it is shown at the end that this is a first order approximation of <span class="math inline">\(PE = - \frac{Gm_{1}m_{2}}{r} = - \frac{Gm^{2}}{r}\)</span>)</p>
 <p><span class="math display">\[- \Delta PE = - \left( PE_{f} - PE_{i} \right) = \int Fdx\]</span></p>
 <p><span class="math display">\[PE_{i} = \int Fdx\]</span></p>
-<p>Considering that both masses move from a “height” <span class="math inline">\(\frac{R}{2} &gt; x &gt; 0\)</span> which reduces the separation distance <span class="math inline">\(r = 2x\)</span>, such that <span class="math inline">\(R &gt; r &gt; 0\)</span>. Then the potential energy for one of the masses as a function of separation distance can be found by integrating the force over the separation distance, using <span class="math inline">\(x = \epsilon \rightarrow 0\)</span> to avoid a singularity as <span class="math inline">\(x = 0\)</span>.</p>
+<p>Considering that both masses move from a "height" <span class="math inline">\(\frac{R}{2} &gt; x &gt; 0\)</span> which reduces the separation distance <span class="math inline">\(r = 2x\)</span>, such that <span class="math inline">\(R &gt; r &gt; 0\)</span>. Then the potential energy for one of the masses as a function of separation distance can be found by integrating the force over the separation distance, using <span class="math inline">\(x = \epsilon \rightarrow 0\)</span> to avoid a singularity as <span class="math inline">\(x = 0\)</span>.</p>
 <p><span class="math display">\[PE = \int_{r_{i}}^{r_{f}}{\frac{Gm^{2}}{r^{2}}dr} = Gm^{2}\int_{R}^{\epsilon}{\frac{1}{r^{2}}dr} = Gm^{2}\int_{R/2}^{\epsilon}{\frac{1}{{(2x)}^{2}}dx} = \frac{Gm^{2}}{4}\int_{R/2}^{\epsilon}{\frac{1}{x^{2}}dx}\]</span></p>
 <p><span class="math display">\[PE = \frac{Gm^{2}}{4}\left( - \frac{1}{x} \middle| \frac{R}{2} \rightarrow \epsilon = x \right) = - \frac{Gm^{2}}{4}\left( \frac{1}{x} - \frac{2}{R} \right) = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{x} \right)\]</span></p>
 <p>So as <span class="math inline">\(x \rightarrow 0\)</span>, <span class="math inline">\(PE \rightarrow - \infty\)</span>, and as <span class="math inline">\(x \rightarrow \frac{R}{2}\)</span>, <span class="math inline">\(PE \rightarrow 0\)</span>.</p>
@@ -91,12 +463,12 @@
 <p><span class="math display">\[W = \Delta KE = - \Delta PE = - \left( PE_{f} - PE_{i} \right) = PE_{i} = \int Fdx = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{x} \right)\]</span></p>
 <p><span class="math display">\[\Delta PE = \frac{Gm^{2}}{4}\left( \frac{1}{x} - \frac{2}{R} \right)\]</span></p>
 <p><span class="math display">\[\Delta KE = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{x} \right)\]</span></p>
-<p>Let’s talk about this:</p>
+<p>Let's talk about this:</p>
 <p><span class="math display">\[\Delta PE = \frac{Gm^{2}}{4}\left( \frac{1}{x} - \frac{2}{R} \right)\]</span></p>
-<p>Potential energy should start out at a maximum and go to a minimum... so its change should be negative as <span class="math inline">\(x\)</span> DECREASES... let’s see:</p>
+<p>Potential energy should start out at a maximum and go to a minimum... so its change should be negative as <span class="math inline">\(x\)</span> DECREASES... let's see:</p>
 <p><span class="math display">\[PE_{\max} = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{x} \right) = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{\frac{R}{2}} \right) = 0\]</span></p>
 <p><span class="math display">\[PE_{\min} = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{0} \right) = - \infty\]</span></p>
-<p>So yes, the change is decreasing... weird that the start is zero and decays to negative infinity though... Well, it’s because by convention we let the most positive potential energy be zero (not the most negative)!</p>
+<p>So yes, the change is decreasing... weird that the start is zero and decays to negative infinity though... Well, it's because by convention we let the most positive potential energy be zero (not the most negative)!</p>
 <p>Then,</p>
 <p><span class="math display">\[PE(x) = \frac{Gm^{2}}{4}\left( \frac{2}{R} - \frac{1}{x} \right)\]</span></p>
 <p><span class="math display">\[\Delta PE = \frac{Gm^{2}}{4}\left( \frac{1}{x} - \frac{2}{R} \right)\]</span></p>
@@ -114,7 +486,7 @@
 <p>Which, for <span class="math inline">\(r \ll R\)</span>,</p>
 <p><span class="math display">\[v_{f} = \sqrt{\frac{Gm}{R}}\]</span></p>
 <p>As found before! This is effectively an asymptotic upper bound for the velocity, though formally it diverges as does the force at <span class="math inline">\(r = 0\)</span>, (<span class="math inline">\(v_{f} \rightarrow \infty\)</span> and <span class="math inline">\(F \rightarrow \infty\)</span>). What this implies is that the particle must not be a particle but an object with size and shape (finite radius).</p>
-<p>So now that we have a more formal expression of velocity and potential energy, how does this help us solve time? Despite both diverging to infinity as the zero-limit, the time remains finite. Let’s check it out!</p>
+<p>So now that we have a more formal expression of velocity and potential energy, how does this help us solve time? Despite both diverging to infinity as the zero-limit, the time remains finite. Let's check it out!</p>
 <p><span class="math display">\[v = \frac{dx}{dt} \rightarrow dt = \frac{dx}{v}\]</span></p>
 <p><span class="math display">\[t = \int dt = \int_{}^{}\frac{1}{v(x)}dx = \int_{\frac{R}{2}}^{0}{\frac{1}{\sqrt{Gm\left( \frac{1}{R} - \frac{1}{2x} \right)}}dx} = \frac{1}{\sqrt{Gm}}\int_{0}^{\frac{R}{2}}{\frac{1}{\sqrt{\frac{1}{2x} - \frac{1}{R}}}dx}\]</span></p>
 <p>Using a change of variable to simplify the integral, let <span class="math inline">\(x = \frac{R}{2}\sin^{2}\theta\)</span> and <span class="math inline">\(dx = Rsin\theta cos\theta d\theta\)</span>,</p>
@@ -125,14 +497,14 @@
 <p><span class="math display">\[\frac{R}{2} \rightarrow \frac{R}{2} = \frac{R}{2}\sin^{2}\theta \rightarrow \sin^{2}\theta = 1 \rightarrow \theta = \pi/2\]</span></p>
 <p>Then,</p>
 <p><span class="math display">\[t = \frac{1}{\sqrt{Gm}}\int_{0}^{\frac{\pi}{2}}{\frac{1}{\sqrt{\frac{cos^{2}\theta}{Rsin^{2}\theta}}}Rsin\theta cos\theta d\theta} = \frac{1}{\sqrt{Gm}}\int_{0}^{\frac{\pi}{2}}{\frac{1}{\frac{cos\theta}{\sqrt{R}sin\theta}}Rsin\theta cos\theta d\theta} = \frac{R\sqrt{R}}{\sqrt{Gm}}\int_{0}^{\frac{\pi}{2}}{sin^{2}\theta d\theta}\]</span></p>
-<p>Since <span class="math inline">\(\int_{0}^{\frac{\pi}{2}}{sin^{2}\theta d\theta} = \frac{\pi}{4}\)</span>, then, the time to “fall” together is:</p>
+<p>Since <span class="math inline">\(\int_{0}^{\frac{\pi}{2}}{sin^{2}\theta d\theta} = \frac{\pi}{4}\)</span>, then, the time to "fall" together is:</p>
 <p><span class="math display">\[t = \frac{\pi}{4}\sqrt{\frac{R^{3}}{Gm}}\ \]</span></p>
-<p>This is only valid for the special case where both masses are equal. For two baseballs, idealized as particles, weighing about <span class="math inline">\(0.149\ kg\)</span> and separated by <span class="math inline">\(1\ m\)</span>, the “falling” time is</p>
+<p>This is only valid for the special case where both masses are equal. For two baseballs, idealized as particles, weighing about <span class="math inline">\(0.149\ kg\)</span> and separated by <span class="math inline">\(1\ m\)</span>, the "falling" time is</p>
 <p><span class="math display">\[t = 249134.476\ s\]</span></p>
 <p><span class="math display">\[t = \mathbf{2.884\ }\mathbf{days}\]</span></p>
-<p>Let’s see if we can verify this result from another perspective, using relative motion.</p>
+<p>Let's see if we can verify this result from another perspective, using relative motion.</p>
 <p>Part 3: Following a somewhat more rigorous <strong>Classical Mechanics</strong> approach:</p>
-<p>From Newton’s Second Law:</p>
+<p>From Newton's Second Law:</p>
 <p><span class="math display">\[m_{1}{\overrightarrow{a}}_{1} = {\overrightarrow{F}}_{12}\]</span></p>
 <p><span class="math display">\[m_{2}{\overrightarrow{a}}_{2} = {\overrightarrow{F}}_{21} = - {\overrightarrow{F}}_{12}\]</span></p>
 <p>Which can also be expressed as time-rates-of-change of a relative position vector</p>
@@ -141,7 +513,7 @@
 <p><span class="math display">\[\dot{\overrightarrow{r}}\  = {\dot{\overrightarrow{r}}}_{1} - {\dot{\overrightarrow{r}}}_{2}\]</span></p>
 <p>And the relative acceleration as,</p>
 <p><span class="math display">\[\ddot{\overrightarrow{r}} = {\ddot{\overrightarrow{r}}}_{1} - {\ddot{\overrightarrow{r}}}_{2}\]</span></p>
-<p>Then, by Newton’s Second Law,</p>
+<p>Then, by Newton's Second Law,</p>
 <p><span class="math display">\[m_{1}{\ddot{\overrightarrow{r}}}_{1} = {\overrightarrow{F}}_{12}\]</span></p>
 <p><span class="math display">\[m_{2}{\ddot{\overrightarrow{r}}}_{2} = {\overrightarrow{F}}_{21} = - {\overrightarrow{F}}_{12}\]</span></p>
 <p>So, the relative acceleration is,</p>
@@ -153,7 +525,7 @@
 <p><span class="math display">\[\overrightarrow{F}(r) = \mu\ddot{\overrightarrow{r}}\]</span></p>
 <p>Note that if the masses are equal,</p>
 <p><span class="math display">\[\ \mu = \frac{{m_{1}m}_{2}}{m_{1} + m_{2}} = \frac{m^{2}}{2m} = \frac{m}{2}\]</span></p>
-<p>Now, relating the force to Newton’s Universal Law of Gravitation,</p>
+<p>Now, relating the force to Newton's Universal Law of Gravitation,</p>
 <p><span class="math display">\[\overrightarrow{F}(r) = \mu\ddot{\overrightarrow{r}} = - \frac{Gm_{1}m_{2}}{r^{2}}\widehat{r}\]</span></p>
 <p>Which behaves like a single mass, <span class="math inline">\(\mu\)</span>, orbiting a fixed center of reference at a radius, <span class="math inline">\(r\)</span>.</p>
 <p>Relating this force to potential energy, <span class="math inline">\(U\)</span>,</p>
@@ -200,15 +572,15 @@
 <p><em>Note</em>: All of this assumes the particle has <em>no size, shape, or volume</em>. How might including that consideration influence the ToF and other dynamics?</p>
 </section>
 <section id="first-order-approximation-of-gravitational-potential-energy-at-earths-surface" class="level2">
-<h2 class="anchored" data-anchor-id="first-order-approximation-of-gravitational-potential-energy-at-earths-surface">First-Order Approximation of Gravitational Potential Energy at Earth’s Surface</h2>
+<h2 class="anchored" data-anchor-id="first-order-approximation-of-gravitational-potential-energy-at-earths-surface">First-Order Approximation of Gravitational Potential Energy at Earth's Surface</h2>
 <p>Starting with Newtonian gravitational potential energy,</p>
 <p><span class="math display">\[U(r) = - \frac{Gm_{1}m_{2}}{r}\]</span></p>
 <p>Or, more properly labeled to reflect the planet – satellite system,</p>
 <p><span class="math display">\[U(r) = - \frac{GmM}{r}\]</span></p>
-<p>Where <span class="math inline">\(M\ \)</span>is the mass of the Earth, <span class="math inline">\(m\)</span> is the mass of an object on or near Earth’s surface, and <span class="math inline">\(r\)</span> is the Earth’s radius + however high the object is above Earth's surface, <span class="math inline">\(r = R_{E} + h\)</span>.</p>
+<p>Where <span class="math inline">\(M\ \)</span>is the mass of the Earth, <span class="math inline">\(m\)</span> is the mass of an object on or near Earth's surface, and <span class="math inline">\(r\)</span> is the Earth's radius + however high the object is above Earth's surface, <span class="math inline">\(r = R_{E} + h\)</span>.</p>
 <p>So,</p>
 <p><span class="math display">\[U\left( R_{E} + h \right) = - \frac{GmM}{R_{E} + h}\]</span></p>
-<p>Assuming <span class="math inline">\(h \ll R_{E}\)</span>, the denominator can be expanded as a Taylor series around <span class="math inline">\(h = 0\)</span> (near Earth’s surface) via binomial expansion:</p>
+<p>Assuming <span class="math inline">\(h \ll R_{E}\)</span>, the denominator can be expanded as a Taylor series around <span class="math inline">\(h = 0\)</span> (near Earth's surface) via binomial expansion:</p>
 <p><span class="math inline">\((1 + \epsilon)^{- 1} = 1 - \epsilon + \epsilon^{2} - \epsilon^{3} + \ldots\)</span> <span class="math inline">\(for\ |\epsilon| &lt; 1\)</span></p>
 <p>Matching the denominator to the form of <span class="math inline">\((1 + \epsilon)^{- 1}\)</span>:</p>
 <p><span class="math display">\[U\left( R_{E} + h \right) = - GmM\left( R_{E} + h \right)^{- 1} = - GmM{R_{E}^{- 1}\left( 1 + \frac{h}{R_{E}} \right)}^{- 1} = - \frac{GmM}{R_{E}}\left( 1 + \frac{h}{R_{E}} \right)^{- 1}\]</span></p>
@@ -220,27 +592,44 @@
 <p><span class="math display">\[U\left( R_{E} + h \right) \cong - \frac{GmM}{R_{E}} + \frac{GmM}{R_{E}^{2}}h - \frac{GmM}{R_{E}^{3}}h^{2} + \ldots\]</span></p>
 <p>Keeping only first-order terms,</p>
 <p><span class="math display">\[U\left( R_{E} + h \right) \cong - \frac{GmM}{R_{E}} + \frac{GmM}{R_{E}^{2}}h\]</span></p>
-<p>Defining gravitational potential at Earth’s surface as,</p>
+<p>Defining gravitational potential at Earth's surface as,</p>
 <p><span class="math display">\[U_{0} = - \frac{GmM}{R_{E}}\]</span></p>
 <p><span class="math display">\[U(h) \cong U_{0} + \frac{GmM}{R_{E}^{2}}h\]</span></p>
-<p>And recognizing the gravitational acceleration at Earth’s surface as,</p>
+<p>And recognizing the gravitational acceleration at Earth's surface as,</p>
 <p><span class="math display">\[g = \frac{GM}{R_{E}^{2}}\]</span></p>
 <p>Then,</p>
 <p><span class="math display">\[U(h) \cong U_{0} + mgh\]</span></p>
-<p>If we take the surface potential <span class="math inline">\(U_{0}\)</span> as the ground (zero) reference, then to first approximation, the gravitational potential energy at or near Earth’s surface is given by:</p>
+<p>If we take the surface potential <span class="math inline">\(U_{0}\)</span> as the ground (zero) reference, then to first approximation, the gravitational potential energy at or near Earth's surface is given by:</p>
 <p><span class="math display">\[U(h) \cong mgh\]</span></p>
 </section>
 </section>
 
-<!-- QMD_CONTENT_END -->
-        </section>
-    </main>
+                    <!-- QMD_CONTENT_END -->
 
+                    <!-- Cross-links to related Instrument and Discourse pages -->
+                    <div class="cross-links">
+                        <h3>Related Work</h3>
+                        <div class="cross-links-grid">
+                            <div class="cross-link-card">
+                                <div class="label">Treatise</div>
+                                <a href="on-dynamical-systems.html">On Dynamical Systems</a>
+                                <p>The broader framework unifying gravitational and electrostatic force laws under a single mathematical structure.</p>
+                            </div>
+                            <div class="cross-link-card">
+                                <div class="label">Treatise</div>
+                                <a href="work-energy-principle.html">The Work-Energy Principle</a>
+                                <p>A unified treatment of energy methods across mechanics and electrostatics -- the same tools used in this analysis.</p>
+                            </div>
+                        </div>
+                    </div>
 
+                </div>
+            </section>
+        </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -249,13 +638,8 @@
     </div>
 
     <script>
-        // Lightbox functionality and MathJax initialization
+        // Lightbox functionality
         document.addEventListener("DOMContentLoaded", function() {
-            // Typeset math content with MathJax
-            if (window.MathJax) {
-                window.MathJax.typeset();
-            }
-
             const overlay = document.getElementById("lightbox-overlay");
             if (!overlay) return;
 
