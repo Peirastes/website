@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- {{TITLE}} — Replace with the treatise title, e.g. "On Dynamical Systems" -->
+    <title>{{TITLE}} - Peirastes</title>
+
+    <!-- {{DESCRIPTION}} — Replace with a 1-2 sentence description for SEO and social cards -->
+    <meta name="description" content="{{DESCRIPTION}}">
+    <meta property="og:title" content="{{TITLE}} - Peirastes">
+    <meta property="og:description" content="{{DESCRIPTION}}">
+    <meta property="og:type" content="article">
+
+    <!-- {{PAGE_PATH}} — Replace with the path relative to site root, e.g. "projects/on-dynamical-systems.html" -->
+    <meta property="og:url" content="https://peirastes.com/{{PAGE_PATH}}">
+
+    <!-- {{OG_IMAGE}} — Replace with the full URL to the social/thumbnail image for this page -->
+    <meta property="og:image" content="{{OG_IMAGE}}">
+
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           TREATISE PAGE — Template-specific styles
+           Narrow, tall, academic layout for long-form scholarly content.
+           ==================================================================== */
+
+        /* --- Abstract / Summary Block --- */
+        .abstract {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .abstract h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+        }
+
+        /* --- Publication metadata --- */
+        .pub-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .pub-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pub-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Reduce top margin from base .project-detail --- */
+        section.project-detail {
+            margin-top: 0;
+        }
+        /* --- Treatise typography overrides --- */
+        .treatise-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .treatise-body h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .treatise-body h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body h4 {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .treatise-body blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Figure captions --- */
+        .treatise-body figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .treatise-body figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .treatise-body figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .treatise-body .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Table of Contents (inline) --- */
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+        }
+
+        .toc summary {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-accent);
+            cursor: pointer;
+            list-style: none;
+        }
+        .toc summary::-webkit-details-marker { display: none; }
+        .toc summary::before {
+            content: '▸ ';
+            display: inline-block;
+        }
+        .toc[open] summary::before {
+            content: '▾ ';
+        }
+        .toc ol {
+            margin-top: 0.5rem;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .treatise-body {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .treatise-body h2 {
+                font-size: 1.3rem;
+            }
+
+            .treatise-body h3 {
+                font-size: 1.1rem;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .treatise-body {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+
+    <script src="../js/main.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Peirastes</h1>
+        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
+    </header>
+
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
+
+    <div class="content">
+        <main>
+            <section class="project-detail">
+                <div class="treatise-body">
+
+                    <!-- Page title -->
+                    <h2>{{TITLE}}</h2>
+
+                    <!-- Abstract / Summary -->
+                    <div class="abstract">
+                        <h3>Abstract</h3>
+                        <p><!-- Replace with a concise summary of the treatise --></p>
+                    </div>
+
+                    <!-- Publication metadata -->
+                    <div class="pub-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Published:</span>
+                            <span><!-- Replace with publication date --></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Last Updated:</span>
+                            <span><!-- Replace with last update date --></span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <span><!-- Draft | Published | In Review --></span>
+                        </div>
+                        <div class="meta-item" style="margin-left:auto">
+                            <span class="meta-label">Download:</span>
+                            <a href="{{PDF_HREF}}" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                        </div>
+                    </div>
+
+                    <!-- Table of Contents (optional — remove if not needed) -->
+                    <details class="toc">
+                        <summary>Contents</summary>
+                        <ol>
+                            <li><a href="#section-1">Section 1</a></li>
+                            <li><a href="#section-2">Section 2</a></li>
+                        </ol>
+                    </details>
+
+                    <!-- ============================================================
+                         QMD CONTENT INJECTION ZONE
+                         Quarto-rendered HTML is injected between these markers by
+                         the Publish workflow in the Agent Pipeline IDE.
+                         ============================================================ -->
+                    <!-- QMD_CONTENT_START -->
+
+                    <!-- Replace this placeholder with treatise content -->
+
+                    <!-- QMD_CONTENT_END -->
+
+                    <!-- Cross-links to related Instrument and Discourse pages -->
+                    <div class="cross-links">
+                        <h3>Related Work</h3>
+                        <div class="cross-links-grid">
+                            <div class="cross-link-card">
+                                <div class="label">Instrument</div>
+                                <!-- Replace href and text with the related instrument page -->
+                                <a href="#">Related Instrument Title</a>
+                                <p>Brief description of the related interactive tool.</p>
+                            </div>
+                            <div class="cross-link-card">
+                                <div class="label">Discourse</div>
+                                <!-- Replace href and text with the related discourse page -->
+                                <a href="#">Related Discourse Title</a>
+                                <p>Brief description of the related presentation or talk.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Cole Prather</p>
+    </footer>
+
+    <div id="lightbox-overlay">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Full Image">
+    </div>
+
+    <script>
+        // Lightbox functionality
+        document.addEventListener("DOMContentLoaded", function() {
+            const overlay = document.getElementById("lightbox-overlay");
+            if (!overlay) return;
+
+            const closeBtn = document.getElementById("lightbox-close");
+            document.querySelectorAll(".lightbox-trigger").forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const img = document.getElementById("lightbox-img");
+                    img.src = this.getAttribute("href");
+                    overlay.style.display = "flex";
+                });
+            });
+
+            closeBtn.addEventListener("click", function() {
+                overlay.style.display = "none";
+            });
+
+            overlay.addEventListener("click", function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = "none";
+                }
+            });
+        });
+    </script>
+</body>
+</html>

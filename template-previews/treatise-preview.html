@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>The Work-Energy Principle - Peirastes</title>
+
+    <meta name="description" content="A rigorous derivation of the work-energy theorem from first principles, connecting Newtonian mechanics to Lagrangian and Hamiltonian formulations.">
+    <meta property="og:title" content="The Work-Energy Principle - Peirastes">
+    <meta property="og:description" content="A rigorous derivation of the work-energy theorem from first principles, connecting Newtonian mechanics to Lagrangian and Hamiltonian formulations.">
+    <meta property="og:type" content="article">
+
+    <meta property="og:url" content="https://peirastes.com/template-previews/treatise-preview.html">
+
+    <meta property="og:image" content="../images/project_images/grav-rad-full.png">
+
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           TREATISE PAGE — Template-specific styles
+           Narrow, tall, academic layout for long-form scholarly content.
+           ==================================================================== */
+
+        /* --- Abstract / Summary Block --- */
+        .abstract {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .abstract h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+        }
+
+        /* --- Publication metadata --- */
+        .pub-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .pub-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pub-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Treatise typography overrides --- */
+        section.project-detail {
+            margin-top: 0;
+        }
+        .treatise-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .treatise-body h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .treatise-body h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body h4 {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .treatise-body blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Figure captions --- */
+        .treatise-body figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .treatise-body figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .treatise-body figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .treatise-body .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Table of Contents (inline) --- */
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+        }
+
+        .toc summary {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-accent);
+            cursor: pointer;
+            list-style: none;
+        }
+        .toc summary::-webkit-details-marker { display: none; }
+        .toc summary::before {
+            content: '▸ ';
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        .toc[open] summary::before {
+            content: '▾ ';
+        }
+        .toc ol {
+            margin-top: 0.5rem;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .treatise-body {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .treatise-body h2 {
+                font-size: 1.3rem;
+            }
+
+            .treatise-body h3 {
+                font-size: 1.1rem;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .treatise-body {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+
+    <script src="../js/main.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Peirastes</h1>
+        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
+    </header>
+
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
+
+    <div class="content">
+        <main>
+            <section class="project-detail">
+                <div class="treatise-body">
+
+                    <!-- Page title -->
+                    <h2>The Work-Energy Principle</h2>
+
+                    <!-- Abstract / Summary -->
+                    <div class="abstract">
+                        <h3>Abstract</h3>
+                        <p>The work-energy theorem is one of the most powerful results in classical mechanics, yet its standard textbook presentation often obscures the depth of its assumptions and the breadth of its consequences. This treatise develops the work-energy principle from Newton's second law, derives the theorem for both single particles and systems of particles, and traces its generalization through Lagrangian and Hamiltonian mechanics. Along the way, we clarify the distinction between net work and work done by individual forces, address the subtle role of internal forces in deformable bodies, and show how energy methods transform intractable force-based problems into elegant scalar calculations. The result is a unified view of energy as a bookkeeping device that encodes the geometry of force along a path.</p>
+                    </div>
+
+                    <!-- Publication metadata -->
+                    <div class="pub-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Published:</span>
+                            <span>March 2026</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Last Updated:</span>
+                            <span>March 18, 2026</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <span>Draft</span>
+                        </div>
+                        <div class="meta-item" style="margin-left:auto">
+                            <span class="meta-label">Download:</span>
+                            <a href="#" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                        </div>
+                    </div>
+
+                    <!-- Table of Contents -->
+                    <details class="toc">
+                        <summary>Contents</summary>
+                        <ol>
+                            <li><a href="#section-1">Introduction: Why Energy?</a></li>
+                            <li><a href="#section-2">Mathematical Derivation</a></li>
+                            <li><a href="#section-3">Applications and Physical Interpretation</a></li>
+                            <li><a href="#references">References</a></li>
+                        </ol>
+                    </details>
+
+                    <!-- QMD_CONTENT_START -->
+
+                    <h3 id="section-1">1. Introduction: Why Energy?</h3>
+
+                    <p>
+                        Newton's second law, \(\vec{F} = m\vec{a}\), is a vector equation. For a particle moving in three dimensions, it yields three coupled second-order differential equations. Solving these equations requires knowledge of the force as a function of position, velocity, and time &mdash; information that is often incomplete or computationally expensive to obtain. The work-energy theorem offers an alternative: by projecting the equation of motion along the particle's trajectory and integrating, we collapse three equations into one scalar relationship. The price of this simplification is that we lose directional information about the motion, but the gain is enormous. Energy methods let us answer questions about speed without solving for the full trajectory.
+                    </p>
+
+                    <p>
+                        The conceptual leap is subtle but profound. Force is a vector quantity defined at each instant; work is a scalar accumulated along a path. When we pass from \(\vec{F} = m\vec{a}\) to the work-energy theorem, we are trading local, instantaneous information for global, path-integrated information. This trade-off is not merely a mathematical convenience &mdash; it reflects a deep structural feature of mechanics. Conservative forces, for which the work integral depends only on the endpoints and not on the path, give rise to potential energy functions and the conservation law \(E = KE + PE = \text{const}\). The existence of such conservation laws is, by Noether's theorem, a direct consequence of the time-translation symmetry of the underlying physics.
+                    </p>
+
+                    <blockquote>
+                        "The idea of energy is perhaps the most far-reaching concept in all of physics. It unifies mechanics, thermodynamics, electromagnetism, and quantum theory under a single accounting principle." &mdash; R. P. Feynman
+                    </blockquote>
+
+                    <h3 id="section-2">2. Mathematical Derivation</h3>
+
+                    <p>
+                        We begin with Newton's second law for a particle of mass \(m\) subject to a net force \(\vec{F}\):
+                    </p>
+
+                    $$\vec{F}_{\text{net}} = m\vec{a} = m\frac{d\vec{v}}{dt}$$
+
+                    <p>
+                        Take the dot product of both sides with the infinitesimal displacement \(d\vec{r} = \vec{v}\,dt\):
+                    </p>
+
+                    $$\vec{F}_{\text{net}} \cdot d\vec{r} = m\frac{d\vec{v}}{dt} \cdot \vec{v}\,dt = m\vec{v} \cdot d\vec{v}$$
+
+                    <p>
+                        The right-hand side is an exact differential. Using the identity \(\vec{v} \cdot d\vec{v} = \tfrac{1}{2}d(v^2)\), we integrate from an initial position \(\vec{r}_i\) to a final position \(\vec{r}_f\):
+                    </p>
+
+                    $$W_{\text{net}} = \int_{\vec{r}_i}^{\vec{r}_f} \vec{F}_{\text{net}} \cdot d\vec{r} = \frac{1}{2}mv_f^2 - \frac{1}{2}mv_i^2 = \Delta KE$$
+
+                    <p>
+                        This is the <strong>work-energy theorem</strong>: the net work done on a particle equals the change in its kinetic energy. Several features deserve emphasis. First, this result is exact &mdash; no approximations have been made. Second, it holds for arbitrary forces, whether conservative or non-conservative. Third, the work integral on the left is, in general, path-dependent; it is only for conservative forces that we can replace the integral with a potential energy difference and write:
+                    </p>
+
+                    $$W_{\text{net}} = -\Delta PE \implies \Delta KE + \Delta PE = 0$$
+
+                    <p>
+                        which is the statement of conservation of mechanical energy. For systems with both conservative and non-conservative forces (e.g., friction), we separate the contributions:
+                    </p>
+
+                    $$W_{\text{nc}} = \Delta KE + \Delta PE$$
+
+                    <p>
+                        where \(W_{\text{nc}}\) is the work done by non-conservative forces alone. This form is the most general and most useful version for practical problem-solving.
+                    </p>
+
+                    <h3 id="section-3">3. Applications and Physical Interpretation</h3>
+
+                    <p>
+                        The power of the work-energy theorem is best appreciated through application. Consider a block of mass \(m\) sliding down a rough inclined plane of angle \(\theta\) and length \(L\), with kinetic friction coefficient \(\mu_k\). A force-based approach requires decomposing forces into components parallel and perpendicular to the surface, solving for the normal force, computing the friction force, and then integrating the net tangential force to find the final speed. The energy approach bypasses all of this: gravity does work \(mgL\sin\theta\), friction does work \(-\mu_k mg\cos\theta \cdot L\), and the net work equals \(\Delta KE\). One equation, one unknown.
+                    </p>
+
+                    <figure>
+                        <img src="../images/project_images/grav-rad-full.png" alt="Energy diagram showing kinetic and potential energy exchange for a particle on a curved track. The total mechanical energy remains constant in the absence of friction, while the partition between kinetic and potential energy shifts as the particle moves through regions of varying height.">
+                        <figcaption>Figure 1. Energy exchange in a conservative system. As a particle traverses a curved track, kinetic and potential energy interconvert while total mechanical energy is preserved.</figcaption>
+                    </figure>
+
+                    <p>
+                        The example above illustrates a broader point: energy methods are most powerful when the question is about <em>speeds</em> rather than <em>trajectories</em>. If you need to know how fast a roller coaster is moving at the bottom of a loop, energy conservation gives the answer in one line. If you need to know the shape of the loop required for constant normal force, you need the full force analysis. Knowing when to use energy methods &mdash; and when they are insufficient &mdash; is one of the marks of physical maturity.
+                    </p>
+
+                    <p>
+                        The work-energy framework also generalizes naturally to systems of particles, where internal forces (e.g., tension in a connecting string, molecular interactions) contribute to the total work. For rigid bodies, internal forces do no net work, and the theorem reduces to a statement about external forces alone. For deformable bodies and thermodynamic systems, internal work becomes the bridge between mechanics and thermodynamics &mdash; the "missing" mechanical energy reappears as thermal energy, completing the conservation law at a deeper level.
+                    </p>
+
+                    <h3 id="references">References</h3>
+
+                    <ol>
+                        <li>Halliday, D., Resnick, R., and Walker, J. <em>Fundamentals of Physics</em>, 12th ed. Wiley, 2021. Chapters 7&ndash;8.</li>
+                        <li>Taylor, J. R. <em>Classical Mechanics</em>. University Science Books, 2005. Chapter 4: Energy.</li>
+                        <li>Goldstein, H., Poole, C., and Safko, J. <em>Classical Mechanics</em>, 3rd ed. Addison-Wesley, 2002. Chapter 1: Survey of the Elementary Principles.</li>
+                    </ol>
+
+                    <!-- QMD_CONTENT_END -->
+
+                    <!-- Cross-links to related Instrument and Discourse pages -->
+                    <div class="cross-links">
+                        <h3>Related Work</h3>
+                        <div class="cross-links-grid">
+                            <div class="cross-link-card">
+                                <div class="label">Instrument</div>
+                                <a href="../projects/dynamical-systems-lab.html">Dynamical Systems Lab</a>
+                                <p>Interactive simulation environment for exploring phase portraits, bifurcations, and energy landscapes of classical mechanical systems.</p>
+                            </div>
+                            <div class="cross-link-card">
+                                <div class="label">Discourse</div>
+                                <a href="../projects/ncur-2018.html">NCUR 2018 Presentation</a>
+                                <p>Conference presentation on computational methods in classical mechanics and their pedagogical applications.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Cole Prather</p>
+    </footer>
+
+    <div id="lightbox-overlay">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Full Image">
+    </div>
+
+    <script>
+        // Lightbox functionality
+        document.addEventListener("DOMContentLoaded", function() {
+            const overlay = document.getElementById("lightbox-overlay");
+            if (!overlay) return;
+
+            const closeBtn = document.getElementById("lightbox-close");
+            document.querySelectorAll(".lightbox-trigger").forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const img = document.getElementById("lightbox-img");
+                    img.src = this.getAttribute("href");
+                    overlay.style.display = "flex";
+                });
+            });
+
+            closeBtn.addEventListener("click", function() {
+                overlay.style.display = "none";
+            });
+
+            overlay.addEventListener("click", function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = "none";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
