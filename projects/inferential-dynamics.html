@@ -3,15 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Inferential Dynamics - Peirastes</title>
+
     <meta name="description" content="A synthesis between classical logic and dynamical systems theory, interpreting the inference square as a stability matrix.">
     <meta property="og:title" content="Inferential Dynamics - Peirastes">
     <meta property="og:description" content="A synthesis between classical logic and dynamical systems theory, interpreting the inference square as a stability matrix.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
+
     <meta property="og:url" content="https://peirastes.com/projects/inferential-dynamics.html">
+
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <style>
+        /* ====================================================================
+           DISCOURSE PAGE — Template-specific styles
+           Wide layout WITH text. For presentations, talks, lecture materials.
+           Can embed video, PDF viewer, or app alongside prose.
+           ==================================================================== */
+
+        /* --- Media embed section (video / PDF / slides) --- */
+        .media-embed {
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Discourse prose content --- */
+        .discourse-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .discourse-content h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .discourse-content h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .discourse-content p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Venue / date / audience metadata block --- */
+        .venue-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .venue-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .venue-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Driving question callout --- */
+        .driving-question {
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .discourse-content blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Specs grid (2-column structured data) --- */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .spec-card {
+            background: var(--bg-card);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-accent);
+        }
+
+        .spec-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+            font-size: 0.95rem;
+        }
+
+        .spec-card ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .spec-card li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* --- Figure captions --- */
+        .discourse-content figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .discourse-content figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .discourse-content figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            max-width: 800px;
+            margin: 3rem auto 0 auto;
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Tables (mode tables, data tables) --- */
+        .discourse-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .discourse-content table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .discourse-content table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .discourse-content table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .discourse-content .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .discourse-content {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .discourse-content h2 {
+                font-size: 1.3rem;
+            }
+
+            .discourse-content h3 {
+                font-size: 1.1rem;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .venue-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .discourse-content {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -22,27 +397,152 @@
     </header>
 
     <nav>
-            <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../current-projects.html">Current Projects</a> 
-            <a href="../previous-work.html">Previous Projects</a>
-            <a href="../timeline.html">Physics Timeline</a> 
-            <a href="../quotes.html">Quotes</a>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
     </nav>
 
     <div class="content">
         <main>
-            <section>
-                <h2>Slide Deck</h2>
-                <iframe src="../documents/static-documents/inferential-dynamics-v1.pdf" width="100%" height="600px" style="border: none;"></iframe>
-                <!-- <embed src="../documents/rebound-pendulum-v3.pdf" type="application/pdf" width="100%" height="600px"> -->
-                <a href="../documents/static-documents/inferential-dynamics-v1.pdf" class="button">Download PDF</a>
-            </section>
+
+            <!-- Media embed — PDF slides -->
+            <div class="media-embed">
+                <iframe src="../documents/static-documents/inferential-dynamics-v1.pdf" title="Inferential Dynamics &mdash; Presentation Slides"></iframe>
+            </div>
+
+            <!-- Prose content section -->
+            <div class="discourse-content">
+
+                <h2>Inferential Dynamics</h2>
+                <p style="margin-top:-0.5rem; font-size:1.05rem; color:var(--text-secondary); font-style:italic;">Truth as a Stable Attractor of Reason</p>
+
+                <!-- Venue / date / audience metadata -->
+                <div class="venue-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Venue:</span>
+                        <span>University of Central Oklahoma &mdash; Physics Seminar</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Date:</span>
+                        <span>October 2025</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Audience:</span>
+                        <span>Physics Faculty &amp; Graduate Students</span>
+                    </div>
+                    <div class="meta-item" style="margin-left:auto">
+                        <span class="meta-label">Download:</span>
+                        <a href="../documents/static-documents/inferential-dynamics-v1.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                    </div>
+                </div>
+
+                <!-- Driving question callout -->
+                <p class="driving-question">
+                    If deduction, induction, and abduction are modes of inference, can they be modeled as dynamical systems &mdash; with truth as their stable attractor?
+                </p>
+
+                <!-- Main prose body -->
+
+                <h3>Motion, Stability, and Feedback</h3>
+
+                <p>
+                    Aristotle drew a distinction between motion and change that persisted for two millennia. It was Galileo who demonstrated that forces cause acceleration, not motion itself &mdash; a reframing that relocated the interesting physics from the trajectory to the mechanism that produces it. Stability, in this view, is not stasis but the tendency of a system toward equilibrium: the state it returns to after perturbation. Feedback is the process by which motion is adjusted based on error &mdash; the difference between where a system is and where it should be.
+                </p>
+
+                <p>
+                    Three fundamental types of dynamical behavior emerge from this framework. Convergent systems exhibit negative feedback: perturbations decay, and the system settles toward its equilibrium. Divergent systems exhibit positive feedback: perturbations grow, and the system accelerates away from equilibrium. Neutral systems oscillate: perturbations neither grow nor decay, and the system cycles indefinitely. These three behaviors &mdash; convergent, divergent, and neutral &mdash; are not merely mathematical categories. They are the vocabulary of stability analysis, and they map directly onto modes of reasoning.
+                </p>
+
+                <h3>The Mathematics of Stability</h3>
+
+                <p>
+                    The damped harmonic oscillator serves as the canonical model for reasoning dynamics. Its behavior is governed by a second-order differential equation whose coefficients determine whether the system converges, diverges, or oscillates. The key insight is eigenvalue analysis: the eigenvalues of the system's stability matrix encode the entire qualitative character of its motion. Real, negative eigenvalues produce exponential decay toward equilibrium. Real, positive eigenvalues produce exponential divergence. Complex eigenvalues produce oscillation, with the real part determining whether the oscillation decays (stable spiral), grows (unstable spiral), or persists (center).
+                </p>
+
+                <p>
+                    The stability matrix, then, is not merely a computational convenience. It is the mathematical object that encodes the behavior of the system. To know the stability matrix is to know whether the system converges, diverges, or oscillates &mdash; and how fast. This is the tool that makes the analogy between dynamics and inference precise rather than metaphorical.
+                </p>
+
+                <h3>Inference as a Dynamical System</h3>
+
+                <p>
+                    The three classical modes of inference &mdash; deduction, induction, and abduction &mdash; map onto the three dynamical behaviors with striking fidelity. Deduction is convergent. It begins with premises and narrows the solution space through logical necessity. Each valid step brings the conclusion closer to the truth that was already latent in the axioms. Under deduction, the hypothesis space contracts. This is the signature of negative feedback: perturbations (wrong answers, bad assumptions) are driven out by the logical structure of the argument.
+                </p>
+
+                <p>
+                    Induction is neutral. It observes patterns and generalizes, but it does not prove. The sun has risen every morning for the entirety of recorded history, yet induction cannot guarantee tomorrow's sunrise. Inductive reasoning oscillates around the truth &mdash; it accumulates evidence, refines probabilities, approaches certainty asymptotically &mdash; but it never arrives. It is the center mode of a dynamical system: bounded, persistent, never settling.
+                </p>
+
+                <p>
+                    Abduction is divergent. It generates hypotheses &mdash; plausible explanations for observed phenomena &mdash; but without deductive constraint, it can spiral outward without bound. Every observation admits multiple abductive explanations, and each explanation spawns new questions that admit further explanations. Without the disciplining force of deductive rigor, abductive reasoning exhibits the hallmarks of positive feedback: an ever-expanding hypothesis space, increasing uncertainty, and the illusion of progress masking a departure from truth.
+                </p>
+
+                <p>
+                    The "inference square" &mdash; the relationship among these three modes &mdash; can be interpreted as a stability matrix. The coefficients of that matrix determine the character of the reasoning process, just as the coefficients of the damped oscillator determine the character of the physical motion.
+                </p>
+
+                <h3>Truth as a Stable Attractor</h3>
+
+                <p>
+                    If inference is a dynamical system, then truth is its stable attractor &mdash; the state toward which the system tends under deductive reasoning. This framing yields a powerful and counterintuitive result: wrong answers under deductive investigation are informative errors. They converge toward truth because the deductive structure constrains the trajectory. A wrong answer, subjected to valid deduction, produces a contradiction &mdash; and that contradiction narrows the hypothesis space. Error, under deduction, is self-correcting.
+                </p>
+
+                <p>
+                    Conversely, right answers under abductive reasoning can produce hollow correctness. An explanation that happens to be correct but was arrived at through unconstrained hypothesis generation carries no guarantee of stability. It is a trajectory that passes through the attractor without being captured by it. The next perturbation &mdash; the next observation &mdash; may send it spiraling away. This is the danger of abductive reasoning uncoupled from deductive discipline: one can be right for the wrong reasons, and the rightness is fragile.
+                </p>
+
+                <p>
+                    These observations connect directly to the broader epistemological framework developed across the knowledge base, particularly the principles articulated in FP-009 and FP-012: the reliability of the method matters more than the correctness of any single result, and wrong answers under the right approach inform more than right answers under the wrong one.
+                </p>
+
+                <h3>Critical Path Reasoning</h3>
+
+                <p>
+                    If reasoning is navigation through a stability landscape, then the critical path is the sequence of questions whose answers most efficiently reduce the hypothesis space. Not all questions are equally valuable. A question that eliminates half the remaining hypothesis space is exponentially more valuable than one that eliminates a small fraction. The art of critical path reasoning lies in selecting which question to ask next &mdash; which maps to navigating the stability landscape toward the attractor along the steepest gradient of information gain.
+                </p>
+
+                <p>
+                    This is not merely a theoretical nicety. It is a prescriptive methodology. The investigator who follows the critical path &mdash; who selects questions for their discriminatory power rather than their ease or familiarity &mdash; converges on truth faster than one who proceeds haphazardly. The stability landscape provides the map; critical path reasoning provides the navigation strategy. Together, they transform epistemology from a philosophical exercise into an engineering discipline.
+                </p>
+
+                <h2>Full Presentation</h2>
+
+            </div>
+
+            <!-- Full slides embed -->
+            <div class="media-embed">
+                <iframe src="../documents/static-documents/inferential-dynamics-v1.pdf" title="Inferential Dynamics &mdash; Presentation Slides"></iframe>
+                <p class="media-caption">Inferential Dynamics &mdash; complete presentation slides.</p>
+            </div>
+
+            <div class="discourse-content">
+
+                <!-- Cross-links to related Treatise and Instrument pages -->
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="on-dynamical-systems.html">On Dynamical Systems</a>
+                            <p>A mathematical treatment of nonlinear dynamics, stability analysis, and phase-space methods applied to physical systems.</p>
+                        </div>
+                        <div class="cross-link-card">
+                            <div class="label">Instrument</div>
+                            <a href="dynamical-systems-lab.html">Dynamical Systems Lab</a>
+                            <p>Interactive simulation of oscillators, phase portraits, and bifurcation diagrams &mdash; the tools behind the stability analysis.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -77,7 +577,5 @@
             });
         });
     </script>
-
 </body>
-
-</html> 
+</html>
