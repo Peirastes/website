@@ -3,15 +3,333 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Gravitational Radiation: Maxwell-Heaviside Formulation - Peirastes</title>
+
     <meta name="description" content="Master's thesis extending Heaviside's gravitation-electromagnetism analogy to derive gravitational radiation patterns and the energy paradox.">
     <meta property="og:title" content="Gravitational Radiation: Maxwell-Heaviside Formulation - Peirastes">
     <meta property="og:description" content="Master's thesis extending Heaviside's gravitation-electromagnetism analogy to derive gravitational radiation patterns and the energy paradox.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
     <meta property="og:url" content="https://peirastes.com/projects/grav-rad.html">
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           TREATISE PAGE — Template-specific styles
+           ==================================================================== */
+
+        .abstract {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .abstract h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+        }
+
+        .pub-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .pub-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pub-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        section.project-detail {
+            margin-top: 0;
+        }
+
+        .treatise-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .treatise-body h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .treatise-body h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body h4 {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        .treatise-body blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .treatise-body figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .treatise-body figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        .treatise-body .math.display {
+            overflow-x: auto;
+        }
+
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        .cross-links {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+        }
+
+        .toc summary {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-accent);
+            cursor: pointer;
+            list-style: none;
+        }
+        .toc summary::-webkit-details-marker { display: none; }
+        .toc summary::before {
+            content: '\25B8 ';
+            display: inline-block;
+        }
+        .toc[open] summary::before {
+            content: '\25BE ';
+        }
+        .toc ol {
+            margin-top: 0.5rem;
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .treatise-body {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .treatise-body h2 {
+                font-size: 1.3rem;
+            }
+
+            .treatise-body h3 {
+                font-size: 1.1rem;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .treatise-body {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -22,87 +340,129 @@
     </header>
 
     <nav>
-            <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../current-projects.html">Current Projects</a> 
-            <a href="../previous-work.html">Previous Projects</a>
-            <a href="../timeline.html">Physics Timeline</a> 
-            <a href="../quotes.html">Quotes</a>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
     </nav>
 
     <div class="content">
-
-
         <main>
-        <section>
-            <h2>Abstract</h2>
-            <p>To describe flux of gravitational energy by using an analog to the Maxwell-Heaviside equations for electrodynamics, the Liénard–Wiechert potentials and fields are derived for gravitation along with radiation patterns and corresponding Larmor formulae for total radiated power. Due to attraction of like gravitational charges (masses) as opposed to repulsion of like electrical charges, the mass-density and current-density terms pick up a negative sign. This results in a sign change of the Poynting vector, indicating energy is gained by the field as opposed to energy being lost by the field in the case of electromagnetic radiation. The gravitational and co-gravitational fields, analogous to the electric and magnetic fields, respectively, behave as described by Heaviside and Lorentz. Like an electric charge, a gravitic charge (mass) in uniform motion is found to produce a spherical field which contracts as its velocity approaches the speed of propagation. The speed of gravitational propagation is assumed to be equivalent to that of light, though this may not necessarily be true. For an accelerated mass, the resulting gravitational radiation mirrors the dipole pattern produced by an electric charge, similarly contracting at relativistic speeds. These results seek to further inquire on the nature of gravitational fields and the true speed of gravity.</p>
+            <section class="project-detail">
+                <div class="treatise-body">
 
-            <h2>Theoretical Foundation</h2>
-            <p>During my final year as a graduate student, I wrote my thesis on an extension of an analogy between gravitation and electromagnetism written by Oliver Heaviside in 1893. This analogy was formulated around James Clerk Maxwell's equations for electromagnetism. In fact, it was Oliver Heaviside who, using his own vector notation, reduced Maxwell's original set of twenty equations down to the standard four. From Heaviside's analogy, I followed the same procedure used to develop classical electromagnetic radiation to instead derive equations for gravitational radiation.</p>
+                    <h2>Gravitational Radiation: Maxwell-Heaviside Formulation</h2>
 
-            <h2>Sources and Fields: The Fundamental Asymmetry</h2>
-            <p>The analogy can be explained by comparing the behavior of masses and charges. Charges can be positive, negative, or neutral, while masses are conventionally considered to be positive (though some exotic particles may exhibit negative mass properties). If all masses are alike and positive, then all masses attract other masses. Like charges repel while opposites attract; conversely, like masses attract. The interaction between like charges and like masses is therefore opposite.</p>
+                    <!-- Abstract / Summary -->
+                    <div class="abstract">
+                        <h3>Abstract</h3>
+                        <p>To describe flux of gravitational energy by using an analog to the Maxwell-Heaviside equations for electrodynamics, the Lienard-Wiechert potentials and fields are derived for gravitation along with radiation patterns and corresponding Larmor formulae for total radiated power. Due to attraction of like gravitational charges (masses) as opposed to repulsion of like electrical charges, the mass-density and current-density terms pick up a negative sign. This results in a sign change of the Poynting vector, indicating energy is gained by the field as opposed to energy being lost by the field in the case of electromagnetic radiation.</p>
+                    </div>
 
-            <p>The lines of force for these two cases illustrate this fundamental difference. For two positive masses ("parent" and "child"), the two are attracted toward each other. For two positive charges, they are repelled away from each other. The direction of these forces is represented mathematically by the divergence equation. The divergence of a vector field describes the flux of a differential volume. A positive divergence indicates a "source" of the field, while negative divergence indicates a "sink". Zero divergence indicates a "solenoidal" field, neither source nor sink.</p>
+                    <!-- Publication metadata -->
+                    <div class="pub-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Published:</span>
+                            <span>2019</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Last Updated:</span>
+                            <span>2019</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <span>Published</span>
+                        </div>
+                        <div class="meta-item" style="margin-left:auto">
+                            <span class="meta-label">Download:</span>
+                            <a href="../documents/static-documents/gravraddef-v7.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                        </div>
+                    </div>
 
-            <p>From Maxwell's equations for electromagnetism, the electric field has positive divergence and thus acts as a source. From the gravitational analogy, the gravitic field has negative divergence and thus acts as a sink. This is the mathematical expression of the intuitive fact that like masses attract while like charges repel.</p>
+                    <!-- Table of Contents -->
+                    <details class="toc">
+                        <summary>Contents</summary>
+                        <ol>
+                            <li><a href="#theoretical-foundation">Theoretical Foundation</a></li>
+                            <li><a href="#sources-and-fields">Sources and Fields: The Fundamental Asymmetry</a></li>
+                            <li><a href="#field-dynamics">Field Dynamics and the Cogravitational Field</a></li>
+                            <li><a href="#radiation-patterns">Radiation Patterns</a></li>
+                            <li><a href="#energy-paradox">The Energy Paradox</a></li>
+                            <li><a href="#full-document">Full Document</a></li>
+                        </ol>
+                    </details>
 
-            <p>Remarkably, the equations for force between two masses and two charges are essentially identical in formalism:</p>
-            <p><strong>Newton's Law of Gravitation:</strong> F = −GmM/R²</p>
-            <p><strong>Coulomb's Law:</strong> F = kqQ/R²</p>
+                    <!-- QMD_CONTENT_START -->
 
-            <p>The analogy deepens when considering relationships between sources, fields, and forces. A source (or sink) produces a field that exerts a force. The force exerted on a mass in a gravitational field is F = mg, while the force exerted on a charge in an electric field is F = qE. The source produces the field, and the field exerts the force—the same structural relationship in both cases.</p>
+<h2 id="theoretical-foundation">Theoretical Foundation</h2>
+<p>During my final year as a graduate student, I wrote my thesis on an extension of an analogy between gravitation and electromagnetism written by Oliver Heaviside in 1893. This analogy was formulated around James Clerk Maxwell's equations for electromagnetism. In fact, it was Oliver Heaviside who, using his own vector notation, reduced Maxwell's original set of twenty equations down to the standard four. From Heaviside's analogy, I followed the same procedure used to develop classical electromagnetic radiation to instead derive equations for gravitational radiation.</p>
 
-            <h2>Field Dynamics and the Cogravitational Field</h2>
-            <p>In electromagnetism, a moving charge produces a rotating magnetic field. By analogy, Heaviside reasoned that a gravitational analog to this field must exist, behaving similarly to the magnetic field. This field is sometimes referred to as the "cogravitational" field or, occasionally, the Heaviside field.</p>
+<h2 id="sources-and-fields">Sources and Fields: The Fundamental Asymmetry</h2>
+<p>The analogy can be explained by comparing the behavior of masses and charges. Charges can be positive, negative, or neutral, while masses are conventionally considered to be positive (though some exotic particles may exhibit negative mass properties). If all masses are alike and positive, then all masses attract other masses. Like charges repel while opposites attract; conversely, like masses attract. The interaction between like charges and like masses is therefore opposite.</p>
 
-            <p>A set of four equations can be derived for gravity that closely resemble those for electromagnetism, using four foundational assumptions detailed in my thesis. From these four vector equations, scalar and vector potentials can be determined. These potentials are necessary to identify the wave equations for gravity. Following the same procedure used to obtain the Liénard–Wiechert potentials and fields in classical electromagnetism, it is possible to derive the LW potentials and fields for gravitation. These fields depend on relativistic velocity and are shown to contract along the direction of motion as velocity increases, as expected from Lorentz contraction.</p>
+<p>The lines of force for these two cases illustrate this fundamental difference. For two positive masses ("parent" and "child"), the two are attracted toward each other. For two positive charges, they are repelled away from each other. The direction of these forces is represented mathematically by the divergence equation. The divergence of a vector field describes the flux of a differential volume. A positive divergence indicates a "source" of the field, while negative divergence indicates a "sink". Zero divergence indicates a "solenoidal" field, neither source nor sink.</p>
 
-            <h2>Radiation Patterns</h2>
-            <p>Electromagnetic radiation is produced by an accelerated charge. Analogously, gravitational radiation is produced by an accelerated mass. However, just as the direction of force is reversed (mathematically denoted by the sign change of source terms), so too is the direction of energy flux.</p>
+<p>From Maxwell's equations for electromagnetism, the electric field has positive divergence and thus acts as a source. From the gravitational analogy, the gravitic field has negative divergence and thus acts as a sink. This is the mathematical expression of the intuitive fact that like masses attract while like charges repel.</p>
 
-            <p>By rederiving the Poynting vector for gravitation, the Larmor formula for total power radiated can be determined. Like an accelerated charge, an accelerated mass produces a dipole radiation pattern oriented about the axis of acceleration. This pattern contracts along the axis of motion at relativistic speeds, mirroring the electromagnetic case.</p>
+<p>Remarkably, the equations for force between two masses and two charges are essentially identical in formalism:</p>
+<p><strong>Newton's Law of Gravitation:</strong> F = -GmM/R<sup>2</sup></p>
+<p><strong>Coulomb's Law:</strong> F = kqQ/R<sup>2</sup></p>
 
-            <h2>The Energy Paradox</h2>
-            <p>In the electromagnetic case, a charge confined to a circular orbit experiences force (acceleration) that causes it to radiate energy away. Mathematically, this is indicated by a positive Poynting vector, causing the orbit to decay. The resulting Poynting vector for gravitation, however, is negative. This means that an accelerated mass appears to radiate away negative energy—which strangely implies that masses are continuously absorbing energy. Where does this energy come from?</p>
+<p>The analogy deepens when considering relationships between sources, fields, and forces. A source (or sink) produces a field that exerts a force. The force exerted on a mass in a gravitational field is F = mg, while the force exerted on a charge in an electric field is F = qE. The source produces the field, and the field exerts the force&mdash;the same structural relationship in both cases.</p>
 
-            <p>This "negative field energy" paradox discouraged Maxwell from further pursuing the analogy. Rather than coming closer to understanding gravity, Heaviside remarked in his paper that the analogy "only serves to further illustrate the mystery". This work extends the analogy and leaves open the fundamental questions: What is the true nature of gravitational fields? What is the actual speed of gravitational propagation? And how should we interpret negative energy flow in a gravitational system?</p>
+<h2 id="field-dynamics">Field Dynamics and the Cogravitational Field</h2>
+<p>In electromagnetism, a moving charge produces a rotating magnetic field. By analogy, Heaviside reasoned that a gravitational analog to this field must exist, behaving similarly to the magnetic field. This field is sometimes referred to as the "cogravitational" field or, occasionally, the Heaviside field.</p>
 
-            <!-- <iframe
-                src="https://shareok.org/server/api/core/bitstreams/b43a5fed-1e8d-4388-9bdf-0002f65a1ec8/content"
-                width="100%"
-                height="600px"
-                style="border: none;">
-            <embed
-                src="https://shareok.org/server/api/core/bitstreams/b43a5fed-1e8d-4388-9bdf-0002f65a1ec8/content"
-                width="100%"
-                height="600px"
-                type="application/pdf">
-            </iframe>
-            -->
+<p>A set of four equations can be derived for gravity that closely resemble those for electromagnetism, using four foundational assumptions detailed in my thesis. From these four vector equations, scalar and vector potentials can be determined. These potentials are necessary to identify the wave equations for gravity. Following the same procedure used to obtain the Lienard-Wiechert potentials and fields in classical electromagnetism, it is possible to derive the LW potentials and fields for gravitation. These fields depend on relativistic velocity and are shown to contract along the direction of motion as velocity increases, as expected from Lorentz contraction.</p>
 
-            <p>
-                <a href="https://shareok.org/server/api/core/bitstreams/b43a5fed-1e8d-4388-9bdf-0002f65a1ec8/content" target="_blank" rel="noopener">
-                    View Full Document (PDF)
-                </a>
-            </p>
-            <p>
-                <a href="https://gravityvisualizer.vercel.app/" target="_blank" rel="noopener">
-                    Gravitational Radiation Visualizer
-                </a>
-            </p>
-            <iframe src="../documents/static-documents/gravraddef-v7.pdf" width="100%" height="600px" style="border: none;"></iframe>
-            <!-- <embed src="../documents/certainty-inference-comprehension.pdf" type="application/pdf" width="100%" height="600px"> -->
-            <!-- <a href="../documents/static-documents/GravRadDef_v7.pdf" class="button">Download PDF</a> -->
-        </section>
-    </main>
+<h2 id="radiation-patterns">Radiation Patterns</h2>
+<p>Electromagnetic radiation is produced by an accelerated charge. Analogously, gravitational radiation is produced by an accelerated mass. However, just as the direction of force is reversed (mathematically denoted by the sign change of source terms), so too is the direction of energy flux.</p>
 
+<p>By rederiving the Poynting vector for gravitation, the Larmor formula for total power radiated can be determined. Like an accelerated charge, an accelerated mass produces a dipole radiation pattern oriented about the axis of acceleration. This pattern contracts along the axis of motion at relativistic speeds, mirroring the electromagnetic case.</p>
 
+<h2 id="energy-paradox">The Energy Paradox</h2>
+<p>In the electromagnetic case, a charge confined to a circular orbit experiences force (acceleration) that causes it to radiate energy away. Mathematically, this is indicated by a positive Poynting vector, causing the orbit to decay. The resulting Poynting vector for gravitation, however, is negative. This means that an accelerated mass appears to radiate away negative energy&mdash;which strangely implies that masses are continuously absorbing energy. Where does this energy come from?</p>
+
+<p>This "negative field energy" paradox discouraged Maxwell from further pursuing the analogy. Rather than coming closer to understanding gravity, Heaviside remarked in his paper that the analogy "only serves to further illustrate the mystery". This work extends the analogy and leaves open the fundamental questions: What is the true nature of gravitational fields? What is the actual speed of gravitational propagation? And how should we interpret negative energy flow in a gravitational system?</p>
+
+<h2 id="full-document">Full Document</h2>
+
+<p>
+    <a href="https://shareok.org/server/api/core/bitstreams/b43a5fed-1e8d-4388-9bdf-0002f65a1ec8/content" target="_blank" rel="noopener">
+        View Full Document on ShareOK (PDF)
+    </a>
+</p>
+<p>
+    <a href="https://gravityvisualizer.vercel.app/" target="_blank" rel="noopener">
+        Gravitational Radiation Visualizer
+    </a>
+</p>
+
+<iframe src="../documents/static-documents/gravraddef-v7.pdf" width="100%" height="600px" style="border: none;"></iframe>
+
+                    <!-- QMD_CONTENT_END -->
+
+                    <!-- Cross-links to related Treatise pages -->
+                    <div class="cross-links">
+                        <h3>Related Work</h3>
+                        <div class="cross-links-grid">
+                            <div class="cross-link-card">
+                                <div class="label">Treatise</div>
+                                <a href="physical-analogies.html">On Physical Analogies</a>
+                                <p>Uses the same EM-gravity analogy to explore structural parallels between sources, fields, and forces across physical systems.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -137,7 +497,5 @@
             });
         });
     </script>
-
 </body>
-
-</html> 
+</html>

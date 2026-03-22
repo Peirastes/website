@@ -1,18 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
-    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>On Physical Analogies - Peirastes</title>
+
     <meta name="description" content="Foundational exploration of structural analogies between physical systems through the unifying concept of sources, fields, and forces.">
     <meta property="og:title" content="On Physical Analogies - Peirastes">
     <meta property="og:description" content="Foundational exploration of structural analogies between physical systems through the unifying concept of sources, fields, and forces.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
     <meta property="og:url" content="https://peirastes.com/projects/physical-analogies.html">
     <meta property="og:image" content="https://peirastes.com/images/IMG_0712.jpg">
+
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           TREATISE PAGE — Template-specific styles
+           Narrow, tall, academic layout for long-form scholarly content.
+           ==================================================================== */
+
+        /* --- Abstract / Summary Block --- */
+        .abstract {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .abstract h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+        }
+
+        /* --- Publication metadata --- */
+        .pub-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .pub-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .pub-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .meta-download {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- Reduce top margin from base .project-detail --- */
+        section.project-detail {
+            margin-top: 0;
+        }
+        /* --- Treatise typography overrides --- */
+        .treatise-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .treatise-body h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .treatise-body h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body h4 {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .treatise-body p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Blockquote with orange left border --- */
+        .treatise-body blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- Figure captions --- */
+        .treatise-body figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .treatise-body figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .treatise-body figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Math display blocks: horizontal scroll on mobile --- */
+        .treatise-body .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- Download buttons row --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- Cross-links section --- */
+        .cross-links {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Table of Contents (inline) --- */
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+        }
+
+        .toc summary {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-accent);
+            cursor: pointer;
+            list-style: none;
+        }
+        .toc summary::-webkit-details-marker { display: none; }
+        .toc summary::before {
+            content: '\25B8 ';
+            display: inline-block;
+        }
+        .toc[open] summary::before {
+            content: '\25BE ';
+        }
+        .toc ol {
+            margin-top: 0.5rem;
+        }
+
+        .toc ol {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Treatise tables --- */
+        .treatise-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .treatise-body thead th {
+            background: var(--bg-card);
+            border-bottom: 2px solid var(--primary-accent);
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            font-weight: 700;
+        }
+
+        .treatise-body td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .treatise-body {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .treatise-body h2 {
+                font-size: 1.3rem;
+            }
+
+            .treatise-body h3 {
+                font-size: 1.1rem;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .treatise-body {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+
     <script src="../js/main.js"></script>
 </head>
 
@@ -24,29 +379,443 @@
 
     <nav>
         <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../current-projects.html">Current Projects</a> 
-            <a href="../previous-work.html">Previous Projects</a>
-            <a href="../timeline.html">Physics Timeline</a> 
-            <a href="../quotes.html">Quotes</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
     </nav>
 
     <div class="content">
-
-
         <main>
-        <section>
-            <iframe src="../documents/static-documents/physical-analogies-v2.pdf" width="100%" height="600px" style="border: none;"></iframe>
-            <embed src="../documents/static-documents/physical-analogies-v2.pdf" type="application/pdf" width="100%" height="600px">
-            <a href="../documents/static-documents/physical-analogies-v2.pdf" class="button">Download PDF</a>
-        </section>
-    </main>
+            <section class="project-detail">
+                <div class="treatise-body">
 
+                    <!-- Page title -->
+                    <h2>On Physical Analogies</h2>
 
+                    <!-- Abstract / Summary -->
+                    <div class="abstract">
+                        <h3>Abstract</h3>
+                        <p>An exploration of the structural analogy between gravitation and electromagnetism, tracing the parallel roles of sources, fields, forces, energies, and potentials. Beginning with the observation that EMF is a potential rather than a force, this work develops a comprehensive mapping between gravitational and electromagnetic parameters, derives a gravitational Ohm's law, and identifies mass-analogues of capacitance and inductance.</p>
+                    </div>
+
+                    <!-- Publication metadata -->
+                    <div class="pub-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Published:</span>
+                            <span>2019</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Last Updated:</span>
+                            <span>2019</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <span>Published</span>
+                        </div>
+                        <div class="meta-item" style="margin-left:auto">
+                            <span class="meta-label">Download:</span>
+                            <a href="../documents/static-documents/physical-analogies-v2.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                        </div>
+                    </div>
+
+                    <!-- Table of Contents -->
+                    <details class="toc">
+                        <summary>Contents</summary>
+                        <ol>
+                            <li><a href="#introduction">I. Introduction</a></li>
+                            <li><a href="#static-parameters">II. Static System Parameters and Units</a></li>
+                            <li><a href="#dynamics">III. Dynamics</a></li>
+                            <li><a href="#pe-vs-ke">IV. Potential Energy vs Kinetic Energy</a></li>
+                            <li><a href="#dynamic-parameters">V. Dynamic System Parameters and Units</a></li>
+                        </ol>
+                    </details>
+
+                    <!-- QMD_CONTENT_START -->
+
+<p><em>Warning to reader: Work in progress. May be redundant and scattered.</em></p>
+
+<h2 id="introduction">I. Introduction</h2>
+
+<p>During my time as a lab instructor, I tried to reconcile the terminology of "Electromotive Force" used often in textbooks and in our lab manual. You may already be aware that the EMF is not even a force! EMF has units of Joules/Coulomb - the same as electric potential, with units of energy per unit of charge. Indeed, electric potential energy can be found by multiplying the potential by the charge and the result will have units of energy (Joules). However, the name "Electromotive Force" implies that this physical parameter would have units of force &ndash; Newtons. Rather, it represents a potential. While working on my thesis, I attempted to rationalize the units of electric potential and gravitational potential to realize a comprehensible analogy of the latter to the former. Although the result may be rather obvious in hindsight (which is 20/20), I believe it worthwhile to document my findings and how I came to my results thus far, for there is much more to discern.</p>
+
+<p>In summary, I am attempting to deduce a viable analogy between gravitation and electromagnetism that considers a set of basic parameters including displacement, velocity, acceleration, sources, fields, forces, energies, and potentials. This analogy is based on the writings of Oliver Heaviside and his work on describing gravitational waves and how they should relate directly to electromagnetic waves. In fact, Heaviside proposes that there exists a component field of the static gravitational field, or <em>gravitic</em> field, that is analogous to the magnetic field. This secondary gravitational field is called the cogravitational field. For Heaviside's namesake, this field will be referred to as the <em>heavitic field</em>, the gravitational analog to the magnetic field. To describe gravitational effects more fully, the term <em>gravitoheavitic</em> will be incorporated in the lexicon so to reflect the interaction of both fields and to reflect Heaviside's contribution to the study of gravity and gravitational waves.</p>
+
+<h3>I.1 Sources, Fields, and Forces</h3>
+
+<p>The source units of gravitation and electromagnetism are mass - with units of kilograms [kg] - and charge - with units of Coulombs [C]. Gravitational mass generates a radially inward gravitational field, or gravitic field, and the motion of mass generates a rotationally positive heavitic field. Electric charge generates a radially outward electric field, and the motion of a charge generates a rotationally positive magnetic field.</p>
+
+<p>Gravitational masses interact with gravitoheavitic fields and electrical charges interact with electromagnetic fields. In electromagnetism, there are the electric and magnetic fields. In gravitation, there are the gravitic and heavitic fields. These fields are acceleration fields, with the gravitic or gravitational field, g, measured in meters per second squared [m/s^2] or Newtons per kilogram [N/kg] and the electric field, E, measured in Volts per meter [V/m] or Newtons per Coulomb [N/C]. Notice that the field dimensions are similarly related by force units per source units.</p>
+
+<p>Gravitational masses in a gravitational field experience a force given by:</p>
+<p><span class="math inline">\(F = \text{mg}\)</span>,</p>
+<p>where <span class="math inline">\(F\)</span> is the force, <span class="math inline">\(m\)</span> is the mass, and <span class="math inline">\(g\)</span> is the acceleration due to the gravitational field. More generally, a mass experiencing any acceleration experiences a proportional force, expressed as:</p>
+<p><span class="math inline">\(F = \text{ma}\)</span>,</p>
+<p>where <span class="math inline">\(F\)</span> is the force, <span class="math inline">\(m\)</span> is the mass, and <span class="math inline">\(a\)</span> is the acceleration.</p>
+
+<p>Electrical charges in an electrical field experience a force given by:</p>
+<p><span class="math inline">\(F = \text{qE}\)</span>,</p>
+<p>where <span class="math inline">\(F\)</span> is the force, <span class="math inline">\(q\)</span> is the charge, and <span class="math inline">\(E\)</span> is the acceleration due to the electric field.</p>
+
+<p>Notice that the force is similarly determined by multiplying the source with the field. Force, in both cases, is measured in Newtons [N]. In general, Sources interact with Fields and experience Forces.</p>
+
+<h3>I.4 Energies</h3>
+
+<p>Moving a source through a field with force requires energy. A relatable form of energy is work, which is simply the ability of a force to move things about. The work done by a force to move a source over some distance is given by:</p>
+<p><span class="math inline">\(W = Fd\cos\theta\)</span>,</p>
+<p>where <span class="math inline">\(W\)</span> is measured in Joules [J], <span class="math inline">\(F\)</span> is the force measured in Newtons [N], <span class="math inline">\(d\)</span> is the distance in meters [m], and <span class="math inline">\(\theta\)</span> is the angle between the applied force and the line of action (direction of motion).</p>
+
+<p>Similarly, the concept of potential energy is a form of energy and potential energy is also calculated using force and distance. Gravitational potential energy can be determined using the equation:</p>
+<p><span class="math inline">\(U = mgh = Fh\)</span>,</p>
+<p>where <span class="math inline">\(U\)</span> is the potential energy [J], <span class="math inline">\(m\)</span> is the mass [kg], <span class="math inline">\(g\)</span> is the gravitational acceleration due to the field [N/kg], <span class="math inline">\(h\)</span> is the height of the mass from the zero-potential [m], and <span class="math inline">\(F\)</span> is the force on the mass [N]. Dimensionally, the result of force multiplied with distance is Newton-meters [N-m], which is equivalent to Joules [J].</p>
+
+<p>Electrical potential energy can be determined by:</p>
+<p><span class="math inline">\(U = qEs = Fs\)</span>,</p>
+<p>where <span class="math inline">\(U\)</span> is the potential energy [J], <span class="math inline">\(q\)</span> is the charge [C], <span class="math inline">\(E\)</span> is the electrical acceleration due to the field [N/C], <span class="math inline">\(s\)</span> is the distance of the charge from the zero-potential [m], and <span class="math inline">\(F\)</span> is the force on the charge [N]. Again, the dimensions of the force by the distance are units of energy (Joules).</p>
+
+<h3>I.5 Potentials</h3>
+
+<p>Sometimes the electrical potential energy is also described as,</p>
+<p><span class="math inline">\(U = Vq\)</span>,</p>
+<p>where the electrical potential (voltage), <span class="math inline">\(V\)</span>, is defined as,</p>
+<p><span class="math inline">\(V = Es\)</span>.</p>
+
+<p>This "charge-independent" value is known as electrical potential, or voltage, which has units of volts [V] or Joules per Coulomb [J/C]. The same can be done to gravitational potential energy to determine a "mass-independent" gravitational potential.</p>
+<p><span class="math inline">\(U = mgh\)</span>,</p>
+<p>becomes,</p>
+<p><span class="math inline">\(U = mV\)</span>.</p>
+<p>So, the gravitational potential is,</p>
+<p><span class="math inline">\(V = \frac{U}{m}\)</span>,</p>
+<p>which becomes,</p>
+<p><span class="math inline">\(V = gh\)</span>.</p>
+
+<p>In general, the potential is the potential energy per source unit [J/kg or J/C] and represents energy density, thus does not depend on mass or charge, respectively.</p>
+
+<h2 id="static-parameters">II. Static System Parameters and Units</h2>
+
+<p>Thus, we have the following table of field parameters in gravitation and electromagnetism:</p>
+
+<table>
+<thead>
+<tr>
+<th><strong>Generalized Units</strong></th>
+<th><strong>Field Parameter</strong></th>
+<th><strong>Gravitation</strong></th>
+<th><strong>Electromagnetism</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[Source]</td>
+<td><strong>Source</strong></td>
+<td>m &mdash; Gravitational Mass [kg]</td>
+<td>q &mdash; Electrical Charge [Coulomb]</td>
+</tr>
+<tr>
+<td>[Field] = [Force/Source]</td>
+<td><strong>Field (Acceleration)</strong></td>
+<td>g &mdash; Gravitic Field [N/kg] [m/s<sup>2</sup>]</td>
+<td>E &mdash; Electric Field [N/C] [V/m]</td>
+</tr>
+<tr>
+<td>[Force] = [Source*Field]</td>
+<td><strong>Force</strong></td>
+<td><span class="math inline">\(F = ma\)</span> &mdash; Gravitic Force [N]</td>
+<td><span class="math inline">\(F = qE\)</span> &mdash; Electric Force [N]</td>
+</tr>
+<tr>
+<td>[Energy] = [Force*Displacement]</td>
+<td><strong>Potential Energy</strong></td>
+<td><span class="math inline">\(U = mgh = Fh = Vm\)</span> &mdash; Gravitational PE [J]</td>
+<td><span class="math inline">\(U = qEs = Fs = Vq\)</span> &mdash; Electrical PE [J]</td>
+</tr>
+<tr>
+<td>[Potential] = [Energy/Source]</td>
+<td><strong>Potential</strong></td>
+<td><span class="math inline">\(V = U/m = gh\)</span> &mdash; Gravitational Potential [J/kg]</td>
+<td><span class="math inline">\(V = U/q = Es\)</span> &mdash; Electrical Potential [J/C] [V]</td>
+</tr>
+</tbody>
+</table>
+
+<p>Drawing comparisons between the field parameters, some generalizations can be made. Most broadly, and most fundamental, is that Sources produce Fields and exert Forces. Forces are the products of Sources and Fields. The (potential) energy required to exert such forces is dependent on the displacement of the source in the field and is the product of that displacement with the exerted force. Potential is a measure of energy density and is the proportion of energy units to source units.</p>
+
+<p>Dimensionally, Fields are the proportion of Force units to Source units. Energies are measured in Joules and Potentials are energy ratios dependent on the source (mass, charge). While the first four parameters can be rather intuitive (especially after comparing gravitation and electromagnetism), the fifth parameter - potential - is not as straightforward.</p>
+
+<p>So then if voltages are now perhaps more "familiar", how is a gravitational potential relatable? What would be the gravitational equivalent/analog of voltage?</p>
+
+<p>Recall, g [N/kg] and E [N/C] which are both written such that the units are given by the ratio of the force units to source units.</p>
+
+<p>Thus, a source interacts with a field and experiences a force. The force is proportional to the magnitude of acceleration. For an arbitrary source, p, and acceleration field, A, the force experienced by the source in the field is given by</p>
+<p><span class="math display">\[F = pA\]</span></p>
+
+<p>To be more accurate, the field is produced by a parent source with which a child source interacts and experiences the force. Recall these equations of Newton and Coulomb:</p>
+<p><span class="math display">\[F = - G\frac{\text{mM}}{R^{2}}\]</span></p>
+<p>And</p>
+<p><span class="math display">\[F = k\frac{\text{qQ}}{R^{2}}\]</span></p>
+
+<p>Maybe more interesting is the relationship that can be drawn between units of potential. Until the units of the gravitational field were rewritten as force units per source units, they were simply [m/s^2] and identified as acceleration. When comparing units of the alternative expression for the electric field [V/m], the relationship is easily identified.</p>
+
+<p>If gravitational acceleration units are rewritten as [(m<sup>2</sup>/s<sup>2</sup>)/m] and compared to [V/m], then Volts can be related to the units of gravitational potential as m<sup>2</sup>/s<sup>2</sup>. To answer a previous question, gravitational and electrical potential are both expressions of energy units per source units, and thus, gravitational potential [m<sup>2</sup>/s<sup>2</sup>] can be thought of as gravitational voltage (though probably shouldn't be). Perhaps it would be more appropriate to refer it to as gravitational "pressure", as voltage is sometimes likened to electrical "pressure".</p>
+
+<p>But what does a m<sup>2</sup>/s<sup>2</sup> represent physically? An acceleration over a distance, which is caused by a force and driven by energy. If we consider a voltage across two parallel plates, with one being grounded, there exist a series of parallel equipotentials. For example, a 1 V potential over a 1 mm distance, there will exist a potential of 0.5 V half way between the plates. At a distance of 0.25 mm from the ground plate, the voltage will be 0.25 V. Hence, the acceleration depends on the voltage gradient, or perhaps a gradient of active energy conversion &ndash; as the more energy/time available to accelerate the particle, the more energy is converted from potential energy to kinetic energy.</p>
+
+<h2 id="dynamics">III. Dynamics</h2>
+
+<p>So far, only the static displacement of sources has been discussed. What about the movement of these sources at some velocity, v? Then,</p>
+<p>Mass x Velocity = Momentum = [kg x m/s]</p>
+<p>&amp;</p>
+<p>Charge x Velocity = [Coulomb x m/s]</p>
+<p>So, what does this unit represent for electrodynamics?</p>
+
+<p>Consider a resistive force, R, that is proportional to velocity by a constant such that</p>
+<p><span class="math display">\[R = Bv\]</span></p>
+
+<p>Let's look at the units of this constant, B,</p>
+<p><span class="math display">\[N = \left[B\right]\frac{m}{s}\]</span></p>
+<p><span class="math display">\[\left[B\right] = \frac{N \cdot s}{m} = \frac{kg \cdot m \cdot s}{s^{2} \cdot m} = \frac{\text{kg}}{s}\]</span></p>
+
+<p>Then, B is a mass flow rate.</p>
+
+<p>Let's now consider how this force relates to potential, where a is the net acceleration produced by the force, and h is the distance over which the force is applied.</p>
+<p><span class="math display">\[V = ah = \frac{F}{m}h\]</span></p>
+
+<p>If we substitute the force with the resistive force, R,</p>
+<p><span class="math display">\[V = \frac{R}{m}h = \frac{Bv}{m}h = \frac{B}{m}\text{hv}\]</span></p>
+
+<p>Written in the order of the last expression above, the potential is represented as the product of the ratio of mass flow rate to mass, distance, and velocity.</p>
+
+<p>We should check dimensionally that this is indeed a potential,</p>
+<p><span class="math display">\[\frac{m^{2}}{s^{2}} = \left(\frac{\frac{\text{kg}}{s}}{\text{kg}}\right)\left(m\right)\left(\frac{m}{s}\right)\]</span></p>
+
+<p>And we see that this does in fact agree with the dimension of potential!</p>
+
+<p>Let's rearrange the expression for potential to isolate the mass flow rate,</p>
+<p><span class="math display">\[V = B\left(\frac{\text{hv}}{m}\right)\]</span></p>
+
+<p>Doing this, the term in parentheses effectively represents the "resistance" of mass flow!</p>
+<p><span class="math display">\[V = BR\]</span></p>
+
+<p>This equation is effectively a <strong>gravitational "Ohm's Law"</strong>, where B is the mass flow rate (mass-current), and R is the flow resistance (of which the units are strange). The units of the flow resistance will be referred to as "Gohs", for fun.</p>
+<p><span class="math display">\[\left[\text{Gohs}\right] = \left[R\right] = \frac{m^{2}}{\text{kg} \cdot s}\]</span></p>
+
+<p>With a possible gravitational analogy to Ohm's law (for ohmic devices), let's turn our attention to the three passive components of electric circuits and attempt to "derive" gravitational analogies to the resistor, capacitor, and inductor.</p>
+
+<p>Since we have somewhat described the resistive component, with the flow resistance R, let's start with the capacitor. Consider how a spring is like a capacitor. Both are capable of "storing" charge given that they are not overworked. Both stored energies would like to discharge and induce a force proportional to the displacement of the energy sources (mass/charge). In short, both springs and capacitors store energy as a function of displacement of the source.</p>
+
+<p>Comparing the two general force equations to highlight their similarities,</p>
+<p><span class="math inline">\(F = ma\)</span> &nbsp;&nbsp;&nbsp; <span class="math inline">\(F = qE\)</span></p>
+
+<p>Starting with the relation between capacitance, charge, and voltage,</p>
+<p><span class="math inline">\(Q = CV\)</span> &nbsp;&nbsp;&nbsp; <span class="math inline">\(C = \frac{Q}{V}\)</span></p>
+
+<p>By analogy, if H represents the mass-capacitance, we seek something of the form,</p>
+<p><span class="math inline">\(M = HV\)</span> &nbsp;&nbsp;&nbsp; <span class="math inline">\(H = \frac{M}{V}\)</span></p>
+
+<p>Where H has the following units:</p>
+<p><span class="math display">\[\frac{\text{kg} \cdot s^{2}}{m^{2}}\]</span></p>
+
+<p>Let's check that this quantity holds in other familiar expressions. The Coulomb force could be expressed in terms of capacitance as,</p>
+<p><span class="math display">\[F = \frac{\text{qQ}}{\text{dC}}\]</span></p>
+
+<p>Which suggests there exists an analogous Newtonian force,</p>
+<p><span class="math display">\[F = \frac{\text{mM}}{\text{dH}}\]</span></p>
+
+<p>Checking dimensionally,</p>
+<p><span class="math display">\[N = \frac{\text{kg}^{2}}{m\left(\frac{kg \cdot s^{2}}{m^{2}}\right)} = \frac{kg \cdot m}{s^{2}}\]</span></p>
+
+<p>This checks out! The potential energy of a mass-like capacitor is,</p>
+<p><span class="math display">\[PE = \frac{1}{2}MV = \frac{1}{2}HV^{2} = \frac{1}{2}H\left(\text{ad}\right)^{2}\]</span></p>
+
+<p>Let's think about how this mass-capacitance, H, relates to the stiffness, k, of a spring.</p>
+<p><span class="math display">\[PE = \frac{1}{2}kx^{2} = \frac{1}{2}HV^{2}\]</span></p>
+
+<p>Solving for the stiffness,</p>
+<p><span class="math display">\[k = \frac{HV^{2}}{x^{2}}\]</span></p>
+
+<p>Then, the mass-capacitance can be expressed in the following forms:</p>
+<p><span class="math display">\[H = \frac{m}{V} = \frac{kx^{2}}{V^{2}} = \frac{\text{mM}}{Fx}\]</span></p>
+
+<p>Now we investigate mass inductance. An analogous description of potential using mass induction, <span class="math inline">\(N\)</span>:</p>
+<p><span class="math display">\[V_{N} = N\ddot{m}\]</span></p>
+
+<p>The units of mass induction are:</p>
+<p><span class="math display">\[\left[N\right] = \frac{m^{2}}{\text{kg}}\]</span></p>
+
+<p>Or, equally, Area/mass.</p>
+
+<p>When switching between paradigms of mass and charge, let <span class="math inline">\(kg = C\)</span>. Then:</p>
+<p><span class="math display">\[\left[L\right] = \frac{\text{kg} \cdot m^{2}}{C^{2}} = \frac{\text{kg} \cdot m^{2}}{\text{kg}^{2}} = \frac{m^{2}}{\text{kg}} = \left[N\right]\]</span></p>
+
+<p>The dimension of stiffness can be described as:</p>
+<p><span class="math display">\[\left[k\right] = \frac{N}{m} = \frac{J}{m^{2}} = \frac{\text{kg}}{s^{2}}\]</span></p>
+
+<h2 id="pe-vs-ke">IV. Potential Energy vs Kinetic Energy</h2>
+
+<p>What I am struggling with comprehending/describing is HOW objects/sources obtain potential energy! And HOW that energy is converted to kinetic energy! Heaviside said that potential energy is just energy that is not known to be kinetic!</p>
+
+<p>I've attempted to describe potential energy as energy obtained by a source displaced in a displacement field (gravitic/electric) and is determined by a displacement (space), while kinetic energy is energy obtained (or lost) through movement in a displacement field and is determined by velocity (time).</p>
+
+<h3>IV.1 Gravitational Energy (Gravitoheavitic)</h3>
+
+<p>Consider a ball on a desk. If we draw out coordinate axes such that the top of the desk is the "zero-potential", we can still apply the laws of motion as appropriately as if we had chosen the ground to be the location of "zero-potential". Now consider the ball raised to some height. The ball now "obtains" potential energy and, when released from rest, the energy will be converted into kinetic energy (with some - often negligible - losses).</p>
+
+<p>This amount of potential energy is determined by the height the mass was raised with respect to the zero-potential, <span class="math inline">\(U = mgh\)</span>, where g is the acceleration produced by the displacement field. We also know that work is done, <span class="math inline">\(W = Fd\)</span>, so here, the energy needed to perform that work <span class="math inline">\(U = mgh\)</span> can be recognized as <span class="math inline">\(U = Fh\)</span> where F is the gravitational force on a mass, m, and h is the displacement height.</p>
+
+<p>As the ball in the example is released, potential energy is converted into kinetic energy. As the acceleration field acts on the ball, which experiences a force (<span class="math inline">\(F = mg\)</span>), it begins to fall and move with an increasing velocity over time. With this motion through the acceleration field, a cogravitational field is produced normal to the gravitational field and the direction of motion of the source.</p>
+
+<h3>IV.2 Electromagnetic Energy</h3>
+
+<p>Consider a charge displaced in an electric field. A positive source charge shown experiences a force, F, due to the electric field. As described previously, a source displaced in an acceleration field experiences a force. We know that <span class="math inline">\(F = qE\)</span> and this is strikingly similar to <span class="math inline">\(F = ma\)</span> as the force being the product of the source (mass/charge) and the field's acceleration.</p>
+
+<h3>IV.3 Generalized Energy</h3>
+
+<p>The acceleration field produced by a parent source has units that can also be written as the potential per distance, or in other words, the energy per source per distance.</p>
+
+<p>I propose that:</p>
+<blockquote>
+<p>Potential energy depends on position in an acceleration field.</p>
+<p>Kinetic energy depends on motion in an acceleration field.</p>
+</blockquote>
+
+<p>Still, this does nothing to exhaust Heaviside's statement that potential energy is energy that is not known to be kinetic.</p>
+
+<p>To describe the motion of a source through a field, let's first consider how a source is set in motion. A change in state requires a force (acceleration). A source can only be accelerated by a force and a source only experiences a force when accelerated. To begin motion requires a (net) force!</p>
+
+<p>Then, maybe, it would be appropriate to say that kinetic energy is the energy of a source experiencing a net force while potential energy is the energy of a source experiencing no net forces (inert)?</p>
+
+<h2 id="dynamic-parameters">V. Dynamic System Parameters and Units</h2>
+
+<table>
+<thead>
+<tr>
+<th><strong>Generalized Units</strong></th>
+<th><strong>Field Parameter</strong></th>
+<th><strong>Gravitation</strong></th>
+<th><strong>Electromagnetism</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[Displacement]</td>
+<td><strong>Displacement</strong></td>
+<td><span class="math inline">\(\Delta x = x - x_0 = d = h\)</span> [meters]</td>
+<td><span class="math inline">\(\Delta s = s - s_0 = s\)</span></td>
+</tr>
+<tr>
+<td>[Motion] = [Displacement/Time]</td>
+<td><strong>Velocity</strong></td>
+<td><span class="math inline">\(v = d/t\)</span> [m/s]</td>
+<td><span class="math inline">\(v = s/t\)</span> [m/s]</td>
+</tr>
+<tr>
+<td>[Source]</td>
+<td><strong>Source</strong></td>
+<td>m &mdash; Gravitational Mass [kg]</td>
+<td>q &mdash; Electrical Charge [C]</td>
+</tr>
+<tr>
+<td>[Acceleration] = [Field]</td>
+<td><strong>Static Field</strong></td>
+<td>g &mdash; Gravitic Field [N/kg]</td>
+<td>E &mdash; Electric Field [N/C] [V/m]</td>
+</tr>
+<tr>
+<td>[Force] = [Source*Field]</td>
+<td><strong>Static Force</strong></td>
+<td><span class="math inline">\(F = mg\)</span> &mdash; Gravitic Force [N]</td>
+<td><span class="math inline">\(F = qE\)</span> &mdash; Electric Force [N]</td>
+</tr>
+<tr>
+<td>[Energy] = [Force*Displacement]</td>
+<td><strong>Potential Energy</strong></td>
+<td><span class="math inline">\(U = mgh = Fh = Vm\)</span> [J]</td>
+<td><span class="math inline">\(U = qEs = Fs = Vq\)</span> [J]</td>
+</tr>
+<tr>
+<td>[Potential] = [Energy/Source]</td>
+<td><strong>Potential</strong></td>
+<td><span class="math inline">\(V = U/m = gh\)</span> [J/kg]</td>
+<td><span class="math inline">\(V = U/q = Es\)</span> [J/C] [V]</td>
+</tr>
+<tr>
+<td>[Field]</td>
+<td><strong>Dynamic Field</strong></td>
+<td>Heavitic Field</td>
+<td>Magnetic Field</td>
+</tr>
+<tr>
+<td>[Force]</td>
+<td><strong>Dynamic Force</strong></td>
+<td>Heavitic Force</td>
+<td>Magnetic Force</td>
+</tr>
+<tr>
+<td>[Energy] = [Source*Potential]</td>
+<td><strong>Kinetic Energy</strong></td>
+<td><span class="math inline">\(K = \frac{1}{2}mv^2\)</span> [J]</td>
+<td>Electrical Kinetic Energy</td>
+</tr>
+<tr>
+<td>[Power] = [Energy/Time]</td>
+<td><strong>Power</strong></td>
+<td><span class="math inline">\(P = W/t\)</span></td>
+<td><span class="math inline">\(P = IE = RI^2\)</span></td>
+</tr>
+<tr>
+<td>[Momentum] = [Source*Motion]</td>
+<td><strong>Momentum</strong></td>
+<td><span class="math inline">\(p = mv = Ft\)</span> [kg&middot;m/s]</td>
+<td><span class="math inline">\(J = \rho v\)</span> &mdash; Current Density [C/m<sup>2</sup>&middot;s]</td>
+</tr>
+<tr>
+<td>Capacitance [Source/Potential]</td>
+<td><strong>Capacitance (PE)</strong></td>
+<td>Spring: <span class="math inline">\(H = m/V\)</span> [kg&middot;s<sup>2</sup>/m<sup>2</sup>]</td>
+<td>Capacitor: <span class="math inline">\(C = Q/V\)</span> [s/Ohm]</td>
+</tr>
+<tr>
+<td>Inductance [Area/Source]</td>
+<td><strong>Inductance (KE)</strong></td>
+<td>Flywheel (Inertia): <span class="math inline">\(I = A/m\)</span></td>
+<td>Inductor [Henries]</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Conductance (Dissipation)</strong></td>
+<td>Dashpot/Damper (Friction)</td>
+<td>Conductor [Siemens]</td>
+</tr>
+</tbody>
+</table>
+
+<p>Unsorted Notes:</p>
+<blockquote>
+<p>"Impedance ... is defined as the ratio of pressure to volume flow rate." Impedance is the ratio of pressure to flux. Pressure induces a flow rate proportional to impedance. Capacitance induces inductance proportional to conductance. A capacity of stored potential energy can induce kinetic energy proportional to the ability to conduce energy dissipation.</p>
+</blockquote>
+
+                    <!-- QMD_CONTENT_END -->
+
+                    <!-- Cross-links to related Treatise pages -->
+                    <div class="cross-links">
+                        <h3>Related Work</h3>
+                        <div class="cross-links-grid">
+                            <div class="cross-link-card">
+                                <div class="label">Treatise</div>
+                                <a href="physical-analogies-continued.html">Fundamental Principles &mdash; On Analogies (continued)</a>
+                                <p>Extending the source-field-force model across diverse domains, revealing isomorphic patterns in mechanics, electromagnetism, and thermodynamics.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
     </div>
 
     <footer>
-        <p>© 2026 Cole Prather</p>
+        <p>&copy; 2026 Cole Prather</p>
     </footer>
 
     <div id="lightbox-overlay">
@@ -81,7 +850,5 @@
             });
         });
     </script>
-
 </body>
-
-</html> 
+</html>
