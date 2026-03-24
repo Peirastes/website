@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Data Center Cooling Testbed</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0b0b14; }
+        #root { width: 100%; height: 100%; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- React 18 -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+
+    <!-- Recharts (UMD) + its peer dep prop-types -->
+    <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <script crossorigin src="https://unpkg.com/recharts@2.15.0/umd/Recharts.js"></script>
+
+    <!-- Babel standalone for in-browser JSX -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+const { useState, useEffect, useRef, useCallback } = React;
+const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, ReferenceLine } = Recharts;
+
+// ─── Thermal simulation engine (transient) ───────────────────────────
+const THERMAL_PARAMS = {
+  cp: 4182, // J/(kg·K) water
+  rho: 997, // kg/m³
+  chipToPlate_R: 0.08, // K/W chip-to-cold-plate conduction
+  plateToFluid_R: 0.05, // K/W cold-plate convective
+  ambientTemp: 20, // °C
+  hxCores: {
+    "HX #1 (Team C)": { UA: 180, label: "Team C — Shell-coil" },
+    "HX #2 (Team D)": { UA: 220, label: "Team D — Plate stack" },
+  },
+  timeConstant: 8, // seconds to ~63% of steady state
+};
+
+function computeSteadyState(pElec, mDotHot, mDotCold, hxUA) {
+  const cp = THERMAL_PARAMS.cp;
+  const R_chip = THERMAL_PARAMS.chipToPlate_R;
+  const R_plate = THERMAL_PARAMS.plateToFluid_R;
+  const T_amb = THERMAL_PARAMS.ambientTemp;
+
+  const mH = (mDotHot / 60) * (THERMAL_PARAMS.rho / 1000); // L/min → kg/s
+  const mC = (mDotCold / 60) * (THERMAL_PARAMS.rho / 1000);
+
+  // No-flow fallback: everything heats up with no removal
+  if (mH < 0.001 || mC < 0.001 || pElec < 0.5) {
+    const stagnant = pElec < 0.5 ? T_amb : T_amb + pElec * 0.5;
+    return { T_chip: T_amb + pElec * (R_chip + R_plate + 2.0), T_h_in: stagnant, T_h_out: stagnant, T_c_in: T_amb, T_c_out: T_amb, T_diag: stagnant };
+  }
+
+  const C_h = mH * cp; // W/K
+  const C_c = mC * cp;
+  const C_min = Math.min(C_h, C_c);
+  const C_max = Math.max(C_h, C_c);
+  const Cr = C_min / C_max;
+  const NTU = hxUA / C_min;
+  // ε-NTU for counter-flow HX
+  const eps = Cr < 0.999
+    ? (1 - Math.exp(-NTU * (1 - Cr))) / (1 - Cr * Math.exp(-NTU * (1 - Cr)))
+    : NTU / (1 + NTU);
+
+  const T_c_in = T_amb;
+
+  const effectiveRemoval = eps * C_min; // W/K
+  const T_h_in = T_c_in + pElec / Math.max(effectiveRemoval, 0.1);
+
+  // CDU HX heat rejection
+  const Q_hx = effectiveRemoval * (T_h_in - T_c_in); // should ≈ pElec at steady state
+  const T_h_out = T_h_in - Q_hx / C_h;
+  const T_c_out = T_c_in + Q_hx / C_c;
+
+  const T_diag = T_h_in - 0.1; // cold plate outlet ≈ HX hot inlet, tiny pipe loss
+
+  // Chip surface: sits above the fluid by conduction + contact resistance
+  const T_chip = T_h_in + pElec * (R_chip + R_plate);
+
+  return {
+    T_chip: Math.min(T_chip, 120),
+    T_h_in: Math.min(T_h_in, 90),
+    T_h_out,
+    T_c_in,
+    T_c_out: Math.min(T_c_out, 70),
+    T_diag: Math.min(T_diag, 85),
+  };
+}
+
+// ─── Analog Needle Dial Gauge ────────────────────────────────────────
+function DialGauge({ value, min, max, label, unit, color, size = 120, warning, ticks = 6 }) {
+  const pct = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  const isWarning = warning != null && value > warning;
+  const activeColor = isWarning ? "#ef4444" : color;
+
+  // Needle sweeps from -135° to +135° (270° total arc)
+  const needleAngle = -135 + pct * 270;
+  const cx = size / 2;
+  const cy = size * 0.54;
+  const r = size * 0.36;
+
+  // Generate tick marks
+  const tickMarks = [];
+  for (let i = 0; i <= ticks; i++) {
+    const frac = i / ticks;
+    const angle = (-135 + frac * 270) * (Math.PI / 180);
+    const tickVal = min + frac * (max - min);
+    const inner = r - 8;
+    const outer = r + 1;
+    const labelR = r - 16;
+    tickMarks.push({
+      x1: cx + inner * Math.cos(angle),
+      y1: cy + inner * Math.sin(angle),
+      x2: cx + outer * Math.cos(angle),
+      y2: cy + outer * Math.sin(angle),
+      lx: cx + labelR * Math.cos(angle),
+      ly: cy + labelR * Math.sin(angle),
+      val: Number.isInteger(tickVal) ? tickVal : tickVal.toFixed(1),
+    });
+  }
+
+  // Minor ticks
+  const minorTicks = [];
+  for (let i = 0; i < ticks * 4; i++) {
+    const frac = i / (ticks * 4);
+    const angle = (-135 + frac * 270) * (Math.PI / 180);
+    const inner = r - 4;
+    const outer = r + 1;
+    minorTicks.push({
+      x1: cx + inner * Math.cos(angle),
+      y1: cy + inner * Math.sin(angle),
+      x2: cx + outer * Math.cos(angle),
+      y2: cy + outer * Math.sin(angle),
+    });
+  }
+
+  // Needle tip
+  const needleRad = needleAngle * (Math.PI / 180);
+  const needleLen = r - 6;
+  const nx = cx + needleLen * Math.cos(needleRad);
+  const ny = cy + needleLen * Math.sin(needleRad);
+  // Needle tail (short stub opposite)
+  const tailLen = 8;
+  const tx = cx - tailLen * Math.cos(needleRad);
+  const ty = cy - tailLen * Math.sin(needleRad);
+
+  return (
+    <div style={{ width: size, textAlign: "center", flexShrink: 0 }}>
+      <svg width={size} height={size * 0.72} viewBox={`0 0 ${size} ${size * 0.72}`}>
+        {/* Dial face */}
+        <circle cx={cx} cy={cy} r={r + 4} fill="#0a0a14" stroke="#1e293b" strokeWidth={1.5} />
+        <circle cx={cx} cy={cy} r={r + 2} fill="none" stroke="#111827" strokeWidth={2} />
+
+        {/* Warning zone arc */}
+        {warning != null && (() => {
+          const warnPct = Math.max(0, Math.min(1, (warning - min) / (max - min)));
+          const warnStartAngle = (-135 + warnPct * 270) * (Math.PI / 180);
+          const warnEndAngle = 135 * (Math.PI / 180);
+          const arcR = r + 1;
+          const sx = cx + arcR * Math.cos(warnStartAngle);
+          const sy = cy + arcR * Math.sin(warnStartAngle);
+          const ex = cx + arcR * Math.cos(warnEndAngle);
+          const ey = cy + arcR * Math.sin(warnEndAngle);
+          const largeArc = (1 - warnPct) * 270 > 180 ? 1 : 0;
+          return <path d={`M ${sx} ${sy} A ${arcR} ${arcR} 0 ${largeArc} 1 ${ex} ${ey}`} fill="none" stroke="#ef444433" strokeWidth={3} />;
+        })()}
+
+        {/* Minor ticks */}
+        {minorTicks.map((t, i) => (
+          <line key={`m${i}`} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="#333" strokeWidth={0.5} />
+        ))}
+
+        {/* Major ticks + labels */}
+        {tickMarks.map((t, i) => (
+          <g key={i}>
+            <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="#666" strokeWidth={1.5} />
+            <text x={t.lx} y={t.ly + 3} textAnchor="middle" fontSize={size * 0.075} fill="#777" fontFamily="'JetBrains Mono', monospace">{t.val}</text>
+          </g>
+        ))}
+
+        {/* Needle */}
+        <line x1={tx} y1={ty} x2={nx} y2={ny}
+          stroke={activeColor} strokeWidth={2} strokeLinecap="round"
+          style={{ filter: `drop-shadow(0 0 3px ${activeColor}66)`, transition: "all 0.4s ease-out" }}
+        />
+        {/* Center hub */}
+        <circle cx={cx} cy={cy} r={4} fill={activeColor} stroke="#000" strokeWidth={1} />
+        <circle cx={cx} cy={cy} r={2} fill="#222" />
+
+        {/* Digital readout */}
+        <rect x={cx - 24} y={cy + 10} width={48} height={16} rx={3} fill="#060610" stroke="#1e293b" strokeWidth={0.5} />
+        <text x={cx} y={cy + 22} textAnchor="middle" fill={activeColor} fontSize={10} fontWeight="700" fontFamily="'JetBrains Mono', monospace">
+          {value.toFixed(1)}
+        </text>
+      </svg>
+      <div style={{ fontSize: 9, color: "#9ca3af", marginTop: -2, fontFamily: "'Inter', sans-serif", letterSpacing: "0.03em", fontWeight: 600 }}>
+        {label} <span style={{ color: "#555", fontWeight: 400 }}>({unit})</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Thermometer component (vertical bar) ────────────────────────────
+function Thermometer({ value, min, max, label, color, warning, width = 42, height = 100 }) {
+  const pct = Math.max(0, Math.min(1, (value - min) / (max - min)));
+  const isWarning = warning != null && value > warning;
+  const activeColor = isWarning ? "#ef4444" : color;
+
+  const bulbR = Math.max(8, width * 0.17);
+  const tubeX = width / 2;
+  const tubeW = Math.max(10, width * 0.2);
+  const tubeTop = 8;
+  const tubeBot = height - bulbR - 6;
+  const tubeH = tubeBot - tubeTop;
+  const fillH = tubeH * pct;
+
+  // Tick marks
+  const numTicks = 5;
+  const tickData = [];
+  for (let i = 0; i <= numTicks; i++) {
+    const frac = i / numTicks;
+    const y = tubeBot - frac * tubeH;
+    const val = min + frac * (max - min);
+    tickData.push({ y, val: Math.round(val) });
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        {/* Tube outline */}
+        <rect x={tubeX - tubeW / 2 - 1} y={tubeTop - 1} width={tubeW + 2} height={tubeH + 2} rx={tubeW / 2} fill="#0a0a14" stroke="#1e293b" strokeWidth={1} />
+
+        {/* Fill */}
+        <rect x={tubeX - tubeW / 2} y={tubeBot - fillH} width={tubeW} height={fillH + bulbR} rx={1} fill={activeColor} opacity={0.85}
+          style={{ filter: `drop-shadow(0 0 4px ${activeColor}55)`, transition: "all 0.4s ease-out" }}
+        />
+
+        {/* Glass highlight */}
+        <rect x={tubeX - 1} y={tubeTop} width={2} height={tubeH} rx={1} fill="#ffffff11" />
+
+        {/* Bulb */}
+        <circle cx={tubeX} cy={tubeBot + bulbR - 1} r={bulbR} fill={activeColor} stroke="#111" strokeWidth={1}
+          style={{ filter: `drop-shadow(0 0 5px ${activeColor}44)` }}
+        />
+        <circle cx={tubeX - 2} cy={tubeBot + bulbR - 3} r={2} fill="#ffffff22" />
+
+        {/* Tick marks */}
+        {tickData.map((t, i) => (
+          <g key={i}>
+            <line x1={tubeX + tubeW / 2 + 3} y1={t.y} x2={tubeX + tubeW / 2 + 8} y2={t.y} stroke="#444" strokeWidth={0.8} />
+            <text x={tubeX + tubeW / 2 + 10} y={t.y + 3} fontSize={8} fill="#777" fontFamily="'JetBrains Mono', monospace">{t.val}</text>
+          </g>
+        ))}
+      </svg>
+      <div style={{ fontSize: 14, color: activeColor, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>
+        {value.toFixed(1)}°
+      </div>
+      <div style={{ fontSize: 10, color: "#9ca3af", fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</div>
+    </div>
+  );
+}
+
+// ─── Animated flow line ──────────────────────────────────────────────
+function FlowLine({ points, color, flowRate, strokeWidth = 3 }) {
+  const d = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
+  const dashLen = 8;
+  const gapLen = 12;
+  const speed = Math.max(0.3, Math.min(3, flowRate / 2));
+
+  return (
+    <g>
+      <path d={d} fill="none" stroke={color} strokeWidth={strokeWidth} opacity={0.2} />
+      <path
+        d={d} fill="none" stroke={color} strokeWidth={strokeWidth}
+        strokeDasharray={`${dashLen} ${gapLen}`}
+        strokeLinecap="round"
+        style={{ filter: `drop-shadow(0 0 3px ${color}aa)` }}
+      >
+        <animate attributeName="stroke-dashoffset" from={dashLen + gapLen} to="0" dur={`${1.5 / speed}s`} repeatCount="indefinite" />
+      </path>
+    </g>
+  );
+}
+
+// ─── TC indicator dot ────────────────────────────────────────────────
+function TCDot({ x, y, label, value, color = "#fbbf24", anchor = "right" }) {
+  const boxW = 64;
+  const boxH = 28;
+  let bx, by;
+  if (anchor === "right") { bx = x + 10; by = y - boxH / 2; }
+  else if (anchor === "left") { bx = x - 10 - boxW; by = y - boxH / 2; }
+  else if (anchor === "above") { bx = x - boxW / 2; by = y - 14 - boxH; }
+  else { bx = x - boxW / 2; by = y + 14; }
+
+  return (
+    <g>
+      {/* Connecting line */}
+      <line x1={x} y1={y}
+        x2={anchor === "right" ? bx : anchor === "left" ? bx + boxW : bx + boxW / 2}
+        y2={anchor === "above" ? by + boxH : anchor === "below" ? by : by + boxH / 2}
+        stroke={color} strokeWidth={0.7} opacity={0.4} />
+      {/* Dot */}
+      <circle cx={x} cy={y} r={4.5} fill={color} stroke="#000" strokeWidth={1.2} style={{ filter: `drop-shadow(0 0 3px ${color}88)` }} />
+      {/* Tooltip box */}
+      <rect x={bx} y={by} width={boxW} height={boxH} rx={4} fill="#0d1117ee" stroke="#2a2a3a" strokeWidth={0.8} />
+      {/* Label */}
+      <text x={bx + boxW / 2} y={by + 10} textAnchor="middle" fontSize={8} fill="#9ca3af" fontFamily="'JetBrains Mono', monospace" fontWeight="500">{label}</text>
+      {/* Value */}
+      <text x={bx + boxW / 2} y={by + 23} textAnchor="middle" fontSize={11} fill="#f0f0f0" fontFamily="'JetBrains Mono', monospace" fontWeight="700">{value.toFixed(1)}°C</text>
+    </g>
+  );
+}
+
+// ─── Main schematic SVG ──────────────────────────────────────────────
+function SystemSchematic({ temps, flowHot, flowCold, selectedHX, isRunning }) {
+  const w = 760;
+  const h = 380;
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "100%", display: "block" }}>
+      <defs>
+        <linearGradient id="hotGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#dc2626" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+        <linearGradient id="coldGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#2563eb" />
+          <stop offset="100%" stopColor="#06b6d4" />
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="2" result="g" /><feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        <filter id="boxShadow"><feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.5" /></filter>
+      </defs>
+
+      {/* Background grid */}
+      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
+      </pattern>
+      <rect width={w} height={h} fill="url(#grid)" />
+
+      {/* ── HXSU Unit (bottom) ── */}
+      <rect x={200} y={310} width={360} height={55} rx={8} fill="#0f172a" stroke="#334155" strokeWidth={1.5} filter="url(#boxShadow)" />
+      <rect x={200} y={310} width={360} height={18} rx={8} fill="#1e293b" />
+      <text x={380} y={323} textAnchor="middle" fontSize={10} fill="#94a3b8" fontWeight="600" fontFamily="'Inter', sans-serif" letterSpacing="0.06em">ARMFIELD HXSU SERVICE UNIT</text>
+      <text x={260} y={345} textAnchor="middle" fontSize={8.5} fill="#ef4444" fontFamily="'JetBrains Mono', monospace">HOT SUPPLY</text>
+      <text x={370} y={345} textAnchor="middle" fontSize={8.5} fill="#ef4444" fontFamily="'JetBrains Mono', monospace">HOT RETURN</text>
+      <text x={480} y={345} textAnchor="middle" fontSize={8.5} fill="#3b82f6" fontFamily="'JetBrains Mono', monospace">COLD SUPPLY</text>
+      <text x={565} y={345} textAnchor="middle" fontSize={8.5} fill="#3b82f6" fontFamily="'JetBrains Mono', monospace">COLD RETURN</text>
+
+      {/* ── Chip Simulator (Team A) ── */}
+      <rect x={60} y={80} width={130} height={90} rx={6} fill="#1a0a0a" stroke="#dc2626" strokeWidth={1.5} filter="url(#boxShadow)" />
+      <rect x={60} y={80} width={130} height={20} rx={6} fill="#7f1d1dee" />
+      <text x={125} y={94} textAnchor="middle" fontSize={9} fill="#fca5a5" fontWeight="600" fontFamily="'Inter', sans-serif">CHIP SIMULATOR</text>
+      <text x={125} y={109} textAnchor="middle" fontSize={7.5} fill="#666" fontFamily="'Inter', sans-serif">Team A — Thermal Load</text>
+      {/* heater icon */}
+      <rect x={90} y={120} width={70} height={30} rx={3} fill="#451a03" stroke="#f97316" strokeWidth={1} strokeDasharray="3 2" />
+      <text x={125} y={140} textAnchor="middle" fontSize={9} fill="#fb923c" fontFamily="'JetBrains Mono', monospace" fontWeight="600">
+        ⚡ {(temps.T_chip > 25 ? "ON" : "OFF")}
+      </text>
+
+      {/* ── Cold Plate (Team B) ── */}
+      <rect x={60} y={190} width={130} height={70} rx={6} fill="#0a1a0a" stroke="#22c55e" strokeWidth={1.5} filter="url(#boxShadow)" />
+      <rect x={60} y={190} width={130} height={20} rx={6} fill="#14532dee" />
+      <text x={125} y={204} textAnchor="middle" fontSize={9} fill="#86efac" fontWeight="600" fontFamily="'Inter', sans-serif">COLD PLATE</text>
+      <text x={125} y={218} textAnchor="middle" fontSize={7.5} fill="#666" fontFamily="'Inter', sans-serif">Team B — Heat Extraction</text>
+      {/* wavy lines for channels */}
+      <path d="M80 235 Q95 230 110 235 Q125 240 140 235 Q155 230 170 235" fill="none" stroke="#22c55e44" strokeWidth={2} />
+      <path d="M80 245 Q95 240 110 245 Q125 250 140 245 Q155 240 170 245" fill="none" stroke="#22c55e44" strokeWidth={2} />
+
+      {/* ── CDU Heat Exchanger (Team C/D) ── */}
+      <rect x={380} y={80} width={180} height={190} rx={6} fill="#0a0a1a" stroke="#8b5cf6" strokeWidth={1.5} filter="url(#boxShadow)" />
+      <rect x={380} y={80} width={180} height={20} rx={6} fill="#4c1d95ee" />
+      <text x={470} y={94} textAnchor="middle" fontSize={9} fill="#c4b5fd" fontWeight="600" fontFamily="'Inter', sans-serif">CDU HEAT EXCHANGER</text>
+      <text x={470} y={112} textAnchor="middle" fontSize={7.5} fill="#666" fontFamily="'Inter', sans-serif">{THERMAL_PARAMS.hxCores[selectedHX]?.label || selectedHX}</text>
+      {/* HX plate representation */}
+      {[0, 1, 2, 3, 4, 5].map(i => (
+        <g key={i}>
+          <rect x={400} y={125 + i * 22} width={140} height={2} rx={1} fill={i % 2 === 0 ? "#ef4444" : "#3b82f6"} opacity={0.5} />
+          <line x1={400} y1={126 + i * 22} x2={540} y2={126 + i * 22} stroke={i % 2 === 0 ? "#ef444488" : "#3b82f688"} strokeWidth={8} opacity={0.15} />
+        </g>
+      ))}
+      <text x={470} y={264} textAnchor="middle" fontSize={7} fill="#6b7280" fontStyle="italic" fontFamily="'Inter', sans-serif">
+        UA = {THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200} W/K
+      </text>
+
+      {/* ── Hot flow path (IT loop) ── */}
+      {isRunning && (
+        <>
+          {/* HXSU hot supply → up to cold plate INLET */}
+          <FlowLine points={[[260, 330], [260, 310], [260, 270], [190, 270], [190, 260]]} color="#f97316" flowRate={flowHot} />
+          {/* cold plate OUTLET → across to HX hot in */}
+          <FlowLine points={[[190, 225], [210, 195], [340, 195], [380, 175]]} color="#ef4444" flowRate={flowHot} />
+          {/* HX hot out → down to HXSU return */}
+          <FlowLine points={[[380, 220], [340, 240], [340, 310], [370, 330]]} color="#f97316" flowRate={flowHot} />
+        </>
+      )}
+
+      {/* ── Cold flow path (Facility loop) ── */}
+      {isRunning && (
+        <>
+          {/* HXSU cold supply → up to HX cold in */}
+          <FlowLine points={[[520, 330], [520, 310], [560, 190], [560, 155]]} color="#3b82f6" flowRate={flowCold} />
+          {/* HX cold out → down to HXSU return */}
+          <FlowLine points={[[560, 200], [590, 250], [590, 310], [565, 330]]} color="#06b6d4" flowRate={flowCold} />
+        </>
+      )}
+
+      {/* ── Flow direction labels ── */}
+      <text x={248} y={285} fontSize={7} fill="#f9731688" fontFamily="'Inter', sans-serif" fontWeight="600">COOL IN ↑</text>
+      <text x={210} y={210} fontSize={7} fill="#ef444488" fontFamily="'Inter', sans-serif" fontWeight="600">HOT OUT →</text>
+
+      {/* ── Thermocouple dots ── */}
+      <TCDot x={170} y={100} label="T_chip" value={temps.T_chip} color="#fbbf24" anchor="above" />
+      <TCDot x={345} y={170} label="T_h,in" value={temps.T_h_in} color="#ef4444" anchor="above" />
+      <TCDot x={345} y={240} label="T_h,out" value={temps.T_h_out} color="#f97316" anchor="below" />
+      <TCDot x={570} y={138} label="T_c,in" value={temps.T_c_in} color="#3b82f6" anchor="right" />
+      <TCDot x={570} y={218} label="T_c,out" value={temps.T_c_out} color="#06b6d4" anchor="right" />
+      <TCDot x={210} y={195} label="T_diag" value={temps.T_diag} color="#a78bfa" anchor="left" />
+
+      {/* ── Port labels on HXSU ── */}
+      <circle cx={260} cy={330} r={4} fill="#f97316" />
+      <circle cx={370} cy={330} r={4} fill="#f97316" />
+      <circle cx={520} cy={330} r={4} fill="#3b82f6" />
+      <circle cx={565} cy={330} r={4} fill="#06b6d4" />
+
+      {/* Status indicator */}
+      <circle cx={w - 25} cy={20} r={6} fill={isRunning ? "#22c55e" : "#6b7280"}>
+        {isRunning && <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />}
+      </circle>
+      <text x={w - 38} y={24} textAnchor="end" fontSize={9} fill={isRunning ? "#22c55e" : "#6b7280"} fontFamily="'JetBrains Mono', monospace" fontWeight="600">
+        {isRunning ? "RUNNING" : "STANDBY"}
+      </text>
+
+      {/* Flow direction arrows (static) */}
+      <text x={125} y={185} textAnchor="middle" fontSize={12} fill="#ef444488">↓</text>
+      <text x={300} y={200} textAnchor="middle" fontSize={12} fill="#ef444488">→</text>
+    </svg>
+  );
+}
+
+// ─── Steady-state detector ───────────────────────────────────────────
+function useSteadyState(temps, threshold = 0.15) {
+  const prevRef = useRef(temps);
+  const [steady, setSteady] = useState(false);
+  const stableCountRef = useRef(0);
+
+  useEffect(() => {
+    const keys = ["T_chip", "T_h_in", "T_h_out", "T_c_in", "T_c_out"];
+    const maxDelta = Math.max(...keys.map(k => Math.abs(temps[k] - prevRef.current[k])));
+    prevRef.current = { ...temps };
+    if (maxDelta < threshold) {
+      stableCountRef.current++;
+      if (stableCountRef.current > 15) setSteady(true);
+    } else {
+      stableCountRef.current = 0;
+      setSteady(false);
+    }
+  }, [temps, threshold]);
+
+  return steady;
+}
+
+// ─── Main App ────────────────────────────────────────────────────────
+function DataCenterCoolingTestbed() {
+  // Controls
+  const [pElec, setPElec] = useState(100);
+  const [flowHot, setFlowHot] = useState(3.0);
+  const [flowCold, setFlowCold] = useState(3.0);
+  const [selectedHX, setSelectedHX] = useState("HX #1 (Team C)");
+  const [isRunning, setIsRunning] = useState(false);
+  const [activeTab, setActiveTab] = useState("main");
+
+  // Transient simulation state
+  const [temps, setTemps] = useState({
+    T_chip: 20, T_h_in: 20, T_h_out: 20, T_c_in: 20, T_c_out: 20, T_diag: 20,
+  });
+  const [timeHistory, setTimeHistory] = useState([]);
+  const [capturedRuns, setCapturedRuns] = useState([]);
+  const timeRef = useRef(0);
+  const targetRef = useRef(null);
+
+  const isSteady = useSteadyState(temps);
+
+  // Transient update loop
+  useEffect(() => {
+    if (!isRunning) return;
+    const hxUA = THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200;
+    targetRef.current = computeSteadyState(pElec, flowHot, flowCold, hxUA);
+
+    const interval = setInterval(() => {
+      timeRef.current += 0.5;
+      const tau = THERMAL_PARAMS.timeConstant;
+      const alpha = 1 - Math.exp(-0.5 / tau);
+
+      setTemps(prev => {
+        const tgt = targetRef.current;
+        if (!tgt) return prev;
+        const next = {};
+        for (const k of Object.keys(prev)) {
+          next[k] = prev[k] + alpha * (tgt[k] - prev[k]) + (Math.random() - 0.5) * 0.08;
+        }
+
+        // Log the SAME freshly computed values to the time history
+        setTimeHistory(hist => {
+          const newPt = { time: timeRef.current, ...next };
+          const arr = [...hist, newPt];
+          return arr.length > 300 ? arr.slice(-300) : arr;
+        });
+
+        return next;
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isRunning, pElec, flowHot, flowCold, selectedHX]);
+
+  // Recalculate target when inputs change
+  useEffect(() => {
+    if (!isRunning) return;
+    const hxUA = THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200;
+    targetRef.current = computeSteadyState(pElec, flowHot, flowCold, hxUA);
+  }, [pElec, flowHot, flowCold, selectedHX, isRunning]);
+
+  // Computed metrics
+  const cp = THERMAL_PARAMS.cp;
+  const mH = (flowHot / 60) * (THERMAL_PARAMS.rho / 1000);
+  const mC = (flowCold / 60) * (THERMAL_PARAMS.rho / 1000);
+  const Q_hot = mH * cp * Math.abs(temps.T_h_in - temps.T_h_out);
+  const Q_cold = mC * cp * Math.abs(temps.T_c_out - temps.T_c_in);
+  const Q_avg = (Q_hot + Q_cold) / 2;
+  const energyBal = Q_avg > 1 ? Math.abs(Q_hot - Q_cold) / Q_avg * 100 : 0;
+  const R_theta = pElec > 1 ? (temps.T_chip - temps.T_c_in) / pElec : 0;
+
+  const dT1 = temps.T_h_in - temps.T_c_out;
+  const dT2 = temps.T_h_out - temps.T_c_in;
+  const LMTD = (Math.abs(dT1 - dT2) > 0.1) ? (dT1 - dT2) / Math.log(dT1 / dT2) : (dT1 + dT2) / 2;
+  const UA_calc = LMTD > 0.1 ? Q_avg / LMTD : 0;
+
+  const hxUA_nom = THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200;
+  const C_min_val = Math.min(mH * cp, mC * cp);
+  const NTU_calc = C_min_val > 0.1 ? UA_calc / C_min_val : 0;
+  const eps_calc = Q_avg > 1 && C_min_val > 0.1 ? Q_avg / (C_min_val * (temps.T_h_in - temps.T_c_in)) : 0;
+
+  const captureRun = useCallback(() => {
+    setCapturedRuns(prev => [...prev, {
+      id: prev.length + 1,
+      pElec, flowHot, flowCold, hx: selectedHX,
+      ...temps,
+      Q_hot: Q_hot.toFixed(1), Q_cold: Q_cold.toFixed(1),
+      energyBal: energyBal.toFixed(1),
+      R_theta: R_theta.toFixed(4),
+      UA: UA_calc.toFixed(1), LMTD: LMTD.toFixed(2),
+      eps: eps_calc.toFixed(3),
+    }]);
+  }, [pElec, flowHot, flowCold, selectedHX, temps, Q_hot, Q_cold, energyBal, R_theta, UA_calc, LMTD, eps_calc]);
+
+  const handleStart = () => {
+    if (!isRunning) {
+      timeRef.current = 0;
+      setTimeHistory([]);
+    }
+    setIsRunning(true);
+  };
+
+  const presetPowers = [
+    { label: "Low", value: 75 },
+    { label: "Med", value: 150 },
+    { label: "High", value: 250 },
+  ];
+
+  // ─── Styles ──────────────────────────────────────────────────
+  const styles = {
+    app: {
+      width: "100%", minHeight: "100vh", background: "#0b0b14",
+      color: "#e2e8f0", fontFamily: "'Inter', 'Segoe UI', sans-serif",
+      display: "flex", flexDirection: "column",
+    },
+    header: {
+      background: "linear-gradient(180deg, #111827 0%, #0b0b14 100%)",
+      borderBottom: "1px solid #1e293b",
+      padding: "10px 20px",
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+    },
+    headerTitle: {
+      fontSize: 15, fontWeight: 700, letterSpacing: "0.04em",
+      background: "linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6)",
+      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+    },
+    headerSub: { fontSize: 10, color: "#64748b", marginTop: 1 },
+    tabBar: {
+      display: "flex", gap: 2, background: "#111827", borderRadius: 6, padding: 2,
+    },
+    tab: (active) => ({
+      padding: "6px 16px", borderRadius: 4, fontSize: 11, fontWeight: 600,
+      cursor: "pointer", transition: "all 0.2s",
+      background: active ? "#1e293b" : "transparent",
+      color: active ? "#f0f0f0" : "#64748b",
+      border: active ? "1px solid #334155" : "1px solid transparent",
+      letterSpacing: "0.03em",
+    }),
+    body: {
+      display: "flex", flexDirection: "column", flex: 1, overflow: "hidden",
+    },
+    sectionLabel: {
+      fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: "0.12em",
+      textTransform: "uppercase", marginBottom: 4,
+    },
+    slider: {
+      width: "100%", accentColor: "#8b5cf6", height: 4, cursor: "pointer",
+      background: "#1e293b", borderRadius: 2,
+    },
+    btn: (variant) => ({
+      padding: "8px 14px", borderRadius: 6, border: "none", cursor: "pointer",
+      fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", transition: "all 0.15s",
+      background: variant === "primary" ? "linear-gradient(135deg, #22c55e, #16a34a)" :
+                  variant === "danger" ? "linear-gradient(135deg, #ef4444, #dc2626)" :
+                  variant === "capture" ? "linear-gradient(135deg, #8b5cf6, #7c3aed)" :
+                  "#1e293b",
+      color: "#fff",
+      boxShadow: variant === "primary" ? "0 2px 12px #22c55e44" :
+                 variant === "danger" ? "0 2px 12px #ef444444" :
+                 variant === "capture" ? "0 2px 12px #8b5cf644" : "none",
+    }),
+    metricCard: {
+      background: "#111827", borderRadius: 6, padding: "8px 10px",
+      border: "1px solid #1e293b",
+    },
+    metricValue: {
+      fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+      color: "#f0f0f0",
+    },
+    metricLabel: {
+      fontSize: 9, color: "#64748b", fontWeight: 500,
+    },
+    hxButton: (active) => ({
+      padding: "6px 10px", borderRadius: 5, cursor: "pointer",
+      fontSize: 10, fontWeight: 600, transition: "all 0.15s",
+      background: active ? "#4c1d95" : "#1e293b",
+      color: active ? "#c4b5fd" : "#94a3b8",
+      border: active ? "1px solid #7c3aed" : "1px solid #334155",
+    }),
+    select: {
+      width: "100%", padding: "6px 8px", borderRadius: 5,
+      background: "#1e293b", color: "#e2e8f0", border: "1px solid #334155",
+      fontSize: 11, fontFamily: "'Inter', sans-serif",
+    },
+    steadyBadge: {
+      display: "inline-flex", alignItems: "center", gap: 4,
+      padding: "3px 8px", borderRadius: 10, fontSize: 9, fontWeight: 700,
+      background: isSteady ? "#052e16" : "#1c1917",
+      color: isSteady ? "#4ade80" : "#a8a29e",
+      border: `1px solid ${isSteady ? "#22c55e44" : "#44403c"}`,
+    },
+  };
+
+  // ─── Plot view ─────────────────────────────────────────────
+  const PlotView = () => (
+    <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+      <div style={styles.sectionLabel}>Temperature Time History</div>
+      <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", marginBottom: 16, height: 260 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={timeHistory.filter((_, i) => i % 2 === 0)}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <XAxis dataKey="time" stroke="#64748b" fontSize={10} label={{ value: "Time (s)", position: "insideBottom", offset: -2, style: { fill: "#64748b", fontSize: 10 } }} />
+            <YAxis stroke="#64748b" fontSize={10} label={{ value: "°C", angle: -90, position: "insideLeft", style: { fill: "#64748b", fontSize: 10 } }} />
+            <Tooltip
+              contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, fontSize: 11 }}
+              labelStyle={{ color: "#94a3b8" }}
+            />
+            <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
+            <Line type="monotone" dataKey="T_chip" stroke="#fbbf24" dot={false} strokeWidth={2} name="T_chip" />
+            <Line type="monotone" dataKey="T_h_in" stroke="#ef4444" dot={false} strokeWidth={1.5} name="T_h,in" />
+            <Line type="monotone" dataKey="T_h_out" stroke="#f97316" dot={false} strokeWidth={1.5} name="T_h,out" />
+            <Line type="monotone" dataKey="T_c_in" stroke="#3b82f6" dot={false} strokeWidth={1.5} name="T_c,in" />
+            <Line type="monotone" dataKey="T_c_out" stroke="#06b6d4" dot={false} strokeWidth={1.5} name="T_c,out" />
+            <Line type="monotone" dataKey="T_diag" stroke="#a78bfa" dot={false} strokeWidth={1} name="T_diag" strokeDasharray="4 2" />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {capturedRuns.length > 0 && (
+        <>
+          <div style={styles.sectionLabel}>Captured Runs — Q Comparison</div>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", marginBottom: 16, height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={capturedRuns.map(r => ({ ...r, Q_hot: +r.Q_hot, Q_cold: +r.Q_cold }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="id" stroke="#64748b" fontSize={10} label={{ value: "Run #", position: "insideBottom", offset: -2, style: { fill: "#64748b", fontSize: 10 } }} />
+                <YAxis stroke="#64748b" fontSize={10} label={{ value: "W", angle: -90, position: "insideLeft", style: { fill: "#64748b", fontSize: 10 } }} />
+                <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar dataKey="Q_hot" fill="#ef4444" name="Q_hot" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="Q_cold" fill="#3b82f6" name="Q_cold" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={styles.sectionLabel}>Captured Runs — UA & R_θ</div>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={capturedRuns.map(r => ({ ...r, UA: +r.UA, R_theta: +r.R_theta * 1000 }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="id" stroke="#64748b" fontSize={10} />
+                <YAxis yAxisId="left" stroke="#8b5cf6" fontSize={10} label={{ value: "UA (W/K)", angle: -90, position: "insideLeft", style: { fill: "#8b5cf6", fontSize: 9 } }} />
+                <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" fontSize={10} label={{ value: "R_θ (mK/W)", angle: 90, position: "insideRight", style: { fill: "#f59e0b", fontSize: 9 } }} />
+                <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Bar yAxisId="left" dataKey="UA" fill="#8b5cf6" name="UA (W/K)" radius={[3, 3, 0, 0]} />
+                <Bar yAxisId="right" dataKey="R_theta" fill="#f59e0b" name="R_θ (mK/W)" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  // ─── Test matrix view ──────────────────────────────────────
+  const MatrixView = () => {
+    const matrix = [
+      { label: "Run 1", p: "P1 (75W)", flow: "Low (2 L/min)" },
+      { label: "Run 2", p: "P1 (75W)", flow: "High (5 L/min)" },
+      { label: "Run 3", p: "P2 (150W)", flow: "Low (2 L/min)" },
+      { label: "Run 4", p: "P2 (150W)", flow: "High (5 L/min)" },
+      { label: "Run 5", p: "P3 (250W)", flow: "Low (2 L/min)" },
+      { label: "Run 6", p: "P3 (250W)", flow: "High (5 L/min)" },
+    ];
+
+    return (
+      <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
+        <div style={styles.sectionLabel}>6-Run Commissioning Matrix</div>
+        <div style={{ background: "#111827", borderRadius: 8, padding: 16, border: "1px solid #1e293b", marginBottom: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #334155" }}>
+                {["Run", "Power", "Facility Flow", "Status"].map(h => (
+                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: "#94a3b8", fontWeight: 600, fontSize: 10, letterSpacing: "0.05em" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {matrix.map((row, i) => {
+                const captured = capturedRuns.find(r => r.id === i + 1);
+                return (
+                  <tr key={i} style={{ borderBottom: "1px solid #1e293b" }}>
+                    <td style={{ padding: "8px 10px", fontWeight: 700, color: "#e2e8f0" }}>{row.label}</td>
+                    <td style={{ padding: "8px 10px", color: "#f97316" }}>{row.p}</td>
+                    <td style={{ padding: "8px 10px", color: "#3b82f6" }}>{row.flow}</td>
+                    <td style={{ padding: "8px 10px" }}>
+                      {captured ? (
+                        <span style={{ background: "#052e16", color: "#4ade80", padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 600 }}>✓ Captured</span>
+                      ) : (
+                        <span style={{ background: "#1c1917", color: "#a8a29e", padding: "2px 8px", borderRadius: 8, fontSize: 10, fontWeight: 600 }}>Pending</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {capturedRuns.length > 0 && (
+          <>
+            <div style={styles.sectionLabel}>Captured Results Table</div>
+            <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #334155" }}>
+                    {["#", "P(W)", "ṁ_h", "ṁ_c", "HX", "T_chip", "Q_hot", "Q_cold", "ΔQ%", "R_θ", "UA", "ε"].map(h => (
+                      <th key={h} style={{ padding: "6px 6px", textAlign: "right", color: "#94a3b8", fontWeight: 600, fontSize: 9 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {capturedRuns.map(r => (
+                    <tr key={r.id} style={{ borderBottom: "1px solid #1e293b" }}>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#e2e8f0" }}>{r.id}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#f97316" }}>{r.pElec}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#ef4444" }}>{r.flowHot}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#3b82f6" }}>{r.flowCold}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#c4b5fd", fontSize: 8, maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.hx.split("(")[0]}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#fbbf24" }}>{r.T_chip.toFixed(1)}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#ef4444" }}>{r.Q_hot}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#3b82f6" }}>{r.Q_cold}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: +r.energyBal > 10 ? "#ef4444" : "#4ade80" }}>{r.energyBal}%</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#f59e0b" }}>{r.R_theta}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#8b5cf6" }}>{r.UA}</td>
+                      <td style={{ padding: "5px 6px", textAlign: "right", color: "#6ee7b7" }}>{r.eps}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={styles.app}>
+      {/* ── Header ── */}
+      <div style={styles.header}>
+        <div>
+          <div style={styles.headerTitle}>ENGR 3211 — Data Center Cooling Testbed</div>
+          <div style={styles.headerSub}>Modular Bench-Scale Cooling System Simulator · Spring 2026</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={styles.steadyBadge}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: isSteady ? "#4ade80" : "#a8a29e" }} />
+            {isSteady ? "STEADY STATE" : "TRANSIENT"}
+          </div>
+          <div style={styles.tabBar}>
+            {[
+              { key: "main", label: "Main" },
+              { key: "plots", label: "Plot Data" },
+              { key: "matrix", label: "Test Matrix" },
+            ].map(t => (
+              <div key={t.key} style={styles.tab(activeTab === t.key)} onClick={() => setActiveTab(t.key)}>
+                {t.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+
+        {activeTab === "main" && (
+          <>
+            {/* ── TOP: Instruments + Real-Time Chart ── */}
+            <div style={{ background: "#0a0a14", borderBottom: "1px solid #1e293b", padding: "10px 12px 8px", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+
+                {/* Left: Instruments */}
+                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {/* Thermometers */}
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+                    <Thermometer value={temps.T_chip} min={15} max={95} label="T_chip" color="#fbbf24" warning={60} width={52} height={120} />
+                    <Thermometer value={temps.T_h_in} min={15} max={70} label="T_h,in" color="#ef4444" width={46} height={110} />
+                    <Thermometer value={temps.T_h_out} min={15} max={60} label="T_h,out" color="#f97316" width={46} height={110} />
+                    <Thermometer value={temps.T_c_in} min={15} max={40} label="T_c,in" color="#3b82f6" width={46} height={110} />
+                    <Thermometer value={temps.T_c_out} min={15} max={50} label="T_c,out" color="#06b6d4" width={46} height={110} />
+                    <Thermometer value={temps.T_diag} min={15} max={70} label="T_diag" color="#a78bfa" width={46} height={110} />
+                  </div>
+                  {/* Dial gauges */}
+                  <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                    <DialGauge value={flowHot} min={0} max={6} label="IT Flow" unit="L/min" color="#ef4444" size={105} ticks={6} />
+                    <DialGauge value={flowCold} min={0} max={6} label="Facility" unit="L/min" color="#3b82f6" size={105} ticks={6} />
+                    <DialGauge value={pElec} min={0} max={300} label="P_elec" unit="W" color="#f97316" size={105} warning={250} ticks={6} />
+                  </div>
+                </div>
+
+                {/* Right: Real-time temperature plot */}
+                <div style={{ flex: 1, minWidth: 0, background: "#111827", borderRadius: 8, border: "1px solid #1e293b", padding: "8px 8px 4px 0" }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginLeft: 12, marginBottom: 4 }}>
+                    Live Temperature Trace
+                  </div>
+                  <div style={{ height: 210 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={timeHistory.filter((_, i) => i % 2 === 0)} margin={{ top: 4, right: 8, left: 0, bottom: 2 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="time" stroke="#4b5563" fontSize={9} tickFormatter={v => `${Math.round(v)}s`} />
+                        <YAxis stroke="#4b5563" fontSize={9} domain={['auto', 'auto']} label={{ value: "°C", angle: -90, position: "insideLeft", offset: 10, style: { fill: "#4b5563", fontSize: 9 } }} />
+                        <Tooltip
+                          contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, fontSize: 10, padding: "6px 10px" }}
+                          labelStyle={{ color: "#94a3b8", fontSize: 9 }}
+                          labelFormatter={v => `t = ${Number(v).toFixed(1)}s`}
+                          formatter={(val, name) => [`${Number(val).toFixed(2)} °C`, name]}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 9, paddingTop: 0 }} iconSize={8} />
+                        <Line type="monotone" dataKey="T_chip" stroke="#fbbf24" dot={false} strokeWidth={2} name="T_chip" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="T_h_in" stroke="#ef4444" dot={false} strokeWidth={1.5} name="T_h,in" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="T_h_out" stroke="#f97316" dot={false} strokeWidth={1.5} name="T_h,out" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="T_c_in" stroke="#3b82f6" dot={false} strokeWidth={1.5} name="T_c,in" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="T_c_out" stroke="#06b6d4" dot={false} strokeWidth={1.5} name="T_c,out" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="T_diag" stroke="#a78bfa" dot={false} strokeWidth={1} name="T_diag" strokeDasharray="4 2" isAnimationActive={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Computed metrics strip */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+                {[
+                  { label: "Q_hot", value: `${Q_hot.toFixed(1)} W`, color: "#ef4444" },
+                  { label: "Q_cold", value: `${Q_cold.toFixed(1)} W`, color: "#3b82f6" },
+                  { label: "ΔQ balance", value: `${energyBal.toFixed(1)}%`, color: energyBal > 10 ? "#ef4444" : "#4ade80" },
+                  { label: "R_θ", value: `${R_theta.toFixed(4)} K/W`, color: "#f59e0b" },
+                  { label: "UA", value: `${UA_calc.toFixed(1)} W/K`, color: "#8b5cf6" },
+                  { label: "LMTD", value: `${LMTD.toFixed(2)} K`, color: "#06b6d4" },
+                  { label: "ε (eff)", value: eps_calc.toFixed(3), color: "#6ee7b7" },
+                  { label: "NTU", value: NTU_calc.toFixed(2), color: "#a78bfa" },
+                ].map(m => (
+                  <div key={m.label} style={styles.metricCard}>
+                    <div style={{ ...styles.metricValue, fontSize: 15, color: m.color }}>{m.value}</div>
+                    <div style={{ ...styles.metricLabel, fontSize: 10 }}>{m.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── MIDDLE: Schematic ── */}
+            <div style={{ flex: 1, minHeight: 0, padding: 8 }}>
+              <SystemSchematic temps={temps} flowHot={flowHot} flowCold={flowCold} selectedHX={selectedHX} isRunning={isRunning} />
+            </div>
+
+            {/* ── BOTTOM: Controls ── */}
+            <div style={{ background: "#0a0a14", borderTop: "1px solid #1e293b", padding: "10px 16px", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+
+                {/* Power */}
+                <div style={{ flex: "1 1 180px", minWidth: 160 }}>
+                  <div style={styles.sectionLabel}>Electrical Power</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#f97316" }}>{pElec}<span style={{ fontSize: 10, color: "#94a3b8" }}> W</span></span>
+                  </div>
+                  <input type="range" min={0} max={300} step={5} value={pElec} onChange={e => setPElec(+e.target.value)} style={styles.slider} />
+                  <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                    {presetPowers.map(p => (
+                      <button key={p.label} onClick={() => setPElec(p.value)}
+                        style={{ ...styles.btn(""), flex: 1, padding: "3px 0", fontSize: 9, background: pElec === p.value ? "#4c1d95" : "#1e293b", color: pElec === p.value ? "#c4b5fd" : "#94a3b8", border: pElec === p.value ? "1px solid #7c3aed" : "1px solid #334155", borderRadius: 4 }}>
+                        {p.label} ({p.value}W)
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* IT Loop Flow */}
+                <div style={{ flex: "1 1 140px", minWidth: 120 }}>
+                  <div style={styles.sectionLabel}>IT Loop Flow (Hot)</div>
+                  <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#ef4444" }}>{flowHot.toFixed(1)}<span style={{ fontSize: 10, color: "#94a3b8" }}> L/min</span></span>
+                  <input type="range" min={0.5} max={6} step={0.1} value={flowHot} onChange={e => setFlowHot(+e.target.value)} style={{ ...styles.slider, accentColor: "#ef4444" }} />
+                  <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                    {[{ l: "Low", v: 1 }, { l: "Med", v: 3 }, { l: "High", v: 5 }].map(p => (
+                      <button key={p.l} onClick={() => setFlowHot(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "3px 0", fontSize: 9, background: flowHot === p.v ? "#5c1a1a" : "#1e293b", color: flowHot === p.v ? "#fca5a5" : "#94a3b8", border: flowHot === p.v ? "1px solid #ef4444" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Facility Flow */}
+                <div style={{ flex: "1 1 140px", minWidth: 120 }}>
+                  <div style={styles.sectionLabel}>Facility Flow (Cold)</div>
+                  <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#3b82f6" }}>{flowCold.toFixed(1)}<span style={{ fontSize: 10, color: "#94a3b8" }}> L/min</span></span>
+                  <input type="range" min={0.5} max={6} step={0.1} value={flowCold} onChange={e => setFlowCold(+e.target.value)} style={{ ...styles.slider, accentColor: "#3b82f6" }} />
+                  <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                    {[{ l: "Low", v: 1 }, { l: "Med", v: 3 }, { l: "High", v: 5 }].map(p => (
+                      <button key={p.l} onClick={() => setFlowCold(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "3px 0", fontSize: 9, background: flowCold === p.v ? "#1e3a5f" : "#1e293b", color: flowCold === p.v ? "#93c5fd" : "#94a3b8", border: flowCold === p.v ? "1px solid #3b82f6" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* HX Selector */}
+                <div style={{ flex: "1 1 180px", minWidth: 160 }}>
+                  <div style={styles.sectionLabel}>CDU Heat Exchanger</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {Object.keys(THERMAL_PARAMS.hxCores).map(hx => (
+                      <button key={hx} onClick={() => setSelectedHX(hx)} style={{ ...styles.hxButton(selectedHX === hx), padding: "4px 8px", fontSize: 9 }}>
+                        {hx}
+                        <span style={{ fontSize: 7, color: "#555", marginLeft: 4 }}>{THERMAL_PARAMS.hxCores[hx].label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 5, minWidth: 130 }}>
+                  <div style={styles.sectionLabel}>System</div>
+                  {!isRunning ? (
+                    <button onClick={handleStart} style={styles.btn("primary")}>▶ START</button>
+                  ) : (
+                    <button onClick={() => setIsRunning(false)} style={styles.btn("danger")}>■ STOP</button>
+                  )}
+                  {isRunning && (
+                    <button onClick={captureRun} style={styles.btn("capture")} disabled={!isSteady}>
+                      📷 CAPTURE #{capturedRuns.length + 1}
+                    </button>
+                  )}
+                  <button onClick={() => {
+                    setIsRunning(false);
+                    setPElec(100);
+                    setFlowHot(3.0);
+                    setFlowCold(3.0);
+                    setSelectedHX("HX #1 (Team C)");
+                    setTemps({ T_chip: 20, T_h_in: 20, T_h_out: 20, T_c_in: 20, T_c_out: 20, T_diag: 20 });
+                    setTimeHistory([]);
+                    setCapturedRuns([]);
+                    timeRef.current = 0;
+                  }} style={{ ...styles.btn(""), border: "1px solid #334155", fontSize: 10 }}>
+                    ↺ RESET ALL
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === "plots" && <PlotView />}
+        {activeTab === "matrix" && <MatrixView />}
+      </div>
+    </div>
+  );
+}
+
+// ─── Mount ───────────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<DataCenterCoolingTestbed />);
+    </script>
+</body>
+</html>
