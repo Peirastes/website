@@ -76,7 +76,7 @@ REM The template lives at projects/on-dynamical-systems.html
 REM The _files folder is at projects/dynamical-systems/on-dynamical-systems_files/
 REM So paths like "on-dynamical-systems_files/..." become "dynamical-systems/on-dynamical-systems_files/..."
 echo [2/5] Rewriting asset paths for website context...
-%PY% -c "import sys,pathlib; f=pathlib.Path(sys.argv[1]); t=f.read_text(encoding='utf-8'); t=t.replace('\"on-dynamical-systems_files/', '\"dynamical-systems/on-dynamical-systems_files/'); t=t.replace(\"'on-dynamical-systems_files/\", \"'dynamical-systems/on-dynamical-systems_files/\"); pathlib.Path(sys.argv[2]).write_text(t, encoding='utf-8')" "%HTML_OUT%" "%HTML_INJECT%"
+%PY% -c "import sys,pathlib; f=pathlib.Path(sys.argv[1]); t=f.read_text(encoding='utf-8'); t=t.replace('\"on-dynamical-systems_files/', '\"dynamical-systems/on-dynamical-systems_files/'); t=t.replace(\"'on-dynamical-systems_files/\", \"'dynamical-systems/on-dynamical-systems_files/\"); t=t.replace('\"figures/', '\"dynamical-systems/figures/'); pathlib.Path(sys.argv[2]).write_text(t, encoding='utf-8')" "%HTML_OUT%" "%HTML_INJECT%"
 if errorlevel 1 (
     echo ERROR: Path rewriting failed
     pause
