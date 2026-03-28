@@ -367,10 +367,15 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
           <stop offset="0%" stopColor="#ef4444" />
           <stop offset="100%" stopColor="#f97316" />
         </linearGradient>
-        {/* Cold shell gradient: blue (inlet, bottom) → teal (outlet, top) */}
-        <linearGradient id="coldShellGrad" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="130">
+        {/* Cold supply gradient: deep blue (inlet, bottom) → stays cool */}
+        <linearGradient id="coldSupplyGrad" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="130">
+          <stop offset="0%" stopColor="#2563eb" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+        {/* Cold return gradient: picking up heat bottom→top, blue→warm teal */}
+        <linearGradient id="coldReturnGrad" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="130">
           <stop offset="0%" stopColor="#3b82f6" />
-          <stop offset="100%" stopColor="#06b6d4" />
+          <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
         <filter id="glow"><feGaussianBlur stdDeviation="2" result="g" /><feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         <filter id="boxShadow"><feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.5" /></filter>
@@ -456,11 +461,11 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
               color="url(#hotCoilGrad)" glowColor="#ef4444" flowRate={flowHot} strokeWidth={2.5}
             />
           )}
-          {/* Animated cold flow through the shell (gradient blue→teal) */}
+          {/* Animated cold flow through the shell — supply in, return out */}
           {isRunning && (
             <>
-              <FlowPath d="M 425 240 L 425 130" color="url(#coldShellGrad)" glowColor="#3b82f6" flowRate={flowCold} strokeWidth={2} />
-              <FlowPath d="M 515 240 L 515 130" color="url(#coldShellGrad)" glowColor="#06b6d4" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 425 240 L 425 130" color="url(#coldSupplyGrad)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 515 130 L 515 240" color="url(#coldReturnGrad)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
             </>
           )}
           {/* Hot coil label */}
