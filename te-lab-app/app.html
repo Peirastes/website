@@ -48,7 +48,7 @@ const THERMAL_PARAMS = {
   },
 };
 
-function computeSteadyState(pElec, mDotHot, mDotCold, hxUA, R_chip) {
+function computeSteadyState(pElec, mDotHot, mDotCold, hxUA, R_chip, flowArrangement) {
   const cp = THERMAL_PARAMS.cp;
   const R_plate = THERMAL_PARAMS.plateToFluid_R;
   const T_amb = THERMAL_PARAMS.ambientTemp;
@@ -68,10 +68,15 @@ function computeSteadyState(pElec, mDotHot, mDotCold, hxUA, R_chip) {
   const C_max = Math.max(C_h, C_c);
   const Cr = C_min / C_max;
   const NTU = hxUA / C_min;
-  // ε-NTU for counter-flow HX
-  const eps = Cr < 0.999
-    ? (1 - Math.exp(-NTU * (1 - Cr))) / (1 - Cr * Math.exp(-NTU * (1 - Cr)))
-    : NTU / (1 + NTU);
+  // ε-NTU: counter-flow vs co-current (parallel flow)
+  let eps;
+  if (flowArrangement === "co") {
+    eps = (1 - Math.exp(-NTU * (1 + Cr))) / (1 + Cr);
+  } else {
+    eps = Cr < 0.999
+      ? (1 - Math.exp(-NTU * (1 - Cr))) / (1 - Cr * Math.exp(-NTU * (1 - Cr)))
+      : NTU / (1 + NTU);
+  }
 
   const T_c_in = T_amb;
 
@@ -347,7 +352,7 @@ function TCDot({ x, y, label, value, color = "#fbbf24", anchor = "right" }) {
 }
 
 // ─── Main schematic SVG ──────────────────────────────────────────────
-function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMaterial, isRunning }) {
+function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMaterial, flowArrangement, isRunning }) {
   const w = 760;
   const h = 380;
 
@@ -461,10 +466,16 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
               color="url(#hotCoilGrad)" glowColor="#ef4444" flowRate={flowHot} strokeWidth={2.5}
             />
           )}
-          {/* Animated cold flow through the shell — supply in, return out */}
-          {isRunning && (
+          {/* Animated cold flow through the shell — direction depends on arrangement */}
+          {isRunning && flowArrangement === "counter" && (
             <>
               <FlowPath d="M 425 240 L 425 130" color="url(#coldSupplyGrad)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 515 130 L 515 240" color="url(#coldReturnGrad)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
+            </>
+          )}
+          {isRunning && flowArrangement === "co" && (
+            <>
+              <FlowPath d="M 425 130 L 425 240" color="url(#coldSupplyGrad)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
               <FlowPath d="M 515 130 L 515 240" color="url(#coldReturnGrad)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
             </>
           )}
@@ -485,26 +496,32 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
                 {/* Plate */}
                 <rect x={410} y={py} width={120} height={2.5} rx={1} fill="#94a3b8" opacity={0.6} />
                 {/* Animated flow lines in channels */}
-                {i < 6 && isRunning && (
-                  <FlowPath
-                    d={`M ${isHot ? 412 : 528} ${py + 8} L ${isHot ? 528 : 412} ${py + 8}`}
-                    color={isHot ? "#ef4444" : "#3b82f6"}
-                    flowRate={isHot ? flowHot : flowCold}
-                    strokeWidth={2}
-                  />
-                )}
+                {i < 6 && isRunning && (() => {
+                  const coldFlowsRight = flowArrangement === "co";
+                  const flowsRight = isHot || coldFlowsRight;
+                  return (
+                    <FlowPath
+                      d={`M ${flowsRight ? 412 : 528} ${py + 8} L ${flowsRight ? 528 : 412} ${py + 8}`}
+                      color={isHot ? "#ef4444" : "#3b82f6"}
+                      flowRate={isHot ? flowHot : flowCold}
+                      strokeWidth={2}
+                    />
+                  );
+                })()}
                 {/* Static chevrons when not running */}
                 {i < 6 && !isRunning && [0, 1, 2, 3].map(j => {
                   const cx = 430 + j * 26;
                   const cy = py + 8;
-                  return <text key={j} x={cx} y={cy + 3} textAnchor="middle" fontSize={7} fill={isHot ? "#ef4444" : "#3b82f6"} opacity={0.4}>{isHot ? "›" : "‹"}</text>;
+                  const coldRight = flowArrangement === "co";
+                  const arrow = isHot ? "›" : (coldRight ? "›" : "‹");
+                  return <text key={j} x={cx} y={cy + 3} textAnchor="middle" fontSize={7} fill={isHot ? "#ef4444" : "#3b82f6"} opacity={0.4}>{arrow}</text>;
                 })}
               </g>
             );
           })}
           {/* Labels */}
           <text x={420} y={237} fontSize={6.5} fill="#ef444466" fontFamily="'JetBrains Mono', monospace">HOT →</text>
-          <text x={490} y={237} fontSize={6.5} fill="#3b82f666" fontFamily="'JetBrains Mono', monospace">← COLD</text>
+          <text x={490} y={237} fontSize={6.5} fill="#3b82f666" fontFamily="'JetBrains Mono', monospace">{flowArrangement === "co" ? "COLD →" : "← COLD"}</text>
         </g>
       )}
 
@@ -597,6 +614,7 @@ function DataCenterCoolingTestbed() {
   const [flowCold, setFlowCold] = useState(3.0);
   const [selectedHX, setSelectedHX] = useState("HX #1 (Team C)");
   const [selectedMaterial, setSelectedMaterial] = useState("Aluminum");
+  const [flowArrangement, setFlowArrangement] = useState("counter");
   const [isRunning, setIsRunning] = useState(false);
   const [activeTab, setActiveTab] = useState("main");
 
@@ -632,7 +650,7 @@ function DataCenterCoolingTestbed() {
     if (!isRunning) return;
     const hxUA = THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200;
     const mat = THERMAL_PARAMS.chipMaterials[selectedMaterial] || THERMAL_PARAMS.chipMaterials["Aluminum"];
-    targetRef.current = computeSteadyState(pElec, flowHot, flowCold, hxUA, mat.R_chip);
+    targetRef.current = computeSteadyState(pElec, flowHot, flowCold, hxUA, mat.R_chip, flowArrangement);
 
     const dt = 0.1; // seconds per tick
     const interval = setInterval(() => {
@@ -663,15 +681,15 @@ function DataCenterCoolingTestbed() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isRunning, pElec, flowHot, flowCold, selectedHX, selectedMaterial]);
+  }, [isRunning, pElec, flowHot, flowCold, selectedHX, selectedMaterial, flowArrangement]);
 
   // Recalculate target when inputs change
   useEffect(() => {
     if (!isRunning) return;
     const hxUA = THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200;
     const mat = THERMAL_PARAMS.chipMaterials[selectedMaterial] || THERMAL_PARAMS.chipMaterials["Aluminum"];
-    targetRef.current = computeSteadyState(pElec, flowHot, flowCold, hxUA, mat.R_chip);
-  }, [pElec, flowHot, flowCold, selectedHX, selectedMaterial, isRunning]);
+    targetRef.current = computeSteadyState(pElec, flowHot, flowCold, hxUA, mat.R_chip, flowArrangement);
+  }, [pElec, flowHot, flowCold, selectedHX, selectedMaterial, flowArrangement, isRunning]);
 
   // Computed metrics
   const cp = THERMAL_PARAMS.cp;
@@ -696,7 +714,7 @@ function DataCenterCoolingTestbed() {
   const captureRun = useCallback(() => {
     setCapturedRuns(prev => [...prev, {
       id: prev.length + 1,
-      pElec, flowHot, flowCold, hx: selectedHX, mat: selectedMaterial,
+      pElec, flowHot, flowCold, hx: selectedHX, mat: selectedMaterial, flow: flowArrangement,
       ...temps,
       Q_hot: Q_hot.toFixed(1), Q_cold: Q_cold.toFixed(1),
       energyBal: energyBal.toFixed(1),
@@ -704,7 +722,7 @@ function DataCenterCoolingTestbed() {
       UA: UA_calc.toFixed(1), LMTD: LMTD.toFixed(2),
       eps: eps_calc.toFixed(3),
     }]);
-  }, [pElec, flowHot, flowCold, selectedHX, selectedMaterial, temps, Q_hot, Q_cold, energyBal, R_theta, UA_calc, LMTD, eps_calc]);
+  }, [pElec, flowHot, flowCold, selectedHX, selectedMaterial, flowArrangement, temps, Q_hot, Q_cold, energyBal, R_theta, UA_calc, LMTD, eps_calc]);
 
   const handleStart = () => {
     if (!isRunning) {
@@ -1107,7 +1125,7 @@ function DataCenterCoolingTestbed() {
 
             {/* ── MIDDLE: Schematic ── */}
             <div style={{ flex: 1, minHeight: 0, padding: "4px 8px" }}>
-              <SystemSchematic temps={temps} flowHot={flowHot} flowCold={flowCold} selectedHX={selectedHX} selectedMaterial={selectedMaterial} isRunning={isRunning} />
+              <SystemSchematic temps={temps} flowHot={flowHot} flowCold={flowCold} selectedHX={selectedHX} selectedMaterial={selectedMaterial} flowArrangement={flowArrangement} isRunning={isRunning} />
             </div>
 
             {/* ── BOTTOM: Controls ── */}
@@ -1155,7 +1173,7 @@ function DataCenterCoolingTestbed() {
                   </div>
                 </div>
 
-                {/* HX Selector */}
+                {/* HX Selector + Flow Arrangement */}
                 <div style={{ flex: "1 1 140px", minWidth: 120 }}>
                   <div style={styles.sectionLabel}>CDU Heat Exchanger</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -1164,6 +1182,16 @@ function DataCenterCoolingTestbed() {
                         {hx}
                         <span style={{ fontSize: 7, color: "#555", marginLeft: 4 }}>{THERMAL_PARAMS.hxCores[hx].label}</span>
                       </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 3, marginTop: 4 }}>
+                    {[
+                      { key: "counter", label: "Counter-flow" },
+                      { key: "co", label: "Co-current" },
+                    ].map(fa => (
+                      <button key={fa.key} onClick={() => setFlowArrangement(fa.key)} style={{
+                        ...styles.hxButton(flowArrangement === fa.key), flex: 1, padding: "3px 4px", fontSize: 8, textAlign: "center",
+                      }}>{fa.label}</button>
                     ))}
                   </div>
                 </div>
@@ -1201,6 +1229,7 @@ function DataCenterCoolingTestbed() {
                     setFlowCold(3.0);
                     setSelectedHX("HX #1 (Team C)");
                     setSelectedMaterial("Aluminum");
+                    setFlowArrangement("counter");
                     setTemps({ T_chip: 20, T_h_in: 20, T_h_out: 20, T_c_in: 20, T_c_out: 20, T_diag: 20 });
                     setTimeHistory([]);
                     setCapturedRuns([]);
