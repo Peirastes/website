@@ -1,9 +1,15 @@
-Prather Labs Website Structure
+Peirastes Website — peirastes.com
 
-- index.html = Homepage with projects, search, filters
-- about.html = About page
-- css/style.css = Styling and layout
-- js/main.js = Search bar, filter, archive collapse scripts
-- projects/ = Folder containing individual project pages
-- documents/ = Folder for uploading PDFs, DOCXs, XLSXs
-- images/ = Folder for storing and linking images
+Static site on GitHub Pages. Repo: Peirastes/website, branch: master.
+
+Structure:
+- index.html, about.html, etc. — top-level pages
+- css/style.css, js/main.js — site styles and scripts
+- projects/ — project pages (content + instrument apps)
+- projects.json — single source of truth for project data
+- documents/ — PDFs, source docs, Quarto builds
+- images/ — site and project images
+- kb-explorer/, te-lab-app/ — standalone app entry points
+- tools/ — utility scripts
+- PROJECT_PAGE_TEMPLATE.html — unified content page template
+- STYLE_GUIDE.md — instrument aesthetic design spec (v2.1)
