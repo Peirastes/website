@@ -322,8 +322,8 @@ const DataSourceFooter = ({ kpMetadata, lodMetadata, magMetadata }) => {
     <div style={{
       fontSize: 11,
       color: '#7a7a8c',
-      marginTop: 20,
-      paddingTop: 16,
+      marginTop: 8,
+      paddingTop: 8,
       borderTop: '1px solid #252532',
       display: 'flex',
       gap: 16,
@@ -2733,19 +2733,19 @@ function ECDOWatchDashboard() {
   const statusColor = statusColorMap[statusLevel] || '#10b981';
 
   return (
-    <div style={{ background: '#08080c', minHeight: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ background: '#08080c', height: '100vh', color: '#e8e8ed', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style dangerouslySetInnerHTML={{__html: '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } } .scene-tooltip { background: none !important; border: none !important; box-shadow: none !important; padding: 0 !important; }'}} />
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 20 }}>
+      <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '12px 20px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
         {/* Unified header bar */}
         <div style={{
           background: '#0f0f15', border: '1px solid #252532',
           borderRadius: activeTab === 'globe' ? '10px 10px 0 0' : showGlobeInfo ? '10px 10px 0 0' : 10,
           marginBottom: activeTab === 'analysis' && !showGlobeInfo ? 12 : 0,
-          padding: '10px 16px',
+          padding: '8px 14px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexWrap: 'wrap', gap: 8,
+          flexWrap: 'wrap', gap: 8, flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h1 style={{ fontSize: 16, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>ECDO Watch</h1>
@@ -2804,7 +2804,7 @@ function ECDOWatchDashboard() {
             background: '#16161f', border: '1px solid #252532', borderTop: 'none',
             borderRadius: activeTab === 'globe' ? 0 : '0 0 10px 10px',
             marginBottom: activeTab === 'analysis' ? 12 : 0,
-            padding: 16, fontSize: 13, color: '#e8e8ed',
+            padding: 16, fontSize: 13, color: '#e8e8ed', flexShrink: 0,
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
               <div>
@@ -2833,15 +2833,16 @@ function ECDOWatchDashboard() {
 
         {/* Globe: Spatial Monitor */}
         {activeTab === 'globe' && (
-        <div style={{ marginBottom: 12, background: '#0f0f15', border: '1px solid #252532', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
-          <div style={{ height: 1000 }}>
+        <div style={{ flex: 1, minHeight: 0, background: '#0f0f15', border: '1px solid #252532', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
+          <div style={{ height: '100%' }}>
             <GlobeView seismicEvents={seismicEvents} volcData={volcData} />
           </div>
         </div>
         )}
 
         {/* Earth Signals content */}
-        {activeTab === 'analysis' && (<>
+        {activeTab === 'analysis' && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
 
         {/* Status bar */}
         <div style={{
@@ -3297,13 +3298,15 @@ function ECDOWatchDashboard() {
           </div>
 
         </div>
-        </>)}
+        </div>)}
 
-        <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
+        <div style={{ flexShrink: 0 }}>
+          <DataSourceFooter kpMetadata={kpMetadata} lodMetadata={lodMetadata} magMetadata={magMetadata} />
 
-        <footer style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'left' }}>
-          Experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines.
-        </footer>
+          <footer style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #252532', fontSize: 11, color: '#7a7a8c', textAlign: 'left' }}>
+            Experimental analysis tool, NOT a prediction system. Watch levels indicate statistical anomalies relative to historical baselines.
+          </footer>
+        </div>
       </div>
     </div>
   );
