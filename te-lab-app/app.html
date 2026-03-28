@@ -372,24 +372,14 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
           <stop offset="0%" stopColor="#ef4444" />
           <stop offset="100%" stopColor="#f97316" />
         </linearGradient>
-        {/* Cold supply: counter-flow enters bottom (y=240), warms going up */}
-        <linearGradient id="coldSupplyGradCounter" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="130">
+        {/* Cold flow gradient: blue (inlet) → teal (outlet), counter-flow = bottom→top */}
+        <linearGradient id="coldFlowGradCounter" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="130">
           <stop offset="0%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#3b82f6" />
-        </linearGradient>
-        {/* Cold return: counter-flow enters bottom, exits top with heat */}
-        <linearGradient id="coldReturnGradCounter" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="130">
-          <stop offset="0%" stopColor="#3b82f6" />
           <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
-        {/* Cold supply: co-current enters top (y=130), warms going down */}
-        <linearGradient id="coldSupplyGradCo" gradientUnits="userSpaceOnUse" x1="0" y1="130" x2="0" y2="240">
+        {/* Cold flow gradient: blue (inlet) → teal (outlet), co-current = top→bottom */}
+        <linearGradient id="coldFlowGradCo" gradientUnits="userSpaceOnUse" x1="0" y1="130" x2="0" y2="240">
           <stop offset="0%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#3b82f6" />
-        </linearGradient>
-        {/* Cold return: co-current enters top, exits bottom with heat */}
-        <linearGradient id="coldReturnGradCo" gradientUnits="userSpaceOnUse" x1="0" y1="130" x2="0" y2="240">
-          <stop offset="0%" stopColor="#3b82f6" />
           <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
         <filter id="glow"><feGaussianBlur stdDeviation="2" result="g" /><feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -479,14 +469,14 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
           {/* Animated cold flow through the shell — direction depends on arrangement */}
           {isRunning && flowArrangement === "counter" && (
             <>
-              <FlowPath d="M 425 240 L 425 130" color="url(#coldSupplyGradCounter)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
-              <FlowPath d="M 515 240 L 515 130" color="url(#coldReturnGradCounter)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 425 240 L 425 130" color="url(#coldFlowGradCounter)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 515 240 L 515 130" color="url(#coldFlowGradCounter)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
             </>
           )}
           {isRunning && flowArrangement === "co" && (
             <>
-              <FlowPath d="M 425 130 L 425 240" color="url(#coldSupplyGradCo)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
-              <FlowPath d="M 515 130 L 515 240" color="url(#coldReturnGradCo)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 425 130 L 425 240" color="url(#coldFlowGradCo)" glowColor="#2563eb" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 515 130 L 515 240" color="url(#coldFlowGradCo)" glowColor="#22d3ee" flowRate={flowCold} strokeWidth={2} />
             </>
           )}
           {/* Hot coil label */}
