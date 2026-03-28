@@ -294,12 +294,13 @@ function FlowLine({ points, color, flowRate, strokeWidth = 3 }) {
 }
 
 // ─── Animated flow along arbitrary SVG path string ──────────────────
-function FlowPath({ d, color, flowRate, strokeWidth = 2.5, reverse = false }) {
+function FlowPath({ d, color, glowColor, flowRate, strokeWidth = 2.5, reverse = false }) {
   const dashLen = 6;
   const gapLen = 10;
   const speed = Math.max(0.3, Math.min(3, flowRate / 2));
   const from = reverse ? "0" : String(dashLen + gapLen);
   const to = reverse ? String(dashLen + gapLen) : "0";
+  const glow = glowColor || color;
 
   return (
     <g>
@@ -308,7 +309,7 @@ function FlowPath({ d, color, flowRate, strokeWidth = 2.5, reverse = false }) {
         d={d} fill="none" stroke={color} strokeWidth={strokeWidth}
         strokeDasharray={`${dashLen} ${gapLen}`}
         strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 2px ${color}88)` }}
+        style={{ filter: `drop-shadow(0 0 2px ${glow}88)` }}
       >
         <animate attributeName="stroke-dashoffset" from={from} to={to} dur={`${1.5 / speed}s`} repeatCount="indefinite" />
       </path>
@@ -359,6 +360,16 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
         </linearGradient>
         <linearGradient id="coldGrad" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#2563eb" />
+          <stop offset="100%" stopColor="#06b6d4" />
+        </linearGradient>
+        {/* Hot coil gradient: red (inlet, top) → orange (outlet, bottom) */}
+        <linearGradient id="hotCoilGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ef4444" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+        {/* Cold shell gradient: blue (inlet, bottom) → teal (outlet, top) */}
+        <linearGradient id="coldShellGrad" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stopColor="#3b82f6" />
           <stop offset="100%" stopColor="#06b6d4" />
         </linearGradient>
         <filter id="glow"><feGaussianBlur stdDeviation="2" result="g" /><feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
@@ -425,31 +436,31 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
           <rect x={412} y={124} width={116} height={116} rx={10} fill="#1e3a5f" opacity={0.2} />
           {/* Cold flow label */}
           <text x={420} y={136} fontSize={7} fill="#3b82f688" fontFamily="'JetBrains Mono', monospace">SHELL (cold)</text>
-          {/* Coil tube structure (static background) */}
-          <path d="M 430 145 Q 450 135, 470 145 Q 490 155, 510 145" fill="none" stroke="#ef4444" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
-          <path d="M 430 163 Q 450 153, 470 163 Q 490 173, 510 163" fill="none" stroke="#ef4444" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
-          <path d="M 430 181 Q 450 171, 470 181 Q 490 191, 510 181" fill="none" stroke="#ef4444" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
-          <path d="M 430 199 Q 450 189, 470 199 Q 490 209, 510 199" fill="none" stroke="#ef4444" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
-          <path d="M 430 217 Q 450 207, 470 217 Q 490 227, 510 217" fill="none" stroke="#ef4444" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
+          {/* Coil tube structure (static background — gradient red→orange top to bottom) */}
+          <path d="M 430 145 Q 450 135, 470 145 Q 490 155, 510 145" fill="none" stroke="url(#hotCoilGrad)" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
+          <path d="M 430 163 Q 450 153, 470 163 Q 490 173, 510 163" fill="none" stroke="url(#hotCoilGrad)" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
+          <path d="M 430 181 Q 450 171, 470 181 Q 490 191, 510 181" fill="none" stroke="url(#hotCoilGrad)" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
+          <path d="M 430 199 Q 450 189, 470 199 Q 490 209, 510 199" fill="none" stroke="url(#hotCoilGrad)" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
+          <path d="M 430 217 Q 450 207, 470 217 Q 490 227, 510 217" fill="none" stroke="url(#hotCoilGrad)" strokeWidth={3} opacity={0.15} strokeLinecap="round" />
           {/* Coil return bends (static) */}
           {[145, 163, 181, 199].map((y, i) => (
-            <path key={i} d={`M 510 ${y} Q 520 ${y + 9}, 510 ${y + 18}`} fill="none" stroke="#ef4444" strokeWidth={2} opacity={0.12} strokeLinecap="round" />
+            <path key={i} d={`M 510 ${y} Q 520 ${y + 9}, 510 ${y + 18}`} fill="none" stroke="url(#hotCoilGrad)" strokeWidth={2} opacity={0.12} strokeLinecap="round" />
           ))}
           {[154, 172, 190, 208].map((y, i) => (
-            <path key={`l${i}`} d={`M 430 ${y} Q 420 ${y + 4.5}, 430 ${y + 9}`} fill="none" stroke="#ef4444" strokeWidth={2} opacity={0.12} strokeLinecap="round" />
+            <path key={`l${i}`} d={`M 430 ${y} Q 420 ${y + 4.5}, 430 ${y + 9}`} fill="none" stroke="url(#hotCoilGrad)" strokeWidth={2} opacity={0.12} strokeLinecap="round" />
           ))}
-          {/* Animated hot flow through the coil (single connected serpentine) */}
+          {/* Animated hot flow through the coil (gradient red→orange) */}
           {isRunning && (
             <FlowPath
               d="M 430 145 Q 450 135, 470 145 Q 490 155, 510 145 Q 520 154, 510 163 M 510 163 Q 490 173, 470 163 Q 450 153, 430 163 Q 420 167.5, 430 172 M 430 181 Q 450 171, 470 181 Q 490 191, 510 181 Q 520 190, 510 199 M 510 199 Q 490 209, 470 199 Q 450 189, 430 199 Q 420 203.5, 430 208 M 430 217 Q 450 207, 470 217 Q 490 227, 510 217"
-              color="#ef4444" flowRate={flowHot} strokeWidth={2.5}
+              color="url(#hotCoilGrad)" glowColor="#ef4444" flowRate={flowHot} strokeWidth={2.5}
             />
           )}
-          {/* Animated cold flow through the shell (vertical pass) */}
+          {/* Animated cold flow through the shell (gradient blue→teal) */}
           {isRunning && (
             <>
-              <FlowPath d="M 425 240 L 425 130" color="#3b82f6" flowRate={flowCold} strokeWidth={2} />
-              <FlowPath d="M 515 240 L 515 130" color="#06b6d4" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 425 240 L 425 130" color="url(#coldShellGrad)" glowColor="#3b82f6" flowRate={flowCold} strokeWidth={2} />
+              <FlowPath d="M 515 240 L 515 130" color="url(#coldShellGrad)" glowColor="#06b6d4" flowRate={flowCold} strokeWidth={2} />
             </>
           )}
           {/* Hot coil label */}
