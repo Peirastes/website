@@ -701,9 +701,14 @@ function DataCenterCoolingTestbed() {
   const energyBal = Q_avg > 1 ? Math.abs(Q_hot - Q_cold) / Q_avg * 100 : 0;
   const R_theta = pElec > 1 ? (temps.T_chip - temps.T_c_in) / pElec : 0;
 
-  const dT1 = temps.T_h_in - temps.T_c_out;
-  const dT2 = temps.T_h_out - temps.T_c_in;
-  const LMTD = (Math.abs(dT1 - dT2) > 0.1) ? (dT1 - dT2) / Math.log(dT1 / dT2) : (dT1 + dT2) / 2;
+  // LMTD terminal ΔTs depend on flow arrangement
+  const dT1 = flowArrangement === "co"
+    ? temps.T_h_in - temps.T_c_in    // co-current: both enter at same end
+    : temps.T_h_in - temps.T_c_out;  // counter-flow: hot in meets cold out
+  const dT2 = flowArrangement === "co"
+    ? temps.T_h_out - temps.T_c_out  // co-current: both exit at same end
+    : temps.T_h_out - temps.T_c_in;  // counter-flow: hot out meets cold in
+  const LMTD = (dT1 > 0 && dT2 > 0 && Math.abs(dT1 - dT2) > 0.1) ? (dT1 - dT2) / Math.log(dT1 / dT2) : (dT1 + dT2) / 2;
   const UA_calc = LMTD > 0.1 ? Q_avg / LMTD : 0;
 
   const hxUA_nom = THERMAL_PARAMS.hxCores[selectedHX]?.UA || 200;
