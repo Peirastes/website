@@ -11,6 +11,8 @@
   <meta property="og:url" content="https://peirastes.com/kb-explorer/">
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <meta name="robots" content="noindex, nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&display=swap" rel="stylesheet">
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -58,6 +60,20 @@
       z-index: 100;
       backdrop-filter: blur(8px);
     }
+
+    .peirastes-home {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      padding: 3px 10px 3px 0;
+      border-right: 1px solid var(--border);
+      margin-right: 4px;
+      transition: color 0.2s ease;
+    }
+    .peirastes-home:hover { color: var(--accent-orange); }
 
     .tb-section { display: flex; align-items: center; gap: 6px; }
     .tb-section.search { margin-left: auto; }
@@ -567,7 +583,7 @@ let pendingQuery = null;
 let radialAngle = 0; // lazy-susan rotation (degrees)
 let _lastZoomTransform = d3.zoomIdentity;
 let ringMode = 'tiers'; // 'tiers' (dependency depth) or 'method' (TES scientific method stages)
-let showDistricts = true; // toggle project district overlays
+let showDistricts = true; // toggle project overlays
 let activeDistrict = -1; // -1 = none highlighted, 0+ = index into PROJECT_DISTRICTS
 
 const PROJECT_DISTRICTS = [
@@ -1148,7 +1164,7 @@ function renderGraph(nodes, links) {
         .attr('font-weight', 500);
     }
 
-    // ─── Project Districts ─────────────────────────────────────────────────
+    // ─── Projects ─────────────────────────────────────────────────────────
     if (showDistricts) {
       const districtGroup = container.append('g').attr('class', 'districts');
       for (const district of PROJECT_DISTRICTS) {
@@ -2013,6 +2029,7 @@ function hideTooltip() { document.getElementById('tooltip').style.display = 'non
 function buildToolbar() {
   const tb = document.getElementById('toolbar');
   tb.innerHTML = `
+    <a href="https://peirastes.com" class="peirastes-home" title="Back to Peirastes">Peirastes</a>
     <div class="tb-section">
       <button class="mode-btn active" onclick="setMode('survey')">Survey</button>
       <button class="mode-btn" onclick="setMode('focus')">Focus</button>
@@ -2057,11 +2074,11 @@ function buildFilterPanel() {
   // Ring mode + tier filter buttons (shown when in radial layout)
   if (layout === 'radial') {
     // Ring mode toggle: Tiers (dependency depth) vs Method (TES scientific method stages)
-    // Project districts
+    // Projects
     html += `<div class="filter-heading" style="margin-top:8px">Projects</div>`;
     html += `<label class="domain-filter" style="color:#b0b8c8">
       <input type="checkbox" ${showDistricts?'checked':''} onchange="toggleDistricts(this.checked)">
-      <span class="fdot" style="background:#b0b8c8"></span>Show Districts</label>`;
+      <span class="fdot" style="background:#b0b8c8"></span>Show Projects</label>`;
     for (let i = 0; i < PROJECT_DISTRICTS.length; i++) {
       const d = PROJECT_DISTRICTS[i];
       const isActive = activeDistrict === i;
