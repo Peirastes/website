@@ -262,10 +262,10 @@ function Thermometer({ value, min, max, label, color, warning, width = 42, heigh
           </g>
         ))}
       </svg>
-      <div style={{ fontSize: 14, color: activeColor, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>
+      <div style={{ fontSize: 11, color: activeColor, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", marginTop: 1 }}>
         {value.toFixed(1)}°
       </div>
-      <div style={{ fontSize: 10, color: "#9ca3af", fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</div>
+      <div style={{ fontSize: 8, color: "#9ca3af", fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: "0.02em" }}>{label}</div>
     </div>
   );
 }
@@ -600,18 +600,18 @@ function DataCenterCoolingTestbed() {
   // ─── Styles ──────────────────────────────────────────────────
   const styles = {
     app: {
-      width: "100%", minHeight: "100vh", background: "#0b0b14",
+      width: "100%", height: "100vh", background: "#0b0b14",
       color: "#e2e8f0", fontFamily: "'Inter', 'Segoe UI', sans-serif",
-      display: "flex", flexDirection: "column",
+      display: "flex", flexDirection: "column", overflow: "hidden",
     },
     header: {
       background: "linear-gradient(180deg, #111827 0%, #0b0b14 100%)",
       borderBottom: "1px solid #1e293b",
-      padding: "10px 20px",
-      display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "6px 16px",
+      display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
     },
     headerTitle: {
-      fontSize: 15, fontWeight: 700, letterSpacing: "0.04em",
+      fontSize: 13, fontWeight: 700, letterSpacing: "0.04em",
       background: "linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6)",
       WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
     },
@@ -639,8 +639,8 @@ function DataCenterCoolingTestbed() {
       background: "#1e293b", borderRadius: 2,
     },
     btn: (variant) => ({
-      padding: "8px 14px", borderRadius: 6, border: "none", cursor: "pointer",
-      fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", transition: "all 0.15s",
+      padding: "6px 12px", borderRadius: 6, border: "none", cursor: "pointer",
+      fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", transition: "all 0.15s",
       background: variant === "primary" ? "linear-gradient(135deg, #22c55e, #16a34a)" :
                   variant === "danger" ? "linear-gradient(135deg, #ef4444, #dc2626)" :
                   variant === "capture" ? "linear-gradient(135deg, #8b5cf6, #7c3aed)" :
@@ -883,25 +883,25 @@ function DataCenterCoolingTestbed() {
         {activeTab === "main" && (
           <>
             {/* ── TOP: Instruments + Real-Time Chart ── */}
-            <div style={{ background: "#0a0a14", borderBottom: "1px solid #1e293b", padding: "10px 12px 8px", flexShrink: 0 }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
+            <div style={{ background: "#0a0a14", borderBottom: "1px solid #1e293b", padding: "6px 10px 4px", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
 
                 {/* Left: Instruments */}
-                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 }}>
                   {/* Thermometers */}
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
-                    <Thermometer value={temps.T_chip} min={15} max={95} label="T_chip" color="#fbbf24" warning={60} width={52} height={120} />
-                    <Thermometer value={temps.T_h_in} min={15} max={70} label="T_h,in" color="#ef4444" width={46} height={110} />
-                    <Thermometer value={temps.T_h_out} min={15} max={60} label="T_h,out" color="#f97316" width={46} height={110} />
-                    <Thermometer value={temps.T_c_in} min={15} max={40} label="T_c,in" color="#3b82f6" width={46} height={110} />
-                    <Thermometer value={temps.T_c_out} min={15} max={50} label="T_c,out" color="#06b6d4" width={46} height={110} />
-                    <Thermometer value={temps.T_diag} min={15} max={70} label="T_diag" color="#a78bfa" width={46} height={110} />
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
+                    <Thermometer value={temps.T_chip} min={15} max={95} label="T_chip" color="#fbbf24" warning={60} width={42} height={88} />
+                    <Thermometer value={temps.T_h_in} min={15} max={70} label="T_h,in" color="#ef4444" width={38} height={80} />
+                    <Thermometer value={temps.T_h_out} min={15} max={60} label="T_h,out" color="#f97316" width={38} height={80} />
+                    <Thermometer value={temps.T_c_in} min={15} max={40} label="T_c,in" color="#3b82f6" width={38} height={80} />
+                    <Thermometer value={temps.T_c_out} min={15} max={50} label="T_c,out" color="#06b6d4" width={38} height={80} />
+                    <Thermometer value={temps.T_diag} min={15} max={70} label="T_diag" color="#a78bfa" width={38} height={80} />
                   </div>
                   {/* Dial gauges */}
-                  <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
-                    <DialGauge value={flowHot} min={0} max={6} label="IT Flow" unit="L/min" color="#ef4444" size={105} ticks={6} />
-                    <DialGauge value={flowCold} min={0} max={6} label="Facility" unit="L/min" color="#3b82f6" size={105} ticks={6} />
-                    <DialGauge value={pElec} min={0} max={300} label="P_elec" unit="W" color="#f97316" size={105} warning={250} ticks={6} />
+                  <div style={{ display: "flex", gap: 2, justifyContent: "center" }}>
+                    <DialGauge value={flowHot} min={0} max={6} label="IT Flow" unit="L/min" color="#ef4444" size={82} ticks={6} />
+                    <DialGauge value={flowCold} min={0} max={6} label="Facility" unit="L/min" color="#3b82f6" size={82} ticks={6} />
+                    <DialGauge value={pElec} min={0} max={300} label="P_elec" unit="W" color="#f97316" size={82} warning={250} ticks={6} />
                   </div>
                 </div>
 
@@ -962,7 +962,7 @@ function DataCenterCoolingTestbed() {
               </div>
 
               {/* Computed metrics strip */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "center", marginTop: 4 }}>
                 {[
                   { label: "Q_hot", value: `${Q_hot.toFixed(1)} W`, color: "#ef4444" },
                   { label: "Q_cold", value: `${Q_cold.toFixed(1)} W`, color: "#3b82f6" },
@@ -973,34 +973,34 @@ function DataCenterCoolingTestbed() {
                   { label: "ε (eff)", value: eps_calc.toFixed(3), color: "#6ee7b7" },
                   { label: "NTU", value: NTU_calc.toFixed(2), color: "#a78bfa" },
                 ].map(m => (
-                  <div key={m.label} style={styles.metricCard}>
-                    <div style={{ ...styles.metricValue, fontSize: 15, color: m.color }}>{m.value}</div>
-                    <div style={{ ...styles.metricLabel, fontSize: 10 }}>{m.label}</div>
+                  <div key={m.label} style={{ ...styles.metricCard, padding: "4px 8px" }}>
+                    <div style={{ ...styles.metricValue, fontSize: 13, color: m.color }}>{m.value}</div>
+                    <div style={{ ...styles.metricLabel, fontSize: 9 }}>{m.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* ── MIDDLE: Schematic ── */}
-            <div style={{ flex: 1, minHeight: 0, padding: 8 }}>
+            <div style={{ flex: 1, minHeight: 0, padding: "4px 8px" }}>
               <SystemSchematic temps={temps} flowHot={flowHot} flowCold={flowCold} selectedHX={selectedHX} isRunning={isRunning} />
             </div>
 
             {/* ── BOTTOM: Controls ── */}
-            <div style={{ background: "#0a0a14", borderTop: "1px solid #1e293b", padding: "10px 16px", flexShrink: 0 }}>
-              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div style={{ background: "#0a0a14", borderTop: "1px solid #1e293b", padding: "6px 12px", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
 
                 {/* Power */}
-                <div style={{ flex: "1 1 180px", minWidth: 160 }}>
+                <div style={{ flex: "1 1 160px", minWidth: 140 }}>
                   <div style={styles.sectionLabel}>Electrical Power</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#f97316" }}>{pElec}<span style={{ fontSize: 10, color: "#94a3b8" }}> W</span></span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#f97316" }}>{pElec}<span style={{ fontSize: 9, color: "#94a3b8" }}> W</span></span>
                   </div>
                   <input type="range" min={0} max={300} step={5} value={pElec} onChange={e => setPElec(+e.target.value)} style={styles.slider} />
-                  <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                  <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
                     {presetPowers.map(p => (
                       <button key={p.label} onClick={() => setPElec(p.value)}
-                        style={{ ...styles.btn(""), flex: 1, padding: "3px 0", fontSize: 9, background: pElec === p.value ? "#4c1d95" : "#1e293b", color: pElec === p.value ? "#c4b5fd" : "#94a3b8", border: pElec === p.value ? "1px solid #7c3aed" : "1px solid #334155", borderRadius: 4 }}>
+                        style={{ ...styles.btn(""), flex: 1, padding: "2px 0", fontSize: 9, background: pElec === p.value ? "#4c1d95" : "#1e293b", color: pElec === p.value ? "#c4b5fd" : "#94a3b8", border: pElec === p.value ? "1px solid #7c3aed" : "1px solid #334155", borderRadius: 4 }}>
                         {p.label} ({p.value}W)
                       </button>
                     ))}
@@ -1008,35 +1008,35 @@ function DataCenterCoolingTestbed() {
                 </div>
 
                 {/* IT Loop Flow */}
-                <div style={{ flex: "1 1 140px", minWidth: 120 }}>
+                <div style={{ flex: "1 1 120px", minWidth: 100 }}>
                   <div style={styles.sectionLabel}>IT Loop Flow (Hot)</div>
-                  <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#ef4444" }}>{flowHot.toFixed(1)}<span style={{ fontSize: 10, color: "#94a3b8" }}> L/min</span></span>
+                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#ef4444" }}>{flowHot.toFixed(1)}<span style={{ fontSize: 9, color: "#94a3b8" }}> L/min</span></span>
                   <input type="range" min={0.5} max={6} step={0.1} value={flowHot} onChange={e => setFlowHot(+e.target.value)} style={{ ...styles.slider, accentColor: "#ef4444" }} />
-                  <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                  <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
                     {[{ l: "Low", v: 1 }, { l: "Med", v: 3 }, { l: "High", v: 5 }].map(p => (
-                      <button key={p.l} onClick={() => setFlowHot(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "3px 0", fontSize: 9, background: flowHot === p.v ? "#5c1a1a" : "#1e293b", color: flowHot === p.v ? "#fca5a5" : "#94a3b8", border: flowHot === p.v ? "1px solid #ef4444" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
+                      <button key={p.l} onClick={() => setFlowHot(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "2px 0", fontSize: 9, background: flowHot === p.v ? "#5c1a1a" : "#1e293b", color: flowHot === p.v ? "#fca5a5" : "#94a3b8", border: flowHot === p.v ? "1px solid #ef4444" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
                     ))}
                   </div>
                 </div>
 
                 {/* Facility Flow */}
-                <div style={{ flex: "1 1 140px", minWidth: 120 }}>
+                <div style={{ flex: "1 1 120px", minWidth: 100 }}>
                   <div style={styles.sectionLabel}>Facility Flow (Cold)</div>
-                  <span style={{ fontSize: 16, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#3b82f6" }}>{flowCold.toFixed(1)}<span style={{ fontSize: 10, color: "#94a3b8" }}> L/min</span></span>
+                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#3b82f6" }}>{flowCold.toFixed(1)}<span style={{ fontSize: 9, color: "#94a3b8" }}> L/min</span></span>
                   <input type="range" min={0.5} max={6} step={0.1} value={flowCold} onChange={e => setFlowCold(+e.target.value)} style={{ ...styles.slider, accentColor: "#3b82f6" }} />
-                  <div style={{ display: "flex", gap: 3, marginTop: 5 }}>
+                  <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
                     {[{ l: "Low", v: 1 }, { l: "Med", v: 3 }, { l: "High", v: 5 }].map(p => (
-                      <button key={p.l} onClick={() => setFlowCold(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "3px 0", fontSize: 9, background: flowCold === p.v ? "#1e3a5f" : "#1e293b", color: flowCold === p.v ? "#93c5fd" : "#94a3b8", border: flowCold === p.v ? "1px solid #3b82f6" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
+                      <button key={p.l} onClick={() => setFlowCold(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "2px 0", fontSize: 9, background: flowCold === p.v ? "#1e3a5f" : "#1e293b", color: flowCold === p.v ? "#93c5fd" : "#94a3b8", border: flowCold === p.v ? "1px solid #3b82f6" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
                     ))}
                   </div>
                 </div>
 
                 {/* HX Selector */}
-                <div style={{ flex: "1 1 180px", minWidth: 160 }}>
+                <div style={{ flex: "1 1 160px", minWidth: 140 }}>
                   <div style={styles.sectionLabel}>CDU Heat Exchanger</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {Object.keys(THERMAL_PARAMS.hxCores).map(hx => (
-                      <button key={hx} onClick={() => setSelectedHX(hx)} style={{ ...styles.hxButton(selectedHX === hx), padding: "4px 8px", fontSize: 9 }}>
+                      <button key={hx} onClick={() => setSelectedHX(hx)} style={{ ...styles.hxButton(selectedHX === hx), padding: "3px 8px", fontSize: 9 }}>
                         {hx}
                         <span style={{ fontSize: 7, color: "#555", marginLeft: 4 }}>{THERMAL_PARAMS.hxCores[hx].label}</span>
                       </button>
@@ -1045,7 +1045,7 @@ function DataCenterCoolingTestbed() {
                 </div>
 
                 {/* Action buttons */}
-                <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 5, minWidth: 130 }}>
+                <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 3, minWidth: 110 }}>
                   <div style={styles.sectionLabel}>System</div>
                   {!isRunning ? (
                     <button onClick={handleStart} style={styles.btn("primary")}>▶ START</button>
