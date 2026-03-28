@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- {{TITLE}} — Replace with the page title -->
+    <title>{{TITLE}} - Peirastes</title>
+
+    <!-- {{DESCRIPTION}} — Replace with a 1-2 sentence description for SEO and social cards -->
+    <meta name="description" content="{{DESCRIPTION}}">
+    <meta property="og:title" content="{{TITLE}} - Peirastes">
+    <meta property="og:description" content="{{DESCRIPTION}}">
+    <meta property="og:type" content="article">
+
+    <!-- {{PAGE_PATH}} — Replace with the path relative to site root, e.g. "projects/on-dynamical-systems.html" -->
+    <meta property="og:url" content="https://peirastes.com/{{PAGE_PATH}}">
+
+    <!-- {{OG_IMAGE}} — Replace with the full URL to the social/thumbnail image for this page -->
+    <meta property="og:image" content="{{OG_IMAGE}}">
+
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- QUARTO_CSS_START -->
+    <!-- Quarto inline styles and CSS links injected here by quarto-publish -->
+    <!-- QUARTO_CSS_END -->
+
+    <!-- Site CSS — loaded after Quarto CSS so it can override Bootstrap -->
+    <link rel="stylesheet" href="../css/style.css">
+
+    <!-- MathJax for equation rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+    <style>
+        /* ====================================================================
+           PROJECT PAGE — Unified content template
+           Covers treatises, discourses, and hybrids.
+           Optional zones are populated per page; unused CSS is harmless.
+           ==================================================================== */
+
+        /* --- Bootstrap neutralization (prevents Quarto Bootstrap from breaking site chrome) --- */
+        :root { --bs-root-font-size: 16px; }
+        body > header, body > header *,
+        body > nav, body > nav * {
+            box-sizing: content-box;
+            line-height: normal;
+        }
+
+        /* --- ZONE 1: Media embed (video / PDF / slides) — outside content-body --- */
+        .media-embed {
+            max-width: 900px;
+            margin: 0 auto 2rem auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .media-embed iframe {
+            width: 100%;
+            height: calc(70vh);
+            border: none;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .media-embed .media-caption {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .media-embed iframe {
+                height: 50vh;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .media-embed iframe {
+                height: 40vh;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .media-embed iframe {
+                height: 70vh;
+            }
+        }
+
+        /* --- Content body wrapper --- */
+        .content-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem 1.5rem 2rem 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        /* --- Reduce top margin from base .project-detail --- */
+        section.project-detail {
+            margin-top: 0;
+        }
+
+        /* --- Typography --- */
+        .content-body h2 {
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin-top: 2.5rem;
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 0.4rem;
+        }
+
+        .content-body h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 500;
+            font-size: 1.25rem;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .content-body h4 {
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .content-body p {
+            text-align: justify;
+            margin-bottom: 1rem;
+        }
+
+        /* --- Blockquote --- */
+        .content-body blockquote {
+            border-left: 4px solid var(--primary-accent);
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 0 4px 4px 0;
+            padding: 0.75rem 1rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+
+        /* --- ZONE 2: Abstract --- */
+        .abstract {
+            background: var(--bg-card);
+            border-left: 4px solid var(--primary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .abstract h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+        }
+
+        /* --- ZONE 3: Page metadata (flexible — treatise or discourse flavor) --- */
+        .page-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .page-meta .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .page-meta .meta-label {
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+
+        .meta-download {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 6px;
+            background: var(--primary-accent);
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .meta-download:hover {
+            opacity: 0.8;
+        }
+
+        /* --- ZONE 4: Table of Contents (collapsible) --- */
+        .toc {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0 2rem 0;
+        }
+
+        .toc summary {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--primary-accent);
+            cursor: pointer;
+            list-style: none;
+        }
+        .toc summary::-webkit-details-marker { display: none; }
+        .toc summary::before {
+            content: '\25B8 ';
+            display: inline-block;
+        }
+        .toc[open] summary::before {
+            content: '\25BE ';
+        }
+
+        .toc ol {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .toc a {
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- ZONE 5: Driving question callout --- */
+        .driving-question {
+            font-style: italic;
+            font-size: 1.1rem;
+            border-left: 4px solid var(--primary-accent);
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+        }
+
+        /* --- ZONE 7: Specs grid (2-column structured data) --- */
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .spec-card {
+            background: var(--bg-card);
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-accent);
+        }
+
+        .spec-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--primary-accent);
+            font-size: 0.95rem;
+        }
+
+        .spec-card ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .spec-card li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* --- Figures --- */
+        .content-body figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .content-body figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px var(--shadow-sm);
+        }
+
+        .content-body figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* --- Tables --- */
+        .content-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .content-body table th {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .content-body table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .content-body table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* --- Math display blocks --- */
+        .content-body .math.display {
+            overflow-x: auto;
+        }
+
+        /* --- ZONE 8: Download buttons --- */
+        .download-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: var(--primary-accent);
+            color: #ffffff;
+            padding: 0.6rem 1.2rem;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .download-btn:visited {
+            color: #ffffff;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-accent-hover);
+            transform: translateY(-1px);
+            opacity: 1;
+        }
+
+        /* --- ZONE 9: Cross-links --- */
+        .cross-links {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .cross-links h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            border-bottom: none;
+        }
+
+        .cross-links-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .cross-link-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .cross-link-card:hover {
+            box-shadow: 0 2px 12px var(--shadow-sm);
+        }
+
+        .cross-link-card .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .cross-link-card a {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .cross-link-card p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            text-align: left;
+        }
+
+        /* --- Quarto-specific styles --- */
+
+        /* Tinted equation boxes for display math */
+        .math.display {
+            display: block;
+            background-color: rgba(255, 85, 0, 0.05);
+            padding: 0.5rem 0.75rem;
+            border-left: 3px solid var(--primary-accent);
+            border-radius: 3px;
+            margin: 0.75rem 0;
+            overflow-x: auto;
+        }
+
+        /* Orange accent on callout boxes */
+        .callout {
+            border-left: 4px solid var(--primary-accent) !important;
+            background-color: rgba(255, 85, 0, 0.03);
+            border-radius: 4px;
+            margin: 1.5rem 0;
+        }
+        .callout-header {
+            color: var(--primary-accent);
+        }
+
+        /* Orange rule under Quarto title block */
+        .quarto-title-block {
+            border-bottom: 3px solid var(--primary-accent);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Section divider HRs */
+        .content-body hr {
+            border: none;
+            border-top: 2px solid var(--primary-accent);
+            opacity: 0.3;
+            margin: 2.5rem 0;
+        }
+
+        /* Section numbers in accent color */
+        .header-section-number {
+            color: var(--primary-accent);
+            font-weight: bold;
+        }
+
+        /* References appendix */
+        #quarto-appendix.default {
+            background-color: var(--bg-body);
+            border-top-color: var(--border-light);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .content-body {
+                padding: 0.75rem;
+                font-size: 1rem;
+                line-height: 1.7;
+            }
+
+            .content-body h2 {
+                font-size: 1.3rem;
+            }
+
+            .content-body h3 {
+                font-size: 1.1rem;
+            }
+
+            .specs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cross-links-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .download-row {
+                flex-direction: column;
+            }
+
+            .download-btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content-body {
+                padding: 0.5rem;
+                font-size: 0.95rem;
+            }
+
+            .media-embed {
+                padding: 0 0.5rem;
+            }
+        }
+    </style>
+
+    <!-- QUARTO_JS_START -->
+    <!-- Quarto JS scripts and MathJax injected here by quarto-publish -->
+    <!-- QUARTO_JS_END -->
+
+    <script src="../js/main.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>Peirastes</h1>
+        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
+    </header>
+
+    <nav>
+        <a href="../index.html">Home</a>
+        <a href="../about.html">About</a>
+        <a href="../current-projects.html">Current Projects</a>
+        <a href="../previous-work.html">Previous Projects</a>
+        <a href="../timeline.html">Physics Timeline</a>
+        <a href="../quotes.html">Quotes</a>
+    </nav>
+
+    <div class="content">
+        <main>
+
+            <!-- ============================================================
+                 ZONE 1: MEDIA EMBED (optional)
+                 Video, PDF viewer, or slides. Wider than content body (900px).
+                 {{MEDIA_SRC}} — Replace with URL/path to embedded media.
+                 Remove this entire block if not needed.
+                 ============================================================ -->
+            <!--
+            <div class="media-embed">
+                <iframe src="{{MEDIA_SRC}}" title="{{TITLE}}" allowfullscreen></iframe>
+            </div>
+            -->
+
+            <section class="project-detail">
+                <div class="content-body">
+
+                    <!-- Page title -->
+                    <h2>{{TITLE}}</h2>
+
+                    <!-- ========================================================
+                         ZONE 2: ABSTRACT (optional)
+                         Summary block for treatises/papers. Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <div class="abstract">
+                        <h3>Abstract</h3>
+                        <p></p>
+                    </div>
+                    -->
+
+                    <!-- ========================================================
+                         ZONE 3: PAGE METADATA (optional)
+                         Treatise flavor: Published / Last Updated / Status
+                         Discourse flavor: Venue / Date / Audience
+                         Adjust .meta-item labels as needed. Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <div class="page-meta">
+                        <div class="meta-item"><span class="meta-label">Published:</span> <span></span></div>
+                        <div class="meta-item"><span class="meta-label">Last Updated:</span> <span></span></div>
+                        <div class="meta-item"><span class="meta-label">Status:</span> <span></span></div>
+                        <div class="meta-item" style="margin-left:auto">
+                            <span class="meta-label">Download:</span>
+                            <a href="#" class="meta-download" title="Download PDF" download>&#x2B07;</a>
+                        </div>
+                    </div>
+                    -->
+
+                    <!-- ========================================================
+                         ZONE 4: TABLE OF CONTENTS (optional)
+                         Collapsible TOC for long-form content. Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <details class="toc">
+                        <summary>Contents</summary>
+                        <ol>
+                            <li><a href="#section-1">Section 1</a></li>
+                        </ol>
+                    </details>
+                    -->
+
+                    <!-- ========================================================
+                         ZONE 5: DRIVING QUESTION (optional)
+                         Hook callout for discourses. Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <p class="driving-question">
+                        What is the driving question behind this work?
+                    </p>
+                    -->
+
+                    <!-- ============================================================
+                         ZONE 6: QMD CONTENT INJECTION
+                         Quarto-rendered HTML is injected between these markers by
+                         the Publish workflow in the Agent Pipeline IDE.
+                         Leave markers in place even if not using Quarto.
+                         ============================================================ -->
+                    <!-- QMD_CONTENT_START -->
+
+                    <!-- Page content goes here -->
+
+                    <!-- QMD_CONTENT_END -->
+
+                    <!-- ========================================================
+                         ZONE 7: SPECS GRID (optional)
+                         2-column structured data. Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <div class="specs-grid">
+                        <div class="spec-card">
+                            <h4>Category A</h4>
+                            <ul><li>Item 1</li></ul>
+                        </div>
+                        <div class="spec-card">
+                            <h4>Category B</h4>
+                            <ul><li>Item 1</li></ul>
+                        </div>
+                    </div>
+                    -->
+
+                    <!-- ========================================================
+                         ZONE 8: DOWNLOAD ROW (optional)
+                         File download buttons. Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <div class="download-row">
+                        <a href="#" class="download-btn" download>&#x2B07; Download PDF</a>
+                    </div>
+                    -->
+
+                    <!-- ========================================================
+                         ZONE 9: CROSS-LINKS (optional)
+                         Related Treatise / Instrument / Discourse pages.
+                         Remove if not needed.
+                         ======================================================== -->
+                    <!--
+                    <div class="cross-links">
+                        <h3>Related Work</h3>
+                        <div class="cross-links-grid">
+                            <div class="cross-link-card">
+                                <div class="label">Instrument</div>
+                                <a href="#">Related Instrument Title</a>
+                                <p>Brief description.</p>
+                            </div>
+                            <div class="cross-link-card">
+                                <div class="label">Discourse</div>
+                                <a href="#">Related Discourse Title</a>
+                                <p>Brief description.</p>
+                            </div>
+                        </div>
+                    </div>
+                    -->
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Cole Prather</p>
+    </footer>
+
+    <div id="lightbox-overlay">
+        <span id="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Full Image">
+    </div>
+
+    <script>
+        // Lightbox functionality
+        document.addEventListener("DOMContentLoaded", function() {
+            const overlay = document.getElementById("lightbox-overlay");
+            if (!overlay) return;
+
+            const closeBtn = document.getElementById("lightbox-close");
+            document.querySelectorAll(".lightbox-trigger").forEach(link => {
+                link.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    const img = document.getElementById("lightbox-img");
+                    img.src = this.getAttribute("href");
+                    overlay.style.display = "flex";
+                });
+            });
+
+            closeBtn.addEventListener("click", function() {
+                overlay.style.display = "none";
+            });
+
+            overlay.addEventListener("click", function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = "none";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
