@@ -3,7 +3,7 @@ Peirastes Website — peirastes.com
 Static site on GitHub Pages. Repo: Peirastes/website, branch: master.
 
 Structure:
-- index.html, about.html, etc. — top-level pages
+- index.html, about.html, all-projects.html, timeline.html, quotes.html — top-level pages
 - css/style.css, js/main.js — site styles and scripts
 - projects/ — project pages (content + instrument apps)
 - projects.json — single source of truth for project data
