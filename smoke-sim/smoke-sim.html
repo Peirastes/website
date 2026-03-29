@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navier-Stokes Smoke Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=JetBrains+Mono:wght@300;400;500;700&family=Instrument+Serif:ital@0;1&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#08080d;--pan:#0e0e16;--hov:#161620;--bdr:#222236;--t1:#dddceb;--t2:#7c7c98;--t3:#4a4a60;--ac:#ff6b3d;--ag:#ff6b3d44}
+  body{background:var(--bg);color:var(--t1);font-family:'JetBrains Mono',monospace;overflow:hidden;height:100vh;width:100vw;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid var(--bdr);background:var(--pan);z-index:10;flex-shrink:0}
+  .tg{display:flex;align-items:baseline;gap:14px}
+  h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:1.3rem}
+  .sub{font-size:.6rem;color:var(--t3);letter-spacing:.15em;text-transform:uppercase}
+  .sb{display:flex;gap:18px;font-size:.68rem;color:var(--t2)}
+  .sb .v{color:var(--ac);font-weight:500}
+  .ma{flex:1;display:flex;overflow:hidden}
+  .cw{flex:1;position:relative;display:flex;align-items:center;justify-content:center}
+  canvas{display:block;cursor:crosshair}
+  .pn{width:264px;flex-shrink:0;background:var(--pan);border-left:1px solid var(--bdr);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:2px}
+  .sc{border-bottom:1px solid var(--bdr);padding-bottom:10px;margin-bottom:6px}
+  .sc:last-child{border-bottom:none}
+  .sc h3{font-size:.58rem;text-transform:uppercase;letter-spacing:.2em;color:var(--t3);margin-bottom:8px}
+  .rw{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .rw label{font-size:.7rem;color:var(--t2)}
+  .rw .rv{font-size:.66rem;color:var(--ac);min-width:40px;text-align:right;font-weight:500}
+  input[type="range"]{width:100%;margin-top:1px;accent-color:var(--ac);height:2px;-webkit-appearance:none;appearance:none;background:var(--bdr);border-radius:1px;outline:none}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:var(--ac);cursor:pointer;box-shadow:0 0 5px var(--ag)}
+  .br{display:flex;gap:6px;margin-top:3px}
+  button{flex:1;padding:7px 10px;font-family:inherit;font-size:.65rem;letter-spacing:.04em;background:var(--hov);border:1px solid var(--bdr);color:var(--t2);border-radius:3px;cursor:pointer;transition:all .12s}
+  button:hover,button.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+  .hint{font-size:.58rem;color:var(--t3);line-height:1.5;margin-top:6px}
+  .sws{display:flex;gap:5px;margin-top:5px}
+  .sw{width:22px;height:22px;border-radius:3px;border:2px solid transparent;cursor:pointer;transition:border-color .12s,transform .12s}
+  .sw:hover{transform:scale(1.15)}.sw.on{border-color:var(--t1)}
+  .eq{font-family:'Instrument Serif',serif;font-style:italic;font-size:.82rem;color:var(--t3);text-align:center;padding:7px;border:1px solid var(--bdr);border-radius:3px;margin-bottom:6px;background:rgba(255,255,255,.015)}
+  @media(max-width:768px){.pn{display:none}header{padding:8px 14px}h1{font-size:1.05rem}}
+</style>
+</head>
+<body>
+<header>
+  <a href="https://peirastes.com" style="font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:rgba(221,220,235,0.3);text-decoration:none;letter-spacing:0.08em;margin-right:12px;padding-right:12px;border-right:1px solid var(--bdr);transition:color 0.2s" onmouseover="this.style.color='var(--ac)'" onmouseout="this.style.color='rgba(221,220,235,0.3)'" title="Back to Peirastes">Peirastes</a>
+  <div class="tg"><h1>Navier-Stokes Smoke</h1><span class="sub">2D Eulerian Fluid Solver</span></div>
+  <div class="sb">
+    <span>FPS <span class="v" id="d-fps">0</span></span>
+    <span>Grid <span class="v" id="d-grid">512²</span></span>
+    <span>Jacobi <span class="v" id="d-jac">40</span></span>
+    <span>Obs <span class="v" id="d-obs">0</span></span>
+  </div>
+</header>
+<div class="ma">
+  <div class="cw"><canvas id="c"></canvas></div>
+  <div class="pn">
+    <div class="eq">∂u⁄∂t + (u·∇)u = −∇p + f</div>
+    <div class="sc">
+      <h3>Solver</h3>
+      <div class="rw"><label>Grid Resolution</label><span class="rv" id="v-res">512</span></div>
+      <input type="range" id="c-res" min="128" max="2048" step="128" value="512">
+      <div class="rw"><label>Jacobi Iterations</label><span class="rv" id="v-jac">40</span></div>
+      <input type="range" id="c-jac" min="8" max="80" step="4" value="40">
+      <div class="rw"><label>Time Step</label><span class="rv" id="v-dt">0.016</span></div>
+      <input type="range" id="c-dt" min="0.004" max="0.040" step="0.002" value="0.016">
+    </div>
+    <div class="sc">
+      <h3>Physics</h3>
+      <div class="rw"><label>Vorticity (ε)</label><span class="rv" id="v-vor">5.0</span></div>
+      <input type="range" id="c-vor" min="0" max="20" step="0.5" value="5.0">
+      <div class="rw"><label>Buoyancy (β)</label><span class="rv" id="v-buo">150</span></div>
+      <input type="range" id="c-buo" min="0" max="500" step="10" value="150">
+      <div class="rw"><label>Smoke Weight (α)</label><span class="rv" id="v-wt">5.0</span></div>
+      <input type="range" id="c-wt" min="0" max="20" step="0.5" value="5.0">
+      <div class="rw"><label>Dissipation</label><span class="rv" id="v-dis">0.985</span></div>
+      <input type="range" id="c-dis" min="0.90" max="1.00" step="0.005" value="0.985">
+    </div>
+    <div class="sc">
+      <h3>Emitter</h3>
+      <div class="rw"><label>Splat Radius</label><span class="rv" id="v-rad">23%</span></div>
+      <input type="range" id="c-rad" min="1" max="100" step="1" value="23">
+      <div class="rw"><label>Temperature</label><span class="rv" id="v-temp">100%</span></div>
+      <input type="range" id="c-temp" min="5" max="200" step="5" value="100">
+      <div class="rw"><label>Smoke Color</label></div>
+      <div class="sws">
+        <div class="sw on" style="background:#ffa040" data-c="1.0,0.63,0.25" data-mode="smoke"></div>
+        <div class="sw" style="background:#dde0ff" data-c="0.87,0.88,1.0" data-mode="smoke"></div>
+        <div class="sw" style="background:#60ff90" data-c="0.38,1.0,0.56" data-mode="smoke"></div>
+        <div class="sw" style="background:#ff4080" data-c="1.0,0.25,0.5" data-mode="smoke"></div>
+        <div class="sw" style="background:#40c0ff" data-c="0.25,0.75,1.0" data-mode="smoke"></div>
+        <div class="sw" style="background:linear-gradient(to top,#1040ff,#ff8800,#ffe060)" data-c="0.06,0.25,1.0" data-mode="flame" title="Flame"></div>
+      </div>
+    </div>
+    <div class="sc">
+      <h3>Advection</h3>
+      <div class="br">
+        <button id="b-sl">Semi-Lagrangian</button>
+        <button id="b-mc" class="on">MacCormack</button>
+      </div>
+    </div>
+    <div class="sc">
+      <h3>Interaction Mode</h3>
+      <div class="br">
+        <button id="b-mode-smoke" class="on">🔥 Smoke</button>
+        <button id="b-mode-obs">⬡ Obstacles</button>
+      </div>
+    </div>
+    <div class="sc" id="obs-controls" style="display:none">
+      <h3>Obstacle Shape</h3>
+      <div class="br">
+        <button id="b-sh-circle" class="on" title="Cylinder">● Circle</button>
+        <button id="b-sh-square" title="Bluff body">■ Square</button>
+        <button id="b-sh-tri" title="Equilateral triangle">▲ Triangle</button>
+      </div>
+      <div class="br" style="margin-top:4px">
+        <button id="b-sh-airfoil" title="NACA-style airfoil">✈ Airfoil</button>
+        <button id="b-sh-plate" title="Flat plate (perpendicular)">│ Plate</button>
+        <button id="b-sh-diamond" title="Diamond / rhombus">◆ Diamond</button>
+      </div>
+      <div class="rw" style="margin-top:8px"><label>Rotation</label><span class="rv" id="v-rot">0°</span></div>
+      <input type="range" id="c-rot" min="-180" max="180" step="5" value="0">
+      <div class="br" style="margin-top:4px">
+        <button id="b-clr-obs">Clear All Obstacles</button>
+      </div>
+    </div>
+    <div class="sc">
+      <h3>Ambient Turbulence</h3>
+      <div class="br">
+        <button id="b-turb-off" class="on">Off</button>
+        <button id="b-turb-on">On</button>
+      </div>
+    </div>
+    <div class="sc">
+      <h3>Velocity Overlay</h3>
+      <div class="br">
+        <button id="b-vel-off" class="on">Off</button>
+        <button id="b-vel-on">On</button>
+      </div>
+    </div>
+    <div class="sc">
+      <h3>Wind Tunnel</h3>
+      <div class="br">
+        <button id="b-wind-off" class="on">Off</button>
+        <button id="b-wind-on">On</button>
+      </div>
+      <div class="rw" style="margin-top:6px"><label>Wind Speed</label><span class="rv" id="v-wind">50%</span></div>
+      <input type="range" id="c-wind" min="5" max="100" step="5" value="50">
+    </div>
+    <div class="sc">
+      <div class="br"><button id="b-clr">Clear Smoke</button><button id="b-pause">Pause</button><button id="b-screenshot">📷</button></div>
+    </div>
+    <p class="hint">
+      <b style="color:var(--t2)">Smoke mode:</b> Click to emit, hold for stream, drag to push.<br>
+      <b style="color:var(--t2)">Obstacle mode:</b> Click to place, click to select, drag to move. Scroll=resize. Del=remove.<br><br>
+      <b style="color:var(--t2)">Keys:</b> Space, C, S, V, T, M, W, R, 1-6
+    </p>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById('c');
+const gl=canvas.getContext('webgl2',{alpha:false,depth:false,stencil:false,antialias:false,preserveDrawingBuffer:false});
+if(!gl){document.body.innerHTML='<p style="color:red;padding:2em">WebGL2 required</p>';throw 0;}
+gl.getExtension('EXT_color_buffer_float');
+gl.getExtension('OES_texture_float_linear');
+
+const P={
+  res:512, jac:40, dt:0.016, vor:5.0, buo:150.0, wt:5.0, dis:0.985, rad:0.010,
+  mc:true, col:[1.0,0.63,0.25], paused:false, turb:false,
+  splatTemp:1.0, flameMode:false, showVel:false, obsShape:'circle',
+  obsMode:false, obsRot:0, selectedObs:-1, wind:false, windSpeed:0.5,
+  weatherMode:false, coriolis:0.3, lapse:0.5, saturation:0.6
+};
+
+// ==================== SHADERS ====================
+const VS=`#version 300 es
+in vec2 a; out vec2 uv;
+void main(){uv=a*.5+.5;gl_Position=vec4(a,0,1);}`;
+
+const F_ADVECT=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel,uSrc;
+uniform float dt,diss;
+uniform vec2 rdx;
+void main(){
+  vec2 v=texture(uVel,uv).xy;
+  vec2 p=uv-dt*v*rdx;
+  o=diss*texture(uSrc,p);
+}`;
+
+const F_MC=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel,uOrig,uFwd,uRev;
+uniform float dt,diss;
+uniform vec2 rdx;
+void main(){
+  vec2 v=texture(uVel,uv).xy;
+  vec2 bp=uv-dt*v*rdx;
+  vec4 phiN=texture(uOrig,uv);
+  vec4 phiF=texture(uFwd,uv);
+  vec4 phiR=texture(uRev,uv);
+  vec4 corr=phiF+.5*(phiN-phiR);
+  vec4 s00=texture(uOrig,bp);
+  vec4 s10=texture(uOrig,bp+vec2(rdx.x,0));
+  vec4 s01=texture(uOrig,bp+vec2(0,rdx.y));
+  vec4 s11=texture(uOrig,bp+rdx);
+  o=diss*clamp(corr,min(min(s00,s10),min(s01,s11)),max(max(s00,s10),max(s01,s11)));
+}`;
+
+const F_DIV=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel; uniform vec2 rdx;
+void main(){
+  float L=texture(uVel,uv-vec2(rdx.x,0)).x;
+  float R=texture(uVel,uv+vec2(rdx.x,0)).x;
+  float B=texture(uVel,uv-vec2(0,rdx.y)).y;
+  float T_=texture(uVel,uv+vec2(0,rdx.y)).y;
+  o=vec4(.5*(R-L+T_-B),0,0,1);
+}`;
+
+const F_JAC=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uP,uDiv; uniform vec2 rdx;
+void main(){
+  float pL=texture(uP,uv-vec2(rdx.x,0)).x;
+  float pR=texture(uP,uv+vec2(rdx.x,0)).x;
+  float pB=texture(uP,uv-vec2(0,rdx.y)).x;
+  float pT=texture(uP,uv+vec2(0,rdx.y)).x;
+  float d=texture(uDiv,uv).x;
+  o=vec4((pL+pR+pB+pT-d)*.25,0,0,1);
+}`;
+
+const F_GRAD=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uP,uVel; uniform vec2 rdx;
+void main(){
+  float pL=texture(uP,uv-vec2(rdx.x,0)).x;
+  float pR=texture(uP,uv+vec2(rdx.x,0)).x;
+  float pB=texture(uP,uv-vec2(0,rdx.y)).x;
+  float pT=texture(uP,uv+vec2(0,rdx.y)).x;
+  vec2 v=texture(uVel,uv).xy;
+  o=vec4(v-.5*vec2(pR-pL,pT-pB),0,1);
+}`;
+
+const F_CURL=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel; uniform vec2 rdx;
+void main(){
+  float L=texture(uVel,uv-vec2(rdx.x,0)).y;
+  float R=texture(uVel,uv+vec2(rdx.x,0)).y;
+  float B=texture(uVel,uv-vec2(0,rdx.y)).x;
+  float T_=texture(uVel,uv+vec2(0,rdx.y)).x;
+  o=vec4(.5*(R-L-(T_-B)),0,0,1);
+}`;
+
+const F_VORT=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel,uCurl; uniform float str,dt; uniform vec2 rdx;
+void main(){
+  float cL=texture(uCurl,uv-vec2(rdx.x,0)).x;
+  float cR=texture(uCurl,uv+vec2(rdx.x,0)).x;
+  float cB=texture(uCurl,uv-vec2(0,rdx.y)).x;
+  float cT=texture(uCurl,uv+vec2(0,rdx.y)).x;
+  float cC=texture(uCurl,uv).x;
+  vec2 N=vec2(abs(cT)-abs(cB),abs(cR)-abs(cL));
+  N/=length(N)+1e-5;
+  vec2 f=vec2(N.x,-N.y)*cC;
+  o=vec4(texture(uVel,uv).xy + str*f*dt, 0,1);
+}`;
+
+const F_BUOY=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel,uDen,uTemp; uniform float buo,wt,dt;
+void main(){
+  vec2 v=texture(uVel,uv).xy;
+  float d=length(texture(uDen,uv).rgb);
+  float T=texture(uTemp,uv).x;
+  v.y += (-wt*d + buo*T) * dt;
+  o=vec4(v,0,1);
+}`;
+
+const F_SPLAT=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uTgt; uniform vec2 pt; uniform float rad,asp,maxVal; uniform vec3 col;
+void main(){
+  vec4 b=texture(uTgt,uv);
+  vec2 p=uv-pt; p.x*=asp;
+  float s=exp(-dot(p,p)/rad);
+  vec4 r=b+vec4(col*s,s);
+  o=sign(r)*min(abs(r),vec4(maxVal));
+}`;
+
+const F_RENDER=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uDen,uTemp,uObs;
+uniform float flameMode;
+uniform vec2 rdx;
+void main(){
+  vec3 d=texture(uDen,uv).rgb;
+  float T=texture(uTemp,uv).x;
+  float obs=texture(uObs,uv).x;
+  float i=length(d);
+
+  // Background
+  float bg=.012+.008*(1.-uv.y);
+  vec3 bgc=vec3(bg*.5,bg*.5,bg*.8);
+
+  // Smoke layer
+  vec3 smokeCol=d*(1.+.2*i);
+
+  // Flame color ramp
+  float heat=clamp(T*0.5, 0.0, 1.0);
+  float hotCore=clamp(T*0.8, 0.0, 1.0);
+  vec3 flameOuter;
+  flameOuter.r = smoothstep(0.0, 0.2, heat);
+  flameOuter.g = smoothstep(0.15, 0.5, heat) * 0.8;
+  flameOuter.b = smoothstep(0.4, 0.9, heat) * 0.6;
+  flameOuter = mix(flameOuter, vec3(1.0,0.95,0.85), hotCore*hotCore);
+  vec3 blueCore = vec3(0.3, 0.5, 1.0);
+  vec3 flameCol = mix(flameOuter, blueCore, hotCore*hotCore*0.6);
+  flameCol = mix(flameCol, vec3(0.7,0.8,1.0), smoothstep(0.7,1.0,hotCore)*0.5);
+  float flameAlpha = heat * heat * min(i*3.0, 1.0);
+  float smokeAlpha=clamp(i*2.,0.,1.);
+
+  vec3 c;
+  if(flameMode > 0.5) {
+    vec3 coolSmoke = d * 0.3 + vec3(0.02,0.04,0.12) * i;
+    vec3 flameFull = mix(coolSmoke, flameCol, heat);
+    float totalAlpha = clamp(i*2.5, 0.0, 1.0);
+    c = mix(bgc, flameFull*(1.+.3*flameAlpha), totalAlpha);
+    c += flameCol * flameAlpha * 0.5;
+  } else {
+    c = mix(bgc, smokeCol, smokeAlpha);
+    c += flameOuter * flameAlpha * 0.8;
+  }
+
+  // Obstacle rendering
+  if(obs > 0.5) {
+    // Edge detection using proper texel size
+    float oL=texture(uObs,uv-vec2(rdx.x,0)).x;
+    float oR=texture(uObs,uv+vec2(rdx.x,0)).x;
+    float oB=texture(uObs,uv-vec2(0,rdx.y)).x;
+    float oT=texture(uObs,uv+vec2(0,rdx.y)).x;
+    float edge=max(max(abs(obs-oL),abs(obs-oR)),max(abs(obs-oB),abs(obs-oT)));
+    // Gradient: slightly lighter toward top-left (faked 3D bevel)
+    float oL2=texture(uObs,uv-vec2(rdx.x*3.,0)).x;
+    float oT2=texture(uObs,uv+vec2(0,rdx.y*3.)).x;
+    float bevel=(1.-oL2)*0.08 + (1.-oT2)*0.06; // light from top-left
+    vec3 obsCol = vec3(0.08, 0.08, 0.13) + bevel;
+    // Bright edge rim
+    obsCol += vec3(0.2, 0.24, 0.4) * edge;
+    c = obsCol;
+  }
+
+  // Vignette
+  vec2 vg=uv*(1.-uv);
+  c*=pow(vg.x*vg.y*16.,.22);
+  o=vec4(c,1);
+}`;
+
+// Velocity field overlay: renders velocity as directional color
+// Hue encodes direction, brightness encodes magnitude
+const F_VEL_VIZ=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uScreen,uVel;
+uniform vec2 rdx;
+uniform float opacity;
+void main(){
+  vec4 base=texture(uScreen,uv);
+  vec2 v=texture(uVel,uv).xy;
+  float mag=length(v)*rdx.x; // normalize to UV-space speed
+  float angle=atan(v.y,v.x); // direction
+
+  // Direction → hue (HSV with S=1, V=1)
+  float h=angle/(3.14159265*2.0)+0.5; // [0,1]
+  // HSV to RGB
+  vec3 k=vec3(1.0,2.0/3.0,1.0/3.0);
+  vec3 p=abs(fract(vec3(h)+k)*6.0-3.0);
+  vec3 dirCol=clamp(p-1.0,0.0,1.0);
+
+  // Brightness from magnitude (log scale for wide dynamic range)
+  float bright=clamp(log(1.0+mag*200.0)*0.3, 0.0, 1.0);
+
+  // Grid lines for reference (every 32 texels)
+  float gx=abs(fract(uv.x/rdx.x/32.0)-0.5)*2.0;
+  float gy=abs(fract(uv.y/rdx.y/32.0)-0.5)*2.0;
+  float grid=1.0-smoothstep(0.92,0.97,max(gx,gy))*0.15;
+
+  vec3 vizCol=dirCol*bright*grid;
+  o=vec4(mix(base.rgb,vizCol,opacity*bright),1.0);
+}`;
+
+const F_CLR=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o; uniform vec4 val;
+void main(){o=val;}`;
+
+// Wind tunnel: inject horizontal velocity + density streaks along left edge
+const F_WIND=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uField;
+uniform float speed,time,isVel,isWeather;
+uniform vec2 rdx;
+uniform vec3 smokeCol;
+void main(){
+  vec4 val=texture(uField,uv);
+  // Injection zone: leftmost strip
+  float zoneWidth = isWeather>0.5 ? 0.04 : 0.02;
+  float zone=smoothstep(rdx.x*3.0, zoneWidth, uv.x);
+  float inject=1.0-zone;
+
+  if(isVel>0.5){
+    float vx=speed;
+    // Slight vertical perturbation only in wind tunnel mode (seeds instability)
+    float vy = isWeather>0.5 ? 0.0 : sin(uv.y*20.0+time*2.0)*speed*0.03;
+    val.xy=mix(val.xy, vec2(vx,vy), inject);
+  } else {
+    float streak=smoothstep(0.3,0.5,sin(uv.y*40.0+time*1.5)*0.5+0.5);
+    vec3 col=smokeCol*0.6*streak;
+    val.rgb=mix(val.rgb, col, inject*0.3);
+  }
+  o=val;
+}`;
+
+// Strain-based dissipation: smoke dissolves faster in high-shear regions
+// Computes |S| = sqrt(S_ij * S_ij) from the velocity gradient tensor,
+// then applies dissipation = baseDiss * exp(-strainScale * |S| * dt)
+const F_STRAIN_DISS=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uDen,uVel;
+uniform vec2 rdx;
+uniform float baseDiss,strainScale,dt;
+void main(){
+  // Velocity gradient in UV-space (not grid-cell space)
+  // Multiply differences by rdx to normalize to [0,1] domain
+  float uL=texture(uVel,uv-vec2(rdx.x,0)).x;
+  float uR=texture(uVel,uv+vec2(rdx.x,0)).x;
+  float uB=texture(uVel,uv-vec2(0,rdx.y)).x;
+  float uT=texture(uVel,uv+vec2(0,rdx.y)).x;
+  float vL=texture(uVel,uv-vec2(rdx.x,0)).y;
+  float vR=texture(uVel,uv+vec2(rdx.x,0)).y;
+  float vB=texture(uVel,uv-vec2(0,rdx.y)).y;
+  float vT=texture(uVel,uv+vec2(0,rdx.y)).y;
+  // Convert to UV-space gradients: d(vel*rdx)/d(uv)
+  // vel is in grid-cells/s, rdx converts to UV/s, then derivative is per UV
+  float dudx=0.5*(uR-uL)*rdx.x;
+  float dudy=0.5*(uT-uB)*rdx.y;
+  float dvdx=0.5*(vR-vL)*rdx.x;
+  float dvdy=0.5*(vT-vB)*rdx.y;
+  // Strain rate tensor
+  float S11=dudx;
+  float S22=dvdy;
+  float S12=0.5*(dudy+dvdx);
+  float strainMag=sqrt(S11*S11 + S22*S22 + 2.0*S12*S12);
+  // Smooth dissipation: base rate + gentle strain contribution
+  float diss = baseDiss - strainScale * strainMag * dt;
+  diss = clamp(diss, 0.9, 1.0);
+  vec4 d=texture(uDen,uv);
+  o=d*diss;
+}`;
+
+// Ambient turbulence: subtle noise perturbation to break perfect symmetry
+const F_NOISE=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel;
+uniform float time,str;
+// Simple hash-based noise
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  f=f*f*(3.-2.*f);
+  float a=hash(i), b=hash(i+vec2(1,0)), c=hash(i+vec2(0,1)), d=hash(i+vec2(1,1));
+  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+}
+void main(){
+  vec2 v=texture(uVel,uv).xy;
+  // Two octaves of curl noise for divergence-free perturbation
+  float n1=noise(uv*8.+time*0.3);
+  float n2=noise(uv*8.+time*0.3+vec2(5.2,1.3));
+  vec2 perturb=vec2(n1-0.5, n2-0.5)*str;
+  o=vec4(v+perturb,0,1);
+}`;
+
+// Weather physics: condensation/evaporation cycle, precipitation, Coriolis
+// moisture = density.a channel (we repurpose alpha for moisture in weather mode)
+// rain = falls downward, evaporates, cools air below
+// cloud = condensed moisture → visible as density.rgb
+const F_WEATHER=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel,uDen,uTemp;
+uniform float dt,coriolis,lapse,satThresh;
+uniform vec2 rdx;
+void main(){
+  vec2 v=texture(uVel,uv).xy;
+  vec4 d=texture(uDen,uv);
+  float T=texture(uTemp,uv).x;
+
+  // --- Lapse rate: background temperature decreases with height ---
+  // This creates convective instability: warm parcels at bottom rise
+  float ambientT = lapse * (1.0 - uv.y); // warm at bottom, cool at top
+  float deltaT = T - ambientT;
+
+  // --- Moisture (stored in density.a) ---
+  float moisture = d.a;
+
+  // --- Condensation: moisture > saturation threshold → cloud + latent heat ---
+  float excess = max(0.0, moisture - satThresh);
+  float condensation = excess * 0.1; // condensation rate
+  moisture -= condensation;
+  // Cloud forms: add to visible density
+  vec3 cloud = d.rgb + vec3(0.7, 0.75, 0.85) * condensation;
+  // Latent heat release: warms air, drives stronger updraft
+  float latentHeat = condensation * 8.0;
+
+  // --- Precipitation: dense cloud regions generate falling rain ---
+  float cloudMass = length(cloud);
+  float rain = max(0.0, cloudMass - 1.2) * 0.02; // rain threshold
+  cloud *= (1.0 - rain * 0.3); // remove some cloud mass as rain
+
+  // --- Evaporative cooling below clouds ---
+  // Rain falling through sub-saturated air evaporates and cools
+  // Check below: sample density from above (rain falls down)
+  float cloudAbove = length(texture(uDen, uv + vec2(0, rdx.y * 3.0)).rgb);
+  float evapCooling = cloudAbove * 0.02 * max(0.0, satThresh - moisture);
+
+  // --- Coriolis force (2D): perpendicular to velocity ---
+  // In Northern Hemisphere, deflects rightward: F = f × (v, -u)
+  vec2 corForce = coriolis * vec2(v.y, -v.x);
+
+  // --- Write back to velocity (Coriolis only; buoyancy handled separately) ---
+  v += corForce * dt;
+
+  // Store: rgb = cloud density, a = moisture
+  o = vec4(cloud, moisture);
+  // We also need to pass latentHeat and evapCooling to temperature...
+  // We'll handle that by outputting to density here, and doing temp update separately
+}`;
+
+// Weather temperature update (applied after weather physics)
+const F_WEATHER_TEMP=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uTemp,uDen;
+uniform float dt,lapse;
+uniform vec2 rdx;
+void main(){
+  float T=texture(uTemp,uv).x;
+  vec4 d=texture(uDen,uv);
+  float cloudMass=length(d.rgb);
+  float moisture=d.a;
+
+  // Latent heat from condensation (cloud presence = heat was released)
+  T += cloudMass * 0.01 * dt;
+
+  // Evaporative cooling from rain below
+  float cloudAbove=length(texture(uDen,uv+vec2(0,rdx.y*4.0)).rgb);
+  T -= cloudAbove * 0.005 * dt;
+
+  // Radiative cooling at cloud tops (drives anvil spreading)
+  float cloudBelow=length(texture(uDen,uv-vec2(0,rdx.y*4.0)).rgb);
+  if(cloudMass > 0.3 && cloudBelow < 0.1) T -= 0.003 * dt;
+
+  // Gentle relaxation toward lapse rate (prevents runaway)
+  float ambientT=lapse*(1.0-uv.y);
+  T=mix(T, ambientT, 0.001);
+
+  o=vec4(T, 0,0,1);
+}`;
+
+// Weather Coriolis force (applied to velocity)
+const F_CORIOLIS=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uVel;
+uniform float dt,coriolis;
+void main(){
+  vec2 v=texture(uVel,uv).xy;
+  // 2D Coriolis: F = f * (vy, -vx) — cyclonic rotation
+  v += coriolis * vec2(v.y, -v.x) * dt;
+  o=vec4(v,0,1);
+}`;
+
+// Weather render mode
+const F_WEATHER_RENDER=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uDen,uTemp,uVel,uObs;
+uniform vec2 rdx;
+void main(){
+  vec4 d=texture(uDen,uv);
+  float T=texture(uTemp,uv).x;
+  vec2 v=texture(uVel,uv).xy;
+  float obs=texture(uObs,uv).x;
+  float cloudMass=length(d.rgb);
+  float moisture=d.a;
+
+  // --- Sky gradient (warm at bottom, cool blue at top) ---
+  vec3 skyLow=vec3(0.12,0.15,0.22);
+  vec3 skyHigh=vec3(0.03,0.05,0.14);
+  vec3 sky=mix(skyLow,skyHigh,uv.y);
+
+  // --- Ground (bottom 5%) ---
+  float ground=smoothstep(0.06,0.03,uv.y);
+  vec3 groundCol=vec3(0.08,0.12,0.06);
+
+  // --- Moisture haze (sub-visible humidity) ---
+  float haze=moisture*0.15;
+  sky+=vec3(0.05,0.06,0.08)*haze;
+
+  // --- Cloud rendering ---
+  // Thin cirrus-like at low density, thick cumulonimbus at high density
+  float alpha=clamp(cloudMass*1.8, 0.0, 1.0);
+  // Cloud color: white core, darker edges and bases
+  vec3 cloudCol=vec3(0.75,0.78,0.85);
+  // Darken cloud base (lower parts of thick clouds)
+  float cloudBelow=length(texture(uDen,uv+vec2(0,rdx.y*5.0)).rgb);
+  float darkBase=clamp(cloudBelow*0.5, 0.0, 0.4);
+  cloudCol=mix(cloudCol, vec3(0.2,0.22,0.3), darkBase);
+  // Bright anvil tops
+  float cloudAbove=length(texture(uDen,uv-vec2(0,rdx.y*5.0)).rgb);
+  float brightTop=(1.0-clamp(cloudAbove*2.0,0.0,1.0))*0.3;
+  cloudCol+=vec3(brightTop);
+
+  // --- Temperature coloring for storm intensity ---
+  float intensity=clamp(-T*0.3, 0.0, 1.0); // cold updraft tops
+  cloudCol=mix(cloudCol, vec3(0.15,0.18,0.35), intensity*alpha*0.4);
+
+  // --- Updraft/rotation indicator: faint warm tint where velocity is strong ---
+  float speed=length(v)*rdx.x;
+  float rotation=abs(texture(uDen,uv+vec2(rdx.x,0)).a-texture(uDen,uv-vec2(rdx.x,0)).a);
+
+  // --- Composite ---
+  vec3 c=mix(sky, cloudCol, alpha);
+  c=mix(c, groundCol, ground);
+
+  // Obstacle
+  if(obs>0.5){
+    float oL=texture(uObs,uv-vec2(rdx.x,0)).x;
+    float oR=texture(uObs,uv+vec2(rdx.x,0)).x;
+    float oB=texture(uObs,uv-vec2(0,rdx.y)).x;
+    float oT=texture(uObs,uv+vec2(0,rdx.y)).x;
+    float edge=max(max(abs(obs-oL),abs(obs-oR)),max(abs(obs-oB),abs(obs-oT)));
+    c=vec3(0.08,0.08,0.13)+vec3(0.2,0.24,0.4)*edge;
+  }
+
+  // Vignette
+  vec2 vg=uv*(1.-uv);
+  c*=pow(vg.x*vg.y*16.,.22);
+  o=vec4(c,1);
+}`;
+
+const F_BND=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uField; uniform vec2 rdx; uniform float scale;
+uniform float openRight; // 1.0 = right edge is open outflow
+void main(){
+  vec4 val=texture(uField,uv);
+  float bL=step(uv.x,rdx.x*1.5);
+  float bR=step(1.-rdx.x*1.5,uv.x);
+  float bB=step(uv.y,rdx.y*1.5);
+  float bT=step(1.-rdx.y*1.5,uv.y);
+  float bd=max(max(bL,bR),max(bB,bT));
+  if(bd>.5){
+    if(bR>.5 && openRight>.5){
+      // Open outflow: copy from interior neighbor (let fluid exit freely)
+      o=texture(uField,uv-vec2(rdx.x,0));
+    } else if(scale<0.){
+      o=vec4(0);
+    } else {
+      vec2 intr=uv;
+      if(bL>.5)intr.x+=rdx.x; if(bR>.5)intr.x-=rdx.x;
+      if(bB>.5)intr.y+=rdx.y; if(bT>.5)intr.y-=rdx.y;
+      o=texture(uField,intr);
+    }
+  }else{o=val;}
+}`;
+
+// Obstacle boundary enforcement: zeros velocity inside obstacles,
+// copies nearest free-cell pressure for Neumann BC
+const F_OBS_BND=`#version 300 es
+precision highp float;
+in vec2 uv; out vec4 o;
+uniform sampler2D uField,uObs;
+uniform vec2 rdx;
+uniform float scale; // -1=velocity(zero inside), +1=pressure(Neumann)
+void main(){
+  float obs=texture(uObs,uv).x;
+  vec4 val=texture(uField,uv);
+  if(obs>0.5){
+    if(scale<0.0){
+      // No-slip: zero velocity inside obstacle
+      o=vec4(0);
+    } else {
+      // Neumann: average pressure from non-obstacle neighbors
+      float pL=texture(uField,uv-vec2(rdx.x,0)).x;
+      float pR=texture(uField,uv+vec2(rdx.x,0)).x;
+      float pB=texture(uField,uv-vec2(0,rdx.y)).x;
+      float pT=texture(uField,uv+vec2(0,rdx.y)).x;
+      float oL=texture(uObs,uv-vec2(rdx.x,0)).x;
+      float oR=texture(uObs,uv+vec2(rdx.x,0)).x;
+      float oB=texture(uObs,uv-vec2(0,rdx.y)).x;
+      float oT=texture(uObs,uv+vec2(0,rdx.y)).x;
+      float sum=0.0, cnt=0.0;
+      if(oL<0.5){sum+=pL;cnt+=1.0;}
+      if(oR<0.5){sum+=pR;cnt+=1.0;}
+      if(oB<0.5){sum+=pB;cnt+=1.0;}
+      if(oT<0.5){sum+=pT;cnt+=1.0;}
+      o=vec4(cnt>0.0?sum/cnt:0.0, 0,0,1);
+    }
+  } else {
+    o=val;
+  }
+}`;
+
+// ==================== GL UTILITIES ====================
+function mkS(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(sh));throw 0;}return sh;}
+function mkP(fs){
+  const p=gl.createProgram();gl.attachShader(p,mkS(gl.VERTEX_SHADER,VS));gl.attachShader(p,mkS(gl.FRAGMENT_SHADER,fs));gl.linkProgram(p);
+  if(!gl.getProgramParameter(p,gl.LINK_STATUS)){console.error(gl.getProgramInfoLog(p));throw 0;}
+  const u={};for(let i=0,n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);i<n;i++){const inf=gl.getActiveUniform(p,i);u[inf.name]=gl.getUniformLocation(p,inf.name);}
+  return{p,u};
+}
+const _qb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,_qb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const _qv=gl.createVertexArray();gl.bindVertexArray(_qv);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);gl.bindVertexArray(null);
+function Q(){gl.bindVertexArray(_qv);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);}
+
+function mkFBO(w,h){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA16F,w,h,0,gl.RGBA,gl.HALF_FLOAT,null);
+  const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  return{f,t,w,h};
+}
+function mkD(w,h){let a=mkFBO(w,h),b=mkFBO(w,h);return{get r(){return a},get w(){return b},swap(){[a,b]=[b,a]}}}
+
+// Compile all
+const pr={};
+pr.adv=mkP(F_ADVECT);pr.mc=mkP(F_MC);pr.div=mkP(F_DIV);pr.jac=mkP(F_JAC);
+pr.grad=mkP(F_GRAD);pr.curl=mkP(F_CURL);pr.vort=mkP(F_VORT);pr.buoy=mkP(F_BUOY);
+pr.splat=mkP(F_SPLAT);pr.render=mkP(F_RENDER);pr.clr=mkP(F_CLR);pr.wind=mkP(F_WIND);pr.bnd=mkP(F_BND);pr.obnd=mkP(F_OBS_BND);pr.noise=mkP(F_NOISE);pr.sdiss=mkP(F_STRAIN_DISS);pr.velviz=mkP(F_VEL_VIZ);
+pr.weather=mkP(F_WEATHER);pr.weatherTemp=mkP(F_WEATHER_TEMP);pr.coriolis=mkP(F_CORIOLIS);pr.weatherRender=mkP(F_WEATHER_RENDER);
+
+// ==================== STATE ====================
+let sW,sH;
+let vel,pres,den,temp,divF,curlF,tF,tR,vF,vR;
+let screenFBO;
+let obsTex; // obstacle mask texture (R channel: 1=solid, 0=free)
+
+// Obstacles: array of {x, y, r} in UV coords [0,1]
+let obstacles=[];
+
+function initFBOs(){
+  const asp=canvas.width/canvas.height;
+  sW=P.res; sH=Math.round(P.res/asp);
+  vel=mkD(sW,sH); pres=mkD(sW,sH); den=mkD(sW,sH); temp=mkD(sW,sH);
+  divF=mkFBO(sW,sH); curlF=mkFBO(sW,sH);
+  tF=mkFBO(sW,sH); tR=mkFBO(sW,sH); vF=mkFBO(sW,sH); vR=mkFBO(sW,sH);
+  screenFBO=mkFBO(canvas.width,canvas.height);
+  // Create obstacle mask texture
+  obsTex=createObsTexture(sW,sH);
+  rasterizeObstacles();
+  document.getElementById('d-grid').textContent=sW+'×'+sH;
+}
+
+function createObsTexture(w,h){
+  const t=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,w,h,0,gl.RED,gl.UNSIGNED_BYTE,null);
+  return t;
+}
+
+// Half-plane sign function (shared by triangle/diamond)
+function hpSign(x1,y1,x2,y2,x3,y3){return(x1-x3)*(y2-y3)-(x2-x3)*(y1-y3);}
+
+// Point-in-triangle test using half-plane method
+function pointInTri(px,py,ax,ay,bx,by,cx,cy){
+  const d1=hpSign(px,py,ax,ay,bx,by);
+  const d2=hpSign(px,py,bx,by,cx,cy);
+  const d3=hpSign(px,py,cx,cy,ax,ay);
+  return !((d1<0||d2<0||d3<0)&&(d1>0||d2>0||d3>0));
+}
+
+// Point-in-shape test (aspect-corrected coordinates, with rotation)
+function pointInObs(px,py,ob,asp){
+  let dx=(px-ob.x)*asp, dy=py-ob.y;
+  const r=ob.r;
+  // Apply inverse rotation if obstacle has angle
+  const ang=ob.angle||0;
+  if(ang!==0){
+    const c=Math.cos(-ang), s=Math.sin(-ang);
+    const rx=dx*c-dy*s, ry=dx*s+dy*c;
+    dx=rx; dy=ry;
+  }
+  switch(ob.shape){
+
+    case 'square':
+      return Math.abs(dx)<r && Math.abs(dy)<r;
+
+    case 'triangle': {
+      // Equilateral triangle pointing up
+      const h=r*1.1;
+      return pointInTri(dx,dy, 0,h, -h*0.866,-h*0.5, h*0.866,-h*0.5);
+    }
+
+    case 'airfoil': {
+      // NACA-style symmetric airfoil, chord along X axis, pointed left (into flow)
+      // Chord length = 3.5*r, max thickness = 0.8*r
+      const chord=r*3.5;
+      const thick=r*0.8;
+      // Transform to airfoil-local coords: nose at left, tail at right
+      const lx=dx/chord+0.35; // normalize so nose≈0, tail≈1
+      const ly=dy;
+      if(lx<0.0||lx>1.0) return false;
+      // NACA 0012-ish thickness distribution: t(x) = thick * (a√x - bx - cx² + dx³ - ex⁴)
+      // Simplified: ellipse-like with sharper trailing edge
+      const t=thick*(1.0-Math.pow(2.0*lx-1.0,2.0))*Math.sqrt(Math.max(0,lx))*1.3;
+      // Taper trailing edge
+      const taper=lx>0.7? 1.0-(lx-0.7)/0.3 : 1.0;
+      const halfT=t*taper*0.5;
+      return Math.abs(ly)<halfT;
+    }
+
+    case 'plate': {
+      // Thin flat plate perpendicular to horizontal flow
+      // Width = 0.15*r (thin), height = 2.2*r
+      return Math.abs(dx)<r*0.12 && Math.abs(dy)<r*1.1;
+    }
+
+    case 'diamond': {
+      // Rhombus: 4 vertices at ±r along each axis
+      // Equivalent to |dx|/r + |dy|/r < 1, stretched for aspect
+      const rx=r*1.3, ry=r*0.8;
+      return Math.abs(dx)/rx + Math.abs(dy)/ry < 1.0;
+    }
+
+    default: // circle
+      return dx*dx+dy*dy < r*r;
+  }
+}
+
+// CPU rasterize obstacles into mask texture
+function rasterizeObstacles(){
+  const data=new Uint8Array(sW*sH);
+  const asp=canvas.width/canvas.height;
+  for(let j=0;j<sH;j++){
+    for(let i=0;i<sW;i++){
+      const uvx=i/sW, uvy=j/sH;
+      let inside=false;
+      for(const ob of obstacles){
+        if(pointInObs(uvx,uvy,ob,asp)){inside=true;break;}
+      }
+      data[j*sW+i]=inside?255:0;
+    }
+  }
+  gl.bindTexture(gl.TEXTURE_2D,obsTex);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,sW,sH,0,gl.RED,gl.UNSIGNED_BYTE,data);
+  document.getElementById('d-obs').textContent=obstacles.length;
+}
+
+// Enforce obstacle boundary on a double-buffered field
+function enforceObs(dbl,sc){
+  const u=U(pr.obnd);T(dbl.w);B(u.uField,dbl.r.t);B(u.uObs,obsTex);
+  gl.uniform2fv(u.rdx,RDX());gl.uniform1f(u.scale,sc);Q();dbl.swap();
+}
+
+// ==================== HELPERS ====================
+let _tu=0;
+function B(u,t){gl.activeTexture(gl.TEXTURE0+_tu);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(u,_tu);_tu++}
+function U(prog){gl.useProgram(prog.p);_tu=0;return prog.u}
+function T(fbo){
+  if(fbo){gl.bindFramebuffer(gl.FRAMEBUFFER,fbo.f);gl.viewport(0,0,fbo.w,fbo.h)}
+  else{gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,canvas.width,canvas.height)}
+}
+function RDX(){return[1/sW,1/sH]}
+
+function advSL(vt,st,dst,dt,diss){
+  const u=U(pr.adv);T(dst);B(u.uVel,vt);B(u.uSrc,st);
+  gl.uniform1f(u.dt,dt);gl.uniform1f(u.diss,diss);gl.uniform2fv(u.rdx,RDX());Q();
+}
+function advMC(vt,dbl,fwdF,revF,dt,diss){
+  advSL(vt,dbl.r.t,fwdF,dt,1.0);
+  advSL(vt,fwdF.t,revF,-dt,1.0);
+  const u=U(pr.mc);T(dbl.w);
+  B(u.uVel,vt);B(u.uOrig,dbl.r.t);B(u.uFwd,fwdF.t);B(u.uRev,revF.t);
+  gl.uniform1f(u.dt,dt);gl.uniform1f(u.diss,diss);gl.uniform2fv(u.rdx,RDX());Q();
+  dbl.swap();
+}
+function clrFBO(fbo){const u=U(pr.clr);T(fbo);gl.uniform4f(u.val,0,0,0,0);Q()}
+function enforceBnd(dbl,sc){
+  const u=U(pr.bnd);T(dbl.w);B(u.uField,dbl.r.t);
+  gl.uniform2fv(u.rdx,RDX());gl.uniform1f(u.scale,sc);
+  gl.uniform1f(u.openRight,P.wind?1.0:0.0);Q();dbl.swap();
+}
+
+// ==================== SIMULATION STEP ====================
+let simTime=0;
+function step(){
+  const dt=P.dt;
+  simTime+=dt;
+
+  // 0. Ambient turbulence (optional)
+  if(P.turb){
+    const u=U(pr.noise);T(vel.w);B(u.uVel,vel.r.t);
+    gl.uniform1f(u.time,simTime);gl.uniform1f(u.str,2.0);Q();vel.swap();
+  }
+
+  // 0b. Wind tunnel: inject horizontal flow + density along left edge
+  if(P.wind){
+    const ws=P.windSpeed*sW*0.5;
+    // Inject velocity (always — provides wind shear in weather mode too)
+    {const u=U(pr.wind);T(vel.w);B(u.uField,vel.r.t);
+     gl.uniform1f(u.speed,ws);gl.uniform1f(u.time,simTime);gl.uniform1f(u.isVel,1.0);
+     gl.uniform1f(u.isWeather,P.weatherMode?1.0:0.0);
+     gl.uniform2fv(u.rdx,RDX());gl.uniform3fv(u.smokeCol,[0,0,0]);Q();vel.swap();}
+    // Inject visible density streaks only in non-weather mode
+    if(!P.weatherMode){
+      {const u=U(pr.wind);T(den.w);B(u.uField,den.r.t);
+       gl.uniform1f(u.speed,ws);gl.uniform1f(u.time,simTime);gl.uniform1f(u.isVel,0.0);
+       gl.uniform1f(u.isWeather,0.0);
+       gl.uniform2fv(u.rdx,RDX());gl.uniform3fv(u.smokeCol,P.col);Q();den.swap();}
+      {const u=U(pr.wind);T(temp.w);B(u.uField,temp.r.t);
+       gl.uniform1f(u.speed,ws);gl.uniform1f(u.time,simTime);gl.uniform1f(u.isVel,0.0);
+       gl.uniform1f(u.isWeather,0.0);
+       gl.uniform2fv(u.rdx,RDX());gl.uniform3fv(u.smokeCol,[0.3,0,0]);Q();temp.swap();}
+    }
+  }
+
+  // 1. Buoyancy
+  {const u=U(pr.buoy);T(vel.w);B(u.uVel,vel.r.t);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);
+   gl.uniform1f(u.buo,P.buo);gl.uniform1f(u.wt,P.wt);gl.uniform1f(u.dt,dt);Q();vel.swap();}
+
+  // 2. Advect velocity
+  if(P.mc) advMC(vel.r.t,vel,vF,vR,dt,0.999);
+  else{advSL(vel.r.t,vel.r.t,vel.w,dt,0.999);vel.swap();}
+
+  // 3. Advect density (pure transport, no uniform decay)
+  if(P.mc) advMC(vel.r.t,den,tF,tR,dt,1.0);
+  else{advSL(vel.r.t,den.r.t,den.w,dt,1.0);den.swap();}
+
+  // 3b. Strain-based dissipation — smoke in high-shear regions dissolves faster
+  {const u=U(pr.sdiss);T(den.w);B(u.uDen,den.r.t);B(u.uVel,vel.r.t);
+   gl.uniform2fv(u.rdx,RDX());
+   gl.uniform1f(u.baseDiss,P.dis);
+   gl.uniform1f(u.strainScale,3.0);    // strain-driven dissolution rate
+   gl.uniform1f(u.dt,dt);
+   Q();den.swap();}
+
+  // 4. Advect temperature (slow dissipation → sustained buoyancy column)
+  advSL(vel.r.t,temp.r.t,temp.w,dt,0.99);temp.swap();
+
+  // 4b. Weather physics (when enabled)
+  if(P.weatherMode){
+    // Condensation/precipitation: updates density (cloud+moisture) based on saturation
+    {const u=U(pr.weather);T(den.w);B(u.uVel,vel.r.t);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);
+     gl.uniform1f(u.dt,dt);gl.uniform1f(u.coriolis,P.coriolis);
+     gl.uniform1f(u.lapse,P.lapse);gl.uniform1f(u.satThresh,P.saturation);
+     gl.uniform2fv(u.rdx,RDX());Q();den.swap();}
+    // Weather temperature update: latent heat, evaporative cooling, radiative
+    {const u=U(pr.weatherTemp);T(temp.w);B(u.uTemp,temp.r.t);B(u.uDen,den.r.t);
+     gl.uniform1f(u.dt,dt);gl.uniform1f(u.lapse,P.lapse);
+     gl.uniform2fv(u.rdx,RDX());Q();temp.swap();}
+    // Coriolis force on velocity
+    if(P.coriolis>0.0){
+      const u=U(pr.coriolis);T(vel.w);B(u.uVel,vel.r.t);
+      gl.uniform1f(u.dt,dt);gl.uniform1f(u.coriolis,P.coriolis);Q();vel.swap();
+    }
+  }
+
+  // 5. Vorticity confinement
+  if(P.vor>0){
+    {const u=U(pr.curl);T(curlF);B(u.uVel,vel.r.t);gl.uniform2fv(u.rdx,RDX());Q();}
+    {const u=U(pr.vort);T(vel.w);B(u.uVel,vel.r.t);B(u.uCurl,curlF.t);
+     gl.uniform1f(u.str,P.vor);gl.uniform1f(u.dt,dt);gl.uniform2fv(u.rdx,RDX());Q();vel.swap();}
+  }
+
+  // 5b. Velocity boundary (no-slip walls + obstacles)
+  enforceBnd(vel,-1.0);
+  if(obstacles.length>0) enforceObs(vel,-1.0);
+
+  // 6. Pressure projection
+  {const u=U(pr.div);T(divF);B(u.uVel,vel.r.t);gl.uniform2fv(u.rdx,RDX());Q();}
+  // Warm-start: reuse previous pressure field
+  for(let i=0;i<P.jac;i++){
+    const u=U(pr.jac);T(pres.w);B(u.uP,pres.r.t);B(u.uDiv,divF.t);
+    gl.uniform2fv(u.rdx,RDX());Q();pres.swap();
+  }
+  enforceBnd(pres,1.0);
+  if(obstacles.length>0) enforceObs(pres,1.0);
+  {const u=U(pr.grad);T(vel.w);B(u.uP,pres.r.t);B(u.uVel,vel.r.t);gl.uniform2fv(u.rdx,RDX());Q();vel.swap();}
+  enforceBnd(vel,-1.0);
+  if(obstacles.length>0){
+    enforceObs(vel,-1.0);
+    // Clear density and temperature inside obstacles
+    enforceObs(den,-1.0);
+    enforceObs(temp,-1.0);
+  }
+
+  // 7. Render
+  if(P.weatherMode){
+    // Weather render mode
+    if(P.showVel){
+      {const u=U(pr.weatherRender);T(screenFBO);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);B(u.uVel,vel.r.t);B(u.uObs,obsTex);gl.uniform2fv(u.rdx,RDX());Q();}
+      {const u=U(pr.velviz);T(null);B(u.uScreen,screenFBO.t);B(u.uVel,vel.r.t);gl.uniform2fv(u.rdx,RDX());gl.uniform1f(u.opacity,0.7);Q();}
+    } else {
+      const u=U(pr.weatherRender);T(null);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);B(u.uVel,vel.r.t);B(u.uObs,obsTex);gl.uniform2fv(u.rdx,RDX());Q();
+    }
+  } else if(P.showVel){
+    {const u=U(pr.render);T(screenFBO);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);B(u.uObs,obsTex);gl.uniform1f(u.flameMode,P.flameMode?1.0:0.0);gl.uniform2fv(u.rdx,RDX());Q();}
+    {const u=U(pr.velviz);T(null);B(u.uScreen,screenFBO.t);B(u.uVel,vel.r.t);gl.uniform2fv(u.rdx,RDX());gl.uniform1f(u.opacity,0.7);Q();}
+  } else {
+    const u=U(pr.render);T(null);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);B(u.uObs,obsTex);gl.uniform1f(u.flameMode,P.flameMode?1.0:0.0);gl.uniform2fv(u.rdx,RDX());Q();
+  }
+}
+
+// ==================== SPLAT ====================
+function splat(dbl,x,y,r,c,cap){
+  const u=U(pr.splat);T(dbl.w);B(u.uTgt,dbl.r.t);
+  gl.uniform2f(u.pt,x,y);gl.uniform1f(u.rad,r);
+  gl.uniform1f(u.asp,canvas.width/canvas.height);
+  gl.uniform3fv(u.col,c);gl.uniform1f(u.maxVal,cap||10);Q();dbl.swap();
+}
+function emit(x,y,dx,dy){
+  const r=P.rad;
+  if(P.weatherMode){
+    // Weather mode: inject warm, moist air (moisture in alpha channel)
+    // Small amount of visible cloud seed + high moisture
+    splat(den,x,y,r,[0.1,0.1,0.12,0],1.5); // faint cloud seed
+    // Inject moisture via a separate splat to alpha — but our splat writes all 4 channels.
+    // We use the alpha component: col.z maps to blue, but we need alpha.
+    // Workaround: inject moisture as a large temperature splat that the weather
+    // shader interprets. Actually, let's inject moisture directly.
+    // Since splat adds col*gaussian to rgb and gaussian to alpha:
+    splat(den,x,y,r*1.2,[0,0,0],2.0); // this adds to alpha = moisture!
+    // Warm temperature (convective trigger)
+    const tInject=4.0*P.splatTemp;
+    splat(temp,x,y,r,[tInject,0,0],tInject+1.0);
+    // Small upward velocity seed
+    const dragX=Math.max(-200,Math.min(200,dx*400));
+    const dragY=Math.max(-200,Math.min(200,dy*400));
+    splat(vel,x,y,r*1.5,[dragX,dragY,0],300);
+  } else {
+    // Normal smoke mode
+    const c=P.col;
+    splat(den,x,y,r,[c[0]*.9,c[1]*.9,c[2]*.9],1.5);
+    const tInject=3.0*P.splatTemp;
+    splat(temp,x,y,r,[tInject,0,0],tInject+1.0);
+    const dragX=Math.max(-200,Math.min(200,dx*400));
+    const dragY=Math.max(-200,Math.min(200,dy*400));
+    splat(vel,x,y,r*1.5,[dragX,dragY,0],300);
+  }
+}
+
+// Radial puff: injects outward velocity from click point (like a small explosion)
+function emitRadialPuff(x,y){
+  const r=P.rad*2.0;
+  const str=30.0; // outward push strength in grid-cells/s
+  // We inject 4 directional splats to approximate radial expansion
+  const s=str*0.7;
+  splat(vel,x+r*0.3,y,r,[s,0,0],300);
+  splat(vel,x-r*0.3,y,r,[-s,0,0],300);
+  splat(vel,x,y+r*0.3,r,[0,s,0],300);
+  splat(vel,x,y-r*0.3,r,[0,-s,0],300);
+}
+
+// ==================== INPUT ====================
+let lp=null,lastET=0;
+let holding=false, holdPos=null;
+const DEFAULT_OBS_RADIUS=0.04;
+let draggingObs=-1;
+
+function gp(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:1-(e.clientY-r.top)/r.height}}
+function tryE(x,y,dx,dy){const n=performance.now();if(n-lastET<16)return;lastET=n;emit(x,y,dx,dy);}
+
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+function findObsAt(x,y){
+  const asp=canvas.width/canvas.height;
+  for(let i=obstacles.length-1;i>=0;i--){
+    if(pointInObs(x,y,obstacles[i],asp)) return i;
+  }
+  return -1;
+}
+
+function selectObs(idx){
+  P.selectedObs=idx;
+  if(idx>=0){
+    const deg=Math.round((obstacles[idx].angle||0)*180/Math.PI);
+    document.getElementById('c-rot').value=deg;
+    document.getElementById('v-rot').textContent=deg+'°';
+  }
+}
+
+function updateCursor(){
+  canvas.style.cursor=P.obsMode?'default':'crosshair';
+}
+
+canvas.addEventListener('mousedown',e=>{
+  const p=gp(e);
+  if(P.obsMode){
+    const idx=findObsAt(p.x,p.y);
+    if(idx>=0){
+      selectObs(idx);
+      draggingObs=idx;
+    } else {
+      obstacles.push({x:p.x,y:p.y,r:DEFAULT_OBS_RADIUS,shape:P.obsShape,angle:P.obsRot*Math.PI/180});
+      selectObs(obstacles.length-1);
+      draggingObs=obstacles.length-1;
+      rasterizeObstacles();
+    }
+  } else {
+    if(e.button!==0)return;
+    lp=p;lastET=0;holding=true;holdPos=lp;
+    emit(lp.x,lp.y,0,0);emitRadialPuff(lp.x,lp.y);
+  }
+});
+
+canvas.addEventListener('mousemove',e=>{
+  if(P.obsMode){
+    if(draggingObs>=0 && e.buttons){
+      const p=gp(e);
+      obstacles[draggingObs].x=p.x;
+      obstacles[draggingObs].y=p.y;
+      rasterizeObstacles();
+    }
+    return;
+  }
+  if(!e.buttons){lp=null;holding=false;return}
+  const p=gp(e);if(lp)tryE(p.x,p.y,p.x-lp.x,p.y-lp.y);lp=p;holdPos=p;
+});
+
+canvas.addEventListener('mouseup',()=>{
+  draggingObs=-1;
+  if(!P.obsMode){lp=null;holding=false;holdPos=null;}
+});
+
+// Touch
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();const t=e.touches[0];const p=gp(t);
+  if(P.obsMode){
+    const idx=findObsAt(p.x,p.y);
+    if(idx>=0){selectObs(idx);draggingObs=idx;}
+    else{
+      obstacles.push({x:p.x,y:p.y,r:DEFAULT_OBS_RADIUS,shape:P.obsShape,angle:P.obsRot*Math.PI/180});
+      selectObs(obstacles.length-1);draggingObs=obstacles.length-1;rasterizeObstacles();
+    }
+  } else {
+    lp=p;lastET=0;holding=true;holdPos=lp;
+    emit(lp.x,lp.y,0,0);emitRadialPuff(lp.x,lp.y);
+  }
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();const t=e.touches[0];const p=gp(t);
+  if(P.obsMode){
+    if(draggingObs>=0){obstacles[draggingObs].x=p.x;obstacles[draggingObs].y=p.y;rasterizeObstacles();}
+  } else {
+    if(lp)tryE(p.x,p.y,p.x-lp.x,p.y-lp.y);lp=p;holdPos=p;
+  }
+},{passive:false});
+canvas.addEventListener('touchend',()=>{draggingObs=-1;if(!P.obsMode){lp=null;holding=false;holdPos=null;}});
+
+// Scroll: resize (default) or rotate (shift+scroll) — works on selected in obs mode
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  let idx=P.obsMode?P.selectedObs:findObsAt(gp(e).x,gp(e).y);
+  if(idx>=0&&idx<obstacles.length){
+    if(e.shiftKey){
+      const step=e.deltaY>0?-5:5;
+      obstacles[idx].angle=(obstacles[idx].angle||0)+step*Math.PI/180;
+      const deg=Math.round(obstacles[idx].angle*180/Math.PI);
+      document.getElementById('c-rot').value=((deg%360)+360)%360>180?deg-360:deg;
+      document.getElementById('v-rot').textContent=deg+'°';
+    } else {
+      const scale=e.deltaY>0?0.92:1.08;
+      obstacles[idx].r=Math.max(0.01,Math.min(0.2,obstacles[idx].r*scale));
+    }
+    rasterizeObstacles();
+  }
+},{passive:false});
+
+function emitHold(){
+  if(!holding||!holdPos||P.obsMode)return;
+  emit(holdPos.x,holdPos.y,0,0);
+}
+
+// ==================== RESIZE ====================
+let needInit=false;
+function resize(){const w=document.querySelector('.cw');canvas.width=w.clientWidth;canvas.height=w.clientHeight}
+window.addEventListener('resize',()=>{resize();needInit=true});
+
+// ==================== UI ====================
+function bs(id,k,d,f){document.getElementById(id).addEventListener('input',function(){
+  P[k]=parseFloat(this.value);document.getElementById(d).textContent=f?f(P[k]):P[k];
+  if(k==='res')needInit=true;
+  if(k==='jac')document.getElementById('d-jac').textContent=P[k];
+})}
+bs('c-res','res','v-res');bs('c-jac','jac','v-jac');
+bs('c-dt','dt','v-dt',v=>v.toFixed(3));bs('c-vor','vor','v-vor');
+bs('c-buo','buo','v-buo',v=>v.toFixed(1));bs('c-wt','wt','v-wt',v=>v.toFixed(2));
+bs('c-dis','dis','v-dis',v=>v.toFixed(3));
+
+// Radius: 1–100% maps to 0.0001–0.040
+document.getElementById('c-rad').addEventListener('input',function(){
+  const pct=parseFloat(this.value);
+  P.rad=0.0001+(pct-1)/99*0.0399;
+  document.getElementById('v-rad').textContent=Math.round(pct)+'%';
+});
+
+// Temperature: 5–200% maps to 0.05–2.0 multiplier on base temp injection
+document.getElementById('c-temp').addEventListener('input',function(){
+  const pct=parseFloat(this.value);
+  P.splatTemp=pct/100;
+  document.getElementById('v-temp').textContent=Math.round(pct)+'%';
+});
+
+document.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{
+  document.querySelectorAll('.sw').forEach(x=>x.classList.remove('on'));
+  s.classList.add('on');
+  P.col=s.dataset.c.split(',').map(Number);
+  P.flameMode=(s.dataset.mode==='flame');
+}));
+document.getElementById('b-sl').addEventListener('click',()=>{P.mc=false;document.getElementById('b-sl').classList.add('on');document.getElementById('b-mc').classList.remove('on')});
+document.getElementById('b-mc').addEventListener('click',()=>{P.mc=true;document.getElementById('b-mc').classList.add('on');document.getElementById('b-sl').classList.remove('on')});
+
+// Mode toggle
+function setMode(obs){
+  P.obsMode=obs;
+  document.getElementById('b-mode-smoke').classList.toggle('on',!obs);
+  document.getElementById('b-mode-obs').classList.toggle('on',obs);
+  document.getElementById('obs-controls').style.display=obs?'block':'none';
+  updateCursor();
+  if(!obs)P.selectedObs=-1;
+}
+document.getElementById('b-mode-smoke').addEventListener('click',()=>setMode(false));
+document.getElementById('b-mode-obs').addEventListener('click',()=>setMode(true));
+
+// Shape selector
+const shapeIds=['circle','square','tri','airfoil','plate','diamond'];
+const shapeNames={circle:'circle',square:'square',tri:'triangle',airfoil:'airfoil',plate:'plate',diamond:'diamond'};
+shapeIds.forEach(s=>{
+  document.getElementById('b-sh-'+s).addEventListener('click',()=>{
+    P.obsShape=shapeNames[s];
+    shapeIds.forEach(id=>document.getElementById('b-sh-'+id).classList.remove('on'));
+    document.getElementById('b-sh-'+s).classList.add('on');
+  });
+});
+
+// Rotation slider — controls rotation for new obstacles AND updates selected obstacle live
+document.getElementById('c-rot').addEventListener('input',function(){
+  const deg=parseFloat(this.value);
+  P.obsRot=deg;
+  document.getElementById('v-rot').textContent=Math.round(deg)+'°';
+  if(P.selectedObs>=0&&P.selectedObs<obstacles.length){
+    obstacles[P.selectedObs].angle=deg*Math.PI/180;
+    rasterizeObstacles();
+  }
+});
+
+document.getElementById('b-turb-off').addEventListener('click',()=>{P.turb=false;document.getElementById('b-turb-off').classList.add('on');document.getElementById('b-turb-on').classList.remove('on')});
+document.getElementById('b-turb-on').addEventListener('click',()=>{P.turb=true;document.getElementById('b-turb-on').classList.add('on');document.getElementById('b-turb-off').classList.remove('on')});
+document.getElementById('b-vel-off').addEventListener('click',()=>{P.showVel=false;document.getElementById('b-vel-off').classList.add('on');document.getElementById('b-vel-on').classList.remove('on')});
+document.getElementById('b-vel-on').addEventListener('click',()=>{P.showVel=true;document.getElementById('b-vel-on').classList.add('on');document.getElementById('b-vel-off').classList.remove('on')});
+document.getElementById('b-wind-off').addEventListener('click',()=>{P.wind=false;document.getElementById('b-wind-off').classList.add('on');document.getElementById('b-wind-on').classList.remove('on')});
+document.getElementById('b-wind-on').addEventListener('click',()=>{P.wind=true;document.getElementById('b-wind-on').classList.add('on');document.getElementById('b-wind-off').classList.remove('on')});
+document.getElementById('c-wind').addEventListener('input',function(){
+  P.windSpeed=parseFloat(this.value)/100;
+  document.getElementById('v-wind').textContent=Math.round(P.windSpeed*100)+'%';
+});
+document.getElementById('b-clr').addEventListener('click',()=>{
+  clrFBO(den.r);clrFBO(den.w);clrFBO(vel.r);clrFBO(vel.w);
+  clrFBO(temp.r);clrFBO(temp.w);clrFBO(pres.r);clrFBO(pres.w);
+});
+document.getElementById('b-clr-obs').addEventListener('click',()=>{obstacles=[];P.selectedObs=-1;rasterizeObstacles();});
+document.getElementById('b-pause').addEventListener('click',()=>{P.paused=!P.paused;document.getElementById('b-pause').textContent=P.paused?'Resume':'Pause'});
+
+// Screenshot
+function takeScreenshot(){
+  step();
+  canvas.toBlob(blob=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='smoke-'+Date.now()+'.png';
+    a.click();URL.revokeObjectURL(a.href);
+  },'image/png');
+}
+document.getElementById('b-screenshot').addEventListener('click',takeScreenshot);
+
+// Keyboard shortcuts
+const swatches=[...document.querySelectorAll('.sw')];
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  const k=e.key;
+  const kl=k.toLowerCase();
+  if(kl===' '){e.preventDefault();document.getElementById('b-pause').click();}
+  else if(kl==='c'){document.getElementById('b-clr').click();}
+  else if(kl==='s'&&!e.shiftKey){takeScreenshot();}
+  else if(kl==='t'){
+    P.turb=!P.turb;
+    document.getElementById('b-turb-'+(P.turb?'on':'off')).classList.add('on');
+    document.getElementById('b-turb-'+(P.turb?'off':'on')).classList.remove('on');
+  }
+  else if(kl==='v'){
+    P.showVel=!P.showVel;
+    document.getElementById('b-vel-'+(P.showVel?'on':'off')).classList.add('on');
+    document.getElementById('b-vel-'+(P.showVel?'off':'on')).classList.remove('on');
+  }
+  else if(kl==='m'){setMode(!P.obsMode);}
+  else if(kl==='w'){
+    P.wind=!P.wind;
+    document.getElementById('b-wind-'+(P.wind?'on':'off')).classList.add('on');
+    document.getElementById('b-wind-'+(P.wind?'off':'on')).classList.remove('on');
+  }
+  else if((k==='Delete'||k==='Backspace')&&P.selectedObs>=0){
+    e.preventDefault();
+    obstacles.splice(P.selectedObs,1);
+    P.selectedObs=-1;
+    rasterizeObstacles();
+  }
+  else if(kl==='r'&&P.selectedObs>=0&&P.selectedObs<obstacles.length){
+    const step=e.shiftKey?-15:15;
+    obstacles[P.selectedObs].angle=(obstacles[P.selectedObs].angle||0)+step*Math.PI/180;
+    const deg=Math.round(obstacles[P.selectedObs].angle*180/Math.PI);
+    document.getElementById('c-rot').value=((deg%360)+360)%360>180?deg-360:deg;
+    document.getElementById('v-rot').textContent=deg+'°';
+    rasterizeObstacles();
+  }
+  else if(kl>='1'&&kl<='6'){
+    const idx=parseInt(kl)-1;
+    if(idx<swatches.length){swatches[idx].click();}
+  }
+});
+
+// ==================== FPS ====================
+let fc=0,ft=performance.now();
+function fps(){fc++;const n=performance.now();if(n-ft>500){document.getElementById('d-fps').textContent=Math.round(fc/((n-ft)/1000));fc=0;ft=n}}
+
+// ==================== MAIN ====================
+resize();initFBOs();
+(function loop(){
+  if(needInit){needInit=false;initFBOs();}
+  if(!P.paused){emitHold();step();}
+  else{const u=U(pr.render);T(null);B(u.uDen,den.r.t);B(u.uTemp,temp.r.t);B(u.uObs,obsTex);gl.uniform1f(u.flameMode,P.flameMode?1.0:0.0);gl.uniform2fv(u.rdx,RDX());Q();}
+  fps();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
