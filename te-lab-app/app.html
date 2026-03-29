@@ -59,7 +59,9 @@ function computeSteadyState(pElec, mDotHot, mDotCold, hxUA, R_chip, flowArrangem
   // No-flow fallback: everything heats up with no removal
   if (mH < 0.001 || mC < 0.001 || pElec < 0.5) {
     const stagnant = pElec < 0.5 ? T_amb : T_amb + pElec * 0.5;
-    return { T_chip: T_amb + pElec * (R_chip + R_plate + 2.0), T_h_in: stagnant, T_h_out: stagnant, T_c_in: T_amb, T_c_out: T_amb, T_diag: stagnant };
+    const T_chip_stag = T_amb + pElec * (R_chip + R_plate + 2.0);
+    const T_diag_stag = T_chip_stag - pElec * R_chip;
+    return { T_chip: T_chip_stag, T_h_in: stagnant, T_h_out: stagnant, T_c_in: T_amb, T_c_out: T_amb, T_diag: T_diag_stag };
   }
 
   const C_h = mH * cp; // W/K
@@ -88,10 +90,11 @@ function computeSteadyState(pElec, mDotHot, mDotCold, hxUA, R_chip, flowArrangem
   const T_h_out = T_h_in - Q_hx / C_h;
   const T_c_out = T_c_in + Q_hx / C_c;
 
-  const T_diag = T_h_in - 0.1; // cold plate outlet ≈ HX hot inlet, tiny pipe loss
-
   // Chip surface: sits above the fluid by conduction + contact resistance
   const T_chip = T_h_in + pElec * (R_chip + R_plate);
+
+  // Cold plate surface: between chip and fluid, separated from chip by R_chip only
+  const T_diag = T_chip - pElec * R_chip;
 
   return {
     T_chip: Math.min(T_chip, 150),
@@ -99,7 +102,7 @@ function computeSteadyState(pElec, mDotHot, mDotCold, hxUA, R_chip, flowArrangem
     T_h_out,
     T_c_in,
     T_c_out: Math.min(T_c_out, 90),
-    T_diag: Math.min(T_diag, 115),
+    T_diag: Math.min(T_diag, 140),
   };
 }
 
@@ -578,7 +581,7 @@ function SystemSchematic({ temps, flowHot, flowCold, selectedHX, selectedMateria
       <TCDot x={345} y={240} label="T_h,out" value={temps.T_h_out} color="#f97316" anchor="below" />
       <TCDot x={570} y={138} label="T_c,in" value={temps.T_c_in} color="#3b82f6" anchor="right" />
       <TCDot x={570} y={218} label="T_c,out" value={temps.T_c_out} color="#06b6d4" anchor="right" />
-      <TCDot x={210} y={195} label="T_diag" value={temps.T_diag} color="#a78bfa" anchor="left" />
+      <TCDot x={210} y={195} label="T_cp" value={temps.T_diag} color="#a78bfa" anchor="left" />
 
       {/* ── Port labels on HXSU ── */}
       <circle cx={260} cy={330} r={4} fill="#f97316" />
@@ -649,7 +652,7 @@ function DataCenterCoolingTestbed() {
     { key: "T_h_out", label: "T_h,out", color: "#f97316", width: 1.5 },
     { key: "T_c_in", label: "T_c,in", color: "#3b82f6", width: 1.5 },
     { key: "T_c_out", label: "T_c,out", color: "#06b6d4", width: 1.5 },
-    { key: "T_diag", label: "T_diag", color: "#a78bfa", width: 1, dash: "4 2" },
+    { key: "T_diag", label: "T_cp", color: "#a78bfa", width: 1, dash: "4 2" },
   ];
   const [visibleLines, setVisibleLines] = useState(() =>
     Object.fromEntries(chartChannels.map(c => [c.key, true]))
@@ -1059,7 +1062,7 @@ function DataCenterCoolingTestbed() {
                     <Thermometer value={temps.T_h_out} min={15} max={80} label="T_h,out" color="#f97316" width={38} height={80} />
                     <Thermometer value={temps.T_c_in} min={15} max={40} label="T_c,in" color="#3b82f6" width={38} height={80} />
                     <Thermometer value={temps.T_c_out} min={15} max={70} label="T_c,out" color="#06b6d4" width={38} height={80} />
-                    <Thermometer value={temps.T_diag} min={15} max={100} label="T_diag" color="#a78bfa" width={38} height={80} />
+                    <Thermometer value={temps.T_diag} min={15} max={130} label="T_cp" color="#a78bfa" width={38} height={80} />
                   </div>
                   {/* Dial gauges */}
                   <div style={{ display: "flex", gap: 2, justifyContent: "center" }}>
