@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optics Lab — Interactive Physics Simulator</title>
+<meta name="description" content="Browser-based interactive optics simulator covering Snell's law, total internal reflection, thin lenses, and chromatic dispersion. Built for PHY 2114 at UCO.">
+<meta property="og:title" content="Optics Lab — Interactive Physics Simulator">
+<meta property="og:description" content="Explore refraction, TIR, thin lenses, and dispersion with real-time ray tracing and spectral color rendering.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#08090d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090d;--bg2:#0d0f15;--bg3:#12141c;--surface:#181b25;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.12);
+  --txt:rgba(255,255,255,0.85);--txt2:rgba(255,255,255,0.55);--txt3:rgba(255,255,255,0.35);
+  --accent:#7c6aef;--accent2:#9d8cf0;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',system-ui,sans-serif;
+  --rad:10px;--rad-lg:14px;
+}
+html{font-size:15px}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+
+.wrap{max-width:780px;margin:0 auto;padding:2rem 1.5rem 2rem}
+
+header{margin-bottom:2rem;text-align:center}
+header h1{font-size:1.6rem;font-weight:600;letter-spacing:-0.03em;margin-bottom:0.3rem;background:linear-gradient(135deg,#c8b8ff 0%,#7c6aef 40%,#4ae0ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{font-size:0.82rem;color:var(--txt3);font-family:var(--mono);letter-spacing:0.04em}
+
+/* Tab bar */
+.tabs{display:flex;gap:4px;margin-bottom:1.4rem;background:var(--bg2);border-radius:var(--rad);padding:4px;border:1px solid var(--border)}
+.tab{flex:1;padding:10px 16px;font-size:0.85rem;font-weight:500;font-family:var(--sans);border:none;background:none;color:var(--txt2);cursor:pointer;border-radius:calc(var(--rad) - 3px);transition:all 0.2s}
+.tab:hover{color:var(--txt);background:rgba(255,255,255,0.03)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tab.on{background:var(--surface);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+
+.panel{display:none}
+.panel.on{display:block}
+
+/* Module info bar */
+.module-info{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;margin-bottom:12px;
+  background:rgba(124,106,239,0.06);border:1px solid rgba(124,106,239,0.12);
+  border-radius:calc(var(--rad) - 2px);
+  font-size:0.78rem;color:var(--txt2);font-family:var(--sans);
+  line-height:1.45;
+}
+.module-info .info-icon{
+  flex-shrink:0;width:16px;height:16px;
+  border:1.5px solid var(--accent2);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.65rem;font-weight:600;color:var(--accent2);font-family:var(--mono);
+}
+.module-info .info-text span{color:var(--txt3);font-family:var(--mono);font-size:0.72rem}
+
+/* Controls */
+.controls{display:grid;gap:10px;margin-bottom:14px}
+.ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctrl-group label{display:block;font-size:0.72rem;color:var(--txt3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+.ctrl-group select{width:100%;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:calc(var(--rad) - 2px);color:var(--txt);font-family:var(--sans);font-size:0.85rem;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color 0.15s}
+.ctrl-group select:hover{border-color:var(--border2)}
+.ctrl-group select:focus{outline:none;border-color:var(--accent)}
+
+.slider-row{display:flex;align-items:center;gap:12px;padding:4px 0}
+.slider-row .sl{font-size:0.72rem;color:var(--txt3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;min-width:90px}
+.slider-row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer;box-shadow:0 0 8px rgba(124,106,239,0.4);transition:box-shadow 0.15s}
+.slider-row input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 14px rgba(124,106,239,0.6)}
+.slider-row input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
+.slider-row .sv{font-size:0.85rem;font-weight:500;font-family:var(--mono);min-width:58px;text-align:right;color:var(--txt)}
+
+.chk-row{display:flex;align-items:center;gap:8px;padding:2px 0;margin-bottom:6px}
+.chk-row input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+.chk-row span{font-size:0.82rem;color:var(--txt2)}
+
+/* Canvas */
+.canvas-wrap{position:relative;width:100%;border-radius:var(--rad-lg);border:1px solid var(--border);overflow:hidden;background:var(--bg)}
+.canvas-wrap canvas{display:block;width:100%;height:auto}
+
+/* Readout cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;margin-top:12px}
+.card{background:var(--bg2);border-radius:calc(var(--rad) - 2px);padding:8px 10px;border:1px solid var(--border);transition:border-color 0.2s}
+.card:hover{border-color:var(--border2)}
+.card-l{font-size:0.68rem;color:var(--txt3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px}
+.card-v{font-size:0.95rem;font-weight:500;font-family:var(--mono)}
+
+/* Equation reference strip */
+.eq-strip{
+  margin-top:14px;padding:10px 14px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:calc(var(--rad) - 2px);
+  display:flex;flex-wrap:wrap;gap:6px 18px;
+  font-family:var(--mono);font-size:0.75rem;color:var(--txt3);
+}
+.eq-strip .eq{color:var(--txt2)}
+
+/* Footer */
+footer{
+  margin-top:3rem;padding-top:1.5rem;
+  border-top:1px solid var(--border);
+  text-align:center;
+  font-size:0.72rem;color:var(--txt3);font-family:var(--mono);
+  letter-spacing:0.02em;line-height:1.6;
+}
+footer a{color:var(--accent2);text-decoration:none;transition:color 0.15s}
+footer a:hover{color:#c8b8ff}
+
+/* Keyboard shortcut hint */
+.kbd-hint{
+  display:none;margin-top:10px;text-align:center;
+  font-size:0.7rem;color:var(--txt3);font-family:var(--mono);
+}
+.kbd-hint kbd{
+  display:inline-block;padding:1px 5px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:3px;
+  font-family:var(--mono);font-size:0.68rem;color:var(--txt2);
+}
+@media(hover:hover){.kbd-hint{display:block}}
+
+@media(max-width:600px){
+  .wrap{padding:1.2rem 1rem 2rem}
+  .ctrl-row{grid-template-columns:1fr}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
+  header h1{font-size:1.3rem}
+  .eq-strip{gap:4px 12px;font-size:0.68rem}
+  .module-info{font-size:0.72rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Optics Lab</h1>
+    <p>PHY 2114 &mdash; Interactive Simulator</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab on" id="t-sn" role="tab" aria-selected="true" aria-controls="p-sn" onclick="sw('sn')">Snell's Law &amp; TIR</button>
+    <button class="tab" id="t-ln" role="tab" aria-selected="false" aria-controls="p-ln" onclick="sw('ln')">Thin Lenses</button>
+  </div>
+
+  <!-- MODULE 1: Snell's Law -->
+  <div class="panel on" id="p-sn" role="tabpanel" aria-labelledby="t-sn">
+    <div class="module-info">
+      <div class="info-icon">i</div>
+      <div class="info-text">Light refracts at a boundary between media. Adjust the media, angle, and wavelength to explore Snell's law. Enable dispersion to see white light split into its spectrum. <span>Ch. 30.2–30.3</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label>Upper medium</label>
+          <select id="nu" onchange="uS()">
+            <option value="1.00" selected>Air (n = 1.00)</option>
+            <option value="1.33">Water (n = 1.33)</option>
+            <option value="1.52">Crown glass (n = 1.52)</option>
+            <option value="2.42">Diamond (n = 2.42)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Lower medium</label>
+          <select id="nl" onchange="uS()">
+            <option value="1.00">Air (n = 1.00)</option>
+            <option value="1.33" selected>Water (n = 1.33)</option>
+            <option value="1.52">Crown glass (n = 1.52)</option>
+            <option value="2.42">Diamond (n = 2.42)</option>
+          </select>
+        </div>
+      </div>
+      <div class="slider-row">
+        <span class="sl">Wavelength</span>
+        <input type="range" min="380" max="700" value="550" step="1" id="wl" oninput="uS()" />
+        <span class="sv" id="wl-v">550 nm</span>
+      </div>
+      <div class="slider-row">
+        <span class="sl">Incidence</span>
+        <input type="range" min="0" max="89" value="40" step="0.5" id="t1" oninput="uS()" />
+        <span class="sv" id="t1-v">40.0&deg;</span>
+      </div>
+      <div class="chk-row">
+        <input type="checkbox" id="disp" onchange="uS()" />
+        <span>Show dispersion (white light &rarr; spectrum)</span>
+      </div>
+      <div class="chk-row">
+        <input type="checkbox" id="dirDown" onchange="uS()" />
+        <span>Light from upper medium (downward)</span>
+      </div>
+    </div>
+    <div class="canvas-wrap"><canvas id="sc"></canvas></div>
+    <div class="cards" id="s-cards"></div>
+    <div class="eq-strip">
+      <span class="eq">n&#8321; sin&theta;&#8321; = n&#8322; sin&theta;&#8322;</span>
+      <span class="eq">&theta;<sub>c</sub> = sin&#8315;&#185;(n&#8322;/n&#8321;)</span>
+      <span class="eq">n(&lambda;) = B + C/&lambda;&sup2;</span>
+    </div>
+  </div>
+
+  <!-- MODULE 2: Thin Lenses -->
+  <div class="panel" id="p-ln" role="tabpanel" aria-labelledby="t-ln">
+    <div class="module-info">
+      <div class="info-icon">i</div>
+      <div class="info-text">Drag the object distance through the focal point to watch the image transition from real/inverted to virtual/upright. Three principal rays are traced in real time. <span>Ch. 30.4</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-row">
+        <div class="ctrl-group">
+          <label>Lens type</label>
+          <select id="lt" onchange="uL()">
+            <option value="c">Converging (f &gt; 0)</option>
+            <option value="d">Diverging (f &lt; 0)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Focal length |f|</label>
+          <div class="slider-row" style="margin:0;padding:0">
+            <input type="range" min="3" max="40" value="15" step="0.5" id="fl" oninput="uL()" style="flex:1" />
+            <span class="sv" id="fl-v">15.0 cm</span>
+          </div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <span class="sl">Wavelength</span>
+        <input type="range" min="380" max="700" value="550" step="1" id="wl2" oninput="uL()" />
+        <span class="sv" id="wl2-v">550 nm</span>
+      </div>
+      <div class="slider-row">
+        <span class="sl">Object dist</span>
+        <input type="range" min="2" max="80" value="45" step="0.5" id="od" oninput="uL()" />
+        <span class="sv" id="od-v">45.0 cm</span>
+      </div>
+    </div>
+    <div class="canvas-wrap"><canvas id="lc"></canvas></div>
+    <div class="cards" id="l-cards"></div>
+    <div class="eq-strip">
+      <span class="eq">1/d<sub>o</sub> + 1/d<sub>i</sub> = 1/f</span>
+      <span class="eq">M = &minus;d<sub>i</sub>/d<sub>o</sub></span>
+      <span class="eq">f &gt; 0 converging &middot; f &lt; 0 diverging</span>
+    </div>
+  </div>
+
+  <div class="kbd-hint">
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules
+  </div>
+
+  <footer>
+    Optics Lab &mdash; built by <a href="https://peirastes.com" target="_blank" rel="noopener">peirastes</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+/* ── Rendering constants ── */
+var BG='#08090d',BG2='#0d0f15';
+var GR='rgba(255,255,255,0.035)';
+var IF='rgba(255,255,255,0.12)';
+var NM='rgba(255,255,255,0.06)';
+var TX='rgba(255,255,255,0.5)';
+var TXH='rgba(255,255,255,0.8)';
+
+/* ── HiDPI canvas setup ── */
+var BASE_W_SN=780, BASE_H_SN=480;
+var BASE_W_LN=780, BASE_H_LN=460;
+
+function setupCanvas(cv, baseW, baseH) {
+  var dpr = window.devicePixelRatio || 1;
+  cv.width = baseW * dpr;
+  cv.height = baseH * dpr;
+  cv.style.width = '100%';
+  cv.style.height = 'auto';
+  cv.style.aspectRatio = baseW + ' / ' + baseH;
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+/* ── Wavelength → RGB (CIE piecewise approximation) ── */
+function wlRGB(wl){
+  var r=0,g=0,b=0;
+  if(wl>=380&&wl<440){r=-(wl-440)/(440-380);b=1;}
+  else if(wl>=440&&wl<490){g=(wl-440)/(490-440);b=1;}
+  else if(wl>=490&&wl<510){g=1;b=-(wl-510)/(510-490);}
+  else if(wl>=510&&wl<580){r=(wl-510)/(580-510);g=1;}
+  else if(wl>=580&&wl<645){r=1;g=-(wl-645)/(645-580);}
+  else if(wl>=645&&wl<=700){r=1;}
+  var f=1;
+  if(wl>=380&&wl<420)f=0.3+0.7*(wl-380)/(420-380);
+  else if(wl>=645&&wl<=700)f=0.3+0.7*(700-wl)/(700-645);
+  return[Math.round(255*Math.pow(r*f,0.8)),Math.round(255*Math.pow(g*f,0.8)),Math.round(255*Math.pow(b*f,0.8))];
+}
+function wC(wl){var c=wlRGB(wl);return'rgb('+c[0]+','+c[1]+','+c[2]+')';}
+
+/* ── Cauchy dispersion: n(λ) = B + C/λ² (λ in nm) ── */
+function cauchy(nb,wl){
+  if(nb<=1.001)return 1.0;
+  var B,C;
+  if(Math.abs(nb-1.33)<0.01){B=1.3199;C=6878;}       // Water
+  else if(Math.abs(nb-1.52)<0.01){B=1.5046;C=4200;}   // Crown glass
+  else if(Math.abs(nb-2.42)<0.01){B=2.3780;C=12200;}   // Diamond
+  else{B=nb-0.004;C=5000;}                              // Fallback
+  return B+C/(wl*wl);
+}
+
+/* ── Readout card HTML ── */
+function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div class="card-v" style="color:'+c+'">'+v+'</div></div>';}
+
+/* ── Tab switching ── */
+var currentTab = 'sn';
+window.sw=function(t){
+  currentTab = t;
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('p-'+t).classList.add('on');
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');b.setAttribute('aria-selected','false');});
+  var tb = document.getElementById('t-'+t);
+  tb.classList.add('on');
+  tb.setAttribute('aria-selected','true');
+  t==='ln'?uL():uS();
+};
+
+/* ── Keyboard navigation: arrow keys switch tabs ── */
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    var tabs = ['sn','ln'];
+    var idx = tabs.indexOf(currentTab);
+    if (e.key === 'ArrowRight') idx = (idx + 1) % tabs.length;
+    else idx = (idx - 1 + tabs.length) % tabs.length;
+    sw(tabs[idx]);
+    document.getElementById('t-' + tabs[idx]).focus();
+  }
+});
+
+/* ── Beam glow renderer (5-layer stack) ── */
+function beam(ctx,x1,y1,x2,y2,col,w,al){
+  ctx.save();ctx.lineCap='round';
+  ctx.globalAlpha=(al||1)*0.04;ctx.strokeStyle=col;ctx.lineWidth=(w||3)+12;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=(al||1)*0.1;ctx.lineWidth=(w||3)+6;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=(al||1)*0.25;ctx.lineWidth=(w||3)+3;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=(al||1)*0.7;ctx.lineWidth=w||3;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=Math.min(1,(al||1)*1.1);ctx.lineWidth=Math.max(0.5,(w||3)*0.35);ctx.strokeStyle='rgba(255,255,255,0.25)';
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.restore();
+}
+
+/* ── Arrowhead ── */
+function aH(ctx,x,y,a,col,sz){
+  sz=sz||9;ctx.save();ctx.translate(x,y);ctx.rotate(a);
+  ctx.fillStyle=col;ctx.globalAlpha=1;
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-sz,-sz*0.38);ctx.lineTo(-sz,sz*0.38);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+/* ── Background grid ── */
+function grd(ctx,W,H){
+  ctx.strokeStyle=GR;ctx.lineWidth=0.5;
+  for(var x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(var y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
+
+/* ── Angle arc with label ── */
+function arc(ctx,cx,cy,r,a1,a2,col,lbl){
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.5;
+  ctx.beginPath();ctx.arc(cx,cy,r,a1,a2);ctx.stroke();
+  var m=(a1+a2)/2;
+  ctx.globalAlpha=0.8;ctx.fillStyle=col;ctx.font='500 13px "DM Sans",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(lbl,cx+(r+18)*Math.cos(m),cy+(r+18)*Math.sin(m));
+  ctx.restore();
+}
+
+/* ── Snell ray tracer (dy: +1 = upward incident, -1 = downward incident) ── */
+function snRay(ctx,mx,my,t1r,n1,n2,wl,rL,showI,iA,dy){
+  dy=dy||1;
+  var col=wC(wl);
+  var sT2=n1*Math.sin(t1r)/n2;
+  var tir=sT2>1;
+  if(showI!==false){
+    var sx=mx-rL*Math.sin(t1r),sy=my+dy*rL*Math.cos(t1r);
+    beam(ctx,sx,sy,mx,my,col,2.5,iA||1);
+    aH(ctx,mx-6*Math.sin(t1r),my+dy*6*Math.cos(t1r),Math.atan2(my-sy,mx-sx),col);
+  }
+  if(tir){
+    var rx=mx+rL*Math.sin(t1r),ry=my+dy*rL*Math.cos(t1r);
+    beam(ctx,mx,my,rx,ry,col,2.5);
+    aH(ctx,rx,ry,Math.atan2(ry-my,rx-mx),col);
+    return null;
+  }else{
+    var t2r=Math.asin(sT2);
+    var fx=mx+rL*Math.sin(t2r),fy=my-dy*rL*Math.cos(t2r);
+    beam(ctx,mx,my,fx,fy,col,2.5);
+    aH(ctx,fx,fy,Math.atan2(fy-my,fx-mx),col);
+    return t2r;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 1: Snell's Law & Total Internal Reflection
+   ════════════════════════════════════════════════════════════ */
+function uS(){
+  var dirDown=document.getElementById('dirDown').checked;
+  var dy=dirDown?-1:1;
+  /* n1 = incident medium, n2 = transmitted medium */
+  var n1b=dirDown?parseFloat(document.getElementById('nu').value):parseFloat(document.getElementById('nl').value);
+  var n2b=dirDown?parseFloat(document.getElementById('nl').value):parseFloat(document.getElementById('nu').value);
+  var wl=parseFloat(document.getElementById('wl').value);
+  var t1=parseFloat(document.getElementById('t1').value);
+  var disp=document.getElementById('disp').checked;
+  document.getElementById('wl-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('t1-v').textContent=t1.toFixed(1)+'\u00B0';
+
+  var cv=document.getElementById('sc');
+  var W=BASE_W_SN, H=BASE_H_SN;
+  var ctx=setupCanvas(cv, W, H);
+  var mx=W/2,my=H/2;
+
+  var n1d=cauchy(n1b,wl),n2d=cauchy(n2b,wl);
+
+  /* Background: two media zones */
+  ctx.fillStyle='#060810';ctx.fillRect(0,0,W,my);
+  ctx.fillStyle=BG;ctx.fillRect(0,my,W,my);
+  grd(ctx,W,H);
+
+  /* Interface line and normal */
+  ctx.strokeStyle=IF;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,my);ctx.lineTo(W,my);ctx.stroke();
+  ctx.setLineDash([5,8]);ctx.strokeStyle=NM;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(mx,15);ctx.lineTo(mx,H-15);ctx.stroke();ctx.setLineDash([]);
+
+  /* Labels */
+  ctx.font='12px "JetBrains Mono",monospace';ctx.textAlign='left';ctx.fillStyle=TX;ctx.fillText('normal',mx+8,30);
+  var uT=document.getElementById('nu').selectedOptions[0].text;
+  var lT=document.getElementById('nl').selectedOptions[0].text;
+  ctx.textAlign='right';ctx.globalAlpha=0.35;ctx.fillText(uT,W-16,my-14);ctx.fillText(lT,W-16,my+24);ctx.globalAlpha=1;
+
+  var t1r=t1*Math.PI/180,rL=200;
+  var hasCrit=n1d>n2d;
+  var critA=hasCrit?Math.asin(n2d/n1d)*180/Math.PI:null;
+
+  /* Rays */
+  if(disp){
+    var steps=[700,660,620,600,580,560,540,520,500,480,460,440,420,400,380];
+    var sx=mx-rL*Math.sin(t1r),sy=my+dy*rL*Math.cos(t1r);
+    beam(ctx,sx,sy,mx,my,'rgba(255,255,255,0.85)',3.5);
+    aH(ctx,mx-6*Math.sin(t1r),my+dy*6*Math.cos(t1r),Math.atan2(my-sy,mx-sx),'rgba(255,255,255,0.7)');
+    for(var i=0;i<steps.length;i++){
+      var w=steps[i];
+      var nn1=cauchy(n1b,w),nn2=cauchy(n2b,w);
+      snRay(ctx,mx,my,t1r,nn1,nn2,w,rL,false,null,dy);
+    }
+  }else{
+    var t2r=snRay(ctx,mx,my,t1r,n1d,n2d,wl,rL,undefined,undefined,dy);
+    var col=wC(wl);
+    if(dy===1){
+      /* Upward incidence: incident from lower-left, refracted to upper-right */
+      arc(ctx,mx,my,38,Math.PI/2,Math.PI/2+t1r,col,'\u03B8\u2081');
+      if(t2r!==null)arc(ctx,mx,my,38,-Math.PI/2,-Math.PI/2+t2r,col,'\u03B8\u2082');
+    }else{
+      /* Downward incidence: incident from upper-left, refracted to lower-right */
+      arc(ctx,mx,my,38,-Math.PI/2-t1r,-Math.PI/2,col,'\u03B8\u2081');
+      if(t2r!==null)arc(ctx,mx,my,38,Math.PI/2-t2r,Math.PI/2,col,'\u03B8\u2082');
+    }
+  }
+
+  /* Critical angle indicator */
+  if(hasCrit&&critA!==null){
+    var cr=critA*Math.PI/180;
+    ctx.save();ctx.setLineDash([3,6]);ctx.strokeStyle='rgba(255,68,102,0.25)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx-rL*0.7*Math.sin(cr),my+dy*rL*0.7*Math.cos(cr));ctx.lineTo(mx,my);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx-rL*0.7,my);ctx.stroke();
+    ctx.setLineDash([]);ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle='rgba(255,68,102,0.55)';
+    ctx.textAlign='right';ctx.fillText('\u03B8c = '+critA.toFixed(1)+'\u00B0',mx-rL*0.7-8,my+16);
+    ctx.restore();
+  }
+
+  /* Hit point */
+  ctx.beginPath();ctx.arc(mx,my,3,0,2*Math.PI);ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fill();
+
+  /* Readout cards */
+  var sT2=n1d*Math.sin(t1r)/n2d;var tir=sT2>1;var col=wC(wl);
+  var t2s=tir?'TIR':(Math.asin(sT2)*180/Math.PI).toFixed(1)+'\u00B0';
+  var h='';
+  h+=cd('n\u2081',n1d.toFixed(3),col);
+  h+=cd('n\u2082',n2d.toFixed(3),col);
+  h+=cd('\u03B8\u2081',t1.toFixed(1)+'\u00B0',col);
+  h+=cd('\u03B8\u2082',t2s,tir?'#ff4466':col);
+  if(hasCrit)h+=cd('\u03B8c',critA.toFixed(1)+'\u00B0','#ff4466');
+  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  document.getElementById('s-cards').innerHTML=h;
+}
+window.uS=uS;
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 2: Thin Lenses
+   ════════════════════════════════════════════════════════════ */
+function uL(){
+  var type=document.getElementById('lt').value;
+  var fAbs=parseFloat(document.getElementById('fl').value);
+  var dObj=parseFloat(document.getElementById('od').value);
+  var wl=parseFloat(document.getElementById('wl2').value);
+  document.getElementById('fl-v').textContent=fAbs.toFixed(1)+' cm';
+  document.getElementById('od-v').textContent=dObj.toFixed(1)+' cm';
+  document.getElementById('wl2-v').textContent=Math.round(wl)+' nm';
+
+  var col=wC(wl);
+  var f=type==='c'?fAbs:-fAbs;
+  var inv=1/f-1/dObj;
+  var di=inv!==0?1/inv:Infinity;
+  var M=isFinite(di)?-di/dObj:Infinity;
+
+  var cv=document.getElementById('lc');
+  var W=BASE_W_LN, H=BASE_H_LN;
+  var ctx=setupCanvas(cv, W, H);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
+
+  var lx=W*0.5,ay=H*0.5,sc=5;
+
+  /* Optical axis */
+  ctx.strokeStyle=IF;ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(12,ay);ctx.lineTo(W-12,ay);ctx.stroke();
+
+  /* Lens shape */
+  var lH=160;
+  ctx.strokeStyle='rgba(140,180,255,0.25)';ctx.lineWidth=2;
+  if(type==='c'){
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx+15,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx-15,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.fillStyle='rgba(100,160,255,0.04)';
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx+15,ay,lx,ay+lH/2);ctx.quadraticCurveTo(lx-15,ay,lx,ay-lH/2);ctx.fill();
+  }else{
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx-10,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx+10,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.fillStyle='rgba(100,160,255,0.03)';
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx-10,ay,lx,ay+lH/2);ctx.quadraticCurveTo(lx+10,ay,lx,ay-lH/2);ctx.fill();
+  }
+
+  /* Focal points */
+  var fpx=Math.abs(f)*sc,f1=lx-fpx,f2=lx+fpx;
+  function fM(x,lb){
+    ctx.beginPath();ctx.arc(x,ay,3,0,2*Math.PI);ctx.fillStyle='rgba(255,100,100,0.5)';ctx.fill();
+    ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle='rgba(255,100,100,0.4)';ctx.textAlign='center';ctx.fillText(lb,x,ay+18);
+  }
+  if(type==='c'){fM(f1,'F');fM(f2,"F'");}else{fM(f1,"F'");fM(f2,'F');}
+
+  /* Object arrow */
+  var ox=lx-dObj*sc,oH=70;
+  ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(ox,ay);ctx.lineTo(ox,ay-oH);ctx.stroke();
+  aH(ctx,ox,ay-oH,-Math.PI/2,col,8);
+
+  /* Ray tracing + image */
+  /* Helper: given a point and slope, find y at x=edge */
+  function yAtX(x0,y0,slope,xTarget){ return y0 + slope*(xTarget-x0); }
+
+  if(!isFinite(di)||Math.abs(di)>160){
+    /* Image at infinity: parallel exit rays */
+    beam(ctx,Math.max(-20,ox),ay-oH,lx,ay-oH,col,2);
+    beam(ctx,lx,ay-oH,W+20,ay-oH,col,2);
+    beam(ctx,Math.max(-20,ox),ay-oH,lx,ay,col,2);
+    beam(ctx,lx,ay,W+20,ay,col,2);
+  }else{
+    var ix=lx+di*sc,iH=M*oH;
+    var virt=di<0;
+    var onScreenI=ix>=-20&&ix<=W+20;
+    var onScreenO=ox>=-20&&ox<=W+20;
+
+    /* Draw image arrow only if on screen */
+    if(onScreenI){
+      ctx.strokeStyle=col;ctx.lineWidth=2.5;
+      if(virt)ctx.setLineDash([6,5]);
+      ctx.beginPath();ctx.moveTo(ix,ay);ctx.lineTo(ix,ay-iH);ctx.stroke();
+      aH(ctx,ix,ay-iH,iH>0?-Math.PI/2:Math.PI/2,col,8);
+      ctx.setLineDash([]);
+    }
+
+    /* Draw object arrow only if on screen */
+    if(onScreenO){
+      /* already drawn above, but re-check visibility handled by draw position */
+    }
+
+    if(type==='c'){
+      /* Ray 1: parallel to axis, then through F' */
+      var r1slope=((ay-iH)-(ay-oH))/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay-oH,col,2);
+      if(di>0){
+        beam(ctx,lx,ay-oH,Math.min(W+20,ix),yAtX(lx,ay-oH,r1slope,Math.min(W+20,ix)),col,2);
+      }else{
+        /* Virtual: ray diverges, extend to edge; dashed back-projection */
+        beam(ctx,lx,ay-oH,W+20,yAtX(lx,ay-oH,r1slope,W+20),col,2);
+        ctx.save();ctx.setLineDash([4,5]);
+        beam(ctx,lx,ay-oH,Math.max(-20,ix),yAtX(lx,ay-oH,r1slope,Math.max(-20,ix)),col,1.5,0.2);
+        ctx.restore();ctx.setLineDash([]);
+      }
+
+      /* Ray 2: through lens center */
+      var r2slope=((ay-iH)-ay)/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay,col,2);
+      if(di>0){
+        beam(ctx,lx,ay,Math.min(W+20,ix),yAtX(lx,ay,r2slope,Math.min(W+20,ix)),col,2);
+      }else{
+        beam(ctx,lx,ay,W+20,yAtX(lx,ay,r2slope,W+20),col,2);
+        ctx.save();ctx.setLineDash([4,5]);
+        beam(ctx,lx,ay,Math.max(-20,ix),yAtX(lx,ay,r2slope,Math.max(-20,ix)),col,1.5,0.2);
+        ctx.restore();ctx.setLineDash([]);
+      }
+    }else{
+      /* Diverging lens */
+      /* Ray 1: parallel, then diverges as if from F' */
+      var r1slope=((ay-iH)-(ay-oH))/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay-oH,col,2);
+      beam(ctx,lx,ay-oH,W+20,yAtX(lx,ay-oH,r1slope,W+20),col,2);
+      ctx.save();ctx.setLineDash([4,5]);
+      beam(ctx,lx,ay-oH,Math.max(-20,ix),yAtX(lx,ay-oH,r1slope,Math.max(-20,ix)),col,1.5,0.2);
+      ctx.restore();ctx.setLineDash([]);
+
+      /* Ray 2: through center */
+      var r2slope=((ay-iH)-ay)/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay,col,2);
+      beam(ctx,lx,ay,W+20,yAtX(lx,ay,r2slope,W+20),col,2);
+      ctx.save();ctx.setLineDash([4,5]);
+      beam(ctx,lx,ay,Math.max(-20,ix),yAtX(lx,ay,r2slope,Math.max(-20,ix)),col,1.5,0.2);
+      ctx.restore();ctx.setLineDash([]);
+    }
+  }
+
+  /* Readout cards */
+  var h='';
+  var dis=!isFinite(di)?'\u221E':di.toFixed(1)+' cm';
+  var ms=!isFinite(M)?'\u221E':M.toFixed(2);
+  var nat='';
+  if(!isFinite(di))nat='At \u221E';
+  else if(di>0)nat='Real, '+(M<0?'inv.':'upr.');
+  else nat='Virtual, '+(M>0?'upr.':'inv.');
+  h+=cd('f',f.toFixed(1)+' cm','rgba(255,100,100,0.65)');
+  h+=cd('d\u2092',dObj.toFixed(1)+' cm',col);
+  h+=cd('d\u1d62',dis,col);
+  h+=cd('M',ms,col);
+  h+=cd('Image',nat,TXH);
+  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  document.getElementById('l-cards').innerHTML=h;
+}
+window.uL=uL;
+
+/* ── Initialize ── */
+uS();
+
+})();
+</script>
+</body>
+</html>
