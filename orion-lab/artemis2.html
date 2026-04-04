@@ -746,7 +746,7 @@ function updateMissionLog() {
   // Show count + expand/collapse toggle
   if (MISSION_EVENTS.length > 3) {
     let arrow = logCollapsed ? '&#9660;' : '&#9650;';
-    html += '<div class="log-footer-toggle" style="display:flex;align-items:center;gap:4px;font-family:\'Space Mono\',monospace;font-size:7px;color:var(--fg3);margin-top:4px;cursor:pointer" onclick="document.getElementById(\'logCollapseBtn\').click()">';
+    html += '<div id="logFooterToggle" style="display:flex;align-items:center;gap:4px;font-family:Space Mono,monospace;font-size:7px;color:var(--fg3);margin-top:4px;cursor:pointer">';
     html += '<span style="font-size:8px">' + arrow + '</span> ' + MISSION_EVENTS.length + ' events';
     html += '</div>';
   }
@@ -1633,6 +1633,13 @@ document.getElementById('infoBtn').addEventListener('click',()=>{
 
 document.getElementById('headerInfoBtn').addEventListener('click',()=>{
   document.getElementById('infoPanel').classList.toggle('hidden');
+});
+
+// Delegated click for log footer toggle (rebuilt on each updateMissionLog)
+document.getElementById('missionLog').addEventListener('click',(e)=>{
+  if (e.target.closest('#logFooterToggle')) {
+    document.getElementById('logCollapseBtn').click();
+  }
 });
 
 document.getElementById('logCollapseBtn').addEventListener('click',()=>{
