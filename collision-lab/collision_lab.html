@@ -664,6 +664,7 @@ function togglePause(){
 function replayAnimation(){
   if(animFrame)cancelAnimationFrame(animFrame);
   animFrame=null; AD=null;
+  document.getElementById('results-panel').style.display='none';
   drawPreview();
 }
 
@@ -692,7 +693,7 @@ function runCollision(){
   const ab=(l,ok)=>{const b=document.createElement('span');b.className=`badge ${ok?'pass':'fail'}`;b.textContent=`${ok?'✓':'✗'} ${l}`;bd.appendChild(b);};
   ab('pₓ conserved',ver.px_ok); ab('pᵧ conserved',ver.py_ok);
   if(inp.e===1) ab('ΔKE ≈ 0 (elastic)',Math.abs(res.delta_KE)<1e-9);
-  if(inp.e===0) ab('v₁f = v₂f (inelastic)',Math.abs(res.v1f[0]-res.v2f[0])<1e-9&&Math.abs(res.v1f[1]-res.v2f[1])<1e-9);
+  if(inp.e===0){const th=inp.theta*Math.PI/180,nx=Math.cos(th),ny=Math.sin(th);const u1n=res.v1f[0]*nx+res.v1f[1]*ny,u2n=res.v2f[0]*nx+res.v2f[1]*ny;ab('v₁ₙ = v₂ₙ (inelastic)',Math.abs(u1n-u2n)<1e-9);}
 }
 
 // ============================================================
@@ -756,8 +757,9 @@ function drawPreview() {
   const r1 = baseR * Math.cbrt(inp.m1/maxM) + 8*dpr;
   const r2 = baseR * Math.cbrt(inp.m2/maxM) + 8*dpr;
 
-  // Velocity scaling
-  const vels = [inp.v1i, inp.v2i];
+  // Velocity scaling (include final velocities to match animation scaling)
+  const res = collide(inp.m1, inp.m2, inp.v1i, inp.v2i, inp.e, inp.theta);
+  const vels = [inp.v1i, inp.v2i, res.v1f, res.v2f];
   const maxV = Math.max(...vels.map(v=>Math.sqrt(v[0]**2+v[1]**2)), 0.1);
   const pxPerMps = Math.min(W,H)*0.26 / maxV;
 
