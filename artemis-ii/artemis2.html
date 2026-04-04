@@ -186,11 +186,13 @@ canvas{display:block;width:100%;height:100%}
   .info-panel{margin-top:0}
 
   /* Telemetry: larger tapes, centered with room for future side graphs */
-  .hud-bc{bottom:8px;left:15%;right:15%;transform:none;padding:8px 10px;overflow:visible}
-  .tape-main{width:44px;height:min(130px,22vh)}
+  .hud-bc{bottom:8px;left:8px;right:8px;transform:none;padding:8px 10px;overflow:visible}
+  .instruments{gap:4px;justify-content:space-between;width:100%}
+  .tape-inst{flex:1;min-width:0}
+  .tape-body{width:100%}
+  .tape-main{width:100%;height:min(130px,22vh)}
   .tape-head{font-size:7px;letter-spacing:0.8px;margin-bottom:2px}
   .tape-unit{font-size:6px}
-  .instruments{gap:6px;justify-content:center}
   .hud-bc > .section-lbl{font-size:6px;text-align:center}
 
   /* Hide graph drawer and its toggle */
@@ -750,17 +752,15 @@ function updateMissionLog() {
     html += '</div>';
   }
 
-  // Update header summary: current event + countdown to next
+  // Update header summary: countdown to next event
   let summaryEl = document.getElementById('logSummary');
   if (summaryEl) {
-    let activeEv = MISSION_EVENTS[activeIdx];
     let nextIdx = activeIdx + 1;
     if (nextIdx < MISSION_EVENTS.length) {
-      let nextEv = MISSION_EVENTS[nextIdx];
-      let diff = nextEv.t - simTime;
-      summaryEl.innerHTML = '<span class="log-summary-ev">' + activeEv.label + '</span> &middot; <span class="log-summary-t">T&minus;' + formatCountdown(diff) + '</span>';
+      let diff = MISSION_EVENTS[nextIdx].t - simTime;
+      summaryEl.innerHTML = '<span class="log-summary-t">T&minus;' + formatCountdown(diff) + '</span> ' + MISSION_EVENTS[nextIdx].label;
     } else {
-      summaryEl.innerHTML = '<span class="log-summary-ev">' + activeEv.label + '</span>';
+      summaryEl.textContent = 'Mission complete';
     }
   }
 
