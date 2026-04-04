@@ -287,6 +287,7 @@ function loadPreset(n) {
   document.getElementById('e-slider').value=p.e; document.getElementById('e-input').value=p.e;
   document.getElementById('e-val').textContent=p.e.toFixed(2); document.getElementById('theta').value=p.theta;
   document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===n-1));
+  if(document.getElementById('viz-canvas')) drawPreview();
 }
 function readInputs() {
   return { m1:+document.getElementById('m1').value, m2:+document.getElementById('m2').value,
@@ -742,6 +743,101 @@ function drawParamChart(canvas,eV,dV,C){
 }
 
 // ============================================================
+// LIVE PREVIEW — shows initial configuration before running
+// ============================================================
+function drawPreview() {
+  const {canvas,W,H,dpr} = sizeCanvas();
+  const ctx = canvas.getContext('2d');
+  const cx=W/2, cy=H/2;
+  const inp = readInputs();
+
+  // Particle radii (same logic as initAnimation)
+  const baseR = 18*dpr;
+  const maxM = Math.max(inp.m1, inp.m2);
+  const r1 = baseR * Math.cbrt(inp.m1/maxM) + 8*dpr;
+  const r2 = baseR * Math.cbrt(inp.m2/maxM) + 8*dpr;
+
+  // Velocity scaling
+  const vels = [inp.v1i, inp.v2i];
+  const maxV = Math.max(...vels.map(v=>Math.sqrt(v[0]**2+v[1]**2)), 0.1);
+  const pxPerMps = Math.min(W,H)*0.26 / maxV;
+
+  // Contact geometry at t=0 (surface-to-surface touch at center)
+  const theta = inp.theta * Math.PI/180;
+  const nxHat = Math.cos(theta), nyHat = Math.sin(theta);
+  const c1x0 = cx - r1*nxHat, c1y0 = cy + r1*nyHat;
+  const c2x0 = cx + r2*nxHat, c2y0 = cy - r2*nyHat;
+
+  // Positions at t = -T_APPROACH (initial approach positions)
+  const t = -T_APPROACH;
+  const x1 = c1x0 + inp.v1i[0]*pxPerMps*t;
+  const y1 = c1y0 - inp.v1i[1]*pxPerMps*t;
+  const x2 = c2x0 + inp.v2i[0]*pxPerMps*t;
+  const y2 = c2y0 - inp.v2i[1]*pxPerMps*t;
+
+  // --- Draw scene ---
+  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  const gs=40*dpr;
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let gx=cx%gs;gx<W;gx+=gs){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+  for(let gy=cy%gs;gy<H;gy+=gs){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
+
+  // X and Y axes
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.2*dpr;
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1*dpr;
+  const tickLen=4*dpr;
+  for(let tx2=cx+gs;tx2<W;tx2+=gs){ctx.beginPath();ctx.moveTo(tx2,cy-tickLen);ctx.lineTo(tx2,cy+tickLen);ctx.stroke();}
+  for(let tx2=cx-gs;tx2>0;tx2-=gs){ctx.beginPath();ctx.moveTo(tx2,cy-tickLen);ctx.lineTo(tx2,cy+tickLen);ctx.stroke();}
+  for(let ty2=cy+gs;ty2<H;ty2+=gs){ctx.beginPath();ctx.moveTo(cx-tickLen,ty2);ctx.lineTo(cx+tickLen,ty2);ctx.stroke();}
+  for(let ty2=cy-gs;ty2>0;ty2-=gs){ctx.beginPath();ctx.moveTo(cx-tickLen,ty2);ctx.lineTo(cx+tickLen,ty2);ctx.stroke();}
+  ctx.font=`${11*dpr}px Share Tech Mono`; ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('x',W-14*dpr,cy-6*dpr);
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('y',cx+8*dpr,4*dpr);
+
+  // Line of impact
+  const diag=Math.max(W,H);
+  ctx.strokeStyle='rgba(240,160,48,0.15)'; ctx.lineWidth=dpr;
+  ctx.setLineDash([6*dpr,4*dpr]);
+  ctx.beginPath();
+  ctx.moveTo(cx-diag*Math.cos(theta),cy+diag*Math.sin(theta));
+  ctx.lineTo(cx+diag*Math.cos(theta),cy-diag*Math.sin(theta));
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // n̂ / t̂ at contact point
+  const al=40*dpr;
+  drawArrow(ctx,cx,cy,cx+al*Math.cos(theta),cy-al*Math.sin(theta),'rgba(240,160,48,0.35)',1.2*dpr);
+  drawArrow(ctx,cx,cy,cx-al*Math.sin(theta),cy-al*Math.cos(theta),'rgba(64,232,208,0.35)',1.2*dpr);
+  ctx.font=`${10*dpr}px Share Tech Mono`; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle='rgba(240,160,48,0.45)';
+  ctx.fillText('n̂',cx+al*Math.cos(theta)+4*dpr,cy-al*Math.sin(theta)-4*dpr);
+  ctx.fillStyle='rgba(64,232,208,0.45)';
+  ctx.fillText('t̂',cx-al*Math.sin(theta)+4*dpr,cy-al*Math.cos(theta)-4*dpr);
+
+  // Velocity arrows
+  const arrowScale = pxPerMps*0.4;
+  drawVelArrowFromSurface(ctx,x1,y1,r1,inp.v1i,arrowScale,'rgba(64,232,208,0.45)',1.2*dpr);
+  drawVelArrowFromSurface(ctx,x2,y2,r2,inp.v2i,arrowScale,'rgba(240,160,48,0.45)',1.2*dpr);
+
+  // Pucks
+  drawPuck(ctx,x1,y1,r1,'#40e8d0','m₁',inp.m1,dpr);
+  drawPuck(ctx,x2,y2,r2,'#f0a030','m₂',inp.m2,dpr);
+
+  // Contact point
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath(); ctx.arc(cx,cy,3*dpr,0,Math.PI*2); ctx.fill();
+
+  // Legend
+  ctx.font=`${9*dpr}px Share Tech Mono`; ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText('arrows = initial velocity    contact point at center', 8*dpr, H-6*dpr);
+}
+
+// ============================================================
 // INIT
 // ============================================================
 window.addEventListener('load',()=>{
@@ -759,11 +855,12 @@ window.addEventListener('load',()=>{
   });
 
   loadPreset(1);
-  const{canvas,W,H,dpr}=sizeCanvas();
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#0a0e14';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font=`${13*dpr}px Share Tech Mono`;
-  ctx.textAlign='center';ctx.fillText('Press COMPUTE & ANIMATE to begin',W/2,H/2);
+  drawPreview();
+
+  // Live preview on any input change
+  document.querySelectorAll('.control-panel input').forEach(el => {
+    el.addEventListener('input', drawPreview);
+  });
 });
 </script>
 </body>
