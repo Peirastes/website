@@ -167,8 +167,10 @@ canvas{display:block;width:100%;height:100%}
   #clockCollapseBtn{display:none}
 
   /* Two-column panel below header: log left, controls right */
-  .hud-bl{top:42px;left:8px;right:50%;bottom:auto;min-width:auto;max-height:30vh;overflow-y:auto;border-radius:8px 0 0 8px;transform:none;pointer-events:auto;padding:6px 8px;transition:max-height 0.3s ease;border-right:none}
-  .hud-bl.mobile-open{transform:none}
+  .hud-bl{top:42px;left:8px;right:50%;bottom:auto;min-width:auto;max-height:28px;overflow:hidden;border-radius:8px 0 0 8px;transform:none;pointer-events:auto;padding:0;transition:max-height 0.3s ease,border-radius 0.3s ease;border-right:none}
+  .hud-bl .log-header{padding:5px 8px;margin-bottom:0}
+  .hud-bl #missionLog{padding:0 8px 6px}
+  .hud-bl.log-expanded{max-height:30vh;overflow-y:auto;border-bottom-left-radius:8px}
   .hud-tc{top:42px;left:50% !important;right:8px;transform:none !important;padding:6px 8px;gap:3px;border-radius:0 8px 8px 0;flex-wrap:wrap;justify-content:center;align-content:center;border-left:none}
   .speed-btn{padding:3px 5px;font-size:7px}
   .play-btn{padding:3px 8px;font-size:9px}
@@ -1642,7 +1644,8 @@ document.getElementById('missionLog').addEventListener('click',(e)=>{
 
 document.getElementById('logCollapseBtn').addEventListener('click',()=>{
   logCollapsed = !logCollapsed;
-  document.getElementById('logCollapseBtn').innerHTML = logCollapsed ? '&#9650;' : '&#9660;';
+  document.getElementById('logCollapseBtn').innerHTML = logCollapsed ? '&#9660;' : '&#9650;';
+  document.querySelector('.hud-bl').classList.toggle('log-expanded', !logCollapsed);
   updateMissionLog();
 });
 
