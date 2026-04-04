@@ -3,168 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Optics Lab — Interactive Physics Simulator</title>
+<title>Optics Lab — Peirastes</title>
 <meta name="description" content="Browser-based interactive optics simulator covering Snell's law, total internal reflection, thin lenses, and chromatic dispersion with real-time ray tracing.">
-<meta property="og:title" content="Optics Lab — Interactive Physics Simulator">
-<meta property="og:description" content="Explore refraction, TIR, thin lenses, and dispersion with real-time ray tracing and spectral color rendering.">
+<meta property="og:title" content="Optics Lab — Peirastes">
+<meta property="og:description" content="Explore refraction, TIR, thin lenses, and double-slit interference with real-time ray tracing and spectral color rendering.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#08090d">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#1a1d21">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#08090d;--bg2:#0d0f15;--bg3:#12141c;--surface:#181b25;
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.12);
-  --txt:rgba(255,255,255,0.85);--txt2:rgba(255,255,255,0.55);--txt3:rgba(255,255,255,0.35);
-  --accent:#7c6aef;--accent2:#9d8cf0;
-  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',system-ui,sans-serif;
-  --rad:10px;--rad-lg:14px;
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+:root {
+  --chassis-bg: #1a1d21;
+  --chassis-border: #2a2d32;
+  --crt-bg: #0a0e14;
+  --crt-border: #333842;
+  --amber: #f0a030;
+  --amber-dim: #a06820;
+  --amber-glow: rgba(240,160,48,0.25);
+  --cyan: #40e8d0;
+  --cyan-dim: #208878;
+  --cyan-glow: rgba(64,232,208,0.2);
+  --teal: #20b0a0;
+  --red: #e05040;
+  --green: #40d870;
+  --text-primary: #d0d4da;
+  --text-dim: #707880;
+  --rivet: radial-gradient(circle at 35% 35%, #555, #222 60%, #111);
 }
-html{font-size:15px}
-body{background:var(--bg);color:var(--txt);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
-
-.wrap{max-width:780px;margin:0 auto;padding:2rem 1.5rem 2rem}
-
-header{margin-bottom:2rem;text-align:center}
-header h1{font-size:1.6rem;font-weight:600;letter-spacing:-0.03em;margin-bottom:0.3rem;background:linear-gradient(135deg,#c8b8ff 0%,#7c6aef 40%,#4ae0ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-header p{font-size:0.82rem;color:var(--txt3);font-family:var(--mono);letter-spacing:0.04em}
-
-/* Tab bar */
-.tabs{display:flex;gap:4px;margin-bottom:1.4rem;background:var(--bg2);border-radius:var(--rad);padding:4px;border:1px solid var(--border)}
-.tab{flex:1;padding:10px 16px;font-size:0.85rem;font-weight:500;font-family:var(--sans);border:none;background:none;color:var(--txt2);cursor:pointer;border-radius:calc(var(--rad) - 3px);transition:all 0.2s}
-.tab:hover{color:var(--txt);background:rgba(255,255,255,0.03)}
-.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-.tab.on{background:var(--surface);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,0.3)}
-
-.panel{display:none}
-.panel.on{display:block}
-
-/* Module info bar */
-.module-info{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 12px;margin-bottom:12px;
-  background:rgba(124,106,239,0.06);border:1px solid rgba(124,106,239,0.12);
-  border-radius:calc(var(--rad) - 2px);
-  font-size:0.78rem;color:var(--txt2);font-family:var(--sans);
-  line-height:1.45;
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Share Tech Mono', monospace;
+  background: var(--chassis-bg); color: var(--text-primary);
+  min-height: 100vh;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 4px);
 }
-.module-info .info-icon{
-  flex-shrink:0;width:16px;height:16px;
-  border:1.5px solid var(--accent2);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:0.65rem;font-weight:600;color:var(--accent2);font-family:var(--mono);
+.header {
+  background: linear-gradient(180deg, #222630, #1a1d24);
+  border-bottom: 2px solid var(--chassis-border);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
-.module-info .info-text span{color:var(--txt3);font-family:var(--mono);font-size:0.72rem}
+.header-title { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; color:var(--amber); text-shadow:0 0 12px var(--amber-glow); letter-spacing:2px; }
+.header-sub { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+.rivet { width:10px; height:10px; border-radius:50%; background:var(--rivet); box-shadow:inset 0 1px 2px rgba(255,255,255,0.15),0 1px 3px rgba(0,0,0,0.6); flex-shrink:0; }
+.header-rivets { display:flex; gap:14px; align-items:center; }
 
-/* Controls */
-.controls{display:grid;gap:10px;margin-bottom:14px}
-.ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ctrl-group label{display:block;font-size:0.72rem;color:var(--txt3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
-.ctrl-group select{width:100%;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:calc(var(--rad) - 2px);color:var(--txt);font-family:var(--sans);font-size:0.85rem;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color 0.15s}
-.ctrl-group select:hover{border-color:var(--border2)}
-.ctrl-group select:focus{outline:none;border-color:var(--accent)}
+.main-grid { display:grid; grid-template-columns:300px 1fr; gap:0; min-height:calc(100vh - 52px); }
 
-.slider-row{display:flex;align-items:center;gap:12px;padding:4px 0}
-.slider-row .sl{font-size:0.72rem;color:var(--txt3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;min-width:90px}
-.slider-row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
-.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer;box-shadow:0 0 8px rgba(124,106,239,0.4);transition:box-shadow 0.15s}
-.slider-row input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 14px rgba(124,106,239,0.6)}
-.slider-row input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
-.slider-row .sv{font-size:0.85rem;font-weight:500;font-family:var(--mono);min-width:58px;text-align:right;color:var(--txt)}
+.control-panel { background:linear-gradient(180deg,#181b20,#14161c); border-right:2px solid var(--chassis-border); padding:16px; overflow-y:auto; }
+.panel-section { margin-bottom:16px; }
+.section-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; padding-bottom:4px; border-bottom:1px solid var(--amber-dim); }
+.input-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.input-group { display:flex; flex-direction:column; min-width:0; }
+.input-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:3px; }
 
-.chk-row{display:flex;align-items:center;gap:8px;padding:2px 0;margin-bottom:6px}
-.chk-row input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
-.chk-row span{font-size:0.82rem;color:var(--txt2)}
+select.input-field { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--cyan); font-family:'Share Tech Mono',monospace; font-size:11px; padding:5px 6px; outline:none; width:100%; appearance:none; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='rgba(255,255,255,0.35)' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center; }
+select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); }
 
-/* Canvas */
-.canvas-wrap{position:relative;width:100%;border-radius:var(--rad-lg);border:1px solid var(--border);overflow:hidden;background:var(--bg)}
-.canvas-wrap canvas{display:block;width:100%;height:auto}
+.slider-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.slider-row .sl { font-size:10px; color:var(--text-dim); letter-spacing:1px; white-space:nowrap; min-width:88px; }
+.slider-row input[type=range] { flex:1; -webkit-appearance:none; appearance:none; height:4px; background:var(--crt-border); border-radius:2px; outline:none; cursor:pointer; }
+.slider-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--amber); box-shadow:0 0 6px var(--amber-glow); cursor:pointer; }
+.slider-row input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--amber); border:none; cursor:pointer; }
+.slider-row .sv { font-size:12px; color:var(--cyan); min-width:58px; text-align:right; }
 
-/* Readout cards */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px;margin-top:12px}
-.card{background:var(--bg2);border-radius:calc(var(--rad) - 2px);padding:8px 10px;border:1px solid var(--border);transition:border-color 0.2s}
-.card:hover{border-color:var(--border2)}
-.card-l{font-size:0.68rem;color:var(--txt3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px}
-.card-v{font-size:0.95rem;font-weight:500;font-family:var(--mono)}
+.chk-row { display:flex; align-items:center; gap:8px; padding:2px 0; margin-bottom:6px; }
+.chk-row input[type=checkbox] { accent-color:var(--amber); width:14px; height:14px; cursor:pointer; }
+.chk-row span { font-size:11px; color:var(--text-dim); }
 
-/* Equation reference strip */
-.eq-strip{
-  margin-top:14px;padding:10px 14px;
-  background:var(--bg2);border:1px solid var(--border);border-radius:calc(var(--rad) - 2px);
-  display:flex;flex-wrap:wrap;gap:6px 18px;
-  font-family:var(--mono);font-size:0.75rem;color:var(--txt3);
-}
-.eq-strip .eq{color:var(--txt2)}
+.module-tab-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
+.tab { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:5px 8px; cursor:pointer; transition:all 0.2s; letter-spacing:0.5px; flex:1; text-align:center; }
+.tab:hover { border-color:var(--amber); color:var(--amber); box-shadow:0 0 6px var(--amber-glow); }
+.tab.on { border-color:var(--amber); color:var(--chassis-bg); background:var(--amber); }
 
-/* Footer */
-footer{
-  margin-top:3rem;padding-top:1.5rem;
-  border-top:1px solid var(--border);
-  text-align:center;
-  font-size:0.72rem;color:var(--txt3);font-family:var(--mono);
-  letter-spacing:0.02em;line-height:1.6;
-}
-footer a{color:var(--accent2);text-decoration:none;transition:color 0.15s}
-footer a:hover{color:#c8b8ff}
+.module-ctrl { display:block; }
 
-/* Keyboard shortcut hint */
-.kbd-hint{
-  display:none;margin-top:10px;text-align:center;
-  font-size:0.7rem;color:var(--txt3);font-family:var(--mono);
-}
-.kbd-hint kbd{
-  display:inline-block;padding:1px 5px;
-  background:var(--bg3);border:1px solid var(--border2);border-radius:3px;
-  font-family:var(--mono);font-size:0.68rem;color:var(--txt2);
-}
+.info-bar { font-size:10px; color:var(--text-dim); line-height:1.5; padding:8px 10px; background:rgba(240,160,48,0.04); border:1px solid rgba(240,160,48,0.1); border-radius:3px; margin-bottom:12px; }
+
+.display-area { padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; }
+.crt-screen { background:var(--crt-bg); border:2px solid var(--crt-border); border-radius:6px; padding:16px; position:relative; box-shadow:inset 0 0 30px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.4); }
+.crt-screen::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(255,255,255,0.015) 1px,rgba(255,255,255,0.015) 2px); pointer-events:none; border-radius:4px; }
+.crt-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber-dim); letter-spacing:2px; margin-bottom:12px; text-transform:uppercase; }
+.canvas-wrap { width:100%; position:relative; }
+.canvas-wrap canvas { display:block; width:100%; height:auto; }
+
+.panel { display:none; }
+.panel.on { display:block; }
+
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(95px,1fr)); gap:6px; margin-top:12px; }
+.card { background:rgba(10,14,20,0.6); border:1px solid var(--crt-border); border-radius:4px; padding:8px 10px; }
+.card-l { font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+.card-v { font-size:14px; font-family:'Share Tech Mono',monospace; }
+
+.eq-strip { margin-top:12px; padding:8px 12px; background:rgba(10,14,20,0.4); border:1px solid var(--crt-border); border-radius:3px; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:11px; color:var(--text-dim); }
+.eq-strip .eq { color:var(--cyan-dim); }
+
+.kbd-hint { display:none; margin-top:6px; text-align:center; font-size:10px; color:var(--text-dim); }
+.kbd-hint kbd { display:inline-block; padding:1px 5px; background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); }
 @media(hover:hover){.kbd-hint{display:block}}
 
-@media(max-width:600px){
-  .wrap{padding:1.2rem 1rem 2rem}
-  .ctrl-row{grid-template-columns:1fr}
-  .cards{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
-  header h1{font-size:1.3rem}
-  .eq-strip{gap:4px 12px;font-size:0.68rem}
-  .module-info{font-size:0.72rem}
+@media (max-width:900px) {
+  .main-grid { grid-template-columns:1fr; }
+  .control-panel { border-right:none; border-bottom:2px solid var(--chassis-border); }
+}
+@media (max-width:550px) {
+  .cards { grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); }
 }
 </style>
 </head>
 <body>
 <a href="https://peirastes.com" title="Back to Peirastes" style="position:fixed;top:8px;left:12px;font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:rgba(224,224,224,0.3);text-decoration:none;letter-spacing:0.08em;z-index:9999;transition:color 0.2s ease" onmouseover="this.style.color='#e07050'" onmouseout="this.style.color='rgba(224,224,224,0.3)'">Peirastes</a>
-<div class="wrap">
-  <header>
-    <h1>Optics Lab</h1>
-    <p>Interactive Physics Simulator</p>
-  </header>
 
-  <div class="tabs" role="tablist">
-    <button class="tab on" id="t-sn" role="tab" aria-selected="true" aria-controls="p-sn" onclick="sw('sn')">Snell's Law &amp; TIR</button>
-    <button class="tab" id="t-ln" role="tab" aria-selected="false" aria-controls="p-ln" onclick="sw('ln')">Thin Lenses</button>
-    <button class="tab" id="t-ds" role="tab" aria-selected="false" aria-controls="p-ds" onclick="sw('ds')">Double-Slit</button>
+<div class="header">
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+  <div style="text-align:center;">
+    <div class="header-title">OPTICS LAB</div>
+    <div class="header-sub">REFRACTION · LENSES · INTERFERENCE</div>
   </div>
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+</div>
 
-  <!-- MODULE 1: Snell's Law -->
-  <div class="panel on" id="p-sn" role="tabpanel" aria-labelledby="t-sn">
-    <div class="module-info">
-      <div class="info-icon">i</div>
-      <div class="info-text">Light refracts at a boundary between media. Adjust the media, angle, and wavelength to explore Snell's law. Enable dispersion to see white light split into its spectrum. <span>Ch. 30.2–30.3</span></div>
+<div class="main-grid">
+  <div class="control-panel">
+    <!-- Module selector -->
+    <div class="panel-section">
+      <div class="section-label">Module</div>
+      <div class="module-tab-row" role="tablist">
+        <button class="tab on" id="t-sn" onclick="sw('sn')">Snell's Law</button>
+        <button class="tab" id="t-ln" onclick="sw('ln')">Thin Lenses</button>
+        <button class="tab" id="t-ds" onclick="sw('ds')">Double-Slit</button>
+      </div>
     </div>
-    <div class="controls">
-      <div class="ctrl-row">
-        <div class="ctrl-group">
-          <label>Upper medium</label>
-          <select id="nu" onchange="uS()">
+
+    <!-- Snell controls -->
+    <div id="ctrl-sn" class="module-ctrl">
+      <div class="panel-section">
+        <div class="section-label">Media</div>
+        <div class="input-group" style="margin-bottom:6px">
+          <div class="input-label">Upper medium</div>
+          <select id="nu" class="input-field" onchange="uS()">
             <option value="1.00" selected>Air (n = 1.00)</option>
             <option value="1.33">Water (n = 1.33)</option>
             <option value="1.52">Crown glass (n = 1.52)</option>
             <option value="2.42">Diamond (n = 2.42)</option>
           </select>
         </div>
-        <div class="ctrl-group">
-          <label>Lower medium</label>
-          <select id="nl" onchange="uS()">
+        <div class="input-group">
+          <div class="input-label">Lower medium</div>
+          <select id="nl" class="input-field" onchange="uS()">
             <option value="1.00">Air (n = 1.00)</option>
             <option value="1.33" selected>Water (n = 1.33)</option>
             <option value="1.52">Crown glass (n = 1.52)</option>
@@ -172,125 +161,137 @@ footer a:hover{color:#c8b8ff}
           </select>
         </div>
       </div>
-      <div class="slider-row">
-        <span class="sl">Wavelength</span>
-        <input type="range" min="380" max="700" value="550" step="1" id="wl" oninput="uS()" />
-        <span class="sv" id="wl-v">550 nm</span>
-      </div>
-      <div class="slider-row">
-        <span class="sl">Incidence</span>
-        <input type="range" min="0" max="89" value="40" step="0.5" id="t1" oninput="uS()" />
-        <span class="sv" id="t1-v">40.0&deg;</span>
-      </div>
-      <div class="chk-row">
-        <input type="checkbox" id="disp" onchange="uS()" />
-        <span>Show dispersion (white light &rarr; spectrum)</span>
-      </div>
-      <div class="chk-row">
-        <input type="checkbox" id="dirDown" onchange="uS()" />
-        <span>Light from upper medium (downward)</span>
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="550" step="1" id="wl" oninput="uS()" />
+          <span class="sv" id="wl-v">550 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Incidence</span>
+          <input type="range" min="0" max="89" value="40" step="0.5" id="t1" oninput="uS()" />
+          <span class="sv" id="t1-v">40.0&deg;</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="disp" onchange="uS()" />
+          <span>Dispersion (white &rarr; spectrum)</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="dirDown" onchange="uS()" />
+          <span>Light from upper medium</span>
+        </div>
       </div>
     </div>
-    <div class="canvas-wrap"><canvas id="sc"></canvas></div>
-    <div class="cards" id="s-cards"></div>
-    <div class="eq-strip">
-      <span class="eq">n&#8321; sin&theta;&#8321; = n&#8322; sin&theta;&#8322;</span>
-      <span class="eq">&theta;<sub>c</sub> = sin&#8315;&#185;(n&#8322;/n&#8321;)</span>
-      <span class="eq">n(&lambda;) = B + C/&lambda;&sup2;</span>
-    </div>
-  </div>
 
-  <!-- MODULE 2: Thin Lenses -->
-  <div class="panel" id="p-ln" role="tabpanel" aria-labelledby="t-ln">
-    <div class="module-info">
-      <div class="info-icon">i</div>
-      <div class="info-text">Drag the object distance through the focal point to watch the image transition from real/inverted to virtual/upright. Three principal rays are traced in real time. <span>Ch. 30.4</span></div>
-    </div>
-    <div class="controls">
-      <div class="ctrl-row">
-        <div class="ctrl-group">
-          <label>Lens type</label>
-          <select id="lt" onchange="uL()">
+    <!-- Lens controls -->
+    <div id="ctrl-ln" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Lens</div>
+        <div class="input-group" style="margin-bottom:6px">
+          <div class="input-label">Lens type</div>
+          <select id="lt" class="input-field" onchange="uL()">
             <option value="c">Converging (f &gt; 0)</option>
             <option value="d">Diverging (f &lt; 0)</option>
           </select>
         </div>
-        <div class="ctrl-group">
-          <label>Focal length |f|</label>
-          <div class="slider-row" style="margin:0;padding:0">
-            <input type="range" min="3" max="40" value="15" step="0.5" id="fl" oninput="uL()" style="flex:1" />
-            <span class="sv" id="fl-v">15.0 cm</span>
-          </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Focal |f|</span>
+          <input type="range" min="3" max="40" value="15" step="0.5" id="fl" oninput="uL()" />
+          <span class="sv" id="fl-v">15.0 cm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="550" step="1" id="wl2" oninput="uL()" />
+          <span class="sv" id="wl2-v">550 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Object dist</span>
+          <input type="range" min="2" max="80" value="45" step="0.5" id="od" oninput="uL()" />
+          <span class="sv" id="od-v">45.0 cm</span>
         </div>
       </div>
-      <div class="slider-row">
-        <span class="sl">Wavelength</span>
-        <input type="range" min="380" max="700" value="550" step="1" id="wl2" oninput="uL()" />
-        <span class="sv" id="wl2-v">550 nm</span>
-      </div>
-      <div class="slider-row">
-        <span class="sl">Object dist</span>
-        <input type="range" min="2" max="80" value="45" step="0.5" id="od" oninput="uL()" />
-        <span class="sv" id="od-v">45.0 cm</span>
+    </div>
+
+    <!-- Double-slit controls -->
+    <div id="ctrl-ds" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="550" step="1" id="wl3" oninput="uD()" />
+          <span class="sv" id="wl3-v">550 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit spacing d</span>
+          <input type="range" min="5" max="200" value="40" step="1" id="sd" oninput="uD()" />
+          <span class="sv" id="sd-v">40 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit width a</span>
+          <input type="range" min="1" max="80" value="10" step="1" id="sw3" oninput="uD()" />
+          <span class="sv" id="sw3-v">10 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Screen dist L</span>
+          <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL" oninput="uD()" />
+          <span class="sv" id="sL-v">1.00 m</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="showEnv" checked onchange="uD()" />
+          <span>Diffraction envelope</span>
+        </div>
       </div>
     </div>
-    <div class="canvas-wrap"><canvas id="lc"></canvas></div>
-    <div class="cards" id="l-cards"></div>
-    <div class="eq-strip">
-      <span class="eq">1/d<sub>o</sub> + 1/d<sub>i</sub> = 1/f</span>
-      <span class="eq">M = &minus;d<sub>i</sub>/d<sub>o</sub></span>
-      <span class="eq">f &gt; 0 converging &middot; f &lt; 0 diverging</span>
-    </div>
+
+    <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules</div>
   </div>
 
-  <!-- MODULE 3: Double-Slit Interference -->
-  <div class="panel" id="p-ds" role="tabpanel" aria-labelledby="t-ds">
-    <div class="module-info">
-      <div class="info-icon">i</div>
-      <div class="info-text">Coherent light passes through two narrow slits and produces an interference pattern on a distant screen. Adjust slit spacing, slit width, wavelength, and screen distance. The envelope is the single-slit diffraction pattern. <span>Ch. 30.5&ndash;30.7</span></div>
-    </div>
-    <div class="controls">
-      <div class="slider-row">
-        <span class="sl">Wavelength</span>
-        <input type="range" min="380" max="700" value="550" step="1" id="wl3" oninput="uD()" />
-        <span class="sv" id="wl3-v">550 nm</span>
-      </div>
-      <div class="slider-row">
-        <span class="sl">Slit spacing d</span>
-        <input type="range" min="5" max="200" value="40" step="1" id="sd" oninput="uD()" />
-        <span class="sv" id="sd-v">40 &micro;m</span>
-      </div>
-      <div class="slider-row">
-        <span class="sl">Slit width a</span>
-        <input type="range" min="1" max="80" value="10" step="1" id="sw3" oninput="uD()" />
-        <span class="sv" id="sw3-v">10 &micro;m</span>
-      </div>
-      <div class="slider-row">
-        <span class="sl">Screen dist L</span>
-        <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL" oninput="uD()" />
-        <span class="sv" id="sL-v">1.00 m</span>
-      </div>
-      <div class="chk-row">
-        <input type="checkbox" id="showEnv" checked onchange="uD()" />
-        <span>Show diffraction envelope</span>
+  <!-- Display area -->
+  <div class="display-area">
+    <!-- Snell display -->
+    <div class="panel on" id="p-sn">
+      <div class="crt-screen">
+        <div class="crt-label">Snell's Law &amp; Total Internal Reflection</div>
+        <div class="canvas-wrap"><canvas id="sc"></canvas></div>
+        <div class="cards" id="s-cards"></div>
+        <div class="eq-strip">
+          <span class="eq">n&#8321; sin&theta;&#8321; = n&#8322; sin&theta;&#8322;</span>
+          <span class="eq">&theta;<sub>c</sub> = sin&#8315;&#185;(n&#8322;/n&#8321;)</span>
+          <span class="eq">n(&lambda;) = B + C/&lambda;&sup2;</span>
+        </div>
       </div>
     </div>
-    <div class="canvas-wrap"><canvas id="dc"></canvas></div>
-    <div class="cards" id="d-cards"></div>
-    <div class="eq-strip">
-      <span class="eq">d sin&theta; = m&lambda; (bright)</span>
-      <span class="eq">&Delta;y = &lambda;L/d</span>
-      <span class="eq">I = I&#8320; cos&sup2;(&pi;d sin&theta;/&lambda;) [sinc(&pi;a sin&theta;/&lambda;)]&sup2;</span>
+    <!-- Lens display -->
+    <div class="panel" id="p-ln">
+      <div class="crt-screen">
+        <div class="crt-label">Thin Lens Ray Tracing</div>
+        <div class="canvas-wrap"><canvas id="lc"></canvas></div>
+        <div class="cards" id="l-cards"></div>
+        <div class="eq-strip">
+          <span class="eq">1/d<sub>o</sub> + 1/d<sub>i</sub> = 1/f</span>
+          <span class="eq">M = &minus;d<sub>i</sub>/d<sub>o</sub></span>
+          <span class="eq">f &gt; 0 converging &middot; f &lt; 0 diverging</span>
+        </div>
+      </div>
+    </div>
+    <!-- Double-slit display -->
+    <div class="panel" id="p-ds">
+      <div class="crt-screen">
+        <div class="crt-label">Young's Double-Slit Interference</div>
+        <div class="canvas-wrap"><canvas id="dc"></canvas></div>
+        <div class="cards" id="d-cards"></div>
+        <div class="eq-strip">
+          <span class="eq">d sin&theta; = m&lambda; (bright)</span>
+          <span class="eq">&Delta;y = &lambda;L/d</span>
+          <span class="eq">I = I&#8320; cos&sup2;(&pi;d sin&theta;/&lambda;) &middot; sinc&sup2;(&pi;a sin&theta;/&lambda;)</span>
+        </div>
+      </div>
     </div>
   </div>
-
-  <div class="kbd-hint">
-    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules
-  </div>
-
-  <footer>
-    Optics Lab &mdash; built by <a href="https://peirastes.com" target="_blank" rel="noopener">peirastes</a>
-  </footer>
 </div>
 
 <script>
@@ -355,10 +356,11 @@ window.sw=function(t){
   currentTab = t;
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
   document.getElementById('p-'+t).classList.add('on');
-  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');b.setAttribute('aria-selected','false');});
-  var tb = document.getElementById('t-'+t);
-  tb.classList.add('on');
-  tb.setAttribute('aria-selected','true');
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('t-'+t).classList.add('on');
+  document.querySelectorAll('.module-ctrl').forEach(function(c){c.style.display='none';});
+  var ctrl=document.getElementById('ctrl-'+t);
+  if(ctrl)ctrl.style.display='';
   t==='ln'?uL():t==='ds'?uD():uS();
 };
 
