@@ -135,6 +135,8 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <button class="tab on" id="t-sn" onclick="sw('sn')">Snell's Law</button>
         <button class="tab" id="t-ln" onclick="sw('ln')">Thin Lenses</button>
         <button class="tab" id="t-ds" onclick="sw('ds')">Double-Slit</button>
+        <button class="tab" id="t-ss" onclick="sw('ss')">Single-Slit</button>
+        <button class="tab" id="t-gr" onclick="sw('gr')">Grating</button>
       </div>
     </div>
 
@@ -247,6 +249,59 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
       </div>
     </div>
 
+    <!-- Single-slit controls -->
+    <div id="ctrl-ss" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="600" step="1" id="wl4" oninput="uSS()" />
+          <span class="sv" id="wl4-v">600 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit width a</span>
+          <input type="range" min="1" max="100" value="20" step="1" id="sa" oninput="uSS()" />
+          <span class="sv" id="sa-v">20 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Screen dist L</span>
+          <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL2" oninput="uSS()" />
+          <span class="sv" id="sL2-v">1.00 m</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grating controls -->
+    <div id="ctrl-gr" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="600" step="1" id="wl5" oninput="uG()" />
+          <span class="sv" id="wl5-v">600 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit spacing d</span>
+          <input type="range" min="1" max="50" value="10" step="0.5" id="gd" oninput="uG()" />
+          <span class="sv" id="gd-v">10 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Num slits N</span>
+          <input type="range" min="2" max="200" value="8" step="1" id="gN" oninput="uG()" />
+          <span class="sv" id="gN-v">8</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Screen dist L</span>
+          <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL3" oninput="uG()" />
+          <span class="sv" id="sL3-v">1.00 m</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="showGrEnv" checked onchange="uG()" />
+          <span>Diffraction envelope</span>
+        </div>
+      </div>
+    </div>
+
     <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules</div>
   </div>
 
@@ -288,6 +343,32 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
           <span class="eq">d sin&theta; = m&lambda; (bright)</span>
           <span class="eq">&Delta;y = &lambda;L/d</span>
           <span class="eq">I = I&#8320; cos&sup2;(&pi;d sin&theta;/&lambda;) &middot; sinc&sup2;(&pi;a sin&theta;/&lambda;)</span>
+        </div>
+      </div>
+    </div>
+    <!-- Single-slit display -->
+    <div class="panel" id="p-ss">
+      <div class="crt-screen">
+        <div class="crt-label">Single-Slit Diffraction</div>
+        <div class="canvas-wrap"><canvas id="ssc"></canvas></div>
+        <div class="cards" id="ss-cards"></div>
+        <div class="eq-strip">
+          <span class="eq">a sin&theta; = m&lambda; (dark, m &ne; 0)</span>
+          <span class="eq">Central width = 2&lambda;L/a</span>
+          <span class="eq">I = I&#8320; sinc&sup2;(&pi;a sin&theta;/&lambda;)</span>
+        </div>
+      </div>
+    </div>
+    <!-- Grating display -->
+    <div class="panel" id="p-gr">
+      <div class="crt-screen">
+        <div class="crt-label">Diffraction Grating (N Slits)</div>
+        <div class="canvas-wrap"><canvas id="gc"></canvas></div>
+        <div class="cards" id="g-cards"></div>
+        <div class="eq-strip">
+          <span class="eq">d sin&theta; = m&lambda; (principal max)</span>
+          <span class="eq">I &prop; [sin(N&beta;)/(N sin&beta;)]&sup2; &middot; sinc&sup2;(&alpha;)</span>
+          <span class="eq">R = mN (resolving power)</span>
         </div>
       </div>
     </div>
@@ -361,14 +442,14 @@ window.sw=function(t){
   document.querySelectorAll('.module-ctrl').forEach(function(c){c.style.display='none';});
   var ctrl=document.getElementById('ctrl-'+t);
   if(ctrl)ctrl.style.display='';
-  t==='ln'?uL():t==='ds'?uD():uS();
+  t==='ln'?uL():t==='ds'?uD():t==='ss'?uSS():t==='gr'?uG():uS();
 };
 
 /* ── Keyboard navigation: arrow keys switch tabs ── */
 document.addEventListener('keydown', function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-    var tabs = ['sn','ln','ds'];
+    var tabs = ['sn','ln','ds','ss','gr'];
     var idx = tabs.indexOf(currentTab);
     if (e.key === 'ArrowRight') idx = (idx + 1) % tabs.length;
     else idx = (idx - 1 + tabs.length) % tabs.length;
@@ -896,6 +977,282 @@ function uD(){
   document.getElementById('d-cards').innerHTML = h;
 }
 window.uD=uD;
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 4: Single-Slit Diffraction
+   ════════════════════════════════════════════════════════════ */
+var BASE_W_SS=780, BASE_H_SS=520;
+
+function uSS(){
+  var wl = parseFloat(document.getElementById('wl4').value);
+  var a  = parseFloat(document.getElementById('sa').value);
+  var L  = parseFloat(document.getElementById('sL2').value);
+  document.getElementById('wl4-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('sa-v').textContent=a+' \u00B5m';
+  document.getElementById('sL2-v').textContent=L.toFixed(2)+' m';
+
+  var col = wC(wl);
+  var rgb = wlRGB(wl);
+  var lam = wl*1e-9;
+  var aM  = a*1e-6;
+
+  var cv = document.getElementById('ssc');
+  var W = BASE_W_SS, H = BASE_H_SS;
+  var ctx = setupCanvas(cv, W, H);
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
+
+  var slitX = 140, screenX = W-60, midY = H/2;
+
+  // Barrier with single slit
+  var slitWidPx = Math.max(3, Math.min(60, a*1.2));
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(slitX-3, 0, 6, midY - slitWidPx/2);
+  ctx.fillRect(slitX-3, midY + slitWidPx/2, 6, H - midY - slitWidPx/2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(slitX-3, midY - slitWidPx/2, 6, slitWidPx);
+
+  // Incoming plane wave
+  ctx.save(); ctx.globalAlpha=0.12; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var waveSpacing = Math.max(12, Math.min(30, wl/15));
+  for(var wx=30; wx<slitX-4; wx+=waveSpacing){
+    ctx.beginPath(); ctx.moveTo(wx,30); ctx.lineTo(wx,H-30); ctx.stroke();
+  }
+  ctx.restore();
+  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.3);
+
+  // Circular wavefronts from slit
+  ctx.save(); ctx.globalAlpha=0.06; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var maxR = screenX - slitX;
+  for(var wr=waveSpacing; wr<maxR; wr+=waveSpacing){
+    ctx.beginPath(); ctx.arc(slitX, midY, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Intensity pattern
+  var patternH = H - 60, yTop = 30;
+  var sinMax = Math.min(0.5, 6*lam/aM);
+  var intensities = [];
+  var maxI = 0;
+  for(var py=0; py<patternH; py++){
+    var frac = (py/patternH) - 0.5;
+    var sinTh = frac * 2 * sinMax;
+    var alpha = Math.PI * aM * sinTh / lam;
+    var I = sinc(alpha) * sinc(alpha);
+    intensities.push(I);
+    if(I > maxI) maxI = I;
+  }
+
+  // Screen
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(screenX,20); ctx.lineTo(screenX,H-20); ctx.stroke();
+
+  // Screen glow
+  for(var py=0; py<patternH; py++){
+    var I = intensities[py]/maxI;
+    ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(I*0.7)+')';
+    ctx.fillRect(screenX-4, yTop+py, 8, 1);
+  }
+
+  // Intensity curve
+  var barW = 50, graphX = screenX + 8;
+  ctx.beginPath(); ctx.moveTo(graphX, yTop);
+  for(var py=0; py<patternH; py++) ctx.lineTo(graphX + intensities[py]/maxI*barW, yTop+py);
+  ctx.lineTo(graphX, yTop+patternH); ctx.closePath();
+  ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.08)'; ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+  ctx.beginPath();
+  for(var py=0; py<patternH; py++){
+    var I=intensities[py]/maxI;
+    if(py===0) ctx.moveTo(graphX+I*barW,yTop+py); else ctx.lineTo(graphX+I*barW,yTop+py);
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // Labels
+  ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
+  ctx.fillText('barrier',slitX,H-8); ctx.fillText('screen',screenX,H-8);
+  ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
+
+  // Slit width label
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(slitX+12,midY-slitWidPx/2); ctx.lineTo(slitX+12,midY+slitWidPx/2); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace';
+  ctx.fillText('a',slitX+16,midY+4);
+
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
+  ctx.fillText('m=0',graphX+barW+6,midY+3);
+
+  // Readout cards
+  var centralW = 2*lam*L/aM;
+  var theta1 = Math.asin(lam/aM)*180/Math.PI;
+  var h='';
+  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  h+=cd('a',a+' \u00B5m',col);
+  h+=cd('L',L.toFixed(2)+' m',col);
+  h+=cd('Central W',(centralW*1000).toFixed(2)+' mm',col);
+  h+=cd('\u03B8\u2081 (min)',theta1.toFixed(2)+'\u00B0',TXH);
+  document.getElementById('ss-cards').innerHTML=h;
+}
+window.uSS=uSS;
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 5: Diffraction Grating (N slits)
+   ════════════════════════════════════════════════════════════ */
+var BASE_W_GR=780, BASE_H_GR=520;
+
+function uG(){
+  var wl = parseFloat(document.getElementById('wl5').value);
+  var d  = parseFloat(document.getElementById('gd').value);
+  var N  = parseInt(document.getElementById('gN').value);
+  var L  = parseFloat(document.getElementById('sL3').value);
+  var showEnv = document.getElementById('showGrEnv').checked;
+  document.getElementById('wl5-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('gd-v').textContent=d+' \u00B5m';
+  document.getElementById('gN-v').textContent=N;
+  document.getElementById('sL3-v').textContent=L.toFixed(2)+' m';
+
+  var col = wC(wl);
+  var rgb = wlRGB(wl);
+  var lam = wl*1e-9;
+  var dM  = d*1e-6;
+  // Assume slit width = d/5 for diffraction envelope
+  var aM  = dM/5;
+
+  var cv = document.getElementById('gc');
+  var W = BASE_W_GR, H = BASE_H_GR;
+  var ctx = setupCanvas(cv, W, H);
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
+
+  var slitX = 140, screenX = W-60, midY = H/2;
+
+  // Barrier with N slits (show up to 12 visible slits)
+  var visN = Math.min(N, 12);
+  var slitSepPx = Math.min(30, Math.max(6, 200/visN));
+  var totalH = (visN-1)*slitSepPx;
+  var slitWidPx = Math.max(1, slitSepPx*0.2);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  var topY = midY - totalH/2;
+  // Top barrier
+  ctx.fillRect(slitX-3, 0, 6, topY - slitWidPx/2);
+  // Inter-slit barriers and slit openings
+  for(var i=0; i<visN; i++){
+    var sy = topY + i*slitSepPx;
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    ctx.fillRect(slitX-3, sy-slitWidPx/2, 6, slitWidPx);
+    if(i < visN-1){
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      ctx.fillRect(slitX-3, sy+slitWidPx/2, 6, slitSepPx-slitWidPx);
+    }
+  }
+  // Bottom barrier
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  var botY = topY + (visN-1)*slitSepPx;
+  ctx.fillRect(slitX-3, botY+slitWidPx/2, 6, H-botY-slitWidPx/2);
+
+  // N label
+  ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.textAlign='right';
+  ctx.fillText('N='+N, slitX-8, midY+4);
+
+  // Incoming plane wave
+  ctx.save(); ctx.globalAlpha=0.12; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var waveSpacing = Math.max(12, Math.min(30, wl/15));
+  for(var wx=30; wx<slitX-4; wx+=waveSpacing){
+    ctx.beginPath(); ctx.moveTo(wx,30); ctx.lineTo(wx,H-30); ctx.stroke();
+  }
+  ctx.restore();
+  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.3);
+
+  // Wavefronts from center slit
+  ctx.save(); ctx.globalAlpha=0.04; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var maxR = screenX - slitX;
+  for(var wr=waveSpacing; wr<maxR; wr+=waveSpacing){
+    ctx.beginPath(); ctx.arc(slitX, midY, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Intensity pattern: I = [sin(Nβ)/(N sinβ)]² · sinc²(α)
+  var patternH = H - 60, yTop = 30;
+  var nFringes = 8;
+  var sinMax = Math.min(0.5, nFringes*lam/(2*dM));
+
+  var intensities = [];
+  var maxI = 0;
+  for(var py=0; py<patternH; py++){
+    var frac = (py/patternH) - 0.5;
+    var sinTh = frac * 2 * sinMax;
+    var beta  = Math.PI * dM * sinTh / lam;
+    var alpha = Math.PI * aM * sinTh / lam;
+    // N-slit interference
+    var sinNb = Math.sin(N*beta);
+    var sinB  = Math.sin(beta);
+    var interf = Math.abs(sinB) < 1e-12 ? 1.0 : (sinNb/(N*sinB));
+    var I = interf*interf * sinc(alpha)*sinc(alpha);
+    intensities.push(I);
+    if(I > maxI) maxI = I;
+  }
+
+  // Screen
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(screenX,20); ctx.lineTo(screenX,H-20); ctx.stroke();
+
+  // Screen glow
+  for(var py=0; py<patternH; py++){
+    var I = intensities[py]/maxI;
+    ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(I*0.7)+')';
+    ctx.fillRect(screenX-4, yTop+py, 8, 1);
+  }
+
+  // Intensity curve
+  var barW = 50, graphX = screenX + 8;
+  ctx.beginPath(); ctx.moveTo(graphX, yTop);
+  for(var py=0; py<patternH; py++) ctx.lineTo(graphX+intensities[py]/maxI*barW, yTop+py);
+  ctx.lineTo(graphX, yTop+patternH); ctx.closePath();
+  ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.08)'; ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+  ctx.beginPath();
+  for(var py=0; py<patternH; py++){
+    var I=intensities[py]/maxI;
+    if(py===0) ctx.moveTo(graphX+I*barW,yTop+py); else ctx.lineTo(graphX+I*barW,yTop+py);
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // Diffraction envelope (dashed)
+  if(showEnv){
+    ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(255,100,100,0.4)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(var py=0; py<patternH; py++){
+      var frac=(py/patternH)-0.5;
+      var sinTh=frac*2*sinMax;
+      var alpha=Math.PI*aM*sinTh/lam;
+      var env=sinc(alpha)*sinc(alpha);
+      if(py===0) ctx.moveTo(graphX+env*barW,yTop+py); else ctx.lineTo(graphX+env*barW,yTop+py);
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  }
+
+  // Labels
+  ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
+  ctx.fillText('grating',slitX,H-8); ctx.fillText('screen',screenX,H-8);
+  ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
+  ctx.fillText('m=0',graphX+barW+6,midY+3);
+
+  // Readout cards
+  var dy_fringe = lam*L/dM;
+  var theta1 = Math.asin(lam/dM)*180/Math.PI;
+  var R = N; // resolving power for m=1
+  var h='';
+  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  h+=cd('d',d+' \u00B5m',col);
+  h+=cd('N',N+'',col);
+  h+=cd('L',L.toFixed(2)+' m',col);
+  h+=cd('\u03B8\u2081',theta1.toFixed(2)+'\u00B0',TXH);
+  h+=cd('R (m=1)',R+'',TXH);
+  document.getElementById('g-cards').innerHTML=h;
+}
+window.uG=uG;
 
 /* ── Initialize ── */
 uS();
