@@ -1068,9 +1068,9 @@ canvas.addEventListener('wheel', (e) => {
   let centerY = rect.height / 2 + camOffsetY;
 
   // Adjust offset so the point under the mouse stays fixed
-  camOffsetX = mx - (mx - camOffsetX) * (newZoom / camZoom) - rect.width / 2 + (rect.width / 2);
-  camOffsetX = camOffsetX + (mx - centerX) * (1 - newZoom / camZoom);
-  camOffsetY = camOffsetY + (my - centerY) * (1 - newZoom / camZoom);
+  let ratio = newZoom / camZoom;
+  camOffsetX += (mx - rect.width / 2 - camOffsetX) * (1 - ratio);
+  camOffsetY += (my - rect.height / 2 - camOffsetY) * (1 - ratio);
 
   camZoom = newZoom;
 }, { passive: false });
