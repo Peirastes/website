@@ -159,8 +159,8 @@ canvas{display:block;width:100%;height:100%}
   #clocksBody{max-height:0 !important;opacity:0 !important;margin:0 !important;overflow:hidden}
   #clockCollapseBtn{display:none}
 
-  /* Controls: top-right, compact */
-  .hud-tc{top:8px;right:8px;left:auto;transform:none;padding:4px 6px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+  /* Controls: inlined into header panel on mobile (moved via JS) */
+  .hud-tc{position:static;background:none;border:none;border-radius:0;backdrop-filter:none;-webkit-backdrop-filter:none;padding:4px 0 0;margin-top:4px;border-top:1px solid rgba(255,255,255,0.04);gap:3px}
   .speed-btn{padding:3px 5px;font-size:7px}
   .play-btn{padding:3px 8px;font-size:9px}
   .reset-btn{padding:3px 5px;font-size:9px}
@@ -1656,6 +1656,21 @@ setTimeout(positionDrawer, 100);
 
 // Mobile: reliable resize on orientation change
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+
+// Mobile: move controls into header panel
+let tcOriginalParent = document.querySelector('.hud-tc').parentElement;
+let tcNextSibling = document.querySelector('.hud-tc').nextElementSibling;
+function handleMobileLayout() {
+  let tc = document.querySelector('.hud-tc');
+  let tl = document.querySelector('.hud-tl');
+  if (window.innerWidth <= 600) {
+    if (tc.parentElement !== tl) tl.appendChild(tc);
+  } else {
+    if (tc.parentElement !== tcOriginalParent) tcOriginalParent.insertBefore(tc, tcNextSibling);
+  }
+}
+handleMobileLayout();
+window.addEventListener('resize', handleMobileLayout);
 
 // Mobile toggle buttons
 document.getElementById('mobileLogBtn').addEventListener('click', () => {
