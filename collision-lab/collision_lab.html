@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ENGR 2000 — 2D Particle Collision Simulator</title>
+<title>2D Particle Collision Lab — Peirastes</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <style>
@@ -134,12 +134,13 @@
 </style>
 </head>
 <body>
+<a href="https://peirastes.com" title="Back to Peirastes" style="position:fixed;top:8px;left:12px;font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:rgba(224,224,224,0.3);text-decoration:none;letter-spacing:0.08em;z-index:9999;transition:color 0.2s ease" onmouseover="this.style.color='#e07050'" onmouseout="this.style.color='rgba(224,224,224,0.3)'">Peirastes</a>
 
 <div class="header">
   <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
   <div style="text-align:center;">
     <div class="header-title">2D PARTICLE COLLISION LAB</div>
-    <div class="header-sub">ENGR 2000 · ENGINEERING DYNAMICS · SPRING 2026</div>
+    <div class="header-sub">OBLIQUE COLLISIONS · MOMENTUM · RESTITUTION</div>
   </div>
   <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
 </div>
@@ -443,6 +444,24 @@ function drawFrame(ad) {
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let x=cx%gs;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=cy%gs;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // X and Y axes
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.2*dpr;
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.stroke();
+  // Axis tick marks
+  ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1*dpr;
+  const tickLen=4*dpr;
+  for(let x=cx+gs;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,cy-tickLen);ctx.lineTo(x,cy+tickLen);ctx.stroke();}
+  for(let x=cx-gs;x>0;x-=gs){ctx.beginPath();ctx.moveTo(x,cy-tickLen);ctx.lineTo(x,cy+tickLen);ctx.stroke();}
+  for(let y=cy+gs;y<H;y+=gs){ctx.beginPath();ctx.moveTo(cx-tickLen,y);ctx.lineTo(cx+tickLen,y);ctx.stroke();}
+  for(let y=cy-gs;y>0;y-=gs){ctx.beginPath();ctx.moveTo(cx-tickLen,y);ctx.lineTo(cx+tickLen,y);ctx.stroke();}
+  // Axis labels
+  ctx.font=`${11*dpr}px Share Tech Mono`; ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.textAlign='left'; ctx.textBaseline='bottom';
+  ctx.fillText('x',W-14*dpr,cy-6*dpr);
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('y',cx+8*dpr,4*dpr);
 
   // Line of impact
   const theta=inp.theta*Math.PI/180;
