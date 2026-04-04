@@ -978,7 +978,8 @@ function uD(){
   h += cd('a', a+' \u00B5m', col);
   h += cd('L', L.toFixed(2)+' m', col);
   h += cd('\u0394y', (dy_fringe*1000).toFixed(2)+' mm', col);
-  h += cd('\u03B8\u2081', (Math.asin(lam/dM)*180/Math.PI).toFixed(2)+'\u00B0', TXH);
+  var sinTh1_ds = lam/dM;
+  h += cd('\u03B8\u2081', sinTh1_ds<=1 ? (Math.asin(sinTh1_ds)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a', TXH);
   document.getElementById('d-cards').innerHTML = h;
 }
 window.uD=uD;
@@ -1089,13 +1090,13 @@ function uSS(){
 
   // Readout cards
   var centralW = 2*lam*L/aM;
-  var theta1 = Math.asin(lam/aM)*180/Math.PI;
+  var sinTh1_ss = lam/aM;
   var h='';
   h+=cd('\u03BB',Math.round(wl)+' nm',col);
   h+=cd('a',a+' \u00B5m',col);
   h+=cd('L',L.toFixed(2)+' m',col);
   h+=cd('Central W',(centralW*1000).toFixed(2)+' mm',col);
-  h+=cd('\u03B8\u2081 (min)',theta1.toFixed(2)+'\u00B0',TXH);
+  h+=cd('\u03B8\u2081 (min)',sinTh1_ss<=1 ? (Math.asin(sinTh1_ss)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a',TXH);
   document.getElementById('ss-cards').innerHTML=h;
 }
 window.uSS=uSS;
@@ -1246,14 +1247,14 @@ function uG(){
 
   // Readout cards
   var dy_fringe = lam*L/dM;
-  var theta1 = Math.asin(lam/dM)*180/Math.PI;
+  var sinTh1_gr = lam/dM;
   var R = N; // resolving power for m=1
   var h='';
   h+=cd('\u03BB',Math.round(wl)+' nm',col);
   h+=cd('d',d+' \u00B5m',col);
   h+=cd('N',N+'',col);
   h+=cd('L',L.toFixed(2)+' m',col);
-  h+=cd('\u03B8\u2081',theta1.toFixed(2)+'\u00B0',TXH);
+  h+=cd('\u03B8\u2081',sinTh1_gr<=1 ? (Math.asin(sinTh1_gr)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a',TXH);
   h+=cd('R (m=1)',R+'',TXH);
   document.getElementById('g-cards').innerHTML=h;
 }
