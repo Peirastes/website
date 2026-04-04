@@ -146,12 +146,54 @@ canvas{display:block;width:100%;height:100%}
 .reset-btn{padding:5px 8px;border:1px solid var(--glass-border);border-radius:4px;background:transparent;color:var(--fg3);font-size:11px;cursor:pointer;transition:all 0.15s}
 .reset-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--fg2)}
 
-@media(max-width:700px){
-  .hud-tr{top:auto;bottom:180px;right:8px;left:8px;min-width:auto}
-  .hud-tl{padding:8px 10px}
-  .hud-bl{display:none}
-  .hud-bc{bottom:8px}
-  .graph-drawer{display:none}
+/* Mobile-only toggle buttons */
+.mobile-toggle-btn{display:none;padding:4px 6px;border:1px solid rgba(255,255,255,0.10);border-radius:4px;background:transparent;color:var(--fg3);font-family:'Space Mono',monospace;font-size:7px;letter-spacing:0.5px;font-weight:700;cursor:pointer;transition:all 0.15s;align-self:center;height:fit-content}
+.mobile-toggle-btn:hover,.mobile-toggle-btn.active{border-color:var(--accent);color:var(--accent)}
+
+@media(max-width:600px){
+  /* Top-left: compact branding + MET only */
+  .hud-tl{top:8px;left:8px;padding:4px 8px;min-width:auto}
+  .logo{font-size:13px}
+  .logo-sub{display:none}
+  .phase-met{font-size:8px;margin-top:1px;padding-bottom:0;margin-bottom:0;gap:4px;border-bottom:none}
+  #clocksBody{max-height:0 !important;opacity:0 !important;margin:0 !important;overflow:hidden}
+  #clockCollapseBtn{display:none}
+
+  /* Controls: top-right, compact */
+  .hud-tc{top:8px;right:8px;left:auto;transform:none;padding:4px 6px;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+  .speed-btn{padding:3px 5px;font-size:7px}
+  .play-btn{padding:3px 8px;font-size:9px}
+  .reset-btn{padding:3px 5px;font-size:9px}
+
+  /* Hide floating info button — replaced by toggle in tape bar */
+  .info-btn{display:none}
+  /* Info panel: bottom sheet overlay */
+  .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
+  .info-panel{margin-top:0}
+
+  /* Mission log: slide-up overlay, hidden off-screen by default */
+  .hud-bl{bottom:0;left:0;right:0;top:auto;min-width:auto;max-height:45vh;overflow-y:auto;border-radius:12px 12px 0 0;z-index:20;transform:translateY(100%);transition:transform 0.3s ease;pointer-events:none;padding:10px 14px}
+  .hud-bl.mobile-open{transform:translateY(0);pointer-events:auto}
+
+  /* Tape gauges: scaled down */
+  .hud-bc{bottom:8px;padding:6px 8px}
+  .tape-main{width:32px;height:90px}
+  .tape-head{font-size:6px;letter-spacing:0.5px;margin-bottom:2px}
+  .tape-unit{font-size:5px}
+  .instruments{gap:3px}
+  .hud-bc > .section-lbl{display:none}
+
+  /* Hide graph drawer and its toggle */
+  .graph-drawer{display:none !important}
+  .drawer-toggle{display:none}
+
+  /* Show mobile toggle buttons */
+  .mobile-toggle-btn{display:block}
+
+  /* Mission log: compact text */
+  .log-ev-label{font-size:9px}
+  .log-ev-detail{font-size:7px}
+  .log-row{padding:3px 0}
 }
 </style>
 </head>
@@ -301,6 +343,9 @@ canvas{display:block;width:100%;height:100%}
       </div>
       <!-- Drawer toggle -->
       <button class="drawer-toggle" id="drawerToggle">&#9654;</button>
+      <!-- Mobile-only toggles -->
+      <button class="mobile-toggle-btn" id="mobileLogBtn" title="Mission Log">LOG</button>
+      <button class="mobile-toggle-btn" id="mobileInfoBtn" title="About">i</button>
     </div>
   </div>
 
@@ -1608,6 +1653,31 @@ function positionDrawer() {
 }
 window.addEventListener('resize', positionDrawer);
 setTimeout(positionDrawer, 100);
+
+// Mobile: reliable resize on orientation change
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+
+// Mobile toggle buttons
+document.getElementById('mobileLogBtn').addEventListener('click', () => {
+  let log = document.querySelector('.hud-bl');
+  let isOpen = log.classList.toggle('mobile-open');
+  document.getElementById('mobileLogBtn').classList.toggle('active', isOpen);
+  if (isOpen) {
+    document.getElementById('infoPanel').classList.add('hidden');
+    document.getElementById('mobileInfoBtn').classList.remove('active');
+  }
+});
+
+document.getElementById('mobileInfoBtn').addEventListener('click', () => {
+  let panel = document.getElementById('infoPanel');
+  panel.classList.toggle('hidden');
+  let isOpen = !panel.classList.contains('hidden');
+  document.getElementById('mobileInfoBtn').classList.toggle('active', isOpen);
+  if (isOpen) {
+    document.querySelector('.hud-bl').classList.remove('mobile-open');
+    document.getElementById('mobileLogBtn').classList.remove('active');
+  }
+});
 
 // ========== TIME-SERIES GRAPH ==========
 const graphCanvas = document.getElementById('graphCanvas');
