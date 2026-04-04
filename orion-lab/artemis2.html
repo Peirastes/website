@@ -200,6 +200,8 @@ canvas{display:block;width:100%;height:100%}
   .log-ev-detail{font-size:7px}
   .log-header{margin-bottom:3px}
   .log-header .section-lbl{font-size:6px}
+  .integrator{display:none}
+  .log-header .log-collapse-btn{display:none}
   .log-row{padding:3px 0}
 }
 </style>
@@ -741,9 +743,12 @@ function updateMissionLog() {
     html += '</div>';
   }
 
-  // Show count indicator when collapsed
-  if (logCollapsed && MISSION_EVENTS.length > 3) {
-    html += '<div style="text-align:center;font-family:\'Space Mono\',monospace;font-size:7px;color:var(--fg3);margin-top:4px">' + MISSION_EVENTS.length + ' events total</div>';
+  // Show count + expand/collapse toggle
+  if (MISSION_EVENTS.length > 3) {
+    let arrow = logCollapsed ? '&#9660;' : '&#9650;';
+    html += '<div class="log-footer-toggle" style="display:flex;align-items:center;gap:4px;font-family:\'Space Mono\',monospace;font-size:7px;color:var(--fg3);margin-top:4px;cursor:pointer" onclick="document.getElementById(\'logCollapseBtn\').click()">';
+    html += '<span style="font-size:8px">' + arrow + '</span> ' + MISSION_EVENTS.length + ' events';
+    html += '</div>';
   }
 
   document.getElementById('missionLog').innerHTML = html;
