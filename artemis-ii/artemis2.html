@@ -455,7 +455,7 @@ let lastFrame = 0;
 
 const T_LEO_END = 10800;       // 3 hrs (not used for trajectory anymore, kept for reference)
 const T_TLI = 86400;           // ~24 hrs (approximate, actual TLI detected at perigee)
-const T_MISSION_END = 785000;  // ~9d 2h (NASA NET April 11 00:21 UTC splashdown)
+const T_MISSION_END = 864000;  // 10 days (fallback; actual end is TRAJ_SPLASHDOWN)
 
 // ========== MOON POSITION ==========
 function getMoonAngle(t) {
@@ -537,11 +537,10 @@ const T_PERIGEE_RAISE = 2940; // ~49 min: ICPS perigee raise burn
 const T_HEO_BURN = 5400;     // ~90 min: ICPS burn to high Earth orbit
 const T_PROX_OPS = 10800;    // ~3 hrs: proximity operations demo
 const T_PERIGEE_RAISE2 = 43200; // ~12 hrs: perigee raise burn (Orion OMS)
-const T_TLI_BURN = 91500;    // ~25.4 hrs: Flight Day 2 ESM burn (NASA Artemis II)
+const T_TLI_BURN = 82800;    // ~23 hrs: TLI burn
 
 function buildTrajectory() {
-  // NASA-published perilune: April 6, 2026 23:02 UTC = T+5d 0h 27m = 432,420s
-  let tFlyby = 432420;
+  let tFlyby = T_TLI_BURN + 4 * 86400;
   let moonAtFlyby = getMoonXY(tFlyby);
   let moonAngle = Math.atan2(moonAtFlyby.y, moonAtFlyby.x);
 
@@ -654,11 +653,11 @@ function buildTrajectory() {
     // TLI: detect perigee return after HEO apogee
     // Pure prograde burn — the orbit is already aligned with the Moon
     // because we chose the correct start angle (= launch window)
-    // Delta-v tuned so perilune arrives at NASA's published T+5d 0h 27m
+    // Delta-v: 0.360 km/s prograde (close to NASA's reported 0.388 km/s / 1,274 ft/s)
     if (heoBurnDone && !tliDone) {
       if (rE > RE + 40000) passedApogee = true;
       if (passedApogee && rE < RE + 500) {
-        let tliDv = 0.240;
+        let tliDv = 0.360;
         state.vx += tliDv * state.vx / speed;
         state.vy += tliDv * state.vy / speed;
         tliDone = true;
