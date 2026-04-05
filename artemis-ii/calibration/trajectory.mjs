@@ -18,6 +18,11 @@ export const MU_E = 398600.4418;      // Earth gravitational parameter km^3/s^2
 export const MU_M = 4902.8;           // Moon gravitational parameter km^3/s^2
 export const LUNAR_PERIOD = 27.322 * 86400; // Moon orbital period seconds
 
+// Sun constants (third body)
+export const MU_SUN = 132712440018;        // Sun gravitational parameter km^3/s^2
+export const AU = 149597870.7;              // 1 AU in km
+export const SUN_ANGULAR_VELOCITY = 2 * Math.PI / (365.25 * 86400); // rad/s, Sun's apparent motion in Earth frame
+
 export const LAUNCH_UTC = new Date('2026-04-01T22:35:12Z').getTime();
 
 // ========== DEFAULT TUNABLE PARAMETERS ==========
@@ -46,6 +51,17 @@ export const DEFAULTS = {
   // Targeting
   T_FLYBY_TARGET: 432420,   // target perilune time used for launch-window phasing (NASA Apr 6 23:02 UTC)
   START_ANGLE_OFFSET: 3.00, // offset from moonAngle-at-flyby (radians)
+
+  // Sun gravity (third body)
+  ENABLE_SUN: false,         // set true to include solar tidal perturbation
+  SUN_INITIAL_ANGLE: 3.54,  // Sun angle at t=0 in our frame (radians). ~opposite Moon for waxing gibbous phase.
+                             // April 1 2026 is waxing gibbous (~134° elongation). Approximate as Moon+π for now.
+
+  // Post-flyby trajectory correction maneuver (TCM)
+  ENABLE_TCM: false,          // set true to fire a return TCM after perilune
+  TCM_DELAY: 86400,           // seconds after perilune to fire TCM (default: 1 day)
+  TCM_DV: 0.010,              // TCM delta-v magnitude (km/s) — small correction burn
+  TCM_MODE: 'retrograde',     // 'retrograde' (slow down), 'prograde' (speed up), 'radial_in' (toward Earth)
 };
 
 // ========== MOON POSITION ==========
@@ -57,12 +73,26 @@ export function getMoonXY(t) {
   return { x: LUNAR_DIST * Math.cos(a), y: LUNAR_DIST * Math.sin(a) };
 }
 
+// ========== SUN POSITION ==========
+// Sun moves slowly in Earth-centered frame (~1°/day).
+// sunParams is set per-run from DEFAULTS.
+let _sunParams = null;
+export function getSunXY(t) {
+  const angle = _sunParams.SUN_INITIAL_ANGLE + SUN_ANGULAR_VELOCITY * t;
+  return { x: AU * Math.cos(angle), y: AU * Math.sin(angle) };
+}
+
 // ========== RK4 GRAVITATIONAL INTEGRATOR ==========
+// Three-body: Earth (origin) + Moon + Sun (tidal term).
+// Sun tidal acceleration = -μ_Sun * [(r-r_Sun)/|r-r_Sun|³ + r_Sun/|r_Sun|³]
+// The second term subtracts Earth's acceleration toward the Sun (non-inertial frame correction).
 function gravAccel(x, y, t) {
   const rE = Math.sqrt(x * x + y * y);
   const rE3 = rE * rE * rE;
   let ax = -MU_E * x / rE3;
   let ay = -MU_E * y / rE3;
+
+  // Moon gravity
   const moon = getMoonXY(t);
   const dxM = x - moon.x;
   const dyM = y - moon.y;
@@ -70,6 +100,23 @@ function gravAccel(x, y, t) {
   const rM3 = rM * rM * rM;
   ax -= MU_M * dxM / rM3;
   ay -= MU_M * dyM / rM3;
+
+  // Sun tidal perturbation (if enabled)
+  if (_sunParams && _sunParams.ENABLE_SUN) {
+    const sun = getSunXY(t);
+    // Vector from Sun to spacecraft
+    const dxS = x - sun.x;
+    const dyS = y - sun.y;
+    const rS = Math.sqrt(dxS * dxS + dyS * dyS);
+    const rS3 = rS * rS * rS;
+    // Vector from Sun to Earth (= -sun, since Earth is at origin)
+    const rSE = Math.sqrt(sun.x * sun.x + sun.y * sun.y);
+    const rSE3 = rSE * rSE * rSE;
+    // Tidal term: acceleration of spacecraft relative to Earth
+    ax -= MU_SUN * (dxS / rS3 + sun.x / rSE3);
+    ay -= MU_SUN * (dyS / rS3 + sun.y / rSE3);
+  }
+
   return { ax, ay };
 }
 
@@ -111,6 +158,7 @@ function rk4Step(state, t, dt) {
  */
 export function runTrajectory(params = {}) {
   const p = { ...DEFAULTS, ...params };
+  _sunParams = p;  // expose params to gravAccel for Sun toggle
   const meta = {};
   const TRAJ = [];
 
@@ -177,6 +225,7 @@ export function runTrajectory(params = {}) {
 
   let t = 0;
   let heoBurnDone = false, tliDone = false, passedApogee = false;
+  let tcmDone = false;
   let minMoonDist = Infinity;
   let maxEarthDist = 0;
   const totalSteps = Math.ceil(p.T_MISSION_END / p.TRAJ_DT);
@@ -231,6 +280,26 @@ export function runTrajectory(params = {}) {
 
     if (t >= p.T_MECO && (i % 6 === 0 || i === totalSteps - 1)) {
       TRAJ.push({ t, x: state.x, y: state.y, vx: state.vx, vy: state.vy });
+    }
+
+    // Post-flyby TCM burn
+    if (p.ENABLE_TCM && !tcmDone && meta.periluneTime && t >= meta.periluneTime + p.TCM_DELAY) {
+      const tcmDv = p.TCM_DV;
+      const sp = Math.sqrt(state.vx ** 2 + state.vy ** 2);
+      if (p.TCM_MODE === 'retrograde') {
+        state.vx -= tcmDv * state.vx / sp;
+        state.vy -= tcmDv * state.vy / sp;
+      } else if (p.TCM_MODE === 'prograde') {
+        state.vx += tcmDv * state.vx / sp;
+        state.vy += tcmDv * state.vy / sp;
+      } else if (p.TCM_MODE === 'radial_in') {
+        // toward Earth (opposite of radial outward)
+        const rr = Math.sqrt(state.x ** 2 + state.y ** 2);
+        state.vx -= tcmDv * state.x / rr;
+        state.vy -= tcmDv * state.y / rr;
+      }
+      tcmDone = true;
+      meta.tcm = { t, dv: tcmDv, mode: p.TCM_MODE, speed: sp };
     }
 
     // Track perilune, max distance, and splashdown

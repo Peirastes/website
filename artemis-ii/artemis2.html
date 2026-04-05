@@ -442,6 +442,12 @@ const MU_E = 398600.4418;      // Earth gravitational parameter km^3/s^2
 const MU_M = 4902.8;           // Moon gravitational parameter km^3/s^2
 const LUNAR_PERIOD = 27.322 * 86400; // Moon orbital period seconds
 
+// Sun constants (third-body tidal perturbation)
+const MU_SUN = 132712440018;        // Sun gravitational parameter km^3/s^2
+const AU_KM = 149597870.7;          // 1 AU in km
+const SUN_ANG_VEL = 2*Math.PI/(365.25*86400); // Sun apparent angular velocity rad/s
+const SUN_ANGLE0 = 3.54;            // Sun angle at launch (≈opposite Moon, waxing gibbous)
+
 const LAUNCH_UTC = new Date('2026-04-01T22:35:12Z').getTime();
 
 const canvas = document.getElementById('simCanvas');
@@ -470,6 +476,11 @@ function getMoonXY(t) {
 // State vector: [x, y, vx, vy] in km and km/s
 // Earth at origin; Moon moves on circular orbit
 
+function getSunXY(t) {
+  let a = SUN_ANGLE0 + SUN_ANG_VEL * t;
+  return { x: AU_KM * Math.cos(a), y: AU_KM * Math.sin(a) };
+}
+
 function gravAccel(x, y, t) {
   // Earth gravity (Earth at origin)
   let rE = Math.sqrt(x * x + y * y);
@@ -485,6 +496,16 @@ function gravAccel(x, y, t) {
   let rM3 = rM * rM * rM;
   ax -= MU_M * dxM / rM3;
   ay -= MU_M * dyM / rM3;
+
+  // Sun tidal perturbation (Earth-centered non-inertial frame correction)
+  let sun = getSunXY(t);
+  let dxS = x - sun.x, dyS = y - sun.y;
+  let rS = Math.sqrt(dxS * dxS + dyS * dyS);
+  let rS3 = rS * rS * rS;
+  let rSE = Math.sqrt(sun.x * sun.x + sun.y * sun.y);
+  let rSE3 = rSE * rSE * rSE;
+  ax -= MU_SUN * (dxS / rS3 + sun.x / rSE3);
+  ay -= MU_SUN * (dyS / rS3 + sun.y / rSE3);
 
   return { ax, ay };
 }
@@ -540,12 +561,13 @@ const T_PERIGEE_RAISE2 = 43200; // ~12 hrs: perigee raise burn (Orion OMS)
 const T_TLI_BURN = 82800;    // ~23 hrs: TLI burn
 
 function buildTrajectory() {
-  let tFlyby = T_TLI_BURN + 4 * 86400;
+  // NASA-published perilune: April 6, 2026 23:02 UTC = T+5d 0h 27m = 432,420s
+  let tFlyby = 432420;
   let moonAtFlyby = getMoonXY(tFlyby);
   let moonAngle = Math.atan2(moonAtFlyby.y, moonAtFlyby.x);
 
-  // Start angle chosen so HEO perigee velocity aligns with translunar trajectory
-  let startAngle = moonAngle + 3.00;
+  // Start angle calibrated against NASA mission timeline (see calibration/README.md)
+  let startAngle = moonAngle + 3.145;
   let r0 = RE + LEO_ALT;
   let vOrb = Math.sqrt(MU_E / r0);
 
@@ -623,9 +645,11 @@ function buildTrajectory() {
   let t = 0;
 
   // Burn sequence (all detected dynamically from orbital mechanics):
-  // 1. ICPS burn to HEO at T_HEO_BURN (~90 min) — prograde, raises apogee to 74,000 km
+  // 1. ICPS burn to HEO at T_HEO_BURN (~90 min) — prograde, raises apogee to 76,757 km
   // 2. TLI at perigee return after HEO apogee — sets translunar velocity
+  // 3. Post-flyby TCM — radial-in correction to match NASA return trajectory
   let heoBurnDone = false, tliDone = false, passedApogee = false;
+  let tcmDone = false;
   let minMoonDist = Infinity;
   let totalSteps = Math.ceil(T_MISSION_END / TRAJ_DT);
 
@@ -638,7 +662,7 @@ function buildTrajectory() {
 
     // ICPS HEO burn at ~90 min: prograde burn to raise apogee
     if (!heoBurnDone && t >= T_HEO_BURN) {
-      let rPeri = rE, rApo = RE + 74000;
+      let rPeri = rE, rApo = RE + 76757; // NASA 23.5h HEO orbit
       let a = (rPeri + rApo) / 2;
       let vTarget = Math.sqrt(MU_E * (2/rPeri - 1/a));
       let dv = vTarget - speed;
@@ -651,13 +675,12 @@ function buildTrajectory() {
     }
 
     // TLI: detect perigee return after HEO apogee
-    // Pure prograde burn — the orbit is already aligned with the Moon
-    // because we chose the correct start angle (= launch window)
-    // Delta-v: 0.360 km/s prograde (close to NASA's reported 0.388 km/s / 1,274 ft/s)
+    // Pure prograde burn — orbit aligned with Moon via launch-window start angle.
+    // Delta-v calibrated so perilune matches NASA's April 6 23:02 UTC (see calibration/)
     if (heoBurnDone && !tliDone) {
       if (rE > RE + 40000) passedApogee = true;
       if (passedApogee && rE < RE + 500) {
-        let tliDv = 0.360;
+        let tliDv = 0.335;
         state.vx += tliDv * state.vx / speed;
         state.vy += tliDv * state.vy / speed;
         tliDone = true;
@@ -669,6 +692,16 @@ function buildTrajectory() {
     // Store every 60s (only after MECO — ascent phase has its own points)
     if (t >= T_MECO && (i % 6 === 0 || i === totalSteps - 1)) {
       TRAJ.push({ t, x: state.x, y: state.y, vx: state.vx, vy: state.vy });
+    }
+
+    // Post-flyby TCM: radial-in correction 1h after perilune (calibrated to NASA splashdown)
+    if (!tcmDone && TRAJ_META.periluneTime && t >= TRAJ_META.periluneTime + 3600) {
+      let tcmDv = 0.160; // km/s radial-in toward Earth
+      let rr = Math.sqrt(state.x**2 + state.y**2);
+      state.vx -= tcmDv * state.x / rr;
+      state.vy -= tcmDv * state.y / rr;
+      tcmDone = true;
+      TRAJ_META.tcm = { t, dv: tcmDv };
     }
 
     // Track perilune + splashdown
@@ -704,18 +737,16 @@ function populateMissionInfo() {
     { t: T_MECO, label: 'MECO', detail: LEO_ALT + ' km, ' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(1) + ' km/s' },
   ];
   if (m.heoBurn) {
-    MISSION_EVENTS.push({ t: m.heoBurn.t, label: 'ICPS burn → HEO', detail: '&Delta;v ' + m.heoBurn.dv + ' km/s, apogee 74,000 km' });
+    MISSION_EVENTS.push({ t: m.heoBurn.t, label: 'ICPS burn → HEO', detail: '&Delta;v ' + m.heoBurn.dv + ' km/s, apogee 76,757 km' });
   }
   if (m.tli) {
     MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde' });
   }
   if (m.periluneTime) {
     MISSION_EVENTS.push({ t: m.periluneTime, label: 'Lunar flyby', detail: m.periluneAlt.toLocaleString() + ' km perilune' });
-    // Return trajectory correction burns (~1 day and ~2 days after perilune)
-    let rtc1 = m.periluneTime + 1.0 * 86400;
-    let rtc2 = m.periluneTime + 2.0 * 86400;
-    MISSION_EVENTS.push({ t: rtc1, label: 'Return TCM-1', detail: 'Trajectory correction burn' });
-    MISSION_EVENTS.push({ t: rtc2, label: 'Return TCM-2', detail: 'Final course correction' });
+    if (m.tcm) {
+      MISSION_EVENTS.push({ t: m.tcm.t, label: 'Return TCM', detail: '&Delta;v ' + m.tcm.dv + ' km/s radial correction' });
+    }
   }
   if (m.splashdown) {
     // SM separation ~30 min before splashdown, EI ~15 min before, chutes ~5 min before
@@ -728,7 +759,7 @@ function populateMissionInfo() {
     MISSION_EVENTS.push({ t: m.splashdown.t, label: 'Splashdown', detail: 'Pacific Ocean, off San Diego' });
   }
 
-  let info = '<span>RK4</span> dt=' + TRAJ_DT + 's · ' + m.points + ' pts · Earth+Moon';
+  let info = '<span>RK4</span> dt=' + TRAJ_DT + 's · ' + m.points + ' pts · Earth+Moon+Sun';
   document.getElementById('trajInfo').innerHTML = info;
 
   updateMissionLog(); // initial render
