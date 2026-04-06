@@ -2072,29 +2072,33 @@ function stackPanels() {
     let graphPanel = document.getElementById('graphsPanel');
     let vh = window.innerHeight;
 
-    // Both panels side by side at bottom, fixed height
-    let bottomH = Math.round(vh * 0.28); // 28% of viewport height
-    let panelStyle = 'position:fixed;bottom:8px;height:' + bottomH + 'px;' +
-      'padding:6px;border-radius:8px;z-index:50;overflow:hidden;' +
-      'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
-      'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
-
+    // Telemetry: 1 row x 4 columns at bottom-left
+    // Graphs: bottom-right, same height
     if (telPanel) {
-      telPanel.setAttribute('style', panelStyle + ';left:8px;right:calc(50% + 4px);display:block');
+      telPanel.setAttribute('style',
+        'position:fixed;bottom:8px;left:8px;right:50%;display:block;' +
+        'padding:4px;border-radius:8px;z-index:50;overflow:hidden;' +
+        'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
+        'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)');
       let grid = telPanel.querySelector('.tape-grid');
-      if (grid) grid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:2px;height:100%';
-      telPanel.querySelectorAll('.tape-body').forEach(b => {
-        b.style.cssText = 'width:100%;flex:1;overflow:hidden;position:relative';
-      });
+      if (grid) grid.style.cssText = 'display:flex;flex-direction:row;gap:4px';
       telPanel.querySelectorAll('.tape-inst').forEach(t => {
-        t.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-height:0';
+        t.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;align-items:center';
+      });
+      telPanel.querySelectorAll('.tape-body').forEach(b => {
+        b.style.cssText = 'width:100%;height:80px;overflow:hidden;position:relative';
       });
       telPanel.querySelectorAll('.tape-main').forEach(m => {
         m.style.cssText = 'width:100%;height:auto;position:relative;top:50%;transform:translateY(-50%)';
       });
     }
     if (graphPanel) {
-      graphPanel.setAttribute('style', panelStyle + ';left:calc(50% + 4px);right:8px;display:flex;flex-direction:column');
+      let telH = telPanel ? telPanel.getBoundingClientRect().height : 120;
+      graphPanel.setAttribute('style',
+        'position:fixed;bottom:8px;left:50%;right:8px;height:' + telH + 'px;' +
+        'display:flex;flex-direction:column;padding:6px;border-radius:8px;z-index:50;overflow:hidden;' +
+        'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
+        'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)');
     }
   }
 
