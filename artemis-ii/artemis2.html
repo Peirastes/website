@@ -1048,80 +1048,78 @@ buildGraphData();
 // ========== TAPE INSTRUMENTS ==========
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-function initTapeTicks(groupId, numTicks, labels) {
+// Scrolling tape instrument — the scale strip moves past a fixed center readout.
+// stripH controls how tall the virtual tape strip is (more = finer resolution).
+const TAPE_STRIP_H = 800;
+const TAPE_CENTER_Y = 90; // center of readout in viewBox
+
+function initScrollTape(groupId, numMajor, labels) {
   let g = document.getElementById(groupId);
   if (!g) return;
-  // Tape area: y=10 to y=170 (excluding center cutout area 78-102)
-  for (let i = 0; i <= numTicks; i++) {
-    let frac = i / numTicks;
-    let y = 10 + frac * 160; // full tape height
-    let isMajor = labels ? (i % (numTicks / (labels.length - 1)) === 0) : (i % 5 === 0);
 
-    // Skip ticks in the center readout zone
-    if (y > 74 && y < 106) continue;
+  // Create scrolling group
+  let scroll = document.createElementNS(SVG_NS, 'g');
+  scroll.id = groupId + '_scroll';
+  g.appendChild(scroll);
 
+  let numMinor = numMajor * 4;
+  for (let i = 0; i <= numMinor; i++) {
+    let frac = i / numMinor;
+    let y = TAPE_STRIP_H * (1 - frac); // 0 at bottom, STRIP_H at top
+    let isMajor = (i % 4 === 0);
+
+    // Left ticks
     let line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('x1', isMajor ? 18 : 22);
+    line.setAttribute('x1', isMajor ? 18 : 24);
     line.setAttribute('y1', y);
-    line.setAttribute('x2', 28);
+    line.setAttribute('x2', 30);
     line.setAttribute('y2', y);
-    line.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)');
+    line.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.10)');
     line.setAttribute('stroke-width', isMajor ? '0.8' : '0.4');
-    g.appendChild(line);
+    scroll.appendChild(line);
 
-    // Right side ticks
+    // Right ticks
     let line2 = document.createElementNS(SVG_NS, 'line');
-    line2.setAttribute('x1', 56);
+    line2.setAttribute('x1', 54);
     line2.setAttribute('y1', y);
-    line2.setAttribute('x2', isMajor ? 66 : 62);
+    line2.setAttribute('x2', isMajor ? 66 : 60);
     line2.setAttribute('y2', y);
-    line2.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)');
+    line2.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.10)');
     line2.setAttribute('stroke-width', isMajor ? '0.8' : '0.4');
-    g.appendChild(line2);
+    scroll.appendChild(line2);
 
-    // Labels on major ticks (right side)
+    // Labels on major ticks
     if (isMajor && labels) {
       let li = Math.round(frac * (labels.length - 1));
-      if (li < labels.length && y < 74 || y > 106) {
+      if (li < labels.length) {
         let txt = document.createElementNS(SVG_NS, 'text');
         txt.setAttribute('x', 42);
         txt.setAttribute('y', y + 3);
         txt.setAttribute('text-anchor', 'middle');
-        txt.setAttribute('font-family', "'Space Mono', monospace");
-        txt.setAttribute('font-size', '6');
-        txt.setAttribute('fill', 'rgba(255,255,255,0.25)');
-        txt.textContent = labels[labels.length - 1 - li]; // reversed: top=max
-        g.appendChild(txt);
+        txt.setAttribute('font-family', "'Courier New', monospace");
+        txt.setAttribute('font-size', '7');
+        txt.setAttribute('fill', 'rgba(255,255,255,0.3)');
+        txt.textContent = labels[labels.length - 1 - li];
+        scroll.appendChild(txt);
       }
     }
   }
-
-  // Fill bar behind tape (shows value as a filled region from bottom)
-  let bar = document.createElementNS(SVG_NS, 'rect');
-  bar.setAttribute('x', '30');
-  bar.setAttribute('y', '170');
-  bar.setAttribute('width', '24');
-  bar.setAttribute('height', '0');
-  bar.setAttribute('rx', '1');
-  bar.setAttribute('fill', 'currentColor');
-  bar.setAttribute('opacity', '0.12');
-  bar.id = groupId + '_bar';
-  g.appendChild(bar);
 }
 
-initTapeTicks('velTapeG', 24, ['0','2','4','6','8','10','12']);
-initTapeTicks('altTapeG', 24, ['0','10','100','1k','10k','100k','400k']);
-initTapeTicks('lunarTapeG', 24, ['0','50k','100k','200k','300k','400k','500k']);
-initTapeTicks('phiTapeG', 20, null);
+initScrollTape('velTapeG', 6, ['0','2','4','6','8','10','12']);
+initScrollTape('altTapeG', 7, ['0','10','100','1k','10k','100k','400k']);
+initScrollTape('lunarTapeG', 6, ['0','50k','100k','200k','300k','400k','500k']);
+initScrollTape('phiTapeG', 5, null);
 
-function updateTape(readId, barId, frac, displayText) {
+function updateTape(readId, scrollGroupId, frac, displayText) {
   let el = document.getElementById(readId);
   if (el) el.textContent = displayText;
-  let bar = document.getElementById(barId);
-  if (bar) {
-    let h = Math.max(0, Math.min(1, frac)) * 160;
-    bar.setAttribute('y', 170 - h);
-    bar.setAttribute('height', h);
+  let scroll = document.getElementById(scrollGroupId);
+  if (scroll) {
+    // Translate strip so current frac is at center readout
+    let f = Math.max(0, Math.min(1, frac));
+    let offset = TAPE_CENTER_Y - (1 - f) * TAPE_STRIP_H;
+    scroll.setAttribute('transform', 'translate(0,' + offset.toFixed(1) + ')');
   }
 }
 
@@ -1132,25 +1130,25 @@ function updateGauges(state) {
 
   // Velocity: linear 0-12
   let velFrac = Math.min(vel / 12, 1);
-  updateTape('velRead', 'velTapeG_bar', velFrac, vel.toFixed(1));
+  updateTape('velRead', 'velTapeG_scroll', velFrac, vel.toFixed(1));
 
   // Altitude: log scale
   let altFrac = alt <= 0 ? 0 : Math.log10(1 + alt) / Math.log10(1 + 420000);
   let altStr = alt < 1000 ? Math.round(alt).toString() : (alt < 100000 ? (alt/1000).toFixed(1) + 'k' : Math.round(alt/1000) + 'k');
-  updateTape('altRead', 'altTapeG_bar', altFrac, altStr);
+  updateTape('altRead', 'altTapeG_scroll', altFrac, altStr);
 
   // Lunar distance (world coords, no flip)
   let moon = getMoonXY(simTime);
   let lunarDist = Math.sqrt((state.x - moon.x)**2 + (state.y - moon.y)**2);
   let lunarFrac = lunarDist <= 0 ? 0 : Math.log10(1 + lunarDist) / Math.log10(1 + 500000);
   let lunarStr = lunarDist < 1000 ? Math.round(lunarDist).toString() : (lunarDist < 100000 ? (lunarDist/1000).toFixed(1) + 'k' : Math.round(lunarDist/1000) + 'k');
-  updateTape('lunarRead', 'lunarTapeG_bar', lunarFrac, lunarStr);
+  updateTape('lunarRead', 'lunarTapeG_scroll', lunarFrac, lunarStr);
 
   // Phi/c2
   let td = computeTimeDilation(state, 1);
   let phiAbs = Math.abs(td.phi_craft_over_c2);
   let phiFrac = phiAbs <= 0 ? 0 : Math.min((Math.log10(phiAbs) + 10.5) / 2, 1);
-  updateTape('phiRead', 'phiTapeG_bar', phiFrac, phiAbs.toExponential(1));
+  updateTape('phiRead', 'phiTapeG_scroll', phiFrac, phiAbs.toExponential(1));
 }
 
 // ========== TIME DILATION ==========
