@@ -34,10 +34,34 @@ canvas{display:block;width:100%;height:100%}
 .title-sub{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);letter-spacing:1.5px;text-transform:uppercase}
 .tl-btns{display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end}
 
-/* Clocks panel (desktop, below title bar, 8px gap) */
-.hud-clocks{top:74px;left:16px;padding:10px 14px;min-width:270px}
-#clocksBody{overflow:hidden;transition:max-height 0.3s ease,opacity 0.3s ease;max-height:200px;opacity:1}
-#clocksBody.collapsed{max-height:0;opacity:0;margin:0}
+/* Mission time panel (desktop: left below header) */
+.hud-clocks{top:74px;left:16px;padding:0;min-width:270px;overflow:hidden}
+
+/* Collapsed row */
+.clocks-collapsed{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer}
+.clocks-met{font-family:'Courier New',monospace;font-size:12px;color:var(--fg);font-weight:700}
+.clocks-delta-mini{font-family:'Courier New',monospace;font-size:10px;color:var(--cyan)}
+.clocks-delta-mini b{font-weight:700}
+.clocks-fd{font-family:'Courier New',monospace;font-size:9px;color:var(--amber);font-weight:700;letter-spacing:0.5px;margin-left:auto}
+
+/* Expanded body */
+#clocksBody{overflow:hidden;transition:max-height 0.4s ease,opacity 0.3s ease;max-height:300px;opacity:1;padding:0 12px 10px}
+#clocksBody.collapsed{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
+.clocks-expanded-header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 6px;border-top:1px solid rgba(255,255,255,0.06)}
+.clocks-met-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px}
+.clocks-met-label{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:1px}
+.clocks-met-val{font-family:'Courier New',monospace;font-size:13px;color:var(--fg);font-weight:700}
+
+/* Delta breakdown */
+.delta-section{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)}
+.delta-row{display:flex;align-items:center;margin-bottom:6px}
+.delta-breakdown{display:flex;gap:12px;margin-bottom:4px}
+.delta-component{display:flex;align-items:center;gap:4px}
+.delta-comp-label{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3)}
+.delta-comp-val{font-family:'Courier New',monospace;font-size:10px;font-weight:700}
+.delta-comp-grav{color:var(--cyan)}
+.delta-comp-vel{color:var(--amber)}
+.delta-comp-arrow{font-size:10px;opacity:0.5}
 
 /* LIVE indicator */
 .live-btn{display:flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid rgba(255,255,255,0.10);border-radius:3px;background:transparent;color:var(--fg3);font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:0.5px;cursor:pointer;transition:all 0.15s}
@@ -189,11 +213,18 @@ canvas{display:block;width:100%;height:100%}
   .play-btn{padding:3px 10px;font-size:11px}
   .reset-btn{padding:3px 6px;font-size:11px}
 
-  /* Hide clocks panel on mobile */
-  .hud-clocks{display:none !important}
+  /* Mission time panel: below controls */
+  .hud-clocks{display:block !important;top:auto;left:8px;right:8px;min-width:auto}
+  .clocks-collapsed{padding:6px 10px;gap:6px}
+  .clocks-met{font-size:10px}
+  .clocks-delta-mini{font-size:9px}
+  .clocks-fd{font-size:8px}
+  /* Expanded: single column on mobile */
+  .clocks{flex-direction:column;gap:6px}
+  .delta-breakdown{flex-direction:column;gap:4px}
 
-  /* Mission log: below controls (8px gap) */
-  .hud-bl{top:86px;left:8px;right:8px;bottom:auto;min-width:auto;overflow:hidden;border-radius:8px;transform:none;pointer-events:auto;padding:0}
+  /* Mission log: below clocks */
+  .hud-bl{top:auto;left:8px;right:8px;left:8px;right:8px;bottom:auto;min-width:auto;overflow:hidden;border-radius:8px;transform:none;pointer-events:auto;padding:0}
   .hud-bl .log-header{padding:6px 8px;margin-bottom:0;display:flex;align-items:center}
   .hud-bl #missionLog{max-height:0;overflow:hidden;transition:max-height 0.3s ease;padding:0 8px}
   .hud-bl.log-expanded #missionLog{max-height:35vh;overflow-y:auto;padding:0 8px 6px}
@@ -246,8 +277,14 @@ canvas{display:block;width:100%;height:100%}
   .play-btn{padding:2px 8px;font-size:10px}
   .reset-btn{padding:2px 6px;font-size:10px}
 
-  /* Hide clocks panel */
-  .hud-clocks{display:none !important}
+  /* Mission time panel: left side below log */
+  .hud-clocks{display:block !important;top:auto;left:8px;right:auto;min-width:auto;max-width:30%}
+  .clocks-collapsed{padding:4px 8px;gap:4px}
+  .clocks-met{font-size:9px}
+  .clocks-delta-mini{font-size:8px}
+  .clocks-fd{font-size:7px}
+  .clocks{flex-direction:column;gap:4px}
+  .delta-breakdown{flex-direction:column;gap:2px}
 
   /* Mission log: below header, left side (8px gap) */
   .hud-bl{top:42px;left:8px;right:auto;bottom:auto;min-width:auto;max-width:30%;overflow:hidden;border-radius:8px;transform:none;pointer-events:auto;padding:0}
@@ -313,10 +350,21 @@ canvas{display:block;width:100%;height:100%}
     <button class="reset-btn" id="resetBtn">&#8634;</button>
   </div>
 
-  <!-- Clocks + delta (desktop only, collapsible) -->
+  <!-- Mission time panel (collapsed/expanded) -->
   <div class="hud hud-clocks" id="clocksPanel">
-    <button class="log-collapse-btn" id="clockCollapseBtn" style="float:right">&#9660;</button>
-    <div id="clocksBody">
+    <!-- Collapsed: single summary row -->
+    <div class="clocks-collapsed" id="clocksCollapsed">
+      <button class="log-collapse-btn" id="clockCollapseBtn">&#9660;</button>
+      <span class="clocks-met" id="metValCollapsed">T+00:00:00</span>
+      <span class="clocks-delta-mini">&Delta;&tau; <b id="deltaValCollapsed">+0.000</b> &micro;s</span>
+      <span class="clocks-fd" id="flightDayBadge">FD1</span>
+    </div>
+    <!-- Expanded: full detail -->
+    <div id="clocksBody" class="collapsed">
+      <div class="clocks-expanded-header">
+        <span class="section-lbl">Mission Time</span>
+        <button class="log-collapse-btn" id="clockCollapseUp">&#9650;</button>
+      </div>
       <div class="clocks">
         <div class="clock">
           <div class="clock-label"><span class="dot earth"></span>Earth (UTC)</div>
@@ -329,11 +377,30 @@ canvas{display:block;width:100%;height:100%}
           <div class="clock-date" id="orionDate">2026-04-01</div>
         </div>
       </div>
-      <div class="delta">
-        <div class="delta-lbl">&Delta;&tau;</div>
-        <div class="delta-val" id="deltaValue">+0.000 &micro;s</div>
+      <div class="clocks-met-row">
+        <span class="clocks-met-label">MET</span>
+        <span class="clocks-met-val" id="metValExpanded">T+00:00:00</span>
+        <span class="clocks-fd" id="flightDayExpanded">FD1</span>
       </div>
-      <div class="delta-note" id="deltaNote">Gravitational blueshift vs velocity dilation</div>
+      <div class="delta-section">
+        <div class="delta-row">
+          <span class="delta-lbl">&Delta;&tau;</span>
+          <span class="delta-val" id="deltaValue">+0.000 &micro;s</span>
+        </div>
+        <div class="delta-breakdown">
+          <div class="delta-component">
+            <span class="delta-comp-label">Gravitational</span>
+            <span class="delta-comp-val delta-comp-grav" id="deltaGrav">+0.000 &micro;s</span>
+            <span class="delta-comp-arrow">&uarr;</span>
+          </div>
+          <div class="delta-component">
+            <span class="delta-comp-label">Velocity</span>
+            <span class="delta-comp-val delta-comp-vel" id="deltaVel">&minus;0.000 &micro;s</span>
+            <span class="delta-comp-arrow">&darr;</span>
+          </div>
+        </div>
+        <div class="delta-note" id="deltaNote">Gravitational blueshift vs velocity dilation</div>
+      </div>
     </div>
   </div>
 
@@ -1088,6 +1155,8 @@ function computeTimeDilation(state, dt_s) {
 }
 
 let cumulativeDeltaTau = 0;
+let cumulativeGrav = 0;
+let cumulativeVel = 0;
 
 function formatTime(totalSeconds){
   let absS=Math.abs(totalSeconds);
@@ -1637,8 +1706,18 @@ function updateUI(){
   document.getElementById('orionDate').textContent=formatDate(orionUtcMs);
 
   let deltaUs=cumulativeDeltaTau*1e6;
+  let gravUs=cumulativeGrav*1e6;
+  let velUs=cumulativeVel*1e6;
   let sign=deltaUs>=0?'+':'';
+  let met=formatMET(simTime);
+  let fd='FD'+Math.max(1,Math.ceil(simTime/86400));
+
+  // Expanded elements
   document.getElementById('deltaValue').innerHTML=sign+deltaUs.toFixed(3)+' &micro;s';
+  document.getElementById('deltaGrav').innerHTML='+'+(gravUs).toFixed(3)+' &micro;s';
+  document.getElementById('deltaVel').innerHTML=(velUs>=0?'+':'')+velUs.toFixed(3)+' &micro;s';
+  document.getElementById('metValExpanded').textContent=met;
+  document.getElementById('flightDayExpanded').textContent=fd;
 
   if(deltaUs>0){
     document.getElementById('deltaNote').textContent='Gravitational blueshift dominates — Orion ages faster';
@@ -1646,8 +1725,14 @@ function updateUI(){
     document.getElementById('deltaNote').textContent='Velocity dilation dominates — Orion ages slower';
   }
 
+  // Collapsed elements
+  document.getElementById('metValCollapsed').textContent=met;
+  document.getElementById('deltaValCollapsed').innerHTML=sign+deltaUs.toFixed(1);
+  document.getElementById('flightDayBadge').textContent=fd;
+
+  // Mission log elements
   document.getElementById('phaseBadge').textContent=getPhase(simTime);
-  document.getElementById('metVal').textContent=formatMET(simTime);
+  document.getElementById('metVal').textContent=met;
 
   updateGauges(state);
   updateMissionLog();
@@ -1673,6 +1758,8 @@ function animate(timestamp){
         if (simTime >= 0 && simTime < TRAJ_SPLASHDOWN) {
           let td = computeTimeDilation(state, dt);
           cumulativeDeltaTau += td.dtau_minus_dt;
+          cumulativeGrav += td.grav_factor * dt;
+          cumulativeVel += td.vel_factor * dt;
         }
       }
     }
@@ -1687,6 +1774,8 @@ function animate(timestamp){
       if(simTime>=0 && simTime<TRAJ_SPLASHDOWN){
         let td=computeTimeDilation(state,stepSize);
         cumulativeDeltaTau+=td.dtau_minus_dt;
+        cumulativeGrav+=td.grav_factor*stepSize;
+        cumulativeVel+=td.vel_factor*stepSize;
       }
       simTime+=stepSize;
     }
@@ -1706,14 +1795,16 @@ function animate(timestamp){
 
 // Recompute cumulative delta-tau from t=0 to a target time
 function recomputeDeltaTau(targetTime) {
-  cumulativeDeltaTau = 0;
-  let step = 300; // 5-minute steps for fast recompute
+  cumulativeDeltaTau = 0; cumulativeGrav = 0; cumulativeVel = 0;
+  let step = 300;
   for (let t = 0; t < targetTime; t += step) {
     let s = getOrionState(t);
     let dt = Math.min(step, targetTime - t);
     if (t >= 0 && t < TRAJ_SPLASHDOWN) {
       let td = computeTimeDilation(s, dt);
       cumulativeDeltaTau += td.dtau_minus_dt;
+      cumulativeGrav += td.grav_factor * dt;
+      cumulativeVel += td.vel_factor * dt;
     }
   }
 }
@@ -1746,7 +1837,7 @@ document.querySelectorAll('.speed-btn').forEach(btn=>{
 document.getElementById('playBtn').addEventListener('click',()=>{
   setLiveMode(false);
   if(simTime>=TRAJ_SPLASHDOWN){
-    simTime=0;cumulativeDeltaTau=0;
+    simTime=0;cumulativeDeltaTau=0;cumulativeGrav=0;cumulativeVel=0;
   }
   playing=!playing;
   document.getElementById('playBtn').innerHTML=playing?'&#10074;&#10074;&ensp;Pause':'&#9654;&ensp;Play';
@@ -1755,7 +1846,7 @@ document.getElementById('playBtn').addEventListener('click',()=>{
 document.getElementById('resetBtn').addEventListener('click',()=>{
   setLiveMode(false);
   simTime=0;
-  cumulativeDeltaTau=0;
+  cumulativeDeltaTau=0;cumulativeGrav=0;cumulativeVel=0;
   
   playing=false;
   lastFrame=0;
@@ -1784,11 +1875,21 @@ document.getElementById('logCollapseBtn').addEventListener('click',()=>{
   updateMissionLog();
 });
 
-document.getElementById('clockCollapseBtn').addEventListener('click',()=>{
+// Mission time panel: toggle collapsed/expanded
+function toggleClocks() {
   let body = document.getElementById('clocksBody');
-  body.classList.toggle('collapsed');
-  let btn = document.getElementById('clockCollapseBtn');
-  btn.innerHTML = body.classList.contains('collapsed') ? '&#9650;' : '&#9660;';
+  let collapsed = document.getElementById('clocksCollapsed');
+  let isCollapsed = body.classList.toggle('collapsed');
+  collapsed.style.display = isCollapsed ? 'flex' : 'none';
+  // Re-stack panels since height changed
+  setTimeout(stackPanels, 50);
+}
+document.getElementById('clockCollapseBtn').addEventListener('click', toggleClocks);
+document.getElementById('clockCollapseUp').addEventListener('click', toggleClocks);
+// Also toggle when clicking the collapsed row itself
+document.getElementById('clocksCollapsed').addEventListener('click', (e) => {
+  if (e.target.closest('.log-collapse-btn')) return; // button handles its own click
+  toggleClocks();
 });
 
 document.getElementById('drawerToggle').addEventListener('click',()=>{
@@ -1821,27 +1922,30 @@ window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150)
 function stackPanels() {
   let isMobile = window.innerWidth <= 600;
   let isLandscape = window.innerHeight <= 500 && window.innerWidth > window.innerHeight;
-  if (!isMobile && !isLandscape) return; // desktop uses CSS-only positioning
+  if (!isMobile && !isLandscape) return;
 
   let gap = 8;
   let tl = document.querySelector('.hud-tl');
   let tc = document.querySelector('.hud-tc');
   let bl = document.querySelector('.hud-bl');
+  let clocks = document.querySelector('.hud-clocks');
   if (!tl) return;
 
   let tlBottom = tl.getBoundingClientRect().bottom;
 
-  if (tc) {
-    tc.style.top = (tlBottom + gap) + 'px';
-    if (isMobile && !isLandscape) {
-      // portrait: log stacks below controls
-      let tcBottom = tc.getBoundingClientRect().bottom;
-      if (bl) bl.style.top = (tcBottom + gap) + 'px';
-    }
-  }
-  if (isLandscape && bl) {
-    // landscape: log is left, below header (not below controls)
-    bl.style.top = (tlBottom + gap) + 'px';
+  if (isMobile && !isLandscape) {
+    // Portrait: header → controls → mission log → clocks
+    if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
+    let tcBottom = tc ? tc.getBoundingClientRect().bottom : tlBottom;
+    if (bl) { bl.style.top = (tcBottom + gap) + 'px'; }
+    let blBottom = bl ? bl.getBoundingClientRect().bottom : tcBottom;
+    if (clocks) { clocks.style.top = (blBottom + gap) + 'px'; }
+  } else if (isLandscape) {
+    // Landscape: left column (log → clocks), right column (controls)
+    if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
+    if (bl) { bl.style.top = (tlBottom + gap) + 'px'; }
+    let blBottom = bl ? bl.getBoundingClientRect().bottom : tlBottom;
+    if (clocks) { clocks.style.top = (blBottom + gap) + 'px'; }
   }
 }
 stackPanels();
