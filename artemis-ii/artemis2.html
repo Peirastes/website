@@ -1817,7 +1817,37 @@ setTimeout(positionDrawer, 100);
 // Mobile: reliable resize on orientation change
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
 
-// (syncPanelHeights removed — log and controls are now independent panels)
+// Dynamic panel stacking: measure actual heights and position with consistent 8px gaps
+function stackPanels() {
+  let isMobile = window.innerWidth <= 600;
+  let isLandscape = window.innerHeight <= 500 && window.innerWidth > window.innerHeight;
+  if (!isMobile && !isLandscape) return; // desktop uses CSS-only positioning
+
+  let gap = 8;
+  let tl = document.querySelector('.hud-tl');
+  let tc = document.querySelector('.hud-tc');
+  let bl = document.querySelector('.hud-bl');
+  if (!tl) return;
+
+  let tlBottom = tl.getBoundingClientRect().bottom;
+
+  if (tc) {
+    tc.style.top = (tlBottom + gap) + 'px';
+    if (isMobile && !isLandscape) {
+      // portrait: log stacks below controls
+      let tcBottom = tc.getBoundingClientRect().bottom;
+      if (bl) bl.style.top = (tcBottom + gap) + 'px';
+    }
+  }
+  if (isLandscape && bl) {
+    // landscape: log is left, below header (not below controls)
+    bl.style.top = (tlBottom + gap) + 'px';
+  }
+}
+stackPanels();
+window.addEventListener('resize', stackPanels);
+setTimeout(stackPanels, 100);
+setTimeout(stackPanels, 300);
 
 
 // Mobile toggle buttons
