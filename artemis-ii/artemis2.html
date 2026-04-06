@@ -1773,8 +1773,8 @@ function drawScene(){
   }
   milestones.sort((a,b) => a.t - b.t);
 
-  // Draw all milestones — dots always, callouts only if enough screen space
-  let prevScreenPos = [];
+  // Draw all milestones — dots always, callouts fan out to avoid overlap
+  let placedCallouts = []; // {x, y} of each placed callout label position
   for (let mi = 0; mi < milestones.length; mi++) {
     let ms = milestones[mi];
     if (ms.t > simTime) continue;
@@ -1790,17 +1790,39 @@ function drawScene(){
     ctx.arc(mx, my, dotR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Callout only if 30+ px from all previous callouts
-    let skip = false;
-    for (let p of prevScreenPos) {
-      if (Math.sqrt((mx-p.x)**2+(my-p.y)**2) < 30) { skip = true; break; }
+    // Fan out callouts: try multiple offset positions to find a non-overlapping spot
+    let offX = 10;
+    let baseOffY = (mi % 2 === 0) ? -20 : 18;
+    let placed = false;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      let offY = baseOffY + (attempt * (baseOffY < 0 ? -18 : 18));
+      let labelX = mx + offX;
+      let labelY = my + offY;
+
+      // Check overlap with previously placed callouts
+      let overlaps = false;
+      for (let p of placedCallouts) {
+        if (Math.abs(labelX - p.x) < 60 && Math.abs(labelY - p.y) < 16) {
+          overlaps = true;
+          break;
+        }
+      }
+      if (!overlaps) {
+        drawCallout(mx, my, offX, offY, [
+          { text: ms.label, font: "600 9px 'Courier New'", color: ms.color },
+        ], ms.color);
+        placedCallouts.push({ x: labelX, y: labelY });
+        placed = true;
+        break;
+      }
     }
-    if (!skip) {
-      let offY = (mi % 2 === 0) ? -22 : 18;
-      drawCallout(mx, my, 10, offY, [
+    // If all attempts failed, still draw it at a far offset
+    if (!placed) {
+      let farOff = baseOffY < 0 ? -120 : 120;
+      drawCallout(mx, my, offX, farOff, [
         { text: ms.label, font: "600 9px 'Courier New'", color: ms.color },
       ], ms.color);
-      prevScreenPos.push({x:mx, y:my});
+      placedCallouts.push({ x: mx + offX, y: my + farOff });
     }
   }
 
