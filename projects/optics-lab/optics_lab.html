@@ -9,6 +9,8 @@
 <meta property="og:description" content="Explore refraction, TIR, thin lenses, and double-slit interference with real-time ray tracing and spectral color rendering.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#1a1d21">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
 :root {
@@ -98,8 +100,12 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
 .card-l { font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
 .card-v { font-size:14px; font-family:'Share Tech Mono',monospace; }
 
-.eq-strip { margin-top:12px; padding:8px 12px; background:rgba(10,14,20,0.4); border:1px solid var(--crt-border); border-radius:3px; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:11px; color:var(--text-dim); }
+.eq-strip { margin-top:12px; padding:8px 12px; background:rgba(10,14,20,0.4); border:1px solid var(--crt-border); border-radius:3px; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:11px; color:var(--text-dim); align-items:center; }
 .eq-strip .eq { color:var(--cyan-dim); }
+.eq-strip .katex { font-size:12px; color:var(--cyan-dim); }
+.input-label .katex { font-size:11px; color:inherit; }
+.crt-label .katex { font-size:11px; color:inherit; }
+.card-l .katex { font-size:10px; color:inherit; }
 
 .kbd-hint { display:none; margin-top:6px; text-align:center; font-size:10px; color:var(--text-dim); }
 .kbd-hint kbd { display:inline-block; padding:1px 5px; background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); }
@@ -319,9 +325,9 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <div class="canvas-wrap"><canvas id="sc"></canvas></div>
         <div class="cards" id="s-cards"></div>
         <div class="eq-strip">
-          <span class="eq">n&#8321; sin&theta;&#8321; = n&#8322; sin&theta;&#8322;</span>
-          <span class="eq">&theta;<sub>c</sub> = sin&#8315;&#185;(n&#8322;/n&#8321;)</span>
-          <span class="eq">n(&lambda;) = B + C/&lambda;&sup2;</span>
+          <span class="eq" data-katex="n_1 \sin\theta_1 = n_2 \sin\theta_2"></span>
+          <span class="eq" data-katex="\theta_c = \sin^{-1}(n_2/n_1)"></span>
+          <span class="eq" data-katex="n(\lambda) = B + C/\lambda^2"></span>
         </div>
       </div>
     </div>
@@ -332,9 +338,9 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <div class="canvas-wrap"><canvas id="lc"></canvas></div>
         <div class="cards" id="l-cards"></div>
         <div class="eq-strip">
-          <span class="eq">1/d<sub>o</sub> + 1/d<sub>i</sub> = 1/f</span>
-          <span class="eq">M = &minus;d<sub>i</sub>/d<sub>o</sub></span>
-          <span class="eq">f &gt; 0 converging &middot; f &lt; 0 diverging</span>
+          <span class="eq" data-katex="\dfrac{1}{d_o} + \dfrac{1}{d_i} = \dfrac{1}{f}"></span>
+          <span class="eq" data-katex="M = -\dfrac{d_i}{d_o}"></span>
+          <span class="eq" data-katex="f > 0 \;\text{converging}\quad f < 0 \;\text{diverging}"></span>
         </div>
       </div>
     </div>
@@ -345,9 +351,9 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <div class="canvas-wrap"><canvas id="dc"></canvas></div>
         <div class="cards" id="d-cards"></div>
         <div class="eq-strip">
-          <span class="eq">d sin&theta; = m&lambda; (bright)</span>
-          <span class="eq">&Delta;y = &lambda;L/d</span>
-          <span class="eq">I = I&#8320; cos&sup2;(&pi;d sin&theta;/&lambda;) &middot; sinc&sup2;(&pi;a sin&theta;/&lambda;)</span>
+          <span class="eq" data-katex="d\sin\theta = m\lambda \;\text{(bright)}"></span>
+          <span class="eq" data-katex="\Delta y = \dfrac{\lambda L}{d}"></span>
+          <span class="eq" data-katex="I = I_0 \cos^2\!\left(\dfrac{\pi d \sin\theta}{\lambda}\right) \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
         </div>
       </div>
     </div>
@@ -358,9 +364,9 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <div class="canvas-wrap"><canvas id="ssc"></canvas></div>
         <div class="cards" id="ss-cards"></div>
         <div class="eq-strip">
-          <span class="eq">a sin&theta; = m&lambda; (dark, m &ne; 0)</span>
-          <span class="eq">Central width = 2&lambda;L/a</span>
-          <span class="eq">I = I&#8320; sinc&sup2;(&pi;a sin&theta;/&lambda;)</span>
+          <span class="eq" data-katex="a\sin\theta = m\lambda \;\text{(dark, } m \neq 0\text{)}"></span>
+          <span class="eq" data-katex="W_{\text{central}} = \dfrac{2\lambda L}{a}"></span>
+          <span class="eq" data-katex="I = I_0 \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
         </div>
       </div>
     </div>
@@ -371,9 +377,9 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <div class="canvas-wrap"><canvas id="gc"></canvas></div>
         <div class="cards" id="g-cards"></div>
         <div class="eq-strip">
-          <span class="eq">d sin&theta; = m&lambda; (principal max)</span>
-          <span class="eq">I &prop; [sin(N&beta;)/(N sin&beta;)]&sup2; &middot; sinc&sup2;(&alpha;)</span>
-          <span class="eq">R = mN (resolving power)</span>
+          <span class="eq" data-katex="d\sin\theta = m\lambda \;\text{(principal max)}"></span>
+          <span class="eq" data-katex="I \propto \left[\dfrac{\sin(N\beta)}{N\sin\beta}\right]^2 \operatorname{sinc}^2(\alpha)"></span>
+          <span class="eq" data-katex="R = mN \;\text{(resolving power)}"></span>
         </div>
       </div>
     </div>
@@ -1275,6 +1281,24 @@ window.uG=uG;
 
 /* ── Initialize ── */
 uS();
+
+/* ── Render KaTeX equations ── */
+function renderKaTeX(){
+  document.querySelectorAll('[data-katex]').forEach(function(el){
+    try {
+      katex.render(el.getAttribute('data-katex'), el, {
+        throwOnError: false, displayMode: false
+      });
+    } catch(e) {
+      el.textContent = el.getAttribute('data-katex');
+    }
+  });
+}
+if(window.katex) renderKaTeX();
+else document.addEventListener('DOMContentLoaded', function(){
+  var check = setInterval(function(){ if(window.katex){ clearInterval(check); renderKaTeX(); } }, 50);
+  setTimeout(function(){ clearInterval(check); }, 5000);
+});
 
 })();
 </script>
