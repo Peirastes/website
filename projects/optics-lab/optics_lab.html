@@ -1193,15 +1193,15 @@ function uG(){
   ctx.restore();
 
   // Intensity pattern: I = [sin(Nβ)/(N sinβ)]² · sinc²(α)
+  // Computed in physical screen coordinates so d and L visibly affect fringe spacing
   var patternH = H - 60, yTop = 30;
-  var nFringes = 8;
-  var sinMax = Math.min(0.5, nFringes*lam/(2*dM));
+  var viewHalf = 0.3;  // half-height of detection screen (meters)
 
   var intensities = [];
   var maxI = 0;
   for(var py=0; py<patternH; py++){
-    var frac = (py/patternH) - 0.5;
-    var sinTh = frac * 2 * sinMax;
+    var yPos = (py/patternH - 0.5) * 2 * viewHalf;
+    var sinTh = yPos / Math.sqrt(yPos*yPos + L*L);
     var beta  = Math.PI * dM * sinTh / lam;
     var alpha = Math.PI * aM * sinTh / lam;
     // N-slit interference
@@ -1244,8 +1244,8 @@ function uG(){
     ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(255,100,100,0.4)'; ctx.lineWidth=1;
     ctx.beginPath();
     for(var py=0; py<patternH; py++){
-      var frac=(py/patternH)-0.5;
-      var sinTh=frac*2*sinMax;
+      var yPos=(py/patternH-0.5)*2*viewHalf;
+      var sinTh=yPos/Math.sqrt(yPos*yPos+L*L);
       var alpha=Math.PI*aM*sinTh/lam;
       var env=sinc(alpha)*sinc(alpha);
       if(py===0) ctx.moveTo(graphX+env*barW,yTop+py); else ctx.lineTo(graphX+env*barW,yTop+py);
