@@ -105,7 +105,7 @@ canvas{display:block;width:100%;height:100%}
 .delta-note{font-size:10px;color:var(--fg3);margin-top:5px;text-align:right}
 
 /* Bottom-left: mission log */
-.hud-bl{bottom:16px;left:16px;padding:10px 14px;min-width:280px}
+.hud-bl{top:auto;left:16px;padding:10px 14px;min-width:280px}
 .log-header{display:flex;align-items:center;gap:6px;margin-bottom:5px}
 .log-header .section-lbl{margin-bottom:0}
 .log-collapse-btn{background:#0a0e14;border:1px solid #333842;border-radius:3px;color:var(--fg3);font-size:10px;cursor:pointer;padding:3px 7px;transition:all 0.2s;line-height:1;flex-shrink:0}
@@ -1951,7 +1951,6 @@ window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150)
 function stackPanels() {
   let isMobile = window.innerWidth <= 600;
   let isLandscape = window.innerHeight <= 500 && window.innerWidth > window.innerHeight;
-  if (!isMobile && !isLandscape) return;
 
   let gap = 8;
   let tl = document.querySelector('.hud-tl');
@@ -1963,18 +1962,23 @@ function stackPanels() {
   let tlBottom = tl.getBoundingClientRect().bottom;
 
   if (isMobile && !isLandscape) {
-    // Portrait: header → controls → mission log → clocks
+    // Portrait: header → controls → clocks → mission log
     if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
     let tcBottom = tc ? tc.getBoundingClientRect().bottom : tlBottom;
-    if (bl) { bl.style.top = (tcBottom + gap) + 'px'; }
-    let blBottom = bl ? bl.getBoundingClientRect().bottom : tcBottom;
-    if (clocks) { clocks.style.top = (blBottom + gap) + 'px'; }
+    if (clocks) { clocks.style.top = (tcBottom + gap) + 'px'; }
+    let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : tcBottom;
+    if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
   } else if (isLandscape) {
-    // Landscape: left column (log → clocks), right column (controls)
+    // Landscape: left column (clocks → log), right column (controls)
     if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
-    if (bl) { bl.style.top = (tlBottom + gap) + 'px'; }
-    let blBottom = bl ? bl.getBoundingClientRect().bottom : tlBottom;
-    if (clocks) { clocks.style.top = (blBottom + gap) + 'px'; }
+    if (clocks) { clocks.style.top = (tlBottom + gap) + 'px'; }
+    let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : tlBottom;
+    if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
+  } else {
+    // Desktop: left column (clocks → log), controls top-right
+    if (clocks) { /* CSS positions at top:74px */ }
+    let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : 74;
+    if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
   }
 }
 stackPanels();
