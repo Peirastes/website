@@ -1777,7 +1777,12 @@ function drawScene(){
   milestones.sort((a,b) => a.t - b.t);
 
   // Draw all milestones — dots always, callouts fan out to avoid overlap
-  let placedCallouts = []; // {x, y} of each placed callout label position
+  // Pre-seed with Earth and Moon callout positions so milestones avoid them
+  let placedCallouts = [
+    { x: cx - 30, y: cy + earthR + 25 },      // Earth callout
+    { x: cx - 30, y: cy + earthR + 25 + 16 },  // Earth "Launch site" line
+    { x: moonScreenX + 20, y: moonScreenY - (moonR + 20) }, // Moon callout
+  ];
   for (let mi = 0; mi < milestones.length; mi++) {
     let ms = milestones[mi];
     if (ms.t > simTime) continue;
