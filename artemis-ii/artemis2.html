@@ -1528,53 +1528,46 @@ function drawScene(){
     let lx = objX + offsetX;
     let ly = objY + offsetY;
 
-    // Leader line
     ctx.save();
+    // Counter-rotate so labels stay horizontal
     if (Math.abs(camRotation) > 0.001) {
       ctx.translate(objX, objY);
       ctx.rotate(-camRotation);
       ctx.translate(-objX, -objY);
     }
+
+    // Leader line
     ctx.beginPath();
     ctx.moveTo(objX, objY);
     ctx.lineTo(lx, ly);
-    ctx.strokeStyle = color.replace(')', ',0.3)').replace('rgb', 'rgba').replace('rgbaa','rgba');
-    if (color.startsWith('rgba')) ctx.strokeStyle = color;
-    else ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.lineWidth = 0.5;
     ctx.stroke();
 
-    // Small dot at label end
-    ctx.beginPath();
-    ctx.arc(lx, ly, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fill();
-
-    // Background pill
+    // Measure text for background
     ctx.font = "600 10px 'Courier New'";
     let maxW = 0;
-    for (let l of lines) {
-      let m = ctx.measureText(l.text);
-      if (m.width > maxW) maxW = m.width;
+    for (let j = 0; j < lines.length; j++) {
+      ctx.font = lines[j].font || "600 10px 'Courier New'";
+      let tw = ctx.measureText(lines[j].text).width;
+      if (tw > maxW) maxW = tw;
     }
     let padX = 5, padY = 3;
     let lineH = 13;
-    let totalH = lines.length * lineH + padY * 2;
+    let totalH = lines.length * lineH;
     let bgX = lx + 4;
     let bgY = ly - totalH / 2;
 
+    // Background
     ctx.fillStyle = 'rgba(10,14,20,0.75)';
-    ctx.fillRect(bgX - padX, bgY - padY, maxW + padX * 2, totalH + padY);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(bgX - padX, bgY - padY, maxW + padX * 2, totalH + padY);
+    ctx.fillRect(bgX - padX, bgY - padY, maxW + padX * 2, totalH + padY * 2);
 
-    // Text lines
-    for (let i = 0; i < lines.length; i++) {
-      ctx.font = lines[i].font || "600 10px 'Courier New'";
-      ctx.fillStyle = lines[i].color || color;
+    // Text
+    for (let j = 0; j < lines.length; j++) {
+      ctx.font = lines[j].font || "600 10px 'Courier New'";
+      ctx.fillStyle = lines[j].color || color;
       ctx.textAlign = 'left';
-      ctx.fillText(lines[i].text, bgX, bgY + padY + (i + 1) * lineH - 3);
+      ctx.fillText(lines[j].text, bgX, bgY + (j + 1) * lineH);
     }
     ctx.restore();
   }
@@ -1752,7 +1745,7 @@ function drawScene(){
   }
   // Day markers along the coast
   for (let d = 2; d <= 9; d++) {
-    milestones.push({ t: d*86400, label: 'FD'+d, color: 'rgba(255,255,255,0.3)', priority: 0 });
+    milestones.push({ t: d*86400, label: 'Day '+d, color: 'rgba(255,255,255,0.3)', priority: 0 });
   }
   // Find perilune
   let periluneT = 0, periluneMinD = 1e9;
