@@ -2070,12 +2070,15 @@ function stackPanels() {
     let halfW = Math.floor((window.innerWidth - 24) / 2);
     let panelH = Math.round(vh * 0.22); // 22% of viewport height for both panels
     let baseStyle = 'position:fixed;bottom:8px;height:' + panelH + 'px;' +
-      'padding:4px;border-radius:8px;z-index:50;overflow:hidden;' +
+      'padding:4px;border-radius:8px;z-index:50;overflow:hidden;box-sizing:border-box;' +
       'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
       'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
 
     if (telPanel) {
-      telPanel.setAttribute('style', baseStyle + ';left:8px;width:' + halfW + 'px;display:block');
+      telPanel.setAttribute('style', baseStyle + ';left:8px;width:' + halfW + 'px;display:flex;flex-direction:column');
+      // Hide section label on mobile to save space
+      let lbl = telPanel.querySelector('.section-lbl');
+      if (lbl) lbl.style.display = 'none';
       let grid = telPanel.querySelector('.tape-grid');
       if (grid) grid.style.cssText = 'display:flex;flex-direction:row;gap:4px;height:100%';
       telPanel.querySelectorAll('.tape-inst').forEach(t => {
@@ -2090,6 +2093,8 @@ function stackPanels() {
     }
     if (graphPanel) {
       graphPanel.setAttribute('style', baseStyle + ';left:' + (halfW + 16) + 'px;right:8px;display:flex;flex-direction:column');
+      let lbl = graphPanel.querySelector('.section-lbl');
+      if (lbl) lbl.style.display = 'none';
     }
   }
 
