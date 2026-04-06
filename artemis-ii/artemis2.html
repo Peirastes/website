@@ -2068,21 +2068,20 @@ function stackPanels() {
     // Telemetry: 1 row x 4 columns at bottom-left
     // Graphs: bottom-right, same height
     let halfW = Math.floor((window.innerWidth - 24) / 2);
-    let panelH = Math.round(vh * 0.22); // 22% of viewport height for both panels
-    let baseStyle = 'position:fixed;bottom:8px;height:' + panelH + 'px;' +
+    let panelTop = Math.round(vh * 0.78); // top edge = 78% down the screen
+    let shared = 'position:fixed;top:' + panelTop + 'px;bottom:8px;' +
       'padding:4px;border-radius:8px;z-index:50;overflow:hidden;box-sizing:border-box;' +
       'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
       'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
 
     if (telPanel) {
-      telPanel.setAttribute('style', baseStyle + ';left:8px;width:' + halfW + 'px;display:flex;flex-direction:column');
-      // Hide section label on mobile to save space
+      telPanel.setAttribute('style', shared + ';left:8px;width:' + halfW + 'px;display:flex;flex-direction:column');
       let lbl = telPanel.querySelector('.section-lbl');
       if (lbl) lbl.style.display = 'none';
       let grid = telPanel.querySelector('.tape-grid');
-      if (grid) grid.style.cssText = 'display:flex;flex-direction:row;gap:4px;height:100%';
+      if (grid) grid.style.cssText = 'display:flex;flex-direction:row;gap:4px;flex:1;min-height:0';
       telPanel.querySelectorAll('.tape-inst').forEach(t => {
-        t.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;height:100%';
+        t.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;align-items:center';
       });
       telPanel.querySelectorAll('.tape-body').forEach(b => {
         b.style.cssText = 'width:100%;flex:1;overflow:hidden;position:relative';
@@ -2092,7 +2091,7 @@ function stackPanels() {
       });
     }
     if (graphPanel) {
-      graphPanel.setAttribute('style', baseStyle + ';left:' + (halfW + 16) + 'px;right:8px;display:flex;flex-direction:column');
+      graphPanel.setAttribute('style', shared + ';left:' + (halfW + 16) + 'px;right:8px;display:flex;flex-direction:column');
       let lbl = graphPanel.querySelector('.section-lbl');
       if (lbl) lbl.style.display = 'none';
     }
