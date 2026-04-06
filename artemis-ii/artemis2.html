@@ -2072,30 +2072,29 @@ function stackPanels() {
     let graphPanel = document.getElementById('graphsPanel');
     let vh = window.innerHeight;
 
+    // Both panels side by side at bottom, fixed height
+    let bottomH = Math.round(vh * 0.28); // 28% of viewport height
+    let panelStyle = 'position:fixed;bottom:8px;height:' + bottomH + 'px;' +
+      'padding:6px;border-radius:8px;z-index:50;overflow:hidden;' +
+      'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
+      'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
+
     if (telPanel) {
-      telPanel.setAttribute('style',
-        'position:fixed !important;left:8px;bottom:8px;width:50%;' +
-        'display:block;padding:4px 6px 6px;border-radius:8px;' +
-        'z-index:50;background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
-        'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden');
-      // Force 1x4 vertical column
+      telPanel.setAttribute('style', panelStyle + ';left:8px;right:calc(50% + 4px);display:block');
       let grid = telPanel.querySelector('.tape-grid');
-      if (grid) grid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:3px';
+      if (grid) grid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:2px;height:100%';
       telPanel.querySelectorAll('.tape-body').forEach(b => {
-        b.style.cssText = 'width:100%;height:35px;overflow:hidden;position:relative';
+        b.style.cssText = 'width:100%;flex:1;overflow:hidden;position:relative';
+      });
+      telPanel.querySelectorAll('.tape-inst').forEach(t => {
+        t.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-height:0';
       });
       telPanel.querySelectorAll('.tape-main').forEach(m => {
         m.style.cssText = 'width:100%;height:auto;position:relative;top:50%;transform:translateY(-50%)';
       });
     }
     if (graphPanel) {
-      graphPanel.setAttribute('style',
-        'position:fixed !important;right:8px;bottom:8px;width:calc(50% - 20px);' +
-        'display:flex;flex-direction:column;padding:6px;border-radius:8px;' +
-        'z-index:50;background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
-        'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden');
-      let telH = telPanel ? telPanel.getBoundingClientRect().height : 180;
-      graphPanel.style.height = telH + 'px';
+      graphPanel.setAttribute('style', panelStyle + ';left:calc(50% + 4px);right:8px;display:flex;flex-direction:column');
     }
   }
 
