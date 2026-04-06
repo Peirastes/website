@@ -1743,22 +1743,21 @@ function drawScene(){
   }
 
   // ========== MISSION MILESTONE MARKERS ==========
+  // Build from MISSION_EVENTS so trajectory markers match the mission log exactly
   let milestones = [];
-  if (TRAJ_META.tli) {
-    milestones.push({ t: TRAJ_META.tli.t, label: 'TLI', color: '#ef9f27' });
+  let eventColors = {
+    'Launch': '#ef9f27', 'SRB separation': '#ef9f27', 'MECO': '#ef9f27',
+    'ICPS burn → HEO': '#ef9f27', 'Translunar injection': '#ef9f27',
+    'Lunar flyby': '#40e8d0', 'Return TCM': '#40e8d0',
+    'CM/SM separation': '#378add', 'Entry interface': '#378add',
+    'Chute deploy': '#378add', 'Splashdown': '#378add',
+  };
+  for (let ev of MISSION_EVENTS) {
+    milestones.push({ t: ev.t, label: ev.label, color: eventColors[ev.label] || 'rgba(255,255,255,0.4)' });
   }
+  // Day markers along the coast
   for (let d = 2; d <= 9; d++) {
-    milestones.push({ t: d*86400, label: 'Day '+d, color: 'rgba(255,255,255,0.3)' });
-  }
-  let periluneT = 0, periluneMinD = 1e9;
-  for (let i = 0; i < TRAJ.length; i++) {
-    let m = getMoonXY(TRAJ[i].t);
-    let d = Math.sqrt((TRAJ[i].x-m.x)**2 + (TRAJ[i].y-m.y)**2);
-    if (d < periluneMinD) { periluneMinD = d; periluneT = TRAJ[i].t; }
-  }
-  milestones.push({ t: periluneT, label: 'Perilune', color: '#40e8d0' });
-  if (TRAJ_SPLASHDOWN < T_MISSION_END) {
-    milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add' });
+    milestones.push({ t: d*86400, label: 'Day '+d, color: 'rgba(255,255,255,0.25)' });
   }
   milestones.sort((a,b) => a.t - b.t);
 
