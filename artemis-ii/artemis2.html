@@ -1770,9 +1770,15 @@ function drawScene(){
     let color = ev.canceled ? 'rgba(255,255,255,0.2)' : '#f0a030';
     milestones.push({ t: ev.t, label: ev.label, color: color, canceled: ev.canceled });
   }
-  // Day markers along the coast
-  for (let d = 2; d <= 9; d++) {
-    milestones.push({ t: d*86400, label: 'Day '+d, color: 'rgba(255,255,255,0.25)' });
+  // Flight Day markers at midnight UTC boundaries (matching NASA convention)
+  let launchMidnight = new Date(LAUNCH_UTC);
+  launchMidnight.setUTCHours(0,0,0,0);
+  for (let d = 2; d <= 10; d++) {
+    let dayStart = new Date(launchMidnight.getTime() + d * 86400000); // midnight of FD(d+1)... actually FD starts at midnight
+    let tFromLaunch = (dayStart.getTime() - LAUNCH_UTC) / 1000;
+    if (tFromLaunch > 0 && tFromLaunch < T_MISSION_END) {
+      milestones.push({ t: tFromLaunch, label: 'FD' + (d), color: 'rgba(255,255,255,0.25)' });
+    }
   }
   milestones.sort((a,b) => a.t - b.t);
 
