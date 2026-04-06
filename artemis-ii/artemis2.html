@@ -1049,67 +1049,70 @@ buildGraphData();
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // Scrolling tape instrument — the scale strip moves past a fixed center readout.
-// stripH controls how tall the virtual tape strip is (more = finer resolution).
 const TAPE_STRIP_H = 800;
-const TAPE_CENTER_Y = 90; // center of readout in viewBox
+const TAPE_CENTER_Y = 90;
 
-function initScrollTape(groupId, numMajor, labels) {
+// labels: array of strings for major tick marks (bottom to top)
+// minorPerMajor: number of minor ticks between each pair of major ticks
+function initScrollTape(groupId, labels, minorPerMajor) {
   let g = document.getElementById(groupId);
   if (!g) return;
 
-  // Create scrolling group
   let scroll = document.createElementNS(SVG_NS, 'g');
   scroll.id = groupId + '_scroll';
   g.appendChild(scroll);
 
-  let numMinor = numMajor * 4;
-  for (let i = 0; i <= numMinor; i++) {
-    let frac = i / numMinor;
-    let y = TAPE_STRIP_H * (1 - frac); // 0 at bottom, STRIP_H at top
-    let isMajor = (i % 4 === 0);
+  let nMajor = labels.length - 1; // number of major intervals
+  let nMinor = minorPerMajor || 4;
+  let totalTicks = nMajor * nMinor;
+
+  for (let i = 0; i <= totalTicks; i++) {
+    let frac = i / totalTicks;
+    let y = TAPE_STRIP_H * (1 - frac); // 0=bottom of range, STRIP_H=top
+    let isMajor = (i % nMinor === 0);
+    let isHalf = !isMajor && nMinor >= 4 && (i % (nMinor / 2) === 0);
 
     // Left ticks
     let line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('x1', isMajor ? 18 : 24);
+    line.setAttribute('x1', isMajor ? 16 : isHalf ? 20 : 24);
     line.setAttribute('y1', y);
     line.setAttribute('x2', 30);
     line.setAttribute('y2', y);
-    line.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.10)');
-    line.setAttribute('stroke-width', isMajor ? '0.8' : '0.4');
+    line.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.40)' : isHalf ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)');
+    line.setAttribute('stroke-width', isMajor ? '1' : '0.5');
     scroll.appendChild(line);
 
     // Right ticks
     let line2 = document.createElementNS(SVG_NS, 'line');
     line2.setAttribute('x1', 54);
     line2.setAttribute('y1', y);
-    line2.setAttribute('x2', isMajor ? 66 : 60);
+    line2.setAttribute('x2', isMajor ? 68 : isHalf ? 64 : 60);
     line2.setAttribute('y2', y);
-    line2.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.10)');
-    line2.setAttribute('stroke-width', isMajor ? '0.8' : '0.4');
+    line2.setAttribute('stroke', isMajor ? 'rgba(255,255,255,0.40)' : isHalf ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)');
+    line2.setAttribute('stroke-width', isMajor ? '1' : '0.5');
     scroll.appendChild(line2);
 
     // Labels on major ticks
-    if (isMajor && labels) {
-      let li = Math.round(frac * (labels.length - 1));
-      if (li < labels.length) {
-        let txt = document.createElementNS(SVG_NS, 'text');
-        txt.setAttribute('x', 42);
-        txt.setAttribute('y', y + 3);
-        txt.setAttribute('text-anchor', 'middle');
-        txt.setAttribute('font-family', "'Courier New', monospace");
-        txt.setAttribute('font-size', '7');
-        txt.setAttribute('fill', 'rgba(255,255,255,0.3)');
-        txt.textContent = labels[labels.length - 1 - li];
-        scroll.appendChild(txt);
-      }
+    if (isMajor) {
+      let labelIdx = i / nMinor;
+      let txt = document.createElementNS(SVG_NS, 'text');
+      txt.setAttribute('x', 42);
+      txt.setAttribute('y', y + 3);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-family', "'Courier New', monospace");
+      txt.setAttribute('font-size', '7');
+      txt.setAttribute('fill', 'rgba(255,255,255,0.35)');
+      txt.textContent = labels[labels.length - 1 - labelIdx];
+      scroll.appendChild(txt);
     }
   }
 }
 
-initScrollTape('velTapeG', 6, ['0','2','4','6','8','10','12']);
-initScrollTape('altTapeG', 7, ['0','10','100','1k','10k','100k','400k']);
-initScrollTape('lunarTapeG', 6, ['0','50k','100k','200k','300k','400k','500k']);
-initScrollTape('phiTapeG', 5, null);
+//                   groupId        labels (bottom→top)                              minorPerMajor
+initScrollTape('velTapeG',   ['0','2','4','6','8','10','12'],                       4);
+initScrollTape('altTapeG',   ['0','10','100','1k','10k','100k','400k'],             4);
+initScrollTape('lunarTapeG', ['0','50k','100k','200k','300k','400k','500k'],        4);
+initScrollTape('phiTapeG',   ['10⁻¹¹','10⁻¹⁰','10⁻⁹','10⁻⁸','10⁻⁷'],            4);
 
 function updateTape(readId, scrollGroupId, frac, displayText) {
   let el = document.getElementById(readId);
