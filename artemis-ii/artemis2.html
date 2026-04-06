@@ -2066,13 +2066,26 @@ function stackPanels() {
   }
   dbg.textContent = window.innerWidth + ' x ' + window.innerHeight + (isMobile ? ' [MOBILE]' : ' [DESKTOP]');
 
-  // Force mobile telemetry + graphs visible
+  // Mobile: force telemetry + graphs to bottom of screen via JS
   if (isMobile && !isLandscape) {
     let telPanel = document.getElementById('telemetryPanel');
     let graphPanel = document.getElementById('graphsPanel');
-    // DEBUG: log to the viewport overlay what we find
-    let dbg2 = document.getElementById('vpDebug');
-    if (dbg2) dbg2.textContent += ' tel:' + !!telPanel + ' gr:' + !!graphPanel;
+    let vh = window.innerHeight;
+
+    if (graphPanel) {
+      graphPanel.setAttribute('style',
+        'position:fixed !important;left:8px;right:8px;bottom:0;height:80px;' +
+        'display:flex;flex-direction:column;padding:6px;border-radius:8px 8px 0 0;' +
+        'z-index:50;background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
+        'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden');
+    }
+    if (telPanel) {
+      telPanel.setAttribute('style',
+        'position:fixed !important;left:8px;right:8px;bottom:88px;' +
+        'display:block;padding:4px 6px 6px;border-radius:8px;' +
+        'z-index:50;background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
+        'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden');
+    }
   }
 
   let gap = 8;
