@@ -115,8 +115,8 @@ canvas{display:block;width:100%;height:100%}
 .log-summary .log-summary-ev{color:var(--fg2)}
 .log-summary .log-summary-t{color:var(--warn)}
 
-/* Right panel: telemetry + graphs (desktop), below playback controls + 8px gap */
-.hud-right{top:118px;right:16px;bottom:16px;width:220px;padding:10px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+/* Telemetry panel (right column, desktop) */
+.hud-telemetry{top:118px;right:16px;width:220px;padding:10px;overflow:hidden}
 
 /* 2x2 tape grid */
 .tape-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -124,10 +124,10 @@ canvas{display:block;width:100%;height:100%}
 .tape-grid .tape-body{width:100%}
 .tape-grid .tape-main{width:100%;height:auto}
 
-/* Graph stack below tapes */
-.graph-stack{flex:1;min-height:0;display:flex;flex-direction:column;gap:4px}
-.graph-stack canvas{flex:1;min-height:0;width:100%;border-radius:4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.04)}
-.graph-legend{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+/* Flight Dynamics graph panel (right column, below telemetry, desktop) */
+.hud-graphs{right:16px;bottom:16px;width:220px;padding:10px;display:flex;flex-direction:column;overflow:hidden}
+.hud-graphs canvas{flex:1;min-height:0;width:100%;border-radius:4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.04)}
+.graph-legend{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px}
 .gl-item{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);display:flex;align-items:center;gap:3px}
 .gl-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .section-lbl{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--fg3);margin-bottom:5px}
@@ -240,16 +240,17 @@ canvas{display:block;width:100%;height:100%}
   .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
   .info-panel{margin-top:0}
 
-  /* Right panel → bottom strip on mobile */
-  .hud-right{top:auto !important;right:8px;left:8px;bottom:0;width:auto;overflow:visible;padding:6px 6px 8px;gap:4px;border-radius:8px 8px 0 0}
+  /* Telemetry → bottom strip on mobile */
+  .hud-telemetry{top:auto !important;right:8px;left:8px;bottom:0;width:auto;overflow:visible;padding:6px 6px 8px;border-radius:8px 8px 0 0}
   .tape-grid{grid-template-columns:1fr 1fr 1fr 1fr;gap:4px}
   .tape-grid .tape-inst{min-width:0}
   .tape-grid .tape-body{width:100%}
   .tape-grid .tape-main{width:100%;height:auto;max-height:20vh}
   .tape-head{font-size:9px;letter-spacing:0.8px;margin-bottom:2px}
   .tape-unit{font-size:8px}
-  /* Hide graphs on mobile — not enough space */
-  .graph-stack{display:none}
+  .hud-telemetry .section-lbl{font-size:8px;text-align:center}
+  /* Hide graphs on mobile */
+  .hud-graphs{display:none !important}
 
   /* Mission log: compact text */
   .log-ev-label{font-size:10px}
@@ -296,12 +297,13 @@ canvas{display:block;width:100%;height:100%}
   .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
   .info-panel{margin-top:0}
 
-  /* Right panel → right column, 2x2 tapes, no graphs */
-  .hud-right{top:42px;right:8px;left:auto;bottom:8px;width:160px;padding:6px;gap:4px}
+  /* Telemetry → right column, 2x2 tapes */
+  .hud-telemetry{top:auto;right:8px;left:auto;width:160px;padding:6px}
   .tape-grid{grid-template-columns:1fr 1fr;gap:4px}
   .tape-head{font-size:8px;letter-spacing:0.8px;margin-bottom:1px}
   .tape-unit{font-size:7px}
-  .graph-stack{display:none}
+  /* Hide graphs on landscape */
+  .hud-graphs{display:none !important}
 
   .log-ev-label{font-size:10px}
   .log-ev-detail{font-size:9px}
@@ -480,9 +482,9 @@ canvas{display:block;width:100%;height:100%}
     <div id="missionLog"></div>
   </div>
 
-  <!-- Right panel: telemetry 2x2 + graph stack -->
-  <div class="hud hud-right" id="rightPanel">
-    <!-- 2x2 tape grid -->
+  <!-- Telemetry: 2x2 tape gauges -->
+  <div class="hud hud-telemetry" id="telemetryPanel">
+    <div class="section-lbl">Telemetry</div>
     <div class="tape-grid">
       <div class="tape-inst">
         <div class="tape-head" style="color:var(--warn)">VEL <span class="tape-unit">km/s</span></div>
@@ -509,16 +511,18 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
     </div>
-    <!-- 5x1 graph stack -->
-    <div class="graph-stack">
-      <canvas id="graphCanvas"></canvas>
-      <div class="graph-legend">
-        <span class="gl-item"><span class="gl-dot" style="background:var(--accent2)"></span>Alt</span>
-        <span class="gl-item"><span class="gl-dot" style="background:var(--warn)"></span>Vel</span>
-        <span class="gl-item"><span class="gl-dot" style="background:var(--accent)"></span>v/c</span>
-        <span class="gl-item"><span class="gl-dot" style="background:#9a6dd7"></span>&Phi;/c&sup2;</span>
-        <span class="gl-item"><span class="gl-dot" style="background:#e05577"></span>&Delta;&tau;</span>
-      </div>
+  </div>
+
+  <!-- Flight Dynamics: time-series graphs -->
+  <div class="hud hud-graphs" id="graphsPanel">
+    <div class="section-lbl">Flight Dynamics</div>
+    <canvas id="graphCanvas"></canvas>
+    <div class="graph-legend">
+      <span class="gl-item"><span class="gl-dot" style="background:var(--accent2)"></span>Alt</span>
+      <span class="gl-item"><span class="gl-dot" style="background:var(--warn)"></span>Vel</span>
+      <span class="gl-item"><span class="gl-dot" style="background:var(--accent)"></span>v/c</span>
+      <span class="gl-item"><span class="gl-dot" style="background:#9a6dd7"></span>&Phi;/c&sup2;</span>
+      <span class="gl-item"><span class="gl-dot" style="background:#e05577"></span>&Delta;&tau;</span>
     </div>
   </div>
 </div>
@@ -1950,17 +1954,27 @@ function stackPanels() {
     let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : tcBottom;
     if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
   } else if (isLandscape) {
-    // Landscape: left column (clocks → log), right column (controls)
+    // Landscape: left column (clocks → log), right column (controls → telemetry)
     if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
+    let telPanel = document.querySelector('.hud-telemetry');
+    if (tc && telPanel) {
+      let tcBottom = tc.getBoundingClientRect().bottom;
+      telPanel.style.top = (tcBottom + gap) + 'px';
+    }
     if (clocks) { clocks.style.top = (tlBottom + gap) + 'px'; }
     let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : tlBottom;
     if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
   } else {
-    // Desktop: position right panel below controls
-    let rightPanel = document.querySelector('.hud-right');
-    if (tc && rightPanel) {
+    // Desktop: stack telemetry + graphs below controls on the right
+    let telPanel = document.querySelector('.hud-telemetry');
+    let graphPanel = document.querySelector('.hud-graphs');
+    if (tc && telPanel) {
       let tcBottom = tc.getBoundingClientRect().bottom;
-      rightPanel.style.top = (tcBottom + gap) + 'px';
+      telPanel.style.top = (tcBottom + gap) + 'px';
+      if (graphPanel) {
+        let telBottom = telPanel.getBoundingClientRect().bottom;
+        graphPanel.style.top = (telBottom + gap) + 'px';
+      }
     }
   }
 }
