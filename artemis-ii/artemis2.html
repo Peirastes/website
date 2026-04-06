@@ -80,7 +80,7 @@ canvas{display:block;width:100%;height:100%}
 
 /* Top-right: info button + equation popover */
 .info-btn{display:none} /* replaced by header-info-btn */
-.hud-tr{top:88px;right:16px;padding:14px 16px;max-width:340px;max-height:calc(100vh - 120px);overflow-y:auto}
+.hud-tr{top:88px;right:16px;padding:16px 20px;max-width:440px;max-height:calc(100vh - 120px);overflow-y:auto;z-index:60}
 .info-panel{margin-top:0}
 .info-panel.hidden{display:none}
 .info-title{font-family:'Orbitron',monospace;font-size:16px;color:var(--amber);text-shadow:0 0 8px var(--amber-glow);letter-spacing:1px;margin-bottom:8px}
@@ -237,7 +237,7 @@ canvas{display:block;width:100%;height:100%}
   .hud-bl.log-expanded #missionLog{max-height:35vh;overflow-y:auto}
 
   /* Info panel: bottom sheet overlay */
-  .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
+  .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:65vh;border-radius:12px 12px 0 0;z-index:60;padding:14px 16px}
   .info-panel{margin-top:0}
 
   /* Telemetry + Graphs: fully controlled by JS on mobile (no !important) */
@@ -288,7 +288,7 @@ canvas{display:block;width:100%;height:100%}
   .hud-bl #missionLog{overflow:hidden;padding:0 8px 6px;max-height:30vh}
   .hud-bl.log-expanded #missionLog{max-height:40vh;overflow-y:auto}
 
-  .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
+  .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:65vh;border-radius:12px 12px 0 0;z-index:60;padding:14px 16px}
   .info-panel{margin-top:0}
 
   /* Telemetry → right column, 2x2 tapes */
@@ -413,57 +413,113 @@ canvas{display:block;width:100%;height:100%}
   <button class="hud info-btn" id="infoBtn" title="About this simulator">i</button>
   <div class="hud hud-tr info-panel hidden" id="infoPanel">
     <div class="info-title">Artemis II</div>
+
+    <div class="section-lbl">The Mission</div>
     <div class="info-text">
-      A real-time relativistic clock comparison for NASA's
-      <strong>Artemis II</strong> mission — the first crewed flight
-      to the Moon since Apollo 17 in 1972.
+      On April 1, 2026, NASA launched <strong>Artemis II</strong> &mdash;
+      the first crewed mission to the Moon since Apollo 17 in December 1972.
+      Commander Reid Wiseman, Pilot Victor Glover, Mission Specialist
+      Christina Koch, and CSA astronaut Jeremy Hansen are the crew of
+      <strong>Integrity</strong>, riding the <strong>Orion</strong> spacecraft
+      on a 10-day free-return trajectory around the Moon.
     </div>
     <div class="info-text">
-      As Orion travels to the Moon and back, its clocks tick at a
-      different rate than clocks on Earth. Two effects compete:
+      This is humanity's first step back toward deep space &mdash; a flight
+      test that will carry astronauts farther from Earth than any human has
+      traveled since the Apollo era, surpassing the Apollo 13 distance record
+      at 252,757 miles from Earth.
+    </div>
+
+    <div class="info-sep"></div>
+    <div class="section-lbl">This Simulator</div>
+    <div class="info-text">
+      This is a real-time orbital trajectory simulator that tracks Orion's
+      position, velocity, and relativistic time dilation throughout the
+      Artemis II mission. The trajectory is computed from first principles
+      using physics, not pre-recorded animation.
+    </div>
+    <div class="info-text">
+      <strong>In live mode</strong>, the simulation syncs to the real
+      elapsed mission time &mdash; what you see is where Orion is right now
+      (within the model's accuracy). Hit Play to simulate forward or rewind.
+    </div>
+
+    <div class="info-sep"></div>
+    <div class="section-lbl">How the Model Works</div>
+    <div class="info-text">
+      The trajectory is integrated using a <strong>4th-order Runge-Kutta
+      (RK4)</strong> numerical integrator under three-body gravity:
+      <strong>Earth + Moon + Sun</strong> (solar tidal perturbation).
+      Burns are modeled as impulsive &Delta;v maneuvers. The powered
+      ascent phase is interpolated from real SLS performance data.
     </div>
     <div class="info-effects">
       <div class="info-effect">
-        <div class="info-effect-label" style="color:var(--accent2)">Gravitational blueshift</div>
-        <div class="info-effect-desc">Far from Earth, gravity is weaker and clocks run <em>faster</em>. At the Moon's distance, Orion's clocks gain time relative to Earth.</div>
+        <div class="info-effect-label" style="color:var(--amber)">Trajectory</div>
+        <div class="info-effect-desc">RK4 integration with 10-second timestep.
+          ICPS HEO burn targets a 23.5-hour orbit (76,757 km apogee). TLI detected
+          dynamically at perigee return. Post-flyby TCM calibrated for correct
+          splashdown timing.</div>
       </div>
       <div class="info-effect">
-        <div class="info-effect-label" style="color:var(--warn)">Velocity time dilation</div>
-        <div class="info-effect-desc">Moving clocks run <em>slower</em> (special relativity). At 10+ km/s during translunar injection, this effect opposes the gravitational gain.</div>
+        <div class="info-effect-label" style="color:var(--accent)">Time Dilation</div>
+        <div class="info-effect-desc">Proper time computed along Orion's worldline
+          in the weak-field limit of general relativity. Two competing effects:
+          gravitational blueshift (Orion ages <em>faster</em> far from Earth)
+          vs. velocity dilation (moving clocks run <em>slower</em>). Gravity
+          wins &mdash; the crew ages slightly more than people on Earth.</div>
       </div>
     </div>
-    <div class="info-text">
-      For Artemis II, gravity dominates — the crew ages
-      <strong>slightly more</strong> than people on Earth,
-      accumulating hundreds of microseconds over 10 days.
-    </div>
+
     <div class="info-sep"></div>
-    <div class="section-lbl">Worldline metric</div>
-    <div class="info-text" style="margin-bottom:6px">
+    <div class="section-lbl">Accuracy</div>
+    <div class="info-text">
+      All parameters were calibrated against <strong>NASA mission control
+      data</strong> including confirmed launch time, TLI burn time, and
+      projected perilune/splashdown times.
+    </div>
+    <div class="info-effects">
+      <div class="info-effect">
+        <div class="info-effect-label" style="color:var(--green)">What&rsquo;s accurate</div>
+        <div class="info-effect-desc">Lunar flyby timing within <strong>3 minutes</strong>
+          of NASA's published time. Splashdown within <strong>10 minutes</strong>.
+          Launch time exact. Three-body gravity captures solar tidal effects
+          that two-body models miss.</div>
+      </div>
+      <div class="info-effect">
+        <div class="info-effect-label" style="color:var(--red)">Known limitations</div>
+        <div class="info-effect-desc">2D orbital plane (no out-of-plane maneuvers).
+          Circular Moon orbit (real orbit is elliptical). Impulsive burns (real TLI
+          is a 5m50s finite burn). Flyby altitude is ~2&times; NASA's value due to
+          start-angle calibration trade-off. No J2 Earth oblateness.</div>
+      </div>
+    </div>
+    <div class="info-text" style="font-size:10px;opacity:0.7">
+      Fidelity indicators (colored dots in the mission log) show model
+      confidence for each event. Solid dots = confirmed by NASA.
+      Outlined dots = projected. Hover for details.
+    </div>
+
+    <div class="info-sep"></div>
+    <div class="section-lbl">Worldline Metric</div>
+    <div class="info-text" style="margin-bottom:6px;font-size:11px">
       The proper time along Orion's worldline in the weak-field limit:
     </div>
     <div class="eq" id="eqMetric"></div>
     <div class="eq eq2" id="eqPhi"></div>
-    <div class="info-text" style="margin-top:8px">
-      &Delta;&tau; is accumulated by integrating this metric along
-      the spacecraft's trajectory at each timestep, comparing
-      Orion's clock rate to a reference clock on Earth's surface.
-    </div>
+
     <div class="info-sep"></div>
-    <div class="section-lbl">Simulation</div>
+    <div class="section-lbl">Future Plans</div>
     <div class="info-text">
-      Trajectory computed via <strong>RK4 integration</strong> under
-      Earth + Moon + Sun gravity (three-body with solar tidal perturbation).
-      Burns are impulsive &Delta;v maneuvers. Ascent interpolated from
-      real SLS performance data. Calibrated against NASA mission control
-      data &mdash; lunar flyby within 3 min of published time.
+      Elliptical Moon orbit from JPL ephemeris. 3D trajectory with
+      out-of-plane components. Finite-duration burns. Animated spacecraft
+      icon with attitude indication. Auto-zoom during lunar flyby approach.
+      Post-mission replay with actual NASA telemetry overlay.
     </div>
-    <div class="info-text" style="font-size:9px;opacity:0.7">
-      Fidelity indicators (colored dots in mission log) show model
-      confidence for each event. Solid = confirmed, outlined = projected.
-    </div>
+
+    <div class="info-sep"></div>
     <div class="info-credit">
-      Built by <strong>Peirastes</strong>
+      Built by <a href="../" style="color:var(--fg2);text-decoration:none"><strong>Peirastes</strong></a>
     </div>
   </div>
 
