@@ -1334,10 +1334,11 @@ canvas.addEventListener('touchend', () => {
 
 // Double-click to reset camera
 canvas.addEventListener('dblclick', () => {
-  camOffsetX = -450;
-  camOffsetY = 0;
-  camZoom = 1.305;
-  camRotation = 1.551;
+  let dc = getDefaultCam();
+  camOffsetX = dc.x;
+  camOffsetY = dc.y;
+  camZoom = dc.z;
+  camRotation = dc.r;
   focalBody = 'earth';
 });
 
@@ -1378,10 +1379,17 @@ function initStars(w,h){
 }
 
 // Camera state
-let camOffsetX = -450;
-let camOffsetY = 0;
-let camZoom = 1.305;
-let camRotation = 1.551;
+// Camera defaults: desktop uses calibrated framing, mobile resets to centered
+function getDefaultCam() {
+  let isNarrow = window.innerWidth <= 600;
+  if (isNarrow) return { x: 0, y: 0, z: 1.0, r: 1.551 };
+  return { x: -450, y: 0, z: 1.305, r: 1.551 };
+}
+let _dc = getDefaultCam();
+let camOffsetX = _dc.x;
+let camOffsetY = _dc.y;
+let camZoom = _dc.z;
+let camRotation = _dc.r;
 let defaultOffsetX = 0; // computed after first render to center trajectory
 let focalBody = 'earth'; // 'earth', 'moon', 'orion'
 
