@@ -244,17 +244,17 @@ canvas{display:block;width:100%;height:100%}
   .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
   .info-panel{margin-top:0}
 
-  /* Telemetry → bottom strip on mobile */
-  .hud-telemetry{top:auto !important;right:8px !important;left:8px !important;bottom:0 !important;width:auto !important;overflow:visible !important;padding:4px 6px 6px;border-radius:8px 8px 0 0;display:block !important}
-  .tape-grid{grid-template-columns:1fr 1fr 1fr 1fr;gap:4px}
+  /* Telemetry: full-width, stacked by JS below mission log */
+  .hud-telemetry{top:auto !important;right:8px !important;left:8px !important;bottom:auto !important;width:auto !important;overflow:visible !important;padding:4px 6px 6px;border-radius:8px;display:block !important}
+  .tape-grid{grid-template-columns:1fr 1fr;gap:4px}
   .tape-grid .tape-inst{min-width:0}
-  .tape-grid .tape-body{width:100%;height:80px !important;overflow:hidden;position:relative}
+  .tape-grid .tape-body{width:100%;height:100px !important;overflow:hidden;position:relative}
   .tape-grid .tape-main{width:100%;height:auto;position:relative;top:50%;transform:translateY(-50%)}
   .tape-head{font-size:8px;letter-spacing:0.8px;margin-bottom:1px}
   .tape-unit{font-size:7px}
   .hud-telemetry .section-lbl{font-size:7px;text-align:center;margin-bottom:2px}
-  /* Hide graphs on mobile */
-  .hud-graphs{display:none !important}
+  /* Graphs: compact strip below telemetry */
+  .hud-graphs{display:flex !important;top:auto !important;right:8px !important;left:8px !important;bottom:auto !important;width:auto !important;max-height:100px !important;padding:6px;border-radius:8px}
 
   /* Mission log: compact text */
   .log-ev-label{font-size:10px}
@@ -2066,12 +2066,18 @@ function stackPanels() {
   let tlBottom = tl.getBoundingClientRect().bottom;
 
   if (isMobile && !isLandscape) {
-    // Portrait: header → controls → clocks → mission log
+    // Portrait: header → controls → clocks → log → telemetry → graphs
+    let telPanel = document.querySelector('.hud-telemetry');
+    let graphPanel = document.querySelector('.hud-graphs');
     if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
     let tcBottom = tc ? tc.getBoundingClientRect().bottom : tlBottom;
     if (clocks) { clocks.style.top = (tcBottom + gap) + 'px'; }
     let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : tcBottom;
     if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
+    let blBottom = bl ? bl.getBoundingClientRect().bottom : clocksBottom;
+    if (telPanel) { telPanel.style.top = (blBottom + gap) + 'px'; }
+    let telBottom = telPanel ? telPanel.getBoundingClientRect().bottom : blBottom;
+    if (graphPanel) { graphPanel.style.top = (telBottom + gap) + 'px'; }
   } else if (isLandscape) {
     // Landscape: left column (clocks → log), right column (controls → telemetry)
     if (tc) { tc.style.top = (tlBottom + gap) + 'px'; }
