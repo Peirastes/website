@@ -292,7 +292,7 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         </div>
         <div class="slider-row">
           <span class="sl">Num slits N</span>
-          <input type="range" min="2" max="200" value="8" step="1" id="gN" oninput="uG()" />
+          <input type="range" min="2" max="20" value="8" step="1" id="gN" oninput="uG()" />
           <span class="sv" id="gN-v">8</span>
         </div>
         <div class="slider-row">
@@ -1130,12 +1130,20 @@ function uG(){
   ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
   grd(ctx,W,H);
 
-  var slitX = 140, screenX = W-60, midY = H/2;
+  var midY = H/2;
+  var slitX = 140;
+  // Screen position scales with L: L=0.2→closer, L=3.0→far right
+  var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
 
-  // Barrier with N slits (show up to 12 visible slits)
-  var visN = Math.min(N, 12);
-  var slitSepPx = Math.min(30, Math.max(6, 200/visN));
+  // Visual slit spacing scales with d (µm): larger d → wider pixel separation
+  var visN = N;
+  var slitSepPx = Math.min(40, Math.max(4, d * 1.8));
   var totalH = (visN-1)*slitSepPx;
+  // Clamp if the grating would exceed canvas height
+  if(totalH > H - 60){
+    slitSepPx = (H - 60) / (visN - 1);
+    totalH = (visN-1)*slitSepPx;
+  }
   var slitWidPx = Math.max(1, slitSepPx*0.2);
 
   ctx.fillStyle = 'rgba(255,255,255,0.08)';
@@ -1217,7 +1225,8 @@ function uG(){
   }
 
   // Intensity curve
-  var barW = 50, graphX = screenX + 8;
+  var graphX = screenX + 8;
+  var barW = Math.min(50, W - graphX - 4);
   ctx.beginPath(); ctx.moveTo(graphX, yTop);
   for(var py=0; py<patternH; py++) ctx.lineTo(graphX+intensities[py]/maxI*barW, yTop+py);
   ctx.lineTo(graphX, yTop+patternH); ctx.closePath();
@@ -1247,7 +1256,7 @@ function uG(){
   // Labels
   ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
   ctx.fillText('grating',slitX,H-8); ctx.fillText('screen',screenX,H-8);
-  ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
+  if(barW > 20) ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
   ctx.fillText('m=0',graphX+barW+6,midY+3);
 
