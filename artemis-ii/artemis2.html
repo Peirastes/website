@@ -2066,17 +2066,13 @@ function stackPanels() {
   }
   dbg.textContent = window.innerWidth + ' x ' + window.innerHeight + (isMobile ? ' [MOBILE]' : ' [DESKTOP]');
 
-  // Force mobile telemetry + graphs visible via inline styles
+  // Force mobile telemetry + graphs visible
   if (isMobile && !isLandscape) {
-    let telPanel = document.querySelector('.hud-telemetry');
-    let graphPanel = document.querySelector('.hud-graphs');
-    if (graphPanel) {
-      graphPanel.style.cssText = 'position:absolute;left:8px;right:8px;bottom:0;height:80px;display:flex;flex-direction:column;padding:6px;border-radius:8px 8px 0 0;z-index:50;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(12px)';
-    }
-    if (telPanel) {
-      let gTop = graphPanel ? graphPanel.getBoundingClientRect().top : window.innerHeight;
-      telPanel.style.cssText = 'position:absolute;left:8px;right:8px;bottom:' + (window.innerHeight - gTop + 8) + 'px;display:block;padding:4px 6px 6px;border-radius:8px;z-index:50;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(12px)';
-    }
+    let telPanel = document.getElementById('telemetryPanel');
+    let graphPanel = document.getElementById('graphsPanel');
+    // DEBUG: log to the viewport overlay what we find
+    let dbg2 = document.getElementById('vpDebug');
+    if (dbg2) dbg2.textContent += ' tel:' + !!telPanel + ' gr:' + !!graphPanel;
   }
 
   let gap = 8;
