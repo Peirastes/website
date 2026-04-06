@@ -495,7 +495,7 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
       <div class="tape-inst">
-        <div class="tape-head" style="color:#9a6dd7">&Phi;/c&sup2; <span class="tape-unit">potential</span></div>
+        <div class="tape-head" style="color:#9a6dd7">&Phi; <span class="tape-unit">m&sup2;/s&sup2;</span></div>
         <div class="tape-body">
           <svg viewBox="-20 0 124 180" class="tape-main"><rect x="0" y="0" width="84" height="180" rx="4" fill="#0c0e16" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><g id="phiTapeG"></g><rect x="14" y="78" width="56" height="24" rx="3" fill="#0a0c14" stroke="#9a6dd7" stroke-width="1.2"/><text id="phiRead" x="42" y="95" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" font-weight="700" fill="#9a6dd7">0</text><polygon points="0,85 6,90 0,95" fill="#9a6dd7"/><polygon points="84,85 78,90 84,95" fill="#9a6dd7"/></svg>
         </div>
@@ -510,7 +510,7 @@ canvas{display:block;width:100%;height:100%}
     <div class="graph-legend">
       <span class="gl-item"><span class="gl-dot" style="background:var(--accent2)"></span>Alt</span>
       <span class="gl-item"><span class="gl-dot" style="background:var(--warn)"></span>Vel</span>
-      <span class="gl-item"><span class="gl-dot" style="background:#9a6dd7"></span>&Phi;/c&sup2;</span>
+      <span class="gl-item"><span class="gl-dot" style="background:#9a6dd7"></span>&Phi;</span>
       <span class="gl-item"><span class="gl-dot" style="background:#e05577"></span>&Delta;&tau;</span>
     </div>
   </div>
@@ -1103,7 +1103,7 @@ function drawTick(parent, y, isMajor, isHalf) {
 
 // Helper: compute frac using same log formula as updateGauges
 function logFrac(val, maxVal) { return val <= 0 ? 0 : Math.log10(1 + val) / Math.log10(1 + maxVal); }
-function phiFrac(val) { return val <= 0 ? 0 : Math.min((Math.log10(val) + 10.5) / 2, 1); }
+function phiFrac(val) { return val <= 0 ? 0 : Math.min((Math.log10(val) - 5) / 3, 1); } // 10⁵ to 10⁸
 
 // VEL: linear 0-12 km/s. Major every 2, half every 1.
 initScrollTape('velTapeG', [
@@ -1141,28 +1141,18 @@ initScrollTape('lunarTapeG', [
   {frac:1.0, label:'500k', tier:'major'},
 ], 4);
 
-// PHI: log scale. Major at decades, half at 2,3,4,5,6,7,8,9 × 10^n.
+// PHI: raw gravitational potential (m²/s²), log scale 10⁵ to 10⁸
 initScrollTape('phiTapeG', [
-  {frac:phiFrac(1e-11), label:'10⁻¹¹', tier:'major'},
-  {frac:phiFrac(2e-11), label:'2⁻¹¹', tier:'half'},
-  {frac:phiFrac(3e-11), label:'3⁻¹¹', tier:'half'},
-  {frac:phiFrac(5e-11), label:'5⁻¹¹', tier:'half'},
-  {frac:phiFrac(7e-11), label:'7⁻¹¹', tier:'half'},
-  {frac:phiFrac(1e-10), label:'10⁻¹⁰', tier:'major'},
-  {frac:phiFrac(2e-10), label:'2⁻¹⁰', tier:'half'},
-  {frac:phiFrac(3e-10), label:'3⁻¹⁰', tier:'half'},
-  {frac:phiFrac(5e-10), label:'5⁻¹⁰', tier:'half'},
-  {frac:phiFrac(7e-10), label:'7⁻¹⁰', tier:'half'},
-  {frac:phiFrac(1e-9), label:'10⁻⁹', tier:'major'},
-  {frac:phiFrac(2e-9), label:'2⁻⁹', tier:'half'},
-  {frac:phiFrac(3e-9), label:'3⁻⁹', tier:'half'},
-  {frac:phiFrac(5e-9), label:'5⁻⁹', tier:'half'},
-  {frac:phiFrac(7e-9), label:'7⁻⁹', tier:'half'},
-  {frac:phiFrac(1e-8), label:'10⁻⁸', tier:'major'},
-  {frac:phiFrac(2e-8), label:'2⁻⁸', tier:'half'},
-  {frac:phiFrac(3e-8), label:'3⁻⁸', tier:'half'},
-  {frac:phiFrac(5e-8), label:'5⁻⁸', tier:'half'},
-  {frac:phiFrac(7e-8), label:'7⁻⁸', tier:'half'},
+  {frac:phiFrac(1e5), label:'10⁵', tier:'major'},
+  {frac:phiFrac(2e5), label:'2·10⁵', tier:'half'},
+  {frac:phiFrac(5e5), label:'5·10⁵', tier:'half'},
+  {frac:phiFrac(1e6), label:'10⁶', tier:'major'},
+  {frac:phiFrac(2e6), label:'2·10⁶', tier:'half'},
+  {frac:phiFrac(5e6), label:'5·10⁶', tier:'half'},
+  {frac:phiFrac(1e7), label:'10⁷', tier:'major'},
+  {frac:phiFrac(2e7), label:'2·10⁷', tier:'half'},
+  {frac:phiFrac(5e7), label:'5·10⁷', tier:'half'},
+  {frac:phiFrac(1e8), label:'10⁸', tier:'major'},
 ], 4);
 
 function updateTape(readId, scrollGroupId, frac, displayText) {
@@ -1198,10 +1188,10 @@ function updateGauges(state) {
   let lunarStr = lunarDist < 1000 ? Math.round(lunarDist).toString() : (lunarDist < 100000 ? (lunarDist/1000).toFixed(1) + 'k' : Math.round(lunarDist/1000) + 'k');
   updateTape('lunarRead', 'lunarTapeG_scroll', lunarFrac, lunarStr);
 
-  // Phi/c2
+  // Phi (raw gravitational potential, m²/s²)
   let td = computeTimeDilation(state, 1);
-  let phiAbs = Math.abs(td.phi_craft_over_c2);
-  let phiFrac = phiAbs <= 0 ? 0 : Math.min((Math.log10(phiAbs) + 10.5) / 2, 1);
+  let phiAbs = Math.abs(td.phi_craft);
+  let phiFrac = phiAbs <= 0 ? 0 : Math.min((Math.log10(phiAbs) - 5) / 3, 1); // range 10⁵ to 10⁸
   updateTape('phiRead', 'phiTapeG_scroll', phiFrac, phiAbs.toExponential(1));
 }
 
@@ -1231,7 +1221,7 @@ function computeTimeDilation(state, dt_s) {
   let vel_factor = -0.5 * (v_ms * v_ms) / (c_ms * c_ms);
 
   let dtau_minus_dt = (grav_factor + vel_factor) * dt_s;
-  return { dtau_minus_dt, grav_factor, vel_factor, phi_craft_over_c2: phi_craft / (c_ms * c_ms) };
+  return { dtau_minus_dt, grav_factor, vel_factor, phi_craft_over_c2: phi_craft / (c_ms * c_ms), phi_craft };
 }
 
 let cumulativeDeltaTau = 0;
@@ -2171,7 +2161,7 @@ function buildGraphData() {
       alt: alt,
       vel: v,
       vc: v / C,
-      phi: Math.abs(-G * ME / (r * 1000) / (C * 1000) / (C * 1000)),
+      phi: Math.abs(-G * ME / (r * 1000)),
       dtau: cumDtau * 1e6 // microseconds
     });
   }
