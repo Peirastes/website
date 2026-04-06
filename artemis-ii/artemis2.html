@@ -39,18 +39,20 @@ canvas{display:block;width:100%;height:100%}
 
 /* Collapsed row */
 .clocks-collapsed{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer}
+.clocks-phase{font-family:'Courier New',monospace;font-size:10px;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
 .clocks-met{font-family:'Courier New',monospace;font-size:12px;color:var(--fg);font-weight:700}
-.clocks-delta-mini{font-family:'Courier New',monospace;font-size:10px;color:var(--cyan)}
-.clocks-delta-mini b{font-weight:700}
-.clocks-fd{font-family:'Courier New',monospace;font-size:9px;color:var(--amber);font-weight:700;letter-spacing:0.5px;margin-left:auto}
+.clocks-fd{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);font-weight:700;letter-spacing:0.5px;margin-left:auto}
 
 /* Expanded body */
 #clocksBody{overflow:hidden;transition:max-height 0.4s ease,opacity 0.3s ease;max-height:300px;opacity:1;padding:0 12px 10px}
 #clocksBody.collapsed{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
 .clocks-expanded-header{display:flex;align-items:center;justify-content:space-between;padding:4px 0 6px;border-top:1px solid rgba(255,255,255,0.06)}
-.clocks-met-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.06);margin-top:6px}
-.clocks-met-label{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:1px}
+.clocks-status-row{display:flex;align-items:center;gap:10px;padding:3px 0}
+.clocks-status-phase{font-family:'Courier New',monospace;font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
+.clocks-met-label{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:1px;min-width:36px}
 .clocks-met-val{font-family:'Courier New',monospace;font-size:13px;color:var(--fg);font-weight:700}
+.clocks-next-event{font-family:'Courier New',monospace;font-size:11px;color:var(--fg2)}
+.clocks-divider{height:1px;background:rgba(255,255,255,0.06);margin:6px 0}
 
 /* Delta breakdown */
 .delta-section{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)}
@@ -108,8 +110,7 @@ canvas{display:block;width:100%;height:100%}
 .log-header .section-lbl{margin-bottom:0}
 .log-collapse-btn{background:#0a0e14;border:1px solid #333842;border-radius:3px;color:var(--fg3);font-size:10px;cursor:pointer;padding:3px 7px;transition:all 0.2s;line-height:1;flex-shrink:0}
 .log-collapse-btn:hover{border-color:var(--amber);color:var(--amber);box-shadow:0 0 6px var(--amber-glow)}
-.log-phase{font-family:'Courier New',monospace;font-size:9px;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px;font-weight:700}
-.log-met{font-family:'Courier New',monospace;font-size:9px;color:var(--fg2)}
+/* (log-phase and log-met moved to mission time panel) */
 .log-summary{font-family:'Courier New',monospace;font-size:10px;color:var(--fg3);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .log-summary .log-summary-ev{color:var(--fg2)}
 .log-summary .log-summary-t{color:var(--warn)}
@@ -216,8 +217,8 @@ canvas{display:block;width:100%;height:100%}
   /* Mission time panel: below controls */
   .hud-clocks{display:block !important;top:auto;left:8px;right:8px;min-width:auto}
   .clocks-collapsed{padding:6px 10px;gap:6px}
+  .clocks-phase{font-size:9px}
   .clocks-met{font-size:10px}
-  .clocks-delta-mini{font-size:9px}
   .clocks-fd{font-size:8px}
   /* Expanded: single column on mobile */
   .clocks{flex-direction:column;gap:6px}
@@ -280,8 +281,8 @@ canvas{display:block;width:100%;height:100%}
   /* Mission time panel: left side below log */
   .hud-clocks{display:block !important;top:auto;left:8px;right:auto;min-width:auto;max-width:30%}
   .clocks-collapsed{padding:4px 8px;gap:4px}
+  .clocks-phase{font-size:8px}
   .clocks-met{font-size:9px}
-  .clocks-delta-mini{font-size:8px}
   .clocks-fd{font-size:7px}
   .clocks{flex-direction:column;gap:4px}
   .delta-breakdown{flex-direction:column;gap:2px}
@@ -352,11 +353,11 @@ canvas{display:block;width:100%;height:100%}
 
   <!-- Mission time panel (collapsed/expanded) -->
   <div class="hud hud-clocks" id="clocksPanel">
-    <!-- Collapsed: single summary row -->
+    <!-- Collapsed: phase + MET + flight day -->
     <div class="clocks-collapsed" id="clocksCollapsed">
       <button class="log-collapse-btn" id="clockCollapseBtn">&#9660;</button>
+      <span class="clocks-phase" id="phaseCollapsed">Pre-launch</span>
       <span class="clocks-met" id="metValCollapsed">T+00:00:00</span>
-      <span class="clocks-delta-mini">&Delta;&tau; <b id="deltaValCollapsed">+0.000</b> &micro;s</span>
       <span class="clocks-fd" id="flightDayBadge">FD1</span>
     </div>
     <!-- Expanded: full detail -->
@@ -365,6 +366,21 @@ canvas{display:block;width:100%;height:100%}
         <span class="section-lbl">Mission Time</span>
         <button class="log-collapse-btn" id="clockCollapseUp">&#9650;</button>
       </div>
+      <!-- Status -->
+      <div class="clocks-status-row">
+        <span class="clocks-status-phase" id="phaseExpanded">Pre-launch</span>
+        <span class="clocks-fd" id="flightDayExpanded">FD1</span>
+      </div>
+      <div class="clocks-status-row">
+        <span class="clocks-met-label">MET</span>
+        <span class="clocks-met-val" id="metValExpanded">T+00:00:00</span>
+      </div>
+      <div class="clocks-status-row">
+        <span class="clocks-met-label">NEXT</span>
+        <span class="clocks-next-event" id="nextEventExpanded">—</span>
+      </div>
+      <!-- Clocks -->
+      <div class="clocks-divider"></div>
       <div class="clocks">
         <div class="clock">
           <div class="clock-label"><span class="dot earth"></span>Earth (UTC)</div>
@@ -377,30 +393,28 @@ canvas{display:block;width:100%;height:100%}
           <div class="clock-date" id="orionDate">2026-04-01</div>
         </div>
       </div>
-      <div class="clocks-met-row">
-        <span class="clocks-met-label">MET</span>
-        <span class="clocks-met-val" id="metValExpanded">T+00:00:00</span>
-        <span class="clocks-fd" id="flightDayExpanded">FD1</span>
+      <!-- Time dilation -->
+      <div class="clocks-divider"></div>
+      <div class="delta-row">
+        <span class="delta-lbl">&Delta;&tau;</span>
+        <span class="delta-val" id="deltaValue">+0.000 &micro;s</span>
       </div>
-      <div class="delta-section">
-        <div class="delta-row">
-          <span class="delta-lbl">&Delta;&tau;</span>
-          <span class="delta-val" id="deltaValue">+0.000 &micro;s</span>
+      <div class="delta-breakdown">
+        <div class="delta-component">
+          <span class="delta-comp-label">Gravitational</span>
+          <span class="delta-comp-val delta-comp-grav" id="deltaGrav">+0.000 &micro;s</span>
+          <span class="delta-comp-arrow">&uarr;</span>
         </div>
-        <div class="delta-breakdown">
-          <div class="delta-component">
-            <span class="delta-comp-label">Gravitational</span>
-            <span class="delta-comp-val delta-comp-grav" id="deltaGrav">+0.000 &micro;s</span>
-            <span class="delta-comp-arrow">&uarr;</span>
-          </div>
-          <div class="delta-component">
-            <span class="delta-comp-label">Velocity</span>
-            <span class="delta-comp-val delta-comp-vel" id="deltaVel">&minus;0.000 &micro;s</span>
-            <span class="delta-comp-arrow">&darr;</span>
-          </div>
+        <div class="delta-component">
+          <span class="delta-comp-label">Velocity</span>
+          <span class="delta-comp-val delta-comp-vel" id="deltaVel">&minus;0.000 &micro;s</span>
+          <span class="delta-comp-arrow">&darr;</span>
         </div>
-        <div class="delta-note" id="deltaNote">Gravitational blueshift vs velocity dilation</div>
       </div>
+      <div class="delta-note" id="deltaNote">Gravitational blueshift vs velocity dilation</div>
+      <!-- Integrator -->
+      <div class="clocks-divider"></div>
+      <div class="integrator" id="trajInfo">Computing&hellip;</div>
     </div>
   </div>
 
@@ -468,12 +482,10 @@ canvas{display:block;width:100%;height:100%}
   <div class="hud hud-bl">
     <div class="log-header">
       <button class="log-collapse-btn" id="logCollapseBtn">&#9650;</button>
-      <span class="log-phase" id="phaseBadge">Pre-launch</span>
-      <span class="log-met" id="metVal">T+00:00:00</span>
+      <div class="section-lbl">Mission log</div>
       <span class="log-summary" id="logSummary"></span>
     </div>
     <div id="missionLog"></div>
-    <div class="integrator" id="trajInfo">Computing&hellip;</div>
   </div>
 
   <!-- Bottom-center: telemetry tapes + graph drawer toggle -->
@@ -1725,14 +1737,31 @@ function updateUI(){
     document.getElementById('deltaNote').textContent='Velocity dilation dominates — Orion ages slower';
   }
 
+  let phase = getPhase(simTime);
+
   // Collapsed elements
+  document.getElementById('phaseCollapsed').textContent=phase;
   document.getElementById('metValCollapsed').textContent=met;
-  document.getElementById('deltaValCollapsed').innerHTML=sign+deltaUs.toFixed(1);
   document.getElementById('flightDayBadge').textContent=fd;
 
-  // Mission log elements
-  document.getElementById('phaseBadge').textContent=getPhase(simTime);
-  document.getElementById('metVal').textContent=met;
+  // Expanded status
+  document.getElementById('phaseExpanded').textContent=phase;
+  document.getElementById('flightDayExpanded').textContent=fd;
+
+  // Next event in expanded view
+  let nextEvEl = document.getElementById('nextEventExpanded');
+  if (nextEvEl && MISSION_EVENTS.length > 0) {
+    let nextEv = null;
+    for (let i = 0; i < MISSION_EVENTS.length; i++) {
+      if (MISSION_EVENTS[i].t > simTime) { nextEv = MISSION_EVENTS[i]; break; }
+    }
+    if (nextEv) {
+      let diff = nextEv.t - simTime;
+      nextEvEl.textContent = 'T\u2212' + formatCountdown(diff) + '  ' + nextEv.label;
+    } else {
+      nextEvEl.textContent = 'Mission complete';
+    }
+  }
 
   updateGauges(state);
   updateMissionLog();
