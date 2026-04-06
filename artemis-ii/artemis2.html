@@ -1623,9 +1623,9 @@ function drawScene(){
   ctx.font="11px 'Courier New'";
   ctx.fillStyle='#5b9bd5';
   ctx.textAlign='center';
-  drawCallout(cx, cy, -30, earthR+25, [
-    { text: 'EARTH', font: "700 11px 'Courier New'", color: '#5b9bd5' },
-  ], '#5b9bd5');
+  let earthLines = [{ text: 'EARTH', font: "700 11px 'Courier New'", color: '#5b9bd5' }];
+  if (simTime >= 0) earthLines.push({ text: 'Launch site', font: "9px 'Courier New'", color: 'rgba(255,255,255,0.35)' });
+  drawCallout(cx, cy, -30, earthR+25, earthLines, '#5b9bd5');
 
   let moonXY = getMoonXY(simTime);
   let moonScreenX = cx + moonXY.x * scale;
@@ -1736,34 +1736,27 @@ function drawScene(){
   }
 
   // ========== MISSION MILESTONE MARKERS ==========
-  // Only major trajectory events — skip clustered near-Earth events
-  let milestones = [
-    { t: 0, label: 'Launch', color: '#ef9f27', priority: 1 },
-  ];
+  let milestones = [];
   if (TRAJ_META.tli) {
-    milestones.push({ t: TRAJ_META.tli.t, label: 'TLI', color: '#ef9f27', priority: 1 });
+    milestones.push({ t: TRAJ_META.tli.t, label: 'TLI', color: '#ef9f27' });
   }
-  // Day markers along the coast
   for (let d = 2; d <= 9; d++) {
-    milestones.push({ t: d*86400, label: 'Day '+d, color: 'rgba(255,255,255,0.3)', priority: 0 });
+    milestones.push({ t: d*86400, label: 'Day '+d, color: 'rgba(255,255,255,0.3)' });
   }
-  // Find perilune
   let periluneT = 0, periluneMinD = 1e9;
   for (let i = 0; i < TRAJ.length; i++) {
     let m = getMoonXY(TRAJ[i].t);
     let d = Math.sqrt((TRAJ[i].x-m.x)**2 + (TRAJ[i].y-m.y)**2);
     if (d < periluneMinD) { periluneMinD = d; periluneT = TRAJ[i].t; }
   }
-  milestones.push({ t: periluneT, label: 'Perilune', color: '#40e8d0', priority: 1 });
+  milestones.push({ t: periluneT, label: 'Perilune', color: '#40e8d0' });
   if (TRAJ_SPLASHDOWN < T_MISSION_END) {
-    milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add', priority: 1 });
+    milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add' });
   }
-
-  // Sort by time, compute screen positions, then filter by minimum distance
   milestones.sort((a,b) => a.t - b.t);
-  let drawnPositions = []; // track placed labels
-  let minDist = 40; // minimum pixels between callouts
 
+  // Draw all milestones — dots always, callouts only if enough screen space
+  let prevScreenPos = [];
   for (let mi = 0; mi < milestones.length; mi++) {
     let ms = milestones[mi];
     if (ms.t > simTime) continue;
@@ -1771,34 +1764,24 @@ function drawScene(){
     let mx = cx + s.x * scale;
     let my = cy - s.y * scale;
 
-    // Skip if too close to a previously drawn label (unless high priority)
-    let tooClose = false;
-    for (let dp of drawnPositions) {
-      let dd = Math.sqrt((mx-dp.x)**2 + (my-dp.y)**2);
-      if (dd < minDist && ms.priority < 1) { tooClose = true; break; }
-      if (dd < minDist * 0.4) { tooClose = true; break; } // even priority labels need some space
-    }
-    if (tooClose) {
-      // Still draw the dot, just skip the callout
-      ctx.fillStyle = ms.color;
-      ctx.beginPath();
-      ctx.arc(mx, my, 1.5, 0, Math.PI * 2);
-      ctx.fill();
-      continue;
-    }
-
+    // Dot always
     ctx.fillStyle = ms.color;
     ctx.beginPath();
     ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Alternate callout offset to stagger above/below
-    let offY = (mi % 2 === 0) ? -22 : 18;
-    drawCallout(mx, my, 10, offY, [
-      { text: ms.label, font: "600 9px 'Courier New'", color: ms.color },
-    ], ms.color);
-
-    drawnPositions.push({ x: mx, y: my });
+    // Callout only if 30+ px from all previous callouts
+    let skip = false;
+    for (let p of prevScreenPos) {
+      if (Math.sqrt((mx-p.x)**2+(my-p.y)**2) < 30) { skip = true; break; }
+    }
+    if (!skip) {
+      let offY = (mi % 2 === 0) ? -22 : 18;
+      drawCallout(mx, my, 10, offY, [
+        { text: ms.label, font: "600 9px 'Courier New'", color: ms.color },
+      ], ms.color);
+      prevScreenPos.push({x:mx, y:my});
+    }
   }
 
   // Focal body indicator (selection ring)
