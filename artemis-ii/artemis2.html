@@ -836,26 +836,26 @@ function populateMissionInfo() {
   // fidelity: 0-100 confidence in this event's timing accuracy vs NASA data.
   // Ratings reflect calibration results (see calibration/README.md).
   MISSION_EVENTS = [
-    { t: 0, label: 'Launch', detail: 'SLS liftoff — 8.8M lbs thrust', fidelity: 100,
+    { t: 0, label: 'Launch', detail: 'SLS liftoff — 8.8M lbs thrust', fidelity: 100, brief: true,
       tooltip: 'Hardcoded to NASA\'s confirmed launch time: April 1, 2026, 22:35:12 UTC. This is exact — no model involved.' },
-    { t: T_SRB, label: 'SRB separation', detail: '126s, 45 km altitude', fidelity: 95,
+    { t: T_SRB, label: 'SRB separation', detail: '126s, 45 km altitude', fidelity: 95, brief: true,
       tooltip: 'SRB separation at T+126s is interpolated from Artemis I flight data, not thrust-simulated. Real SLS ascent profiles vary slightly per mission due to atmospheric conditions and propellant temperatures.' },
-    { t: T_MECO, label: 'MECO', detail: LEO_ALT + ' km, ' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(1) + ' km/s', fidelity: 95,
+    { t: T_MECO, label: 'MECO', detail: LEO_ALT + ' km, ' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(1) + ' km/s', fidelity: 95, brief: true,
       tooltip: 'Main engine cutoff at T+8 min places Orion in a 185 km orbit at ' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(1) + ' km/s. The ascent profile is interpolated from SLS milestones, not propulsively integrated — actual MECO altitude may differ by a few km.' },
   ];
   if (m.heoBurn) {
-    MISSION_EVENTS.push({ t: m.heoBurn.t, label: 'ICPS burn → HEO', detail: '&Delta;v ' + m.heoBurn.dv + ' km/s, apogee 76,757 km', fidelity: 60,
+    MISSION_EVENTS.push({ t: m.heoBurn.t, label: 'ICPS burn → HEO', detail: '&Delta;v ' + m.heoBurn.dv + ' km/s, apogee 76,757 km', fidelity: 60, brief: true,
       tooltip: 'ICPS fires a prograde burn computed via the vis-viva equation to raise apogee to 76,757 km (23.5-hour orbit matching NASA). Model fires at T+90 min; NASA confirmed T+65 min — the 25 min offset is because our LEO-to-HEO transition is single-burn, while the real mission uses a perigee raise + HEO sequence.' });
   }
   if (m.tli) {
-    MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde', fidelity: 45,
+    MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde', fidelity: 45, brief: true,
       tooltip: 'TLI detected dynamically at HEO perigee return. NASA confirmed TLI at T+25h 14m (April 2, 23:49 UTC); our model fires ~2.4 hours later because the HEO orbit period differs slightly under three-body perturbation. The \u0394v of ' + m.tli.dv + ' km/s is calibrated (NASA stated 0.388 km/s — difference due to our two-burn architecture absorbing more energy into the HEO burn).' });
   }
   if (m.periluneTime) {
     MISSION_EVENTS.push({ t: m.periluneTime, label: 'Lunar flyby', detail: m.periluneAlt.toLocaleString() + ' km perilune', fidelity: 99,
       tooltip: 'Closest approach emerges from RK4 integration under Earth + Moon + Sun gravity — not hardcoded. NASA projects perilune at April 6, 23:02 UTC (T+5d 0h 27m); our model lands within 3 minutes of that. Perilune altitude (' + m.periluneAlt.toLocaleString() + ' km) differs from NASA\'s 6,546 km because the start-angle calibration trades altitude precision for timing accuracy.' });
     if (m.tcm) {
-      MISSION_EVENTS.push({ t: m.tcm.t, label: 'Return TCM', detail: '&Delta;v ' + m.tcm.dv + ' km/s radial correction', fidelity: 40,
+      MISSION_EVENTS.push({ t: m.tcm.t, label: 'Return TCM', detail: '&Delta;v ' + m.tcm.dv + ' km/s radial correction', fidelity: 40, brief: true,
         tooltip: 'Synthetic trajectory correction burn fired 1 hour after perilune, directed radially toward Earth. NASA does fire return TCMs, but this burn\'s timing and magnitude (0.16 km/s) are calibrated to match NASA\'s projected splashdown time rather than replicating a specific real maneuver. Without it, our simplified model returns too early.' });
     }
   }
@@ -863,11 +863,11 @@ function populateMissionInfo() {
     let smSep = m.splashdown.t - 1800;
     let ei = m.splashdown.t - 900;
     let chutes = m.splashdown.t - 300;
-    MISSION_EVENTS.push({ t: smSep, label: 'CM/SM separation', detail: 'Service module jettisoned', fidelity: 70,
+    MISSION_EVENTS.push({ t: smSep, label: 'CM/SM separation', detail: 'Service module jettisoned', fidelity: 70, brief: true,
       tooltip: 'Derived as splashdown minus 30 minutes. Real SM separation depends on entry corridor geometry and is controlled by mission ops — our timing is approximate but structurally correct.' });
-    MISSION_EVENTS.push({ t: ei, label: 'Entry interface', detail: '~122 km, 11.2 km/s, 2,760°C', fidelity: 70,
+    MISSION_EVENTS.push({ t: ei, label: 'Entry interface', detail: '~122 km, 11.2 km/s, 2,760°C', fidelity: 70, brief: true,
       tooltip: 'Entry interface at ~122 km altitude. Speed and heating are estimates from Apollo/Orion re-entry profiles. Derived as splashdown minus 15 minutes — actual EI timing depends on the return trajectory angle, which our 2D model approximates.' });
-    MISSION_EVENTS.push({ t: chutes, label: 'Chute deploy', detail: 'Drogues → mains, 520 km/h → 30 km/h', fidelity: 70,
+    MISSION_EVENTS.push({ t: chutes, label: 'Chute deploy', detail: 'Drogues → mains, 520 km/h → 30 km/h', fidelity: 70, brief: true,
       tooltip: 'Drogue chutes deploy at ~7.6 km, mains at ~3 km. Derived as splashdown minus 5 minutes. Deceleration profile from 520 km/h to 30 km/h is based on Orion\'s parachute system specs.' });
     MISSION_EVENTS.push({ t: m.splashdown.t, label: 'Splashdown', detail: 'Pacific Ocean, off San Diego', fidelity: 95,
       tooltip: 'Detected when the spacecraft re-enters within 50 km of Earth\'s surface after perilune. NASA projects NET April 11, 00:21 UTC; our model lands within 10 minutes of that target — the close match is partly by design (return TCM is calibrated to hit this time).' });
@@ -930,7 +930,14 @@ function updateMissionLog() {
     if (state === 'future') {
       rightCol = '<span class="log-countdown">T&minus;' + formatCountdown(diff) + '</span>';
     } else if (state === 'active') {
-      rightCol = '<span class="log-active-badge">NOW</span>';
+      let elapsed = simTime - ev.t;
+      if (ev.brief && elapsed > 60) {
+        // Short event already happened — show T+ since event
+        rightCol = '<span class="log-countdown" style="color:var(--fg3)">T+' + formatCountdown(elapsed) + '</span>';
+        stateClass = 'log-past';
+      } else {
+        rightCol = '<span class="log-active-badge">NOW</span>';
+      }
     } else {
       rightCol = '<span class="log-check">&#10003;</span>';
     }
