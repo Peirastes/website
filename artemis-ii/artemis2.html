@@ -499,9 +499,9 @@ canvas{display:block;width:100%;height:100%}
         </div>
       </div>
       <div class="tape-inst">
-        <div class="tape-head" style="color:var(--accent)">v/c <span class="tape-unit">ratio</span></div>
+        <div class="tape-head" style="color:var(--accent)">LUNAR <span class="tape-unit">km</span></div>
         <div class="tape-body">
-          <svg viewBox="-20 0 124 180" class="tape-main"><rect x="0" y="0" width="84" height="180" rx="4" fill="#0c0e16" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><g id="vcTapeG"></g><rect x="14" y="78" width="56" height="24" rx="3" fill="#0a0c14" stroke="var(--accent)" stroke-width="1.2"/><text id="vcRead" x="42" y="95" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" font-weight="700" fill="var(--accent)">0</text><polygon points="0,85 6,90 0,95" fill="var(--accent)"/><polygon points="84,85 78,90 84,95" fill="var(--accent)"/></svg>
+          <svg viewBox="-20 0 124 180" class="tape-main"><rect x="0" y="0" width="84" height="180" rx="4" fill="#0c0e16" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><g id="lunarTapeG"></g><rect x="14" y="78" width="56" height="24" rx="3" fill="#0a0c14" stroke="var(--accent)" stroke-width="1.2"/><text id="lunarRead" x="42" y="95" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" font-weight="700" fill="var(--accent)">0</text><polygon points="0,85 6,90 0,95" fill="var(--accent)"/><polygon points="84,85 78,90 84,95" fill="var(--accent)"/></svg>
         </div>
       </div>
       <div class="tape-inst">
@@ -1087,7 +1087,7 @@ function initTapeTicks(groupId, numTicks, labels) {
 
 initTapeTicks('velTapeG', 24, ['0','2','4','6','8','10','12']);
 initTapeTicks('altTapeG', 24, ['0','10','100','1k','10k','100k','400k']);
-initTapeTicks('vcTapeG', 20, null);
+initTapeTicks('lunarTapeG', 24, ['0','50k','100k','200k','300k','400k','500k']);
 initTapeTicks('phiTapeG', 20, null);
 
 function updateTape(readId, barId, frac, displayText) {
@@ -1115,9 +1115,12 @@ function updateGauges(state) {
   let altStr = alt < 1000 ? Math.round(alt).toString() : (alt < 100000 ? (alt/1000).toFixed(1) + 'k' : Math.round(alt/1000) + 'k');
   updateTape('altRead', 'altTapeG_bar', altFrac, altStr);
 
-  // v/c: log scale
-  let vcFrac = vc <= 0 ? 0 : Math.min((Math.log10(vc) + 5.5) / 1.5, 1);
-  updateTape('vcRead', 'vcTapeG_bar', vcFrac, vc.toExponential(1));
+  // Lunar distance (world coords, no flip)
+  let moon = getMoonXY(simTime);
+  let lunarDist = Math.sqrt((state.x - moon.x)**2 + (state.y - moon.y)**2);
+  let lunarFrac = lunarDist <= 0 ? 0 : Math.log10(1 + lunarDist) / Math.log10(1 + 500000);
+  let lunarStr = lunarDist < 1000 ? Math.round(lunarDist).toString() : (lunarDist < 100000 ? (lunarDist/1000).toFixed(1) + 'k' : Math.round(lunarDist/1000) + 'k');
+  updateTape('lunarRead', 'lunarTapeG_bar', lunarFrac, lunarStr);
 
   // Phi/c2
   let td = computeTimeDilation(state, 1);
