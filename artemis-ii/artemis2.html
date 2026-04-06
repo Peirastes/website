@@ -105,7 +105,7 @@ canvas{display:block;width:100%;height:100%}
 .delta-note{font-size:10px;color:var(--fg3);margin-top:5px;text-align:right}
 
 /* Bottom-left: mission log */
-.hud-bl{top:auto;left:16px;padding:10px 14px;min-width:280px}
+.hud-bl{bottom:16px;left:16px;padding:10px 14px;min-width:280px}
 .log-header{display:flex;align-items:center;gap:6px;margin-bottom:5px}
 .log-header .section-lbl{margin-bottom:0}
 .log-collapse-btn{background:#0a0e14;border:1px solid #333842;border-radius:3px;color:var(--fg3);font-size:10px;cursor:pointer;padding:3px 7px;transition:all 0.2s;line-height:1;flex-shrink:0}
@@ -1910,8 +1910,10 @@ function toggleClocks() {
   let collapsed = document.getElementById('clocksCollapsed');
   let isCollapsed = body.classList.toggle('collapsed');
   collapsed.style.display = isCollapsed ? 'flex' : 'none';
-  // Re-stack panels since height changed
-  setTimeout(stackPanels, 50);
+  // Re-stack after transition completes (max-height transition is 0.4s)
+  stackPanels();
+  setTimeout(stackPanels, 100);
+  setTimeout(stackPanels, 450);
 }
 document.getElementById('clockCollapseBtn').addEventListener('click', toggleClocks);
 document.getElementById('clockCollapseUp').addEventListener('click', toggleClocks);
@@ -1974,12 +1976,8 @@ function stackPanels() {
     if (clocks) { clocks.style.top = (tlBottom + gap) + 'px'; }
     let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : tlBottom;
     if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
-  } else {
-    // Desktop: left column (clocks → log), controls top-right
-    if (clocks) { /* CSS positions at top:74px */ }
-    let clocksBottom = clocks ? clocks.getBoundingClientRect().bottom : 74;
-    if (bl) { bl.style.top = (clocksBottom + gap) + 'px'; }
   }
+  // Desktop: CSS handles positioning (clocks top:74px, log bottom:16px)
 }
 stackPanels();
 window.addEventListener('resize', stackPanels);
