@@ -115,13 +115,19 @@ canvas{display:block;width:100%;height:100%}
 .log-summary .log-summary-ev{color:var(--fg2)}
 .log-summary .log-summary-t{color:var(--warn)}
 
-/* Graph section inside telemetry panel */
-/* Graph drawer - slides out from behind telemetry panel */
-.graph-drawer{position:absolute;bottom:16px;padding:10px 12px;right:16px;border-radius:0 8px 8px 0;border-left:none;transition:transform 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.3s ease;opacity:1;pointer-events:auto;display:flex;flex-direction:column;overflow:hidden;z-index:0}
-.graph-drawer.closed{transform:translateX(calc(-100% - 20px));opacity:0;pointer-events:none}
-.hud-bc{bottom:16px;left:50%;transform:translateX(-50%);padding:10px 12px;z-index:1}
-.graph-drawer canvas{display:block;width:100%;height:100%;border-radius:4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.04);flex:1;min-height:0}
-.graph-legend{display:flex;gap:10px;margin-top:4px;justify-content:center}
+/* Right panel: telemetry + graphs (desktop) */
+.hud-right{top:74px;right:16px;bottom:16px;width:220px;padding:10px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+
+/* 2x2 tape grid */
+.tape-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tape-grid .tape-inst{display:flex;flex-direction:column;align-items:center}
+.tape-grid .tape-body{width:100%}
+.tape-grid .tape-main{width:100%;height:auto}
+
+/* Graph stack below tapes */
+.graph-stack{flex:1;min-height:0;display:flex;flex-direction:column;gap:4px}
+.graph-stack canvas{flex:1;min-height:0;width:100%;border-radius:4px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.04)}
+.graph-legend{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .gl-item{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);display:flex;align-items:center;gap:3px}
 .gl-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .section-lbl{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--fg3);margin-bottom:5px}
@@ -234,22 +240,14 @@ canvas{display:block;width:100%;height:100%}
   .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
   .info-panel{margin-top:0}
 
-  /* Telemetry: full-width, tapes scale to fill */
-  .hud-bc{bottom:8px;left:8px;right:8px;transform:none;padding:8px 6px;overflow:visible}
-  .instruments{gap:4px;justify-content:space-between;width:100%}
-  .tape-inst{flex:1;min-width:0}
-  .tape-body{width:100%}
-  .tape-main{width:100%;max-height:28vh}
+  /* Right panel → bottom strip on mobile */
+  .hud-right{top:auto;right:8px;left:8px;bottom:8px;width:auto;height:auto;flex-direction:column;gap:4px;padding:6px}
+  .tape-grid{grid-template-columns:1fr 1fr 1fr 1fr;gap:4px}
+  .tape-grid .tape-main{max-height:28vh}
   .tape-head{font-size:9px;letter-spacing:0.8px;margin-bottom:2px}
   .tape-unit{font-size:8px}
-  .hud-bc > .section-lbl{font-size:8px;text-align:center}
-
-  /* Hide graph drawer and its toggle */
-  .graph-drawer{display:none !important}
-  .drawer-toggle{display:none}
-
-  /* Hide old mobile toggle buttons in tape bar */
-  .mobile-toggle-btn{display:none !important}
+  /* Hide graphs on mobile — not enough space */
+  .graph-stack{display:none}
 
   /* Mission log: compact text */
   .log-ev-label{font-size:10px}
@@ -296,20 +294,12 @@ canvas{display:block;width:100%;height:100%}
   .hud-tr{top:auto;bottom:0;left:0;right:0;max-width:100%;max-height:50vh;border-radius:12px 12px 0 0;z-index:20;padding:12px 14px}
   .info-panel{margin-top:0}
 
-  /* Telemetry: right panel, tapes side-by-side, vertically centered */
-  .hud-bc{top:50%;bottom:auto;right:8px;left:auto;transform:translateY(-50%);padding:8px 6px;overflow:visible}
-  .hud-bc > .section-lbl{font-size:8px;text-align:center}
-  .instruments{gap:4px;justify-content:center;width:auto}
-  .tape-inst{flex:none;min-width:0}
-  .tape-body{width:100%}
-  .tape-main{width:48px;height:auto;max-height:50vh}
-  .tape-head{font-size:6px;letter-spacing:0.8px;margin-bottom:1px}
+  /* Right panel → right column, 2x2 tapes, no graphs */
+  .hud-right{top:42px;right:8px;left:auto;bottom:8px;width:160px;padding:6px;gap:4px}
+  .tape-grid{grid-template-columns:1fr 1fr;gap:4px}
   .tape-head{font-size:8px;letter-spacing:0.8px;margin-bottom:1px}
   .tape-unit{font-size:7px}
-
-  .graph-drawer{display:none !important}
-  .drawer-toggle{display:none}
-  .mobile-toggle-btn{display:none !important}
+  .graph-stack{display:none}
 
   .log-ev-label{font-size:10px}
   .log-ev-detail{font-size:9px}
@@ -488,10 +478,10 @@ canvas{display:block;width:100%;height:100%}
     <div id="missionLog"></div>
   </div>
 
-  <!-- Bottom-center: telemetry tapes + graph drawer toggle -->
-  <div class="hud hud-bc">
-    <div class="section-lbl" style="text-align:center">Telemetry</div>
-    <div class="instruments">
+  <!-- Right panel: telemetry 2x2 + graph stack -->
+  <div class="hud hud-right" id="rightPanel">
+    <!-- 2x2 tape grid -->
+    <div class="tape-grid">
       <div class="tape-inst">
         <div class="tape-head" style="color:var(--warn)">VEL <span class="tape-unit">km/s</span></div>
         <div class="tape-body">
@@ -516,23 +506,17 @@ canvas{display:block;width:100%;height:100%}
           <svg viewBox="0 0 84 180" class="tape-main"><rect x="0" y="0" width="84" height="180" rx="4" fill="#0c0e16" stroke="rgba(255,255,255,0.08)" stroke-width="1"/><g id="phiTapeG"></g><rect x="14" y="78" width="56" height="24" rx="3" fill="#0a0c14" stroke="#9a6dd7" stroke-width="1.2"/><text id="phiRead" x="42" y="95" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" font-weight="700" fill="#9a6dd7">0</text><polygon points="0,85 6,90 0,95" fill="#9a6dd7"/><polygon points="84,85 78,90 84,95" fill="#9a6dd7"/></svg>
         </div>
       </div>
-      <!-- Drawer toggle -->
-      <button class="drawer-toggle" id="drawerToggle">&#9654;</button>
-      <!-- Mobile-only toggles -->
-      <button class="mobile-toggle-btn" id="mobileLogBtn" title="Mission Log">LOG</button>
-      <button class="mobile-toggle-btn" id="mobileInfoBtn" title="About">i</button>
     </div>
-  </div>
-
-  <!-- Graph drawer: slides out right from telemetry -->
-  <div class="hud graph-drawer closed" id="graphDrawer">
-    <canvas id="graphCanvas"></canvas>
-    <div class="graph-legend">
-      <span class="gl-item"><span class="gl-dot" style="background:var(--accent2)"></span>Alt</span>
-      <span class="gl-item"><span class="gl-dot" style="background:var(--warn)"></span>Vel</span>
-      <span class="gl-item"><span class="gl-dot" style="background:var(--accent)"></span>v/c</span>
-      <span class="gl-item"><span class="gl-dot" style="background:#9a6dd7"></span>&Phi;/c&sup2;</span>
-      <span class="gl-item"><span class="gl-dot" style="background:#e05577"></span>&Delta;&tau;</span>
+    <!-- 5x1 graph stack -->
+    <div class="graph-stack">
+      <canvas id="graphCanvas"></canvas>
+      <div class="graph-legend">
+        <span class="gl-item"><span class="gl-dot" style="background:var(--accent2)"></span>Alt</span>
+        <span class="gl-item"><span class="gl-dot" style="background:var(--warn)"></span>Vel</span>
+        <span class="gl-item"><span class="gl-dot" style="background:var(--accent)"></span>v/c</span>
+        <span class="gl-item"><span class="gl-dot" style="background:#9a6dd7"></span>&Phi;/c&sup2;</span>
+        <span class="gl-item"><span class="gl-dot" style="background:#e05577"></span>&Delta;&tau;</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1938,28 +1922,7 @@ document.getElementById('clocksCollapsed').addEventListener('click', (e) => {
   toggleClocks();
 });
 
-document.getElementById('drawerToggle').addEventListener('click',()=>{
-  let drawer = document.getElementById('graphDrawer');
-  let btn = document.getElementById('drawerToggle');
-  drawer.classList.toggle('closed');
-  btn.classList.toggle('open');
-  btn.innerHTML = drawer.classList.contains('closed') ? '&#9654;' : '&#9664;';
-  positionDrawer();
-});
-
-function positionDrawer() {
-  let bc = document.querySelector('.hud-bc');
-  let drawer = document.getElementById('graphDrawer');
-  if (!bc || !drawer) return;
-  let bcRect = bc.getBoundingClientRect();
-  // Drawer starts at the right edge of telemetry panel
-  drawer.style.left = bcRect.right + 'px';
-  // Match the same vertical position and height
-  drawer.style.bottom = '16px';
-  drawer.style.top = bcRect.top + 'px';
-}
-window.addEventListener('resize', positionDrawer);
-setTimeout(positionDrawer, 100);
+// (old drawer toggle/positionDrawer removed — graphs are inline in right panel)
 
 // Mobile: reliable resize on orientation change
 window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
