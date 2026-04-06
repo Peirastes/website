@@ -1523,6 +1523,64 @@ function drawScene(){
     }
   }
 
+  // Callout label: leader line from object to offset label with background
+  function drawCallout(objX, objY, offsetX, offsetY, lines, color) {
+    let lx = objX + offsetX;
+    let ly = objY + offsetY;
+
+    // Leader line
+    ctx.save();
+    if (Math.abs(camRotation) > 0.001) {
+      ctx.translate(objX, objY);
+      ctx.rotate(-camRotation);
+      ctx.translate(-objX, -objY);
+    }
+    ctx.beginPath();
+    ctx.moveTo(objX, objY);
+    ctx.lineTo(lx, ly);
+    ctx.strokeStyle = color.replace(')', ',0.3)').replace('rgb', 'rgba').replace('rgbaa','rgba');
+    if (color.startsWith('rgba')) ctx.strokeStyle = color;
+    else ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Small dot at label end
+    ctx.beginPath();
+    ctx.arc(lx, ly, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fill();
+
+    // Background pill
+    ctx.font = "600 10px 'Courier New'";
+    let maxW = 0;
+    for (let l of lines) {
+      let m = ctx.measureText(l.text);
+      if (m.width > maxW) maxW = m.width;
+    }
+    let padX = 5, padY = 3;
+    let lineH = 13;
+    let totalH = lines.length * lineH + padY * 2;
+    let bgX = lx + 4;
+    let bgY = ly - totalH / 2;
+
+    ctx.fillStyle = 'rgba(10,14,20,0.75)';
+    ctx.beginPath();
+    ctx.roundRect(bgX - padX, bgY - padY, maxW + padX * 2, totalH + padY, 3);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Text lines
+    for (let i = 0; i < lines.length; i++) {
+      ctx.font = lines[i].font || "600 10px 'Courier New'";
+      ctx.fillStyle = lines[i].color || color;
+      ctx.textAlign = 'left';
+      ctx.fillText(lines[i].text, bgX, bgY + padY + (i + 1) * lineH - 3);
+    }
+    ctx.restore();
+  }
+
   // Scale: use wider dimension since trajectory runs horizontally
   let scaleBasis = w > h ? w * 0.36 : Math.min(w,h) * 0.42;
   let scale = scaleBasis/LUNAR_DIST * camZoom;
@@ -1574,7 +1632,9 @@ function drawScene(){
   ctx.font="11px 'Courier New'";
   ctx.fillStyle='#5b9bd5';
   ctx.textAlign='center';
-  drawLabel('Earth', cx, cy+earthR+16, "11px 'Courier New'", '#5b9bd5', 'center');
+  drawCallout(cx, cy, -30, earthR+25, [
+    { text: 'EARTH', font: "700 11px 'Courier New'", color: '#5b9bd5' },
+  ], '#5b9bd5');
 
   let moonXY = getMoonXY(simTime);
   let moonScreenX = cx + moonXY.x * scale;
@@ -1590,7 +1650,9 @@ function drawScene(){
   ctx.fill();
 
   ctx.fillStyle='#9a9890';
-  drawLabel('Moon', moonScreenX, moonScreenY+moonR+14, "11px 'Courier New'", '#9a9890', 'center');
+  drawCallout(moonScreenX, moonScreenY, 20, -(moonR+20), [
+    { text: 'MOON', font: "700 11px 'Courier New'", color: '#9a9890' },
+  ], '#9a9890');
 
   let state=getOrionState(simTime);
 
@@ -1669,20 +1731,17 @@ function drawScene(){
   ctx.arc(orionScreen.x,orionScreen.y,3.5,0,Math.PI*2);
   ctx.fill();
 
-  ctx.font="600 11px 'Courier New'";
-  ctx.fillStyle='#40e8d0';
-  ctx.textAlign='left';
-  drawLabel('Orion', orionScreen.x+14, orionScreen.y+4, "600 11px 'Courier New'", '#40e8d0', 'left');
-
+  // Orion callout label
   if(simTime>=0){
     let dist_km=state.r-RE;
-    let distStr;
-    if(dist_km>10000) distStr=Math.round(dist_km).toLocaleString()+' km';
-    else distStr=Math.round(dist_km).toLocaleString()+' km';
-
-    ctx.font="10px 'Space Mono'";
-    ctx.fillStyle='rgba(64,232,208,0.6)';
-    drawLabel(distStr+' from Earth', orionScreen.x+14, orionScreen.y+18, "10px 'Space Mono'", 'rgba(255,255,255,0.3)', 'left');
+    let distStr = dist_km < 1000 ? Math.round(dist_km)+' km' : (dist_km<100000?(dist_km/1000).toFixed(1)+'k km':Math.round(dist_km/1000).toLocaleString()+'k km');
+    let moonDist = Math.sqrt((state.x-getMoonXY(simTime).x)**2+(state.y-getMoonXY(simTime).y)**2);
+    let moonStr = moonDist < 1000 ? Math.round(moonDist)+' km' : (moonDist<100000?(moonDist/1000).toFixed(1)+'k km':Math.round(moonDist/1000).toLocaleString()+'k km');
+    drawCallout(orionScreen.x, orionScreen.y, 30, -35, [
+      { text: 'ORION', font: "700 11px 'Courier New'", color: '#40e8d0' },
+      { text: distStr + ' from Earth', font: "10px 'Courier New'", color: 'rgba(255,255,255,0.4)' },
+      { text: moonStr + ' from Moon', font: "10px 'Courier New'", color: 'rgba(255,255,255,0.4)' },
+    ], '#40e8d0');
   }
 
   // ========== MISSION MILESTONE MARKERS ==========
@@ -1720,21 +1779,23 @@ function drawScene(){
     milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add' });
   }
 
-  for (let ms of milestones) {
-    if (ms.t > simTime) continue; // only show markers we've passed
+  for (let mi = 0; mi < milestones.length; mi++) {
+    let ms = milestones[mi];
+    if (ms.t > simTime) continue;
     let s = sampleTraj(Math.min(ms.t, TRAJ_SPLASHDOWN));
     let mx = cx + s.x * scale;
     let my = cy - s.y * scale;
 
     ctx.fillStyle = ms.color;
     ctx.beginPath();
-    ctx.arc(mx, my, 3, 0, Math.PI * 2);
+    ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = "600 9px 'Space Mono'";
-    ctx.fillStyle = ms.color;
-    ctx.textAlign = 'left';
-    drawLabel(ms.label, mx + 6, my + 3, "600 9px 'Space Mono'", ms.color, 'left');
+    // Alternate callout offset direction to reduce overlap
+    let offY = (mi % 2 === 0) ? -20 : 16;
+    drawCallout(mx, my, 8, offY, [
+      { text: ms.label, font: "600 9px 'Courier New'", color: ms.color },
+    ], ms.color);
   }
 
   // Focal body indicator (selection ring)
