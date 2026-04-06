@@ -2074,9 +2074,10 @@ function stackPanels() {
 
     // Telemetry: 1 row x 4 columns at bottom-left
     // Graphs: bottom-right, same height
+    let halfW = Math.floor((window.innerWidth - 24) / 2); // 8px left + 8px gap + 8px right = 24
     if (telPanel) {
       telPanel.setAttribute('style',
-        'position:fixed;bottom:8px;left:8px;right:50%;display:block;' +
+        'position:fixed;bottom:8px;left:8px;width:' + halfW + 'px;display:block;' +
         'padding:4px;border-radius:8px;z-index:50;overflow:hidden;' +
         'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
         'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)');
@@ -2093,9 +2094,11 @@ function stackPanels() {
       });
     }
     if (graphPanel) {
-      let telH = telPanel ? telPanel.getBoundingClientRect().height : 120;
+      let telRect = telPanel ? telPanel.getBoundingClientRect() : null;
+      let gLeft = telRect ? (telRect.right + 8) : (halfW + 16);
+      let gHeight = telRect ? telRect.height : 120;
       graphPanel.setAttribute('style',
-        'position:fixed;bottom:8px;left:50%;right:8px;height:' + telH + 'px;' +
+        'position:fixed;bottom:8px;left:' + gLeft + 'px;right:8px;height:' + gHeight + 'px;' +
         'display:flex;flex-direction:column;padding:6px;border-radius:8px;z-index:50;overflow:hidden;' +
         'background:rgba(10,12,20,0.85);border:1px solid rgba(255,255,255,0.08);' +
         'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)');
