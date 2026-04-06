@@ -1605,16 +1605,27 @@ function drawScene(){
   }
 
   // Callout label: leader line from object to offset label with background
-  // Clamped to canvas bounds so labels stay on screen when dots are visible
   function drawCallout(objX, objY, offsetX, offsetY, lines, color) {
+    let lx = objX + offsetX;
+    let ly = objY + offsetY;
+
     ctx.save();
+    // Counter-rotate so labels stay horizontal
     if (Math.abs(camRotation) > 0.001) {
       ctx.translate(objX, objY);
       ctx.rotate(-camRotation);
       ctx.translate(-objX, -objY);
     }
 
-    // Measure text for background sizing
+    // Leader line
+    ctx.beginPath();
+    ctx.moveTo(objX, objY);
+    ctx.lineTo(lx, ly);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Measure text for background
     ctx.font = "600 10px 'Courier New'";
     let maxW = 0;
     for (let j = 0; j < lines.length; j++) {
@@ -1626,33 +1637,12 @@ function drawScene(){
     let lineH = 13;
     let totalH = lines.length * lineH;
     let leftSide = offsetX < 0;
-    let boxW = maxW + padX * 2;
-    let boxH = totalH + padY * 2;
-
-    // Compute label position
-    let lx = objX + offsetX;
-    let ly = objY + offsetY;
     let bgX = leftSide ? lx - 4 - maxW : lx + 4;
     let bgY = ly - totalH / 2;
 
-    // Clamp to canvas bounds (with 4px margin)
-    let margin = 4;
-    if (bgX - padX < margin) { bgX = margin + padX; lx = bgX + (leftSide ? maxW + 4 : -4); }
-    if (bgX - padX + boxW > w - margin) { bgX = w - margin - boxW + padX; lx = bgX + (leftSide ? maxW + 4 : -4); }
-    if (bgY - padY < margin) { bgY = margin + padY; ly = bgY + totalH / 2; }
-    if (bgY - padY + boxH > h - margin) { bgY = h - margin - boxH + padY; ly = bgY + totalH / 2; }
-
-    // Leader line
-    ctx.beginPath();
-    ctx.moveTo(objX, objY);
-    ctx.lineTo(lx, ly);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-
     // Background
     ctx.fillStyle = 'rgba(10,14,20,0.75)';
-    ctx.fillRect(bgX - padX, bgY - padY, boxW, boxH);
+    ctx.fillRect(bgX - padX, bgY - padY, maxW + padX * 2, totalH + padY * 2);
 
     // Text
     let textAlign = leftSide ? 'right' : 'left';
