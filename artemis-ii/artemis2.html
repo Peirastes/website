@@ -1132,14 +1132,13 @@ initScrollTape('altTapeG', [
   {frac:logFrac(200000,420000), label:'200k'}, {frac:logFrac(420000,420000), label:'420k'},
 ], 4);
 
-// LUNAR: log scale, matches lunarFrac = log10(1+dist)/log10(1+500000)
+// LUNAR: linear scale 0-500k km
 initScrollTape('lunarTapeG', [
-  {frac:logFrac(0,500000), label:'0'}, {frac:logFrac(1000,500000), label:'1k'},
-  {frac:logFrac(10000,500000), label:'10k'}, {frac:logFrac(50000,500000), label:'50k'},
-  {frac:logFrac(100000,500000), label:'100k'}, {frac:logFrac(200000,500000), label:'200k'},
-  {frac:logFrac(300000,500000), label:'300k'}, {frac:logFrac(400000,500000), label:'400k'},
-  {frac:logFrac(500000,500000), label:'500k'},
-], 4);
+  {frac:0, label:'0'}, {frac:0.1, label:'50k'}, {frac:0.2, label:'100k'},
+  {frac:0.3, label:'150k'}, {frac:0.4, label:'200k'}, {frac:0.5, label:'250k'},
+  {frac:0.6, label:'300k'}, {frac:0.7, label:'350k'}, {frac:0.8, label:'400k'},
+  {frac:0.9, label:'450k'}, {frac:1.0, label:'500k'},
+], 5);
 
 // PHI: matches phiFrac = (log10(val)+10.5)/2
 initScrollTape('phiTapeG', [
@@ -1173,10 +1172,10 @@ function updateGauges(state) {
   let altStr = alt < 1000 ? Math.round(alt).toString() : (alt < 100000 ? (alt/1000).toFixed(1) + 'k' : Math.round(alt/1000) + 'k');
   updateTape('altRead', 'altTapeG_scroll', altFrac, altStr);
 
-  // Lunar distance (world coords, no flip)
+  // Lunar distance (linear scale, world coords)
   let moon = getMoonXY(simTime);
   let lunarDist = Math.sqrt((state.x - moon.x)**2 + (state.y - moon.y)**2);
-  let lunarFrac = lunarDist <= 0 ? 0 : Math.log10(1 + lunarDist) / Math.log10(1 + 500000);
+  let lunarFrac = Math.min(lunarDist / 500000, 1);
   let lunarStr = lunarDist < 1000 ? Math.round(lunarDist).toString() : (lunarDist < 100000 ? (lunarDist/1000).toFixed(1) + 'k' : Math.round(lunarDist/1000) + 'k');
   updateTape('lunarRead', 'lunarTapeG_scroll', lunarFrac, lunarStr);
 
