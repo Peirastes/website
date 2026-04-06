@@ -1258,7 +1258,8 @@ canvas.addEventListener('click', (e) => {
   let w = rect.width, h = rect.height;
   let baseCx = w*0.5 + camOffsetX;
   let baseCy = h*0.5 + camOffsetY;
-  let sc = Math.min(w,h)*0.42/LUNAR_DIST * camZoom;
+  let scBasis = w > h ? w * 0.36 : Math.min(w,h) * 0.42;
+  let sc = scBasis/LUNAR_DIST * camZoom;
 
   // Check Earth
   let dEarth = Math.sqrt((mx - baseCx)**2 + (my - baseCy)**2);
@@ -1347,7 +1348,7 @@ canvas.addEventListener('touchend', () => {
 
 // Double-click to reset camera
 canvas.addEventListener('dblclick', () => {
-  camOffsetX = 0;
+  camOffsetX = -80;
   camOffsetY = 0;
   camZoom = 1;
   camRotation = Math.PI / 2;
@@ -1391,10 +1392,11 @@ function initStars(w,h){
 }
 
 // Camera state
-let camOffsetX = 0;
+let camOffsetX = -80;  // shift left to center Earth-Moon midpoint in frame
 let camOffsetY = 0;
 let camZoom = 1;
 let camRotation = Math.PI / 2; // +90° default: trajectory runs horizontally
+let defaultOffsetX = 0; // computed after first render to center trajectory
 let focalBody = 'earth'; // 'earth', 'moon', 'orion'
 
 // Get the world-space position of the focal body
@@ -1455,9 +1457,12 @@ function drawScene(){
     }
   }
 
+  // Scale: use wider dimension since trajectory runs horizontally
+  let scaleBasis = w > h ? w * 0.36 : Math.min(w,h) * 0.42;
+  let scale = scaleBasis/LUNAR_DIST * camZoom;
+
   let baseCx = w*0.5 + camOffsetX * devicePixelRatio;
   let baseCy = h*0.5 + camOffsetY * devicePixelRatio;
-  let scale = Math.min(w,h)*0.42/LUNAR_DIST * camZoom;
 
   // Get focal point in screen space
   let focal = getFocalWorldPos();
