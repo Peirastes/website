@@ -1580,7 +1580,8 @@ function drawScene(){
     let padX = 5, padY = 3;
     let lineH = 13;
     let totalH = lines.length * lineH;
-    let bgX = lx + 4;
+    let leftSide = offsetX < 0;
+    let bgX = leftSide ? lx - 4 - maxW : lx + 4;
     let bgY = ly - totalH / 2;
 
     // Background
@@ -1588,11 +1589,13 @@ function drawScene(){
     ctx.fillRect(bgX - padX, bgY - padY, maxW + padX * 2, totalH + padY * 2);
 
     // Text
+    let textAlign = leftSide ? 'right' : 'left';
+    let textX = leftSide ? bgX + maxW : bgX;
     for (let j = 0; j < lines.length; j++) {
       ctx.font = lines[j].font || "600 10px 'Courier New'";
       ctx.fillStyle = lines[j].color || color;
-      ctx.textAlign = 'left';
-      ctx.fillText(lines[j].text, bgX, bgY + (j + 1) * lineH);
+      ctx.textAlign = textAlign;
+      ctx.fillText(lines[j].text, textX, bgY + (j + 1) * lineH);
     }
     ctx.restore();
   }
@@ -1790,8 +1793,10 @@ function drawScene(){
     ctx.arc(mx, my, dotR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Fan out callouts: try multiple offset positions to find a non-overlapping spot
-    let offX = 10;
+    // Fan out callouts: near-Earth events fan left, others fan right
+    let distFromEarth = Math.sqrt((mx - cx)**2 + (my - cy)**2);
+    let nearEarth = distFromEarth < 50;
+    let offX = nearEarth ? -10 : 10;
     let baseOffY = (mi % 2 === 0) ? -20 : 18;
     let placed = false;
     for (let attempt = 0; attempt < 6; attempt++) {
