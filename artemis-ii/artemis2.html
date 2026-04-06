@@ -1745,39 +1745,33 @@ function drawScene(){
   }
 
   // ========== MISSION MILESTONE MARKERS ==========
-  // Draw small labeled markers at key mission times along the trajectory
+  // Only major trajectory events — skip clustered near-Earth events
   let milestones = [
-    { t: 0, label: 'Launch', color: '#ef9f27' },
-    { t: T_SRB, label: 'SRB sep', color: 'rgba(239,159,39,0.5)' },
-    { t: T_MECO, label: 'MECO', color: '#ef9f27' },
-    { t: T_HEO_BURN, label: 'HEO burn', color: '#ef9f27' },
-    { t: 1*86400, label: 'Day 1', color: 'rgba(255,255,255,0.35)' },
-    { t: 2*86400, label: 'Day 2', color: 'rgba(255,255,255,0.35)' },
-    { t: 3*86400, label: 'Day 3', color: 'rgba(255,255,255,0.35)' },
-    { t: 4*86400, label: 'Day 4', color: 'rgba(255,255,255,0.35)' },
-    { t: 5*86400, label: 'Day 5', color: 'rgba(255,255,255,0.35)' },
-    { t: 6*86400, label: 'Day 6', color: 'rgba(255,255,255,0.35)' },
-    { t: 7*86400, label: 'Day 7', color: 'rgba(255,255,255,0.35)' },
-    { t: 8*86400, label: 'Day 8', color: 'rgba(255,255,255,0.35)' },
-    { t: 9*86400, label: 'Day 9', color: 'rgba(255,255,255,0.35)' },
+    { t: 0, label: 'Launch', color: '#ef9f27', priority: 1 },
   ];
-  // Add TLI marker at its actual detected time
   if (TRAJ_META.tli) {
-    milestones.push({ t: TRAJ_META.tli.t, label: 'TLI', color: '#ef9f27' });
+    milestones.push({ t: TRAJ_META.tli.t, label: 'TLI', color: '#ef9f27', priority: 1 });
   }
-
-  // Find perilune time from trajectory
+  // Day markers along the coast
+  for (let d = 2; d <= 9; d++) {
+    milestones.push({ t: d*86400, label: 'FD'+d, color: 'rgba(255,255,255,0.3)', priority: 0 });
+  }
+  // Find perilune
   let periluneT = 0, periluneMinD = 1e9;
   for (let i = 0; i < TRAJ.length; i++) {
     let m = getMoonXY(TRAJ[i].t);
     let d = Math.sqrt((TRAJ[i].x-m.x)**2 + (TRAJ[i].y-m.y)**2);
     if (d < periluneMinD) { periluneMinD = d; periluneT = TRAJ[i].t; }
   }
-  milestones.push({ t: periluneT, label: 'Perilune', color: '#40e8d0' });
-
+  milestones.push({ t: periluneT, label: 'Perilune', color: '#40e8d0', priority: 1 });
   if (TRAJ_SPLASHDOWN < T_MISSION_END) {
-    milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add' });
+    milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add', priority: 1 });
   }
+
+  // Sort by time, compute screen positions, then filter by minimum distance
+  milestones.sort((a,b) => a.t - b.t);
+  let drawnPositions = []; // track placed labels
+  let minDist = 40; // minimum pixels between callouts
 
   for (let mi = 0; mi < milestones.length; mi++) {
     let ms = milestones[mi];
@@ -1786,16 +1780,34 @@ function drawScene(){
     let mx = cx + s.x * scale;
     let my = cy - s.y * scale;
 
+    // Skip if too close to a previously drawn label (unless high priority)
+    let tooClose = false;
+    for (let dp of drawnPositions) {
+      let dd = Math.sqrt((mx-dp.x)**2 + (my-dp.y)**2);
+      if (dd < minDist && ms.priority < 1) { tooClose = true; break; }
+      if (dd < minDist * 0.4) { tooClose = true; break; } // even priority labels need some space
+    }
+    if (tooClose) {
+      // Still draw the dot, just skip the callout
+      ctx.fillStyle = ms.color;
+      ctx.beginPath();
+      ctx.arc(mx, my, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
+
     ctx.fillStyle = ms.color;
     ctx.beginPath();
     ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Alternate callout offset direction to reduce overlap
-    let offY = (mi % 2 === 0) ? -20 : 16;
-    drawCallout(mx, my, 8, offY, [
+    // Alternate callout offset to stagger above/below
+    let offY = (mi % 2 === 0) ? -22 : 18;
+    drawCallout(mx, my, 10, offY, [
       { text: ms.label, font: "600 9px 'Courier New'", color: ms.color },
     ], ms.color);
+
+    drawnPositions.push({ x: mx, y: my });
   }
 
   // Focal body indicator (selection ring)
