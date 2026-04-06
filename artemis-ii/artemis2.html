@@ -1763,16 +1763,9 @@ function drawScene(){
   // ========== MISSION MILESTONE MARKERS ==========
   // Build from MISSION_EVENTS so trajectory markers match the mission log exactly
   let milestones = [];
-  let eventColors = {
-    'Launch': '#ef9f27', 'SRB separation': '#ef9f27', 'MECO': '#ef9f27',
-    'ICPS burn → HEO': '#ef9f27', 'Translunar injection': '#ef9f27',
-    'OTC-1': 'rgba(255,255,255,0.2)', 'OTC-2': 'rgba(255,255,255,0.2)', 'OTC-3': 'rgba(255,255,255,0.2)',
-    'Lunar flyby': '#40e8d0', 'Return TCM': '#40e8d0',
-    'CM/SM separation': '#378add', 'Entry interface': '#378add',
-    'Chute deploy': '#378add', 'Splashdown': '#378add',
-  };
   for (let ev of MISSION_EVENTS) {
-    milestones.push({ t: ev.t, label: ev.label, color: eventColors[ev.label] || 'rgba(255,255,255,0.4)' });
+    let color = ev.canceled ? 'rgba(255,255,255,0.2)' : 'var(--amber)';
+    milestones.push({ t: ev.t, label: ev.label, color: color, canceled: ev.canceled });
   }
   // Day markers along the coast
   for (let d = 2; d <= 9; d++) {
@@ -1789,10 +1782,12 @@ function drawScene(){
     let mx = cx + s.x * scale;
     let my = cy - s.y * scale;
 
-    // Dot always
+    // Dot — smaller for day markers and canceled events
+    let isDay = ms.label.startsWith('Day');
+    let dotR = (isDay || ms.canceled) ? 1.5 : 2.5;
     ctx.fillStyle = ms.color;
     ctx.beginPath();
-    ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
+    ctx.arc(mx, my, dotR, 0, Math.PI * 2);
     ctx.fill();
 
     // Callout only if 30+ px from all previous callouts
