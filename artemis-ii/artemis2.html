@@ -120,6 +120,19 @@ canvas{display:block;width:100%;height:100%}
 .log-ev-detail{font-family:'Space Mono',monospace;font-size:8px;color:var(--fg3)}
 .log-row-right{flex-shrink:0;margin-left:10px;text-align:right}
 
+/* Fidelity indicators (inline with detail text) */
+.log-fidelity{display:inline-flex;align-items:center;gap:2px;vertical-align:middle}
+.log-fidelity-dot{width:5px;height:5px;border-radius:50%;display:inline-block;flex-shrink:0}
+.log-fidelity-dot.solid{opacity:1}
+.log-fidelity-dot.outline{background:transparent !important;border:1px solid;opacity:0.7}
+.log-fidelity-pct{font-family:'Space Mono',monospace;font-size:7px;opacity:0.8}
+.fidelity-high .log-fidelity-dot{background:var(--accent);border-color:var(--accent)}
+.fidelity-high .log-fidelity-pct{color:var(--accent)}
+.fidelity-mid .log-fidelity-dot{background:var(--warn);border-color:var(--warn)}
+.fidelity-mid .log-fidelity-pct{color:var(--warn)}
+.fidelity-low .log-fidelity-dot{background:#ef4444;border-color:#ef4444}
+.fidelity-low .log-fidelity-pct{color:#ef4444}
+
 /* Past events: dimmed with checkmark */
 .log-past{opacity:0.4}
 .log-past .log-ev-label{color:var(--fg2)}
@@ -205,6 +218,8 @@ canvas{display:block;width:100%;height:100%}
   /* Mission log: compact text */
   .log-ev-label{font-size:8px}
   .log-ev-detail{font-size:7px}
+  .log-fidelity-dot{width:4px;height:4px}
+  .log-fidelity-pct{font-size:6px}
   .log-header{margin-bottom:3px}
   .log-header .section-lbl{font-size:6px}
   .log-header .log-summary{font-size:7px}
@@ -256,6 +271,8 @@ canvas{display:block;width:100%;height:100%}
 
   .log-ev-label{font-size:8px}
   .log-ev-detail{font-size:7px}
+  .log-fidelity-dot{width:4px;height:4px}
+  .log-fidelity-pct{font-size:6px}
   .log-header{margin-bottom:3px}
   .log-header .section-lbl{font-size:6px}
   .log-header .log-summary{font-size:7px}
@@ -730,33 +747,34 @@ let MISSION_EVENTS = []; // populated after trajectory build
 function populateMissionInfo() {
   let m = TRAJ_META;
 
-  // Build event list with timestamps
+  // Build event list with timestamps and model fidelity ratings.
+  // fidelity: 0-100 confidence in this event's timing accuracy vs NASA data.
+  // Ratings reflect calibration results (see calibration/README.md).
   MISSION_EVENTS = [
-    { t: 0, label: 'Launch', detail: 'SLS liftoff — 8.8M lbs thrust' },
-    { t: T_SRB, label: 'SRB separation', detail: '126s, 45 km altitude' },
-    { t: T_MECO, label: 'MECO', detail: LEO_ALT + ' km, ' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(1) + ' km/s' },
+    { t: 0, label: 'Launch', detail: 'SLS liftoff — 8.8M lbs thrust', fidelity: 100 },
+    { t: T_SRB, label: 'SRB separation', detail: '126s, 45 km altitude', fidelity: 95 },
+    { t: T_MECO, label: 'MECO', detail: LEO_ALT + ' km, ' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(1) + ' km/s', fidelity: 95 },
   ];
   if (m.heoBurn) {
-    MISSION_EVENTS.push({ t: m.heoBurn.t, label: 'ICPS burn → HEO', detail: '&Delta;v ' + m.heoBurn.dv + ' km/s, apogee 76,757 km' });
+    MISSION_EVENTS.push({ t: m.heoBurn.t, label: 'ICPS burn → HEO', detail: '&Delta;v ' + m.heoBurn.dv + ' km/s, apogee 76,757 km', fidelity: 60 });
   }
   if (m.tli) {
-    MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde' });
+    MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde', fidelity: 45 });
   }
   if (m.periluneTime) {
-    MISSION_EVENTS.push({ t: m.periluneTime, label: 'Lunar flyby', detail: m.periluneAlt.toLocaleString() + ' km perilune' });
+    MISSION_EVENTS.push({ t: m.periluneTime, label: 'Lunar flyby', detail: m.periluneAlt.toLocaleString() + ' km perilune', fidelity: 99 });
     if (m.tcm) {
-      MISSION_EVENTS.push({ t: m.tcm.t, label: 'Return TCM', detail: '&Delta;v ' + m.tcm.dv + ' km/s radial correction' });
+      MISSION_EVENTS.push({ t: m.tcm.t, label: 'Return TCM', detail: '&Delta;v ' + m.tcm.dv + ' km/s radial correction', fidelity: 40 });
     }
   }
   if (m.splashdown) {
-    // SM separation ~30 min before splashdown, EI ~15 min before, chutes ~5 min before
     let smSep = m.splashdown.t - 1800;
     let ei = m.splashdown.t - 900;
     let chutes = m.splashdown.t - 300;
-    MISSION_EVENTS.push({ t: smSep, label: 'CM/SM separation', detail: 'Service module jettisoned' });
-    MISSION_EVENTS.push({ t: ei, label: 'Entry interface', detail: '~122 km, 11.2 km/s, 2,760°C' });
-    MISSION_EVENTS.push({ t: chutes, label: 'Chute deploy', detail: 'Drogues → mains, 520 km/h → 30 km/h' });
-    MISSION_EVENTS.push({ t: m.splashdown.t, label: 'Splashdown', detail: 'Pacific Ocean, off San Diego' });
+    MISSION_EVENTS.push({ t: smSep, label: 'CM/SM separation', detail: 'Service module jettisoned', fidelity: 70 });
+    MISSION_EVENTS.push({ t: ei, label: 'Entry interface', detail: '~122 km, 11.2 km/s, 2,760°C', fidelity: 70 });
+    MISSION_EVENTS.push({ t: chutes, label: 'Chute deploy', detail: 'Drogues → mains, 520 km/h → 30 km/h', fidelity: 70 });
+    MISSION_EVENTS.push({ t: m.splashdown.t, label: 'Splashdown', detail: 'Pacific Ocean, off San Diego', fidelity: 95 });
   }
 
   let info = '<span>RK4</span> dt=' + TRAJ_DT + 's · ' + m.points + ' pts · Earth+Moon+Sun';
@@ -821,10 +839,23 @@ function updateMissionLog() {
       rightCol = '<span class="log-check">&#10003;</span>';
     }
 
+    // Fidelity indicator: color tier + confirmed vs projected
+    let fid = ev.fidelity ?? 0;
+    let fidTier = fid >= 85 ? 'high' : fid >= 50 ? 'mid' : 'low';
+    // Confirmed = real-world time has passed this event (using wall clock, not sim time)
+    let realElapsedNow = (Date.now() - LAUNCH_UTC) / 1000;
+    let isConfirmed = ev.t <= realElapsedNow;
+    let dotClass = isConfirmed ? 'solid' : 'outline';
+
     html += '<div class="log-row ' + stateClass + '">';
     html += '<div class="log-row-left">';
     html += '<span class="log-ev-label">' + ev.label + '</span>';
-    html += '<span class="log-ev-detail">' + ev.detail + '</span>';
+    html += '<span class="log-ev-detail">';
+    html += '<span class="log-fidelity fidelity-' + fidTier + '">';
+    html += '<span class="log-fidelity-dot ' + dotClass + '"></span>';
+    html += '<span class="log-fidelity-pct">' + fid + '%</span>';
+    html += '</span> ' + ev.detail;
+    html += '</span>';
     html += '</div>';
     html += '<div class="log-row-right">' + rightCol + '</div>';
     html += '</div>';
