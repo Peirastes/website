@@ -2058,7 +2058,8 @@ function stackPanels() {
 
     // Telemetry: 1 row x 4 columns at bottom-left
     // Graphs: bottom-right, same height
-    let halfW = Math.floor((window.innerWidth - 24) / 2);
+    let telW = Math.floor((window.innerWidth - 24) * 0.66);
+    let gLeft = telW + 16; // 8px left margin + telW + 8px gap
     let panelTop = Math.round(vh * 0.78); // top edge = 78% down the screen
     let shared = 'position:fixed;top:' + panelTop + 'px;bottom:8px;' +
       'padding:4px;border-radius:8px;z-index:50;overflow:hidden;box-sizing:border-box;' +
@@ -2066,7 +2067,7 @@ function stackPanels() {
       'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)';
 
     if (telPanel) {
-      telPanel.setAttribute('style', shared + ';left:8px;width:' + halfW + 'px;display:flex;flex-direction:column');
+      telPanel.setAttribute('style', shared + ';left:8px;width:' + telW + 'px;display:flex;flex-direction:column');
       let lbl = telPanel.querySelector('.section-lbl');
       if (lbl) lbl.style.display = 'none';
       let grid = telPanel.querySelector('.tape-grid');
@@ -2082,7 +2083,7 @@ function stackPanels() {
       });
     }
     if (graphPanel) {
-      graphPanel.setAttribute('style', shared + ';left:' + (halfW + 16) + 'px;right:8px;display:flex;flex-direction:column');
+      graphPanel.setAttribute('style', shared + ';left:' + gLeft + 'px;right:8px;display:flex;flex-direction:column');
       let lbl = graphPanel.querySelector('.section-lbl');
       if (lbl) lbl.style.display = 'none';
     }
