@@ -844,6 +844,18 @@ function populateMissionInfo() {
     MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde', fidelity: 45, brief: true,
       tooltip: 'TLI detected dynamically at HEO perigee return. NASA confirmed TLI at T+25h 14m (April 2, 23:49 UTC); our model fires ~2.4 hours later because the HEO orbit period differs slightly under three-body perturbation. The \u0394v of ' + m.tli.dv + ' km/s is calibrated (NASA stated 0.388 km/s — difference due to our two-burn architecture absorbing more energy into the HEO burn).' });
   }
+  // OTC burns — all three were planned but canceled (trajectory was nominal)
+  if (m.tli) {
+    let otc1T = m.tli.t + 1.5 * 86400;  // Flight Day 3
+    let otc2T = m.tli.t + 2.5 * 86400;  // Flight Day 4
+    let otc3T = m.tli.t + 3.2 * 86400;  // Flight Day 5 (pre-flyby)
+    MISSION_EVENTS.push({ t: otc1T, label: 'OTC-1', detail: 'Canceled — trajectory nominal', fidelity: 100, brief: true, canceled: true,
+      tooltip: 'Outbound Trajectory Correction burn 1 was scheduled for Flight Day 3 but canceled by mission control. The TLI burn placed Orion on such a precise free-return trajectory that no correction was needed. This is a sign of an excellent TLI.' });
+    MISSION_EVENTS.push({ t: otc2T, label: 'OTC-2', detail: 'Canceled — trajectory nominal', fidelity: 100, brief: true, canceled: true,
+      tooltip: 'Outbound Trajectory Correction burn 2, also canceled. Three OTC opportunities were planned as insurance, but none were required.' });
+    MISSION_EVENTS.push({ t: otc3T, label: 'OTC-3', detail: 'Canceled — trajectory nominal', fidelity: 100, brief: true, canceled: true,
+      tooltip: 'The third and final planned outbound correction, canceled pre-flyby. All three cancellations confirm the translunar trajectory was within nominal tolerances from the TLI burn alone.' });
+  }
   if (m.periluneTime) {
     MISSION_EVENTS.push({ t: m.periluneTime, label: 'Lunar flyby', detail: m.periluneAlt.toLocaleString() + ' km perilune', fidelity: 99,
       tooltip: 'Closest approach emerges from RK4 integration under Earth + Moon + Sun gravity — not hardcoded. NASA projects perilune at April 6, 23:02 UTC (T+5d 0h 27m); our model lands within 3 minutes of that. Perilune altitude (' + m.periluneAlt.toLocaleString() + ' km) differs from NASA\'s 6,546 km because the start-angle calibration trades altitude precision for timing accuracy.' });
@@ -933,6 +945,12 @@ function updateMissionLog() {
       }
     } else {
       rightCol = '<span class="log-check">&#10003;</span>';
+    }
+
+    // Canceled events override
+    if (ev.canceled) {
+      rightCol = '<span style="font-family:Courier New,monospace;font-size:9px;color:var(--fg3);opacity:0.5">CANCELED</span>';
+      stateClass = 'log-past';
     }
 
     // Fidelity indicator: color tier + confirmed vs projected
@@ -1748,6 +1766,7 @@ function drawScene(){
   let eventColors = {
     'Launch': '#ef9f27', 'SRB separation': '#ef9f27', 'MECO': '#ef9f27',
     'ICPS burn → HEO': '#ef9f27', 'Translunar injection': '#ef9f27',
+    'OTC-1': 'rgba(255,255,255,0.2)', 'OTC-2': 'rgba(255,255,255,0.2)', 'OTC-3': 'rgba(255,255,255,0.2)',
     'Lunar flyby': '#40e8d0', 'Return TCM': '#40e8d0',
     'CM/SM separation': '#378add', 'Entry interface': '#378add',
     'Chute deploy': '#378add', 'Splashdown': '#378add',
