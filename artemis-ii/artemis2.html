@@ -1893,7 +1893,10 @@ function updateUI(){
   let velUs=cumulativeVel*1e6;
   let sign=deltaUs>=0?'+':'';
   let met=formatMET(simTime);
-  let fdNum = Math.floor(simTime/86400) + 1;
+  // NASA counts flight days from launch day (April 1 = FD1)
+  let launchDate = new Date(LAUNCH_UTC);
+  let simDate = new Date(LAUNCH_UTC + simTime * 1000);
+  let fdNum = Math.floor((simDate - new Date(launchDate.getFullYear(), launchDate.getMonth(), launchDate.getDate())) / 86400000) + 1;
   let fd = 'Flight Day ' + Math.max(1, fdNum);
 
   // Expanded elements
