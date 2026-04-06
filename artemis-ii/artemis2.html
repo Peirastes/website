@@ -32,8 +32,7 @@ canvas{display:block;width:100%;height:100%}
 .back-link:hover{color:#e07050}
 .title-center{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0}
 .title-sub{font-family:'Courier New',monospace;font-size:9px;color:var(--fg3);letter-spacing:1.5px;text-transform:uppercase}
-.tl-right{display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end}
-.tl-btns{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tl-btns{display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end}
 
 /* Clocks panel (desktop, below title bar) */
 .hud-clocks{top:60px;left:16px;padding:10px 14px;min-width:270px}
@@ -159,8 +158,8 @@ canvas{display:block;width:100%;height:100%}
 .integrator{font-family:'Courier New',monospace;font-size:10px;color:rgba(255,255,255,0.2);margin-top:6px}
 .integrator span{color:var(--accent)}
 
-/* Playback controls: inline in header on desktop */
-.hud-tc{display:flex;align-items:center;gap:6px}
+/* Playback controls: own panel, top-right below header */
+.hud-tc{top:56px;right:16px;padding:6px 10px;display:flex;align-items:center;gap:6px}
 .speed-btn{padding:5px 10px;border:1px solid #333842;border-radius:3px;background:#0a0e14;color:var(--fg3);font-family:'Courier New',monospace;font-size:11px;cursor:pointer;transition:all 0.2s}
 .speed-btn:hover{border-color:var(--amber);color:var(--amber);box-shadow:0 0 6px var(--amber-glow)}
 .speed-btn.active{border-color:var(--amber);color:#1a1d21;background:var(--amber)}
@@ -178,15 +177,14 @@ canvas{display:block;width:100%;height:100%}
 .mobile-toggle-btn:hover,.mobile-toggle-btn.active{border-color:var(--accent);color:var(--accent)}
 
 @media(max-width:600px){
-  /* Header wraps: row 1 = back+title+btns, row 2 = controls */
-  .hud-tl{top:8px;left:8px;right:8px;padding:6px 10px;flex-wrap:wrap}
+  /* Header: single row */
+  .hud-tl{top:8px;left:8px;right:8px;padding:6px 10px}
   .back-link{font-size:10px}
   .logo{font-size:16px}
   .title-sub{font-size:8px}
-  /* On mobile: right section unwraps, buttons get flex:1 to balance back-link */
-  .tl-right{display:contents}
-  .tl-btns{order:3;flex:1;justify-content:flex-end}
-  .hud-tc{order:4;width:100%;justify-content:center;gap:4px;margin-top:4px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.06)}
+
+  /* Controls: full-width below header */
+  .hud-tc{top:42px;left:8px;right:8px;padding:5px 8px;justify-content:center;gap:4px}
   .speed-btn{padding:3px 6px;font-size:9px}
   .play-btn{padding:3px 10px;font-size:11px}
   .reset-btn{padding:3px 6px;font-size:11px}
@@ -194,8 +192,8 @@ canvas{display:block;width:100%;height:100%}
   /* Hide clocks panel on mobile */
   .hud-clocks{display:none !important}
 
-  /* Mission log: independent panel below header (header ~65px with 2 rows) */
-  .hud-bl{top:75px;left:8px;right:8px;bottom:auto;min-width:auto;overflow:hidden;border-radius:8px;transform:none;pointer-events:auto;padding:0}
+  /* Mission log: below controls */
+  .hud-bl{top:72px;left:8px;right:8px;bottom:auto;min-width:auto;overflow:hidden;border-radius:8px;transform:none;pointer-events:auto;padding:0}
   .hud-bl .log-header{padding:6px 8px;margin-bottom:0;display:flex;align-items:center}
   .hud-bl #missionLog{max-height:0;overflow:hidden;transition:max-height 0.3s ease;padding:0 8px}
   .hud-bl.log-expanded #missionLog{max-height:35vh;overflow-y:auto;padding:0 8px 6px}
@@ -236,12 +234,14 @@ canvas{display:block;width:100%;height:100%}
 
 /* Phone landscape: telemetry right strip, trajectory centered left */
 @media(max-height:500px) and (orientation:landscape){
-  /* Header: single row, controls inline between title and buttons */
+  /* Header: single row */
   .hud-tl{top:8px;left:8px;right:8px;padding:4px 10px}
   .back-link{font-size:10px}
   .logo{font-size:14px}
   .title-sub{font-size:7px}
-  .hud-tc{gap:3px}
+
+  /* Controls: right side below header */
+  .hud-tc{top:32px;right:8px;left:auto;padding:4px 8px;gap:3px}
   .speed-btn{padding:2px 6px;font-size:9px}
   .play-btn{padding:2px 8px;font-size:10px}
   .reset-btn{padding:2px 6px;font-size:10px}
@@ -297,20 +297,20 @@ canvas{display:block;width:100%;height:100%}
       <div class="logo">Artemis <span>II</span></div>
       <div class="title-sub">Orion &bull; Integrity</div>
     </div>
-    <div class="tl-right">
-      <div class="hud-tc">
-        <button class="speed-btn" data-speed="1">1&times;</button>
-        <button class="speed-btn" data-speed="60">1m/s</button>
-        <button class="speed-btn active" data-speed="3600">1h/s</button>
-        <button class="speed-btn" data-speed="21600">6h/s</button>
-        <button class="play-btn" id="playBtn">&#9654; Play</button>
-        <button class="reset-btn" id="resetBtn">&#8634;</button>
-      </div>
-      <div class="tl-btns">
-        <button class="header-info-btn" id="headerInfoBtn">i</button>
-        <button class="live-btn active" id="liveBtn"><span class="live-dot"></span>LIVE</button>
-      </div>
+    <div class="tl-btns">
+      <button class="header-info-btn" id="headerInfoBtn">i</button>
+      <button class="live-btn active" id="liveBtn"><span class="live-dot"></span>LIVE</button>
     </div>
+  </div>
+
+  <!-- Playback controls: separate panel -->
+  <div class="hud hud-tc">
+    <button class="speed-btn" data-speed="1">1&times;</button>
+    <button class="speed-btn" data-speed="60">1m/s</button>
+    <button class="speed-btn active" data-speed="3600">1h/s</button>
+    <button class="speed-btn" data-speed="21600">6h/s</button>
+    <button class="play-btn" id="playBtn">&#9654; Play</button>
+    <button class="reset-btn" id="resetBtn">&#8634;</button>
   </div>
 
   <!-- Clocks + delta (desktop only, collapsible) -->
