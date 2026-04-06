@@ -1052,9 +1052,10 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const TAPE_STRIP_H = 800;
 const TAPE_CENTER_Y = 90;
 
-// ticks: array of { frac, label } — frac is 0-1 position on the tape strip
-// Each tick is placed at the Y position matching its frac. Minor ticks fill between.
-function initScrollTape(groupId, ticks, minorPerMajor) {
+// ticks: array of { frac, label, tier } where tier is 'major' or 'half'.
+// Major = bright thick tick + large label. Half = medium tick + smaller label.
+// Minor ticks auto-generated between consecutive ticks.
+function initScrollTape(groupId, ticks, minorBetween) {
   let g = document.getElementById(groupId);
   if (!g) return;
 
@@ -1062,31 +1063,35 @@ function initScrollTape(groupId, ticks, minorPerMajor) {
   scroll.id = groupId + '_scroll';
   g.appendChild(scroll);
 
-  let nMinor = minorPerMajor || 5;
+  let nMinor = minorBetween || 4;
 
-  // Draw major ticks with labels at exact frac positions
   for (let i = 0; i < ticks.length; i++) {
-    let y = TAPE_STRIP_H * (1 - ticks[i].frac);
-    drawTick(scroll, y, true, false);
-    if (ticks[i].label) {
+    let t = ticks[i];
+    let y = TAPE_STRIP_H * (1 - t.frac);
+    let isMajor = (t.tier === 'major');
+    let isHalf = (t.tier === 'half');
+
+    drawTick(scroll, y, isMajor, isHalf);
+
+    // Label for major and half ticks
+    if (t.label) {
       let txt = document.createElementNS(SVG_NS, 'text');
       txt.setAttribute('x', 42);
       txt.setAttribute('y', y + 4);
       txt.setAttribute('text-anchor', 'middle');
       txt.setAttribute('font-family', "'Courier New', monospace");
-      txt.setAttribute('font-size', '10');
-      txt.setAttribute('fill', 'rgba(255,255,255,0.55)');
-      txt.textContent = ticks[i].label;
+      txt.setAttribute('font-size', isMajor ? '10' : '8');
+      txt.setAttribute('fill', isMajor ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)');
+      txt.textContent = t.label;
       scroll.appendChild(txt);
     }
 
-    // Minor ticks between this and next major
+    // Auto-generate minor ticks between this and next tick
     if (i < ticks.length - 1) {
       for (let m = 1; m < nMinor; m++) {
-        let mFrac = ticks[i].frac + (ticks[i+1].frac - ticks[i].frac) * m / nMinor;
+        let mFrac = t.frac + (ticks[i+1].frac - t.frac) * m / nMinor;
         let my = TAPE_STRIP_H * (1 - mFrac);
-        let isHalf = (m * 2 === nMinor);
-        drawTick(scroll, my, false, isHalf);
+        drawTick(scroll, my, false, false);
       }
     }
   }
@@ -1115,41 +1120,56 @@ function drawTick(parent, y, isMajor, isHalf) {
 function logFrac(val, maxVal) { return val <= 0 ? 0 : Math.log10(1 + val) / Math.log10(1 + maxVal); }
 function phiFrac(val) { return val <= 0 ? 0 : Math.min((Math.log10(val) + 10.5) / 2, 1); }
 
-// VEL: linear 0-12 km/s
+// VEL: linear 0-12 km/s. Major every 2, half every 1.
 initScrollTape('velTapeG', [
-  {frac:0/12, label:'0'}, {frac:1/12, label:'1'}, {frac:2/12, label:'2'}, {frac:3/12, label:'3'},
-  {frac:4/12, label:'4'}, {frac:5/12, label:'5'}, {frac:6/12, label:'6'}, {frac:7/12, label:'7'},
-  {frac:8/12, label:'8'}, {frac:9/12, label:'9'}, {frac:10/12, label:'10'}, {frac:11/12, label:'11'},
-  {frac:12/12, label:'12'},
-], 5);
-
-// ALT: log scale, matches altFrac = log10(1+alt)/log10(1+420000)
-initScrollTape('altTapeG', [
-  {frac:logFrac(0,420000), label:'0'}, {frac:logFrac(10,420000), label:'10'},
-  {frac:logFrac(100,420000), label:'100'}, {frac:logFrac(1000,420000), label:'1k'},
-  {frac:logFrac(5000,420000), label:'5k'}, {frac:logFrac(10000,420000), label:'10k'},
-  {frac:logFrac(50000,420000), label:'50k'}, {frac:logFrac(100000,420000), label:'100k'},
-  {frac:logFrac(200000,420000), label:'200k'}, {frac:logFrac(420000,420000), label:'420k'},
+  {frac:0/12, label:'0', tier:'major'},  {frac:1/12, label:'1', tier:'half'},
+  {frac:2/12, label:'2', tier:'major'},  {frac:3/12, label:'3', tier:'half'},
+  {frac:4/12, label:'4', tier:'major'},  {frac:5/12, label:'5', tier:'half'},
+  {frac:6/12, label:'6', tier:'major'},  {frac:7/12, label:'7', tier:'half'},
+  {frac:8/12, label:'8', tier:'major'},  {frac:9/12, label:'9', tier:'half'},
+  {frac:10/12, label:'10', tier:'major'},{frac:11/12, label:'11', tier:'half'},
+  {frac:12/12, label:'12', tier:'major'},
 ], 4);
 
-// LUNAR: linear scale 0-500k km
-initScrollTape('lunarTapeG', [
-  {frac:0, label:'0'}, {frac:0.1, label:'50k'}, {frac:0.2, label:'100k'},
-  {frac:0.3, label:'150k'}, {frac:0.4, label:'200k'}, {frac:0.5, label:'250k'},
-  {frac:0.6, label:'300k'}, {frac:0.7, label:'350k'}, {frac:0.8, label:'400k'},
-  {frac:0.9, label:'450k'}, {frac:1.0, label:'500k'},
-], 5);
+// ALT: log scale. Major at decades, half at mid-decades.
+initScrollTape('altTapeG', [
+  {frac:logFrac(0,420000), label:'0', tier:'major'},
+  {frac:logFrac(10,420000), label:'10', tier:'half'},
+  {frac:logFrac(100,420000), label:'100', tier:'major'},
+  {frac:logFrac(500,420000), label:'500', tier:'half'},
+  {frac:logFrac(1000,420000), label:'1k', tier:'major'},
+  {frac:logFrac(5000,420000), label:'5k', tier:'half'},
+  {frac:logFrac(10000,420000), label:'10k', tier:'major'},
+  {frac:logFrac(50000,420000), label:'50k', tier:'half'},
+  {frac:logFrac(100000,420000), label:'100k', tier:'major'},
+  {frac:logFrac(200000,420000), label:'200k', tier:'half'},
+  {frac:logFrac(420000,420000), label:'420k', tier:'major'},
+], 4);
 
-// PHI: matches phiFrac = (log10(val)+10.5)/2, full sub-decade resolution
+// LUNAR: linear 0-500k km. Major every 100k, half every 50k.
+initScrollTape('lunarTapeG', [
+  {frac:0, label:'0', tier:'major'},       {frac:0.1, label:'50k', tier:'half'},
+  {frac:0.2, label:'100k', tier:'major'},  {frac:0.3, label:'150k', tier:'half'},
+  {frac:0.4, label:'200k', tier:'major'},  {frac:0.5, label:'250k', tier:'half'},
+  {frac:0.6, label:'300k', tier:'major'},  {frac:0.7, label:'350k', tier:'half'},
+  {frac:0.8, label:'400k', tier:'major'},  {frac:0.9, label:'450k', tier:'half'},
+  {frac:1.0, label:'500k', tier:'major'},
+], 4);
+
+// PHI: log scale. Major at decades, half at 3×10^n.
 initScrollTape('phiTapeG', [
-  {frac:phiFrac(1e-11), label:'1⁻¹¹'}, {frac:phiFrac(2e-11), label:'2⁻¹¹'},
-  {frac:phiFrac(3e-11), label:'3⁻¹¹'}, {frac:phiFrac(5e-11), label:'5⁻¹¹'},
-  {frac:phiFrac(1e-10), label:'1⁻¹⁰'}, {frac:phiFrac(2e-10), label:'2⁻¹⁰'},
-  {frac:phiFrac(3e-10), label:'3⁻¹⁰'}, {frac:phiFrac(5e-10), label:'5⁻¹⁰'},
-  {frac:phiFrac(1e-9), label:'1⁻⁹'}, {frac:phiFrac(2e-9), label:'2⁻⁹'},
-  {frac:phiFrac(3e-9), label:'3⁻⁹'}, {frac:phiFrac(5e-9), label:'5⁻⁹'},
-  {frac:phiFrac(1e-8), label:'1⁻⁸'}, {frac:phiFrac(2e-8), label:'2⁻⁸'},
-  {frac:phiFrac(3e-8), label:'3⁻⁸'}, {frac:phiFrac(5e-8), label:'5⁻⁸'},
+  {frac:phiFrac(1e-11), label:'10⁻¹¹', tier:'major'},
+  {frac:phiFrac(2e-11), label:'2⁻¹¹', tier:'half'},
+  {frac:phiFrac(5e-11), label:'5⁻¹¹', tier:'half'},
+  {frac:phiFrac(1e-10), label:'10⁻¹⁰', tier:'major'},
+  {frac:phiFrac(2e-10), label:'2⁻¹⁰', tier:'half'},
+  {frac:phiFrac(5e-10), label:'5⁻¹⁰', tier:'half'},
+  {frac:phiFrac(1e-9), label:'10⁻⁹', tier:'major'},
+  {frac:phiFrac(2e-9), label:'2⁻⁹', tier:'half'},
+  {frac:phiFrac(5e-9), label:'5⁻⁹', tier:'half'},
+  {frac:phiFrac(1e-8), label:'10⁻⁸', tier:'major'},
+  {frac:phiFrac(2e-8), label:'2⁻⁸', tier:'half'},
+  {frac:phiFrac(5e-8), label:'5⁻⁸', tier:'half'},
 ], 4);
 
 function updateTape(readId, scrollGroupId, frac, displayText) {
