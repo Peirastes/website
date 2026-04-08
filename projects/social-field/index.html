@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Field Theory — Sociophysics Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Cinzel:wght@600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e14;--fg:#d0d4da;--fg2:#9a9890;--fg3:#707880;
+  --amber:#f0a030;--amber-dim:#a06820;--amber-glow:rgba(240,160,48,0.25);
+  --cyan:#40e8d0;--cyan-glow:rgba(64,232,208,0.2);
+  --green:#40d870;--red:#e05040;
+  --chassis-bg:#1a1d21;--chassis-border:#2a2d32;
+  --crt-bg:#0a0e14;--crt-border:#333842;
+}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Courier New',monospace;overflow:hidden}
+
+.app{display:grid;grid-template-rows:auto 1fr;height:100vh}
+
+/* Header */
+.header{background:linear-gradient(180deg,#222630,#1a1d24);border-bottom:2px solid var(--chassis-border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:16px}
+.back-link{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:rgba(224,224,224,0.3);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s}
+.back-link:hover{color:#e07050}
+.header-title{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--amber);text-shadow:0 0 12px var(--amber-glow);letter-spacing:2px}
+.header-sub{font-size:9px;color:var(--fg3);letter-spacing:1.5px;text-transform:uppercase}
+.header-right{display:flex;align-items:center;gap:8px}
+.run-btn{padding:6px 20px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;border:none;border-radius:4px;cursor:pointer;transition:all 0.2s}
+.run-btn.play{color:var(--chassis-bg);background:linear-gradient(180deg,var(--amber),#d08020);box-shadow:0 2px 10px var(--amber-glow)}
+.run-btn.play:hover{background:linear-gradient(180deg,#ffb840,var(--amber));transform:translateY(-1px)}
+.run-btn.pause{color:var(--amber);background:var(--crt-bg);border:1px solid var(--amber)}
+.reset-btn{padding:6px 12px;font-size:12px;background:var(--crt-bg);border:1px solid var(--crt-border);border-radius:4px;color:var(--fg3);cursor:pointer;transition:all 0.2s}
+.reset-btn:hover{border-color:var(--amber);color:var(--amber);box-shadow:0 0 6px var(--amber-glow)}
+
+/* Main layout */
+.main{display:grid;grid-template-columns:280px auto 1fr;gap:0;overflow:hidden}
+
+/* Control panel */
+.controls{background:linear-gradient(180deg,#181b20,#14161c);border-right:2px solid var(--chassis-border);padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.ctrl-section{padding:8px;background:var(--crt-bg);border:1px solid var(--crt-border);border-radius:4px}
+.ctrl-label{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--fg3);margin-bottom:2px}
+.ctrl-desc{font-size:8px;color:var(--fg3);opacity:0.6;line-height:1.4;margin-bottom:6px}
+.ctrl-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ctrl-row label{font-size:10px;color:var(--fg2);min-width:70px}
+.ctrl-row input[type=range]{flex:1;accent-color:var(--amber);height:4px}
+.ctrl-row .ctrl-val{font-size:10px;color:var(--amber);min-width:36px;text-align:right}
+.ctrl-row select{background:var(--crt-bg);border:1px solid var(--crt-border);color:var(--fg);font-family:'Courier New',monospace;font-size:10px;padding:3px 6px;border-radius:3px}
+.preset-btn{width:100%;padding:6px;margin-top:4px;background:var(--crt-bg);border:1px solid var(--crt-border);border-radius:3px;color:var(--fg3);font-family:'Courier New',monospace;font-size:10px;cursor:pointer;transition:all 0.2s;text-align:left}
+.preset-btn:hover{border-color:var(--amber);color:var(--amber);box-shadow:0 0 6px var(--amber-glow)}
+.mode-label{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--fg2);margin-bottom:4px;cursor:pointer}
+.mode-label input{accent-color:var(--amber)}
+
+/* Resize handle */
+.resize-handle{width:6px;cursor:col-resize;background:var(--chassis-border);transition:background 0.15s;flex-shrink:0}
+.resize-handle:hover,.resize-handle.active{background:var(--amber)}
+
+/* Canvas area */
+.canvas-wrap{position:relative;overflow:hidden;background:#080a10}
+.canvas-wrap canvas{display:block;width:100%;height:100%}
+
+/* Observables overlay */
+.obs-bar{position:absolute;bottom:0;left:0;right:0;display:flex;gap:12px;padding:8px 12px;background:rgba(10,14,20,0.85);border-top:1px solid var(--chassis-border);backdrop-filter:blur(8px)}
+.obs-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+.obs-label{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--fg3)}
+.obs-val{font-size:14px;font-weight:700;color:var(--cyan);text-shadow:0 0 6px var(--cyan-glow)}
+
+/* Injection mode indicator */
+.inject-mode{position:absolute;top:8px;right:8px;padding:4px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;pointer-events:none;opacity:0;transition:opacity 0.2s}
+.inject-mode.active{opacity:1}
+.inject-mode.h-mode{background:rgba(240,160,48,0.15);border:1px solid var(--amber);color:var(--amber)}
+.inject-mode.j-mode{background:rgba(224,80,64,0.15);border:1px solid var(--red);color:var(--red)}
+
+/* Mobile */
+@media(max-width:768px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .controls{border-right:none;border-bottom:2px solid var(--chassis-border);max-height:35vh;flex-direction:row;flex-wrap:wrap;padding:8px}
+  .ctrl-section{flex:1;min-width:140px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <a class="back-link" href="../../">Peirastes</a>
+      <div>
+        <div class="header-title">SOCIAL FIELD</div>
+        <div class="header-sub">Sociophysics Simulator</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="reset-btn" id="resetBtn">&#8634; Reset</button>
+      <button class="run-btn play" id="runBtn">&#9654; RUN</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="controls">
+      <!-- Resolution -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Resolution</div>
+        <div class="ctrl-desc">Population grid size. Higher = finer detail, slower simulation.</div>
+        <div class="ctrl-row">
+          <label>N × N</label>
+          <input type="range" id="sliderN" min="50" max="200" step="10" value="200">
+          <span class="ctrl-val" id="valN">200</span>
+        </div>
+      </div>
+
+      <!-- Temperature -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Temperature (T)</div>
+        <div class="ctrl-desc">Social noise — independent thinking, information chaos. Low = rigid conformity. High = nobody listens to anyone. Phase transitions happen at critical T.</div>
+        <div class="ctrl-row">
+          <label>Noise</label>
+          <input type="range" id="sliderT" min="0.01" max="5" step="0.01" value="1.0">
+          <span class="ctrl-val" id="valT">1.00</span>
+        </div>
+      </div>
+
+      <!-- Coupling -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Coupling (J₀)</div>
+        <div class="ctrl-desc">Social cohesion — how strongly people influence their neighbors. High J = tight communities, herding behavior. Negative J = contrarian dynamics.</div>
+        <div class="ctrl-row">
+          <label>Cohesion</label>
+          <input type="range" id="sliderJ" min="-0.5" max="2" step="0.01" value="1.0">
+          <span class="ctrl-val" id="valJ">1.00</span>
+        </div>
+        <div class="ctrl-desc" style="margin-top:4px">Interaction range — how far influence travels. Low α = mass media (global reach). High α = word-of-mouth only.</div>
+        <div class="ctrl-row">
+          <label>Range (α)</label>
+          <input type="range" id="sliderAlpha" min="0" max="6" step="0.1" value="3">
+          <span class="ctrl-val" id="valAlpha">3.0</span>
+        </div>
+      </div>
+
+      <!-- External Field -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">External Field (h)</div>
+        <div class="ctrl-desc">Global rational propaganda — a persistent directed message pushing the population toward one alignment. State media, national campaigns.</div>
+        <div class="ctrl-row">
+          <label>Bias</label>
+          <input type="range" id="sliderH" min="-1.5" max="1.5" step="0.01" value="0">
+          <span class="ctrl-val" id="valH">0.00</span>
+        </div>
+      </div>
+
+      <!-- Anisotropy -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Anisotropy (K)</div>
+        <div class="ctrl-desc">Institutional structure — cultural norms, constitutions, two-party systems that penalize neutrality (K&gt;0) or reward disengagement (K&lt;0).</div>
+        <div class="ctrl-row">
+          <label>Structure</label>
+          <input type="range" id="sliderK" min="-1" max="2" step="0.01" value="0">
+          <span class="ctrl-val" id="valK">0.00</span>
+        </div>
+      </div>
+
+      <!-- Damping -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Damping</div>
+        <div class="ctrl-desc">How fast injected propaganda fades. Low = persistent campaigns. If ΔJ decays slower than h, susceptibility outlasts the message (hysteresis).</div>
+        <div class="ctrl-row">
+          <label>h decay</label>
+          <input type="range" id="sliderDampH" min="0" max="0.1" step="0.001" value="0.01">
+          <span class="ctrl-val" id="valDampH">0.010</span>
+        </div>
+        <div class="ctrl-row">
+          <label>ΔJ decay</label>
+          <input type="range" id="sliderDampJ" min="0" max="0.1" step="0.001" value="0.005">
+          <span class="ctrl-val" id="valDampJ">0.005</span>
+        </div>
+      </div>
+
+      <!-- Injection -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Injection Mode</div>
+        <div class="ctrl-desc">Left-click to inject. Rational (h) = "believe this" — directly biases opinion. Irrational (ΔJ) = makes people susceptible to peer influence without specifying what to believe. Right-click for opposing direction.</div>
+        <div class="mode-label"><input type="radio" name="injectMode" value="h" checked> Click = Rational (h)</div>
+        <div class="mode-label"><input type="radio" name="injectMode" value="dj"> Click = Irrational (ΔJ)</div>
+        <div class="ctrl-row" style="margin-top:4px">
+          <label>Strength</label>
+          <input type="range" id="sliderInject" min="0.1" max="2" step="0.05" value="0.8">
+          <span class="ctrl-val" id="valInject">0.80</span>
+        </div>
+        <div class="ctrl-row">
+          <label>Radius</label>
+          <input type="range" id="sliderRadius" min="1" max="20" step="1" value="5">
+          <span class="ctrl-val" id="valRadius">5</span>
+        </div>
+      </div>
+
+      <!-- Presets -->
+      <div class="ctrl-section">
+        <div class="ctrl-label">Presets</div>
+        <div class="ctrl-desc">Pre-configured scenarios. Each tests a different regime of the model.</div>
+        <button class="preset-btn" data-preset="disordered">Disordered — high noise, no consensus</button>
+        <button class="preset-btn" data-preset="consensus">Forced consensus — low T, high J</button>
+        <button class="preset-btn" data-preset="berlin">Berlin Wall — metastable, raise T to break</button>
+        <button class="preset-btn" data-preset="fragile">Fragile market — high J, low T, tap to shatter</button>
+        <button class="preset-btn" data-preset="polarized">Polarized — pre-existing domain walls</button>
+        <button class="preset-btn" data-preset="sandbox">Sandbox — default parameters</button>
+      </div>
+    </div>
+
+    <div class="resize-handle" id="resizeHandle"></div>
+    <div class="canvas-wrap">
+      <canvas id="fieldCanvas"></canvas>
+      <div class="inject-mode" id="injectIndicator">RATIONAL (h)</div>
+      <div class="obs-bar">
+        <div class="obs-item"><span class="obs-label">Order M</span><span class="obs-val" id="obsM">0.000</span></div>
+        <div class="obs-item"><span class="obs-label">Suscept χ</span><span class="obs-val" id="obsChi">0.000</span></div>
+        <div class="obs-item"><span class="obs-label">Walls ρ</span><span class="obs-val" id="obsRho">0.000</span></div>
+        <div class="obs-item"><span class="obs-label">Energy e</span><span class="obs-val" id="obsE">0.000</span></div>
+        <div class="obs-item"><span class="obs-label">Sweeps</span><span class="obs-val" id="obsSweeps">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== LATTICE ==========
+let N = 200;
+let spins = new Float32Array(N * N);
+let hField = new Float32Array(N * N);   // local external field (rational propaganda)
+let djField = new Float32Array(N * N);  // local coupling modification (irrational propaganda)
+
+function resizeLattice(newN) {
+  N = newN;
+  spins = new Float32Array(N * N);
+  hField = new Float32Array(N * N);
+  djField = new Float32Array(N * N);
+  initRandom();
+  sweepCount = 0;
+  imageData = null; // force recreate on next render
+}
+
+function idx(i, j) {
+  return ((i % N + N) % N) * N + ((j % N + N) % N); // periodic boundary
+}
+
+function initRandom() {
+  for (let k = 0; k < N * N; k++) spins[k] = Math.random() * 2 - 1;
+  hField.fill(0);
+  djField.fill(0);
+}
+
+function initAligned(val) {
+  spins.fill(val);
+  hField.fill(0);
+  djField.fill(0);
+}
+
+function initDomains() {
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      // Create 4 quadrant domains with some noise
+      let s = ((i < N/2) === (j < N/2)) ? 0.8 : -0.8;
+      spins[idx(i,j)] = s + (Math.random() - 0.5) * 0.3;
+    }
+  }
+  hField.fill(0);
+  djField.fill(0);
+}
+
+initRandom();
+
+// ========== PARAMETERS ==========
+let params = {
+  T: 1.0,
+  J0: 1.0,
+  alpha: 3.0,
+  hGlobal: 0,
+  K: 0,
+  dampH: 0.01,
+  dampJ: 0.005,
+};
+
+let running = false;
+let sweepCount = 0;
+
+// Interaction cutoff radius (depends on alpha)
+function getCutoff() {
+  if (params.alpha <= 1) return 10;
+  if (params.alpha <= 2) return 6;
+  if (params.alpha <= 3) return 4;
+  return 3;
+}
+
+// ========== METROPOLIS SWEEP ==========
+function sweep() {
+  let T = params.T;
+  let J0 = params.J0;
+  let alpha = params.alpha;
+  let hG = params.hGlobal;
+  let K = params.K;
+  let Rcut = getCutoff();
+  let delta = 0.3; // spin update step size
+
+  for (let step = 0; step < N * N; step++) {
+    // Random site
+    let i = Math.floor(Math.random() * N);
+    let j = Math.floor(Math.random() * N);
+    let k = idx(i, j);
+    let s = spins[k];
+
+    // Propose new spin
+    let sNew = s + (Math.random() * 2 - 1) * delta;
+    sNew = Math.max(-1, Math.min(1, sNew));
+    let ds = sNew - s;
+
+    // Compute local field: sum of J * s_neighbor
+    let localField = 0;
+    let dj_local = djField[k];
+    for (let di = -Rcut; di <= Rcut; di++) {
+      for (let dj = -Rcut; dj <= Rcut; dj++) {
+        if (di === 0 && dj === 0) continue;
+        let dist = Math.sqrt(di * di + dj * dj);
+        if (dist > Rcut) continue;
+        let J = (J0 + dj_local) / (1 + Math.pow(dist, alpha));
+        localField += J * spins[idx(i + di, j + dj)];
+      }
+    }
+
+    // Energy change
+    let dE = -ds * (localField + hG + hField[k] + K * (sNew + s));
+
+    // Metropolis acceptance
+    if (dE < 0 || Math.random() < Math.exp(-dE / T)) {
+      spins[k] = sNew;
+    }
+  }
+
+  // Decay injected fields
+  for (let k = 0; k < N * N; k++) {
+    hField[k] *= (1 - params.dampH);
+    djField[k] *= (1 - params.dampJ);
+  }
+
+  sweepCount++;
+}
+
+// ========== OBSERVABLES ==========
+function computeObservables() {
+  let M = 0, M2 = 0, E = 0, walls = 0, pairs = 0;
+  let Rcut = Math.min(getCutoff(), 2); // use small cutoff for energy estimate
+
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      let k = idx(i, j);
+      let s = spins[k];
+      M += s;
+      M2 += s * s;
+
+      // Energy (nearest neighbor only for speed)
+      let sR = spins[idx(i, j+1)];
+      let sD = spins[idx(i+1, j)];
+      E -= params.J0 * s * sR;
+      E -= params.J0 * s * sD;
+      E -= (params.hGlobal + hField[k]) * s;
+
+      // Domain walls (nearest neighbor)
+      if (Math.abs(s - sR) > 0.8) walls++;
+      if (Math.abs(s - sD) > 0.8) walls++;
+      pairs += 2;
+    }
+  }
+
+  let n = N * N;
+  M /= n;
+  let chi = (M2 / n - M * M) / Math.max(params.T, 0.01);
+  let rho = walls / pairs;
+  E /= n;
+
+  return { M, chi, rho, E };
+}
+
+// ========== RENDERING ==========
+const canvas = document.getElementById('fieldCanvas');
+const ctx = canvas.getContext('2d');
+let imageData;
+
+function resizeCanvas() {
+  let rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = Math.floor(rect.width);
+  canvas.height = Math.floor(rect.height);
+  imageData = ctx.createImageData(N, N);
+}
+
+function render() {
+  if (!imageData) resizeCanvas();
+
+  let data = imageData.data;
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < N; j++) {
+      let k = idx(i, j);
+      let s = spins[k];
+      let p = (i * N + j) * 4;
+
+      // Color map: red (-1) ↔ dark gray (0) ↔ blue (+1)
+      if (s >= 0) {
+        data[p]     = 40 + 0 * s;       // R
+        data[p + 1] = 40 + 20 * s;      // G
+        data[p + 2] = 50 + 150 * s;     // B
+      } else {
+        data[p]     = 40 + 160 * (-s);  // R
+        data[p + 1] = 40 + 0 * (-s);    // G
+        data[p + 2] = 50 - 10 * (-s);   // B
+      }
+      data[p + 3] = 255;
+
+      // Highlight injected h field (amber tint)
+      let hAbs = Math.abs(hField[k]);
+      if (hAbs > 0.01) {
+        data[p]     = Math.min(255, data[p] + hAbs * 80);
+        data[p + 1] = Math.min(255, data[p+1] + hAbs * 40);
+      }
+      // Highlight injected ΔJ field (red tint)
+      let djAbs = Math.abs(djField[k]);
+      if (djAbs > 0.01) {
+        data[p]     = Math.min(255, data[p] + djAbs * 60);
+      }
+    }
+  }
+
+  // Draw the NxN image scaled to canvas
+  ctx.imageSmoothingEnabled = false;
+  let tempCanvas = document.createElement('canvas');
+  tempCanvas.width = N;
+  tempCanvas.height = N;
+  tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+  ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+}
+
+function updateObsDisplay(obs) {
+  document.getElementById('obsM').textContent = obs.M.toFixed(3);
+  document.getElementById('obsChi').textContent = obs.chi.toFixed(3);
+  document.getElementById('obsRho').textContent = obs.rho.toFixed(3);
+  document.getElementById('obsE').textContent = obs.E.toFixed(2);
+  document.getElementById('obsSweeps').textContent = sweepCount;
+
+  // Color the order parameter
+  let mEl = document.getElementById('obsM');
+  if (Math.abs(obs.M) > 0.5) mEl.style.color = obs.M > 0 ? '#4040e0' : '#e04040';
+  else mEl.style.color = 'var(--cyan)';
+}
+
+// ========== ANIMATION LOOP ==========
+function step() {
+  if (running) {
+    sweep();
+    let obs = computeObservables();
+    updateObsDisplay(obs);
+  }
+  render();
+  requestAnimationFrame(step);
+}
+
+// ========== USER INTERACTION ==========
+let mouseDown = false;
+let lastInjectPos = null;
+
+function getFieldPos(e) {
+  let rect = canvas.getBoundingClientRect();
+  let x, y;
+  if (e.touches) {
+    x = e.touches[0].clientX - rect.left;
+    y = e.touches[0].clientY - rect.top;
+  } else {
+    x = e.clientX - rect.left;
+    y = e.clientY - rect.top;
+  }
+  let fi = Math.floor(y / rect.height * N);
+  let fj = Math.floor(x / rect.width * N);
+  return { i: Math.max(0, Math.min(N-1, fi)), j: Math.max(0, Math.min(N-1, fj)) };
+}
+
+function inject(pos) {
+  let mode = document.querySelector('input[name=injectMode]:checked').value;
+  let strength = parseFloat(document.getElementById('sliderInject').value);
+  let radius = parseInt(document.getElementById('sliderRadius').value);
+
+  for (let di = -radius; di <= radius; di++) {
+    for (let dj = -radius; dj <= radius; dj++) {
+      let dist = Math.sqrt(di*di + dj*dj);
+      if (dist > radius) continue;
+      let falloff = 1 - dist / radius; // linear falloff
+      let k = idx(pos.i + di, pos.j + dj);
+
+      if (mode === 'h') {
+        // Rational: push toward +1 (left click) or -1 (right click)
+        hField[k] += strength * falloff;
+      } else {
+        // Irrational: increase coupling susceptibility
+        djField[k] += strength * falloff;
+      }
+    }
+  }
+
+  // Show indicator
+  let ind = document.getElementById('injectIndicator');
+  ind.className = 'inject-mode active ' + (mode === 'h' ? 'h-mode' : 'j-mode');
+  ind.textContent = mode === 'h' ? 'RATIONAL (h)' : 'IRRATIONAL (ΔJ)';
+  clearTimeout(ind._timeout);
+  ind._timeout = setTimeout(() => ind.classList.remove('active'), 800);
+}
+
+canvas.addEventListener('mousedown', (e) => { mouseDown = true; inject(getFieldPos(e)); e.preventDefault(); });
+canvas.addEventListener('mousemove', (e) => { if (mouseDown) inject(getFieldPos(e)); });
+canvas.addEventListener('mouseup', () => mouseDown = false);
+canvas.addEventListener('mouseleave', () => mouseDown = false);
+canvas.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  // Right-click: inject negative field
+  let pos = getFieldPos(e);
+  let mode = document.querySelector('input[name=injectMode]:checked').value;
+  let strength = parseFloat(document.getElementById('sliderInject').value);
+  let radius = parseInt(document.getElementById('sliderRadius').value);
+  for (let di = -radius; di <= radius; di++) {
+    for (let dj = -radius; dj <= radius; dj++) {
+      let dist = Math.sqrt(di*di + dj*dj);
+      if (dist > radius) continue;
+      let falloff = 1 - dist / radius;
+      let k = idx(pos.i + di, pos.j + dj);
+      if (mode === 'h') hField[k] -= strength * falloff;
+      else djField[k] -= strength * falloff;
+    }
+  }
+});
+
+// Touch support
+canvas.addEventListener('touchstart', (e) => { mouseDown = true; inject(getFieldPos(e)); e.preventDefault(); }, {passive:false});
+canvas.addEventListener('touchmove', (e) => { if (mouseDown) inject(getFieldPos(e)); e.preventDefault(); }, {passive:false});
+canvas.addEventListener('touchend', () => mouseDown = false);
+
+// ========== CONTROLS ==========
+// Slider sync
+const sliders = [
+  ['sliderT', 'valT', (v) => { params.T = v; return v.toFixed(2); }],
+  ['sliderJ', 'valJ', (v) => { params.J0 = v; return v.toFixed(2); }],
+  ['sliderAlpha', 'valAlpha', (v) => { params.alpha = v; return v.toFixed(1); }],
+  ['sliderH', 'valH', (v) => { params.hGlobal = v; return v.toFixed(2); }],
+  ['sliderK', 'valK', (v) => { params.K = v; return v.toFixed(2); }],
+  ['sliderDampH', 'valDampH', (v) => { params.dampH = v; return v.toFixed(3); }],
+  ['sliderDampJ', 'valDampJ', (v) => { params.dampJ = v; return v.toFixed(3); }],
+  ['sliderInject', 'valInject', (v) => v.toFixed(2)],
+  ['sliderRadius', 'valRadius', (v) => v.toString()],
+];
+
+// Resolution slider (special — triggers lattice resize)
+document.getElementById('sliderN').addEventListener('input', () => {
+  let newN = parseInt(document.getElementById('sliderN').value);
+  document.getElementById('valN').textContent = newN;
+  resizeLattice(newN);
+});
+
+sliders.forEach(([sId, vId, fn]) => {
+  let slider = document.getElementById(sId);
+  let val = document.getElementById(vId);
+  slider.addEventListener('input', () => { val.textContent = fn(parseFloat(slider.value)); });
+});
+
+// Run/pause
+document.getElementById('runBtn').addEventListener('click', () => {
+  running = !running;
+  let btn = document.getElementById('runBtn');
+  btn.textContent = running ? '⏸ PAUSE' : '▶ RUN';
+  btn.className = running ? 'run-btn pause' : 'run-btn play';
+});
+
+// Reset
+document.getElementById('resetBtn').addEventListener('click', () => {
+  initRandom();
+  sweepCount = 0;
+  running = false;
+  let btn = document.getElementById('runBtn');
+  btn.textContent = '▶ RUN';
+  btn.className = 'run-btn play';
+});
+
+// Presets
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    let p = btn.dataset.preset;
+    sweepCount = 0;
+
+    if (p === 'disordered') {
+      initRandom();
+      setSliders({ T: 3.0, J0: 1.0, alpha: 3, hGlobal: 0, K: 0 });
+    } else if (p === 'consensus') {
+      initAligned(0.8);
+      setSliders({ T: 0.3, J0: 1.5, alpha: 3, hGlobal: 0, K: 0 });
+    } else if (p === 'berlin') {
+      initAligned(0.9);
+      setSliders({ T: 0.5, J0: 1.0, alpha: 3, hGlobal: 0, K: 1.5 });
+    } else if (p === 'fragile') {
+      initAligned(0.9);
+      setSliders({ T: 0.3, J0: 1.8, alpha: 1, hGlobal: 0, K: 1.0 });
+    } else if (p === 'polarized') {
+      initDomains();
+      setSliders({ T: 0.8, J0: 0.6, alpha: 3, hGlobal: 0, K: 0.3 });
+    } else {
+      initRandom();
+      setSliders({ T: 1.0, J0: 1.0, alpha: 3, hGlobal: 0, K: 0 });
+    }
+  });
+});
+
+function setSliders(p) {
+  if (p.T !== undefined) { document.getElementById('sliderT').value = p.T; params.T = p.T; document.getElementById('valT').textContent = p.T.toFixed(2); }
+  if (p.J0 !== undefined) { document.getElementById('sliderJ').value = p.J0; params.J0 = p.J0; document.getElementById('valJ').textContent = p.J0.toFixed(2); }
+  if (p.alpha !== undefined) { document.getElementById('sliderAlpha').value = p.alpha; params.alpha = p.alpha; document.getElementById('valAlpha').textContent = p.alpha.toFixed(1); }
+  if (p.hGlobal !== undefined) { document.getElementById('sliderH').value = p.hGlobal; params.hGlobal = p.hGlobal; document.getElementById('valH').textContent = p.hGlobal.toFixed(2); }
+  if (p.K !== undefined) { document.getElementById('sliderK').value = p.K; params.K = p.K; document.getElementById('valK').textContent = p.K.toFixed(2); }
+}
+
+// ========== RESIZE HANDLE ==========
+let resizing = false;
+let handle = document.getElementById('resizeHandle');
+let mainEl = document.querySelector('.main');
+let controlsEl = document.querySelector('.controls');
+
+handle.addEventListener('mousedown', (e) => { resizing = true; handle.classList.add('active'); e.preventDefault(); });
+document.addEventListener('mousemove', (e) => {
+  if (!resizing) return;
+  let newW = Math.max(200, Math.min(600, e.clientX));
+  mainEl.style.gridTemplateColumns = newW + 'px auto 1fr';
+  resizeCanvas();
+});
+document.addEventListener('mouseup', () => { resizing = false; handle.classList.remove('active'); });
+
+// Touch resize
+handle.addEventListener('touchstart', (e) => { resizing = true; handle.classList.add('active'); e.preventDefault(); }, {passive:false});
+document.addEventListener('touchmove', (e) => {
+  if (!resizing) return;
+  let newW = Math.max(200, Math.min(600, e.touches[0].clientX));
+  mainEl.style.gridTemplateColumns = newW + 'px auto 1fr';
+  resizeCanvas();
+});
+document.addEventListener('touchend', () => { resizing = false; handle.classList.remove('active'); });
+
+// ========== INIT ==========
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+render();
+requestAnimationFrame(step);
+</script>
+</body>
+</html>
