@@ -85,6 +85,28 @@ General relativity predicts that clocks at different gravitational potentials an
 
 ---
 
+## Project Disposition (2026-04-07)
+
+**Status: v2 complete. No v3 planned. Maintenance mode.**
+
+The simulator's peak value was the lunar flyby (April 6). The return coast is 4 days of gradually decreasing altitude — no dramatic events until splashdown on April 11. The audience that shared and engaged with the app did so during the flyby window. Adding 3D trajectories, JPL ephemeris, or finite-duration burns now would be engineering for engineering's sake — the public audience won't notice the difference.
+
+The v3 candidates (elliptical Moon orbit, 3D rendering, finite burns) are better foundations for a **generalized orbital mechanics engine** aimed at Artemis III, which will involve NRHO, docking, and a lunar landing — a genuinely new project that justifies the effort.
+
+**Remaining tasks before archive:**
+1. Verify splashdown renders correctly on April 11 (quick live check)
+2. After splashdown: swap NASA livestream button for "Mission Complete" badge or link to NASA's mission summary
+3. After splashdown: update info panel "Future Plans" to note mission concluded successfully
+
+**Reusable assets for future projects:**
+- Calibration testbed (Node.js CLI with parameter sweeps and diff tables)
+- Scrolling aviation tape gauge component
+- `drawCallout()` canvas label system with fan-out overlap avoidance
+- `stackPanels()` dynamic responsive layout pattern
+- Fidelity indicator pattern (transparent model confidence reporting)
+
+---
+
 *Revision History:*
 
 | Version | Date | Notes |
@@ -92,6 +114,7 @@ General relativity predicts that clocks at different gravitational potentials an
 | 1.0 | 2026-04-03 | Initial creation as "Orion Lab". Two-body physics (Earth + Moon). ~20-hour perilune timing error. |
 | 2.0 | 2026-04-05 | Renamed to "Artemis II". Added Sun gravity, post-flyby TCM, NASA calibration (perilune -2m, splashdown -10m). Peirastes instrument aesthetic. Responsive layout. |
 | 2.1 | 2026-04-06 | Scrolling aviation tape gauges, LUNAR distance gauge, fidelity indicators, hover tooltips, callout labels, NASA livestream, info panel rewrite, crew tribute. Shipped on Flight Day 6 (lunar flyby day). ~100 commits. |
+| 2.1.1 | 2026-04-07 | Documentation (POD v2, PSR, social posts). Project disposition: maintenance mode. |
 
 ---
 
