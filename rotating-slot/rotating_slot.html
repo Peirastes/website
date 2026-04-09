@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotating Slot Simulator — Peirastes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+  :root {
+    --chassis-bg: #1a1d21;
+    --chassis-border: #2a2d32;
+    --crt-bg: #0a0e14;
+    --crt-border: #333842;
+    --amber: #f0a030;
+    --amber-dim: #a06820;
+    --amber-glow: rgba(240,160,48,0.25);
+    --cyan: #40e8d0;
+    --cyan-dim: #208878;
+    --cyan-glow: rgba(64,232,208,0.2);
+    --teal: #20b0a0;
+    --red: #e05040;
+    --green: #40d870;
+    --text-primary: #d0d4da;
+    --text-dim: #707880;
+    --rivet: radial-gradient(circle at 35% 35%, #555, #222 60%, #111);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Share Tech Mono', monospace;
+    background: var(--chassis-bg); color: var(--text-primary);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 4px);
+  }
+
+  .header {
+    background: linear-gradient(180deg, #222630, #1a1d24);
+    border-bottom: 2px solid var(--chassis-border);
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .header-title { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; color:var(--amber); text-shadow:0 0 12px var(--amber-glow); letter-spacing:2px; }
+  .header-sub { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+  .rivet { width:10px; height:10px; border-radius:50%; background:var(--rivet); box-shadow:inset 0 1px 2px rgba(255,255,255,0.15),0 1px 3px rgba(0,0,0,0.6); flex-shrink:0; }
+  .header-rivets { display:flex; gap:14px; align-items:center; }
+
+  .main-grid { display:grid; grid-template-columns:320px 1fr; gap:0; min-height:calc(100vh - 52px); }
+
+  .control-panel { background:linear-gradient(180deg,#181b20,#14161c); border-right:2px solid var(--chassis-border); padding:16px; overflow-y:auto; }
+  .panel-section { margin-bottom:16px; }
+  .section-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; padding-bottom:4px; border-bottom:1px solid var(--amber-dim); }
+  .input-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+  .input-group { display:flex; flex-direction:column; min-width:0; }
+  .input-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:3px; }
+  .input-label .katex { font-size:11px; color:inherit; }
+  .result-card-title .katex { font-size:11px; color:inherit; }
+  .crt-label .katex { font-size:11px; color:inherit; }
+  .input-field { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--cyan); font-family:'Share Tech Mono',monospace; font-size:12px; padding:5px 6px; text-align:right; outline:none; transition:border-color 0.2s,box-shadow 0.2s; width:100%; min-width:0; box-sizing:border-box; }
+  .input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); }
+
+  .slider-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .slider-row input[type="range"] { flex:1; -webkit-appearance:none; appearance:none; height:4px; background:var(--crt-border); border-radius:2px; outline:none; }
+  .slider-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--amber); box-shadow:0 0 6px var(--amber-glow); cursor:pointer; }
+  .slider-value { font-size:13px; color:var(--cyan); min-width:42px; text-align:right; }
+
+  .preset-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .preset-btn { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; transition:all 0.2s; letter-spacing:0.5px; }
+  .preset-btn:hover { border-color:var(--amber); color:var(--amber); box-shadow:0 0 6px var(--amber-glow); }
+  .preset-btn.active { border-color:var(--amber); color:var(--chassis-bg); background:var(--amber); }
+
+  .run-btn { width:100%; padding:10px; font-family:'Orbitron',monospace; font-size:13px; font-weight:700; letter-spacing:3px; color:var(--chassis-bg); background:linear-gradient(180deg,var(--amber),#d08020); border:none; border-radius:4px; cursor:pointer; box-shadow:0 2px 10px var(--amber-glow); transition:all 0.2s; }
+  .run-btn:hover { background:linear-gradient(180deg,#ffb840,var(--amber)); box-shadow:0 4px 16px var(--amber-glow); transform:translateY(-1px); }
+  .run-btn:active { transform:translateY(0); }
+
+  .display-area { padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; }
+  .crt-screen { background:var(--crt-bg); border:2px solid var(--crt-border); border-radius:6px; padding:16px; position:relative; box-shadow:inset 0 0 30px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.4); }
+  .crt-screen::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(255,255,255,0.015) 1px,rgba(255,255,255,0.015) 2px); pointer-events:none; border-radius:4px; }
+  .crt-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber-dim); letter-spacing:2px; margin-bottom:12px; text-transform:uppercase; }
+
+  .viz-wrapper { display:flex; gap:0; width:100%; }
+  .viz-pane { flex:1; position:relative; min-width:0; }
+  .viz-pane canvas { width:100%; height:100%; display:block; }
+  .viz-pane.single { aspect-ratio:4/3; }
+  .viz-pane.split  { aspect-ratio:1/1; }
+  .frame-label { position:absolute; top:6px; left:50%; transform:translateX(-50%); font-family:'Orbitron',monospace; font-size:9px; font-weight:700; letter-spacing:2px; padding:2px 10px; border-radius:3px; z-index:2; pointer-events:none; }
+  .frame-label.inertial { color:rgba(200,200,255,0.7); background:rgba(10,14,20,0.6); border:1px solid rgba(200,200,255,0.2); }
+  .frame-label.rotating { color:rgba(255,180,80,0.7); background:rgba(10,14,20,0.6); border:1px solid rgba(255,180,80,0.2); }
+  .viz-divider { width:2px; background:var(--chassis-border); flex-shrink:0; }
+
+  .view-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .view-btn { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; transition:all 0.2s; letter-spacing:0.5px; }
+  .view-btn:hover { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); }
+  .view-btn.active { border-color:var(--cyan); color:var(--chassis-bg); background:var(--cyan); }
+
+  .anim-controls { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .anim-btn { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:18px; width:36px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; line-height:1; }
+  .anim-btn:hover { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); }
+  .anim-btn:disabled { opacity:0.3; cursor:default; }
+  .anim-btn:disabled:hover { border-color:var(--crt-border); color:var(--text-dim); box-shadow:none; }
+  .speed-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-left:8px; }
+  .speed-slider { width:100px; -webkit-appearance:none; appearance:none; height:4px; background:var(--crt-border); border-radius:2px; outline:none; }
+  .speed-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:12px; height:12px; border-radius:50%; background:var(--cyan); box-shadow:0 0 4px var(--cyan-glow); cursor:pointer; }
+  .phase-indicator { font-size:10px; color:var(--amber); letter-spacing:1px; margin-left:auto; padding:2px 8px; border:1px solid var(--amber-dim); border-radius:3px; }
+
+  .scrub-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+  .scrub-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; flex-shrink:0; }
+  .scrub-slider { flex:1; -webkit-appearance:none; appearance:none; height:6px; background:var(--crt-border); border-radius:3px; outline:none; cursor:pointer; }
+  .scrub-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); cursor:grab; }
+  .scrub-slider::-webkit-slider-thumb:active { cursor:grabbing; background:#60ffd0; }
+  .scrub-slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); cursor:grab; border:none; }
+  .scrub-slider::-moz-range-thumb:active { cursor:grabbing; background:#60ffd0; }
+
+  .toggle-group { display:flex; align-items:center; gap:6px; margin-left:8px; }
+  .toggle-label { font-size:9px; color:var(--text-dim); letter-spacing:0.5px; }
+  .toggle-switch { position:relative; width:32px; height:16px; cursor:pointer; flex-shrink:0; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-track { position:absolute; top:0; left:0; right:0; bottom:0; background:var(--crt-border); border-radius:8px; transition:background 0.2s; }
+  .toggle-switch input:checked + .toggle-track { background:var(--amber-dim); }
+  .toggle-knob { position:absolute; top:2px; left:2px; width:12px; height:12px; background:var(--text-dim); border-radius:50%; transition:transform 0.2s, background 0.2s; }
+  .toggle-switch input:checked ~ .toggle-knob { transform:translateX(16px); background:var(--amber); }
+
+  .results-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .result-card { background:rgba(10,14,20,0.6); border:1px solid var(--crt-border); border-radius:4px; padding:10px; }
+  .result-card-title { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:6px; }
+  .result-value { font-size:14px; color:var(--cyan); text-shadow:0 0 6px var(--cyan-glow); }
+  .result-value.amber { color:var(--amber); text-shadow:0 0 6px var(--amber-glow); }
+  .result-value.green { color:var(--green); text-shadow:0 0 6px rgba(64,216,112,0.25); }
+
+  .eq-panel { margin-top:12px; padding:10px; background:rgba(10,14,20,0.4); border:1px solid var(--crt-border); border-radius:4px; }
+  .eq-panel .katex { font-size:13px; }
+  .eq-row { margin-bottom:6px; color:var(--text-dim); font-size:12px; }
+
+  @media (max-width:900px) { .main-grid { grid-template-columns:1fr; } .control-panel { border-right:none; border-bottom:2px solid var(--chassis-border); } .results-grid { grid-template-columns:1fr 1fr; } }
+  @media (max-width:550px) { .results-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<a href="https://peirastes.com" title="Back to Peirastes" style="position:fixed;top:8px;left:12px;font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:rgba(224,224,224,0.3);text-decoration:none;letter-spacing:0.08em;z-index:9999;transition:color 0.2s ease" onmouseover="this.style.color='#e07050'" onmouseout="this.style.color='rgba(224,224,224,0.3)'">Peirastes</a>
+
+<div class="header">
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+  <div style="text-align:center;">
+    <div class="header-title">ROTATING SLOT SIMULATOR</div>
+    <div class="header-sub">ROTATING FRAMES &middot; POLAR KINEMATICS &middot; HIBBELER 16-129</div>
+  </div>
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+</div>
+
+<div class="main-grid">
+  <div class="control-panel">
+    <div class="panel-section">
+      <div class="section-label">Presets</div>
+      <div class="preset-row">
+        <button class="preset-btn active" onclick="loadPreset(0)">16-129 (DEFAULT)</button>
+        <button class="preset-btn" onclick="loadPreset(1)">SLOW SPIN</button>
+        <button class="preset-btn" onclick="loadPreset(2)">FAST EJECT</button>
+        <button class="preset-btn" onclick="loadPreset(3)">TANK TURRET</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Reference Frame</div>
+      <div class="view-row">
+        <button class="view-btn active" onclick="setViewMode('inertial')">INERTIAL</button>
+        <button class="view-btn" onclick="setViewMode('rotating')">ROTATING</button>
+        <button class="view-btn" onclick="setViewMode('split')">SIDE BY SIDE</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Disk Parameters</div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="R \text{ (m)}"></div><input type="number" id="inp-R" class="input-field" value="0.8" step="0.1" min="0.1"></div>
+        <div class="input-group"><div class="input-label" data-katex="\alpha \text{ (rad/s}^2\text{)}"></div><input type="number" id="inp-alpha" class="input-field" value="3" step="0.5"></div>
+      </div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="\omega_0 \text{ (rad/s)}"></div><input type="number" id="inp-omega0" class="input-field" value="" step="0.5"></div>
+        <div class="input-group"><div class="input-label" data-katex="\theta_0 \text{ (rad)}"></div><input type="number" id="inp-theta0" class="input-field" value="0" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Translation of Disk Center</div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="v_{O,x} \text{ (m/s)}"></div><input type="number" id="inp-vOx" class="input-field" value="0" step="0.1"></div>
+        <div class="input-group"><div class="input-label" data-katex="v_{O,y} \text{ (m/s)}"></div><input type="number" id="inp-vOy" class="input-field" value="0" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Radial Kinematics at t = T</div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="r(T) \text{ (m)}"></div><input type="number" id="inp-rT" class="input-field" value="0.4" step="0.05" min="0"></div>
+        <div class="input-group"><div class="input-label" data-katex="\dot{r}(T) \text{ (m/s)}"></div><input type="number" id="inp-rdotT" class="input-field" value="0.6" step="0.1" min="0"></div>
+      </div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="\ddot{r}(T) \text{ (m/s}^2\text{)}"></div><input type="number" id="inp-rddotT" class="input-field" value="0.15" step="0.05"></div>
+        <div class="input-group"><div class="input-label" data-katex="\omega(T) \text{ (rad/s)}"></div><input type="number" id="inp-omegaT" class="input-field" value="6" step="0.5" min="0"></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Display Options</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <label class="toggle-group" style="margin-left:0;">
+          <span class="toggle-switch"><input type="checkbox" id="tog-vel" checked><span class="toggle-track"></span><span class="toggle-knob"></span></span>
+          <span class="toggle-label">VELOCITY VECTOR</span>
+        </label>
+        <label class="toggle-group" style="margin-left:0;">
+          <span class="toggle-switch"><input type="checkbox" id="tog-acc" checked><span class="toggle-track"></span><span class="toggle-knob"></span></span>
+          <span class="toggle-label">ACCELERATION VECTOR</span>
+        </label>
+        <label class="toggle-group" style="margin-left:0;">
+          <span class="toggle-switch"><input type="checkbox" id="tog-components"><span class="toggle-track"></span><span class="toggle-knob"></span></span>
+          <span class="toggle-label">POLAR COMPONENTS</span>
+        </label>
+        <label class="toggle-group" style="margin-left:0;">
+          <span class="toggle-switch"><input type="checkbox" id="tog-rotax" checked><span class="toggle-track"></span><span class="toggle-knob"></span></span>
+          <span class="toggle-label">ROTATING AXES</span>
+        </label>
+        <label class="toggle-group" style="margin-left:0;">
+          <span class="toggle-switch"><input type="checkbox" id="tog-trail" checked><span class="toggle-track"></span><span class="toggle-knob"></span></span>
+          <span class="toggle-label">TRAIL</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <button class="run-btn" onclick="startSimulation()">&#9654; SIMULATE</button>
+    </div>
+  </div>
+
+  <div class="display-area">
+    <div class="crt-screen">
+      <div class="crt-label">Disk &amp; Slot Visualization</div>
+      <div class="viz-wrapper" id="viz-wrapper">
+        <div class="viz-pane single" id="pane-left">
+          <div class="frame-label inertial" id="label-left">INERTIAL FRAME</div>
+          <canvas id="canvas-left"></canvas>
+        </div>
+        <div class="viz-divider" id="viz-divider" style="display:none;"></div>
+        <div class="viz-pane split" id="pane-right" style="display:none;">
+          <div class="frame-label rotating" id="label-right">ROTATING FRAME</div>
+          <canvas id="canvas-right"></canvas>
+        </div>
+      </div>
+      <div class="anim-controls">
+        <button class="anim-btn" id="btn-reset" title="Reset" onclick="resetSim()">&#8634;</button>
+        <button class="anim-btn" id="btn-pause" title="Pause / Play" disabled onclick="togglePause()">&#9208;</button>
+        <span class="speed-label">SPEED</span>
+        <input type="range" class="speed-slider" id="speed-slider" min="0.1" max="3" step="0.1" value="1.0"
+               oninput="animSpeed=parseFloat(this.value);document.getElementById('speed-val').textContent=this.value+'x';">
+        <span class="slider-value" id="speed-val" style="min-width:32px;">1x</span>
+        <label class="toggle-group"><span class="toggle-label">LOOP</span><span class="toggle-switch"><input type="checkbox" id="tog-loop"><span class="toggle-track"></span><span class="toggle-knob"></span></span></label>
+        <span class="phase-indicator" id="phase-ind">IDLE</span>
+      </div>
+      <div class="scrub-row">
+        <span class="scrub-label">t</span>
+        <input type="range" class="scrub-slider" id="scrub-slider" min="0" max="1" step="0.001" value="0"
+               oninput="scrubTo(parseFloat(this.value))">
+        <span class="slider-value" id="scrub-val" style="min-width:52px;">0.000 s</span>
+      </div>
+    </div>
+
+    <div class="crt-screen">
+      <div class="crt-label">Live Readout</div>
+      <div class="results-grid">
+        <div class="result-card"><div class="result-card-title" data-katex="t \text{ (s)}"></div><div class="result-value" id="rd-t">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="r \text{ (m)}"></div><div class="result-value" id="rd-r">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="\dot{r} \text{ (m/s)}"></div><div class="result-value" id="rd-rdot">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="\omega \text{ (rad/s)}"></div><div class="result-value" id="rd-omega">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="\theta \text{ (rad)}"></div><div class="result-value" id="rd-theta">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="|\vec{v}| \text{ (m/s)}"></div><div class="result-value green" id="rd-vmag">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="|\vec{a}| \text{ (m/s}^2\text{)}"></div><div class="result-value amber" id="rd-amag">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="\ddot{r} \text{ (m/s}^2\text{)}"></div><div class="result-value" id="rd-rddot">0.000</div></div>
+      </div>
+      <div class="results-grid" style="margin-top:10px;">
+        <div class="result-card"><div class="result-card-title" data-katex="v_r \text{ (m/s)}"></div><div class="result-value" id="rd-vr">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="v_\theta \text{ (m/s)}"></div><div class="result-value" id="rd-vth">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="a_r \text{ (m/s}^2\text{)}"></div><div class="result-value" id="rd-ar">0.000</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="a_\theta \text{ (m/s}^2\text{)}"></div><div class="result-value" id="rd-ath">0.000</div></div>
+      </div>
+    </div>
+
+    <div class="crt-screen">
+      <div class="crt-label">Kinematic Equations</div>
+      <div class="eq-panel">
+        <div class="eq-row" data-katex="\vec{v}_B = \vec{v}_O + \dot{r}\,\hat{e}_r + r\omega\,\hat{e}_\theta"></div>
+        <div class="eq-row" data-katex="\vec{a}_B = \vec{a}_O + (\ddot{r} - r\omega^2)\,\hat{e}_r + (2\dot{r}\omega + r\alpha)\,\hat{e}_\theta"></div>
+        <div class="eq-row" data-katex="\text{Inertial: includes } \vec{v}_O \quad|\quad \text{Rotating: only sees } \dot{r}\,\hat{e}_r"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PHYSICS ENGINE — Rotating Slot Kinematics
+// ============================================================
+
+let SIM = null;
+let animFrame = null;
+let animSpeed = 1.0;
+let animPaused = false;
+let scrubbing = false;
+let viewMode = 'inertial'; // 'inertial' | 'rotating' | 'split'
+
+function buildModel() {
+  const R      = +document.getElementById('inp-R').value;
+  const alpha  = +document.getElementById('inp-alpha').value;
+  const theta0 = +document.getElementById('inp-theta0').value;
+  const rT     = +document.getElementById('inp-rT').value;
+  const rdotT  = +document.getElementById('inp-rdotT').value;
+  const rddotT = +document.getElementById('inp-rddotT').value;
+  const omegaT = +document.getElementById('inp-omegaT').value;
+  const vOx    = +document.getElementById('inp-vOx').value;
+  const vOy    = +document.getElementById('inp-vOy').value;
+
+  let omega0_input = document.getElementById('inp-omega0').value;
+  let omega0, T;
+
+  if (omega0_input === '' || omega0_input === undefined) {
+    const A_q = rddotT;
+    const B_q = -4 * rdotT;
+    const C_q = 6 * rT;
+    const disc = B_q * B_q - 4 * A_q * C_q;
+    if (disc < 0 || A_q === 0) {
+      T = (A_q === 0) ? (6 * rT) / (4 * rdotT) : 1.0;
+    } else {
+      const T1 = (-B_q - Math.sqrt(disc)) / (2 * A_q);
+      const T2 = (-B_q + Math.sqrt(disc)) / (2 * A_q);
+      T = (T1 > 0.001) ? T1 : T2;
+      if (T <= 0) T = Math.max(T1, T2);
+    }
+    omega0 = omegaT - alpha * T;
+  } else {
+    omega0 = +omega0_input;
+    T = (alpha !== 0) ? (omegaT - omega0) / alpha : 1.0;
+  }
+
+  const a_coef = (rddotT * T - rdotT) / (3 * T * T);
+  const b_coef = (-rddotT + 2 * rdotT / T) / 2;
+
+  const disc2 = rdotT * rdotT + 2 * rddotT * (R - rT);
+  let dt_rim;
+  if (rddotT === 0) { dt_rim = (R - rT) / rdotT; }
+  else if (disc2 >= 0) { dt_rim = (-rdotT + Math.sqrt(disc2)) / rddotT; }
+  else { dt_rim = 2.0; }
+  const t_max = T + dt_rim;
+
+  return { R, alpha, omega0, theta0, T, a_coef, b_coef, rT, rdotT, rddotT, omegaT, t_max, vOx, vOy };
+}
+
+function thetaOf(m, t) { return m.theta0 + m.omega0 * t + 0.5 * m.alpha * t * t; }
+function omegaOf(m, t) { return m.omega0 + m.alpha * t; }
+
+function rOf(m, t) {
+  if (t <= m.T) return m.a_coef * t * t * t + m.b_coef * t * t;
+  const tau = t - m.T;
+  return m.rT + m.rdotT * tau + 0.5 * m.rddotT * tau * tau;
+}
+function rdotOf(m, t) {
+  if (t <= m.T) return 3 * m.a_coef * t * t + 2 * m.b_coef * t;
+  return m.rdotT + m.rddotT * (t - m.T);
+}
+function rddotOf(m, t) {
+  if (t <= m.T) return 6 * m.a_coef * t + 2 * m.b_coef;
+  return m.rddotT;
+}
+
+function polarState(m, t) {
+  const r = rOf(m, t), rd = rdotOf(m, t), rdd = rddotOf(m, t);
+  const th = thetaOf(m, t), om = omegaOf(m, t);
+  const er = [Math.cos(th), Math.sin(th)];
+  const eth = [-Math.sin(th), Math.cos(th)];
+  const vr = rd, vth = r * om;
+  const vx = vr * er[0] + vth * eth[0] + m.vOx;
+  const vy = vr * er[1] + vth * eth[1] + m.vOy;
+  const ar = rdd - r * om * om;
+  const ath = 2 * rd * om + r * m.alpha;
+  const ax = ar * er[0] + ath * eth[0]; // a_O = 0 (constant velocity)
+  const ay = ar * er[1] + ath * eth[1];
+  // Also store velocity relative to disk center (no v_O) for rotating frame
+  const vx_rel = vr * er[0] + vth * eth[0];
+  const vy_rel = vr * er[1] + vth * eth[1];
+  return { r, rd, rdd, th, om, er, eth, vr, vth, vx, vy, vx_rel, vy_rel, ar, ath, ax, ay };
+}
+
+// ============================================================
+// PRESETS
+// ============================================================
+const presets = [
+  { R:0.8, alpha:3, omega0:'', theta0:0, rT:0.4, rdotT:0.6, rddotT:0.15, omegaT:6, vOx:0, vOy:0 },
+  { R:1.0, alpha:1, omega0:'', theta0:0, rT:0.3, rdotT:0.4, rddotT:0.20, omegaT:3, vOx:0, vOy:0 },
+  { R:0.6, alpha:5, omega0:'', theta0:0, rT:0.2, rdotT:1.0, rddotT:0.50, omegaT:8, vOx:0, vOy:0 },
+  { R:0.8, alpha:2, omega0:'', theta0:0, rT:0.3, rdotT:0.5, rddotT:0.20, omegaT:5, vOx:0.6, vOy:0.15 },
+];
+
+function loadPreset(idx) {
+  const p = presets[idx];
+  document.getElementById('inp-R').value = p.R;
+  document.getElementById('inp-alpha').value = p.alpha;
+  document.getElementById('inp-omega0').value = p.omega0;
+  document.getElementById('inp-theta0').value = p.theta0;
+  document.getElementById('inp-rT').value = p.rT;
+  document.getElementById('inp-rdotT').value = p.rdotT;
+  document.getElementById('inp-rddotT').value = p.rddotT;
+  document.getElementById('inp-omegaT').value = p.omegaT;
+  document.getElementById('inp-vOx').value = p.vOx;
+  document.getElementById('inp-vOy').value = p.vOy;
+  document.querySelectorAll('.preset-btn').forEach((b,i) => b.classList.toggle('active', i === idx));
+  // Auto-switch to split view for tank turret
+  if (idx === 3 && viewMode === 'inertial') setViewMode('split');
+}
+
+// ============================================================
+// VIEW MODE
+// ============================================================
+function setViewMode(mode) {
+  viewMode = mode;
+  const left  = document.getElementById('pane-left');
+  const right = document.getElementById('pane-right');
+  const div   = document.getElementById('viz-divider');
+  const lbl   = document.getElementById('label-left');
+
+  document.querySelectorAll('.view-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase().replace(/ /g,'') === mode.replace(/ /g,''));
+  });
+
+  if (mode === 'inertial') {
+    left.style.display = ''; left.className = 'viz-pane single';
+    right.style.display = 'none'; div.style.display = 'none';
+    lbl.textContent = 'INERTIAL FRAME'; lbl.className = 'frame-label inertial';
+  } else if (mode === 'rotating') {
+    left.style.display = ''; left.className = 'viz-pane single';
+    right.style.display = 'none'; div.style.display = 'none';
+    lbl.textContent = 'ROTATING FRAME'; lbl.className = 'frame-label rotating';
+  } else { // split
+    left.style.display = ''; left.className = 'viz-pane split';
+    right.style.display = ''; right.className = 'viz-pane split';
+    div.style.display = '';
+    lbl.textContent = 'INERTIAL FRAME'; lbl.className = 'frame-label inertial';
+  }
+  renderAll();
+}
+
+// ============================================================
+// CANVAS RENDERING
+// ============================================================
+function sizeCanvas(canvasEl) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvasEl.parentElement.getBoundingClientRect();
+  canvasEl.width = rect.width * dpr;
+  canvasEl.height = rect.height * dpr;
+  canvasEl.style.width = rect.width + 'px';
+  canvasEl.style.height = rect.height + 'px';
+  return { W: canvasEl.width, H: canvasEl.height, dpr };
+}
+
+// Unified scene renderer. frameMode: 'inertial' or 'rotating'
+function drawScene(canvasEl, model, t, trailInertial, trailRotating, frameMode) {
+  const { W, H, dpr } = sizeCanvas(canvasEl);
+  const ctx = canvasEl.getContext('2d');
+  const cx = W / 2, cy = H / 2;
+
+  const st = polarState(model, t);
+  const th = st.th;
+
+  // Scale: map disk radius to ~30% of smallest dim (slightly smaller to leave room for translation)
+  const scale = Math.min(W, H) * 0.30 / model.R;
+  const R_px = model.R * scale;
+  const slotW = Math.max(8 * dpr, R_px * 0.06);
+
+  // Disk center offset in inertial frame (constant velocity translation)
+  const Ox = model.vOx * t;
+  const Oy = model.vOy * t;
+
+  // Camera center: where on the canvas do we place the disk center?
+  // Inertial: disk moves, camera tracks disk but origin marker shows displacement
+  // Rotating: disk center is at canvas center, frame rotates with disk
+  const diskCx = cx; // always center the disk for both modes
+  const diskCy = cy;
+
+  // Clear
+  ctx.fillStyle = '#0a0e14';
+  ctx.fillRect(0, 0, W, H);
+
+  if (frameMode === 'inertial') {
+    // ---- INERTIAL FRAME ----
+    // Grid is world-fixed but camera tracks disk. Offset = disk displacement.
+    const gridOffX = -Ox * scale;
+    const gridOffY = Oy * scale;
+    const gridStep = 40 * dpr;
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    const gx0 = ((cx + gridOffX) % gridStep + gridStep) % gridStep;
+    const gy0 = ((cy + gridOffY) % gridStep + gridStep) % gridStep;
+    for (let gx = gx0; gx < W; gx += gridStep) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (let gy = gy0; gy < H; gy += gridStep) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+    // Inertial origin marker (drifts as disk moves)
+    const originX = cx + gridOffX;
+    const originY = cy + gridOffY;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1 * dpr;
+    // Only draw axes if visible
+    if (originX > -50 && originX < W + 50) {
+      ctx.beginPath(); ctx.moveTo(originX, 0); ctx.lineTo(originX, H); ctx.stroke();
+    }
+    if (originY > -50 && originY < H + 50) {
+      ctx.beginPath(); ctx.moveTo(0, originY); ctx.lineTo(W, originY); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = (11 * dpr) + 'px Share Tech Mono';
+    if (originX > 0 && originX < W && originY > 0 && originY < H) {
+      ctx.fillText('O', originX + 6 * dpr, originY - 6 * dpr);
+    }
+    // X/Y labels at edges
+    ctx.fillText('x', W - 14 * dpr, originY - 6 * dpr);
+    ctx.fillText('y', originX + 6 * dpr, 14 * dpr);
+
+    // Disk (rotated)
+    drawDisk(ctx, diskCx, diskCy, R_px, slotW, th, dpr);
+
+    // Trail (inertial frame: world coords, shifted by camera tracking)
+    if (document.getElementById('tog-trail').checked && trailInertial.length > 1) {
+      for (let i = 1; i < trailInertial.length; i++) {
+        const a = 0.05 + 0.6 * (i / trailInertial.length);
+        ctx.strokeStyle = `rgba(255,220,80,${a})`;
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        // Trail is in world coords; camera offset = Ox,Oy at current time
+        ctx.moveTo(cx + (trailInertial[i-1][0] - Ox) * scale, cy - (trailInertial[i-1][1] - Oy) * scale);
+        ctx.lineTo(cx + (trailInertial[i][0] - Ox) * scale, cy - (trailInertial[i][1] - Oy) * scale);
+        ctx.stroke();
+      }
+    }
+
+    // Rotating axes
+    if (document.getElementById('tog-rotax').checked) {
+      drawRotatingAxes(ctx, diskCx, diskCy, R_px, st, dpr);
+    }
+
+    // Radius reference
+    const r_px = st.r * scale;
+    drawRadiusRef(ctx, diskCx, diskCy, r_px, st, dpr);
+
+    // Ball
+    const bx = diskCx + r_px * st.er[0];
+    const by = diskCy - r_px * st.er[1];
+    drawBall(ctx, bx, by, dpr);
+
+    // Vectors (using FULL inertial velocity including v_O)
+    drawVectors(ctx, bx, by, st, scale, dpr, true);
+
+    // Pivot
+    drawPivot(ctx, diskCx, diskCy, dpr);
+
+    // Theta arc
+    drawThetaArc(ctx, diskCx, diskCy, R_px, st, dpr);
+
+    // Target marker
+    drawTargetMarker(ctx, diskCx, diskCy, model, t, scale, dpr);
+
+  } else {
+    // ---- ROTATING FRAME (turret gunner) ----
+    // Camera is locked to the disk. Disk appears stationary (slot points right).
+    // Background grid counter-rotates and translates.
+
+    // Grid: world grid seen from rotating frame
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(th); // counter-rotate (un-rotate the world)
+    ctx.translate(Ox * scale, -Oy * scale); // un-translate
+    ctx.translate(-cx, -cy);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    const gridStep = 40 * dpr;
+    for (let gx = 0; gx < W + gridStep; gx += gridStep) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (let gy = 0; gy < H + gridStep; gy += gridStep) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+    // Inertial axes in world space (appear to rotate)
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.beginPath(); ctx.moveTo(-W, cy); ctx.lineTo(2*W, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, -H); ctx.lineTo(cx, 2*H); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = (11 * dpr) + 'px Share Tech Mono';
+    ctx.fillText('x', 2*W - 14*dpr, cy - 6*dpr);
+    ctx.fillText('y', cx + 6*dpr, -H + 14*dpr);
+    ctx.restore();
+
+    // Disk drawn stationary (no rotation, slot along +x)
+    drawDisk(ctx, cx, cy, R_px, slotW, 0, dpr);
+
+    // Trail (rotating frame: body coords)
+    if (document.getElementById('tog-trail').checked && trailRotating.length > 1) {
+      for (let i = 1; i < trailRotating.length; i++) {
+        const a = 0.05 + 0.6 * (i / trailRotating.length);
+        ctx.strokeStyle = `rgba(255,220,80,${a})`;
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(cx + trailRotating[i-1][0] * scale, cy - trailRotating[i-1][1] * scale);
+        ctx.lineTo(cx + trailRotating[i][0] * scale, cy - trailRotating[i][1] * scale);
+        ctx.stroke();
+      }
+    }
+
+    // Rotating axes (fixed in this view — always along +x, +y)
+    if (document.getElementById('tog-rotax').checked) {
+      const axLen = R_px * 1.2;
+      ctx.strokeStyle = 'rgba(224,80,80,0.6)';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.setLineDash([6*dpr, 4*dpr]);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + axLen, cy); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(224,80,80,0.8)';
+      ctx.font = 'bold ' + (11*dpr) + 'px Share Tech Mono';
+      ctx.fillText('\u00EA\u1D63', cx + axLen + 8*dpr, cy + 4*dpr);
+
+      ctx.strokeStyle = 'rgba(80,200,80,0.6)';
+      ctx.setLineDash([6*dpr, 4*dpr]);
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - axLen); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(80,200,80,0.8)';
+      ctx.fillText('\u00EA\u03B8', cx - 4*dpr, cy - axLen - 6*dpr);
+    }
+
+    // Ball position in body frame: (r, 0) since slot is along +x
+    const r_px = st.r * scale;
+    const bx = cx + r_px;
+    const by = cy;
+
+    // Radius reference
+    ctx.strokeStyle = 'rgba(64,180,220,0.3)';
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.setLineDash([4*dpr, 4*dpr]);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.setLineDash([]);
+
+    drawBall(ctx, bx, by, dpr);
+
+    // Vectors in rotating frame: only relative velocity/accel (what the gunner sees)
+    // v_rel in body frame: (rdot, 0) along e_r which is now +x
+    const stRot = {
+      er: [1, 0], eth: [0, 1],
+      vr: st.vr, vth: st.vth,
+      vx: st.vr, vy: st.vth, // in body coords: v_r along x, v_th along y
+      ar: st.ar, ath: st.ath,
+      ax: st.ar, ay: st.ath,
+    };
+    drawVectors(ctx, bx, by, stRot, scale, dpr, false);
+
+    // Pivot
+    drawPivot(ctx, cx, cy, dpr);
+  }
+}
+
+// ============================================================
+// SHARED DRAWING HELPERS
+// ============================================================
+function drawDisk(ctx, cx, cy, R_px, slotW, angle, dpr) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(-angle);
+
+  const diskGrad = ctx.createRadialGradient(0, 0, R_px * 0.05, 0, 0, R_px);
+  diskGrad.addColorStop(0, '#5a6068'); diskGrad.addColorStop(0.3, '#484e54');
+  diskGrad.addColorStop(0.7, '#3a4044'); diskGrad.addColorStop(0.9, '#2e3438');
+  diskGrad.addColorStop(1, '#222628');
+  ctx.fillStyle = diskGrad;
+  ctx.beginPath(); ctx.arc(0, 0, R_px, 0, 2 * Math.PI); ctx.fill();
+
+  ctx.strokeStyle = 'rgba(140,155,170,0.5)'; ctx.lineWidth = 3 * dpr;
+  ctx.beginPath(); ctx.arc(0, 0, R_px - 1.5*dpr, 0, 2*Math.PI); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 2 * dpr;
+  ctx.beginPath(); ctx.arc(0, 0, R_px + 1*dpr, 0, 2*Math.PI); ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(180,190,200,0.35)'; ctx.lineWidth = 1.5 * dpr;
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6;
+    const inner = (i % 3 === 0) ? R_px * 0.85 : R_px * 0.90;
+    ctx.beginPath();
+    ctx.moveTo(inner * Math.cos(a), inner * Math.sin(a));
+    ctx.lineTo((R_px - 4*dpr) * Math.cos(a), (R_px - 4*dpr) * Math.sin(a));
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(100,110,120,0.15)'; ctx.lineWidth = 1 * dpr;
+  ctx.beginPath(); ctx.arc(0, 0, R_px * 0.5, 0, 2*Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, R_px * 0.25, 0, 2*Math.PI); ctx.stroke();
+
+  ctx.fillStyle = '#0c1018';
+  ctx.fillRect(-2*dpr, -slotW, R_px + 4*dpr, slotW * 2);
+  const ss = ctx.createLinearGradient(0, -slotW, 0, -slotW + 6*dpr);
+  ss.addColorStop(0, 'rgba(0,0,0,0.6)'); ss.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ss; ctx.fillRect(-2*dpr, -slotW, R_px + 4*dpr, 6*dpr);
+  const sh = ctx.createLinearGradient(0, slotW - 4*dpr, 0, slotW);
+  sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(255,255,255,0.06)');
+  ctx.fillStyle = sh; ctx.fillRect(-2*dpr, slotW - 4*dpr, R_px + 4*dpr, 4*dpr);
+  ctx.strokeStyle = 'rgba(140,150,160,0.45)'; ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath(); ctx.moveTo(0, -slotW); ctx.lineTo(R_px + 2*dpr, -slotW); ctx.stroke();
+  ctx.strokeStyle = 'rgba(90,95,100,0.5)';
+  ctx.beginPath(); ctx.moveTo(0, slotW); ctx.lineTo(R_px + 2*dpr, slotW); ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawBall(ctx, bx, by, dpr) {
+  const ballR = 8 * dpr;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.arc(bx + 2*dpr, by + 2*dpr, ballR, 0, 2*Math.PI); ctx.fill();
+  const g = ctx.createRadialGradient(bx - ballR*0.35, by - ballR*0.35, ballR*0.08, bx, by, ballR);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.15, '#ffffcc');
+  g.addColorStop(0.5, '#ffcc33'); g.addColorStop(0.85, '#cc8800'); g.addColorStop(1, '#885500');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(bx, by, ballR, 0, 2*Math.PI); ctx.fill();
+  ctx.strokeStyle = 'rgba(180,140,40,0.6)'; ctx.lineWidth = 1.5 * dpr; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.beginPath(); ctx.arc(bx - ballR*0.25, by - ballR*0.25, ballR*0.18, 0, 2*Math.PI); ctx.fill();
+}
+
+function drawPivot(ctx, cx, cy, dpr) {
+  const pr = 5 * dpr;
+  const g = ctx.createRadialGradient(cx - pr*0.3, cy - pr*0.3, pr*0.1, cx, cy, pr);
+  g.addColorStop(0, '#aaa'); g.addColorStop(0.6, '#777'); g.addColorStop(1, '#444');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, pr, 0, 2*Math.PI); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1 * dpr; ctx.stroke();
+}
+
+function drawRotatingAxes(ctx, cx, cy, R_px, st, dpr) {
+  const axLen = R_px * 1.2;
+  ctx.strokeStyle = 'rgba(224,80,80,0.6)'; ctx.lineWidth = 1.5 * dpr;
+  ctx.setLineDash([6*dpr, 4*dpr]);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + axLen*st.er[0], cy - axLen*st.er[1]); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(224,80,80,0.8)';
+  ctx.font = 'bold ' + (11*dpr) + 'px Share Tech Mono';
+  ctx.fillText('\u00EA\u1D63', cx + (axLen + 8*dpr)*st.er[0], cy - (axLen + 8*dpr)*st.er[1]);
+
+  ctx.strokeStyle = 'rgba(80,200,80,0.6)';
+  ctx.setLineDash([6*dpr, 4*dpr]);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + axLen*st.eth[0], cy - axLen*st.eth[1]); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(80,200,80,0.8)';
+  ctx.fillText('\u00EA\u03B8', cx + (axLen + 8*dpr)*st.eth[0], cy - (axLen + 8*dpr)*st.eth[1]);
+}
+
+function drawRadiusRef(ctx, cx, cy, r_px, st, dpr) {
+  ctx.strokeStyle = 'rgba(64,180,220,0.3)'; ctx.lineWidth = 1.5 * dpr;
+  ctx.setLineDash([4*dpr, 4*dpr]);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + r_px*st.er[0], cy - r_px*st.er[1]); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawVectors(ctx, bx, by, st, scale, dpr, includeVO) {
+  const showComp = document.getElementById('tog-components').checked;
+  const vScale = scale * 0.12;
+  const aScale = scale * 0.008;
+
+  if (document.getElementById('tog-vel').checked) {
+    const vmag = Math.sqrt(st.vx*st.vx + st.vy*st.vy);
+    if (vmag > 0.001) {
+      if (showComp) {
+        drawArrow(ctx, bx, by, bx + st.vr*vScale*st.er[0], by - st.vr*vScale*st.er[1], 'rgba(0,200,180,0.45)', 2*dpr, dpr);
+        const vex = bx + st.vr*vScale*st.er[0], vey = by - st.vr*vScale*st.er[1];
+        drawArrow(ctx, vex, vey, vex + st.vth*vScale*st.eth[0], vey - st.vth*vScale*st.eth[1], 'rgba(0,200,180,0.45)', 2*dpr, dpr);
+      }
+      drawArrow(ctx, bx, by, bx + st.vx*vScale, by - st.vy*vScale, '#00ddcc', 2.5*dpr, dpr);
+    }
+  }
+  if (document.getElementById('tog-acc').checked) {
+    const amag = Math.sqrt(st.ax*st.ax + st.ay*st.ay);
+    if (amag > 0.001) {
+      if (showComp) {
+        drawArrow(ctx, bx, by, bx + st.ar*aScale*st.er[0], by - st.ar*aScale*st.er[1], 'rgba(240,160,48,0.45)', 2*dpr, dpr);
+        const aex = bx + st.ar*aScale*st.er[0], aey = by - st.ar*aScale*st.er[1];
+        drawArrow(ctx, aex, aey, aex + st.ath*aScale*st.eth[0], aey - st.ath*aScale*st.eth[1], 'rgba(240,160,48,0.45)', 2*dpr, dpr);
+      }
+      drawArrow(ctx, bx, by, bx + st.ax*aScale, by - st.ay*aScale, '#f0a030', 2.5*dpr, dpr);
+    }
+  }
+}
+
+function drawThetaArc(ctx, cx, cy, R_px, st, dpr) {
+  if (st.th < 0.05) return;
+  const arcR = R_px + 18*dpr;
+  ctx.strokeStyle = 'rgba(200,200,255,0.35)'; ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath(); ctx.arc(cx, cy, arcR, -st.th, 0); ctx.stroke();
+  const tipA = -st.th;
+  const tx = cx + arcR*Math.cos(tipA), ty = cy + arcR*Math.sin(tipA);
+  ctx.fillStyle = 'rgba(200,200,255,0.5)';
+  ctx.beginPath(); ctx.moveTo(tx, ty);
+  ctx.lineTo(tx + 6*dpr*Math.cos(tipA - 0.8), ty + 6*dpr*Math.sin(tipA - 0.8));
+  ctx.lineTo(tx + 6*dpr*Math.cos(tipA + 0.5), ty + 6*dpr*Math.sin(tipA + 0.5));
+  ctx.closePath(); ctx.fill();
+  const mid = -st.th / 2;
+  ctx.fillStyle = 'rgba(200,200,255,0.6)';
+  ctx.font = (11*dpr) + 'px Share Tech Mono';
+  ctx.fillText('\u03B8', cx + (arcR + 10*dpr)*Math.cos(mid), cy + (arcR + 10*dpr)*Math.sin(mid));
+}
+
+function drawTargetMarker(ctx, cx, cy, model, t, scale, dpr) {
+  if (t < model.T - 0.01 || t > model.T + 0.15) return;
+  const s = polarState(model, model.T);
+  const rp = s.r * scale;
+  ctx.strokeStyle = 'rgba(64,232,208,0.7)'; ctx.lineWidth = 2 * dpr;
+  ctx.setLineDash([3*dpr, 3*dpr]);
+  ctx.beginPath(); ctx.arc(cx + rp*s.er[0], cy - rp*s.er[1], 14*dpr, 0, 2*Math.PI); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(64,232,208,0.5)';
+  ctx.font = (9*dpr) + 'px Share Tech Mono';
+  ctx.fillText('t=T', cx + rp*s.er[0] + 14*dpr, cy - rp*s.er[1] - 8*dpr);
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, lineW, dpr) {
+  const dx = x2-x1, dy = y2-y1, len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 2) return;
+  const hl = Math.min(10*dpr, len*0.3), ang = Math.atan2(dy, dx);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lineW;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - hl*Math.cos(ang-0.35), y2 - hl*Math.sin(ang-0.35));
+  ctx.lineTo(x2 - hl*Math.cos(ang+0.35), y2 - hl*Math.sin(ang+0.35));
+  ctx.closePath(); ctx.fill();
+}
+
+// ============================================================
+// READOUT UPDATE
+// ============================================================
+function updateReadouts(model, t) {
+  const st = polarState(model, t);
+  const vmag = Math.sqrt(st.vx*st.vx + st.vy*st.vy);
+  const amag = Math.sqrt(st.ax*st.ax + st.ay*st.ay);
+  document.getElementById('rd-t').textContent     = t.toFixed(3);
+  document.getElementById('rd-r').textContent     = st.r.toFixed(3);
+  document.getElementById('rd-rdot').textContent  = st.rd.toFixed(3);
+  document.getElementById('rd-rddot').textContent = st.rdd.toFixed(3);
+  document.getElementById('rd-omega').textContent = st.om.toFixed(3);
+  document.getElementById('rd-theta').textContent = st.th.toFixed(3);
+  document.getElementById('rd-vmag').textContent  = vmag.toFixed(3);
+  document.getElementById('rd-amag').textContent  = amag.toFixed(3);
+  document.getElementById('rd-vr').textContent    = st.vr.toFixed(3);
+  document.getElementById('rd-vth').textContent   = st.vth.toFixed(3);
+  document.getElementById('rd-ar').textContent    = st.ar.toFixed(3);
+  document.getElementById('rd-ath').textContent   = st.ath.toFixed(3);
+}
+
+// ============================================================
+// RENDER DISPATCH
+// ============================================================
+function renderAll() {
+  const model = SIM ? SIM.model : null;
+  const t = SIM ? SIM.simTime : 0;
+  const trailI = SIM ? SIM.trailInertial : [];
+  const trailR = SIM ? SIM.trailRotating : [];
+  const m = model || (function() { try { return buildModel(); } catch(e) { return null; } })();
+  if (!m) return;
+
+  const canvasL = document.getElementById('canvas-left');
+  const canvasR = document.getElementById('canvas-right');
+
+  if (viewMode === 'inertial') {
+    drawScene(canvasL, m, t, trailI, trailR, 'inertial');
+  } else if (viewMode === 'rotating') {
+    drawScene(canvasL, m, t, trailI, trailR, 'rotating');
+  } else {
+    drawScene(canvasL, m, t, trailI, trailR, 'inertial');
+    drawScene(canvasR, m, t, trailI, trailR, 'rotating');
+  }
+  updateReadouts(m, t);
+}
+
+// ============================================================
+// TRAIL HELPERS
+// ============================================================
+function buildTrails(model, t) {
+  const trailI = [], trailR = [];
+  const steps = Math.min(Math.floor(t / 0.02), 800);
+  for (let i = 0; i <= steps; i++) {
+    const tt = (t * i) / Math.max(steps, 1);
+    const s = polarState(model, tt);
+    const Ox = model.vOx * tt, Oy = model.vOy * tt;
+    trailI.push([Ox + s.r * s.er[0], Oy + s.r * s.er[1]]);
+    trailR.push([s.r, 0]); // body frame: always along slot axis
+  }
+  return { trailI, trailR };
+}
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+function scrubTo(val) {
+  const model = SIM ? SIM.model : null;
+  const m = model || (function() { try { return buildModel(); } catch(e) { return null; } })();
+  if (!m) return;
+
+  if (SIM) {
+    if (!animPaused) {
+      animPaused = true;
+      document.getElementById('btn-pause').innerHTML = '&#9654;';
+      setPhase('PAUSED');
+    }
+    SIM.simTime = val;
+    SIM.lastTS = null;
+    const trails = buildTrails(m, val);
+    SIM.trailInertial = trails.trailI;
+    SIM.trailRotating = trails.trailR;
+    SIM.lastTrailTime = val;
+  }
+
+  // Configure scrub slider range if needed
+  const scrub = document.getElementById('scrub-slider');
+  if (+scrub.max <= 1) {
+    scrub.max = m.t_max;
+    scrub.step = (m.t_max / 1000).toFixed(6);
+  }
+
+  // Build trails and render for non-SIM case
+  if (!SIM) {
+    const trails = buildTrails(m, val);
+    const canvasL = document.getElementById('canvas-left');
+    const canvasR = document.getElementById('canvas-right');
+    if (viewMode === 'inertial') drawScene(canvasL, m, val, trails.trailI, trails.trailR, 'inertial');
+    else if (viewMode === 'rotating') drawScene(canvasL, m, val, trails.trailI, trails.trailR, 'rotating');
+    else { drawScene(canvasL, m, val, trails.trailI, trails.trailR, 'inertial'); drawScene(canvasR, m, val, trails.trailI, trails.trailR, 'rotating'); }
+    updateReadouts(m, val);
+  } else {
+    renderAll();
+  }
+  document.getElementById('scrub-val').textContent = val.toFixed(3) + ' s';
+}
+
+function startSimulation() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  const model = buildModel();
+  SIM = { model, simTime: 0, trailInertial: [], trailRotating: [], lastTrailTime: -1, lastTS: null };
+
+  const scrub = document.getElementById('scrub-slider');
+  scrub.max = model.t_max;
+  scrub.step = (model.t_max / 1000).toFixed(6);
+  scrub.value = 0;
+  scrubbing = false;
+
+  animPaused = false;
+  document.getElementById('btn-pause').disabled = false;
+  document.getElementById('btn-pause').innerHTML = '&#9208;';
+  setPhase('RUNNING');
+  animFrame = requestAnimationFrame(tick);
+}
+
+function tick(ts) {
+  if (!SIM) return;
+  if (SIM.lastTS === null) SIM.lastTS = ts;
+  const dtReal = Math.min((ts - SIM.lastTS) / 1000, 0.05);
+  SIM.lastTS = ts;
+
+  if (!animPaused) {
+    SIM.simTime += dtReal * animSpeed;
+    if (SIM.simTime > SIM.model.t_max) {
+      if (document.getElementById('tog-loop').checked) {
+        SIM.simTime = 0;
+        SIM.trailInertial = [];
+        SIM.trailRotating = [];
+      } else {
+        SIM.simTime = SIM.model.t_max;
+        setPhase('DONE');
+        renderAll();
+        if (!scrubbing) {
+          document.getElementById('scrub-slider').value = SIM.simTime;
+          document.getElementById('scrub-val').textContent = SIM.simTime.toFixed(3) + ' s';
+        }
+        return;
+      }
+    }
+    if (SIM.simTime < 0) SIM.simTime = 0;
+
+    // Trail sampling
+    if (SIM.simTime - SIM.lastTrailTime > 0.02) {
+      const st = polarState(SIM.model, SIM.simTime);
+      const Ox = SIM.model.vOx * SIM.simTime;
+      const Oy = SIM.model.vOy * SIM.simTime;
+      SIM.trailInertial.push([Ox + st.r * st.er[0], Oy + st.r * st.er[1]]);
+      SIM.trailRotating.push([st.r, 0]);
+      if (SIM.trailInertial.length > 800) { SIM.trailInertial.shift(); SIM.trailRotating.shift(); }
+      SIM.lastTrailTime = SIM.simTime;
+    }
+  }
+
+  renderAll();
+  if (!scrubbing) {
+    document.getElementById('scrub-slider').value = SIM.simTime;
+    document.getElementById('scrub-val').textContent = SIM.simTime.toFixed(3) + ' s';
+  }
+  animFrame = requestAnimationFrame(tick);
+}
+
+function togglePause() {
+  animPaused = !animPaused;
+  const btn = document.getElementById('btn-pause');
+  btn.innerHTML = animPaused ? '&#9654;' : '&#9208;';
+  if (!animPaused && SIM) {
+    SIM.lastTS = null;
+    setPhase('RUNNING');
+    if (animFrame) cancelAnimationFrame(animFrame);
+    animFrame = requestAnimationFrame(tick);
+  } else {
+    setPhase('PAUSED');
+  }
+}
+
+function resetSim() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  SIM = null;
+  animPaused = false;
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('btn-pause').innerHTML = '&#9208;';
+  setPhase('IDLE');
+  const scrub = document.getElementById('scrub-slider');
+  scrub.value = 0;
+  document.getElementById('scrub-val').textContent = '0.000 s';
+  try {
+    const model = buildModel();
+    scrub.max = model.t_max;
+    scrub.step = (model.t_max / 1000).toFixed(6);
+  } catch(e) {}
+  renderAll();
+}
+
+function setPhase(label) {
+  document.getElementById('phase-ind').textContent = label;
+}
+
+// ============================================================
+// KATEX RENDERING
+// ============================================================
+function renderAllKatex() {
+  document.querySelectorAll('[data-katex]').forEach(el => {
+    if (el.dataset.katexRendered) return;
+    try { katex.render(el.dataset.katex, el, { throwOnError: false, displayMode: false }); el.dataset.katexRendered = '1'; } catch(e) {}
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  const tryRender = () => {
+    if (typeof katex !== 'undefined') {
+      renderAllKatex();
+      renderAll();
+    } else { setTimeout(tryRender, 100); }
+  };
+  tryRender();
+
+  const scrub = document.getElementById('scrub-slider');
+  scrub.addEventListener('mousedown',  () => { scrubbing = true; });
+  scrub.addEventListener('touchstart', () => { scrubbing = true; }, { passive: true });
+  window.addEventListener('mouseup',   () => { scrubbing = false; });
+  window.addEventListener('touchend',  () => { scrubbing = false; });
+  try {
+    const model = buildModel();
+    scrub.max = model.t_max;
+    scrub.step = (model.t_max / 1000).toFixed(6);
+  } catch(e) {}
+
+  // Set view button active states correctly
+  document.querySelectorAll('.view-btn').forEach(b => {
+    const txt = b.textContent.toLowerCase().replace(/ /g, '');
+    b.classList.toggle('active', txt === 'inertial');
+  });
+});
+
+window.addEventListener('resize', () => { renderAll(); });
+</script>
+</body>
+</html>
