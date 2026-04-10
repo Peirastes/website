@@ -845,26 +845,19 @@ function buildTrajectory() {
       TRAJ.push({ t, x: state.x, y: state.y, vx: state.vx, vy: state.vy });
     }
 
-    // Return trajectory corrections: real NASA burn data replaces synthetic TCM
-    // RTC-1: Flight Day 7, Apr 7 8:03 PM EDT, 15s, 0.488 m/s (1.6 ft/s) radial-in
-    // RTC-2: Flight Day 9, Apr 9 10:53 PM EDT, ~15s, 0.396 m/s (1.3 ft/s) radial-in
-    const T_RTC1 = 523668; // MET seconds (Apr 8 00:03 UTC)
-    const T_RTC2 = 706668; // MET seconds (Apr 10 02:53 UTC)
-    if (!tcmDone && t >= T_RTC1) {
-      let dv1 = 0.000488; // km/s (0.488 m/s) radial-in toward Earth
+    // Post-flyby TCM: synthetic radial-in correction calibrated to NASA splashdown.
+    // This is a model compensation for the 2D physics — the real RTC burns are
+    // much smaller (RTC-1: 0.49 m/s, RTC-2: 0.40 m/s) but the simplified 2D
+    // trajectory cannot reproduce the real return geometry without this calibration.
+    // The 3D framework version (Mission Tracker, in development) eliminates the
+    // need for this synthetic burn by modeling out-of-plane motion correctly.
+    if (!tcmDone && TRAJ_META.periluneTime && t >= TRAJ_META.periluneTime + 3600) {
+      let tcmDv = 0.160; // km/s radial-in toward Earth (synthetic, calibrated)
       let rr = Math.sqrt(state.x**2 + state.y**2);
-      state.vx -= dv1 * state.x / rr;
-      state.vy -= dv1 * state.y / rr;
+      state.vx -= tcmDv * state.x / rr;
+      state.vy -= tcmDv * state.y / rr;
       tcmDone = true;
-      TRAJ_META.rtc1 = { t, dv: (dv1*1000).toFixed(1) + ' m/s' };
-    }
-    if (tcmDone && !TRAJ_META.rtc2Done && t >= T_RTC2) {
-      let dv2 = 0.000396; // km/s (0.396 m/s) radial-in toward Earth
-      let rr = Math.sqrt(state.x**2 + state.y**2);
-      state.vx -= dv2 * state.x / rr;
-      state.vy -= dv2 * state.y / rr;
-      TRAJ_META.rtc2Done = true;
-      TRAJ_META.rtc2 = { t, dv: (dv2*1000).toFixed(1) + ' m/s' };
+      TRAJ_META.tcm = { t, dv: tcmDv };
     }
 
     // Track perilune + splashdown
@@ -912,33 +905,30 @@ function populateMissionInfo() {
     MISSION_EVENTS.push({ t: m.tli.t, label: 'Translunar injection', detail: '&Delta;v ' + m.tli.dv + ' km/s prograde', fidelity: 45, brief: true,
       tooltip: 'TLI detected dynamically at HEO perigee return. NASA confirmed TLI at T+25h 14m (April 2, 23:49 UTC); our model fires ~2.4 hours later because the HEO orbit period differs slightly under three-body perturbation. The \u0394v of ' + m.tli.dv + ' km/s is calibrated (NASA stated 0.388 km/s — difference due to our two-burn architecture absorbing more energy into the HEO burn).' });
   }
-  // OTC burns — OTC-1 and OTC-2 canceled, OTC-3 executed on FD5
+  // OTC burns — OTC-1 and OTC-2 canceled by mission control, OTC-3 executed on FD5
   if (m.tli) {
     let otc1T = m.tli.t + 1.5 * 86400;  // Flight Day 3
     let otc2T = m.tli.t + 2.5 * 86400;  // Flight Day 4
     let otc3T = 361668;                   // Flight Day 5: Apr 6 03:03 UTC (MET)
     MISSION_EVENTS.push({ t: otc1T, label: 'OTC-1', detail: 'Canceled — trajectory nominal', fidelity: 100, brief: true, canceled: true,
-      tooltip: 'Outbound Trajectory Correction burn 1 was scheduled for Flight Day 3 but canceled by mission control. The TLI burn placed Orion on such a precise trajectory that no immediate correction was needed.' });
+      tooltip: 'Outbound Trajectory Correction burn 1 was scheduled for Flight Day 3 but canceled by mission control. The TLI burn placed Orion on a near-nominal trajectory.' });
     MISSION_EVENTS.push({ t: otc2T, label: 'OTC-2', detail: 'Canceled — trajectory nominal', fidelity: 100, brief: true, canceled: true,
       tooltip: 'Outbound Trajectory Correction burn 2, also canceled. Orion\'s trajectory remained on track through Flight Day 4.' });
     MISSION_EVENTS.push({ t: otc3T, label: 'OTC-3', detail: '17.5s burn — trajectory refined', fidelity: 95, brief: true,
-      tooltip: 'The third outbound correction opportunity was the only one executed. Flight Day 5 at 11:03 PM EDT (Apr 5), 17.5 seconds. Delta-v not yet published by NASA. This small correction refined Orion\'s approach to the Moon. The first two OTC opportunities were canceled because the trajectory was already near-nominal. Source: NASA mission control.' });
+      tooltip: 'The third outbound correction opportunity was the only one executed. Flight Day 5 at 11:03 PM EDT (Apr 5), 17.5 seconds. This small correction refined Orion\'s approach to the Moon. Source: NASA mission control.' });
   }
   if (m.periluneTime) {
     MISSION_EVENTS.push({ t: m.periluneTime, label: 'Lunar flyby', detail: m.periluneAlt.toLocaleString() + ' km perilune', fidelity: 99,
       tooltip: 'Closest approach emerges from RK4 integration under Earth + Moon + Sun gravity — not hardcoded. NASA projects perilune at April 6, 23:02 UTC (T+5d 0h 27m); our model lands within 3 minutes of that. Perilune altitude (' + m.periluneAlt.toLocaleString() + ' km) differs from NASA\'s 6,546 km because the start-angle calibration trades altitude precision for timing accuracy.' });
-    if (m.rtc1) {
-      MISSION_EVENTS.push({ t: 523668, label: 'RTC-1', detail: '15s burn, &Delta;v 0.49 m/s radial', fidelity: 95, brief: true,
-        tooltip: 'First Return Trajectory Correction — real NASA data. Flight Day 7, Apr 7 at 8:03 PM EDT. Orion\'s thrusters fired for 15 seconds, producing 1.6 ft/s (0.49 m/s) of delta-v directed radially toward Earth. Source: NASA mission control.' });
+    // Real RTC burns from NASA mission data (annotated for reference)
+    MISSION_EVENTS.push({ t: 523668, label: 'RTC-1', detail: '15s burn, &Delta;v 0.49 m/s (NASA)', fidelity: 95, brief: true,
+      tooltip: 'First Return Trajectory Correction — real NASA data. Flight Day 7, Apr 7 at 8:03 PM EDT. 15 seconds, 1.6 ft/s (0.49 m/s) radial. Note: this 2D model uses a synthetic 0.16 km/s calibration burn rather than the real RTCs because the simplified physics cannot reproduce the real return trajectory without compensation. The 3D framework version (in development) eliminates this compromise.' });
+    MISSION_EVENTS.push({ t: 706668, label: 'RTC-2', detail: '~15s burn, &Delta;v 0.40 m/s (NASA)', fidelity: 95, brief: true,
+      tooltip: 'Second Return Trajectory Correction — real NASA data. Flight Day 9, Apr 9 at 10:53 PM EDT. Approximately 15 seconds, 1.3 ft/s (0.40 m/s) radial. See RTC-1 tooltip for note about 2D model compensation.' });
+    if (m.tcm) {
+      MISSION_EVENTS.push({ t: m.tcm.t, label: 'Model TCM', detail: '&Delta;v ' + m.tcm.dv + ' km/s synthetic', fidelity: 40, brief: true,
+        tooltip: 'Synthetic trajectory correction burn fired 1 hour after perilune, directed radially toward Earth. This is a model compensation calibrated to make the 2D simulation match NASA\'s splashdown time, NOT a real burn. The real return corrections (RTC-1 and RTC-2 above) totaled less than 1 m/s — the 0.16 km/s figure here exists only because 2D physics cannot reproduce the 3D return geometry without artificial correction. The 3D Mission Tracker framework removes this hack.' });
     }
-    if (m.rtc2) {
-      MISSION_EVENTS.push({ t: 706668, label: 'RTC-2', detail: '~15s burn, &Delta;v 0.40 m/s radial', fidelity: 95, brief: true,
-        tooltip: 'Second Return Trajectory Correction — real NASA data. Flight Day 9, Apr 9 at 10:53 PM EDT. Approximately 15 seconds, producing 1.3 ft/s (0.40 m/s). Further refined Orion\'s entry corridor for splashdown. Source: NASA mission control.' });
-    }
-    // RTC-3: expected on Flight Day 10, before entry — data pending
-    let rtc3T = 782268 - 7200; // estimate: ~2h before entry interface
-    MISSION_EVENTS.push({ t: rtc3T, label: 'RTC-3', detail: 'Pending — final return correction', fidelity: 50, brief: true,
-      tooltip: 'Third and final return trajectory correction, expected on Flight Day 10 before entry interface. Timing and delta-v not yet published. This will be Orion\'s last opportunity to refine the entry corridor before atmospheric re-entry.' });
   }
   if (m.splashdown) {
     let smSep = m.splashdown.t - 1800;
@@ -946,12 +936,12 @@ function populateMissionInfo() {
     let chutes = m.splashdown.t - 300;
     MISSION_EVENTS.push({ t: smSep, label: 'CM/SM separation', detail: 'Service module jettisoned', fidelity: 70, brief: true,
       tooltip: 'Derived as splashdown minus 30 minutes. Real SM separation depends on entry corridor geometry and is controlled by mission ops — our timing is approximate but structurally correct.' });
-    MISSION_EVENTS.push({ t: ei, label: 'Entry interface', detail: '~122 km, 10.66 km/s (34,965 ft/s)', fidelity: 90, brief: true,
-      tooltip: 'Entry interface at ~400,000 ft (122 km). NASA confirms re-entry speed of 34,965 ft/s (10.66 km/s / 23,840 mph). Six-minute communications blackout begins at 7:53 PM EDT as plasma forms around the capsule. Peak heating ~2,760°C. Crew experiences up to 3.9 G.' });
+    MISSION_EVENTS.push({ t: ei, label: 'Entry interface', detail: '~122 km, 10.66 km/s (NASA)', fidelity: 70, brief: true,
+      tooltip: 'Entry interface at ~400,000 ft (122 km). NASA confirms re-entry speed of 34,965 ft/s (10.66 km/s / 23,840 mph). Six-minute communications blackout begins as plasma forms around the capsule. Peak heating ~2,760°C. Crew experiences up to 3.9 G. Our model timing for entry is derived as splashdown minus 15 minutes.' });
     MISSION_EVENTS.push({ t: chutes, label: 'Chute deploy', detail: 'Drogues → mains, 520 km/h → 30 km/h', fidelity: 70, brief: true,
       tooltip: 'Drogue chutes deploy at ~7.6 km, mains at ~3 km. Derived as splashdown minus 5 minutes. Deceleration profile from 520 km/h to 30 km/h is based on Orion\'s parachute system specs.' });
     MISSION_EVENTS.push({ t: m.splashdown.t, label: 'Splashdown', detail: 'Pacific Ocean, off San Diego', fidelity: 95,
-      tooltip: 'Detected when the spacecraft re-enters within 50 km of Earth\'s surface after perilune. NASA confirms splashdown at approximately 8:07 PM EDT April 10 (00:07 UTC April 11) off the coast of San Diego. Return trajectory corrections are now based on real NASA mission data (RTC-1 and RTC-2) rather than synthetic calibration burns.' });
+      tooltip: 'Detected when the spacecraft re-enters within 50 km of Earth\'s surface after perilune. NASA confirms splashdown at approximately 8:07 PM EDT April 10 (00:07 UTC April 11) off the coast of San Diego. Our model lands within ~10 minutes of that target — the close match is by design, since the synthetic post-flyby TCM is calibrated to hit this time. The 3D Mission Tracker framework will reproduce this naturally without calibration.' });
   }
 
   let info = '<span>RK4</span> dt=' + TRAJ_DT + 's · ' + m.points + ' pts · Earth+Moon+Sun';
