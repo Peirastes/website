@@ -257,6 +257,22 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
           <input type="checkbox" id="showEnv" checked onchange="uD()" />
           <span>Diffraction envelope</span>
         </div>
+        <div class="input-group" style="margin-top:8px">
+          <div class="input-label">Light source</div>
+          <select id="sourceD" class="input-field" onchange="uD()">
+            <option value="mono" selected>Monochromatic (laser)</option>
+            <option value="white">White (continuous)</option>
+            <option value="hydrogen">Hydrogen (H)</option>
+            <option value="helium">Helium (He)</option>
+            <option value="mercury">Mercury (Hg)</option>
+            <option value="sodium">Sodium (Na)</option>
+            <option value="neon">Neon (Ne)</option>
+          </select>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="stretchD" checked onchange="uD()" />
+          <span>Stretch dim lines</span>
+        </div>
       </div>
     </div>
 
@@ -279,6 +295,22 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
           <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL2" oninput="uSS()" />
           <span class="sv" id="sL2-v">1.00 m</span>
         </div>
+        <div class="input-group" style="margin-top:8px">
+          <div class="input-label">Light source</div>
+          <select id="sourceSS" class="input-field" onchange="uSS()">
+            <option value="mono" selected>Monochromatic (laser)</option>
+            <option value="white">White (continuous)</option>
+            <option value="hydrogen">Hydrogen (H)</option>
+            <option value="helium">Helium (He)</option>
+            <option value="mercury">Mercury (Hg)</option>
+            <option value="sodium">Sodium (Na)</option>
+            <option value="neon">Neon (Ne)</option>
+          </select>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="stretchSS" checked onchange="uSS()" />
+          <span>Stretch dim lines</span>
+        </div>
       </div>
     </div>
 
@@ -297,8 +329,13 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
           <span class="sv" id="gd-v">10 &micro;m</span>
         </div>
         <div class="slider-row">
+          <span class="sl">Slit width a</span>
+          <input type="range" min="0.5" max="20" value="2" step="0.1" id="ga" oninput="uG()" />
+          <span class="sv" id="ga-v">2.0 &micro;m</span>
+        </div>
+        <div class="slider-row">
           <span class="sl">Num slits N</span>
-          <input type="range" min="2" max="20" value="8" step="1" id="gN" oninput="uG()" />
+          <input type="range" min="1" max="200" value="8" step="1" id="gN" oninput="uG()" />
           <span class="sv" id="gN-v">8</span>
         </div>
         <div class="slider-row">
@@ -309,6 +346,22 @@ select.input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cy
         <div class="chk-row">
           <input type="checkbox" id="showGrEnv" checked onchange="uG()" />
           <span>Diffraction envelope</span>
+        </div>
+        <div class="input-group" style="margin-top:8px">
+          <div class="input-label">Light source</div>
+          <select id="sourceG" class="input-field" onchange="uG()">
+            <option value="mono" selected>Monochromatic (laser)</option>
+            <option value="white">White (continuous)</option>
+            <option value="hydrogen">Hydrogen (H)</option>
+            <option value="helium">Helium (He)</option>
+            <option value="mercury">Mercury (Hg)</option>
+            <option value="sodium">Sodium (Na)</option>
+            <option value="neon">Neon (Ne)</option>
+          </select>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="stretchG" checked onchange="uG()" />
+          <span>Stretch dim lines</span>
         </div>
       </div>
     </div>
@@ -441,6 +494,60 @@ function cauchy(nb,wl){
 
 /* ── Readout card HTML ── */
 function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div class="card-v" style="color:'+c+'">'+v+'</div></div>';}
+
+/* ── Light sources: continuous + gas-discharge emission lines (λ in nm, I = relative) ── */
+var SOURCES = {
+  white:    {label:'white', lines:(function(){var a=[]; for(var w=380;w<=700;w+=20) a.push({w:w,I:1}); return a;})()},
+  hydrogen: {label:'H',     lines:[{w:656.3,I:100},{w:486.1,I:35},{w:434.0,I:18},{w:410.2,I:9}]},
+  helium:   {label:'He',    lines:[{w:667.8,I:10},{w:587.6,I:80},{w:501.6,I:30},{w:492.2,I:20},{w:471.3,I:25},{w:447.1,I:60},{w:438.8,I:15},{w:402.6,I:8}]},
+  mercury:  {label:'Hg',    lines:[{w:579.0,I:45},{w:577.0,I:40},{w:546.1,I:100},{w:435.8,I:60},{w:404.7,I:40}]},
+  sodium:   {label:'Na',    lines:[{w:589.0,I:100},{w:589.6,I:50}]},
+  neon:     {label:'Ne',    lines:[{w:640.2,I:100},{w:621.7,I:50},{w:614.3,I:60},{w:585.2,I:30},{w:576.4,I:15},{w:540.1,I:20},{w:659.9,I:10}]}
+};
+function getSource(key){ return (key && key !== 'mono') ? SOURCES[key] : null; }
+function sourceTubeColor(source){
+  if(!source) return null;
+  var r=0, g=0, b=0;
+  for(var i=0; i<source.lines.length; i++){
+    var ln=source.lines[i], rgbS=wlRGB(ln.w);
+    r+=rgbS[0]*ln.I; g+=rgbS[1]*ln.I; b+=rgbS[2]*ln.I;
+  }
+  var mx=Math.max(r,g,b)||1;
+  return [Math.round(r/mx*255), Math.round(g/mx*255), Math.round(b/mx*255)];
+}
+function computePattern(patternH, viewHalf, L, intensityFn, source, wl){
+  var intensities=[], rgbBuf=source?[]:null;
+  var maxI=0, maxChannel=0;
+  var lam=wl*1e-9;
+  for(var py=0; py<patternH; py++){
+    var yPos=(py/patternH-0.5)*2*viewHalf;
+    var sinTh=yPos/Math.sqrt(yPos*yPos+L*L);
+    if(source){
+      var rA=0, gA=0, bA=0, Itot=0;
+      for(var wi=0; wi<source.lines.length; wi++){
+        var ln=source.lines[wi];
+        var Is=intensityFn(sinTh, ln.w*1e-9) * ln.I;
+        var rgbS=wlRGB(ln.w);
+        rA+=rgbS[0]*Is; gA+=rgbS[1]*Is; bA+=rgbS[2]*Is; Itot+=Is;
+      }
+      intensities.push(Itot); rgbBuf.push([rA,gA,bA]);
+      if(rA>maxChannel) maxChannel=rA;
+      if(gA>maxChannel) maxChannel=gA;
+      if(bA>maxChannel) maxChannel=bA;
+      if(Itot>maxI) maxI=Itot;
+    } else {
+      var I=intensityFn(sinTh, lam);
+      intensities.push(I);
+      if(I>maxI) maxI=I;
+    }
+  }
+  return {intensities:intensities, rgbBuf:rgbBuf, maxI:maxI, maxChannel:maxChannel};
+}
+function screenRGB(pat, py, rgb){
+  if(!pat.rgbBuf) return rgb;
+  var rb=pat.rgbBuf[py], mc=pat.maxChannel||1;
+  return [Math.round(rb[0]/mc*255), Math.round(rb[1]/mc*255), Math.round(rb[2]/mc*255)];
+}
 
 /* ── Tab switching ── */
 var currentTab = 'sn';
@@ -797,6 +904,9 @@ function uD(){
   var a   = parseFloat(document.getElementById('sw3').value);         // µm
   var L   = parseFloat(document.getElementById('sL').value);          // m
   var showEnv = document.getElementById('showEnv').checked;
+  var source = getSource(document.getElementById('sourceD').value);
+  var tubeRGB = sourceTubeColor(source);
+  var stretch = document.getElementById('stretchD').checked;
   document.getElementById('wl3-v').textContent=Math.round(wl)+' nm';
   document.getElementById('sd-v').textContent=d+' \u00B5m';
   document.getElementById('sw3-v').textContent=a+' \u00B5m';
@@ -805,8 +915,8 @@ function uD(){
   // Ensure a <= d
   if(a > d) { a = d; document.getElementById('sw3').value = a; document.getElementById('sw3-v').textContent=a+' \u00B5m'; }
 
-  var col = wC(wl);
-  var rgb = wlRGB(wl);
+  var col = tubeRGB ? 'rgb('+tubeRGB[0]+','+tubeRGB[1]+','+tubeRGB[2]+')' : wC(wl);
+  var rgb = tubeRGB || wlRGB(wl);
 
   var cv = document.getElementById('dc');
   var W = BASE_W_DS, H = BASE_H_DS;
@@ -849,21 +959,21 @@ function uD(){
 
   // === Incoming plane wave (left of barrier) ===
   ctx.save();
-  ctx.globalAlpha = 0.12;
+  ctx.globalAlpha = 0.25;
   ctx.strokeStyle = col;
   ctx.lineWidth = 1;
-  var waveSpacing = Math.max(12, Math.min(30, wl / 15));
+  var waveSpacing = Math.max(12, Math.min(60, wl / 13));
   for(var wx = srcX; wx < slitX - 4; wx += waveSpacing){
     ctx.beginPath(); ctx.moveTo(wx, 30); ctx.lineTo(wx, H-30); ctx.stroke();
   }
   ctx.restore();
 
   // Incoming beam
-  beam(ctx, srcX, midY, slitX-3, midY, col, 2, 0.3);
+  beam(ctx, srcX, midY, slitX-3, midY, col, 2, 0.5);
 
   // === Circular wavefronts from each slit ===
   ctx.save();
-  ctx.globalAlpha = 0.06;
+  ctx.globalAlpha = 0.18;
   ctx.strokeStyle = col;
   ctx.lineWidth = 1;
   var maxR = screenX - slitX;
@@ -883,17 +993,12 @@ function uD(){
   var yTop = 30;
   var viewHalf = 0.3;  // half-height of detection screen (meters)
 
-  var intensities = [];
-  var maxI = 0;
-  for(var py = 0; py < patternH; py++){
-    var yPos = (py / patternH - 0.5) * 2 * viewHalf;
-    var sinTh = yPos / Math.sqrt(yPos*yPos + L*L);
-    var beta  = Math.PI * dM * sinTh / lam;   // interference phase
-    var alpha = Math.PI * aM * sinTh / lam;   // diffraction phase
-    var I = Math.cos(beta) * Math.cos(beta) * sinc(alpha) * sinc(alpha);
-    intensities.push(I);
-    if(I > maxI) maxI = I;
-  }
+  var pat = computePattern(patternH, viewHalf, L, function(sinTh, lamS){
+    var beta  = Math.PI * dM * sinTh / lamS;
+    var alpha = Math.PI * aM * sinTh / lamS;
+    return Math.cos(beta)*Math.cos(beta) * sinc(alpha)*sinc(alpha);
+  }, source, wl);
+  var intensities = pat.intensities, maxI = pat.maxI;
 
   // Draw intensity as a filled curve and as glow on the screen
   var graphX = screenX + 8;
@@ -902,8 +1007,10 @@ function uD(){
   // Screen glow (vertical strip colored by intensity)
   for(var py = 0; py < patternH; py++){
     var I = intensities[py] / maxI;
+    var aI = stretch ? Math.pow(I, 0.3) : I;
     var y = yTop + py;
-    ctx.fillStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(I*0.7)+')';
+    var pr = screenRGB(pat, py, rgb);
+    ctx.fillStyle = 'rgba('+pr[0]+','+pr[1]+','+pr[2]+','+(aI*0.7)+')';
     ctx.fillRect(screenX - 4, y, 8, 1);
   }
 
@@ -973,7 +1080,7 @@ function uD(){
 
   // === Readout cards ===
   var h = '';
-  h += cd('\u03BB', Math.round(wl)+' nm', col);
+  h += cd('\u03BB', source ? source.label : Math.round(wl)+' nm', col);
   h += cd('d', d+' \u00B5m', col);
   h += cd('a', a+' \u00B5m', col);
   h += cd('L', L.toFixed(2)+' m', col);
@@ -993,12 +1100,15 @@ function uSS(){
   var wl = parseFloat(document.getElementById('wl4').value);
   var a  = parseFloat(document.getElementById('sa').value);
   var L  = parseFloat(document.getElementById('sL2').value);
+  var source = getSource(document.getElementById('sourceSS').value);
+  var tubeRGB = sourceTubeColor(source);
+  var stretch = document.getElementById('stretchSS').checked;
   document.getElementById('wl4-v').textContent=Math.round(wl)+' nm';
   document.getElementById('sa-v').textContent=a+' \u00B5m';
   document.getElementById('sL2-v').textContent=L.toFixed(2)+' m';
 
-  var col = wC(wl);
-  var rgb = wlRGB(wl);
+  var col = tubeRGB ? 'rgb('+tubeRGB[0]+','+tubeRGB[1]+','+tubeRGB[2]+')' : wC(wl);
+  var rgb = tubeRGB || wlRGB(wl);
   var lam = wl*1e-9;
   var aM  = a*1e-6;
 
@@ -1022,16 +1132,16 @@ function uSS(){
   ctx.fillRect(slitX-3, midY - slitWidPx/2, 6, slitWidPx);
 
   // Incoming plane wave
-  ctx.save(); ctx.globalAlpha=0.12; ctx.strokeStyle=col; ctx.lineWidth=1;
-  var waveSpacing = Math.max(12, Math.min(30, wl/15));
+  ctx.save(); ctx.globalAlpha=0.25; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var waveSpacing = Math.max(12, Math.min(60, wl/13));
   for(var wx=30; wx<slitX-4; wx+=waveSpacing){
     ctx.beginPath(); ctx.moveTo(wx,30); ctx.lineTo(wx,H-30); ctx.stroke();
   }
   ctx.restore();
-  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.3);
+  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.5);
 
   // Circular wavefronts from slit
-  ctx.save(); ctx.globalAlpha=0.06; ctx.strokeStyle=col; ctx.lineWidth=1;
+  ctx.save(); ctx.globalAlpha=0.18; ctx.strokeStyle=col; ctx.lineWidth=1;
   var maxR = screenX - slitX;
   for(var wr=waveSpacing; wr<maxR; wr+=waveSpacing){
     ctx.beginPath(); ctx.arc(slitX, midY, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
@@ -1041,16 +1151,11 @@ function uSS(){
   // Intensity pattern in physical screen coordinates
   var patternH = H - 60, yTop = 30;
   var viewHalf = 0.3;  // half-height of detection screen (meters)
-  var intensities = [];
-  var maxI = 0;
-  for(var py=0; py<patternH; py++){
-    var yPos = (py/patternH - 0.5) * 2 * viewHalf;
-    var sinTh = yPos / Math.sqrt(yPos*yPos + L*L);
-    var alpha = Math.PI * aM * sinTh / lam;
-    var I = sinc(alpha) * sinc(alpha);
-    intensities.push(I);
-    if(I > maxI) maxI = I;
-  }
+  var pat = computePattern(patternH, viewHalf, L, function(sinTh, lamS){
+    var alpha = Math.PI * aM * sinTh / lamS;
+    return sinc(alpha) * sinc(alpha);
+  }, source, wl);
+  var intensities = pat.intensities, maxI = pat.maxI;
 
   // Screen
   ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
@@ -1059,7 +1164,9 @@ function uSS(){
   // Screen glow
   for(var py=0; py<patternH; py++){
     var I = intensities[py]/maxI;
-    ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(I*0.7)+')';
+    var aI = stretch ? Math.pow(I, 0.3) : I;
+    var pr = screenRGB(pat, py, rgb);
+    ctx.fillStyle='rgba('+pr[0]+','+pr[1]+','+pr[2]+','+(aI*0.7)+')';
     ctx.fillRect(screenX-4, yTop+py, 8, 1);
   }
 
@@ -1096,7 +1203,7 @@ function uSS(){
   var centralW = 2*lam*L/aM;
   var sinTh1_ss = lam/aM;
   var h='';
-  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  h+=cd('\u03BB',source ? source.label : Math.round(wl)+' nm',col);
   h+=cd('a',a+' \u00B5m',col);
   h+=cd('L',L.toFixed(2)+' m',col);
   h+=cd('Central W',(centralW*1000).toFixed(2)+' mm',col);
@@ -1113,20 +1220,28 @@ var BASE_W_GR=780, BASE_H_GR=520;
 function uG(){
   var wl = parseFloat(document.getElementById('wl5').value);
   var d  = parseFloat(document.getElementById('gd').value);
+  var a  = parseFloat(document.getElementById('ga').value);
   var N  = parseInt(document.getElementById('gN').value);
   var L  = parseFloat(document.getElementById('sL3').value);
   var showEnv = document.getElementById('showGrEnv').checked;
+  var source = getSource(document.getElementById('sourceG').value);
+  var tubeRGB = sourceTubeColor(source);
+  var stretch = document.getElementById('stretchG').checked;
+
+  // Ensure a <= d
+  if(a > d) { a = d; document.getElementById('ga').value = a; }
+
   document.getElementById('wl5-v').textContent=Math.round(wl)+' nm';
   document.getElementById('gd-v').textContent=d+' \u00B5m';
+  document.getElementById('ga-v').textContent=a.toFixed(1)+' \u00B5m';
   document.getElementById('gN-v').textContent=N;
   document.getElementById('sL3-v').textContent=L.toFixed(2)+' m';
 
-  var col = wC(wl);
-  var rgb = wlRGB(wl);
+  var col = tubeRGB ? 'rgb('+tubeRGB[0]+','+tubeRGB[1]+','+tubeRGB[2]+')' : wC(wl);
+  var rgb = tubeRGB || wlRGB(wl);
   var lam = wl*1e-9;
   var dM  = d*1e-6;
-  // Assume slit width = d/5 for diffraction envelope
-  var aM  = dM/5;
+  var aM  = a*1e-6;
 
   var cv = document.getElementById('gc');
   var W = BASE_W_GR, H = BASE_H_GR;
@@ -1141,7 +1256,7 @@ function uG(){
 
   // Visual slit spacing scales with d (µm): larger d → wider pixel separation
   var visN = N;
-  var slitSepPx = Math.min(40, Math.max(4, d * 1.8));
+  var slitSepPx = Math.min(90, Math.max(4, d * 1.8));
   var totalH = (visN-1)*slitSepPx;
   // Clamp if the grating would exceed canvas height
   if(totalH > H - 60){
@@ -1174,17 +1289,17 @@ function uG(){
   ctx.fillText('N='+N, slitX-8, midY+4);
 
   // Incoming plane wave
-  ctx.save(); ctx.globalAlpha=0.12; ctx.strokeStyle=col; ctx.lineWidth=1;
-  var waveSpacing = Math.max(12, Math.min(30, wl/15));
+  ctx.save(); ctx.globalAlpha=0.25; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var waveSpacing = Math.max(12, Math.min(60, wl/13));
   for(var wx=30; wx<slitX-4; wx+=waveSpacing){
     ctx.beginPath(); ctx.moveTo(wx,30); ctx.lineTo(wx,H-30); ctx.stroke();
   }
   ctx.restore();
-  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.3);
+  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.5);
 
   // Circular wavefronts from each slit (Huygens' principle)
   ctx.save();
-  ctx.globalAlpha = Math.max(0.015, 0.06 / Math.sqrt(visN));
+  ctx.globalAlpha = Math.max(0.04, 0.18 / Math.sqrt(visN));
   ctx.strokeStyle = col;
   ctx.lineWidth = 1;
   var maxR = screenX - slitX;
@@ -1201,21 +1316,15 @@ function uG(){
   var patternH = H - 60, yTop = 30;
   var viewHalf = 0.3;  // half-height of detection screen (meters)
 
-  var intensities = [];
-  var maxI = 0;
-  for(var py=0; py<patternH; py++){
-    var yPos = (py/patternH - 0.5) * 2 * viewHalf;
-    var sinTh = yPos / Math.sqrt(yPos*yPos + L*L);
-    var beta  = Math.PI * dM * sinTh / lam;
-    var alpha = Math.PI * aM * sinTh / lam;
-    // N-slit interference
+  var pat = computePattern(patternH, viewHalf, L, function(sinTh, lamS){
+    var beta  = Math.PI * dM * sinTh / lamS;
+    var alpha = Math.PI * aM * sinTh / lamS;
     var sinNb = Math.sin(N*beta);
     var sinB  = Math.sin(beta);
     var interf = Math.abs(sinB) < 1e-12 ? 1.0 : (sinNb/(N*sinB));
-    var I = interf*interf * sinc(alpha)*sinc(alpha);
-    intensities.push(I);
-    if(I > maxI) maxI = I;
-  }
+    return interf*interf * sinc(alpha)*sinc(alpha);
+  }, source, wl);
+  var intensities = pat.intensities, maxI = pat.maxI;
 
   // Screen
   ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
@@ -1224,7 +1333,9 @@ function uG(){
   // Screen glow
   for(var py=0; py<patternH; py++){
     var I = intensities[py]/maxI;
-    ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(I*0.7)+')';
+    var aI = stretch ? Math.pow(I, 0.3) : I;
+    var pr = screenRGB(pat, py, rgb);
+    ctx.fillStyle='rgba('+pr[0]+','+pr[1]+','+pr[2]+','+(aI*0.7)+')';
     ctx.fillRect(screenX-4, yTop+py, 8, 1);
   }
 
@@ -1269,8 +1380,9 @@ function uG(){
   var sinTh1_gr = lam/dM;
   var R = N; // resolving power for m=1
   var h='';
-  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  h+=cd('\u03BB',source ? source.label : Math.round(wl)+' nm',col);
   h+=cd('d',d+' \u00B5m',col);
+  h+=cd('a',a.toFixed(1)+' \u00B5m',col);
   h+=cd('N',N+'',col);
   h+=cd('L',L.toFixed(2)+' m',col);
   h+=cd('\u03B8\u2081',sinTh1_gr<=1 ? (Math.asin(sinTh1_gr)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a',TXH);
