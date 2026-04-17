@@ -33,7 +33,7 @@ contextBridge.exposeInMainWorld('agentWorld', {
 
   // Forum debate
   loadForumRoster: () => ipcRenderer.invoke('forum:loadRoster'),
-  startForumDebate: (topic, thinkerIds) => ipcRenderer.invoke('forum:startDebate', topic, thinkerIds),
+  startForumDebate: (topic, thinkerIds, allowGuests) => ipcRenderer.invoke('forum:startDebate', topic, thinkerIds, allowGuests),
   forumFollowUp: (message) => ipcRenderer.invoke('forum:followUp', message),
   stopForum: () => ipcRenderer.invoke('forum:stop'),
 });

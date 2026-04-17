@@ -65,7 +65,7 @@ export class Player {
     this.pathIndex = 0;
   }
 
-  update(delta, camera, collisionCheck, orbitAngle) {
+  update(delta, camera, collisionCheck, orbitAngle, fpYaw) {
     if (orbitAngle !== undefined) this.orbitAngle = orbitAngle;
 
     const { left, right, up, down } = this.keys;
@@ -75,7 +75,28 @@ export class Player {
 
     let vx = 0, vz = 0;
 
-    if (keyboardActive) {
+    if (keyboardActive && fpYaw !== null && fpYaw !== undefined) {
+      // First-person: WASD relative to camera yaw
+      let moveX = 0, moveZ = 0;
+      if (up) moveZ += 1;
+      if (down) moveZ -= 1;
+      if (left) moveX += 1;
+      if (right) moveX -= 1;
+      if (moveX !== 0 && moveZ !== 0) { moveX *= 0.707; moveZ *= 0.707; }
+
+      // Rotate input by camera yaw
+      const sinY = Math.sin(fpYaw);
+      const cosY = Math.cos(fpYaw);
+      vx = (moveX * cosY + moveZ * sinY) * this.speed;
+      vz = (-moveX * sinY + moveZ * cosY) * this.speed;
+
+      // Direction for animation (even though hidden in FP, keeps state consistent)
+      if (Math.abs(vx) > Math.abs(vz)) {
+        this.direction = vx > 0 ? 2 : 1;
+      } else {
+        this.direction = vz > 0 ? 0 : 3;
+      }
+    } else if (keyboardActive) {
       if (left) { vx = -this.speed; this.direction = 1; }
       else if (right) { vx = this.speed; this.direction = 2; }
       if (up) { vz = -this.speed; this.direction = 3; }

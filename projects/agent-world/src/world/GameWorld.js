@@ -34,6 +34,14 @@ export class GameWorld {
     this._isDragging = false;
     this._lastMouseX = 0;
 
+    // ─── Camera mode state ───
+    this.cameraMode = 'orbit'; // 'orbit' | 'firstPerson'
+    this.fp = {
+      yaw: -Math.PI * 0.75,   // horizontal look (initialized to match orbit angle)
+      pitch: 0,                // vertical look (clamped ±80°)
+      headHeight: 1.4,         // eye level in world units
+    };
+
     // ─── Build campus ───
     this.campusBuilder = new CampusBuilder(scene);
     const { wallTiles, doorTiles, buildings } = this.campusBuilder.build();
@@ -207,6 +215,10 @@ export class GameWorld {
           this.events.emit('openForum');
         }
       }
+      // V to toggle camera mode
+      if (e.key === 'v' || e.key === 'V') {
+        this._toggleCameraMode();
+      }
     });
 
     // Right-click: pathfind movement
@@ -214,6 +226,13 @@ export class GameWorld {
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     canvas.addEventListener('pointerdown', (e) => {
+      if (this.cameraMode === 'firstPerson') {
+        // In FP mode, left-click requests pointer lock
+        if (e.button === 0 && document.pointerLockElement !== canvas) {
+          canvas.requestPointerLock();
+        }
+        return;
+      }
       if (e.button === 2) {
         // Right-click → pathfind
         this._handleRightClick(e);
@@ -228,6 +247,12 @@ export class GameWorld {
     });
 
     canvas.addEventListener('pointermove', (e) => {
+      if (this.cameraMode === 'firstPerson' && document.pointerLockElement === canvas) {
+        this.fp.yaw -= e.movementX * 0.002;
+        this.fp.pitch -= e.movementY * 0.002;
+        this.fp.pitch = Math.max(-1.4, Math.min(1.4, this.fp.pitch)); // ±~80°
+        return;
+      }
       if (this._isDragging) {
         const dx = e.clientX - this._lastMouseX;
         this.orbit.angle -= dx * 0.005;
@@ -239,10 +264,16 @@ export class GameWorld {
       if (e.button === 1) this._isDragging = false;
     });
 
-    // Mouse wheel → zoom
+    // Mouse wheel → zoom (orbit only)
     canvas.addEventListener('wheel', (e) => {
+      if (this.cameraMode === 'firstPerson') return;
       this.orbit.distance += e.deltaY * 0.01;
       this.orbit.distance = Math.max(this.orbit.minDist, Math.min(this.orbit.maxDist, this.orbit.distance));
+    });
+
+    // Exit FP mode on pointer lock exit (ESC)
+    document.addEventListener('pointerlockchange', () => {
+      // Pointer lock released but still in FP mode — that's fine, user can re-click
     });
   }
 
@@ -535,7 +566,7 @@ export class GameWorld {
     const collCheck = (x, z) => this._collisionCheck(x, z);
 
     // Player
-    this.player.update(delta, this.camera, collCheck, this.orbit.angle);
+    this.player.update(delta, this.camera, collCheck, this.orbit.angle, this.cameraMode === 'firstPerson' ? this.fp.yaw : null);
 
     // Agents
     for (const npc of Object.values(this.agentNPCs)) {
@@ -616,7 +647,64 @@ export class GameWorld {
     this._animateFountain(delta);
   }
 
+  _toggleCameraMode() {
+    const canvas = this.renderer.domElement;
+
+    if (this.cameraMode === 'orbit') {
+      this.cameraMode = 'firstPerson';
+      // Sync FP yaw to current orbit angle so camera doesn't jump
+      this.fp.yaw = this.orbit.angle + Math.PI;
+      this.fp.pitch = 0;
+      // Hide player mesh
+      this.player.container.visible = false;
+      // Request pointer lock
+      canvas.requestPointerLock();
+      // Widen FOV for immersion
+      this.camera.fov = 75;
+      this.camera.updateProjectionMatrix();
+    } else {
+      this.cameraMode = 'orbit';
+      // Show player mesh
+      this.player.container.visible = true;
+      // Release pointer lock
+      if (document.pointerLockElement === canvas) {
+        document.exitPointerLock();
+      }
+      // Sync orbit angle from FP yaw so camera doesn't jump back
+      this.orbit.angle = this.fp.yaw - Math.PI;
+      // Restore FOV
+      this.camera.fov = 50;
+      this.camera.updateProjectionMatrix();
+    }
+
+    // Update HUD indicator + crosshair
+    this._updateCameraModeIndicator();
+    const crosshair = document.getElementById('fp-crosshair');
+    if (crosshair) crosshair.classList.toggle('visible', this.cameraMode === 'firstPerson');
+  }
+
+  _updateCameraModeIndicator() {
+    let indicator = document.getElementById('camera-mode-indicator');
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'camera-mode-indicator';
+      indicator.className = 'camera-mode-indicator';
+      document.getElementById('game-container').appendChild(indicator);
+    }
+    const isFP = this.cameraMode === 'firstPerson';
+    indicator.textContent = isFP ? 'First Person [V]' : 'Orbit [V]';
+    indicator.classList.toggle('fp-active', isFP);
+  }
+
   _updateCamera(delta) {
+    if (this.cameraMode === 'firstPerson') {
+      this._updateCameraFP(delta);
+    } else {
+      this._updateCameraOrbit(delta);
+    }
+  }
+
+  _updateCameraOrbit(delta) {
     // Orbit around player position
     const target = new THREE.Vector3(this.player.x, 0, this.player.z);
     const d = this.orbit.distance;
@@ -630,6 +718,23 @@ export class GameWorld {
     // Smooth follow
     this.camera.position.lerp(new THREE.Vector3(cx, cy, cz), 0.08);
     this.camera.lookAt(target.x, 0.5, target.z);
+  }
+
+  _updateCameraFP(delta) {
+    // Camera at player head
+    const eyeX = this.player.x;
+    const eyeY = this.fp.headHeight;
+    const eyeZ = this.player.z;
+
+    // Smooth position follow
+    this.camera.position.lerp(new THREE.Vector3(eyeX, eyeY, eyeZ), 0.25);
+
+    // Look direction from yaw/pitch
+    const lookX = eyeX + Math.sin(this.fp.yaw) * Math.cos(this.fp.pitch);
+    const lookY = eyeY + Math.sin(this.fp.pitch);
+    const lookZ = eyeZ + Math.cos(this.fp.yaw) * Math.cos(this.fp.pitch);
+
+    this.camera.lookAt(lookX, lookY, lookZ);
   }
 
   _animateFountain(delta) {

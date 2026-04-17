@@ -333,12 +333,12 @@ function setupIPC() {
 
   // Forum debate
   ipcMain.handle('forum:loadRoster', () => forumService.loadRoster(ROSTER_PATH));
-  ipcMain.handle('forum:startDebate', async (event, topic, thinkerIds) => {
+  ipcMain.handle('forum:startDebate', async (event, topic, thinkerIds, allowGuests) => {
     // Lazy-load roster on first debate
     if (!forumService.rosterData) {
       forumService.loadRoster(ROSTER_PATH);
     }
-    return forumService.debate(topic, thinkerIds);
+    return forumService.debate(topic, thinkerIds, allowGuests);
   });
   ipcMain.handle('forum:followUp', async (event, message) => {
     return forumService.followUp(message);

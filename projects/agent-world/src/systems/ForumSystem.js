@@ -8,6 +8,7 @@ export class ForumSystem {
   constructor() {
     this.isOpen = false;
     this.selectedThinkers = new Set();
+    this.allowGuests = false;
     this.debateLog = [];
     this.isDebating = false;
     this.panel = null;
@@ -46,13 +47,13 @@ export class ForumSystem {
 
     this.isDebating = true;
     this.debateLog = [];
-    this._addSystemMessage(`Topic: "${topic}"`);
+    this._addSystemMessage(`Topic: "${topic}"${this.allowGuests ? ' (guests enabled)' : ''}`);
     this._renderDebateLog();
     this._setInputState(true);
 
     try {
       const thinkerIds = [...this.selectedThinkers];
-      const result = await window.agentWorld.startForumDebate(topic, thinkerIds);
+      const result = await window.agentWorld.startForumDebate(topic, thinkerIds, this.allowGuests);
 
       if (result.error) {
         this._addSystemMessage(`Error: ${result.error}`);
@@ -123,6 +124,8 @@ export class ForumSystem {
     const sidebar = document.getElementById('forum-roster');
     if (!sidebar) return;
 
+    const allSelected = FORUM_THINKER_IDS.every(id => this.selectedThinkers.has(id));
+
     // Group by era
     const byEra = {};
     for (const era of ERA_ORDER) byEra[era] = [];
@@ -131,7 +134,21 @@ export class ForumSystem {
       if (byEra[t.era]) byEra[t.era].push(t);
     }
 
-    let html = '';
+    // Controls row: Select All + Allow Guests
+    let html = `
+      <div class="forum-roster-controls">
+        <label class="forum-select-all-row">
+          <input type="checkbox" id="forum-select-all" ${allSelected ? 'checked' : ''} />
+          <span>Select All</span>
+        </label>
+        <label class="forum-guests-toggle">
+          <span>Allow Guests</span>
+          <input type="checkbox" id="forum-allow-guests" ${this.allowGuests ? 'checked' : ''} />
+          <span class="forum-toggle-track"><span class="forum-toggle-thumb"></span></span>
+        </label>
+      </div>
+    `;
+
     for (const era of ERA_ORDER) {
       const thinkers = byEra[era];
       if (thinkers.length === 0) continue;
@@ -152,7 +169,7 @@ export class ForumSystem {
 
     sidebar.innerHTML = html;
 
-    // Bind checkbox changes
+    // Bind individual checkboxes
     sidebar.querySelectorAll('.forum-thinker-cb').forEach(cb => {
       cb.addEventListener('change', (e) => {
         const id = e.target.dataset.id;
@@ -161,8 +178,36 @@ export class ForumSystem {
         } else {
           this.selectedThinkers.delete(id);
         }
+        // Sync Select All checkbox
+        const selectAll = document.getElementById('forum-select-all');
+        if (selectAll) {
+          selectAll.checked = FORUM_THINKER_IDS.every(tid => this.selectedThinkers.has(tid));
+        }
       });
     });
+
+    // Bind Select All
+    const selectAll = document.getElementById('forum-select-all');
+    if (selectAll) {
+      selectAll.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          FORUM_THINKER_IDS.forEach(id => this.selectedThinkers.add(id));
+        } else {
+          this.selectedThinkers.clear();
+        }
+        sidebar.querySelectorAll('.forum-thinker-cb').forEach(cb => {
+          cb.checked = e.target.checked;
+        });
+      });
+    }
+
+    // Bind Allow Guests toggle
+    const guestsToggle = document.getElementById('forum-allow-guests');
+    if (guestsToggle) {
+      guestsToggle.addEventListener('change', (e) => {
+        this.allowGuests = e.target.checked;
+      });
+    }
   }
 
   _renderDebateLog() {

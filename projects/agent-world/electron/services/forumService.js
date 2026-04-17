@@ -108,7 +108,7 @@ class ForumService {
     return null;
   }
 
-  buildSystemPrompt(selectedThinkerNames) {
+  buildSystemPrompt(selectedThinkerNames, allowGuests) {
     let thinkerProfiles = '';
     for (const name of selectedThinkerNames) {
       const entry = this._findThinkerEntry(name);
@@ -116,6 +116,14 @@ class ForumService {
         thinkerProfiles += `\n---\n${entry}\n`;
       }
     }
+
+    const nameList = selectedThinkerNames.map(n => `"${n}"`).join(', ');
+    const maxResponses = Math.min(selectedThinkerNames.length + (allowGuests ? 3 : 0), 8);
+    const minResponses = Math.min(selectedThinkerNames.length, 3);
+
+    const participantRule = allowGuests
+      ? `- The selected panelists are: ${nameList}. These are the PRIMARY voices. You may also invite 1-3 additional historical or philosophical figures as "guests" if their perspective would genuinely enrich the debate. Introduce guests by name and briefly note why they were called upon. Guests should be real historical figures, not fictional characters.`
+      : `- CRITICAL: You may ONLY generate responses from these specific participants: ${nameList}. Do NOT include any other thinkers, characters, or voices under any circumstances.`;
 
     return `You are simulating a debate among history's greatest thinkers in "The Forum."
 
@@ -126,12 +134,13 @@ PANEL DYNAMICS:
 ${this.panelDynamics}
 
 RULES:
+${participantRule}
 - Each thinker speaks IN CHARACTER using their documented debate style and voice.
 - Thinkers should reference their documented core positions, key references, and philosophical framework.
 - Thinkers should engage with, challenge, and build upon each other's arguments.
 - Use the "Clashes with" and "Aligns with" relationships when relevant.
 - Responses should be substantive (2-5 sentences each), not soundbites.
-- Include 3-8 thinker responses per round — not everyone needs to speak every round.
+- Include ${minResponses}-${maxResponses} thinker responses per round — not everyone needs to speak every round.
 - Suggest 2-3 follow-up questions or provocations for the user.
 
 RESPONSE FORMAT (strict JSON):
@@ -146,7 +155,7 @@ RESPONSE FORMAT (strict JSON):
 Respond ONLY with valid JSON. No markdown fences, no commentary outside the JSON.`;
   }
 
-  async debate(topic, thinkerIds) {
+  async debate(topic, thinkerIds, allowGuests) {
     if (!this.ensureClient()) {
       return { error: 'No ANTHROPIC_API_KEY set.' };
     }
@@ -164,8 +173,11 @@ Respond ONLY with valid JSON. No markdown fences, no commentary outside the JSON
     };
 
     const names = thinkerIds.map(id => THINKER_NAMES[id] || id);
-    const systemPrompt = this.buildSystemPrompt(names);
+    const systemPrompt = this.buildSystemPrompt(names, !!allowGuests);
     this._lastSystemPrompt = systemPrompt;
+
+    // Track allowed names for response filtering (null = no filtering when guests enabled)
+    this._allowedNames = allowGuests ? null : new Set(names);
 
     // Reset conversation for new topic
     this.history = [];
@@ -182,7 +194,7 @@ Respond ONLY with valid JSON. No markdown fences, no commentary outside the JSON
       const rawText = response.content[0].text;
       this.history.push({ role: 'assistant', content: rawText });
 
-      return this._parseResponse(rawText);
+      return this._parseResponse(rawText, this._allowedNames);
     } catch (err) {
       return { error: `API error: ${err.message}` };
     }
@@ -214,21 +226,36 @@ Respond ONLY with valid JSON. No markdown fences, no commentary outside the JSON
       const rawText = response.content[0].text;
       this.history.push({ role: 'assistant', content: rawText });
 
-      return this._parseResponse(rawText);
+      return this._parseResponse(rawText, this._allowedNames);
     } catch (err) {
       return { error: `API error: ${err.message}` };
     }
   }
 
-  _parseResponse(rawText) {
+  _parseResponse(rawText, allowedNames) {
     try {
       let jsonStr = rawText;
       const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (fenceMatch) jsonStr = fenceMatch[1];
 
       const parsed = JSON.parse(jsonStr.trim());
+      let responses = parsed.responses || [];
+
+      // Filter out responses from uninvited thinkers
+      if (allowedNames && allowedNames.size > 0) {
+        responses = responses.filter(r => {
+          const name = r.thinker;
+          if (allowedNames.has(name)) return true;
+          // Fuzzy: check if any allowed name is a substring match
+          for (const allowed of allowedNames) {
+            if (allowed.includes(name) || name.includes(allowed)) return true;
+          }
+          return false;
+        });
+      }
+
       return {
-        responses: parsed.responses || [],
+        responses,
         suggested_followups: parsed.suggested_followups || [],
       };
     } catch (parseErr) {
