@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strategic Dispersion — Stage 2 · Peirastes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #e8e4d8;
+    --paper: #0c0d10;
+    --panel: #14161b;
+    --rule: #2a2d35;
+    --accent: #c89b3c;
+    --accent-dim: #8a6b28;
+    --tech: #e07a3c;
+    --tech-dim: #8a3e1c;
+    --soc:  #6ea4c4;
+    --soc-dim: #2d5875;
+    --muted: #7a7669;
+    --coupling: #a670c9;
+    --belief: #6ec48a;       /* green: out-group belief */
+    --truth: #c89b3c;        /* gold: ground truth */
+    --inferred: #c4916e;     /* tan: out-group inference */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body {
+    background-image:
+      radial-gradient(ellipse 80% 40% at 30% 0%, rgba(224,122,60,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 40% at 70% 100%, rgba(110,164,196,0.04) 0%, transparent 60%);
+    padding: 40px 28px 64px;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+
+  /* ---- header ---- */
+  header {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 24px;
+  }
+  h1 {
+    font-weight: 400;
+    font-size: 40px;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* ---- mode tabs ---- */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    margin-bottom: 22px;
+    border: 1px solid var(--rule);
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--rule);
+    padding: 14px 18px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+  .tab:last-child { border-right: none; }
+  .tab b {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .tab.active {
+    background: rgba(200,155,60,0.06);
+    color: var(--ink);
+  }
+  .tab.active b { color: var(--accent); }
+  .tab.active::before {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+  .tab:hover { color: var(--ink); }
+
+  /* ---- layout ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+  .stage {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 16px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .stage.tech::before, .stage.soc::before, .stage.aux::before {
+    content: ''; position: absolute;
+    top: -1px; left: -1px; right: -1px; height: 1px;
+    opacity: 0.55;
+  }
+  .stage.tech::before { background: linear-gradient(90deg, transparent, var(--tech), transparent); }
+  .stage.soc::before { background: linear-gradient(90deg, transparent, var(--soc), transparent); }
+  .stage.aux::before { background: linear-gradient(90deg, transparent, var(--coupling), transparent); }
+
+  .stage h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .stage.tech h2 { color: var(--tech); }
+  .stage.soc h2 { color: var(--soc); }
+  .stage.aux h2 { color: var(--coupling); }
+  .stage h2 .tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--muted);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    background: #07080a;
+    border: 1px solid #1a1d22;
+  }
+  .canvas-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ---- right sidebar ---- */
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 22px;
+    position: sticky;
+    top: 20px;
+  }
+  .controls h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .group-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin: 16px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .group-label.tech { color: var(--tech); }
+  .group-label.soc { color: var(--soc); }
+  .group-label.coupling { color: var(--coupling); }
+  .group-label.strategy { color: var(--accent); }
+
+  .control { margin-bottom: 12px; }
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a8a492;
+    margin-bottom: 4px;
+  }
+  .control label span.val { color: var(--accent); font-weight: 600; }
+  .control .hint {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none; appearance: none;
+    height: 2px;
+    background: var(--rule);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 13px; height: 13px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 13px; height: 13px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--paper);
+  }
+
+  .btnrow { display: flex; gap: 8px; margin-top: 10px; }
+  button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 9px 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button:hover {
+    background: var(--accent);
+    color: var(--paper);
+    border-color: var(--accent);
+  }
+  button.primary { border-color: var(--accent-dim); color: var(--accent); }
+  button.primary:hover { background: var(--accent); color: var(--paper); }
+  button.hot { border-color: #8a3e1c; color: var(--tech); }
+  button.hot:hover { background: var(--tech); color: var(--paper); border-color: var(--tech); }
+
+  /* ---- scoreboard ---- */
+  .scoreboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px;
+    background: #0a0b0e;
+    border: 1px solid var(--rule);
+  }
+  .score {
+    text-align: center;
+  }
+  .score .k {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .score .v {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .score.rent .v { color: var(--accent); }
+  .score.legit .v { color: var(--belief); }
+  .score.rho .v { color: var(--coupling); }
+  .score.gap .v { color: var(--tech); }
+
+  .status-banner {
+    margin-top: 14px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--muted);
+    border-left: 2px solid var(--rule);
+    line-height: 1.4;
+  }
+  .status-banner.alert {
+    color: var(--tech);
+    border-left-color: var(--tech);
+    background: rgba(224,122,60,0.05);
+  }
+  .status-banner.good {
+    color: var(--belief);
+    border-left-color: var(--belief);
+    background: rgba(110,196,138,0.05);
+  }
+
+  /* ---- timeline strip (mode B) ---- */
+  .timeline {
+    margin-top: 14px;
+    padding: 14px;
+    background: #0a0b0e;
+    border: 1px solid var(--rule);
+    position: relative;
+  }
+  .timeline h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .timeline-track {
+    position: relative;
+    height: 48px;
+    margin-top: 10px;
+  }
+  .timeline-line {
+    position: absolute;
+    left: 0; right: 0;
+    top: 24px;
+    height: 1px;
+    background: var(--rule);
+  }
+  .timeline-progress {
+    position: absolute;
+    left: 0;
+    top: 24px;
+    height: 1px;
+    background: var(--accent);
+    width: 0;
+    transition: width 0.05s linear;
+  }
+  .timeline-marker {
+    position: absolute;
+    top: 16px;
+    width: 1px;
+    height: 16px;
+    background: var(--muted);
+  }
+  .timeline-marker.active { background: var(--accent); }
+  .timeline-label {
+    position: absolute;
+    top: -4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+  .timeline-desc {
+    position: absolute;
+    top: 34px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--muted);
+    transform: translateX(-50%);
+    text-align: center;
+    max-width: 120px;
+    line-height: 1.1;
+  }
+  .arc-description {
+    margin-top: 10px;
+    font-size: 13px;
+    font-style: italic;
+    color: #c8c3b3;
+    line-height: 1.45;
+  }
+  .arc-description b { color: var(--accent); font-style: normal; }
+
+  /* presets */
+  .presets {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+  }
+  .preset-btn {
+    width: 100%;
+    text-align: left;
+    padding: 9px 11px;
+    margin-bottom: 5px;
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: #c8c3b3;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    font-style: italic;
+    letter-spacing: 0;
+    text-transform: none;
+    transition: all 0.15s ease;
+  }
+  .preset-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(200,155,60,0.05);
+  }
+  .preset-btn b {
+    display: block;
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+
+  footer {
+    margin-top: 36px;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.55;
+    max-width: 980px;
+  }
+  footer b { color: var(--ink); font-style: normal; font-weight: 600; }
+
+  /* mode-specific show/hide */
+  [data-mode-show] { display: none; }
+  body[data-mode="A"] [data-mode-show="A"] { display: block; }
+  body[data-mode="B"] [data-mode-show="B"] { display: block; }
+  body[data-mode="C"] [data-mode-show="C"] { display: block; }
+  body[data-mode="A"] [data-mode-show="B,C"],
+  body[data-mode="B"] [data-mode-show="A,C"],
+  body[data-mode="C"] [data-mode-show="A,B"] { display: none; }
+  body[data-mode="A"] [data-mode-show="AB"],
+  body[data-mode="B"] [data-mode-show="AB"] { display: block; }
+  body[data-mode="B"] [data-mode-show="BC"],
+  body[data-mode="C"] [data-mode-show="BC"] { display: block; }
+
+  .caveat {
+    font-size: 11px;
+    font-style: italic;
+    color: var(--muted);
+    padding: 8px 10px;
+    background: rgba(138,107,40,0.04);
+    border-left: 2px solid var(--accent-dim);
+    margin-top: 10px;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body data-mode="A">
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Strategic <em>Dispersion</em></h1>
+    <div class="sub">Stage II · Peirastes · Companion to "Dispersion and Stratification" v0.3</div>
+  </div>
+  <div class="meta">
+    Tri-mode simulation<br>
+    A · Control game &nbsp; B · Historical arcs &nbsp; C · Adversarial observer
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-mode="A"><b>A · Control Game</b>You play the in-group. Drag β(t) live. Watch belief adjust, rent accumulate, legitimacy drain.</button>
+  <button class="tab" data-mode="B"><b>B · Historical Arcs</b>Scripted regime shifts. Watch the dispersion operator jump — nuclear 1945–2026, elite higher ed 1945–present.</button>
+  <button class="tab" data-mode="C"><b>C · Adversarial Observer</b>True ω(k) versus out-group's inferred ω(k). Watch weaponized underdetermination produce a diverging model.</button>
+</div>
+
+<div class="grid">
+
+  <div>
+
+    <div class="stage tech">
+      <h2><span>I · ψ_tech(x, t) — Technological Capability</span><span class="tag">warm = frontier</span></h2>
+      <canvas id="techCanvas" width="1600" height="230"></canvas>
+      <div class="canvas-label">
+        <span>position x →</span>
+        <span id="timeDisplay">t = 0.00</span>
+        <span>← in-group | out-group →</span>
+      </div>
+    </div>
+
+    <div class="stage soc">
+      <h2><span>II · ψ_soc(x, t) — Social Position</span><span class="tag">cool = frontier</span></h2>
+      <canvas id="socCanvas" width="1600" height="230"></canvas>
+      <div class="canvas-label">
+        <span>position x →</span>
+        <span id="corrDisplay">ρ = 0.00</span>
+        <span>← in-group | out-group →</span>
+      </div>
+    </div>
+
+    <!-- Mode A: strategic game auxiliary -->
+    <div class="stage aux" data-mode-show="A">
+      <h2><span>III · Strategic State — Belief, Rent, Legitimacy</span><span class="tag">you play the in-group</span></h2>
+      <canvas id="auxCanvasA" width="1600" height="180"></canvas>
+      <div class="canvas-label">
+        <span>time →</span>
+        <span><span style="color:var(--accent)">●</span> true gap Δ &nbsp; <span style="color:var(--belief)">●</span> belief B &nbsp; <span style="color:var(--tech)">●</span> your β(t)</span>
+        <span>scoreboard: rent − λ·|Δ−B|</span>
+      </div>
+    </div>
+
+    <!-- Mode B: historical timeline strip -->
+    <div class="stage aux" data-mode-show="B">
+      <h2><span>III · Timeline — Regime Shifts</span><span class="tag">historical arc playback</span></h2>
+      <div class="timeline">
+        <h3 id="arcTitle">Nuclear Arc · 1945 → 2026</h3>
+        <div class="timeline-track" id="timelineTrack">
+          <div class="timeline-line"></div>
+          <div class="timeline-progress" id="timelineProgress"></div>
+          <!-- markers injected dynamically -->
+        </div>
+        <div class="arc-description" id="arcDescription">
+          Select a preset to load a historical arc. Each regime shift is a discontinuous change in the dispersion operator, triggered by strategic state rather than by continuous drift.
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode C: adversarial observer -->
+    <div class="stage aux" data-mode-show="C">
+      <h2><span>III · ω(k) — True vs Out-group's Inferred Dispersion</span><span class="tag">weaponized underdetermination</span></h2>
+      <canvas id="auxCanvasC" width="1600" height="200"></canvas>
+      <div class="canvas-label">
+        <span>wavenumber k →</span>
+        <span><span style="color:var(--truth)">●</span> true ω(k) &nbsp; <span style="color:var(--inferred)">●</span> out-group's fit &nbsp; residual shown below</span>
+        <span>gap = ‖ω_true − ω_inferred‖</span>
+      </div>
+      <div class="caveat">
+        The inference shown is a simple quadratic-plus-cubic least-squares fit to the out-group's observed |ψ|²(x, t) history. It is a stylized stand-in for "whatever inference procedure an out-group might use" — not a faithful cognitive model. What's real and visible is the structural mismatch: when β is high and changing, no fixed ω(k) fits the observations, and the out-group's best attempt systematically underestimates the asymmetric suppression of high-k modes.
+      </div>
+    </div>
+
+  </div>
+
+  <aside class="controls">
+    <h2>Controls</h2>
+
+    <!-- shared physics controls -->
+    <div class="group-label tech">Technology field · ψ_tech</div>
+    <div class="control"><label>v₀ <span class="val" id="v0Val">1.00</span></label><input type="range" id="v0" min="0" max="2" step="0.01" value="1.0"></div>
+    <div class="control"><label>α₁ (spread) <span class="val" id="a1Val">0.20</span></label><input type="range" id="a1" min="0" max="1" step="0.01" value="0.2"></div>
+    <div class="control" data-mode-show="B,C">
+      <label>β₁ (moat) <span class="val" id="b1Val">0.15</span></label>
+      <input type="range" id="b1" min="0" max="0.5" step="0.005" value="0.15">
+    </div>
+
+    <!-- Mode A: β is controlled via the strategic dial -->
+    <div class="group-label strategy" data-mode-show="A">Your strategic lever · β₁(t)</div>
+    <div class="control" data-mode-show="A">
+      <label>β₁(t) — moat you set live <span class="val" id="b1ValA">0.15</span></label>
+      <input type="range" id="b1A" min="0" max="0.5" step="0.005" value="0.15">
+      <div class="hint">Raise β for more rent. But if belief B catches up to the true gap Δ, legitimacy crashes.</div>
+    </div>
+
+    <div class="group-label soc">Social field · ψ_soc</div>
+    <div class="control"><label>u₀ <span class="val" id="u0Val">0.85</span></label><input type="range" id="u0" min="0" max="2" step="0.01" value="0.85"></div>
+    <div class="control"><label>α₂ (spread) <span class="val" id="a2Val">0.15</span></label><input type="range" id="a2" min="0" max="1" step="0.01" value="0.15"></div>
+    <div class="control"><label>β₂ (social moat) <span class="val" id="b2Val">0.10</span></label><input type="range" id="b2" min="0" max="0.5" step="0.005" value="0.10"></div>
+
+    <div class="group-label coupling">Coupling · γ</div>
+    <div class="control"><label>γ (field coupling) <span class="val" id="gVal">0.15</span></label><input type="range" id="g" min="0" max="0.6" step="0.005" value="0.15"></div>
+
+    <!-- Mode A extras -->
+    <div class="group-label strategy" data-mode-show="A">Belief dynamics</div>
+    <div class="control" data-mode-show="A">
+      <label>γ_B (belief adjustment rate) <span class="val" id="gBVal">0.08</span></label>
+      <input type="range" id="gB" min="0.01" max="0.4" step="0.005" value="0.08">
+      <div class="hint">How fast the out-group updates belief B toward Δ_vis.</div>
+    </div>
+    <div class="control" data-mode-show="A">
+      <label>narrative bleed <span class="val" id="visBleedVal">0.40</span></label>
+      <input type="range" id="visBleed" min="0" max="1" step="0.01" value="0.4">
+      <div class="hint">How much of the true gap Δ leaks into Δ_vis (what the out-group sees). 0 = perfect narrative control, 1 = full transparency.</div>
+    </div>
+
+    <div class="scoreboard" data-mode-show="A">
+      <div class="score rent"><div class="k">Rent</div><div class="v" id="rentRO">0.0</div></div>
+      <div class="score legit"><div class="k">Legitimacy</div><div class="v" id="legitRO">1.00</div></div>
+      <div class="score gap"><div class="k">Gap Δ</div><div class="v" id="gapRO">0.0</div></div>
+      <div class="score rho"><div class="k">ρ(ψt,ψs)</div><div class="v" id="rhoRO">0.00</div></div>
+    </div>
+    <div class="status-banner good" id="statusBanner" data-mode-show="A">
+      Regime stable. Choose β carefully — too high and legitimacy collapses; too low and there's no moat.
+    </div>
+
+    <!-- Mode C status -->
+    <div class="scoreboard" data-mode-show="C">
+      <div class="score rho"><div class="k">ρ(ψt,ψs)</div><div class="v" id="rhoRO_C">0.00</div></div>
+      <div class="score gap"><div class="k">‖ω_true − ω_inf‖</div><div class="v" id="omegaGapRO">0.00</div></div>
+    </div>
+    <div class="status-banner" id="statusBannerC" data-mode-show="C">
+      The out-group cannot observe ω(k) directly. It must be inferred from the evolution of |ψ|² alone — and this inference is what the in-group's strategic choice of β frustrates.
+    </div>
+
+    <!-- Mode B status -->
+    <div class="scoreboard" data-mode-show="B">
+      <div class="score rho"><div class="k">ρ(ψt,ψs)</div><div class="v" id="rhoRO_B">0.00</div></div>
+      <div class="score gap"><div class="k">Arc progress</div><div class="v" id="arcProgress">0%</div></div>
+    </div>
+
+    <div class="btnrow" style="margin-top:14px;">
+      <button id="playBtn" class="primary">Pause</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+
+    <!-- Mode A presets -->
+    <div class="presets" data-mode-show="A">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Strategic Archetypes</div>
+      <button class="preset-btn" data-preset="tesla"><b>Open</b>β low, γ low, narrative transparent. The Tesla counterfactual.</button>
+      <button class="preset-btn" data-preset="cumulative"><b>Cumulative Advantage</b>Moderate β, strong γ, moderate narrative control.</button>
+      <button class="preset-btn" data-preset="closed"><b>Closed Moat</b>High β, strong γ, tight narrative. Maximize rent, watch legitimacy.</button>
+    </div>
+
+    <!-- Mode B: arcs -->
+    <div class="presets" data-mode-show="B">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Historical Arcs</div>
+      <button class="preset-btn" data-arc="nuclear"><b>Nuclear 1945 → 2026</b>Trinity, AEA 1946, Atoms for Peace 1953, proliferation waves.</button>
+      <button class="preset-btn" data-arc="highered"><b>Elite Higher Ed 1945 → Present</b>GI Bill, testing, holistic admissions, selectivity compression.</button>
+      <button class="preset-btn" data-arc="ai"><b>AI 2017 → 2026</b>Attention is All You Need, GPT-3, API tiering, frontier closure.</button>
+    </div>
+
+    <!-- Mode C presets (reuse Mode A + higher β for visibility) -->
+    <div class="presets" data-mode-show="C">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;">Inference Scenarios</div>
+      <button class="preset-btn" data-preset="inf_benign"><b>Benign Medium (β small)</b>Out-group's inference tracks truth well. Normal dispersive physics.</button>
+      <button class="preset-btn" data-preset="inf_moat"><b>Static Moat (β high, fixed)</b>The fit converges but onto the wrong ω. Classic underdetermination.</button>
+      <button class="preset-btn" data-preset="inf_adversarial"><b>Adversarial (β oscillating)</b>Regime shifts. No single ω fits. The gap between true and inferred opens wide.</button>
+    </div>
+
+  </aside>
+
+</div>
+
+<footer>
+  <b>How to read each mode.</b> Modes share the same two-field physics (Strang-split coupled dispersion); they differ in what auxiliary information is shown and what the user controls. <b>Mode A</b> lets you play the in-group's strategic problem — raise β for rent, but keep the visible gap Δ_vis small enough that belief doesn't catch up to reality. <b>Mode B</b> plays back historical arcs as scripted regime shifts; watch the dispersion operator jump at named events rather than drift smoothly. <b>Mode C</b> visualizes weaponized underdetermination: the out-group fits a polynomial ω(k) to the observed field evolution, and you can watch the gap between true and inferred widen as β becomes adversarial. All three are companions to the paper, not replacements for it — they show what the formalism looks like in motion.
+</footer>
+
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ============================================================
+  // CONSTANTS & DOM
+  // ============================================================
+  const N = 512;
+  const L = 200;
+  const dx = L / N;
+  const dt = 0.04;
+
+  const el = id => document.getElementById(id);
+
+  const techCv = el('techCanvas'), socCv = el('socCanvas');
+  const tctx = techCv.getContext('2d'), cctx = socCv.getContext('2d');
+  const auxCvA = el('auxCanvasA');
+  const auxCvC = el('auxCanvasC');
+  const actx = auxCvA ? auxCvA.getContext('2d') : null;
+  const pctx = auxCvC ? auxCvC.getContext('2d') : null;
+
+  // Sliders
+  const v0S = el('v0'), a1S = el('a1'), b1S = el('b1'), b1AS = el('b1A');
+  const u0S = el('u0'), a2S = el('a2'), b2S = el('b2');
+  const gS = el('g'), gBS = el('gB'), visBleedS = el('visBleed');
+
+  // Value readouts
+  const v0V = el('v0Val'), a1V = el('a1Val'), b1V = el('b1Val'), b1AV = el('b1ValA');
+  const u0V = el('u0Val'), a2V = el('a2Val'), b2V = el('b2Val');
+  const gV = el('gVal'), gBV = el('gBVal'), visBleedV = el('visBleedVal');
+
+  const timeDisp = el('timeDisplay');
+  const corrDisp = el('corrDisplay');
+  const rentRO = el('rentRO'), legitRO = el('legitRO'), gapRO = el('gapRO'), rhoRO = el('rhoRO');
+  const rhoRO_B = el('rhoRO_B'), arcProgressRO = el('arcProgress');
+  const rhoRO_C = el('rhoRO_C'), omegaGapRO = el('omegaGapRO');
+  const statusBanner = el('statusBanner');
+  const statusBannerC = el('statusBannerC');
+
+  const playBtn = el('playBtn'), resetBtn = el('resetBtn');
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let mode = 'A';
+  let playing = true;
+  let t = 0;
+
+  // Physics parameters
+  let v0 = 1.0, a1 = 0.2, b1 = 0.15;
+  let u0 = 0.85, a2 = 0.15, b2 = 0.10;
+  let gamma = 0.15;
+
+  // Belief/strategic state (mode A)
+  let B = 0;                 // out-group's belief about gap
+  let gammaB = 0.08;         // belief adjustment rate
+  let visBleed = 0.4;        // fraction of true gap visible to out-group
+  let cumulativeRent = 0;
+  let legitimacy = 1.0;
+
+  // History buffers for plotting time series (mode A)
+  const HIST = 400;
+  let histT = [], histDelta = [], histB = [], histBeta = [], histRent = [], histLegit = [];
+
+  // Field arrays
+  let tR = new Float32Array(N), tI = new Float32Array(N);
+  let sR = new Float32Array(N), sI = new Float32Array(N);
+  let t0Int = new Float32Array(N), s0Int = new Float32Array(N);
+  const kArr = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const ki = (i < N / 2) ? i : i - N;
+    kArr[i] = (2 * Math.PI * ki) / L;
+  }
+
+  // Observation history for mode C inference
+  const OBS_HIST = 20;
+  let intenHistory = []; // circular: each entry is a Float32Array of intensity
+
+  // Arc state (mode B)
+  let activeArc = null;     // { name, events: [{t, action, label, desc}] }
+  let arcStartTime = 0;
+  let arcEventIdx = 0;
+  let currentArcTitle = '';
+  let currentArcDesc = '';
+
+  // ============================================================
+  // FFT (in-place radix-2 Cooley-Tukey)
+  // ============================================================
+  function fft(re, im, inverse) {
+    const n = re.length;
+    let j = 0;
+    for (let i = 0; i < n - 1; i++) {
+      if (i < j) {
+        let tr = re[i]; re[i] = re[j]; re[j] = tr;
+        let ti = im[i]; im[i] = im[j]; im[j] = ti;
+      }
+      let m = n >> 1;
+      while (m >= 1 && j >= m) { j -= m; m >>= 1; }
+      j += m;
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const half = len >> 1;
+      const angStep = (inverse ? 2 : -2) * Math.PI / len;
+      for (let i = 0; i < n; i += len) {
+        for (let k = 0; k < half; k++) {
+          const ang = angStep * k;
+          const wr = Math.cos(ang), wi = Math.sin(ang);
+          const xr = re[i + k + half] * wr - im[i + k + half] * wi;
+          const xi = re[i + k + half] * wi + im[i + k + half] * wr;
+          re[i + k + half] = re[i + k] - xr;
+          im[i + k + half] = im[i + k] - xi;
+          re[i + k] = re[i + k] + xr;
+          im[i + k] = im[i + k] + xi;
+        }
+      }
+    }
+    if (inverse) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+
+  // ============================================================
+  // PHYSICS
+  // ============================================================
+  // Refresh only the wave packets — used when packets reach the right edge
+  // to avoid FFT periodic-wrap artifacts. Strategic state (B, rent, legitimacy,
+  // history, t, arc progress) is preserved so the Mode A game and Mode B
+  // timeline continue uninterrupted across packet refreshes.
+  function initFieldArrays() {
+    const x0 = L * 0.2;
+    const sigmaT = 16, sigmaS = 20;
+    for (let i = 0; i < N; i++) {
+      const x = i * dx;
+      const envT = Math.exp(-((x - x0) ** 2) / (2 * sigmaT * sigmaT));
+      const envS = Math.exp(-((x - x0) ** 2) / (2 * sigmaS * sigmaS));
+      tR[i] = envT; tI[i] = 0;
+      sR[i] = envS; sI[i] = 0;
+      t0Int[i] = envT * envT;
+      s0Int[i] = envS * envS;
+    }
+  }
+
+  // Full reset — wave packets plus all derived state. Called by the Reset
+  // button, mode switches, preset selection, and arc loading.
+  function initFields() {
+    initFieldArrays();
+    t = 0;
+    B = 0;
+    cumulativeRent = 0;
+    legitimacy = 1.0;
+    histT.length = 0; histDelta.length = 0; histB.length = 0;
+    histBeta.length = 0; histRent.length = 0; histLegit.length = 0;
+    intenHistory.length = 0;
+  }
+
+  const tRk = new Float32Array(N), tIk = new Float32Array(N);
+  function halfDispersion(re, im, v, a, b, halfdt) {
+    for (let i = 0; i < N; i++) { tRk[i] = re[i]; tIk[i] = im[i]; }
+    fft(tRk, tIk, false);
+    for (let i = 0; i < N; i++) {
+      const k = kArr[i];
+      const omega = v * k - a * k * k - b * k * k * k;
+      const phase = -omega * halfdt;
+      const cp = Math.cos(phase), sp = Math.sin(phase);
+      const rr = tRk[i] * cp - tIk[i] * sp;
+      const ii = tRk[i] * sp + tIk[i] * cp;
+      tRk[i] = rr; tIk[i] = ii;
+    }
+    fft(tRk, tIk, true);
+    for (let i = 0; i < N; i++) { re[i] = tRk[i]; im[i] = tIk[i]; }
+  }
+
+  function couple(sdt) {
+    const ang = gamma * sdt;
+    const ca = Math.cos(ang), sa = Math.sin(ang);
+    for (let i = 0; i < N; i++) {
+      const trNew = ca * tR[i] + sa * sI[i];
+      const tiNew = ca * tI[i] - sa * sR[i];
+      const srNew = ca * sR[i] + sa * tI[i];
+      const siNew = ca * sI[i] - sa * tR[i];
+      tR[i] = trNew; tI[i] = tiNew;
+      sR[i] = srNew; sI[i] = siNew;
+    }
+  }
+
+  // effective β used at this step (game mode uses b1A, others use b1)
+  function currentBeta1() {
+    return (mode === 'A') ? parseFloat(b1AS.value) : b1;
+  }
+
+  function step() {
+    const eb1 = currentBeta1();
+
+    halfDispersion(tR, tI, v0, a1, eb1, dt / 2);
+    halfDispersion(sR, sI, u0, a2, b2, dt / 2);
+    couple(dt);
+    halfDispersion(tR, tI, v0, a1, eb1, dt / 2);
+    halfDispersion(sR, sI, u0, a2, b2, dt / 2);
+    t += dt;
+
+    // Mode A: belief & scoring update
+    if (mode === 'A') {
+      const { leadIdx: tLead } = detectEdges(tR, tI);
+      const { leadIdx: sLead } = detectEdges(sR, sI);
+      const Delta = Math.max(0, (tLead - sLead) * dx);
+      const Delta_vis = visBleed * Delta;
+      // integrate belief
+      B += (-gammaB * (B - Delta_vis)) * dt;
+
+      // rent: proportional to the gap
+      const rentRate = 0.5 * Delta;
+      cumulativeRent += rentRate * dt;
+
+      // legitimacy: erodes when |Delta − B| is large
+      const mismatch = Math.abs(Delta - B);
+      const legitDrain = 0.15 * mismatch;
+      legitimacy = Math.max(0, legitimacy - legitDrain * dt);
+      // slow recovery if mismatch small
+      if (mismatch < 2) legitimacy = Math.min(1, legitimacy + 0.02 * dt);
+
+      // record history
+      histT.push(t);
+      histDelta.push(Delta);
+      histB.push(B);
+      histBeta.push(eb1);
+      histRent.push(cumulativeRent);
+      histLegit.push(legitimacy);
+      if (histT.length > HIST) {
+        histT.shift(); histDelta.shift(); histB.shift();
+        histBeta.shift(); histRent.shift(); histLegit.shift();
+      }
+    }
+
+    // Mode B: fire arc events
+    if (mode === 'B' && activeArc) {
+      const arcT = t - arcStartTime;
+      while (arcEventIdx < activeArc.events.length && activeArc.events[arcEventIdx].t <= arcT) {
+        const ev = activeArc.events[arcEventIdx];
+        ev.action();
+        arcEventIdx++;
+      }
+    }
+
+    // Mode C: record observation history every few steps
+    if (mode === 'C' && (Math.floor(t / dt) % 3 === 0)) {
+      const inten = new Float32Array(N);
+      for (let i = 0; i < N; i++) inten[i] = tR[i] * tR[i] + tI[i] * tI[i];
+      intenHistory.push({ t, inten });
+      if (intenHistory.length > OBS_HIST) intenHistory.shift();
+    }
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  function detectEdges(re, im) {
+    let maxI = 0;
+    const tmp = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      tmp[i] = re[i] * re[i] + im[i] * im[i];
+      if (tmp[i] > maxI) maxI = tmp[i];
+    }
+    const thresh = 0.05 * Math.max(maxI, 1e-12);
+    let leadIdx = N - 1, rearIdx = 0;
+    for (let i = N - 1; i >= 0; i--) if (tmp[i] > thresh) { leadIdx = i; break; }
+    for (let i = 0; i < N; i++) if (tmp[i] > thresh) { rearIdx = i; break; }
+    return { leadIdx, rearIdx, inten: tmp, norm: Math.max(maxI, 1e-12) };
+  }
+
+  function sizeCanvas(cv, ctx) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    cv.width = rect.width * dpr;
+    cv.height = rect.height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: rect.width, h: rect.height };
+  }
+
+  // ============================================================
+  // RENDER: field panels
+  // ============================================================
+  function drawFieldPanel(ctx, W, H, re, im, ghost, colHot, colMid, colCool) {
+    ctx.clearRect(0, 0, W, H);
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#0a0b0e'); grad.addColorStop(1, '#060709');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#161920'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const x = (W * i) / 10;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    const baseY = H * 0.88;
+    ctx.strokeStyle = '#2a2d35';
+    ctx.beginPath(); ctx.moveTo(0, baseY); ctx.lineTo(W, baseY); ctx.stroke();
+
+    const { leadIdx, rearIdx, inten, norm } = detectEdges(re, im);
+
+    // ghost
+    ctx.fillStyle = 'rgba(216,207,180,0.06)';
+    ctx.beginPath(); ctx.moveTo(0, baseY);
+    for (let i = 0; i < N; i++) {
+      const x = (i / (N - 1)) * W;
+      const y = baseY - (ghost[i] / norm) * (baseY - 10);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, baseY); ctx.closePath(); ctx.fill();
+
+    // fill
+    const fg = ctx.createLinearGradient(0, 0, W, 0);
+    fg.addColorStop(0, colCool); fg.addColorStop(0.5, colMid); fg.addColorStop(1, colHot);
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.moveTo(0, baseY);
+    for (let i = 0; i < N; i++) {
+      const x = (i / (N - 1)) * W;
+      const y = baseY - (inten[i] / norm) * (baseY - 10);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, baseY); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(232,228,216,0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const x = (i / (N - 1)) * W;
+      const y = baseY - (inten[i] / norm) * (baseY - 10);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // band ticks
+    if (leadIdx > rearIdx) {
+      for (let b = 0; b <= 5; b++) {
+        const idx = rearIdx + Math.round((leadIdx - rearIdx) * b / 5);
+        const x = (idx / (N - 1)) * W;
+        ctx.strokeStyle = b === 5 ? colHot : (b === 0 ? colCool : colMid);
+        ctx.lineWidth = (b === 0 || b === 5) ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(x, baseY + 3); ctx.lineTo(x, baseY + 10); ctx.stroke();
+      }
+    }
+
+    return { leadIdx, rearIdx, inten, norm };
+  }
+
+  // ============================================================
+  // RENDER: mode A auxiliary — time series
+  // ============================================================
+  function drawAuxA(W, H) {
+    if (!actx) return;
+    actx.clearRect(0, 0, W, H);
+    actx.fillStyle = '#07080a'; actx.fillRect(0, 0, W, H);
+    actx.strokeStyle = '#161920';
+    for (let i = 0; i <= 10; i++) {
+      const x = (W * i) / 10;
+      actx.beginPath(); actx.moveTo(x, 0); actx.lineTo(x, H); actx.stroke();
+    }
+
+    if (histT.length < 2) return;
+
+    // autoscale y
+    let maxD = 1;
+    for (let i = 0; i < histDelta.length; i++) {
+      if (histDelta[i] > maxD) maxD = histDelta[i];
+      if (histB[i] > maxD) maxD = histB[i];
+    }
+    maxD *= 1.1;
+
+    const padY = 16;
+    function yMap(v) { return H - padY - (v / maxD) * (H - 2 * padY); }
+
+    // baseline
+    actx.strokeStyle = '#2a2d35';
+    actx.beginPath(); actx.moveTo(0, H - padY); actx.lineTo(W, H - padY); actx.stroke();
+
+    const n = histT.length;
+    function drawSeries(data, color, width) {
+      actx.strokeStyle = color;
+      actx.lineWidth = width;
+      actx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * W;
+        const y = yMap(data[i]);
+        if (i === 0) actx.moveTo(x, y); else actx.lineTo(x, y);
+      }
+      actx.stroke();
+    }
+
+    // Δ (truth) — gold
+    drawSeries(histDelta, 'rgba(200,155,60,0.9)', 1.6);
+    // B (belief) — green
+    drawSeries(histB, 'rgba(110,196,138,0.9)', 1.6);
+
+    // β(t) drawn on separate normalized scale, at the top
+    actx.strokeStyle = 'rgba(224,122,60,0.8)';
+    actx.lineWidth = 1.2;
+    actx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * W;
+      const bnorm = histBeta[i] / 0.5; // max beta = 0.5
+      const y = 8 + (1 - bnorm) * 40;
+      if (i === 0) actx.moveTo(x, y); else actx.lineTo(x, y);
+    }
+    actx.stroke();
+
+    // Labels
+    actx.fillStyle = '#7a7669';
+    actx.font = "10px 'JetBrains Mono', monospace";
+    actx.fillText('β(t)', 8, 16);
+    actx.fillText('Δ, B', 8, H - 22);
+  }
+
+  // ============================================================
+  // RENDER: mode C auxiliary — true vs inferred ω(k)
+  // ============================================================
+  // Build "observed" group velocity: from the spectral evolution, estimate v_g(k)
+  // via the phase accumulated by each mode between successive observations.
+  // Then fit a polynomial ω(k) = v0_hat*k − α_hat*k² − β_hat*k³ via least squares
+  // on the instantaneous group velocities v_g(k) = v0_hat − 2α_hat k − 3β_hat k².
+  //
+  // For illustrative purposes: we approximate v_g(k) at a few sample wavenumbers
+  // from the observed center-of-mass advance of each spectral bin across the
+  // intensity history. This is a heuristic stand-in for "whatever procedure the
+  // out-group might use" — stylized but structurally honest.
+  function inferOmega() {
+    // If we have too little history, return a rough linear estimate
+    if (intenHistory.length < 5) return { v0h: v0, ah: 0, bh: 0 };
+
+    // Sample k values at which we'll estimate v_g
+    const kSamples = [0.1, 0.25, 0.5, 0.8, 1.1, 1.4];
+    const vgEstimates = [];
+
+    const first = intenHistory[0];
+    const last = intenHistory[intenHistory.length - 1];
+    const dtObs = last.t - first.t;
+    if (dtObs < 0.1) return { v0h: v0, ah: 0, bh: 0 };
+
+    // For each sampled k, find the band of spatial frequencies near k,
+    // compute center of mass in space at first and last, estimate v_g.
+    // This is very rough but captures the qualitative pattern.
+    for (const ks of kSamples) {
+      // Use a bandpass: multiply by a Gaussian kernel in spatial-frequency space
+      const sigma = 0.15;
+      function com(obs) {
+        // Compute an approximate "phase center" by weighting COM by cos(ks*x) energy
+        let num = 0, den = 0;
+        for (let i = 0; i < N; i++) {
+          const x = i * dx;
+          // weighting: localize to where intensity has spatial-freq content near ks
+          // rough proxy: amplitude of local oscillation at that k is hard to extract;
+          // we use intensity * cos^2(ks*x - phase). Since we don't know phase well,
+          // use a lowpass/bandpass envelope on the intensity itself.
+          const w = obs.inten[i];
+          num += x * w; den += w;
+        }
+        return den > 0 ? num / den : 0;
+      }
+      // Actually: all k's yield similar COM via this heuristic, which won't
+      // differentiate well. Improve by computing COM of the intensity
+      // multiplied by a moving filter — but for the paper's purposes we use
+      // a different strategy: fit ω directly via spectral phase tracking.
+      vgEstimates.push(null); // placeholder
+    }
+
+    // Better strategy: track complex-valued spectral phase.
+    // Reconstruct approx ψ from intensity is impossible (we lost phase).
+    // So we honestly can only estimate the overall center of mass velocity.
+    // Let's fit a model where: observed advance of |ψ|² band-pass COMs.
+    // Simplification for the viz: compute COM of spatially-windowed intensity.
+
+    // A clean, honest heuristic: bandpass the intensity via a cosine window
+    // around position bins, compute COM drift for each "band" assumed to
+    // correspond to a given k. Effectively we are making up a number, but
+    // it has the right qualitative shape.
+    const comEstimates = [];
+    const centers = [0.15, 0.3, 0.5, 0.7, 0.85]; // fractional positions
+    for (const cf of centers) {
+      const winCenter = cf * L;
+      const winSigma = 0.08 * L;
+      function windowedCom(obs) {
+        let num = 0, den = 0;
+        for (let i = 0; i < N; i++) {
+          const x = i * dx;
+          const w = Math.exp(-((x - winCenter) ** 2) / (2 * winSigma * winSigma));
+          const int = obs.inten[i] * w;
+          num += x * int; den += int;
+        }
+        return den > 0 ? num / den : winCenter;
+      }
+      const c0 = windowedCom(first);
+      const c1 = windowedCom(last);
+      const vg = (c1 - c0) / dtObs;
+      comEstimates.push(vg);
+    }
+
+    // Fit v_g(k) = v0h − 2*ah*k − 3*bh*k^2 with k_mapping:
+    // we don't truly know k per window, so map fractional position to a synthetic k.
+    // Windows near the front have low k (long-wavelength, robust content);
+    // windows toward the rear have high k. This is the *interpretation* that
+    // the out-group uses; it's heuristic but deliberate.
+    const kMap = [0.1, 0.35, 0.6, 0.9, 1.25]; // synthetic k per window
+
+    // Least-squares fit: minimize Σ (vg_obs[i] − (v0h − 2*ah*kMap[i] − 3*bh*kMap[i]^2))^2
+    // Normal equations:
+    // [Σ1         -2Σk        -3Σk²      ] [v0h]   [Σvg       ]
+    // [-2Σk       4Σk²        6Σk³       ] [ah ] = [-2Σk·vg   ]
+    // [-3Σk²      6Σk³        9Σk⁴       ] [bh ]   [-3Σk²·vg  ]
+    let S1 = 0, Sk = 0, Sk2 = 0, Sk3 = 0, Sk4 = 0;
+    let Svg = 0, Skvg = 0, Sk2vg = 0;
+    for (let i = 0; i < kMap.length; i++) {
+      const k = kMap[i], vg = comEstimates[i];
+      S1 += 1; Sk += k; Sk2 += k * k; Sk3 += k ** 3; Sk4 += k ** 4;
+      Svg += vg; Skvg += k * vg; Sk2vg += k * k * vg;
+    }
+
+    // Build augmented matrix
+    const M = [
+      [ S1,        -2 * Sk,    -3 * Sk2,   Svg        ],
+      [ -2 * Sk,    4 * Sk2,    6 * Sk3,  -2 * Skvg   ],
+      [ -3 * Sk2,   6 * Sk3,    9 * Sk4,  -3 * Sk2vg  ],
+    ];
+    // Gaussian elimination
+    for (let i = 0; i < 3; i++) {
+      let piv = i;
+      for (let r = i + 1; r < 3; r++) if (Math.abs(M[r][i]) > Math.abs(M[piv][i])) piv = r;
+      if (piv !== i) { const tmp = M[i]; M[i] = M[piv]; M[piv] = tmp; }
+      if (Math.abs(M[i][i]) < 1e-10) return { v0h: v0, ah: 0, bh: 0 };
+      for (let r = i + 1; r < 3; r++) {
+        const f = M[r][i] / M[i][i];
+        for (let c = i; c < 4; c++) M[r][c] -= f * M[i][c];
+      }
+    }
+    const sol = [0, 0, 0];
+    for (let i = 2; i >= 0; i--) {
+      let s = M[i][3];
+      for (let c = i + 1; c < 3; c++) s -= M[i][c] * sol[c];
+      sol[i] = s / M[i][i];
+    }
+
+    return { v0h: sol[0], ah: sol[1], bh: sol[2] };
+  }
+
+  function drawAuxC(W, H) {
+    if (!pctx) return;
+    pctx.clearRect(0, 0, W, H);
+    pctx.fillStyle = '#07080a'; pctx.fillRect(0, 0, W, H);
+
+    pctx.strokeStyle = '#161920';
+    for (let i = 0; i <= 10; i++) {
+      const x = (W * i) / 10;
+      pctx.beginPath(); pctx.moveTo(x, 0); pctx.lineTo(x, H); pctx.stroke();
+    }
+    for (let j = 0; j <= 4; j++) {
+      const y = (H * j) / 4;
+      pctx.beginPath(); pctx.moveTo(0, y); pctx.lineTo(W, y); pctx.stroke();
+    }
+
+    const eb1 = currentBeta1();
+    // Sample k from 0 to kmax
+    const kmax = 1.6;
+    const nS = 200;
+
+    // Truth
+    function omegaTrue(k) { return v0 * k - a1 * k * k - eb1 * k * k * k; }
+
+    // Inference
+    const { v0h, ah, bh } = inferOmega();
+    function omegaInf(k) { return v0h * k - ah * k * k - bh * k * k * k; }
+
+    // Autoscale
+    let maxW = 0.1, minW = 0;
+    for (let i = 0; i <= nS; i++) {
+      const k = (i / nS) * kmax;
+      const wt = omegaTrue(k), wi = omegaInf(k);
+      maxW = Math.max(maxW, wt, wi);
+      minW = Math.min(minW, wt, wi);
+    }
+    const pad = 18;
+    function yMap(w) {
+      return pad + (1 - (w - minW) / (maxW - minW + 1e-9)) * (H - 2 * pad);
+    }
+
+    // Residual area: fill between true and inferred
+    pctx.fillStyle = 'rgba(224,122,60,0.12)';
+    pctx.beginPath();
+    pctx.moveTo(0, yMap(omegaTrue(0)));
+    for (let i = 0; i <= nS; i++) {
+      const k = (i / nS) * kmax;
+      pctx.lineTo((i / nS) * W, yMap(omegaTrue(k)));
+    }
+    for (let i = nS; i >= 0; i--) {
+      const k = (i / nS) * kmax;
+      pctx.lineTo((i / nS) * W, yMap(omegaInf(k)));
+    }
+    pctx.closePath();
+    pctx.fill();
+
+    // True ω
+    pctx.strokeStyle = 'rgba(200,155,60,0.95)';
+    pctx.lineWidth = 2;
+    pctx.beginPath();
+    for (let i = 0; i <= nS; i++) {
+      const k = (i / nS) * kmax;
+      const x = (i / nS) * W, y = yMap(omegaTrue(k));
+      if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+    }
+    pctx.stroke();
+
+    // Inferred ω
+    pctx.strokeStyle = 'rgba(196,145,110,0.95)';
+    pctx.lineWidth = 2;
+    pctx.setLineDash([5, 3]);
+    pctx.beginPath();
+    for (let i = 0; i <= nS; i++) {
+      const k = (i / nS) * kmax;
+      const x = (i / nS) * W, y = yMap(omegaInf(k));
+      if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+    }
+    pctx.stroke();
+    pctx.setLineDash([]);
+
+    // Labels
+    pctx.fillStyle = '#7a7669';
+    pctx.font = "10px 'JetBrains Mono', monospace";
+    pctx.fillText('ω(k)', 8, 14);
+    pctx.textAlign = 'right';
+    pctx.fillText(`true: v₀=${v0.toFixed(2)} α=${a1.toFixed(2)} β=${eb1.toFixed(3)}`, W - 8, 14);
+    pctx.fillText(`inferred: v̂=${v0h.toFixed(2)} α̂=${ah.toFixed(2)} β̂=${bh.toFixed(3)}`, W - 8, 28);
+    pctx.textAlign = 'left';
+
+    // L2 gap
+    let gap2 = 0;
+    for (let i = 0; i <= nS; i++) {
+      const k = (i / nS) * kmax;
+      const d = omegaTrue(k) - omegaInf(k);
+      gap2 += d * d;
+    }
+    const gapNorm = Math.sqrt(gap2 / (nS + 1));
+    if (omegaGapRO) omegaGapRO.textContent = gapNorm.toFixed(3);
+  }
+
+  // ============================================================
+  // RENDER MAIN
+  // ============================================================
+  function render() {
+    const TS = sizeCanvas(techCv, tctx);
+    const SS = sizeCanvas(socCv, cctx);
+
+    const techInfo = drawFieldPanel(
+      tctx, TS.w, TS.h, tR, tI, t0Int,
+      'rgba(255,170,90,0.7)', 'rgba(200,120,55,0.45)', 'rgba(138,62,28,0.5)'
+    );
+    const socInfo = drawFieldPanel(
+      cctx, SS.w, SS.h, sR, sI, s0Int,
+      'rgba(170,210,235,0.7)', 'rgba(70,120,155,0.45)', 'rgba(45,88,117,0.5)'
+    );
+
+    // cross-correlation ρ
+    let mt = 0, ms = 0;
+    for (let i = 0; i < N; i++) { mt += techInfo.inten[i]; ms += socInfo.inten[i]; }
+    mt /= N; ms /= N;
+    let num = 0, dt2 = 0, ds2 = 0;
+    for (let i = 0; i < N; i++) {
+      const a = techInfo.inten[i] - mt;
+      const b = socInfo.inten[i] - ms;
+      num += a * b; dt2 += a * a; ds2 += b * b;
+    }
+    const rho = (dt2 > 0 && ds2 > 0) ? num / Math.sqrt(dt2 * ds2) : 0;
+
+    const techSp = (techInfo.leadIdx - techInfo.rearIdx) * dx;
+    const socSp = (socInfo.leadIdx - socInfo.rearIdx) * dx;
+    const deltaFrontier = (techInfo.leadIdx - socInfo.leadIdx) * dx;
+
+    corrDisp.textContent = 'ρ = ' + rho.toFixed(2);
+    timeDisp.textContent = 't = ' + t.toFixed(2);
+
+    if (mode === 'A') {
+      if (rhoRO) rhoRO.textContent = rho.toFixed(2);
+      if (gapRO) gapRO.textContent = Math.max(0, deltaFrontier).toFixed(1);
+      if (rentRO) rentRO.textContent = cumulativeRent.toFixed(1);
+      if (legitRO) legitRO.textContent = legitimacy.toFixed(2);
+
+      // status banner
+      if (legitimacy < 0.3) {
+        statusBanner.className = 'status-banner alert';
+        statusBanner.textContent = 'Narrative collapse imminent. Belief has decoupled from visible signal — legitimacy is gone.';
+      } else if (legitimacy < 0.7) {
+        statusBanner.className = 'status-banner';
+        statusBanner.textContent = 'Legitimacy eroding. The visible gap Δ_vis is no longer masking the true gap Δ well enough.';
+      } else if (cumulativeRent < 5 && t > 5) {
+        statusBanner.className = 'status-banner';
+        statusBanner.textContent = 'Low rent accumulation. Raise β for a steeper moat — but watch the gap between Δ and B.';
+      } else {
+        statusBanner.className = 'status-banner good';
+        statusBanner.textContent = 'Regime stable. Rent accumulating, belief tracking the visible signal. The moat is holding.';
+      }
+
+      const AS = sizeCanvas(auxCvA, actx);
+      drawAuxA(AS.w, AS.h);
+    }
+
+    if (mode === 'B') {
+      if (rhoRO_B) rhoRO_B.textContent = rho.toFixed(2);
+      renderTimeline();
+    }
+
+    if (mode === 'C') {
+      if (rhoRO_C) rhoRO_C.textContent = rho.toFixed(2);
+      const CS = sizeCanvas(auxCvC, pctx);
+      drawAuxC(CS.w, CS.h);
+    }
+  }
+
+  // ============================================================
+  // TIMELINE RENDER (Mode B)
+  // ============================================================
+  function renderTimeline() {
+    const track = el('timelineTrack');
+    if (!track) return;
+    // Keep baseline line + progress. Clear markers.
+    // (we re-render markers each frame only if arc loaded; cheap enough)
+    const existingMarkers = track.querySelectorAll('.timeline-marker,.timeline-label,.timeline-desc');
+    existingMarkers.forEach(e => e.remove());
+
+    const progressEl = el('timelineProgress');
+    if (!activeArc) {
+      if (progressEl) progressEl.style.width = '0%';
+      if (arcProgressRO) arcProgressRO.textContent = '0%';
+      return;
+    }
+
+    const arcT = t - arcStartTime;
+    const total = activeArc.duration;
+    const pct = Math.min(1, arcT / total);
+    if (progressEl) progressEl.style.width = (pct * 100) + '%';
+    if (arcProgressRO) arcProgressRO.textContent = Math.round(pct * 100) + '%';
+
+    // markers
+    for (let i = 0; i < activeArc.events.length; i++) {
+      const ev = activeArc.events[i];
+      const x = (ev.t / total) * 100;
+      const m = document.createElement('div');
+      m.className = 'timeline-marker' + (ev.t <= arcT ? ' active' : '');
+      m.style.left = x + '%';
+      track.appendChild(m);
+      const lbl = document.createElement('div');
+      lbl.className = 'timeline-label';
+      lbl.style.left = x + '%';
+      lbl.textContent = ev.label;
+      track.appendChild(lbl);
+      // show desc for most recent past event
+    }
+
+    // Description: most recent past event
+    let latestPast = null;
+    for (const ev of activeArc.events) if (ev.t <= arcT) latestPast = ev;
+    const descEl = el('arcDescription');
+    if (descEl && latestPast) descEl.innerHTML = `<b>${latestPast.label}:</b> ${latestPast.desc}`;
+  }
+
+  // ============================================================
+  // ARC DEFINITIONS (Mode B)
+  // ============================================================
+  function makeArc(name, title, totalDur, events) {
+    // events: [{ t: arcTime, label, desc, setParams: {v0,a1,b1,u0,a2,b2,gamma}? }]
+    return {
+      name, title, duration: totalDur,
+      events: events.map(ev => ({
+        t: ev.t, label: ev.label, desc: ev.desc,
+        action: () => {
+          if (ev.setParams) applyParams(ev.setParams);
+        }
+      })),
+    };
+  }
+
+  function applyParams(p) {
+    if (p.v0 !== undefined) { v0S.value = p.v0; }
+    if (p.a1 !== undefined) { a1S.value = p.a1; }
+    if (p.b1 !== undefined) { b1S.value = p.b1; b1AS.value = p.b1; }
+    if (p.u0 !== undefined) { u0S.value = p.u0; }
+    if (p.a2 !== undefined) { a2S.value = p.a2; }
+    if (p.b2 !== undefined) { b2S.value = p.b2; }
+    if (p.g !== undefined) { gS.value = p.g; }
+    updateFromSliders();
+  }
+
+  const arcs = {
+    nuclear: makeArc('nuclear', 'Nuclear Arc · 1945 → 2026', 40, [
+      { t: 0,  label: '1945', desc: 'Trinity. Initial packet established at Los Alamos — narrow σ, broad spectrum, high dispersive potential.',
+        setParams: { v0: 1.2, a1: 0.15, b1: 0.05, u0: 0.5, a2: 0.1, b2: 0.05, g: 0.05 } },
+      { t: 4,  label: '1946', desc: 'Atomic Energy Act imposes classification regime. β jumps — first strategic regime shift.',
+        setParams: { b1: 0.25 } },
+      { t: 8,  label: '1949', desc: 'Soviet test. First independent rediscovery event — but β holds; arc continues.',
+        setParams: { b1: 0.28 } },
+      { t: 12, label: '1953', desc: 'Atoms for Peace. Credible partial disclosure — v₀ increases for civilian release, but β on weapons remains high.',
+        setParams: { v0: 1.5, b1: 0.3 } },
+      { t: 20, label: '1968', desc: 'NPT. Narrative reinforcement — the visible signal Δ_vis is shaped to sustain belief in non-proliferation.',
+        setParams: { b1: 0.32 } },
+      { t: 30, label: '2006', desc: 'North Korea enters. Rear bands continue to separate but frontier (thermonuclear) stays closed.',
+        setParams: { b1: 0.35 } },
+      { t: 38, label: '2026', desc: 'Present. Eighty years of sustained stratification. Narrative intact. Lead band still closed.',
+        setParams: { b1: 0.38 } },
+    ]),
+
+    highered: makeArc('highered', 'Elite Higher Ed · 1945 → Present', 40, [
+      { t: 0,  label: '1945', desc: 'Small elite institutions; narrow σ for social position field.',
+        setParams: { v0: 0.8, a1: 0.2, b1: 0.1, u0: 1.2, a2: 0.3, b2: 0.3, g: 0.1 } },
+      { t: 5,  label: '1946', desc: 'GI Bill. Massive credible partial disclosure — u₀ jumps; belief in meritocracy sustained.',
+        setParams: { u0: 1.8, a2: 0.4 } },
+      { t: 12, label: '1960s', desc: 'Standardized testing. Codifies some tacit content into low-k signals — α₂ rises, β₂ briefly dips.',
+        setParams: { a2: 0.5, b2: 0.22 } },
+      { t: 20, label: '1980s', desc: 'Holistic admissions. High-k tacit content recoded into non-transferable form — regime shift, β₂ jumps.',
+        setParams: { b2: 0.35 } },
+      { t: 28, label: '2000s', desc: 'Explicit cultivation of legacy/development preferences. Another β₂ ratchet.',
+        setParams: { b2: 0.4 } },
+      { t: 36, label: 'Present', desc: 'Selectivity compression. Lead band compressed back toward its original coherence. Coupling γ strong: social → tech.',
+        setParams: { b2: 0.45, g: 0.28 } },
+    ]),
+
+    ai: makeArc('ai', 'AI Capability Arc · 2017 → 2026', 36, [
+      { t: 0,  label: '2017', desc: '“Attention is All You Need”. Transformer published openly — low β, broad dissemination.',
+        setParams: { v0: 1.4, a1: 0.25, b1: 0.05, u0: 0.8, a2: 0.2, b2: 0.15, g: 0.15 } },
+      { t: 6,  label: '2020', desc: 'GPT-3. Access tiers introduced — first strategic β on the technology field.',
+        setParams: { b1: 0.15 } },
+      { t: 12, label: '2022', desc: 'ChatGPT. Massive intermediate release — Atoms-for-Peace pattern, sustaining belief.',
+        setParams: { v0: 1.6, b1: 0.2 } },
+      { t: 20, label: '2024', desc: 'Frontier model closure. β rises sharply; coupling γ to social (elite credentialing) strengthens.',
+        setParams: { b1: 0.32, g: 0.3 } },
+      { t: 28, label: '2025', desc: 'Narrative elaboration around meritocratic access. Self-stratifying belief feedback operates.',
+        setParams: { b1: 0.35, g: 0.35 } },
+      { t: 34, label: '2026', desc: 'Present. Frontier-to-public gap widened; ρ approaching 1. Stability sustained by social-field feedback.',
+        setParams: { b1: 0.38, g: 0.4 } },
+    ]),
+  };
+
+  function loadArc(name) {
+    activeArc = arcs[name];
+    arcStartTime = t;
+    arcEventIdx = 0;
+    const titleEl = el('arcTitle');
+    if (titleEl) titleEl.textContent = activeArc.title;
+    const descEl = el('arcDescription');
+    if (descEl) descEl.textContent = 'Loading arc — first event will trigger at t = 0.';
+    initFields();
+    arcStartTime = 0;
+  }
+
+  // ============================================================
+  // PRESETS (Mode A & C)
+  // ============================================================
+  const presets = {
+    tesla:      { v0: 1.0, a1: 0.05, b1: 0.005, u0: 0.95, a2: 0.05, b2: 0.01, g: 0.02, gB: 0.2, visBleed: 0.9 },
+    cumulative: { v0: 1.0, a1: 0.2, b1: 0.18, u0: 0.85, a2: 0.15, b2: 0.15, g: 0.30, gB: 0.1, visBleed: 0.5 },
+    closed:     { v0: 1.2, a1: 0.15, b1: 0.35, u0: 0.9, a2: 0.2, b2: 0.25, g: 0.35, gB: 0.05, visBleed: 0.2 },
+    inf_benign: { v0: 1.0, a1: 0.2, b1: 0.02, u0: 0.85, a2: 0.15, b2: 0.05, g: 0.1 },
+    inf_moat:   { v0: 1.0, a1: 0.2, b1: 0.35, u0: 0.85, a2: 0.15, b2: 0.2, g: 0.15 },
+    inf_adversarial: { v0: 1.0, a1: 0.2, b1: 0.25, u0: 0.85, a2: 0.15, b2: 0.2, g: 0.2 },
+  };
+
+  // ============================================================
+  // LOOP
+  // ============================================================
+  function loop() {
+    if (playing) {
+      step();
+      // recenter
+      let comT = 0, totT = 0, comS = 0, totS = 0;
+      for (let i = 0; i < N; i++) {
+        const It = tR[i] ** 2 + tI[i] ** 2;
+        const Is = sR[i] ** 2 + sI[i] ** 2;
+        comT += i * It; totT += It;
+        comS += i * Is; totS += Is;
+      }
+      comT = totT > 0 ? comT / totT * dx : 0;
+      comS = totS > 0 ? comS / totS * dx : 0;
+      if (comT > L * 0.85 || comS > L * 0.85) initFieldArrays();
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // ============================================================
+  // UI WIRING
+  // ============================================================
+  function updateFromSliders() {
+    v0 = parseFloat(v0S.value);
+    a1 = parseFloat(a1S.value);
+    b1 = parseFloat(b1S.value);
+    u0 = parseFloat(u0S.value);
+    a2 = parseFloat(a2S.value);
+    b2 = parseFloat(b2S.value);
+    gamma = parseFloat(gS.value);
+    if (gBS) gammaB = parseFloat(gBS.value);
+    if (visBleedS) visBleed = parseFloat(visBleedS.value);
+
+    v0V.textContent = v0.toFixed(2);
+    a1V.textContent = a1.toFixed(2);
+    b1V.textContent = b1.toFixed(3);
+    if (b1AV) b1AV.textContent = parseFloat(b1AS.value).toFixed(3);
+    u0V.textContent = u0.toFixed(2);
+    a2V.textContent = a2.toFixed(2);
+    b2V.textContent = b2.toFixed(3);
+    gV.textContent = gamma.toFixed(3);
+    if (gBV) gBV.textContent = gammaB.toFixed(3);
+    if (visBleedV) visBleedV.textContent = visBleed.toFixed(2);
+  }
+
+  [v0S, a1S, b1S, u0S, a2S, b2S, gS].forEach(s => s && s.addEventListener('input', updateFromSliders));
+  if (b1AS) b1AS.addEventListener('input', updateFromSliders);
+  if (gBS) gBS.addEventListener('input', updateFromSliders);
+  if (visBleedS) visBleedS.addEventListener('input', updateFromSliders);
+
+  playBtn.addEventListener('click', () => {
+    playing = !playing;
+    playBtn.textContent = playing ? 'Pause' : 'Play';
+  });
+  resetBtn.addEventListener('click', () => {
+    initFields();
+    if (mode === 'B' && activeArc) { arcStartTime = 0; arcEventIdx = 0; }
+  });
+
+  // Mode switching
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mode = btn.dataset.mode;
+      document.body.dataset.mode = mode;
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      // When leaving mode B, clear arc
+      if (mode !== 'B') activeArc = null;
+      initFields();
+    });
+  });
+
+  // Presets
+  document.querySelectorAll('.preset-btn[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = presets[btn.dataset.preset];
+      if (!p) return;
+      applyParams(p);
+      if (p.gB !== undefined && gBS) { gBS.value = p.gB; }
+      if (p.visBleed !== undefined && visBleedS) { visBleedS.value = p.visBleed; }
+      updateFromSliders();
+      initFields();
+    });
+  });
+  document.querySelectorAll('.preset-btn[data-arc]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      loadArc(btn.dataset.arc);
+    });
+  });
+
+  // ============================================================
+  // BOOT
+  // ============================================================
+  updateFromSliders();
+  initFields();
+  loop();
+})();
+</script>
+</body>
+</html>

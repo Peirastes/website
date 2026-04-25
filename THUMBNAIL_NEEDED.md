@@ -17,6 +17,7 @@ These 13 projects currently use placeholder SVGs on the homepage. Replace each w
 | Horizontal Frame Centering Algorithm | `placeholder-frame-center.svg` | Diagram of frame spacing formula |
 | Fundamental Principles - On Analogies (continued) | `placeholder-physical-analogies-continued.svg` | Cross-domain analogy table |
 | On Physical Analogies | `placeholder-physical-analogies.svg` | Source-field-force diagram |
+| Dispersion and Stratification | `placeholder-dispersion-stratification.svg` | Mode A or Mode C panel of the simulator |
 
 ## Projects with real thumbnails (no action needed)
 
