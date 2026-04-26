@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peirastes UI Catalogue</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═════════════════════════════════════════════════════════════════
+   ACRYLIC HUD · COMPONENT LIBRARY
+   All locked design components for the Artemis II v2 build.
+   Interactive — knobs drag vertically, sliders drag h/v.
+   ═════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-void:    #040608;
+  --bg-base:    #0a0e14;
+  --fg:         #d0d4da;
+  --fg-2:       #9a9890;
+  --fg-3:       #707880;
+  --amber:      #f0a030;
+  --amber-dim:  #a06820;
+  --amber-glow: rgba(240,160,48,0.25);
+  --amber-edge: rgba(240,160,48,0.45);
+  --amber-hot:  #ffd080;
+  --cyan:       #40e8d0;
+  --cyan-glow:  rgba(64,232,208,0.25);
+  --green:      #40d870;
+  --green-glow: rgba(64,216,112,0.35);
+  --red:        #e05040;
+  --red-glow:   rgba(224,80,64,0.35);
+  --chrom-amber: rgba(240,160,48,0.38);
+  --chrom-cyan:  rgba(64,232,208,0.30);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: radial-gradient(ellipse at 50% 40%, #0e141c, var(--bg-base) 60%, var(--bg-void));
+  color: var(--fg);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.007) 2px, rgba(255,255,255,0.007) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.004) 2px, rgba(255,255,255,0.004) 4px);
+}
+
+.site-back {
+  position: fixed; top: 10px; left: 14px; z-index: 100;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: rgba(224,224,224,0.3); text-decoration: none;
+  letter-spacing: 0.08em; transition: color 0.2s ease;
+}
+.site-back:hover { color: #e07050; }
+
+.page-header { position: relative; z-index: 1; padding: 60px 40px 4px; text-align: center; }
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 700;
+  color: var(--amber); text-shadow: 0 0 16px var(--amber-glow);
+  letter-spacing: 0.24em; text-transform: uppercase;
+}
+.page-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--fg-3); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 6px;
+}
+.page-sub em { font-style: normal; color: var(--amber); }
+
+.showcase {
+  position: relative; z-index: 1;
+  max-width: 720px; margin: 0 auto; padding: 28px 32px 80px;
+  display: flex; flex-direction: column; gap: 32px;
+}
+
+.section-label {
+  font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.22em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+  margin-bottom: 8px;
+}
+.section-label .tag {
+  color: var(--fg-3); font-weight: 400; margin-left: 10px;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACRYLIC PANEL (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.acrylic-panel {
+  position: relative; padding: 20px 22px 22px; border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.62) 0%, rgba(12,16,22,0.58) 60%, rgba(10,14,20,0.62) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber), -1px 0 0 var(--chrom-cyan),
+    0 0 28px rgba(240,160,48,0.13), 0 18px 48px rgba(0,0,0,0.65),
+    0 4px 12px rgba(0,0,0,0.5), inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2px 10px; margin-bottom: 18px;
+  border-bottom: 1px solid rgba(240,160,48,0.15);
+}
+.panel-header__label {
+  font-family: 'Orbitron', monospace; font-size: 9px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+}
+.panel-header__status {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--fg-3); letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOUNTED SCREEN (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.mounted-screen {
+  position: relative; border-radius: 6px; overflow: hidden;
+  border: 1px solid rgba(240,160,48,0.55);
+  box-shadow:
+    inset 0 3px 10px rgba(0,0,0,0.85), inset 0 -1px 4px rgba(0,0,0,0.5),
+    0 0 10px rgba(240,160,48,0.18), inset 0 0 24px rgba(240,160,48,0.05);
+  background: radial-gradient(ellipse at 50% 50%, rgba(18,12,4,0.98) 0%, rgba(10,7,3,1) 60%, rgba(4,4,4,1) 100%);
+  padding: 14px 16px 16px;
+  min-height: 120px;
+}
+/* Static scanlines */
+.mounted-screen::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background-image: repeating-linear-gradient(0deg,
+    rgba(240,160,48,0.04) 0px, rgba(240,160,48,0.04) 1px,
+    rgba(0,0,0,0.92) 1px, rgba(0,0,0,0.92) 2px);
+  opacity: 0.75;
+}
+/* Vignette */
+.mounted-screen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 8;
+  background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+/* Diffuse sweep — 12s cycle */
+.sweep-diffuse {
+  position: absolute; left: -10%; right: -10%; height: 72px;
+  pointer-events: none; z-index: 6;
+  background: linear-gradient(180deg,
+    transparent 0%, rgba(240,160,48,0.02) 15%, rgba(255,200,110,0.09) 45%,
+    rgba(255,200,110,0.11) 55%, rgba(240,160,48,0.02) 85%, transparent 100%);
+  filter: blur(10px); mix-blend-mode: screen;
+  animation: diffuseSweep 12s ease-in-out infinite;
+}
+@keyframes diffuseSweep { 0% { top: -80px; } 100% { top: 105%; } }
+/* Phosphor noise — 0.08α, 9s drift */
+.sweep-noise {
+  position: absolute; inset: -10%; pointer-events: none; z-index: 6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.95  0.7 0 0 0 0.65  0 0 0 0 0.2  0 0 0 0.8 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  mix-blend-mode: screen; opacity: 0.08;
+  animation: noiseDrift 9s linear infinite;
+}
+@keyframes noiseDrift { 0% { background-position: 0 0; } 100% { background-position: 200px 200px; } }
+
+.screen-content { position: relative; z-index: 7; display: flex; flex-direction: column; gap: 8px; }
+.screen-readout {
+  font-family: 'Share Tech Mono', monospace; font-size: 26px;
+  color: var(--amber); text-shadow: 0 0 14px rgba(240,160,48,0.55), 0 0 28px rgba(240,160,48,0.25);
+  letter-spacing: 0.04em; line-height: 1;
+}
+.screen-readout .unit { font-size: 11px; color: var(--amber-dim); margin-left: 4px; }
+.screen-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--fg-3); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.screen-bars { display: flex; gap: 2px; margin-top: 6px; }
+.screen-bar {
+  flex: 1; height: 5px; background: rgba(240,160,48,0.1);
+  border-radius: 1px; position: relative;
+}
+.screen-bar::before {
+  content: ''; position: absolute; inset: 0;
+  width: var(--bar, 50%);
+  background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+  box-shadow: 0 0 6px rgba(240,160,48,0.6); border-radius: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTROLS — buttons, LED, input (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.ctrl-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+.ctrl-btn {
+  padding: 6px 12px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
+  border: 1px solid rgba(240,160,48,0.45); border-radius: 4px;
+  color: var(--amber); font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; cursor: pointer; transition: all 0.12s ease;
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.12), 0 0 6px rgba(240,160,48,0.1), 0 2px 4px rgba(0,0,0,0.4);
+  text-shadow: 0 0 6px var(--amber-glow); white-space: nowrap;
+}
+.ctrl-btn:hover {
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.22), 0 0 12px rgba(240,160,48,0.3), 0 2px 4px rgba(0,0,0,0.4);
+}
+.ctrl-btn--accent {
+  background: linear-gradient(180deg, rgba(240,160,48,0.32), rgba(160,104,32,0.22));
+  border-color: var(--amber); color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,220,150,0.22), 0 0 14px rgba(240,160,48,0.3), 0 2px 6px rgba(0,0,0,0.5);
+}
+.ctrl-btn--active {
+  background: linear-gradient(180deg, rgba(240,160,48,0.18), rgba(160,104,32,0.12));
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 0 10px rgba(240,160,48,0.28);
+  color: #fff;
+}
+
+.ctrl-led {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 8px;
+  background: rgba(8,12,18,0.75);
+  border: 1px solid rgba(240,160,48,0.4); border-radius: 12px;
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-3);
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.1), 0 0 6px rgba(240,160,48,0.1);
+}
+.led-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  box-shadow: 0 0 4px currentColor, 0 0 8px currentColor, inset 0 -1px 1px rgba(0,0,0,0.3);
+  animation: ledPulse 2.5s ease-in-out infinite;
+}
+.led-dot.green { background: var(--green); color: var(--green); }
+.led-dot.cyan  { background: var(--cyan);  color: var(--cyan); }
+.led-dot.amber { background: var(--amber); color: var(--amber); }
+.led-dot.red   { background: var(--red);   color: var(--red); }
+@keyframes ledPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+.ctrl-input {
+  flex: 1; min-width: 0; padding: 5px 10px;
+  background: rgba(4,6,10,0.85);
+  border: 1px solid rgba(240,160,48,0.35); border-radius: 4px;
+  color: var(--cyan); font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 0.05em; outline: none;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.7), 0 0 4px rgba(240,160,48,0.08);
+  text-shadow: 0 0 6px var(--cyan-glow);
+}
+.ctrl-input:focus {
+  border-color: var(--cyan);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.7), 0 0 8px var(--cyan-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   N2 ROTARY KNOB — recessed radial channel (reworked)
+   Container IS the channel. Knob covers center, ring is visible.
+   64px container, 30px knob → 16px visible channel ring.
+   ═══════════════════════════════════════════════════════════════ */
+.knob-row { display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; flex-wrap: wrap; }
+.knob-col { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.knob-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.knob-value {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--amber); text-shadow: 0 0 5px var(--amber-glow); letter-spacing: 0.06em;
+}
+
+/* Container = recessed circular channel — 48px, 8px ring around 30px knob */
+.n2 {
+  position: relative; width: 48px; height: 48px; cursor: grab;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border: 1px solid rgba(14,18,22,0.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06), 0 2px 3px rgba(0,0,0,0.4);
+}
+.n2:active { cursor: grabbing; }
+/* Shadow overlay — above fill, below knob */
+.n2::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  box-shadow:
+    inset 0 4px 8px rgba(0,0,0,1), inset 0 -2px 5px rgba(0,0,0,0.6),
+    inset 3px 0 6px rgba(0,0,0,0.7), inset -3px 0 6px rgba(0,0,0,0.7),
+    inset 0 0 14px rgba(0,0,0,0.5);
+  pointer-events: none; z-index: 2;
+}
+
+/* Arc fill — conic gradient in the channel ring */
+.n2-arc {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(
+    from 225deg,
+    rgba(255,170,0,0.42) 0deg,
+    rgba(255,170,0,0.42) calc(var(--val) * 270deg),
+    transparent calc(var(--val) * 270deg),
+    transparent 270deg,
+    transparent 360deg
+  );
+  /* Mask to channel ring: knob edge (16px) to channel edge (22px) */
+  -webkit-mask: radial-gradient(circle, transparent 15px, black 16px, black 22px, transparent 23px);
+  mask: radial-gradient(circle, transparent 15px, black 16px, black 22px, transparent 23px);
+  z-index: 1;
+}
+
+/* Ticks inside channel ring — above shadow overlay so they stay visible */
+.n2-ticks { position: absolute; inset: 0; border-radius: 50%; z-index: 4; pointer-events: none; }
+.n2-tick {
+  position: absolute; top: 50%; left: 50%;
+  width: 1px; height: 4px;
+  background: rgba(255,180,40,0.5);
+  box-shadow: 0 0 2px rgba(255,160,0,0.3);
+  transform-origin: 50% 0;
+}
+.n2-tick--major { width: 1.5px; height: 6px; background: rgba(255,180,40,0.8); box-shadow: 0 0 3px rgba(255,160,0,0.5); }
+
+/* Knob — clean metallic, centered, covers channel interior */
+.n2-knob {
+  position: absolute; top: 50%; left: 50%;
+  width: 30px; height: 30px; margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #3a3e42 0%, #262a2e 30%, #14171a 70%, #0a0c10 100%);
+  border: 1px solid #000;
+  box-shadow: 0 2px 6px 1px rgba(0,0,0,0.6);
+  transform: rotate(calc(-135deg + (var(--val) * 270deg)));
+  z-index: 3;
+}
+/* Wide notch ribs — edge only, conic knurling */
+.n2-knob::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255,255,255,0.07) 0deg 5deg,
+    rgba(0,0,0,0.15) 5deg 7deg,
+    transparent 7deg 12deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 10px, black 11px);
+  mask: radial-gradient(circle, transparent 10px, black 11px);
+}
+/* Counter-rotated inset lighting — stays fixed */
+.n2-knob::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.07) 0%, transparent 50%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -2px 3px rgba(0,0,0,0.6);
+  transform: rotate(calc(135deg - (var(--val) * 270deg)));
+  pointer-events: none;
+}
+/* LED on knob face */
+.n2-led {
+  position: absolute; top: 50%; left: 50%;
+  width: 8px; height: 8px; margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, rgba(80,84,88,0.5) 0%, rgba(40,44,48,0.4) 40%, rgba(20,24,28,0.6) 100%);
+  border: 1px solid rgba(0,0,0,0.6);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.06), inset 0 -0.5px 1px rgba(0,0,0,0.3);
+  z-index: 4;
+}
+.n2-led::after {
+  content: ''; position: absolute; inset: -1px; border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, #ffd080 0%, var(--amber) 40%, #a06820 100%);
+  box-shadow:
+    0 0 4px rgba(240,160,48,0.9), 0 0 10px rgba(240,160,48,0.5), 0 0 18px rgba(240,160,48,0.2);
+  opacity: var(--val, 0);
+  transition: opacity 0.1s ease;
+}
+/* Pointer — arrow indicator in channel ring */
+.n2-pointer {
+  position: absolute; top: 50%; left: 50%;
+  width: 0; height: 0;
+  margin-left: -3px;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 7px solid var(--amber);
+  filter: drop-shadow(0 0 3px rgba(255,160,0,0.6));
+  transform-origin: 50% 21px;
+  transform: translateY(-21px) rotate(calc(-135deg + (var(--val) * 270deg)));
+  z-index: 4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   S1 SLIDER — straight cap, horizontal (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.slider-demo { display: flex; gap: 20px; align-items: stretch; }
+.slider-demo__h { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.slider-demo__v {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding-left: 18px; border-left: 1px solid rgba(240,160,48,0.1);
+}
+
+.slider-group { display: flex; align-items: center; gap: 12px; }
+.slider-group__label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+  width: 46px; text-align: right; flex-shrink: 0;
+}
+.slider-group__value {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--amber); text-shadow: 0 0 5px var(--amber-glow); letter-spacing: 0.06em;
+  width: 32px; flex-shrink: 0;
+}
+
+.vslider-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.vslider-col__label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.vslider-col__value {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--amber); text-shadow: 0 0 5px var(--amber-glow); letter-spacing: 0.06em;
+}
+
+/* Slider IS the channel — same recessed aesthetic as CH switch */
+.slider {
+  position: relative; height: 24px; flex: 1; cursor: grab;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border: 1px solid rgba(14,18,22,0.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06), 0 2px 3px rgba(0,0,0,0.4);
+}
+.slider:active { cursor: grabbing; }
+/* Shadow overlay — renders on top of fill */
+.slider::after {
+  content: ''; position: absolute; inset: 0; border-radius: 4px;
+  box-shadow:
+    inset 0 4px 8px rgba(0,0,0,1), inset 0 -2px 5px rgba(0,0,0,0.6),
+    inset 3px 0 6px rgba(0,0,0,0.7), inset -3px 0 6px rgba(0,0,0,0.7),
+    inset 0 0 14px rgba(0,0,0,0.5);
+  pointer-events: none; z-index: 3;
+}
+/* Channel floor grooves */
+.slider::before {
+  content: ''; position: absolute;
+  top: 4px; bottom: 4px; left: 4px; right: 4px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg,
+    transparent 0px, transparent 3px,
+    rgba(255,255,255,0.015) 3px, rgba(255,255,255,0.015) 4px);
+}
+
+/* Ticks inside channel — above shadow overlay, below knob */
+.slider-ticks {
+  position: absolute; left: 2px; right: 2px; top: 1px; height: 6px; pointer-events: none; z-index: 4;
+}
+.slider-tick {
+  position: absolute; top: 0; width: 1px; height: 3px;
+  background: rgba(255,180,40,0.5);
+  box-shadow: 0 0 2px rgba(255,160,0,0.3);
+}
+.slider-tick--major { width: 1.5px; height: 5px; background: rgba(255,180,40,0.8); box-shadow: 0 0 3px rgba(255,160,0,0.5); }
+
+/* Fill — full height of channel interior, gradient */
+.slider-fill {
+  position: absolute; top: 1px; left: 1px; bottom: 1px;
+  width: calc(var(--val) * (100% - 2px));
+  background: linear-gradient(90deg, rgba(255,160,0,0.06) 0%, rgba(255,170,0,0.2) 40%, rgba(255,180,0,0.42) 100%);
+  border-radius: 4px 0 0 4px;
+}
+
+/* Knob — 18×18, 2px inset, slides inside channel */
+/* At val=0: left=2px. At val=1: left = 100% - 20px. */
+.slider-thumb {
+  position: absolute; top: 2px;
+  left: calc(2px + var(--val) * (100% - 22px));
+  width: 18px; height: 18px;
+  border-radius: 3px;
+  background: radial-gradient(ellipse at 50% 50%, #3a3e42 0%, #262a2e 30%, #14171a 70%, #0a0c10 100%);
+  border: 1px solid #000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+  transition: box-shadow 0.15s ease;
+  z-index: 5;
+}
+.slider-thumb::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: 3px;
+  background: radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.07) 0%, transparent 50%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -2px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+/* LED indicator — unlit lens base */
+.slider-led {
+  position: absolute; top: 50%; left: 50%;
+  width: 8px; height: 8px; margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, rgba(80,84,88,0.5) 0%, rgba(40,44,48,0.4) 40%, rgba(20,24,28,0.6) 100%);
+  border: 1px solid rgba(0,0,0,0.6);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.06), inset 0 -0.5px 1px rgba(0,0,0,0.3);
+  z-index: 6;
+}
+/* LED lit glow — opacity driven by --val */
+.slider-led::after {
+  content: ''; position: absolute; inset: -1px; border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, #ffd080 0%, var(--amber) 40%, #a06820 100%);
+  box-shadow:
+    0 0 4px rgba(240,160,48,0.9), 0 0 10px rgba(240,160,48,0.5), 0 0 18px rgba(240,160,48,0.2);
+  opacity: var(--val, 0);
+  transition: opacity 0.1s ease;
+}
+.slider:hover .slider-thumb {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.7), 0 0 8px rgba(240,160,48,0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   S1 SLIDER — VERTICAL overrides
+   ═══════════════════════════════════════════════════════════════ */
+/* Vertical channel — 24px wide, full height */
+.slider--v { width: 24px; height: 140px; flex: none; }
+.slider--v::before {
+  background: repeating-linear-gradient(180deg,
+    transparent 0px, transparent 3px,
+    rgba(255,255,255,0.015) 3px, rgba(255,255,255,0.015) 4px);
+}
+.slider--v .slider-ticks {
+  top: 2px; bottom: 2px; left: auto; right: 1px;
+  width: 6px; height: auto;
+}
+.slider--v .slider-tick {
+  left: auto; right: 0; top: auto; width: 3px; height: 1px;
+}
+.slider--v .slider-tick--major { width: 5px; height: 1.5px; }
+.slider--v .slider-fill {
+  top: auto; bottom: 1px; left: 1px; right: 1px;
+  width: auto; height: calc(var(--val) * (100% - 2px));
+  background: linear-gradient(0deg, rgba(255,160,0,0.06) 0%, rgba(255,170,0,0.2) 40%, rgba(255,180,0,0.42) 100%);
+  border-radius: 0 0 4px 4px;
+}
+/* At val=0: top = 100% - 20px (bottom). At val=1: top = 2px (top). */
+.slider--v .slider-thumb {
+  left: 2px; top: calc((1 - var(--val)) * (100% - 22px) + 2px);
+  width: 18px; height: 18px; margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CH CHANNEL SWITCH — recessed channel, indicator knob (locked)
+   S1 body DNA, clean metallic face, 8px LED lens.
+   Default: horizontal. Add .vertical for vertical axis.
+   Sizes: .sm (34×20, 14px knob), default (44×24, 18px), .lg (56×30, 24px).
+   Colors: default amber, .cyan, .green, .red.
+   ═══════════════════════════════════════════════════════════════ */
+.ch-switch-row { display: flex; align-items: flex-start; justify-content: space-around; gap: 20px; flex-wrap: wrap; }
+
+.ch-switch {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; -webkit-user-select: none; user-select: none;
+}
+.ch-track {
+  position: relative;
+  width: 44px; height: 24px; border-radius: 5px;
+  background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border: 1px solid rgba(14,18,22,0.95);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06), 0 2px 3px rgba(0,0,0,0.4);
+  transition: border-color 0.2s ease;
+}
+.ch-switch.is-on .ch-track {
+  border-color: rgba(240,160,48,0.15);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06), 0 2px 3px rgba(0,0,0,0.4),
+    0 0 8px rgba(240,160,48,0.06);
+}
+/* Shadow overlay — renders on top of fill so channel edges stay recessed */
+.ch-track::after {
+  content: ''; position: absolute; inset: 0; border-radius: 4px;
+  box-shadow:
+    inset 0 4px 8px rgba(0,0,0,1), inset 0 -2px 5px rgba(0,0,0,0.6),
+    inset 3px 0 6px rgba(0,0,0,0.7), inset -3px 0 6px rgba(0,0,0,0.7),
+    inset 0 0 14px rgba(0,0,0,0.5);
+  pointer-events: none; z-index: 3;
+}
+/* Channel fill — extends from wall to knob position, transitions width/height */
+.ch-fill {
+  position: absolute; top: 1px; left: 1px; bottom: 1px;
+  width: 0;
+  background: linear-gradient(90deg, rgba(255,160,0,0.06) 0%, rgba(255,170,0,0.2) 40%, rgba(255,180,0,0.42) 100%);
+  border-radius: 4px 0 0 4px;
+  transition: width 0.18s ease;
+}
+/* ON: fill spans entire channel interior */
+.ch-switch.is-on .ch-fill { width: calc(100% - 2px); }
+/* Vertical: fill grows upward from bottom */
+.ch-switch.vertical .ch-fill {
+  top: auto; left: 1px; bottom: 1px; right: 1px;
+  width: auto; height: 0;
+  background: linear-gradient(0deg, rgba(255,160,0,0.06) 0%, rgba(255,170,0,0.2) 40%, rgba(255,180,0,0.42) 100%);
+  border-radius: 0 0 4px 4px;
+  transition: height 0.18s ease;
+}
+.ch-switch.vertical.is-on .ch-fill { height: calc(100% - 2px); }
+/* Color variant fills */
+.ch-switch.cyan .ch-fill { background: linear-gradient(90deg, rgba(0,240,210,0.06) 0%, rgba(0,250,220,0.2) 40%, rgba(0,255,230,0.42) 100%); }
+.ch-switch.cyan.vertical .ch-fill { background: linear-gradient(0deg, rgba(0,240,210,0.06) 0%, rgba(0,250,220,0.2) 40%, rgba(0,255,230,0.42) 100%); }
+.ch-switch.green .ch-fill { background: linear-gradient(90deg, rgba(0,230,80,0.06) 0%, rgba(0,240,90,0.2) 40%, rgba(0,255,100,0.42) 100%); }
+.ch-switch.green.vertical .ch-fill { background: linear-gradient(0deg, rgba(0,230,80,0.06) 0%, rgba(0,240,90,0.2) 40%, rgba(0,255,100,0.42) 100%); }
+.ch-switch.red .ch-fill { background: linear-gradient(90deg, rgba(255,50,30,0.06) 0%, rgba(255,55,35,0.2) 40%, rgba(255,60,40,0.42) 100%); }
+.ch-switch.red.vertical .ch-fill { background: linear-gradient(0deg, rgba(255,50,30,0.06) 0%, rgba(255,55,35,0.2) 40%, rgba(255,60,40,0.42) 100%); }
+/* Channel floor grooves */
+.ch-track::before {
+  content: ''; position: absolute;
+  top: 4px; bottom: 4px; left: 4px; right: 4px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg,
+    transparent 0px, transparent 3px,
+    rgba(255,255,255,0.015) 3px, rgba(255,255,255,0.015) 4px);
+}
+.ch-knob {
+  position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 5px;
+  background: radial-gradient(ellipse at 50% 50%, #3a3e42 0%, #262a2e 30%, #14171a 70%, #0a0c10 100%);
+  border: 1px solid #000;
+  box-shadow: 0 2px 6px 1px rgba(0,0,0,0.6);
+  transition: left 0.18s ease, top 0.18s ease, box-shadow 0.18s ease;
+  z-index: 1;
+}
+.ch-knob::after {
+  content: ''; position: absolute; inset: 0; border-radius: 5px;
+  background: radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.07) 0%, transparent 50%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -2px 3px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+.ch-switch.is-on .ch-knob {
+  left: 22px;
+  box-shadow: 0 2px 6px 1px rgba(0,0,0,0.6), 0 0 10px rgba(240,160,48,0.2);
+}
+.ch-led {
+  position: absolute; top: 50%; left: 50%;
+  width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, rgba(80,84,88,0.5) 0%, rgba(40,44,48,0.4) 40%, rgba(20,24,28,0.6) 100%);
+  border: 1px solid rgba(0,0,0,0.6);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.06), inset 0 -0.5px 1px rgba(0,0,0,0.3);
+  transition: all 0.2s ease; z-index: 2;
+}
+.ch-switch.is-on .ch-led {
+  background: radial-gradient(circle at 45% 40%, #ffd080 0%, var(--amber) 40%, #a06820 100%);
+  border-color: rgba(240,160,48,0.5);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.2),
+    0 0 4px rgba(240,160,48,0.9), 0 0 10px rgba(240,160,48,0.5), 0 0 18px rgba(240,160,48,0.2);
+}
+.ch-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+  text-align: center; white-space: nowrap;
+}
+/* Vertical */
+.ch-switch.vertical .ch-track { width: 24px; height: 44px; }
+.ch-switch.vertical .ch-track::before {
+  background: repeating-linear-gradient(180deg,
+    transparent 0px, transparent 3px,
+    rgba(255,255,255,0.015) 3px, rgba(255,255,255,0.015) 4px);
+}
+.ch-switch.vertical .ch-knob { top: 22px; left: 2px; width: 18px; height: 18px; }
+.ch-switch.vertical.is-on .ch-knob { top: 2px; left: 2px; }
+/* Color variants */
+.ch-switch.cyan.is-on .ch-led {
+  background: radial-gradient(circle at 45% 40%, #a0fff0 0%, var(--cyan) 40%, #208878 100%);
+  border-color: rgba(64,232,208,0.5);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.2),
+    0 0 4px rgba(64,232,208,0.9), 0 0 10px rgba(64,232,208,0.5), 0 0 18px rgba(64,232,208,0.2);
+}
+.ch-switch.cyan.is-on .ch-track { border-color: rgba(64,232,208,0.2); }
+.ch-switch.cyan.is-on .ch-knob { box-shadow: 0 2px 6px 1px rgba(0,0,0,0.6), 0 0 10px rgba(64,232,208,0.2); }
+.ch-switch.green.is-on .ch-led {
+  background: radial-gradient(circle at 45% 40%, #a0ffc0 0%, var(--green) 40%, #208848 100%);
+  border-color: rgba(64,216,112,0.5);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.2),
+    0 0 4px rgba(64,216,112,0.9), 0 0 10px rgba(64,216,112,0.5), 0 0 18px rgba(64,216,112,0.2);
+}
+.ch-switch.green.is-on .ch-track { border-color: rgba(64,216,112,0.2); }
+.ch-switch.green.is-on .ch-knob { box-shadow: 0 2px 6px 1px rgba(0,0,0,0.6), 0 0 10px rgba(64,216,112,0.2); }
+.ch-switch.red.is-on .ch-led {
+  background: radial-gradient(circle at 45% 40%, #ffb0a0 0%, var(--red) 40%, #882020 100%);
+  border-color: rgba(224,80,64,0.5);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.2),
+    0 0 4px rgba(224,80,64,0.9), 0 0 10px rgba(224,80,64,0.5), 0 0 18px rgba(224,80,64,0.2);
+}
+.ch-switch.red.is-on .ch-track { border-color: rgba(224,80,64,0.2); }
+.ch-switch.red.is-on .ch-knob { box-shadow: 0 2px 6px 1px rgba(0,0,0,0.6), 0 0 10px rgba(224,80,64,0.2); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ARC GAUGE — 270° canvas-rendered, riveted bezel, nameplate (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.arc-gauge-row { display: flex; align-items: flex-end; justify-content: space-around; gap: 14px; flex-wrap: wrap; }
+.arc-gauge-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.arc-gauge-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.arc-gauge {
+  display: flex; flex-direction: column; align-items: center;
+}
+.arc-gauge__bezel {
+  position: relative; padding: 6px; border-radius: 50%;
+  background: linear-gradient(150deg, #4a4e50, #3a3e40 25%, #2a2e30 55%, #1a1e20);
+  border: 1.5px solid #060a0c;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.arc-gauge__canvas { display: block; border-radius: 50%; }
+.arc-gauge__plate {
+  position: relative; margin-top: -18px; z-index: 4;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 2px 10px 3px;
+  background: linear-gradient(180deg, #4a4e52, #3a3e42 30%, #2e3236 70%, #242a2e);
+  border: 1px solid #0c1014; border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.arc-gauge__plate-rivet {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #5a5e60, #3a3e40 45%, #1e2224);
+  border: 0.5px solid #080c0e; box-shadow: 0 1px 1px rgba(0,0,0,0.3);
+}
+.arc-gauge__plate-value {
+  font-size: 10px; font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.arc-gauge__plate-unit {
+  font-size: 7px; color: #8a9094; margin-left: 2px;
+  font-weight: 400; letter-spacing: 0.08em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAPE GAUGE — SVG scrolling tape, 115px, Artemis II DNA (locked)
+   3-tier tick labels, decimal-centered readout, fixed unit window.
+   ═══════════════════════════════════════════════════════════════ */
+.tape-gauge-row { display: flex; align-items: flex-end; justify-content: space-around; gap: 16px; flex-wrap: wrap; }
+.tape-gauge-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tape-gauge-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.tape-gauge {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.tape-gauge__head {
+  font-family: 'Courier New', monospace; font-size: 10px;
+  letter-spacing: 1px; font-weight: 700;
+}
+.tape-gauge__body {
+  position: relative; width: 115px; height: 200px;
+  overflow: hidden; border-radius: 5px;
+  background: #0c0e16;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.tape-gauge__body::before {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(0,0,0,0.7) 0%, transparent 15%,
+    transparent 85%, rgba(0,0,0,0.7) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LINEAR BAR GAUGE — horizontal + vertical, per-color (locked)
+   Vertical bars include capillary meniscus + slosh animation.
+   ═══════════════════════════════════════════════════════════════ */
+.bar-gauge-row { display: flex; align-items: center; gap: 10px; width: 100%; }
+.bar-gauge-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+  width: 36px; text-align: right; flex-shrink: 0;
+}
+.bar-gauge-value {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  letter-spacing: 0.04em; width: 52px; flex-shrink: 0;
+  text-shadow: 0 0 5px currentColor;
+}
+.bar-gauge-unit { font-size: 8px; color: var(--fg-3); margin-left: 1px; }
+/* Horizontal channel */
+.bar-h-channel {
+  position: relative; height: 16px; flex: 1;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border: 1px solid rgba(14,18,22,0.95);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 3px rgba(0,0,0,0.4);
+}
+.bar-h-channel::after {
+  content: ''; position: absolute; inset: 0; border-radius: 3px;
+  box-shadow:
+    inset 0 3px 6px rgba(0,0,0,1), inset 0 -1px 3px rgba(0,0,0,0.5),
+    inset 2px 0 4px rgba(0,0,0,0.6), inset -2px 0 4px rgba(0,0,0,0.6),
+    inset 0 0 10px rgba(0,0,0,0.4);
+  pointer-events: none; z-index: 2;
+}
+.bar-h-fill {
+  position: absolute; top: 1px; left: 1px; bottom: 1px;
+  width: calc(var(--val) * (100% - 2px));
+  border-radius: 3px 0 0 3px; z-index: 1;
+}
+.bar-h-ticks {
+  position: absolute; left: 1px; right: 1px; top: 1px; height: 5px;
+  pointer-events: none; z-index: 4;
+}
+/* Vertical column */
+.bar-v-col {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.bar-v-value {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: 0.04em; text-shadow: 0 0 5px currentColor;
+}
+.bar-v-unit { font-size: 7px; color: var(--fg-3); margin-left: 1px; }
+.bar-v-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.bar-v-channel {
+  position: relative; width: 16px; height: 140px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border: 1px solid rgba(14,18,22,0.95);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 2px 3px rgba(0,0,0,0.4);
+}
+.bar-v-channel::after {
+  content: ''; position: absolute; inset: 0; border-radius: 3px;
+  box-shadow:
+    inset 0 3px 6px rgba(0,0,0,1), inset 0 -3px 6px rgba(0,0,0,1),
+    inset 2px 0 4px rgba(0,0,0,0.6), inset -2px 0 4px rgba(0,0,0,0.6),
+    inset 0 0 10px rgba(0,0,0,0.4);
+  pointer-events: none; z-index: 2;
+}
+.bar-v-fill {
+  position: absolute; bottom: 1px; left: 1px; right: 1px;
+  height: calc(var(--val) * (100% - 2px));
+  border-radius: 0 0 3px 3px; z-index: 1;
+  transition: height 0.15s ease;
+}
+/* Capillary meniscus on vertical fill */
+.bar-v-fill::after {
+  content: ''; position: absolute;
+  left: -2px; right: -2px; top: -4px; height: 10px;
+  background: radial-gradient(ellipse 55% 5px at 50% 50%,
+    rgba(4,6,10,0.85) 0%,
+    rgba(4,6,10,0.5) 40%,
+    transparent 70%);
+  pointer-events: none;
+}
+.bar-v-fill.sloshing::after {
+  animation: bar-slosh-v 0.6s ease-out;
+}
+@keyframes bar-slosh-v {
+  0%   { transform: translateY(-3px); }
+  20%  { transform: translateY(2px); }
+  40%  { transform: translateY(-1.5px); }
+  60%  { transform: translateY(0.8px); }
+  80%  { transform: translateY(-0.3px); }
+  100% { transform: translateY(0); }
+}
+.bar-v-ticks {
+  position: absolute; top: 1px; bottom: 1px; right: 1px; width: 5px;
+  pointer-events: none; z-index: 4;
+}
+
+
+/* ===================================================================
+   FLOATING ACRYLIC GLASS -- graph panel (locked)
+   =================================================================== */
+.glass-graph {
+  position: relative; border-radius: 6px;
+  background: linear-gradient(180deg,
+    rgba(10,16,24,0.45) 0%, rgba(8,14,22,0.35) 40%,
+    rgba(6,12,20,0.3) 60%, rgba(8,14,22,0.4) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-left-color: rgba(64,232,208,0.12);
+  border-right-color: rgba(240,160,48,0.12);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.06);
+}
+.glass-graph::before {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 20%,
+    transparent 45%, transparent 65%,
+    rgba(255,255,255,0.01) 85%, rgba(255,255,255,0.03) 100%);
+  border-radius: 6px;
+}
+.glass-graph::after {
+  content: ''; position: absolute; inset: 0; border-radius: 5px;
+  box-shadow:
+    inset 2px 0 8px rgba(64,232,208,0.04), inset -2px 0 8px rgba(240,160,48,0.04),
+    inset 0 1px 4px rgba(255,255,255,0.03), inset 0 -1px 4px rgba(0,0,0,0.15);
+  pointer-events: none; z-index: 4;
+}
+.glass-graph canvas { display: block; width: 100%; position: relative; z-index: 1; }
+.graph-legend {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px;
+}
+.graph-legend__item {
+  display: flex; align-items: center; gap: 4px;
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.graph-legend__swatch { width: 12px; height: 2px; border-radius: 1px; }
+
+/* ===================================================================
+   ACRYLIC SCROLLBAR — sunset glass pill in recessed track (locked)
+   Apply .acrylic-scroll to any scrollable element.
+   =================================================================== */
+.acrylic-scroll::-webkit-scrollbar { width: 8px; }
+.acrylic-scroll::-webkit-scrollbar-track {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.4) 0%, rgba(4,6,10,0.6) 25%,
+    rgba(4,6,10,0.6) 75%, rgba(0,0,0,0.4) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 1px 0 3px rgba(0,0,0,0.5),
+    inset -1px 0 3px rgba(0,0,0,0.5),
+    inset 0 2px 4px rgba(0,0,0,0.3);
+  margin: 4px 0;
+}
+.acrylic-scroll::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(40,52,68,0.55);
+  border-left: 1px solid rgba(40,200,190,0.06);
+  border-right: 1px solid rgba(240,140,30,0.22);
+  border-top: 1px solid rgba(255,255,255,0.14);
+  border-bottom: 0.5px solid rgba(0,0,0,0.2);
+  box-shadow:
+    0 1px 4px rgba(0,0,0,0.35),
+    inset 2px 0 4px rgba(40,200,190,0.02),
+    inset -2px 0 4px rgba(240,140,30,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+.acrylic-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(50,64,82,0.65);
+  border-left-color: rgba(40,200,190,0.1);
+  border-right-color: rgba(240,140,30,0.35);
+  border-top-color: rgba(255,255,255,0.2);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.45),
+    inset 2px 0 6px rgba(40,200,190,0.025),
+    inset -2px 0 6px rgba(240,140,30,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPARKLINE — compact inline floating glass graph (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.sparkline-row { display: flex; align-items: center; gap: 10px; }
+.sparkline-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 8px;
+  color: var(--fg-3); letter-spacing: 0.14em; text-transform: uppercase;
+  width: 36px; text-align: right; flex-shrink: 0;
+}
+.sparkline-well {
+  position: relative; height: 24px; flex: 1;
+  border-radius: 4px;
+  background: linear-gradient(180deg,
+    rgba(10,16,24,0.45) 0%, rgba(6,12,20,0.3) 50%, rgba(8,14,22,0.4) 100%);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-left-color: rgba(64,232,208,0.1);
+  border-right-color: rgba(240,160,48,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 1px rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+.sparkline-well canvas {
+  display: block; width: 100%; height: 100%; position: relative; z-index: 1;
+}
+.sparkline-value {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: 0.04em; width: 46px; flex-shrink: 0;
+  text-shadow: 0 0 5px currentColor;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   T4 PUSH TOGGLE — latching button + LED (locked)
+   ═══════════════════════════════════════════════════════════════ */
+.toggle-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.t4 {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 12px 6px 9px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
+  border: 1px solid rgba(240,160,48,0.3); border-radius: 4px;
+  color: var(--fg-3);
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; transition: all 0.12s ease;
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.1), 0 0 4px rgba(240,160,48,0.06), 0 2px 4px rgba(0,0,0,0.4);
+  -webkit-user-select: none; user-select: none;
+}
+.t4:hover {
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.15), 0 0 10px rgba(240,160,48,0.15), 0 2px 4px rgba(0,0,0,0.4);
+}
+.t4-led {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(240,160,48,0.15);
+  box-shadow: inset 0 -1px 1px rgba(0,0,0,0.3);
+  transition: all 0.15s ease;
+}
+.t4.is-on {
+  background: linear-gradient(180deg, rgba(240,160,48,0.15), rgba(160,104,32,0.1));
+  border-color: rgba(240,160,48,0.5);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 0 10px rgba(240,160,48,0.2);
+  color: var(--amber); text-shadow: 0 0 6px var(--amber-glow);
+}
+.t4.is-on .t4-led {
+  background: var(--amber);
+  box-shadow: 0 0 4px rgba(240,160,48,0.7), 0 0 8px rgba(240,160,48,0.3), inset 0 -1px 1px rgba(0,0,0,0.3);
+}
+.t4--green.is-on { color: var(--green); text-shadow: 0 0 6px var(--green-glow); border-color: rgba(64,216,112,0.4); }
+.t4--green.is-on .t4-led { background: var(--green); box-shadow: 0 0 4px var(--green-glow), 0 0 8px var(--green-glow); }
+.t4--red.is-on { color: var(--red); text-shadow: 0 0 6px var(--red-glow); border-color: rgba(224,80,64,0.4); }
+.t4--red.is-on .t4-led { background: var(--red); box-shadow: 0 0 4px var(--red-glow), 0 0 8px var(--red-glow); }
+
+/* ═══════════════════════════════════════════════════════════════
+   LOCK SUMMARY
+   ═══════════════════════════════════════════════════════════════ */
+.lock-summary {
+  position: relative; z-index: 1;
+  max-width: 720px; margin: 0 auto; padding: 0 32px 60px;
+}
+.lock-summary__title {
+  font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+  margin-bottom: 12px;
+}
+.lock-summary__row {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 6px 0; border-top: 1px solid rgba(240,160,48,0.08);
+  font-size: 10px; letter-spacing: 0.06em;
+}
+.lock-summary__row:last-child { border-bottom: 1px solid rgba(240,160,48,0.08); }
+.lock-summary__key { color: var(--fg-3); }
+.lock-summary__val { color: var(--amber); text-align: right; }
+.lock-summary__val--pending { color: var(--fg-3); font-style: italic; text-align: right; }
+
+</style>
+</head>
+<body>
+
+<a href="https://peirastes.com" class="site-back" title="Back to Peirastes">Peirastes</a>
+
+<header class="page-header">
+  <div class="page-title">Peirastes · UI Catalogue</div>
+  <div class="page-sub">Canonical <em>Acrylic HUD</em> components — locked reference</div>
+</header>
+
+<main class="showcase">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       1. PANEL + MOUNTED SCREEN
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Panel + Screen<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Trajectory · Range</span>
+        <span class="panel-header__status">· Live</span>
+      </div>
+      <div class="mounted-screen">
+        <div class="sweep-diffuse"></div>
+        <div class="sweep-noise"></div>
+        <div class="screen-content">
+          <div class="screen-label">Dist. from Earth</div>
+          <div class="screen-readout">384,400<span class="unit">km</span></div>
+          <div class="screen-bars">
+            <div class="screen-bar" style="--bar:12%"></div>
+            <div class="screen-bar" style="--bar:38%"></div>
+            <div class="screen-bar" style="--bar:72%"></div>
+            <div class="screen-bar" style="--bar:94%"></div>
+            <div class="screen-bar" style="--bar:68%"></div>
+            <div class="screen-bar" style="--bar:41%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       2. CONTROLS — buttons, LEDs, input
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Controls<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Mission Controls</span>
+        <span class="panel-header__status">Interactive</span>
+      </div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn">Normal</button>
+        <button class="ctrl-btn ctrl-btn--accent">Accent</button>
+        <button class="ctrl-btn ctrl-btn--active">Active</button>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-led"><span class="led-dot green"></span>Nominal</div>
+        <div class="ctrl-led"><span class="led-dot cyan"></span>Telemetry</div>
+        <div class="ctrl-led"><span class="led-dot amber"></span>Standby</div>
+        <div class="ctrl-led"><span class="led-dot red"></span>Alert</div>
+      </div>
+      <div class="ctrl-row">
+        <input class="ctrl-input" value="T+142:03:12" readonly>
+        <input class="ctrl-input" placeholder="Enter command..." style="flex:1.5">
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       3. ROTARY KNOBS — N2 radial channel
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Rotary Knobs<span class="tag">N2 reworked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Parameters</span>
+        <span class="panel-header__status">Radial Channel</span>
+      </div>
+      <div class="knob-row">
+        <div class="knob-col">
+          <div class="n2" data-knob data-val="0.25">
+            <div class="n2-arc"></div>
+            <div class="n2-ticks"></div>
+            <div class="n2-knob"><div class="n2-led"></div></div>
+            <div class="n2-pointer"></div>
+          </div>
+          <div class="knob-value">25%</div>
+          <div class="knob-label">Speed</div>
+        </div>
+        <div class="knob-col">
+          <div class="n2" data-knob data-val="0.55">
+            <div class="n2-arc"></div>
+            <div class="n2-ticks"></div>
+            <div class="n2-knob"><div class="n2-led"></div></div>
+            <div class="n2-pointer"></div>
+          </div>
+          <div class="knob-value">55%</div>
+          <div class="knob-label">Rate</div>
+        </div>
+        <div class="knob-col">
+          <div class="n2" data-knob data-val="0.80">
+            <div class="n2-arc"></div>
+            <div class="n2-ticks"></div>
+            <div class="n2-knob"><div class="n2-led"></div></div>
+            <div class="n2-pointer"></div>
+          </div>
+          <div class="knob-value">80%</div>
+          <div class="knob-label">Zoom</div>
+        </div>
+        <div class="knob-col">
+          <div class="n2" data-knob data-val="0.42">
+            <div class="n2-arc"></div>
+            <div class="n2-ticks"></div>
+            <div class="n2-knob"><div class="n2-led"></div></div>
+            <div class="n2-pointer"></div>
+          </div>
+          <div class="knob-value">42%</div>
+          <div class="knob-label">Gain</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       4. SLIDERS — S1 straight cap, horizontal + vertical
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Sliders<span class="tag">S1 locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Parameters</span>
+        <span class="panel-header__status">Straight Cap</span>
+      </div>
+      <div class="slider-demo">
+        <div class="slider-demo__h">
+          <div class="slider-group">
+            <div class="slider-group__label">Speed</div>
+            <div class="slider" data-slider data-val="0.30">
+              <div class="slider-fill"></div>
+              <div class="slider-ticks"></div>
+              <div class="slider-thumb"><div class="slider-led"></div></div>
+            </div>
+            <div class="slider-group__value">30%</div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-group__label">Rate</div>
+            <div class="slider" data-slider data-val="0.62">
+              <div class="slider-fill"></div>
+              <div class="slider-ticks"></div>
+              <div class="slider-thumb"><div class="slider-led"></div></div>
+            </div>
+            <div class="slider-group__value">62%</div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-group__label">Gain</div>
+            <div class="slider" data-slider data-val="0.88">
+              <div class="slider-fill"></div>
+              <div class="slider-ticks"></div>
+              <div class="slider-thumb"><div class="slider-led"></div></div>
+            </div>
+            <div class="slider-group__value">88%</div>
+          </div>
+        </div>
+        <div class="slider-demo__v">
+          <div class="vslider-col">
+            <div class="vslider-col__label">Pan</div>
+            <div class="slider slider--v" data-slider data-val="0.35">
+              <div class="slider-fill"></div>
+              <div class="slider-ticks"></div>
+              <div class="slider-thumb"><div class="slider-led"></div></div>
+            </div>
+            <div class="vslider-col__value">35%</div>
+          </div>
+          <div class="vslider-col">
+            <div class="vslider-col__label">Tilt</div>
+            <div class="slider slider--v" data-slider data-val="0.60">
+              <div class="slider-fill"></div>
+              <div class="slider-ticks"></div>
+              <div class="slider-thumb"><div class="slider-led"></div></div>
+            </div>
+            <div class="vslider-col__value">60%</div>
+          </div>
+          <div class="vslider-col">
+            <div class="vslider-col__label">Zoom</div>
+            <div class="slider slider--v" data-slider data-val="0.82">
+              <div class="slider-fill"></div>
+              <div class="slider-ticks"></div>
+              <div class="slider-thumb"><div class="slider-led"></div></div>
+            </div>
+            <div class="vslider-col__value">82%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       5. CHANNEL SWITCHES — CH recessed channel + indicator knob
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Channel Switches<span class="tag">CH locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Telemetry Overlay</span>
+        <span class="panel-header__status">Horizontal</span>
+      </div>
+      <div class="ch-switch-row">
+        <div class="ch-switch" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Velocity</div>
+        </div>
+        <div class="ch-switch is-on" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Altitude</div>
+        </div>
+        <div class="ch-switch cyan is-on" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Lunar</div>
+        </div>
+        <div class="ch-switch" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Delta-T</div>
+        </div>
+      </div>
+    </div>
+    <div class="acrylic-panel" style="margin-top: 16px;">
+      <div class="panel-header">
+        <span class="panel-header__label">Subsystems</span>
+        <span class="panel-header__status">Vertical + Colors</span>
+      </div>
+      <div class="ch-switch-row">
+        <div class="ch-switch vertical is-on" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Comms</div>
+        </div>
+        <div class="ch-switch vertical cyan is-on" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Radar</div>
+        </div>
+        <div class="ch-switch vertical green is-on" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Nav</div>
+        </div>
+        <div class="ch-switch vertical red" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Abort</div>
+        </div>
+        <div class="ch-switch vertical" data-toggle>
+          <div class="ch-track"><div class="ch-fill"></div><div class="ch-knob"><div class="ch-led"></div></div></div>
+          <div class="ch-label">Aux</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       6. ARC GAUGES — 270° canvas, riveted bezel, nameplate
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Arc Gauges<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Telemetry</span>
+        <span class="panel-header__status">270° Arc</span>
+      </div>
+      <div class="arc-gauge-row">
+        <div class="arc-gauge-col">
+          <div class="arc-gauge" data-arc data-val="0.72" data-min="0" data-max="12" data-unit="km/s" data-color="#f0a030">
+            <div class="arc-gauge__bezel">
+              <canvas class="arc-gauge__canvas" width="100" height="100" style="width:100px;height:100px"></canvas>
+            </div>
+            <div class="arc-gauge__plate">
+              <div class="arc-gauge__plate-rivet" style="top:2px;left:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="top:2px;right:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="bottom:2px;left:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="bottom:2px;right:2px"></div>
+              <span class="arc-gauge__plate-value" style="color:#f0a030">8.64<span class="arc-gauge__plate-unit">km/s</span></span>
+            </div>
+          </div>
+          <div class="arc-gauge-label">VEL</div>
+        </div>
+        <div class="arc-gauge-col">
+          <div class="arc-gauge" data-arc data-val="0.35" data-min="0" data-max="400" data-unit="Mm" data-color="#378add">
+            <div class="arc-gauge__bezel">
+              <canvas class="arc-gauge__canvas" width="100" height="100" style="width:100px;height:100px"></canvas>
+            </div>
+            <div class="arc-gauge__plate">
+              <div class="arc-gauge__plate-rivet" style="top:2px;left:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="top:2px;right:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="bottom:2px;left:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="bottom:2px;right:2px"></div>
+              <span class="arc-gauge__plate-value" style="color:#378add">140<span class="arc-gauge__plate-unit">Mm</span></span>
+            </div>
+          </div>
+          <div class="arc-gauge-label">ALT</div>
+        </div>
+        <div class="arc-gauge-col">
+          <div class="arc-gauge" data-arc data-val="0.88" data-min="0" data-max="500" data-unit="Mm" data-color="#40e8d0">
+            <div class="arc-gauge__bezel">
+              <canvas class="arc-gauge__canvas" width="100" height="100" style="width:100px;height:100px"></canvas>
+            </div>
+            <div class="arc-gauge__plate">
+              <div class="arc-gauge__plate-rivet" style="top:2px;left:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="top:2px;right:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="bottom:2px;left:2px"></div>
+              <div class="arc-gauge__plate-rivet" style="bottom:2px;right:2px"></div>
+              <span class="arc-gauge__plate-value" style="color:#40e8d0">440<span class="arc-gauge__plate-unit">Mm</span></span>
+            </div>
+          </div>
+          <div class="arc-gauge-label">LUNAR</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       7. LINEAR BAR GAUGES — horizontal + vertical, per-color
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Linear Bar Gauges<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Telemetry</span>
+        <span class="panel-header__status">H + V Bars</span>
+      </div>
+      <div style="display: flex; gap: 24px;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+          <div class="bar-gauge-row" data-bar-cat data-val="0.72" data-min="0" data-max="12" data-unit="km/s" data-color="#f0a030">
+            <div class="bar-gauge-label">Vel</div>
+            <div class="bar-h-channel"><div class="bar-h-fill"></div><div class="bar-h-ticks"></div></div>
+            <div class="bar-gauge-value" style="color:#f0a030">8.64<span class="bar-gauge-unit">km/s</span></div>
+          </div>
+          <div class="bar-gauge-row" data-bar-cat data-val="0.35" data-min="0" data-max="400" data-unit="Mm" data-color="#378add">
+            <div class="bar-gauge-label">Alt</div>
+            <div class="bar-h-channel"><div class="bar-h-fill"></div><div class="bar-h-ticks"></div></div>
+            <div class="bar-gauge-value" style="color:#378add">140<span class="bar-gauge-unit">Mm</span></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 14px; padding-left: 16px; border-left: 1px solid rgba(240,160,48,0.1);">
+          <div class="bar-v-col" data-bar-cat data-val="0.88" data-min="0" data-max="500" data-orient="v" data-unit="Mm" data-color="#40e8d0">
+            <div class="bar-v-value" style="color:#40e8d0">440<span class="bar-v-unit">Mm</span></div>
+            <div class="bar-v-channel"><div class="bar-v-fill"></div><div class="bar-v-ticks"></div></div>
+            <div class="bar-v-label">Lunar</div>
+          </div>
+          <div class="bar-v-col" data-bar-cat data-val="0.62" data-min="0" data-max="100" data-orient="v" data-unit="MJ/kg" data-color="#9a6dd7">
+            <div class="bar-v-value" style="color:#9a6dd7">62<span class="bar-v-unit">MJ/kg</span></div>
+            <div class="bar-v-channel"><div class="bar-v-fill"></div><div class="bar-v-ticks"></div></div>
+            <div class="bar-v-label">Φ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       8. TAPE GAUGES — SVG scrolling tape, 115px
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Tape Gauges<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Telemetry</span>
+        <span class="panel-header__status">115px Tape</span>
+      </div>
+      <div class="tape-gauge-row">
+        <div class="tape-gauge-col">
+          <div class="tape-gauge" data-tape-cat data-val="0.947" data-min="0" data-max="120" data-color="#f0a030" data-major="20" data-half="10" data-minor="4" data-unit="km/s">
+            <div class="tape-gauge__head" style="color:#f0a030">VEL</div>
+            <div class="tape-gauge__body">
+              <svg viewBox="0 0 115 200" width="115" height="200" style="display:block"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="tape-gauge-col">
+          <div class="tape-gauge" data-tape-cat data-val="0.856" data-min="0" data-max="5000" data-color="#378add" data-major="1000" data-half="500" data-minor="4" data-unit="Mm">
+            <div class="tape-gauge__head" style="color:#378add">ALT</div>
+            <div class="tape-gauge__body">
+              <svg viewBox="0 0 115 200" width="115" height="200" style="display:block"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="tape-gauge-col">
+          <div class="tape-gauge" data-tape-cat data-val="0.76" data-min="0" data-max="5000" data-color="#40e8d0" data-major="1000" data-half="500" data-minor="4" data-unit="Mm">
+            <div class="tape-gauge__head" style="color:#40e8d0">LUNAR</div>
+            <div class="tape-gauge__body">
+              <svg viewBox="0 0 115 200" width="115" height="200" style="display:block"></svg>
+            </div>
+          </div>
+        </div>
+        <div class="tape-gauge-col">
+          <div class="tape-gauge" data-tape-cat data-val="0.83" data-min="0" data-max="1000" data-color="#9a6dd7" data-major="200" data-half="100" data-minor="4" data-unit="MJ/kg">
+            <div class="tape-gauge__head" style="color:#9a6dd7">Φ</div>
+            <div class="tape-gauge__body">
+              <svg viewBox="0 0 115 200" width="115" height="200" style="display:block"></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       9. SPARKLINES — compact inline glass graphs
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Sparklines<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Telemetry Trends</span>
+        <span class="panel-header__status">Sparkline</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="sparkline-row">
+          <div class="sparkline-label">Vel</div>
+          <div class="sparkline-well"><canvas data-spark="vel" data-color="#f0a030"></canvas></div>
+          <div class="sparkline-value" style="color:#f0a030">8.64</div>
+        </div>
+        <div class="sparkline-row">
+          <div class="sparkline-label">Alt</div>
+          <div class="sparkline-well"><canvas data-spark="alt" data-color="#378add"></canvas></div>
+          <div class="sparkline-value" style="color:#378add">384k</div>
+        </div>
+        <div class="sparkline-row">
+          <div class="sparkline-label">Lunar</div>
+          <div class="sparkline-well"><canvas data-spark="phi" data-color="#40e8d0"></canvas></div>
+          <div class="sparkline-value" style="color:#40e8d0">42.1k</div>
+        </div>
+        <div class="sparkline-row">
+          <div class="sparkline-label">Φ</div>
+          <div class="sparkline-well"><canvas data-spark="dtau" data-color="#9a6dd7"></canvas></div>
+          <div class="sparkline-value" style="color:#9a6dd7">-51.2</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       10. GRAPHS — floating acrylic glass
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Graphs<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Flight Dynamics</span>
+        <span class="panel-header__status">Multi-Trace</span>
+      </div>
+      <div class="glass-graph" style="height:180px">
+        <canvas data-graph="multi"></canvas>
+      </div>
+      <div class="graph-legend" data-graph-legend="multi"></div>
+    </div>
+    <div class="acrylic-panel" style="margin-top:16px">
+      <div class="panel-header">
+        <span class="panel-header__label">Flight Dynamics</span>
+        <span class="panel-header__status">Annotated</span>
+      </div>
+      <div class="glass-graph" style="height:200px">
+        <canvas data-graph="annotated"></canvas>
+      </div>
+      <div class="graph-legend" data-graph-legend="annotated"></div>
+    </div>
+    <div class="acrylic-panel" style="margin-top:16px">
+      <div class="panel-header">
+        <span class="panel-header__label">Altitude</span>
+        <span class="panel-header__status">Area</span>
+      </div>
+      <div class="glass-graph" style="height:140px">
+        <canvas data-graph="area"></canvas>
+      </div>
+    </div>
+    <div class="acrylic-panel" style="margin-top:16px">
+      <div class="panel-header">
+        <span class="panel-header__label">Burn Magnitudes</span>
+        <span class="panel-header__status">Bar</span>
+      </div>
+      <div class="glass-graph" style="height:160px">
+        <canvas data-graph="bars"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       11. ACRYLIC SCROLLBAR — sunset glass pill
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Acrylic Scrollbar<span class="tag">locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Mission Log</span>
+        <span class="panel-header__status">Glass Pill</span>
+      </div>
+      <div class="acrylic-scroll" id="scrollDemo" style="max-height:140px;overflow-y:scroll;display:flex;flex-direction:column;gap:3px;padding-right:4px"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       12. PUSH TOGGLES — T4 latching button + LED
+       ═══════════════════════════════════════════════════════════ -->
+  <section>
+    <div class="section-label">Push Toggles<span class="tag">T4 locked</span></div>
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Subsystems</span>
+        <span class="panel-header__status">Latching</span>
+      </div>
+      <div class="toggle-row">
+        <div class="t4" data-toggle>
+          <div class="t4-led"></div>
+          <span>Comms</span>
+        </div>
+        <div class="t4 is-on" data-toggle>
+          <div class="t4-led"></div>
+          <span>Radar</span>
+        </div>
+        <div class="t4 t4--green is-on" data-toggle>
+          <div class="t4-led"></div>
+          <span>Nav</span>
+        </div>
+        <div class="t4 t4--red" data-toggle>
+          <div class="t4-led"></div>
+          <span>Abort</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOCK SUMMARY
+     ═══════════════════════════════════════════════════════════ -->
+<aside class="lock-summary">
+  <div class="lock-summary__title">Acrylic HUD · Locked Parameters</div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Panel radius</span><span class="lock-summary__val">10 px</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Panel border</span><span class="lock-summary__val">1 px · amber · 0.45 α</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Chromatic split</span><span class="lock-summary__val">1 px (amber R · cyan L)</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Backdrop blur</span><span class="lock-summary__val">14 px</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Diffuse sweep</span><span class="lock-summary__val">72 px blur · 12 s / cycle</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Phosphor noise</span><span class="lock-summary__val">0.08 α · 9 s drift</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Static scanlines</span><span class="lock-summary__val">2 px pitch · 0.92 α · 0.75 opacity</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Screen bezel</span><span class="lock-summary__val">1 px amber · 0.55 α</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Button</span><span class="lock-summary__val">ctrl-btn · 4 px radius · 3 states</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">LED indicator</span><span class="lock-summary__val">6 px dot · 2.5 s pulse · 4 colors</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Text input</span><span class="lock-summary__val">cyan text · amber→cyan focus</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Rotary knob</span><span class="lock-summary__val">N2 wide notch · 56 px · fixed shadow</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Slider</span><span class="lock-summary__val">S1 straight cap · 18×30 · h + v</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Push toggle</span><span class="lock-summary__val">T4 latching btn + LED · 3 colors</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Channel switch</span><span class="lock-summary__val">CH 44×24 · S1 knob · 8 px LED · h + v · 4 colors</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Arc gauge</span><span class="lock-summary__val">270° canvas · bezel + nameplate · 3-weight ticks · per-color</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Linear bar gauge</span><span class="lock-summary__val">h + v · per-color · channel DNA · v: meniscus + slosh</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Tape gauge</span><span class="lock-summary__val">115px SVG · 3-tier labels · decimal-centered · fixed unit well</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Sparkline</span><span class="lock-summary__val">24px glass · holographic bloom · per-color · label + value</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Glass graph panel</span><span class="lock-summary__val">floating acrylic · chromatic aberration · etched grid</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Multi-trace graph</span><span class="lock-summary__val">holographic bloom · playhead · legend</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Annotated graph</span><span class="lock-summary__val">axes labels · data callouts · dashed playhead</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Area graph</span><span class="lock-summary__val">gradient fill · bloom trace · single-channel</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Bar chart</span><span class="lock-summary__val">per-bar color · bloom edges · value labels</span></div>
+  <div class="lock-summary__row"><span class="lock-summary__key">Acrylic scrollbar</span><span class="lock-summary__val">8px glass pill · recessed track · sunset chromatic</span></div>
+</aside>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   KNOB TICK GENERATION + INTERACTION
+   ═══════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.n2-ticks').forEach(container => {
+  const angles = [-135,-108,-81,-54,-27,0,27,54,81,108,135];
+  angles.forEach((deg, i) => {
+    const tick = document.createElement('div');
+    tick.className = i % 2 === 0 ? 'n2-tick n2-tick--major' : 'n2-tick';
+    /* Position ticks at outer edge of channel ring (r≈21px from center) */
+    tick.style.transform = `translate(-50%,-50%) rotate(${deg}deg) translateY(-21px)`;
+    container.appendChild(tick);
+  });
+});
+
+const KNOB_SENSITIVITY = 150;
+let activeKnob = null, knobStartY = 0, knobStartVal = 0;
+
+function setKnobVal(knob, val) {
+  val = Math.max(0, Math.min(1, val));
+  knob.dataset.val = val;
+  knob.style.setProperty('--val', val);
+  const col = knob.closest('.knob-col');
+  if (!col) return;
+  const readout = col.querySelector('.knob-value');
+  if (readout) readout.textContent = Math.round(val * 100) + '%';
+}
+
+document.querySelectorAll('[data-knob]').forEach(knob => {
+  const v = parseFloat(knob.dataset.val) || 0.5;
+  setKnobVal(knob, v);
+  knob.addEventListener('mousedown', e => {
+    activeKnob = knob;
+    knobStartY = e.clientY;
+    knobStartVal = parseFloat(knob.dataset.val);
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+});
+
+document.addEventListener('mousemove', e => {
+  if (!activeKnob) return;
+  const dy = knobStartY - e.clientY;
+  setKnobVal(activeKnob, knobStartVal + dy / KNOB_SENSITIVITY);
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   SLIDER TICK GENERATION + INTERACTION
+   ═══════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.slider-ticks').forEach(container => {
+  const isVert = !!container.closest('.slider--v');
+  const slider = container.closest('.slider');
+  for (let i = 0; i <= 10; i++) {
+    const tick = document.createElement('div');
+    tick.className = i % 2 === 0 ? 'slider-tick slider-tick--major' : 'slider-tick';
+    /* Ticks align to knob center positions: offset 9px (half knob) from each end */
+    const pct = (i / 10) * 100;
+    if (isVert) { tick.style.bottom = `calc(9px + ${pct / 100} * (100% - 18px))`; }
+    else { tick.style.left = `calc(9px + ${pct / 100} * (100% - 18px))`; }
+    container.appendChild(tick);
+  }
+});
+
+let activeSlider = null, sliderStartPos = 0, sliderStartVal = 0, sliderIsVert = false;
+
+function setSliderVal(slider, val) {
+  val = Math.max(0, Math.min(1, val));
+  slider.dataset.val = val;
+  slider.style.setProperty('--val', val);
+  const group = slider.closest('.slider-group') || slider.closest('.vslider-col');
+  if (!group) return;
+  const readout = group.querySelector('.slider-group__value, .vslider-col__value');
+  if (readout) readout.textContent = Math.round(val * 100) + '%';
+}
+
+document.querySelectorAll('[data-slider]').forEach(slider => {
+  const v = parseFloat(slider.dataset.val) || 0.5;
+  setSliderVal(slider, v);
+  slider.addEventListener('mousedown', e => {
+    activeSlider = slider;
+    sliderIsVert = slider.classList.contains('slider--v');
+    sliderStartPos = sliderIsVert ? e.clientY : e.clientX;
+    sliderStartVal = parseFloat(slider.dataset.val);
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+});
+
+document.addEventListener('mousemove', e => {
+  if (!activeSlider) return;
+  const rect = activeSlider.getBoundingClientRect();
+  /* Travel distance = channel inner length - knob size (22px inset total) */
+  if (sliderIsVert) {
+    const travel = rect.height - 22;
+    const dy = sliderStartPos - e.clientY;
+    setSliderVal(activeSlider, sliderStartVal + dy / travel);
+  } else {
+    const travel = rect.width - 22;
+    const dx = e.clientX - sliderStartPos;
+    setSliderVal(activeSlider, sliderStartVal + dx / travel);
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   ARC GAUGE — Canvas rendering
+   ═══════════════════════════════════════════════════════════════ */
+const DEG = Math.PI / 180;
+const ADPR = Math.min(devicePixelRatio || 1, 2);
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+}
+
+function renderArcGauge(canvas, val, color, min, max) {
+  const sz = 100, dpr = ADPR;
+  canvas.width = sz * dpr; canvas.height = sz * dpr;
+  canvas.style.width = sz + 'px'; canvas.style.height = sz + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const cx = sz/2, cy = sz/2, fR = sz/2 - 2;
+  const sA = 225 * DEG, swA = 270 * DEG;
+
+  // Face background
+  const fG = ctx.createRadialGradient(cx, cy - fR*0.15, 0, cx, cy, fR);
+  fG.addColorStop(0, '#1a2230'); fG.addColorStop(0.4, '#111820'); fG.addColorStop(1, '#080e14');
+  ctx.beginPath(); ctx.arc(cx, cy, fR, 0, Math.PI*2);
+  ctx.fillStyle = fG; ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+  // Arc fill
+  if (val > 0.001) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, fR - 7, -(sA), -(sA - val * swA), false);
+    ctx.lineWidth = 5; ctx.strokeStyle = color; ctx.globalAlpha = 0.35; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  // 3-weight ticks
+  const tR = fR - 4, rgb = hexToRgb(color);
+  for (let i = 0; i <= 60; i++) {
+    const fr = i / 60, a = sA - fr * swA;
+    const isMaj = i % 15 === 0, isHalf = i % 5 === 0 && !isMaj;
+    const len = isMaj ? 8 : isHalf ? 5 : 2.5;
+    const lw = isMaj ? 1.5 : isHalf ? 0.8 : 0.5;
+    const alpha = isMaj ? 0.85 : isHalf ? 0.5 : 0.25;
+    ctx.beginPath();
+    ctx.moveTo(cx + tR * Math.cos(a), cy - tR * Math.sin(a));
+    ctx.lineTo(cx + (tR - len) * Math.cos(a), cy - (tR - len) * Math.sin(a));
+    ctx.lineWidth = lw; ctx.strokeStyle = `rgba(${rgb},${alpha})`; ctx.stroke();
+    if (isMaj) {
+      ctx.save(); ctx.shadowColor = `rgba(${rgb},0.5)`; ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx + tR * Math.cos(a), cy - tR * Math.sin(a));
+      ctx.lineTo(cx + (tR - len) * Math.cos(a), cy - (tR - len) * Math.sin(a));
+      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(${rgb},0.6)`; ctx.stroke(); ctx.restore();
+    }
+  }
+
+  // Scale numbers
+  const range = (max !== undefined && min !== undefined) ? max - min : 100;
+  const numR = tR - 14;
+  ctx.font = '7px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i <= 60; i += 15) {
+    const fr = i / 60, a = sA - fr * swA;
+    const label = range <= 20 ? ((min||0) + fr * range).toFixed(0) : Math.round((min||0) + fr * range);
+    ctx.fillStyle = `rgba(${rgb},0.45)`;
+    ctx.fillText(label, cx + numR * Math.cos(a), cy - numR * Math.sin(a));
+  }
+
+  // Needle
+  const nA = sA - val * swA, nL = tR - 4;
+  ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.moveTo(cx + 2.5 * Math.cos(nA + Math.PI/2), cy - 2.5 * Math.sin(nA + Math.PI/2));
+  ctx.lineTo(cx + 2.5 * Math.cos(nA - Math.PI/2), cy - 2.5 * Math.sin(nA - Math.PI/2));
+  ctx.lineTo(cx + nL * Math.cos(nA), cy - nL * Math.sin(nA));
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.restore();
+
+  // Pivot
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2);
+  const pG = ctx.createRadialGradient(cx-1.5, cy-1.5, 0, cx, cy, 4);
+  pG.addColorStop(0, '#5a5e60'); pG.addColorStop(0.35, '#3a3e40');
+  pG.addColorStop(0.7, '#1e2224'); pG.addColorStop(1, '#0a0e10');
+  ctx.fillStyle = pG; ctx.fill(); ctx.strokeStyle = '#080c0e'; ctx.lineWidth = 0.8; ctx.stroke();
+}
+
+function formatGaugeVal(val, min, max) {
+  const range = max - min;
+  const actual = min + val * range;
+  return range <= 20 ? actual.toFixed(2) : Math.round(actual);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAPE GAUGE — SVG build + init
+// ═══════════════════════════════════════════════════════════════
+const TAPE_H = 900, TAPE_CY = 100;
+
+function buildTapeSVG(svg, min, max, color, majorStep, halfStep, minorSubs, unit, W) {
+  const range = max - min;
+  const scrollG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scrollG.classList.add('tape-scroll');
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x', '0'); bg.setAttribute('y', '0');
+  bg.setAttribute('width', W); bg.setAttribute('height', TAPE_H);
+  bg.setAttribute('fill', '#0c0e16');
+  scrollG.appendChild(bg);
+
+  const ctr = W / 2;
+  const lTickEnd = Math.round(W * 0.27);
+  const rTickStart = Math.round(W * 0.73);
+  const subStep = halfStep / minorSubs;
+
+  for (let v = min; v <= max + subStep * 0.5; v += subStep) {
+    const frac = (v - min) / range;
+    const y = TAPE_H - frac * TAPE_H;
+    const isMajor = Math.abs(v % majorStep) < subStep * 0.5 || Math.abs(v % majorStep - majorStep) < subStep * 0.5;
+    const isHalf = !isMajor && (Math.abs(v % halfStep) < subStep * 0.5 || Math.abs(v % halfStep - halfStep) < subStep * 0.5);
+    const inset = isMajor ? 0 : isHalf ? 4 : 8;
+
+    const lt = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    lt.setAttribute('x1', 3 + inset); lt.setAttribute('x2', lTickEnd);
+    lt.setAttribute('y1', y); lt.setAttribute('y2', y);
+    lt.setAttribute('stroke', color);
+    lt.setAttribute('stroke-width', isMajor ? '1.5' : isHalf ? '0.8' : '0.5');
+    lt.setAttribute('stroke-opacity', isMajor ? '0.85' : isHalf ? '0.5' : '0.2');
+    scrollG.appendChild(lt);
+
+    const rt = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    rt.setAttribute('x1', rTickStart); rt.setAttribute('x2', W - 3 - inset);
+    rt.setAttribute('y1', y); rt.setAttribute('y2', y);
+    rt.setAttribute('stroke', color);
+    rt.setAttribute('stroke-width', isMajor ? '1.5' : isHalf ? '0.8' : '0.5');
+    rt.setAttribute('stroke-opacity', isMajor ? '0.85' : isHalf ? '0.5' : '0.2');
+    scrollG.appendChild(rt);
+
+    const minorIndex = Math.round((v - min) / subStep);
+    const isMinorLabel = !isMajor && !isHalf && (minorIndex % 2 === 0);
+    if (isMajor || isHalf || isMinorLabel) {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', ctr); txt.setAttribute('y', y + 4);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-family', "'Courier New',monospace");
+      txt.setAttribute('font-size', isMajor ? '11' : isHalf ? '9' : '7');
+      txt.setAttribute('fill', color);
+      txt.setAttribute('fill-opacity', isMajor ? '0.7' : isHalf ? '0.35' : '0.18');
+      txt.textContent = Math.round(v);
+      scrollG.appendChild(txt);
+    }
+  }
+  svg.appendChild(scrollG);
+
+  const staticG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const rwPad = 4, rwX = rwPad, rwW = W - rwPad * 2;
+
+  const rBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rBg.setAttribute('x', rwX); rBg.setAttribute('y', '87');
+  rBg.setAttribute('width', rwW); rBg.setAttribute('height', '26');
+  rBg.setAttribute('rx', '3'); rBg.setAttribute('fill', '#0a0c14');
+  rBg.setAttribute('stroke', color); rBg.setAttribute('stroke-width', '1.2');
+  staticG.appendChild(rBg);
+
+  const isFraction = unit && unit.includes('/');
+  const uParts = isFraction ? unit.split('/') : [unit];
+  const uw = unit ? 34 : 0;
+
+  const rTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  rTxt.setAttribute('x', W / 2); rTxt.setAttribute('y', '105');
+  rTxt.setAttribute('text-anchor', 'middle');
+  rTxt.setAttribute('font-family', "'Courier New',monospace");
+  rTxt.setAttribute('font-size', '14'); rTxt.setAttribute('font-weight', '700');
+  rTxt.setAttribute('fill', color);
+  rTxt.classList.add('tape-readout');
+  rTxt.textContent = '0.0';
+  staticG.appendChild(rTxt);
+
+  if (unit) {
+    const ux = rwX + rwW - uw - 2;
+    const ucx = ux + uw / 2;
+    const uBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    uBg.setAttribute('x', ux); uBg.setAttribute('y', '91');
+    uBg.setAttribute('width', uw); uBg.setAttribute('height', '18');
+    uBg.setAttribute('rx', '2'); uBg.setAttribute('fill', '#040608');
+    uBg.setAttribute('stroke', 'rgba(255,255,255,0.06)'); uBg.setAttribute('stroke-width', '0.5');
+    staticG.appendChild(uBg);
+    const uShd = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    uShd.setAttribute('x', ux + 0.5); uShd.setAttribute('y', '91.5');
+    uShd.setAttribute('width', uw - 1); uShd.setAttribute('height', '4');
+    uShd.setAttribute('rx', '1.5'); uShd.setAttribute('fill', 'rgba(0,0,0,0.5)');
+    staticG.appendChild(uShd);
+    if (isFraction) {
+      const nTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      nTxt.setAttribute('x', ucx - 4); nTxt.setAttribute('y', '99');
+      nTxt.setAttribute('text-anchor', 'end');
+      nTxt.setAttribute('font-family', "'Courier New',monospace");
+      nTxt.setAttribute('font-size', '7'); nTxt.setAttribute('font-weight', '600');
+      nTxt.setAttribute('fill', color); nTxt.setAttribute('fill-opacity', '0.55');
+      nTxt.textContent = uParts[0]; staticG.appendChild(nTxt);
+      const dLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      dLine.setAttribute('x1', ucx - 3); dLine.setAttribute('x2', ucx + 3);
+      dLine.setAttribute('y1', '106'); dLine.setAttribute('y2', '94');
+      dLine.setAttribute('stroke', color); dLine.setAttribute('stroke-opacity', '0.4');
+      dLine.setAttribute('stroke-width', '0.7'); staticG.appendChild(dLine);
+      const dTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      dTxt.setAttribute('x', ucx + 4); dTxt.setAttribute('y', '106');
+      dTxt.setAttribute('text-anchor', 'start');
+      dTxt.setAttribute('font-family', "'Courier New',monospace");
+      dTxt.setAttribute('font-size', '7'); dTxt.setAttribute('font-weight', '600');
+      dTxt.setAttribute('fill', color); dTxt.setAttribute('fill-opacity', '0.55');
+      dTxt.textContent = uParts[1]; staticG.appendChild(dTxt);
+    } else {
+      const uTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      uTxt.setAttribute('x', ucx); uTxt.setAttribute('y', '104');
+      uTxt.setAttribute('text-anchor', 'middle');
+      uTxt.setAttribute('font-family', "'Courier New',monospace");
+      uTxt.setAttribute('font-size', '8'); uTxt.setAttribute('font-weight', '600');
+      uTxt.setAttribute('fill', color); uTxt.setAttribute('fill-opacity', '0.55');
+      uTxt.textContent = unit; staticG.appendChild(uTxt);
+    }
+  }
+
+  const lp = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  lp.setAttribute('points', `0,94 6,100 0,106`); lp.setAttribute('fill', color);
+  staticG.appendChild(lp);
+  const rp = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  rp.setAttribute('points', `${W},94 ${W-6},100 ${W},106`); rp.setAttribute('fill', color);
+  staticG.appendChild(rp);
+  svg.appendChild(staticG);
+}
+
+function updateTape(svg, val, min, max) {
+  const scrollG = svg.querySelector('.tape-scroll');
+  if (!scrollG) return;
+  const f = Math.max(0, Math.min(1, val));
+  const offset = TAPE_CY - (1 - f) * TAPE_H;
+  scrollG.setAttribute('transform', `translate(0,${offset.toFixed(1)})`);
+  const readout = svg.querySelector('.tape-readout');
+  if (readout) {
+    const actual = min + f * (max - min);
+    const str = actual.toFixed(1);
+    readout.textContent = str;
+    const W = parseFloat(svg.getAttribute('viewBox').split(' ')[2]);
+    const charW = 8.4;
+    const dotIndex = str.indexOf('.');
+    readout.setAttribute('text-anchor', 'start');
+    readout.setAttribute('x', (W / 2 - dotIndex * charW - charW / 2).toFixed(1));
+  }
+}
+
+document.querySelectorAll('[data-tape-cat]').forEach(el => {
+  const svg = el.querySelector('svg');
+  const min = parseFloat(el.dataset.min) || 0;
+  const max = parseFloat(el.dataset.max) || 100;
+  const color = el.dataset.color || '#f0a030';
+  const major = parseFloat(el.dataset.major) || 10;
+  const half = parseFloat(el.dataset.half) || 5;
+  const minor = parseInt(el.dataset.minor) || 4;
+  const unit = el.dataset.unit || '';
+  buildTapeSVG(svg, min, max, color, major, half, minor, unit, 115);
+  updateTape(svg, parseFloat(el.dataset.val) || 0.5, min, max);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// SPARKLINES — static sample traces on floating glass
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  // Sample data
+  const N = 100;
+  const sparkData = {};
+  for (let i = 0; i < N; i++) {
+    const t = i / (N-1);
+    if (!sparkData.vel) sparkData.vel = [];
+    if (!sparkData.alt) sparkData.alt = [];
+    if (!sparkData.phi) sparkData.phi = [];
+    if (!sparkData.dtau) sparkData.dtau = [];
+    sparkData.vel.push(Math.max(0.5, 11 - t*8 + 2*Math.sin(t*12)));
+    sparkData.alt.push(Math.max(0, 400000 + (t-0.1)*600000 + 50000*Math.sin(t*8)));
+    sparkData.phi.push(-62 + 30*Math.sin(t*Math.PI*2.5) + t*20);
+    sparkData.dtau.push(t*0.0004 + 0.00002*Math.sin(t*15));
+  }
+
+  const sDPR = Math.min(devicePixelRatio || 1, 2);
+
+  document.querySelectorAll('[data-spark]').forEach(canvas => {
+    const key = canvas.dataset.spark;
+    const color = canvas.dataset.color || '#f0a030';
+    const rgb = hexToRgb(color);
+    const vals = sparkData[key];
+    if (!vals) return;
+
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = Math.round(rect.width * sDPR), h = Math.round(rect.height * sDPR);
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    let mx = 0; for (const v of vals) { const a = Math.abs(v); if (a > mx) mx = a; }
+    const pad = 2*sDPR, gw = w-pad*2, gh = h-pad*2;
+
+    const pts = vals.map((v, i) => ({
+      x: pad + (i/(vals.length-1)) * gw,
+      y: pad + gh * (1 - Math.abs(v) / mx)
+    }));
+
+    // Area fill
+    ctx.beginPath(); ctx.moveTo(pad, pad+gh);
+    for (const p of pts) ctx.lineTo(p.x, p.y);
+    ctx.lineTo(pts[pts.length-1].x, pad+gh); ctx.closePath();
+    ctx.fillStyle = `rgba(${rgb.join(',')},0.06)`; ctx.fill();
+
+    // Bloom
+    function stroke(c) { c.beginPath(); c.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x,pts[i].y); c.stroke(); }
+    ctx.save(); ctx.shadowColor=color; ctx.shadowBlur=6*sDPR;
+    ctx.strokeStyle=color; ctx.lineWidth=2*sDPR; ctx.globalAlpha=0.2;
+    stroke(ctx); ctx.restore();
+    // Core
+    ctx.strokeStyle=color; ctx.lineWidth=1.5*sDPR; ctx.globalAlpha=0.85;
+    stroke(ctx); ctx.globalAlpha=1;
+  });
+})();
+
+// Init bar gauges — ticks + fills with per-gauge color
+document.querySelectorAll('[data-bar-cat]').forEach(el => {
+  const color = el.dataset.color || '#f0a030';
+  const rgb = hexToRgb(color);
+  const val = parseFloat(el.dataset.val) || 0.5;
+  const isVert = el.dataset.orient === 'v';
+
+  // Generate ticks
+  const tickContainer = el.querySelector(isVert ? '.bar-v-ticks' : '.bar-h-ticks');
+  if (tickContainer) {
+    for (let i = 0; i <= 20; i++) {
+      const tick = document.createElement('div');
+      const isMaj = i % 2 === 0;
+      if (isVert) {
+        tick.style.cssText = `position:absolute;right:0;bottom:${i/20*100}%;height:${isMaj?'1.5px':'1px'};width:${isMaj?'4px':'2px'};background:rgba(${rgb},${isMaj?0.8:0.4});box-shadow:0 0 ${isMaj?'3px':'2px'} rgba(${rgb},${isMaj?0.5:0.2})`;
+      } else {
+        tick.style.cssText = `position:absolute;top:0;left:${i/20*100}%;width:${isMaj?'1.5px':'1px'};height:${isMaj?'4px':'2px'};background:rgba(${rgb},${isMaj?0.8:0.4});box-shadow:0 0 ${isMaj?'3px':'2px'} rgba(${rgb},${isMaj?0.5:0.2})`;
+      }
+      tickContainer.appendChild(tick);
+    }
+  }
+
+  // Set fill gradient + value
+  const fill = el.querySelector(isVert ? '.bar-v-fill' : '.bar-h-fill');
+  const channel = el.querySelector(isVert ? '.bar-v-channel' : '.bar-h-channel');
+  if (channel) channel.style.setProperty('--val', val);
+  if (fill) {
+    fill.style.background = isVert
+      ? `linear-gradient(0deg, rgba(${rgb},0.06) 0%, rgba(${rgb},0.2) 40%, rgba(${rgb},0.42) 100%)`
+      : `linear-gradient(90deg, rgba(${rgb},0.06) 0%, rgba(${rgb},0.2) 40%, rgba(${rgb},0.42) 100%)`;
+  }
+});
+
+// Init arc gauges
+document.querySelectorAll('[data-arc]').forEach(el => {
+  const val = parseFloat(el.dataset.val) || 0.5;
+  const min = parseFloat(el.dataset.min) || 0;
+  const max = parseFloat(el.dataset.max) || 100;
+  const color = el.dataset.color || '#f0a030';
+  const unit = el.dataset.unit || '';
+  const canvas = el.querySelector('.arc-gauge__canvas');
+  renderArcGauge(canvas, val, color, min, max);
+  const valEl = el.querySelector('.arc-gauge__plate-value');
+  if (valEl) valEl.innerHTML = formatGaugeVal(val, min, max) + `<span class="arc-gauge__plate-unit">${unit}</span>`;
+});
+
+// ===================================================================
+// GRAPHS — all four types on floating acrylic glass
+// ===================================================================
+(function() {
+  const gDPR = Math.min(devicePixelRatio || 1, 2);
+  const N = 200, gData = [];
+  for (let i = 0; i < N; i++) {
+    const t = i/(N-1);
+    const alt = t<0.1?t*4e6:t<0.45?4e5+(t-0.1)*8e5:t<0.55?68e4-(t-0.45)*3e6:t<0.6?38e4+(t-0.55)*1e6:38e4*(1-(t-0.6)/0.4);
+    const vel = t<0.05?1+t*200:t<0.45?11-t*8:t<0.55?3+(t-0.45)*60:7+(t-0.6)*10;
+    const phi = -62+30*Math.sin(t*Math.PI*2.5)+t*20;
+    const dtau = t*0.0004+0.00002*Math.sin(t*15);
+    gData.push({t,alt:Math.max(0,alt),vel:Math.max(0.5,vel),phi,dtau});
+  }
+  const gTraces = [
+    {key:'alt',label:'ALT',color:'#378add'},{key:'vel',label:'VEL',color:'#f0a030'},
+    {key:'phi',label:'\u03A6',color:'#9a6dd7'},{key:'dtau',label:'\u0394\u03C4',color:'#e05577'}
+  ];
+  const gBurns = [
+    {label:'TLI',dv:3.15,color:'#f0a030'},{label:'OTC-3',dv:0.012,color:'#378add'},
+    {label:'RTC-1',dv:0.49,color:'#40e8d0'},{label:'RTC-2',dv:0.40,color:'#40e8d0'},
+    {label:'RTC-3',dv:0.008,color:'#9a6dd7'}
+  ];
+
+  function etchGrid(ctx,pad,gw,gh) {
+    for(let i=1;i<=9;i++){const x=pad.l+(i/10)*gw;ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+gh);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.beginPath();ctx.moveTo(x+1,pad.t);ctx.lineTo(x+1,pad.t+gh);ctx.stroke();}
+    for(let i=1;i<=3;i++){const y=pad.t+(i/4)*gh;ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+gw,y);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.beginPath();ctx.moveTo(pad.l,y+1);ctx.lineTo(pad.l+gw,y+1);ctx.stroke();}
+  }
+  function holoTrace(ctx,pts,color,lw) {
+    if(pts.length<2)return;
+    function s(c){c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)c.lineTo(pts[i].x,pts[i].y);c.stroke();}
+    ctx.save();ctx.shadowColor=color;ctx.shadowBlur=12*gDPR;ctx.strokeStyle=color;ctx.lineWidth=(lw+2)*gDPR;ctx.globalAlpha=0.15;s(ctx);ctx.restore();
+    ctx.save();ctx.shadowColor=color;ctx.shadowBlur=4*gDPR;ctx.strokeStyle=color;ctx.lineWidth=(lw+0.5)*gDPR;ctx.globalAlpha=0.4;s(ctx);ctx.restore();
+    ctx.strokeStyle=color;ctx.lineWidth=lw*gDPR;ctx.globalAlpha=0.9;s(ctx);ctx.globalAlpha=1;
+  }
+  function getMaxes(){const m={};for(const tr of gTraces){let mx=0;for(const d of gData){const v=Math.abs(d[tr.key]);if(v>mx)mx=v;}m[tr.key]=mx||1;}return m;}
+
+  // Multi-trace
+  function drawMulti(canvas,frac){
+    const rect=canvas.parentElement.getBoundingClientRect();const w=Math.round(rect.width*gDPR),h=Math.round(rect.height*gDPR);canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+    const pad={l:6*gDPR,r:6*gDPR,t:8*gDPR,b:8*gDPR},gw=w-pad.l-pad.r,gh=h-pad.t-pad.b;
+    etchGrid(ctx,pad,gw,gh);const mx=getMaxes();
+    for(const tr of gTraces){const pts=[];for(const d of gData){if(d.t>frac)break;pts.push({x:pad.l+d.t*gw,y:pad.t+gh*(1-Math.abs(d[tr.key])/mx[tr.key])});}holoTrace(ctx,pts,tr.color,1.5);}
+    const px=pad.l+frac*gw;ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1*gDPR;ctx.moveTo(px,pad.t);ctx.lineTo(px,pad.t+gh);ctx.stroke();
+  }
+  // Annotated
+  function drawAnnotated(canvas,frac){
+    const rect=canvas.parentElement.getBoundingClientRect();const w=Math.round(rect.width*gDPR),h=Math.round(rect.height*gDPR);canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+    const pad={l:42*gDPR,r:10*gDPR,t:10*gDPR,b:24*gDPR},gw=w-pad.l-pad.r,gh=h-pad.t-pad.b;
+    ctx.font=`${9*gDPR}px 'Courier New',monospace`;ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let i=0;i<=4;i++){const y=pad.t+(i/4)*gh;ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+gw,y);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.beginPath();ctx.moveTo(pad.l,y+1);ctx.lineTo(pad.l+gw,y+1);ctx.stroke();ctx.fillStyle='rgba(208,212,218,0.3)';ctx.fillText((100-i*25)+'%',pad.l-4*gDPR,y);}
+    ctx.textAlign='center';ctx.textBaseline='top';const days=['D0','D1','D2','D3','D4','D5','D6','D7','D8','D9'];
+    for(let i=0;i<=9;i++){const x=pad.l+(i/9)*gw;ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+gh);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.beginPath();ctx.moveTo(x+1,pad.t);ctx.lineTo(x+1,pad.t+gh);ctx.stroke();ctx.fillStyle='rgba(208,212,218,0.25)';ctx.fillText(days[i],x,pad.t+gh+4*gDPR);}
+    const mx=getMaxes();const td={};
+    for(const tr of gTraces){const pts=[];for(const d of gData){if(d.t>frac)break;pts.push({x:pad.l+d.t*gw,y:pad.t+gh*(1-Math.abs(d[tr.key])/mx[tr.key]),val:d[tr.key]});}td[tr.key]=pts;holoTrace(ctx,pts,tr.color,1.5);}
+    const px=pad.l+frac*gw;ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1*gDPR;ctx.setLineDash([3*gDPR,3*gDPR]);ctx.moveTo(px,pad.t);ctx.lineTo(px,pad.t+gh);ctx.stroke();ctx.setLineDash([]);
+    let cy=pad.t+6*gDPR;
+    for(const tr of gTraces){const pts=td[tr.key];if(!pts.length)continue;const last=pts[pts.length-1];ctx.beginPath();ctx.arc(last.x,last.y,3*gDPR,0,Math.PI*2);ctx.fillStyle=tr.color;ctx.globalAlpha=0.9;ctx.fill();ctx.globalAlpha=1;ctx.save();ctx.shadowColor=tr.color;ctx.shadowBlur=6*gDPR;ctx.beginPath();ctx.arc(last.x,last.y,2*gDPR,0,Math.PI*2);ctx.fillStyle=tr.color;ctx.globalAlpha=0.4;ctx.fill();ctx.restore();ctx.globalAlpha=1;const v=Math.abs(last.val);const disp=v>=1e3?(v/1e3).toFixed(1)+'k':v>=1?v.toFixed(1):v.toFixed(4);ctx.font=`bold ${9*gDPR}px 'Courier New',monospace`;ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle=tr.color;ctx.globalAlpha=0.8;ctx.fillText(tr.label+' '+disp,px+5*gDPR,cy);ctx.globalAlpha=1;cy+=12*gDPR;}
+  }
+  // Area
+  function drawArea(canvas,frac){
+    const rect=canvas.parentElement.getBoundingClientRect();const w=Math.round(rect.width*gDPR),h=Math.round(rect.height*gDPR);canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+    const pad={l:6*gDPR,r:6*gDPR,t:8*gDPR,b:8*gDPR},gw=w-pad.l-pad.r,gh=h-pad.t-pad.b;
+    etchGrid(ctx,pad,gw,gh);let mA=0;for(const d of gData)if(d.alt>mA)mA=d.alt;
+    const pts=[];for(const d of gData){if(d.t>frac)break;pts.push({x:pad.l+d.t*gw,y:pad.t+gh*(1-d.alt/mA)});}
+    if(pts.length>1){ctx.beginPath();ctx.moveTo(pad.l,pad.t+gh);for(const p of pts)ctx.lineTo(p.x,p.y);ctx.lineTo(pts[pts.length-1].x,pad.t+gh);ctx.closePath();const gr=ctx.createLinearGradient(0,pad.t,0,pad.t+gh);gr.addColorStop(0,'rgba(55,138,221,0.2)');gr.addColorStop(0.5,'rgba(55,138,221,0.08)');gr.addColorStop(1,'rgba(55,138,221,0.01)');ctx.fillStyle=gr;ctx.fill();}
+    holoTrace(ctx,pts,'#378add',2);
+    const px=pad.l+frac*gw;ctx.beginPath();ctx.strokeStyle='rgba(55,138,221,0.5)';ctx.lineWidth=1*gDPR;ctx.moveTo(px,pad.t);ctx.lineTo(px,pad.t+gh);ctx.stroke();
+  }
+  // Bars
+  function drawBars(canvas){
+    const rect=canvas.parentElement.getBoundingClientRect();const w=Math.round(rect.width*gDPR),h=Math.round(rect.height*gDPR);canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+    const pad={l:10*gDPR,r:10*gDPR,t:10*gDPR,b:28*gDPR},gw=w-pad.l-pad.r,gh=h-pad.t-pad.b;
+    for(let i=1;i<=4;i++){const y=pad.t+(i/5)*gh;ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+gw,y);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.beginPath();ctx.moveTo(pad.l,y+1);ctx.lineTo(pad.l+gw,y+1);ctx.stroke();}
+    const n=gBurns.length,barW=gw/n*0.6;let mD=0;for(const b of gBurns)if(b.dv>mD)mD=b.dv;
+    for(let i=0;i<n;i++){const b=gBurns[i],norm=b.dv/mD,barH=norm*gh,x=pad.l+(i/n)*gw+(gw/n-barW)/2,y=pad.t+gh-barH;const rgb=hexToRgb(b.color);const r=Math.min(3*gDPR,barW/2);
+    const gr=ctx.createLinearGradient(0,y,0,pad.t+gh);gr.addColorStop(0,`rgba(${rgb.join(',')},0.45)`);gr.addColorStop(1,`rgba(${rgb.join(',')},0.1)`);ctx.fillStyle=gr;ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+barW-r,y);ctx.quadraticCurveTo(x+barW,y,x+barW,y+r);ctx.lineTo(x+barW,pad.t+gh);ctx.lineTo(x,pad.t+gh);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.fill();
+    ctx.save();ctx.shadowColor=b.color;ctx.shadowBlur=8*gDPR;ctx.strokeStyle=b.color;ctx.lineWidth=1.5*gDPR;ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+barW-r,y);ctx.quadraticCurveTo(x+barW,y,x+barW,y+r);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.stroke();ctx.restore();
+    ctx.fillStyle='rgba(208,212,218,0.5)';ctx.font=`${8*gDPR}px 'Courier New',monospace`;ctx.textAlign='center';ctx.fillText(b.label,x+barW/2,pad.t+gh+14*gDPR);
+    ctx.fillStyle=b.color;ctx.globalAlpha=0.7;ctx.font=`bold ${7*gDPR}px 'Courier New',monospace`;ctx.fillText(b.dv.toFixed(b.dv<0.1?3:2),x+barW/2,y-4*gDPR);ctx.globalAlpha=1;}
+  }
+
+  // Legends
+  document.querySelectorAll('[data-graph-legend]').forEach(el => {
+    for(const tr of gTraces){const item=document.createElement('div');item.className='graph-legend__item';item.innerHTML=`<div class="graph-legend__swatch" style="background:${tr.color}"></div>${tr.label}`;el.appendChild(item);}
+  });
+
+  // Static render at 75% playhead
+  const canvases = document.querySelectorAll('[data-graph]');
+  canvases.forEach(c => {
+    const type = c.dataset.graph;
+    if (type === 'multi') drawMulti(c, 0.75);
+    if (type === 'annotated') drawAnnotated(c, 0.75);
+    if (type === 'area') drawArea(c, 0.75);
+    if (type === 'bars') drawBars(c);
+  });
+})();
+
+// Scrollbar demo content
+(function() {
+  const events = [
+    {c:'#378add',t:'T-00:03:25 — Liftoff from LC-39B'},
+    {c:'#707880',t:'T-00:03:17 — Core stage / ICPS sep'},
+    {c:'#f0a030',t:'T-00:02:00 — ICPS perigee raise'},
+    {c:'#707880',t:'T-00:00:30 — Orion / ICPS sep'},
+    {c:'#9a6dd7',t:'T+00:00:00 — Tracking begins'},
+    {c:'#f0a030',t:'T+00:21:49 — Trans-Lunar Injection'},
+    {c:'#404040',t:'T+01:13:00 — OTC-1 (cancelled)'},
+    {c:'#404040',t:'T+02:16:00 — OTC-2 (cancelled)'},
+    {c:'#f0a030',t:'T+04:01:05 — OTC-3 correction'},
+    {c:'#40e8d0',t:'T+04:21:00 — Lunar perilune (6,546 km)'},
+    {c:'#f0a030',t:'T+05:22:06 — RTC-1 return burn'},
+    {c:'#f0a030',t:'T+08:00:53 — RTC-2 return burn'},
+    {c:'#f0a030',t:'T+08:16:53 — RTC-3 correction'},
+    {c:'#9a6dd7',t:'T+08:21:50 — Entry interface'},
+    {c:'#e05577',t:'T+08:22:04 — Splashdown (sim)'},
+    {c:'#e05577',t:'T+08:22:07 — Splashdown (pub)'},
+  ];
+  const box = document.getElementById('scrollDemo');
+  for (const e of events) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;font-size:9px;color:var(--fg-3);letter-spacing:0.04em;border-bottom:1px solid rgba(240,160,48,0.04)';
+    row.innerHTML = `<div style="width:5px;height:5px;border-radius:50%;flex-shrink:0;background:${e.c}"></div>${e.t}`;
+    box.appendChild(row);
+  }
+})();
+
+/* Toggle interaction */
+document.querySelectorAll('[data-toggle]').forEach(el => {
+  el.addEventListener('click', () => el.classList.toggle('is-on'));
+});
+
+/* Unified mouseup */
+document.addEventListener('mouseup', () => {
+  activeKnob = null;
+  activeSlider = null;
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+</script>
+
+</body>
+</html>
