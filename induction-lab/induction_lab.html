@@ -862,9 +862,11 @@ function drawLenz(dt){
   var flip = document.getElementById('lFlip').checked;
   var showLines = document.getElementById('lFieldLines').checked;
 
-  // Loop is at center-right
+  // Loop is at center-right; normal vector points along the magnet's motion axis (horizontal).
+  // Drawn as a tall vertical ellipse — minor axis horizontal (foreshortening from slight perspective),
+  // major axis vertical (true loop diameter). This way the magnet "enters" along the loop's normal.
   var loopX = W*0.62, loopY = H/2;
-  var loopRx = 90, loopRy = 28;  // ellipse for tilted-circle look
+  var loopRx = 28, loopRy = 90;
 
   // Magnet position relative to canvas center
   var magCenterX = W/2 + lenz.x;  // lenz.x ranges -200..200
@@ -872,18 +874,15 @@ function drawLenz(dt){
   var magW = 120, magH = 40;
 
   /* ── Compute flux through loop ──
-     Approximate: dipole field on-axis: B(r) ≈ μ M / r^3  (we just use a reduced model)
-     Use: phi = K * M * f(r) where f(r) = +/- depending on N pole orientation,
-     and r is distance from magnet's leading face to loop center. We'll go
-     analytic-ish: φ ∝ M / (1 + (r/r0)^2)^(3/2) with sign flip if S leads.
+     Smoothed on-axis dipole approximation: Φ ∝ 1/(1 + (z/z0)²)^(3/2)
+     where z is signed distance from magnet CENTER to loop center.
+     This makes the flux peak (and the Lenz reversal) coincide with the magnet
+     visually passing through the loop's plane. Sign flips if S leads.
   */
-  var leadingX = magCenterX + (flip ? -magW/2 : magW/2); // x of N pole if !flip, S if flip
   var sign = flip ? -1 : 1;
-  var r = (loopX - leadingX);                            // signed distance
+  var r = (loopX - magCenterX);                          // signed distance: magnet center → loop center
   var r0 = 60;
   var rN = r/r0;
-  // Flux model: peaks when leading face at loop. Sign flips when magnet has passed through.
-  // We'll use a smooth signed function shaped like dipole on-axis.
   var phi = sign * M * 1.0 / Math.pow(1 + rN*rN, 1.5);
   // EMF = -dPhi/dt (numerical)
   var dphi = (phi - lenz.prevPhi);
@@ -893,52 +892,26 @@ function drawLenz(dt){
   lenz.emf = lenz.emf*0.7 + emf*0.3;
   lenz.iInd = lenz.emf / R;
 
-  /* ── Draw bar magnet ── */
-  // Body
-  var nLeft = !flip;  // true if N is on the left half? No — if flip is unchecked, N is on the right (leading toward loop). So:
-  // If !flip: left half = S (red? convention varies — we'll use blue=S, red=N), right half = N.
-  // If flip:  left half = N, right half = S.
+  /* ── Magnet pole positions and colors (used by field lines and body draw) ── */
   var leftIsN = flip;
   var leftCol = leftIsN ? RED : '#3060c0';
   var rightCol = leftIsN ? '#3060c0' : RED;
+  var nPoleX = magCenterX + (flip ? -magW/2 : magW/2);
+  var nPoleY = magCenterY;
+  var sPoleX = magCenterX - (flip ? -magW/2 : magW/2);
+  var sPoleY = magCenterY;
 
-  ctx.save();
-  // Outer glow / chassis shadow
-  ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
-
-  // Left half
-  ctx.fillStyle = leftCol;
-  ctx.fillRect(magCenterX - magW/2, magCenterY - magH/2, magW/2, magH);
-  // Right half
-  ctx.fillStyle = rightCol;
-  ctx.fillRect(magCenterX, magCenterY - magH/2, magW/2, magH);
-  ctx.restore();
-  // Bevel
-  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
-  ctx.strokeRect(magCenterX - magW/2 + 0.5, magCenterY - magH/2 + 0.5, magW-1, magH-1);
-  // N/S labels
-  ctx.fillStyle='#fff'; ctx.font='bold 18px "Orbitron",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(leftIsN?'N':'S', magCenterX - magW/4, magCenterY);
-  ctx.fillText(leftIsN?'S':'N', magCenterX + magW/4, magCenterY);
-  ctx.textBaseline='alphabetic';
-
-  /* ── Field lines from N pole ── */
+  /* ── Field lines from N pole (drawn first; partially behind everything) ── */
   if(showLines){
-    var nPoleX = magCenterX + (flip ? -magW/2 : magW/2);
-    var nPoleY = magCenterY;
-    var sPoleX = magCenterX - (flip ? -magW/2 : magW/2);
-    var sPoleY = magCenterY;
     ctx.save();
     ctx.strokeStyle = 'rgba(64,232,208,0.45)';
     ctx.lineWidth = 1.3;
     var lineCount = 5;
     for(var li=0; li<lineCount; li++){
       var phase = (li - (lineCount-1)/2);  // -2..+2
-      // Curving line from N pole to S pole, bowing outward
       ctx.beginPath();
       var bow = 70 + Math.abs(phase)*30;
       var dir = phase>=0 ? 1 : -1;
-      // Use bezier with control points above/below
       var cx1 = nPoleX + (flip?-1:1)*70;
       var cy1 = nPoleY + dir*bow;
       var cx2 = sPoleX - (flip?-1:1)*70;
@@ -946,7 +919,7 @@ function drawLenz(dt){
       ctx.moveTo(nPoleX, nPoleY);
       ctx.bezierCurveTo(cx1, cy1, cx2, cy2, sPoleX, sPoleY);
       ctx.stroke();
-      // Arrowhead at midpoint indicating direction (N → outward → S)
+      // Arrowhead at midpoint (N → outward → S)
       function bez(t, p0, c1, c2, p3){
         var u = 1-t;
         return u*u*u*p0 + 3*u*u*t*c1 + 3*u*t*t*c2 + t*t*t*p3;
@@ -968,7 +941,46 @@ function drawLenz(dt){
     ctx.restore();
   }
 
-  /* ── Velocity arrow on magnet ── */
+  /* ── BACK arc of loop (right half: angles -π/2 → π/2). Drawn first, dimmer, suggesting "behind" ── */
+  ctx.save();
+  ctx.strokeStyle = AMBER_DIM;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(loopX, loopY, loopRx, loopRy, 0, -Math.PI/2, Math.PI/2, false);
+  ctx.stroke();
+  ctx.restore();
+
+  /* ── Bar magnet body (drawn over back arc; appears in front of it) ── */
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
+  ctx.fillStyle = leftCol;
+  ctx.fillRect(magCenterX - magW/2, magCenterY - magH/2, magW/2, magH);
+  ctx.fillStyle = rightCol;
+  ctx.fillRect(magCenterX, magCenterY - magH/2, magW/2, magH);
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
+  ctx.strokeRect(magCenterX - magW/2 + 0.5, magCenterY - magH/2 + 0.5, magW-1, magH-1);
+  // N/S labels
+  ctx.fillStyle='#fff'; ctx.font='bold 18px "Orbitron",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(leftIsN?'N':'S', magCenterX - magW/4, magCenterY);
+  ctx.fillText(leftIsN?'S':'N', magCenterX + magW/4, magCenterY);
+  ctx.textBaseline='alphabetic';
+
+  /* ── FRONT arc of loop (left half: angles π/2 → 3π/2). Drawn last, brighter, "in front of" magnet ── */
+  ctx.save();
+  ctx.strokeStyle = AMBER;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(loopX, loopY, loopRx, loopRy, 0, Math.PI/2, 3*Math.PI/2, false);
+  ctx.stroke();
+  // Inner shadow for depth (front side only)
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.ellipse(loopX, loopY, loopRx-2, loopRy-2, 0, Math.PI/2, 3*Math.PI/2, false);
+  ctx.stroke();
+  ctx.restore();
+
+  /* ── Velocity arrow above magnet (above all loop layers) ── */
   if(Math.abs(lenz.vx) > 1){
     var vDir = lenz.vx>0 ? 1 : -1;
     var vStartX = magCenterX + vDir*magW/2 + vDir*8;
@@ -978,61 +990,53 @@ function drawLenz(dt){
     ctx.fillText('v', (vStartX+vEndX)/2, magCenterY - magH/2 - 26);
   }
 
-  /* ── Loop ── */
-  ctx.save();
-  ctx.strokeStyle = AMBER;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.ellipse(loopX, loopY, loopRx, loopRy, 0, 0, 2*Math.PI);
-  ctx.stroke();
-  // inner shadow for depth
-  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.ellipse(loopX, loopY, loopRx-2, loopRy-2, 0, 0, 2*Math.PI); ctx.stroke();
-  ctx.restore();
-
-  /* ── Induced current direction indicator ──
-     If iInd > 0 → conventional current circulates in one sense. Use little
-     arrows on top and bottom of the ellipse. Sign maps: emf positive when
-     dPhi/dt < 0 in our convention.
+  /* ── Induced current direction: ⊙/⊗ at top and bottom of the loop ──
+     The loop's normal is along the magnet's axis (horizontal in canvas).
+     Loop wires at top (y = loopY - loopRy) and bottom carry current in ±z (in/out of page).
+     Chapter convention: when N pole approaches, induced current is CCW as viewed from the
+     magnet's side. Translating "CCW from +x POV" into our +z-viewing canvas:
+       top of loop ⇒ current OUT of page (⊙), bottom ⇒ INTO page (⊗).
+     With our flux model (Φ same sign as M when N leads, peaks at loop crossing), magnet
+     APPROACHING gives Iind < 0, so iInd<0 ⇒ "CCW from magnet POV" ⇒ top=⊙, bottom=⊗.
   */
   var iAbs = Math.abs(lenz.iInd);
-  var iSign = lenz.iInd >= 0 ? 1 : -1;
   if(iAbs > 0.005){
-    var arrowAlpha = Math.min(1, iAbs*4);
+    var iIndCCW_mag = (lenz.iInd < 0);
+    var topSym = iIndCCW_mag ? '⊙' : '⊗';
+    var botSym = iIndCCW_mag ? '⊗' : '⊙';
     ctx.save();
-    ctx.globalAlpha = arrowAlpha;
-    // Top arrow (moving rightward if iSign==+1)
-    var topY = loopY - loopRy;
-    var botY = loopY + loopRy;
-    var topDir = iSign;
-    var botDir = -iSign;
-    // Top
-    arrow(ctx, loopX - 30*topDir, topY, loopX + 30*topDir, topY, GREEN, 2, 8);
-    // Bottom
-    arrow(ctx, loopX - 30*botDir, botY, loopX + 30*botDir, botY, GREEN, 2, 8);
-
-    // CW/CCW label — when viewed from the magnet side, what direction is current?
-    // Top-arrow direction tells us. If topDir==+1 (rightward at top), current is CW as seen.
-    var dirLabel = (topDir>0) ? 'CW' : 'CCW';
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = Math.min(1, iAbs*4);
     ctx.fillStyle = GREEN;
+    ctx.font = 'bold 22px "Share Tech Mono",monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(topSym, loopX, loopY - loopRy);
+    ctx.fillText(botSym, loopX, loopY + loopRy);
+    ctx.textBaseline='alphabetic';
+    // CW/CCW label below loop
+    ctx.globalAlpha = 1;
     ctx.font = 'bold 12px "Orbitron",monospace'; ctx.textAlign='center';
-    ctx.fillText(dirLabel + ' (induced)', loopX, loopY + loopRy + 22);
+    var dirLabel = iIndCCW_mag ? 'CCW' : 'CW';
+    ctx.fillText(dirLabel + ' (from magnet side)', loopX, loopY + loopRy + 22);
     ctx.restore();
   }
 
-  /* ── Induced B field arrow inside loop ── */
-  // Lenz: induced B opposes ΔΦ. Sign of dphi: if dphi>0 (flux increasing), induced B opposes external B direction.
-  // External B through loop ≈ sign*M (positive into page when N approaches from left and points right).
-  // The induced field direction is along ±x in our 2D layout.
+  /* ── Induced B field arrow inside loop ──
+     Loop normal is horizontal (along magnet axis). B_ind is along ±normal.
+     Lenz: induced B opposes ΔΦ.
+       External B at loop ∝ sign(M)·(magnet pointing toward loop) ⇒ horizontal.
+       When magnet approaches (dΦ/dt > 0): B_ind opposes external B direction.
+       When magnet recedes (dΦ/dt < 0): B_ind supports external B direction.
+     We draw a horizontal arrow inside the loop body (sized to fit the narrow ellipse).
+  */
   if(Math.abs(emf) > 0.005){
     var indBdir = (emf > 0) ? 1 : -1;
-    // For our top-down view, draw an arrow centered in loop
-    var ibx1 = loopX - 24*indBdir;
-    var ibx2 = loopX + 24*indBdir;
-    arrow(ctx, ibx1, loopY-3, ibx2, loopY-3, 'rgba(64,232,208,0.85)', 1.5, 6);
-    ctx.fillStyle = 'rgba(64,232,208,0.9)'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
-    ctx.fillText('B_ind', loopX, loopY - 12);
+    // Place arrow OUTSIDE the loop on the right side so it doesn't collide with magnet body.
+    // Anchor at midpoint between loop's right edge and the canvas right margin if magnet present,
+    // otherwise inside the loop.
+    var arrowY = loopY + 28;  // offset below loop center to avoid magnet
+    arrow(ctx, loopX - 16*indBdir, arrowY, loopX + 16*indBdir, arrowY, 'rgba(64,232,208,0.95)', 1.5, 6);
+    ctx.fillStyle = 'rgba(64,232,208,0.95)'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('B_ind', loopX, arrowY - 8);
   }
 
   /* ── Force on magnet from loop (Lenz: opposes motion when approaching) ── */
@@ -1053,7 +1057,7 @@ function drawLenz(dt){
 
   /* ── Title strip ── */
   ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
-  ctx.fillText('TOP-DOWN VIEW', 16, 26);
+  ctx.fillText('SIDE VIEW · loop normal ∥ magnet axis', 16, 26);
   ctx.textAlign='right';
   ctx.fillText('R = '+R.toFixed(1)+' Ω', W-16, 26);
 
