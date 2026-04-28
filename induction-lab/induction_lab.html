@@ -1,0 +1,2067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Induction Lab — Peirastes</title>
+<meta name="description" content="Interactive electromagnetic induction simulator — Faraday's Law AC generator with live flux and EMF traces, and Lenz's Law bar magnet demonstration with induced current direction.">
+<meta property="og:title" content="Induction Lab — Peirastes">
+<meta property="og:description" content="Faraday's Law and Lenz's Law in two interactive modules — see a rotating coil produce 60 Hz AC, and a bar magnet repel a loop on approach.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#1a1d21">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+:root {
+  --chassis-bg: #1a1d21;
+  --chassis-border: #2a2d32;
+  --crt-bg: #0a0e14;
+  --crt-border: #333842;
+  --amber: #f0a030;
+  --amber-dim: #a06820;
+  --amber-glow: rgba(240,160,48,0.25);
+  --cyan: #40e8d0;
+  --cyan-dim: #208878;
+  --cyan-glow: rgba(64,232,208,0.2);
+  --teal: #20b0a0;
+  --red: #e05040;
+  --red-glow: rgba(224,80,64,0.35);
+  --green: #40d870;
+  --green-glow: rgba(64,216,112,0.35);
+  --text-primary: #d0d4da;
+  --text-dim: #707880;
+  --rivet: radial-gradient(circle at 35% 35%, #555, #222 60%, #111);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Share Tech Mono', monospace;
+  background: var(--chassis-bg); color: var(--text-primary);
+  min-height: 100vh;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 4px);
+}
+.header {
+  background: linear-gradient(180deg, #222630, #1a1d24);
+  border-bottom: 2px solid var(--chassis-border);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+.header-title { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; color:var(--amber); text-shadow:0 0 12px var(--amber-glow); letter-spacing:2px; }
+.header-sub { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+.rivet { width:10px; height:10px; border-radius:50%; background:var(--rivet); box-shadow:inset 0 1px 2px rgba(255,255,255,0.15),0 1px 3px rgba(0,0,0,0.6); flex-shrink:0; }
+.header-rivets { display:flex; gap:14px; align-items:center; }
+
+.main-grid { display:grid; grid-template-columns:300px 1fr; gap:0; min-height:calc(100vh - 52px); }
+
+.control-panel { background:linear-gradient(180deg,#181b20,#14161c); border-right:2px solid var(--chassis-border); padding:16px; overflow-y:auto; }
+.panel-section { margin-bottom:16px; }
+.section-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; padding-bottom:4px; border-bottom:1px solid var(--amber-dim); }
+.input-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.input-group { display:flex; flex-direction:column; min-width:0; }
+.input-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:3px; }
+
+.slider-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.slider-row .sl { font-size:10px; color:var(--text-dim); letter-spacing:1px; white-space:nowrap; min-width:88px; }
+.slider-row input[type=range] { flex:1; -webkit-appearance:none; appearance:none; height:4px; background:var(--crt-border); border-radius:2px; outline:none; cursor:pointer; }
+.slider-row input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--amber); box-shadow:0 0 6px var(--amber-glow); cursor:pointer; }
+.slider-row input[type=range]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--amber); border:none; cursor:pointer; }
+.slider-row .sv { font-size:12px; color:var(--cyan); min-width:62px; text-align:right; }
+
+.chk-row { display:flex; align-items:center; gap:8px; padding:2px 0; margin-bottom:6px; }
+.chk-row input[type=checkbox] { accent-color:var(--amber); width:14px; height:14px; cursor:pointer; }
+.chk-row span { font-size:11px; color:var(--text-dim); }
+
+.module-tab-row { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
+.tab { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:5px 8px; cursor:pointer; transition:all 0.2s; letter-spacing:0.5px; flex:1; text-align:center; }
+.tab:hover { border-color:var(--amber); color:var(--amber); box-shadow:0 0 6px var(--amber-glow); }
+.tab.on { border-color:var(--amber); color:var(--chassis-bg); background:var(--amber); }
+
+.module-ctrl { display:block; }
+.btn-row { display:flex; gap:6px; margin-top:6px; }
+.act-btn { flex:1; background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:6px 4px; cursor:pointer; letter-spacing:1px; transition:all 0.15s; }
+.act-btn:hover { border-color:var(--amber); color:var(--amber); }
+.act-btn.on { border-color:var(--amber); color:var(--amber); box-shadow:inset 0 0 8px rgba(240,160,48,0.15), 0 0 6px var(--amber-glow); }
+
+.display-area { padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; }
+.crt-screen { background:var(--crt-bg); border:2px solid var(--crt-border); border-radius:6px; padding:16px; position:relative; box-shadow:inset 0 0 30px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.4); }
+.crt-screen::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(255,255,255,0.015) 1px,rgba(255,255,255,0.015) 2px); pointer-events:none; border-radius:4px; }
+.crt-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber-dim); letter-spacing:2px; margin-bottom:12px; text-transform:uppercase; }
+.canvas-wrap { width:100%; position:relative; }
+.canvas-wrap canvas { display:block; width:100%; height:auto; }
+
+.panel { display:none; }
+.panel.on { display:block; }
+
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(95px,1fr)); gap:6px; margin-top:12px; }
+.card { background:rgba(10,14,20,0.6); border:1px solid var(--crt-border); border-radius:4px; padding:8px 10px; }
+.card-l { font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+.card-v { font-size:14px; font-family:'Share Tech Mono',monospace; }
+
+.eq-strip { margin-top:12px; padding:8px 12px; background:rgba(10,14,20,0.4); border:1px solid var(--crt-border); border-radius:3px; display:flex; flex-wrap:wrap; gap:4px 16px; font-size:11px; color:var(--text-dim); align-items:center; }
+.eq-strip .eq { color:var(--cyan-dim); }
+.eq-strip .katex { font-size:12px; color:var(--cyan-dim); }
+.crt-label .katex { font-size:11px; color:inherit; }
+.card-l .katex { font-size:10px; color:inherit; }
+
+.reset-btn { background:none; border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; margin-top:10px; transition:all 0.2s; display:block; width:100%; letter-spacing:1px; }
+.reset-btn:hover { border-color:var(--amber); color:var(--amber); }
+.kbd-hint { display:none; margin-top:6px; text-align:center; font-size:10px; color:var(--text-dim); }
+.kbd-hint kbd { display:inline-block; padding:1px 5px; background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); }
+@media(hover:hover){.kbd-hint{display:block}}
+
+@media (max-width:900px) {
+  .main-grid { grid-template-columns:1fr; }
+  .control-panel { border-right:none; border-bottom:2px solid var(--chassis-border); }
+}
+@media (max-width:550px) {
+  .cards { grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); }
+}
+</style>
+</head>
+<body>
+<a href="https://peirastes.com" title="Back to Peirastes" style="position:fixed;top:8px;left:12px;font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:rgba(224,224,224,0.3);text-decoration:none;letter-spacing:0.08em;z-index:9999;transition:color 0.2s ease" onmouseover="this.style.color='#e07050'" onmouseout="this.style.color='rgba(224,224,224,0.3)'">Peirastes</a>
+
+<div class="header">
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+  <div style="text-align:center;">
+    <div class="header-title">INDUCTION LAB</div>
+    <div class="header-sub">FARADAY'S LAW · LENZ'S LAW</div>
+  </div>
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+</div>
+
+<div class="main-grid">
+  <div class="control-panel">
+    <div class="panel-section">
+      <div class="section-label">Lecture 1 — Faraday &amp; Lenz</div>
+      <div class="module-tab-row" role="tablist">
+        <button class="tab on" id="t-pw" onclick="sw('pw')">Piecewise B</button>
+        <button class="tab" id="t-lz" onclick="sw('lz')">Lenz / Magnet</button>
+        <button class="tab" id="t-lf" onclick="sw('lf')">Loop &amp; Field</button>
+        <button class="tab" id="t-wl" onclick="sw('wl')">Wire &amp; Loop</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="section-label">Lecture 2 — Generator</div>
+      <div class="module-tab-row" role="tablist">
+        <button class="tab" id="t-gn" onclick="sw('gn')">AC Generator</button>
+      </div>
+    </div>
+
+    <!-- Piecewise-B controls (Block 1) -->
+    <div id="ctrl-pw" class="module-ctrl">
+      <div class="panel-section">
+        <div class="section-label">Coil</div>
+        <div class="slider-row">
+          <span class="sl">Turns N</span>
+          <input type="range" min="1" max="200" value="50" step="1" id="pN" oninput="uPW()" />
+          <span class="sv" id="pN-v">50</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Radius r</span>
+          <input type="range" min="20" max="200" value="80" step="1" id="pR" oninput="uPW()" />
+          <span class="sv" id="pR-v">0.080 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Resistance</span>
+          <input type="range" min="5" max="200" value="25" step="1" id="pRes" oninput="uPW()" />
+          <span class="sv" id="pRes-v">2.50 Ω</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">B(t) Schedule</div>
+        <div class="slider-row">
+          <span class="sl">B peak</span>
+          <input type="range" min="10" max="200" value="60" step="1" id="pBpk" oninput="uPW()" />
+          <span class="sv" id="pBpk-v">0.60 T</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Phase 1 dur</span>
+          <input type="range" min="5" max="100" value="20" step="1" id="pT1" oninput="uPW()" />
+          <span class="sv" id="pT1-v">0.20 s</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Phase 2 dur</span>
+          <input type="range" min="5" max="100" value="30" step="1" id="pT2" oninput="uPW()" />
+          <span class="sv" id="pT2-v">0.30 s</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Phase 3 dur</span>
+          <input type="range" min="5" max="100" value="30" step="1" id="pT3" oninput="uPW()" />
+          <span class="sv" id="pT3-v">0.30 s</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="p-play" onclick="togglePlay('pw')">PLAYING</button>
+          <button class="act-btn" id="p-step" onclick="stepBack('pw')">RESET</button>
+        </div>
+        <button class="reset-btn" onclick="resetModule('pw')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- Generator controls -->
+    <div id="ctrl-gn" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Coil</div>
+        <div class="slider-row">
+          <span class="sl">Turns N</span>
+          <input type="range" min="1" max="500" value="100" step="1" id="gN" oninput="uG()" />
+          <span class="sv" id="gN-v">100</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Area A</span>
+          <input type="range" min="5" max="100" value="20" step="1" id="gA" oninput="uG()" />
+          <span class="sv" id="gA-v">0.020 m²</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Field &amp; Drive</div>
+        <div class="slider-row">
+          <span class="sl">Field B</span>
+          <input type="range" min="5" max="200" value="50" step="1" id="gB" oninput="uG()" />
+          <span class="sv" id="gB-v">0.50 T</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Speed ω</span>
+          <input type="range" min="0" max="500" value="377" step="1" id="gW" oninput="uG()" />
+          <span class="sv" id="gW-v">377 rad/s</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="g-play" onclick="togglePlay('gn')">PAUSE</button>
+          <button class="act-btn" id="g-step" onclick="stepBack('gn')">RESET</button>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="gShowFlux" checked onchange="uG()" />
+          <span>Show Φ trace (cyan)</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="gShowEmf" checked onchange="uG()" />
+          <span>Show ε trace (amber)</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('gn')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- Wire & Loop controls (mutual induction; AC straight wire ↔ loop) -->
+    <div id="ctrl-wl" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Driving Wire</div>
+        <div class="slider-row">
+          <span class="sl">Current I₀</span>
+          <input type="range" min="1" max="500" value="100" step="1" id="wI" oninput="uWL()" />
+          <span class="sv" id="wI-v">100 A</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Frequency</span>
+          <input type="range" min="1" max="100" value="10" step="1" id="wF" oninput="uWL()" />
+          <span class="sv" id="wF-v">1.0 Hz</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Loop Geometry</div>
+        <div class="slider-row">
+          <span class="sl">Distance d</span>
+          <input type="range" min="5" max="100" value="20" step="1" id="wD" oninput="uWL()" />
+          <span class="sv" id="wD-v">0.020 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Width w</span>
+          <input type="range" min="30" max="200" value="100" step="1" id="wW" oninput="uWL()" />
+          <span class="sv" id="wW-v">0.100 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Length L</span>
+          <input type="range" min="50" max="300" value="200" step="1" id="wL" oninput="uWL()" />
+          <span class="sv" id="wL-v">0.200 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Resistance</span>
+          <input type="range" min="1" max="100" value="10" step="1" id="wR" oninput="uWL()" />
+          <span class="sv" id="wR-v">0.10 Ω</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="w-play" onclick="togglePlay('wl')">PLAYING</button>
+          <button class="act-btn" id="w-step" onclick="stepBack('wl')">RESET</button>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="wShowLines" checked onchange="uWL()" />
+          <span>Show B field arcs</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="wShowInduced" checked onchange="uWL()" />
+          <span>Show induced B inside loop</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('wl')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- Loop-through-field controls (Block 3) -->
+    <div id="ctrl-lf" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Loop</div>
+        <div class="slider-row">
+          <span class="sl">Width w</span>
+          <input type="range" min="40" max="200" value="100" step="1" id="fw" oninput="uLF()" />
+          <span class="sv" id="fw-v">0.10 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Height ℓ</span>
+          <input type="range" min="20" max="120" value="60" step="1" id="fh" oninput="uLF()" />
+          <span class="sv" id="fh-v">0.060 m</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Field Region</div>
+        <div class="slider-row">
+          <span class="sl">B</span>
+          <input type="range" min="10" max="200" value="50" step="1" id="fB" oninput="uLF()" />
+          <span class="sv" id="fB-v">0.50 T</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Region width</span>
+          <input type="range" min="50" max="500" value="300" step="1" id="fW" oninput="uLF()" />
+          <span class="sv" id="fW-v">0.30 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Velocity v</span>
+          <input type="range" min="5" max="100" value="20" step="1" id="fv" oninput="uLF()" />
+          <span class="sv" id="fv-v">0.20 m/s</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="f-play" onclick="togglePlay('lf')">PLAYING</button>
+          <button class="act-btn" id="f-step" onclick="stepBack('lf')">RESET</button>
+        </div>
+        <button class="reset-btn" onclick="resetModule('lf')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- Lenz controls -->
+    <div id="ctrl-lz" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Magnet</div>
+        <div class="slider-row">
+          <span class="sl">Strength</span>
+          <input type="range" min="20" max="200" value="100" step="1" id="lM" oninput="uL()" />
+          <span class="sv" id="lM-v">1.00</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Position x</span>
+          <input type="range" min="-200" max="200" value="-180" step="1" id="lX" oninput="uL()" />
+          <span class="sv" id="lX-v">-180</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="lFlip" onchange="uL()" />
+          <span>S pole leads (flip magnet)</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Loop</div>
+        <div class="slider-row">
+          <span class="sl">Resistance</span>
+          <input type="range" min="1" max="50" value="10" step="1" id="lR" oninput="uL()" />
+          <span class="sv" id="lR-v">1.0 Ω</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="l-play" onclick="togglePlay('lz')">AUTO</button>
+          <button class="act-btn" id="l-reset" onclick="stepBack('lz')">RESET</button>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="lFieldLines" checked onchange="uL()" />
+          <span>Show field lines</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('lz')">Reset defaults</button>
+      </div>
+    </div>
+
+    <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules · <kbd>Space</kbd> play/pause</div>
+  </div>
+
+  <!-- Display area -->
+  <div class="display-area">
+    <!-- Piecewise-B display (Block 1) -->
+    <div class="panel on" id="p-pw">
+      <div class="crt-screen">
+        <div class="crt-label">Faraday's Law — Piecewise-Linear B(t) Through a Stationary Coil</div>
+        <div class="canvas-wrap"><canvas id="pc"></canvas></div>
+        <div class="cards" id="p-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\Phi_B(t) = B(t)\,\pi r^2\;\text{(per turn)}"></span>
+          <span class="eq" data-katex="\mathcal{E} = -N\,d\Phi_B/dt = -N\,A\,dB/dt"></span>
+          <span class="eq" data-katex="I = \mathcal{E}/R"></span>
+          <span class="eq" data-katex="\text{constant }B \Rightarrow \mathcal{E}=0"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Wire & Loop display (mutual induction) -->
+    <div class="panel" id="p-wl">
+      <div class="crt-screen">
+        <div class="crt-label">AC Current in a Straight Wire — Inducing Current in a Nearby Loop</div>
+        <div class="canvas-wrap"><canvas id="wc"></canvas></div>
+        <div class="cards" id="w-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="B(r) = \mu_0 I/(2\pi r)"></span>
+          <span class="eq" data-katex="\Phi_B = \tfrac{\mu_0 L\,I}{2\pi}\ln\!\left(\tfrac{d+w}{d}\right)"></span>
+          <span class="eq" data-katex="\mathcal{E} = -d\Phi_B/dt \;\Rightarrow\; I_\text{ind}\;\text{lags}\;I\;\text{by}\;90°"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Loop-through-field display (Block 3) -->
+    <div class="panel" id="p-lf">
+      <div class="crt-screen">
+        <div class="crt-label">Loop Sliding Through a Localized Field Region — Φ(x) and ε(x)</div>
+        <div class="canvas-wrap"><canvas id="fc"></canvas></div>
+        <div class="cards" id="f-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\Phi_B(x) = B\ell\cdot\text{overlap}(x)"></span>
+          <span class="eq" data-katex="\mathcal{E} = -d\Phi_B/dt = \pm B\ell v\;\text{(at boundaries)}"></span>
+          <span class="eq" data-katex="\mathcal{E}=0\;\text{when fully in or fully out}"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Generator display -->
+    <div class="panel" id="p-gn">
+      <div class="crt-screen">
+        <div class="crt-label">AC Generator — Rotating Coil in Uniform Field</div>
+        <div class="canvas-wrap"><canvas id="gc"></canvas></div>
+        <div class="cards" id="g-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\Phi_B = BA\cos(\omega t)\;\text{(per turn)}"></span>
+          <span class="eq" data-katex="N\Phi_B = NBA\cos(\omega t)"></span>
+          <span class="eq" data-katex="\mathcal{E} = -N\,d\Phi_B/dt = NBA\omega\sin(\omega t)"></span>
+          <span class="eq" data-katex="\mathcal{E}_0 = NBA\omega"></span>
+          <span class="eq" data-katex="f = \omega/(2\pi)"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Lenz display -->
+    <div class="panel" id="p-lz">
+      <div class="crt-screen">
+        <div class="crt-label">Lenz's Law — Bar Magnet Approaching a Loop</div>
+        <div class="canvas-wrap"><canvas id="lc"></canvas></div>
+        <div class="cards" id="l-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\mathcal{E} = -d\Phi_B/dt"></span>
+          <span class="eq" data-katex="I_\text{ind} = \mathcal{E}/R"></span>
+          <span class="eq" data-katex="\vec{B}_\text{ind} \;\text{opposes}\; \Delta\Phi_B"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+/* ── Constants ── */
+var BG='#08090d';
+var GR='rgba(255,255,255,0.035)';
+var IF='rgba(255,255,255,0.12)';
+var TX='rgba(255,255,255,0.5)';
+var TXH='rgba(255,255,255,0.85)';
+var AMBER='#f0a030', AMBER_DIM='#a06820';
+var CYAN='#40e8d0', CYAN_DIM='#208878';
+var RED='#e05040', GREEN='#40d870';
+
+/* ── HiDPI setup ── */
+function setupCanvas(cv, baseW, baseH) {
+  var dpr = window.devicePixelRatio || 1;
+  cv.width = baseW * dpr;
+  cv.height = baseH * dpr;
+  cv.style.width = '100%';
+  cv.style.height = 'auto';
+  cv.style.aspectRatio = baseW + ' / ' + baseH;
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+function grid(ctx, W, H){
+  ctx.strokeStyle=GR; ctx.lineWidth=1;
+  for(var x=0;x<=W;x+=40){ ctx.beginPath(); ctx.moveTo(x+0.5,0); ctx.lineTo(x+0.5,H); ctx.stroke(); }
+  for(var y=0;y<=H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y+0.5); ctx.lineTo(W,y+0.5); ctx.stroke(); }
+}
+
+function arrow(ctx, x1,y1, x2,y2, col, lw, head){
+  lw = lw || 1.5; head = head || 7;
+  ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=lw; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  var ang=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-head*Math.cos(ang-0.4), y2-head*Math.sin(ang-0.4));
+  ctx.lineTo(x2-head*Math.cos(ang+0.4), y2-head*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div class="card-v" style="color:'+(c||TXH)+'">'+v+'</div></div>';}
+
+/* ════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════ */
+var BASE_W = 820, BASE_H = 440;
+var currentTab = 'pw';
+var play = { gn: true, lz: true, pw: true, lf: true, wl: true };
+
+var gen = {
+  theta: 0,           // rotation angle
+  history: [],        // array of {t, phi, emf}
+  histMax: 600,
+  tElapsed: 0
+};
+
+var lenz = {
+  x: -180,
+  vx: 90,
+  prevPhi: 0,
+  emf: 0,
+  iInd: 0
+};
+
+var pw = {
+  t: 0,               // current time within schedule
+  history: []         // {t, B, dBdt, emf}
+};
+
+var lf = {
+  xR: -120,           // x of loop's right edge (px in display coords)
+  history: []         // {x, phi, emf}
+};
+
+var wl = {
+  t: 0,               // simulated time (s)
+  history: [],
+  histMax: 600
+};
+
+/* ── Animation loop ── */
+var lastT = performance.now();
+function tick(now){
+  var dt = Math.min(0.05, (now - lastT)/1000);
+  lastT = now;
+  if(currentTab==='gn'){
+    if(play.gn){
+      var w = parseFloat(document.getElementById('gW').value);
+      gen.theta += w*dt;
+      gen.tElapsed += dt;
+    }
+    drawGenerator();
+  } else if(currentTab==='lz'){
+    if(play.lz){
+      lenz.x += lenz.vx*dt;
+      if(lenz.x > 200){ lenz.x=200; lenz.vx=-Math.abs(lenz.vx); }
+      if(lenz.x < -200){ lenz.x=-200; lenz.vx= Math.abs(lenz.vx); }
+      document.getElementById('lX').value = Math.round(lenz.x);
+      document.getElementById('lX-v').textContent = Math.round(lenz.x);
+    }
+    drawLenz(dt);
+  } else if(currentTab==='pw'){
+    if(play.pw) pw.t += dt;
+    drawPiecewiseB();
+  } else if(currentTab==='lf'){
+    if(play.lf){
+      var v_pix = parseFloat(document.getElementById('fv').value); // 5..100 → 0.05..1.0 m/s mapped to px/s via scale below
+      // We'll just translate canvas px directly: fv slider maps to canvas px/s by *2.
+      lf.xR += v_pix*2*dt;
+      // Loop the animation when loop fully exits
+      var Wf = parseFloat(document.getElementById('fW').value); // canvas px
+      var w  = parseFloat(document.getElementById('fw').value);
+      if(lf.xR > Wf + w + 80) lf.xR = -w - 60;
+    }
+    drawLoopThroughField();
+  } else if(currentTab==='wl'){
+    if(play.wl) wl.t += dt;
+    drawWireLoop();
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 1: AC GENERATOR
+   ════════════════════════════════════════════════════════════ */
+function uG(){
+  var N = parseInt(document.getElementById('gN').value);
+  var A_cm2 = parseInt(document.getElementById('gA').value);  // 5..100 → 0.005..0.100 m²
+  var A = A_cm2/1000;
+  var B = parseInt(document.getElementById('gB').value)/100;  // 5..200 → 0.05..2.00 T
+  var w = parseFloat(document.getElementById('gW').value);
+  document.getElementById('gN-v').textContent = N;
+  document.getElementById('gA-v').textContent = A.toFixed(3)+' m²';
+  document.getElementById('gB-v').textContent = B.toFixed(2)+' T';
+  document.getElementById('gW-v').textContent = Math.round(w)+' rad/s';
+  drawGenerator();
+}
+window.uG = uG;
+
+function drawGenerator(){
+  var cv = document.getElementById('gc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  // Background panel
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  // Read params
+  var N = parseInt(document.getElementById('gN').value);
+  var A = parseInt(document.getElementById('gA').value)/1000;
+  var B = parseInt(document.getElementById('gB').value)/100;
+  var w = parseFloat(document.getElementById('gW').value);
+  var showPhi = document.getElementById('gShowFlux').checked;
+  var showEmf = document.getElementById('gShowEmf').checked;
+
+  // Compute current values
+  var theta = gen.theta;
+  var phi   = N*B*A*Math.cos(theta);            // total flux linkage
+  var emf   = N*B*A*w*Math.sin(theta);          // induced EMF
+  var emf0  = N*B*A*w;                          // peak EMF
+  var freq  = w/(2*Math.PI);
+
+  // Push to history (only when playing)
+  if(play.gn){
+    gen.history.push({t: gen.tElapsed, phi: phi, emf: emf});
+    if(gen.history.length > gen.histMax) gen.history.shift();
+  }
+
+  /* ── LEFT PANEL: rotating coil seen along its rotation axis ── */
+  var lx = 200, ly = H/2;
+  var loopR = 130;
+
+  // Section divider
+  ctx.strokeStyle = IF; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(W/2, 18); ctx.lineTo(W/2, H-18); ctx.stroke();
+
+  // Axis label
+  ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillStyle=AMBER_DIM; ctx.fillText('AXIS VIEW (along rotation axis)', lx, 26);
+
+  // Uniform B field — horizontal arrows in background of left panel
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  for(var fy=60; fy<H-30; fy+=42){
+    for(var fx=70; fx<330; fx+=70){
+      arrow(ctx, fx-22, fy, fx+22, fy, CYAN_DIM, 1, 5);
+    }
+  }
+  ctx.restore();
+  ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillStyle=CYAN_DIM; ctx.fillText('B', 60, 56);
+
+  // Axis line (rotation axis pointing out of page — show as dashed circle)
+  ctx.save();
+  ctx.setLineDash([3,5]);
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(lx, ly, 4, 0, 2*Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(lx, ly, 1.5, 0, 2*Math.PI); ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fill();
+  ctx.restore();
+
+  // The loop appears as a line segment (top-down view of loop plane)
+  // Loop normal is at angle theta from B (which is along +x). Loop plane is perpendicular to normal.
+  var nx = Math.cos(theta), ny = Math.sin(theta);  // normal direction in this plane
+  var px = -Math.sin(theta), py = Math.cos(theta); // loop plane direction (perpendicular to normal)
+  var x1 = lx - loopR*px, y1 = ly - loopR*py;
+  var x2 = lx + loopR*px, y2 = ly + loopR*py;
+
+  // Draw loop with depth-shading (front edge brighter)
+  // Using sign of nx (whether front of loop faces +B or -B)
+  var frontCol = nx>=0 ? AMBER : AMBER_DIM;
+  var backCol  = nx>=0 ? AMBER_DIM : AMBER;
+  ctx.lineWidth=4; ctx.lineCap='round';
+  // Loop ends as small circles representing wire cross-sections
+  ctx.strokeStyle=frontCol;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+
+  // Wire cross-section markers (dot = current out of page, X = into page)
+  // Lenz/right-hand rule: when emf>0, current direction in loop plane has consistent sign.
+  // Use sign(emf) to set which end has dot vs X.
+  function drawDot(x,y,col){
+    ctx.fillStyle=col;
+    ctx.beginPath(); ctx.arc(x,y,8,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.arc(x,y,2.5,0,2*Math.PI); ctx.fill();
+  }
+  function drawCross(x,y,col){
+    ctx.strokeStyle=col; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(x,y,8,0,2*Math.PI); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x-5,y-5); ctx.lineTo(x+5,y+5);
+    ctx.moveTo(x+5,y-5); ctx.lineTo(x-5,y+5);
+    ctx.stroke();
+  }
+  // Pick which end gets dot vs cross based on sign of emf and which end is "top"
+  var topIsX1 = y1 < y2;
+  var emfSign = emf >= 0 ? 1 : -1;
+  if(topIsX1 === (emfSign>0)){
+    drawDot(x1,y1,GREEN);
+    drawCross(x2,y2,GREEN);
+  } else {
+    drawCross(x1,y1,GREEN);
+    drawDot(x2,y2,GREEN);
+  }
+
+  // Normal vector
+  arrow(ctx, lx, ly, lx + 50*nx, ly + 50*ny, '#fff', 1.5, 7);
+  ctx.fillStyle=TXH; ctx.font='12px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('n̂', lx + 56*nx + 2, ly + 56*ny + 4);
+
+  // Theta arc between B (+x axis) and n̂
+  ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.arc(lx, ly, 32, 0, theta, theta<0); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=TX; ctx.font='11px "Share Tech Mono",monospace';
+  var thetaDeg = (theta*180/Math.PI) % 360;
+  if(thetaDeg < 0) thetaDeg += 360;
+  ctx.fillText('θ = '+thetaDeg.toFixed(0)+'°', lx + 38, ly - 10);
+
+  // Module label
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('● = current OUT', lx-130, H-30);
+  ctx.fillText('⊗ = current IN', lx-130, H-16);
+
+  /* ── RIGHT PANEL: dual-trace scope ── */
+  var sx = W/2 + 30, sy = 50, sw = W - sx - 30, sh = H - 100;
+  var sMidY = sy + sh/2;
+
+  // Scope background
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(sx, sy, sw, sh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1;
+  ctx.strokeRect(sx, sy, sw, sh);
+
+  // Scope grid
+  ctx.strokeStyle='rgba(255,255,255,0.05)';
+  for(var i=1;i<8;i++){
+    ctx.beginPath(); ctx.moveTo(sx + i*sw/8, sy); ctx.lineTo(sx + i*sw/8, sy+sh); ctx.stroke();
+  }
+  for(var j=1;j<6;j++){
+    ctx.beginPath(); ctx.moveTo(sx, sy + j*sh/6); ctx.lineTo(sx+sw, sy + j*sh/6); ctx.stroke();
+  }
+  // Center line (zero)
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1;
+  ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(sx, sMidY); ctx.lineTo(sx+sw, sMidY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Scope label
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('SCOPE — NΦ_B (cyan) · ε (amber)', sx + 4, sy - 6);
+  ctx.textAlign='right';
+  ctx.fillStyle=TX;
+  ctx.fillText(N+' turns · '+B.toFixed(2)+' T · ω='+Math.round(w)+' rad/s', sx+sw, sy - 6);
+
+  // Plot traces
+  if(gen.history.length > 1){
+    var phi0 = N*B*A;            // peak flux linkage
+    var emf0Val = N*B*A*w;
+    var phiScale = (sh*0.42)/Math.max(0.01, phi0);
+    var emfScale = (sh*0.42)/Math.max(0.01, emf0Val);
+
+    // Use last ~window seconds
+    var period = w>0 ? 2*Math.PI/w : 0.05;
+    var winSec = Math.max(0.05, 4*period);
+    var tEnd = gen.tElapsed;
+    var tStart = tEnd - winSec;
+
+    var pts = gen.history.filter(function(p){return p.t>=tStart;});
+
+    function tToX(t){ return sx + (t-tStart)/winSec*sw; }
+
+    if(showPhi){
+      ctx.strokeStyle=CYAN; ctx.lineWidth=1.6; ctx.beginPath();
+      for(var k=0;k<pts.length;k++){
+        var X = tToX(pts[k].t);
+        var Y = sMidY - pts[k].phi*phiScale;
+        if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+      }
+      ctx.stroke();
+      // glow
+      ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+    }
+
+    if(showEmf){
+      ctx.strokeStyle=AMBER; ctx.lineWidth=1.8; ctx.beginPath();
+      for(var k=0;k<pts.length;k++){
+        var X = tToX(pts[k].t);
+        var Y = sMidY - pts[k].emf*emfScale;
+        if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+      }
+      ctx.stroke();
+      ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+    }
+
+    // Marker line at "now"
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+sw, sy); ctx.lineTo(sx+sw, sy+sh); ctx.stroke();
+
+    // Live dot for emf and phi
+    if(showPhi){
+      ctx.fillStyle=CYAN;
+      ctx.beginPath(); ctx.arc(sx+sw, sMidY-phi*phiScale, 3, 0, 2*Math.PI); ctx.fill();
+    }
+    if(showEmf){
+      ctx.fillStyle=AMBER;
+      ctx.beginPath(); ctx.arc(sx+sw, sMidY-emf*emfScale, 3, 0, 2*Math.PI); ctx.fill();
+    }
+  }
+
+  // Scale labels
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
+  ctx.fillText('+ε₀', sx+sw+30, sy + sh*0.08 + 3);
+  ctx.fillText('-ε₀', sx+sw+30, sy + sh*0.92 + 3);
+  ctx.textAlign='left';
+  ctx.fillStyle=CYAN_DIM; ctx.fillText('NΦ_B', sx-22, sy + sh*0.08 + 3);
+
+  // Scope footer: window in seconds
+  if(w>0){
+    var period_disp = 2*Math.PI/w;
+    ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
+    ctx.fillText('window: '+(4*period_disp*1000).toFixed(0)+' ms', sx+sw, sy+sh+12);
+    ctx.textAlign='left';
+    ctx.fillText('T = '+(period_disp*1000).toFixed(1)+' ms', sx, sy+sh+12);
+  }
+
+  /* ── Readout cards ── */
+  var phaseDeg = ((theta*180/Math.PI) % 360 + 360) % 360;
+  var h = '';
+  h += cd('θ(t)', phaseDeg.toFixed(0)+'°', AMBER);
+  h += cd('NΦ_B(t)', phi.toFixed(3)+' Wb', CYAN);
+  h += cd('Φ_B (per turn)', (B*A*Math.cos(theta)).toFixed(5)+' Wb', CYAN_DIM);
+  h += cd('ε(t)', emf.toFixed(2)+' V', AMBER);
+  h += cd('ε₀ peak', emf0.toFixed(1)+' V', TXH);
+  h += cd('f', freq.toFixed(2)+' Hz', TXH);
+  document.getElementById('g-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 2: LENZ / BAR MAGNET
+   ════════════════════════════════════════════════════════════ */
+function uL(){
+  var M = parseInt(document.getElementById('lM').value)/100;
+  var R = parseInt(document.getElementById('lR').value)/10;
+  var manualX = parseInt(document.getElementById('lX').value);
+  document.getElementById('lM-v').textContent = M.toFixed(2);
+  document.getElementById('lR-v').textContent = R.toFixed(1)+' Ω';
+  document.getElementById('lX-v').textContent = manualX;
+  if(!play.lz){
+    lenz.x = manualX;
+  }
+  drawLenz(0);
+}
+window.uL = uL;
+
+function drawLenz(dt){
+  var cv = document.getElementById('lc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  var M = parseInt(document.getElementById('lM').value)/100;
+  var R = parseInt(document.getElementById('lR').value)/10;
+  var flip = document.getElementById('lFlip').checked;
+  var showLines = document.getElementById('lFieldLines').checked;
+
+  // Loop is at center-right
+  var loopX = W*0.62, loopY = H/2;
+  var loopRx = 90, loopRy = 28;  // ellipse for tilted-circle look
+
+  // Magnet position relative to canvas center
+  var magCenterX = W/2 + lenz.x;  // lenz.x ranges -200..200
+  var magCenterY = loopY;
+  var magW = 120, magH = 40;
+
+  /* ── Compute flux through loop ──
+     Approximate: dipole field on-axis: B(r) ≈ μ M / r^3  (we just use a reduced model)
+     Use: phi = K * M * f(r) where f(r) = +/- depending on N pole orientation,
+     and r is distance from magnet's leading face to loop center. We'll go
+     analytic-ish: φ ∝ M / (1 + (r/r0)^2)^(3/2) with sign flip if S leads.
+  */
+  var leadingX = magCenterX + (flip ? -magW/2 : magW/2); // x of N pole if !flip, S if flip
+  var sign = flip ? -1 : 1;
+  var r = (loopX - leadingX);                            // signed distance
+  var r0 = 60;
+  var rN = r/r0;
+  // Flux model: peaks when leading face at loop. Sign flips when magnet has passed through.
+  // We'll use a smooth signed function shaped like dipole on-axis.
+  var phi = sign * M * 1.0 / Math.pow(1 + rN*rN, 1.5);
+  // EMF = -dPhi/dt (numerical)
+  var dphi = (phi - lenz.prevPhi);
+  var emf  = (dt > 0) ? -dphi/dt : 0;
+  lenz.prevPhi = phi;
+  // Smooth emf for display
+  lenz.emf = lenz.emf*0.7 + emf*0.3;
+  lenz.iInd = lenz.emf / R;
+
+  /* ── Draw bar magnet ── */
+  // Body
+  var nLeft = !flip;  // true if N is on the left half? No — if flip is unchecked, N is on the right (leading toward loop). So:
+  // If !flip: left half = S (red? convention varies — we'll use blue=S, red=N), right half = N.
+  // If flip:  left half = N, right half = S.
+  var leftIsN = flip;
+  var leftCol = leftIsN ? RED : '#3060c0';
+  var rightCol = leftIsN ? '#3060c0' : RED;
+
+  ctx.save();
+  // Outer glow / chassis shadow
+  ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
+
+  // Left half
+  ctx.fillStyle = leftCol;
+  ctx.fillRect(magCenterX - magW/2, magCenterY - magH/2, magW/2, magH);
+  // Right half
+  ctx.fillStyle = rightCol;
+  ctx.fillRect(magCenterX, magCenterY - magH/2, magW/2, magH);
+  ctx.restore();
+  // Bevel
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
+  ctx.strokeRect(magCenterX - magW/2 + 0.5, magCenterY - magH/2 + 0.5, magW-1, magH-1);
+  // N/S labels
+  ctx.fillStyle='#fff'; ctx.font='bold 18px "Orbitron",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(leftIsN?'N':'S', magCenterX - magW/4, magCenterY);
+  ctx.fillText(leftIsN?'S':'N', magCenterX + magW/4, magCenterY);
+  ctx.textBaseline='alphabetic';
+
+  /* ── Field lines from N pole ── */
+  if(showLines){
+    var nPoleX = magCenterX + (flip ? -magW/2 : magW/2);
+    var nPoleY = magCenterY;
+    var sPoleX = magCenterX - (flip ? -magW/2 : magW/2);
+    var sPoleY = magCenterY;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(64,232,208,0.45)';
+    ctx.lineWidth = 1.3;
+    var lineCount = 5;
+    for(var li=0; li<lineCount; li++){
+      var phase = (li - (lineCount-1)/2);  // -2..+2
+      // Curving line from N pole to S pole, bowing outward
+      ctx.beginPath();
+      var bow = 70 + Math.abs(phase)*30;
+      var dir = phase>=0 ? 1 : -1;
+      // Use bezier with control points above/below
+      var cx1 = nPoleX + (flip?-1:1)*70;
+      var cy1 = nPoleY + dir*bow;
+      var cx2 = sPoleX - (flip?-1:1)*70;
+      var cy2 = sPoleY + dir*bow;
+      ctx.moveTo(nPoleX, nPoleY);
+      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, sPoleX, sPoleY);
+      ctx.stroke();
+      // Arrowhead at midpoint indicating direction (N → outward → S)
+      function bez(t, p0, c1, c2, p3){
+        var u = 1-t;
+        return u*u*u*p0 + 3*u*u*t*c1 + 3*u*t*t*c2 + t*t*t*p3;
+      }
+      var t1 = 0.48, t2 = 0.52;
+      var mx  = bez(t1, nPoleX, cx1, cx2, sPoleX);
+      var my  = bez(t1, nPoleY, cy1, cy2, sPoleY);
+      var mx2 = bez(t2, nPoleX, cx1, cx2, sPoleX);
+      var my2 = bez(t2, nPoleY, cy1, cy2, sPoleY);
+      var ang = Math.atan2(my2-my, mx2-mx);
+      var ah = 6;
+      ctx.fillStyle='rgba(64,232,208,0.6)';
+      ctx.beginPath();
+      ctx.moveTo(mx2, my2);
+      ctx.lineTo(mx2 - ah*Math.cos(ang-0.5), my2 - ah*Math.sin(ang-0.5));
+      ctx.lineTo(mx2 - ah*Math.cos(ang+0.5), my2 - ah*Math.sin(ang+0.5));
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* ── Velocity arrow on magnet ── */
+  if(Math.abs(lenz.vx) > 1){
+    var vDir = lenz.vx>0 ? 1 : -1;
+    var vStartX = magCenterX + vDir*magW/2 + vDir*8;
+    var vEndX   = vStartX + vDir*40;
+    arrow(ctx, vStartX, magCenterY - magH/2 - 20, vEndX, magCenterY - magH/2 - 20, '#fff', 1.5, 6);
+    ctx.fillStyle='#fff'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('v', (vStartX+vEndX)/2, magCenterY - magH/2 - 26);
+  }
+
+  /* ── Loop ── */
+  ctx.save();
+  ctx.strokeStyle = AMBER;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(loopX, loopY, loopRx, loopRy, 0, 0, 2*Math.PI);
+  ctx.stroke();
+  // inner shadow for depth
+  ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.ellipse(loopX, loopY, loopRx-2, loopRy-2, 0, 0, 2*Math.PI); ctx.stroke();
+  ctx.restore();
+
+  /* ── Induced current direction indicator ──
+     If iInd > 0 → conventional current circulates in one sense. Use little
+     arrows on top and bottom of the ellipse. Sign maps: emf positive when
+     dPhi/dt < 0 in our convention.
+  */
+  var iAbs = Math.abs(lenz.iInd);
+  var iSign = lenz.iInd >= 0 ? 1 : -1;
+  if(iAbs > 0.005){
+    var arrowAlpha = Math.min(1, iAbs*4);
+    ctx.save();
+    ctx.globalAlpha = arrowAlpha;
+    // Top arrow (moving rightward if iSign==+1)
+    var topY = loopY - loopRy;
+    var botY = loopY + loopRy;
+    var topDir = iSign;
+    var botDir = -iSign;
+    // Top
+    arrow(ctx, loopX - 30*topDir, topY, loopX + 30*topDir, topY, GREEN, 2, 8);
+    // Bottom
+    arrow(ctx, loopX - 30*botDir, botY, loopX + 30*botDir, botY, GREEN, 2, 8);
+
+    // CW/CCW label — when viewed from the magnet side, what direction is current?
+    // Top-arrow direction tells us. If topDir==+1 (rightward at top), current is CW as seen.
+    var dirLabel = (topDir>0) ? 'CW' : 'CCW';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = GREEN;
+    ctx.font = 'bold 12px "Orbitron",monospace'; ctx.textAlign='center';
+    ctx.fillText(dirLabel + ' (induced)', loopX, loopY + loopRy + 22);
+    ctx.restore();
+  }
+
+  /* ── Induced B field arrow inside loop ── */
+  // Lenz: induced B opposes ΔΦ. Sign of dphi: if dphi>0 (flux increasing), induced B opposes external B direction.
+  // External B through loop ≈ sign*M (positive into page when N approaches from left and points right).
+  // The induced field direction is along ±x in our 2D layout.
+  if(Math.abs(emf) > 0.005){
+    var indBdir = (emf > 0) ? 1 : -1;
+    // For our top-down view, draw an arrow centered in loop
+    var ibx1 = loopX - 24*indBdir;
+    var ibx2 = loopX + 24*indBdir;
+    arrow(ctx, ibx1, loopY-3, ibx2, loopY-3, 'rgba(64,232,208,0.85)', 1.5, 6);
+    ctx.fillStyle = 'rgba(64,232,208,0.9)'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('B_ind', loopX, loopY - 12);
+  }
+
+  /* ── Force on magnet from loop (Lenz: opposes motion when approaching) ── */
+  if(Math.abs(lenz.vx) > 1 && Math.abs(lenz.iInd) > 0.01){
+    // Force is repulsive when magnet approaches loop, attractive when receding
+    var approaching = (lenz.vx > 0 && lenz.x < 80) || (lenz.vx < 0 && lenz.x > 80);
+    // Simpler: force opposes velocity when |r| decreasing, supports when |r| increasing
+    var d_rdt = -lenz.vx;  // r decreases when vx>0 if magnet on left of loop... let's just use Lenz directly:
+    // Lenz: induced current creates field that opposes ΔΦ → produces force on magnet that opposes velocity (always braking)
+    var fDir = -Math.sign(lenz.vx);
+    var fMag = Math.min(50, Math.abs(lenz.iInd)*60);
+    if(fMag > 6){
+      arrow(ctx, magCenterX, magCenterY + magH/2 + 16, magCenterX + fDir*fMag, magCenterY + magH/2 + 16, RED, 2, 7);
+      ctx.fillStyle=RED; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+      ctx.fillText('F (Lenz)', magCenterX + fDir*fMag/2, magCenterY + magH/2 + 32);
+    }
+  }
+
+  /* ── Title strip ── */
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('TOP-DOWN VIEW', 16, 26);
+  ctx.textAlign='right';
+  ctx.fillText('R = '+R.toFixed(1)+' Ω', W-16, 26);
+
+  /* ── Readout cards ── */
+  var dirText = '—';
+  var dirColor = TX;
+  if(Math.abs(lenz.iInd) > 0.01){
+    dirText = (lenz.iInd > 0) ? 'CW' : 'CCW';
+    dirColor = GREEN;
+  }
+  var phiSignText = phi.toFixed(3);
+  var emfDisplay = lenz.emf.toFixed(3);
+  var iDisplay = lenz.iInd.toFixed(3);
+
+  var dphiSign = '0';
+  if(Math.abs(emf) > 0.005){ dphiSign = emf>0 ? '↓' : '↑'; }
+
+  var h = '';
+  h += cd('Φ_B (rel.)', phiSignText, CYAN);
+  h += cd('dΦ/dt', dphiSign+' '+(-emf).toFixed(3), AMBER);
+  h += cd('ε ind.', emfDisplay+' V', AMBER);
+  h += cd('I ind.', iDisplay+' A', dirColor);
+  h += cd('I direction', dirText, dirColor);
+  var braking = (Math.abs(lenz.vx)>1 && Math.abs(lenz.iInd)>0.01);
+  h += cd('Force on mag.', braking?'← BRAKE →':'—', braking?RED:TX);
+  document.getElementById('l-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 3: PIECEWISE-B (Block 1 — three-phase changing field)
+   ════════════════════════════════════════════════════════════ */
+function uPW(){
+  var N = parseInt(document.getElementById('pN').value);
+  var rPx = parseInt(document.getElementById('pR').value);  // 20..200 → 0.020..0.200 m
+  var R = parseInt(document.getElementById('pRes').value)/10;
+  var Bpk = parseInt(document.getElementById('pBpk').value)/100;
+  var T1 = parseInt(document.getElementById('pT1').value)/100;
+  var T2 = parseInt(document.getElementById('pT2').value)/100;
+  var T3 = parseInt(document.getElementById('pT3').value)/100;
+  document.getElementById('pN-v').textContent = N;
+  document.getElementById('pR-v').textContent = (rPx/1000).toFixed(3)+' m';
+  document.getElementById('pRes-v').textContent = R.toFixed(2)+' Ω';
+  document.getElementById('pBpk-v').textContent = Bpk.toFixed(2)+' T';
+  document.getElementById('pT1-v').textContent = T1.toFixed(2)+' s';
+  document.getElementById('pT2-v').textContent = T2.toFixed(2)+' s';
+  document.getElementById('pT3-v').textContent = T3.toFixed(2)+' s';
+  drawPiecewiseB();
+}
+window.uPW = uPW;
+
+// Returns {B, dBdt, phase}
+function pwSchedule(t, T1, T2, T3, Bpk){
+  var Ttot = T1 + T2 + T3;
+  var tWrap = ((t % (Ttot + 0.3)) + (Ttot + 0.3)) % (Ttot + 0.3);
+  if(tWrap < T1)            return {B: Bpk*(tWrap/T1),               dBdt:  Bpk/T1,  phase:1};
+  if(tWrap < T1+T2)         return {B: Bpk,                          dBdt:  0,        phase:2};
+  if(tWrap < T1+T2+T3)      return {B: Bpk*(1 - (tWrap-T1-T2)/T3),   dBdt: -Bpk/T3,   phase:3};
+  return {B: 0, dBdt: 0, phase:0};
+}
+
+function drawPiecewiseB(){
+  var cv = document.getElementById('pc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  var N = parseInt(document.getElementById('pN').value);
+  var rPx = parseInt(document.getElementById('pR').value);
+  var rM = rPx/1000;                              // physical radius in m
+  var A = Math.PI * rM * rM;                       // m²
+  var R = parseInt(document.getElementById('pRes').value)/10;
+  var Bpk = parseInt(document.getElementById('pBpk').value)/100;
+  var T1 = parseInt(document.getElementById('pT1').value)/100;
+  var T2 = parseInt(document.getElementById('pT2').value)/100;
+  var T3 = parseInt(document.getElementById('pT3').value)/100;
+
+  var sched = pwSchedule(pw.t, T1, T2, T3, Bpk);
+  var Bnow = sched.B, dBdt = sched.dBdt, phase = sched.phase;
+  var emf = -N * A * dBdt;
+  var I_now = emf / R;
+
+  // Track history within one period
+  var Ttot = T1 + T2 + T3 + 0.3;
+  var tWrap = ((pw.t % Ttot) + Ttot) % Ttot;
+  // Reset history when we wrap
+  if(pw.history.length > 0 && tWrap < pw.history[pw.history.length-1].t) pw.history = [];
+  if(play.pw) pw.history.push({t: tWrap, B: Bnow, dBdt: dBdt, emf: emf});
+
+  /* ── LEFT: coil with field intensity ── */
+  var lx = 170, ly = H/2;
+  var coilR = Math.min(110, rPx*0.7 + 30);
+
+  // Section divider
+  ctx.strokeStyle = IF; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(330, 18); ctx.lineTo(330, H-18); ctx.stroke();
+
+  // Title
+  ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillStyle=AMBER_DIM; ctx.fillText('FACE-ON COIL · B(t) ⊗ INTO PAGE', lx, 26);
+
+  // Field intensity inside coil — array of ⊗ symbols whose count/opacity scales with B
+  var BfracAbs = Math.min(1, Math.abs(Bnow)/Math.max(0.01, Bpk));
+  var nDots = Math.round(4 + BfracAbs*36);
+  ctx.fillStyle = 'rgba(64,232,208,'+ (0.15 + BfracAbs*0.5) +')';
+  ctx.strokeStyle = ctx.fillStyle;
+  // Pseudo-random but deterministic positions inside coil
+  function seedRand(i){ return (Math.sin(i*12.9898 + 78.233)*43758.5453) % 1; }
+  for(var i=0;i<nDots;i++){
+    var r = Math.sqrt(Math.abs(seedRand(i*2.1))) * (coilR-14);
+    var ang = seedRand(i*3.7+0.2)*2*Math.PI;
+    var x = lx + r*Math.cos(ang);
+    var y = ly + r*Math.sin(ang);
+    var sym = (Bnow >= 0) ? '⊗' : '⊙';
+    ctx.font='14px "Share Tech Mono",monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(sym, x, y);
+  }
+  ctx.textBaseline='alphabetic';
+
+  // Coil
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(lx, ly, coilR, 0, 2*Math.PI); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(lx, ly, coilR-2, 0, 2*Math.PI); ctx.stroke();
+
+  // Coil label
+  ctx.fillStyle=TXH; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('N = '+N, lx, ly + coilR + 16);
+  ctx.fillText('r = '+rM.toFixed(3)+' m', lx, ly + coilR + 30);
+  ctx.fillText('A = '+A.toFixed(4)+' m²', lx, ly + coilR + 44);
+
+  // Phase indicator
+  var phaseColors = ['#666', GREEN, '#666', RED];
+  var phaseLabels = ['—', 'PHASE 1: B↑', 'PHASE 2: B const', 'PHASE 3: B↓'];
+  ctx.fillStyle = phaseColors[phase];
+  ctx.font = 'bold 11px "Orbitron",monospace'; ctx.textAlign='center';
+  ctx.fillText(phaseLabels[phase], lx, 50);
+
+  // Induced current direction indicator (CW/CCW arrow on coil)
+  if(Math.abs(I_now) > 0.005){
+    var arrowAlpha = Math.min(1, Math.abs(I_now)*3);
+    ctx.save();
+    ctx.globalAlpha = arrowAlpha;
+    // Lenz: B is into page (positive). If dBdt > 0, induced B opposes (out of page) → I is CCW from front (which is the side facing us).
+    var iDir = (dBdt > 0) ? -1 : 1;  // -1 = CCW, +1 = CW
+    var aR = coilR + 12;
+    var startA = -Math.PI/2 - iDir*0.3;
+    var endA   = -Math.PI/2 + iDir*0.3;
+    ctx.strokeStyle = GREEN; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(lx, ly, aR, startA, endA, iDir<0); ctx.stroke();
+    var headX = lx + aR*Math.cos(endA);
+    var headY = ly + aR*Math.sin(endA);
+    var tang = endA + iDir*Math.PI/2;
+    var ah = 7;
+    ctx.fillStyle = GREEN;
+    ctx.beginPath();
+    ctx.moveTo(headX, headY);
+    ctx.lineTo(headX - ah*Math.cos(tang-0.4), headY - ah*Math.sin(tang-0.4));
+    ctx.lineTo(headX - ah*Math.cos(tang+0.4), headY - ah*Math.sin(tang+0.4));
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle=GREEN; ctx.font='bold 11px "Orbitron",monospace'; ctx.textAlign='center';
+    ctx.fillText((iDir<0?'CCW':'CW'), lx, ly - coilR - 12);
+    ctx.restore();
+  }
+
+  /* ── RIGHT: scope showing B(t) and ε(t) ── */
+  var sx = 360, sy = 50, sw = W - sx - 30, sh = H - 100;
+  // Top trace = B(t), Bottom trace = ε(t)
+  var sBh = sh*0.45, sEh = sh*0.45, sGap = sh*0.1;
+  var sBy = sy, sEy = sy + sBh + sGap;
+
+  // B(t) panel
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sBy, sw, sBh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sBy, sw, sBh);
+  ctx.fillStyle=AMBER_DIM; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('B(t)  [T]', sx+4, sBy-3);
+
+  // ε(t) panel
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sEy, sw, sEh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sEy, sw, sEh);
+  ctx.fillStyle=AMBER_DIM; ctx.fillText('ε(t)  [V]', sx+4, sEy-3);
+
+  // Center line for ε panel (zero)
+  var sEmid = sEy + sEh/2;
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1;
+  ctx.setLineDash([2,3]); ctx.beginPath();
+  ctx.moveTo(sx, sEmid); ctx.lineTo(sx+sw, sEmid); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // X-axis: 0 to Ttot. Use full schedule range.
+  var Tdisplay = T1+T2+T3;
+  function tToX(t){ return sx + (t/Tdisplay)*(sw-30) + 15; }
+
+  // Phase boundary lines
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  for(var pb=0; pb<3; pb++){
+    var pbx = tToX([T1, T1+T2, T1+T2+T3][pb]);
+    ctx.beginPath(); ctx.moveTo(pbx, sBy); ctx.lineTo(pbx, sEy+sEh); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Phase labels along bottom
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('I', tToX(T1/2), sEy+sEh+12);
+  ctx.fillText('II', tToX(T1+T2/2), sEy+sEh+12);
+  ctx.fillText('III', tToX(T1+T2+T3/2), sEy+sEh+12);
+
+  // Compute scales
+  var BmaxScale = Math.max(0.01, Bpk*1.15);
+  var EmaxAbs = Math.max(0.001, N*A*Math.max(Bpk/Math.max(0.01,T1), Bpk/Math.max(0.01,T3)));
+  var EmaxScale = EmaxAbs*1.2;
+  function BtoY(B){ return sBy + sBh - 6 - (B/BmaxScale)*(sBh-12); }
+  function EtoY(E){ return sEmid - (E/EmaxScale)*(sEh*0.42); }
+
+  // Draw analytic schedule (cyan B-curve)
+  ctx.strokeStyle=CYAN; ctx.lineWidth=1.6;
+  ctx.beginPath();
+  ctx.moveTo(tToX(0), BtoY(0));
+  ctx.lineTo(tToX(T1), BtoY(Bpk));
+  ctx.lineTo(tToX(T1+T2), BtoY(Bpk));
+  ctx.lineTo(tToX(T1+T2+T3), BtoY(0));
+  ctx.stroke();
+  ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+  // Draw analytic ε(t) (amber piecewise)
+  var E1 = -N*A*(Bpk/T1);
+  var E3 = -N*A*(-Bpk/T3);
+  ctx.strokeStyle=AMBER; ctx.lineWidth=1.8;
+  ctx.beginPath();
+  ctx.moveTo(tToX(0), EtoY(E1));
+  ctx.lineTo(tToX(T1), EtoY(E1));
+  ctx.lineTo(tToX(T1), EtoY(0));
+  ctx.lineTo(tToX(T1+T2), EtoY(0));
+  ctx.lineTo(tToX(T1+T2), EtoY(E3));
+  ctx.lineTo(tToX(T1+T2+T3), EtoY(E3));
+  ctx.stroke();
+  ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+  // Time cursor
+  if(tWrap <= Tdisplay){
+    var cx = tToX(tWrap);
+    ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx, sBy); ctx.lineTo(cx, sEy+sEh); ctx.stroke();
+    ctx.fillStyle=CYAN;
+    ctx.beginPath(); ctx.arc(cx, BtoY(Bnow), 3, 0, 2*Math.PI); ctx.fill();
+    ctx.fillStyle=AMBER;
+    ctx.beginPath(); ctx.arc(cx, EtoY(emf), 3, 0, 2*Math.PI); ctx.fill();
+  }
+
+  // Scope footer
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
+  ctx.fillText('t = '+tWrap.toFixed(3)+' s · total '+Tdisplay.toFixed(2)+' s', sx+sw, sEy+sEh+12);
+
+  /* ── Cards ── */
+  var iColor = Math.abs(I_now)>0.005 ? GREEN : TX;
+  var h = '';
+  h += cd('Phase', phaseLabels[phase].split(':')[0], phaseColors[phase]);
+  h += cd('B(t)', Bnow.toFixed(3)+' T', CYAN);
+  h += cd('dB/dt', dBdt.toFixed(2)+' T/s', AMBER_DIM);
+  h += cd('ε(t)', emf.toFixed(2)+' V', AMBER);
+  h += cd('I(t)', I_now.toFixed(3)+' A', iColor);
+  h += cd('|ε₁| · |ε₃|', Math.abs(E1).toFixed(2)+' · '+Math.abs(E3).toFixed(2)+' V', TXH);
+  document.getElementById('p-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 4: LOOP THROUGH FIELD REGION (Block 3)
+   ════════════════════════════════════════════════════════════ */
+function uLF(){
+  var w = parseInt(document.getElementById('fw').value);
+  var hh = parseInt(document.getElementById('fh').value);
+  var B = parseInt(document.getElementById('fB').value)/100;
+  var Wf = parseInt(document.getElementById('fW').value);
+  var v = parseInt(document.getElementById('fv').value)/100;
+  document.getElementById('fw-v').textContent = (w/1000).toFixed(2)+' m';
+  document.getElementById('fh-v').textContent = (hh/1000).toFixed(3)+' m';
+  document.getElementById('fB-v').textContent = B.toFixed(2)+' T';
+  document.getElementById('fW-v').textContent = (Wf/1000).toFixed(2)+' m';
+  document.getElementById('fv-v').textContent = v.toFixed(2)+' m/s';
+  drawLoopThroughField();
+}
+window.uLF = uLF;
+
+function drawLoopThroughField(){
+  var cv = document.getElementById('fc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  // px controls (canvas-coord widths)
+  var w_px = parseInt(document.getElementById('fw').value);
+  var h_px = parseInt(document.getElementById('fh').value);
+  var B = parseInt(document.getElementById('fB').value)/100;
+  var Wf = parseInt(document.getElementById('fW').value);
+  var v_slider = parseInt(document.getElementById('fv').value)/100;
+
+  // Convert px → m for readouts (treat 1000 px = 1 m, matching slider mapping)
+  var w_m = w_px/1000, l_m = h_px/1000, Wf_m = Wf/1000, v_m = v_slider;
+
+  /* ── TOP: visualization of loop sliding through field region ── */
+  var trackY = 130;
+  var trackH = 100;
+  var topY = trackY - trackH/2;
+
+  // Field region — center it horizontally, leaving room for loop to slide in/out
+  var marginL = 60;
+  var marginR = 60;
+  var fieldX0 = marginL;
+  var fieldX1 = fieldX0 + Wf;
+  // Make sure loop starts left of field
+  if(lf.xR < -w_px - 20) lf.xR = -w_px - 20;
+
+  // Field region rectangle
+  ctx.fillStyle='rgba(64,232,208,0.07)';
+  ctx.fillRect(fieldX0, topY, Wf, trackH);
+  ctx.strokeStyle='rgba(64,232,208,0.4)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.strokeRect(fieldX0, topY, Wf, trackH);
+  ctx.setLineDash([]);
+
+  // ⊗ field symbols inside region — density scales with B
+  var nx = Math.max(3, Math.floor(Wf/35));
+  var ny = Math.max(2, Math.floor(trackH/30));
+  ctx.fillStyle = 'rgba(64,232,208,'+ (0.25 + Math.min(0.55, B/2)) +')';
+  ctx.font='13px "Share Tech Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(var ix=0; ix<nx; ix++){
+    for(var iy=0; iy<ny; iy++){
+      var fx = fieldX0 + (ix+0.5)*(Wf/nx);
+      var fy = topY + (iy+0.5)*(trackH/ny);
+      ctx.fillText('⊗', fx, fy);
+    }
+  }
+  ctx.textBaseline='alphabetic';
+
+  // Field region label
+  ctx.fillStyle=CYAN_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('B = '+B.toFixed(2)+' T (into page)', fieldX0 + Wf/2, topY - 6);
+
+  // Loop position
+  var loopX0 = fieldX0 + lf.xR - w_px;  // left edge in canvas coords
+  var loopX1 = fieldX0 + lf.xR;          // right edge in canvas coords
+  var loopY0 = trackY - h_px/2;
+  var loopY1 = trackY + h_px/2;
+
+  // Compute physical overlap (in slider/canvas px, then convert to m for readouts)
+  var lpL = Math.max(0, lf.xR - w_px);              // loop's left edge inside field region (xR - w_px)
+  var lpR = Math.min(Wf, lf.xR);                     // loop's right edge clamped
+  var overlap_px = Math.max(0, lpR - lpL);           // px width inside field
+  var overlap_m  = overlap_px/1000;
+  var phi = B * l_m * overlap_m;                     // Wb
+
+  // Determine stage
+  var sMin = Math.min(w_px, Wf);
+  var sMax = Math.max(w_px, Wf);
+  var stage = 'I';
+  if(lf.xR <= 0) stage = 'I';
+  else if(lf.xR <= sMin) stage = 'II';
+  else if(lf.xR <= sMax) stage = 'III';
+  else if(lf.xR <= Wf + w_px) stage = 'IV';
+  else stage = 'V';
+
+  // ε computation: ε = -dPhi/dt = ∓ B ℓ v at boundaries
+  var emf = 0;
+  if(stage==='II') emf = -B * l_m * v_m;             // entering: dPhi/dt > 0 → ε < 0
+  else if(stage==='IV') emf = +B * l_m * v_m;        // exiting:  dPhi/dt < 0 → ε > 0
+
+  // Draw loop
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 3;
+  ctx.strokeRect(loopX0, loopY0, w_px, h_px);
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+  ctx.strokeRect(loopX0+1, loopY0+1, w_px-2, h_px-2);
+
+  // Velocity arrow
+  if(v_m > 0.01){
+    arrow(ctx, loopX1+10, trackY-h_px/2-18, loopX1+50, trackY-h_px/2-18, '#fff', 1.5, 6);
+    ctx.fillStyle='#fff'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('v = '+v_m.toFixed(2)+' m/s', loopX1+30, trackY-h_px/2-26);
+  }
+
+  // Stage label
+  ctx.fillStyle=AMBER; ctx.font='bold 16px "Orbitron",monospace'; ctx.textAlign='center';
+  var stageNames = {'I':'I — outside', 'II':'II — entering', 'III':'III — fully inside', 'IV':'IV — exiting', 'V':'V — past field'};
+  ctx.fillText('STAGE '+(stageNames[stage]||stage), W/2, 30);
+
+  // Induced current direction inside loop (from Lenz)
+  if(Math.abs(emf) > 0.001){
+    // Stage II: flux into page increasing → induced B out of page → current CCW (from our viewing side)
+    // Stage IV: flux into page decreasing → induced B into page → current CW
+    var iDirCCW = (stage==='II');
+    ctx.save();
+    ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
+    var cx = (loopX0+loopX1)/2;
+    var cy = trackY;
+    var aR = Math.min(w_px, h_px)*0.32;
+    var span = 2*Math.PI*0.82;
+    // Start at 3 o'clock; CCW sweeps through 12 → 9 → 6, CW sweeps through 6 → 9 → 12.
+    var endA;
+    if(iDirCCW){
+      endA = -span;
+      ctx.beginPath(); ctx.arc(cx, cy, aR, 0, endA, true); ctx.stroke();
+    } else {
+      endA = span;
+      ctx.beginPath(); ctx.arc(cx, cy, aR, 0, endA, false); ctx.stroke();
+    }
+    // Arrowhead at end of arc, pointing in direction of motion
+    var ex = cx + aR*Math.cos(endA);
+    var ey = cy + aR*Math.sin(endA);
+    // Tangent direction: CCW motion → (sin θ, -cos θ); CW motion → (-sin θ, cos θ)
+    var tx = iDirCCW ? Math.sin(endA) : -Math.sin(endA);
+    var ty = iDirCCW ? -Math.cos(endA) : Math.cos(endA);
+    var ang = Math.atan2(ty, tx);
+    var ah = 7;
+    ctx.fillStyle = GREEN;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - ah*Math.cos(ang-0.45), ey - ah*Math.sin(ang-0.45));
+    ctx.lineTo(ex - ah*Math.cos(ang+0.45), ey - ah*Math.sin(ang+0.45));
+    ctx.closePath(); ctx.fill();
+    // Direction label
+    ctx.fillStyle = GREEN; ctx.font='bold 12px "Orbitron",monospace'; ctx.textAlign='center';
+    ctx.fillText(iDirCCW?'CCW':'CW', cx, cy + aR + 14);
+    ctx.restore();
+  }
+
+  /* ── BOTTOM: Φ(x) and ε(x) traces ── */
+  var sx = 30, sy = 250, sWidth = W - 60, sHeight = 170;
+  var sPhiH = sHeight*0.42, sEH = sHeight*0.42, sGap = sHeight*0.16;
+  var sPhiY = sy, sEy = sy + sPhiH + sGap;
+
+  // Φ panel
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sPhiY, sWidth, sPhiH);
+  ctx.strokeStyle=IF; ctx.strokeRect(sx, sPhiY, sWidth, sPhiH);
+  ctx.fillStyle=AMBER_DIM; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('Φ(x)  [Wb]', sx+4, sPhiY-2);
+
+  // ε panel
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sEy, sWidth, sEH);
+  ctx.strokeStyle=IF; ctx.strokeRect(sx, sEy, sWidth, sEH);
+  ctx.fillStyle=AMBER_DIM; ctx.fillText('ε(x)  [V]', sx+4, sEy-2);
+
+  // ε center line
+  var sEmid = sEy + sEH/2;
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(sx, sEmid); ctx.lineTo(sx+sWidth, sEmid); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Map xR (canvas) to x-axis in scope. Range: [-w_px-30, Wf+w_px+30]
+  var xMin = -w_px - 30;
+  var xMax = Wf + w_px + 30;
+  function xToScope(x){ return sx + 8 + (x - xMin)/(xMax - xMin) * (sWidth - 16); }
+
+  // Compute peak Φ and ε for scaling
+  var phiMax = B * l_m * Math.min(w_m, Wf_m);
+  var emfMax = B * l_m * v_m;
+  var phiScale = (sPhiH-12) / Math.max(0.0001, phiMax*1.15);
+  var emfScale = (sEH*0.42) / Math.max(0.0001, emfMax*1.2);
+
+  // Draw Φ(x) trapezoid analytically
+  // Stages by x = xR (right edge):
+  //  x < 0          : Phi = 0
+  //  0 ≤ x ≤ w      : Phi = B*l*x  (entering)
+  //  w < x ≤ Wf     : Phi = B*l*w  (fully inside) — assuming w < Wf
+  //  Wf < x ≤ Wf+w  : Phi = B*l*(Wf - (x-w))  (exiting) = B*l*(Wf+w-x)
+  //  x > Wf+w       : Phi = 0
+  ctx.strokeStyle=CYAN; ctx.lineWidth=1.6;
+  ctx.beginPath();
+  function PhiAt(xR){
+    var ovL = Math.max(0, xR - w_px);
+    var ovR = Math.min(Wf, xR);
+    var ov = Math.max(0, ovR - ovL);
+    return B * l_m * (ov/1000);
+  }
+  function EmfAt(xR){
+    var ovL = Math.max(0, xR - w_px);
+    var ovR = Math.min(Wf, xR);
+    var dovL_dx = (xR-w_px > 0) ? 1 : 0;
+    var dovR_dx = (xR < Wf) ? 1 : 0;
+    var dov_dx = dovR_dx - dovL_dx;
+    return -B * l_m * dov_dx * v_m;
+  }
+  for(var sx_i=0; sx_i<=200; sx_i++){
+    var xR = xMin + (sx_i/200)*(xMax-xMin);
+    var Px = xToScope(xR);
+    var Py = sPhiY + sPhiH - 6 - PhiAt(xR)*phiScale;
+    if(sx_i===0) ctx.moveTo(Px, Py); else ctx.lineTo(Px, Py);
+  }
+  ctx.stroke();
+  ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+  // ε(x) — square pulses
+  ctx.strokeStyle=AMBER; ctx.lineWidth=1.8;
+  ctx.beginPath();
+  // Use stepped function: I, II, III, IV
+  var pts = [
+    {x: xMin, e: 0},
+    {x: 0, e: 0},
+    {x: 0, e: -emfMax},
+    {x: w_px, e: -emfMax},
+    {x: w_px, e: 0},
+    {x: Wf, e: 0},
+    {x: Wf, e: +emfMax},
+    {x: Wf+w_px, e: +emfMax},
+    {x: Wf+w_px, e: 0},
+    {x: xMax, e: 0}
+  ];
+  // Handle edge case where w_px > Wf (loop wider than field): no fully-inside stage
+  if(w_px > Wf){
+    // No flat top; ε only nonzero in transition zones
+    pts = [
+      {x: xMin, e: 0},
+      {x: 0, e: 0},
+      {x: 0, e: -emfMax},
+      {x: Wf, e: -emfMax},
+      {x: Wf, e: 0},
+      {x: w_px, e: 0},
+      {x: w_px, e: +emfMax},
+      {x: Wf+w_px, e: +emfMax},
+      {x: Wf+w_px, e: 0},
+      {x: xMax, e: 0}
+    ];
+  }
+  for(var i=0;i<pts.length;i++){
+    var Px = xToScope(pts[i].x);
+    var Py = sEmid - pts[i].e * emfScale;
+    if(i===0) ctx.moveTo(Px, Py); else ctx.lineTo(Px, Py);
+  }
+  ctx.stroke();
+  ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+  // Stage boundary lines on scope
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+  [0, w_px, Wf, Wf+w_px].forEach(function(bx){
+    var Px = xToScope(bx);
+    ctx.beginPath(); ctx.moveTo(Px, sPhiY); ctx.lineTo(Px, sEy+sEH); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Cursor at current position
+  var curX = xToScope(lf.xR);
+  ctx.strokeStyle='rgba(255,255,255,0.45)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(curX, sPhiY); ctx.lineTo(curX, sEy+sEH); ctx.stroke();
+  ctx.fillStyle=CYAN;
+  ctx.beginPath(); ctx.arc(curX, sPhiY + sPhiH - 6 - PhiAt(lf.xR)*phiScale, 3, 0, 2*Math.PI); ctx.fill();
+  ctx.fillStyle=AMBER;
+  ctx.beginPath(); ctx.arc(curX, sEmid - emf*emfScale, 3, 0, 2*Math.PI); ctx.fill();
+
+  // Stage axis labels on scope bottom
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('I', xToScope(-w_px/2), sEy+sEH+12);
+  ctx.fillText('II', xToScope(w_px/2), sEy+sEH+12);
+  if(Wf > w_px) ctx.fillText('III', xToScope((w_px+Wf)/2), sEy+sEH+12);
+  ctx.fillText('IV', xToScope(Wf + w_px/2), sEy+sEH+12);
+
+  /* ── Cards ── */
+  var emfPeak = B * l_m * v_m;
+  var iColor = Math.abs(emf)>0.001 ? GREEN : TX;
+  var h = '';
+  h += cd('Stage', stage, AMBER);
+  h += cd('Φ(x)', phi.toFixed(4)+' Wb', CYAN);
+  h += cd('ε(x)', emf.toFixed(3)+' V', AMBER);
+  h += cd('|ε| peak', '±'+emfPeak.toFixed(3)+' V', TXH);
+  h += cd('Bℓv', (B*l_m*v_m).toFixed(3), AMBER_DIM);
+  h += cd('I dir.', stage==='II'?'CCW':(stage==='IV'?'CW':'—'), iColor);
+  document.getElementById('f-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 5: WIRE & LOOP (AC current in straight wire ↔ loop)
+   ════════════════════════════════════════════════════════════ */
+var MU0 = 4*Math.PI*1e-7;
+
+function uWL(){
+  var I0 = parseInt(document.getElementById('wI').value);
+  var f  = parseInt(document.getElementById('wF').value)/10;       // 1..100 → 0.1..10 Hz
+  var d  = parseInt(document.getElementById('wD').value)/1000;     // 5..100 → 0.005..0.100 m
+  var w  = parseInt(document.getElementById('wW').value)/1000;
+  var L  = parseInt(document.getElementById('wL').value)/1000;
+  var R  = parseInt(document.getElementById('wR').value)/100;      // 1..100 → 0.01..1.00 Ω
+  document.getElementById('wI-v').textContent = I0+' A';
+  document.getElementById('wF-v').textContent = f.toFixed(1)+' Hz';
+  document.getElementById('wD-v').textContent = d.toFixed(3)+' m';
+  document.getElementById('wW-v').textContent = w.toFixed(3)+' m';
+  document.getElementById('wL-v').textContent = L.toFixed(3)+' m';
+  document.getElementById('wR-v').textContent = R.toFixed(2)+' Ω';
+  drawWireLoop();
+}
+window.uWL = uWL;
+
+function drawWireLoop(){
+  var cv = document.getElementById('wc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  // Read params (SI)
+  var I0 = parseInt(document.getElementById('wI').value);
+  var f  = parseInt(document.getElementById('wF').value)/10;
+  var d  = parseInt(document.getElementById('wD').value)/1000;
+  var w  = parseInt(document.getElementById('wW').value)/1000;
+  var L  = parseInt(document.getElementById('wL').value)/1000;
+  var R  = parseInt(document.getElementById('wR').value)/100;
+  var omega = 2*Math.PI*f;
+  var showLines = document.getElementById('wShowLines').checked;
+  var showIndB = document.getElementById('wShowInduced').checked;
+
+  // Live values
+  var I    = I0 * Math.sin(omega * wl.t);
+  var dIdt = I0 * omega * Math.cos(omega * wl.t);
+  var lnRatio = Math.log((d + w)/d);
+  var phi  = (MU0 * L * I)/(2*Math.PI) * lnRatio;
+  var emf  = -(MU0 * L)/(2*Math.PI) * lnRatio * dIdt;
+  var Iind = emf / R;
+  var phiPeak = (MU0 * L * I0)/(2*Math.PI) * lnRatio;
+  var emfPeak = phiPeak * omega;
+  var IindPeak = emfPeak / R;
+
+  // History (for scope)
+  if(play.wl){
+    wl.history.push({t: wl.t, I: I, phi: phi, emf: emf, Iind: Iind});
+    if(wl.history.length > wl.histMax) wl.history.shift();
+  }
+
+  /* ── TOP: visualization (y = 0 to ~240) ── */
+  var topH = 240;
+  var wireX = 110;
+  var wireY0 = 30, wireY1 = topH - 20;
+  var wireH = wireY1 - wireY0;
+
+  // Use display scale: 1 m → 1000 px (so d=0.020 m → 20 px). Cap loop dimensions to fit.
+  var d_px = parseInt(document.getElementById('wD').value);     // 5..100 px
+  var w_px = parseInt(document.getElementById('wW').value);     // 30..200 px
+  var L_px = parseInt(document.getElementById('wL').value);     // 50..300 px → cap to fit topH
+  var L_disp = Math.min(L_px, topH - 60);                       // visual length in canvas
+  var loopX0 = wireX + d_px;
+  var loopX1 = loopX0 + w_px;
+  var loopY0 = (topH - L_disp)/2;
+  var loopY1 = loopY0 + L_disp;
+
+  // ── Wire ──
+  var wireCol = (I >= 0) ? '#ff8866' : '#66aaff';
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(wireX, wireY0); ctx.lineTo(wireX, wireY1); ctx.stroke();
+  ctx.strokeStyle = wireCol; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(wireX, wireY0); ctx.lineTo(wireX, wireY1); ctx.stroke();
+
+  // Current direction arrow on wire
+  var Iabs = Math.min(1, Math.abs(I)/Math.max(0.01, I0));
+  if(Iabs > 0.05){
+    var arrSpacing = 50;
+    for(var ay = wireY0 + 30; ay < wireY1 - 30; ay += arrSpacing){
+      var dy = (I >= 0) ? -14 : 14;  // +I = up, -I = down
+      arrow(ctx, wireX, ay - dy, wireX, ay + dy, wireCol, 2, 6);
+    }
+  }
+  ctx.fillStyle = wireCol; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('I = '+I.toFixed(1)+' A', wireX, wireY1 + 14);
+
+  // ── B field arcs around wire ──
+  if(showLines && Iabs > 0.05){
+    ctx.save();
+    var lineCount = 4;
+    for(var li=1; li<=lineCount; li++){
+      var rPx = li * 28;
+      ctx.strokeStyle = 'rgba(64,232,208,'+ (0.32 - li*0.05) +')';
+      ctx.lineWidth = 1;
+      // Draw circular arc on right side of wire (where the loop is)
+      // I > 0 (up): B circulates CCW viewed from above = into page on the right side
+      ctx.beginPath();
+      ctx.arc(wireX, (wireY0+wireY1)/2, rPx, -Math.PI/3, Math.PI/3, false);
+      ctx.stroke();
+      // Direction arrowhead at top of arc
+      var ang = -Math.PI/3;
+      var ex = wireX + rPx*Math.cos(ang);
+      var ey = (wireY0+wireY1)/2 + rPx*Math.sin(ang);
+      // Tangent: I>0 means B circulates CCW from above (in 3D) = into page on right.
+      // For a 2D side-view, we just indicate direction with ⊗ or ⊙ markers next.
+      ctx.fillStyle = 'rgba(64,232,208,'+ (0.32 - li*0.05) +')';
+      ctx.beginPath();
+      ctx.arc(ex, ey, 1.5, 0, 2*Math.PI); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ── Loop ──
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 3;
+  ctx.strokeRect(loopX0, loopY0, w_px, L_disp);
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+  ctx.strokeRect(loopX0+1, loopY0+1, w_px-2, L_disp-2);
+
+  // ── B inside loop: ⊗/⊙ symbols with density gradient (denser near wire) ──
+  if(Iabs > 0.05){
+    var sym = (I >= 0) ? '⊗' : '⊙';
+    ctx.font = '14px "Share Tech Mono",monospace'; ctx.textAlign = 'center'; ctx.textBaseline='middle';
+    var gridX = Math.max(3, Math.floor(w_px / 30));
+    var gridY = Math.max(2, Math.floor(L_disp / 30));
+    for(var gx = 0; gx < gridX; gx++){
+      for(var gy = 0; gy < gridY; gy++){
+        var fx = loopX0 + (gx + 0.5) * (w_px/gridX);
+        var fy = loopY0 + (gy + 0.5) * (L_disp/gridY);
+        // Density scaling: r from wire (in px), use 1/r-style intensity
+        var rFromWire = (fx - wireX);
+        var intensity = Iabs * Math.min(1, 25/Math.max(8, rFromWire));
+        ctx.fillStyle = 'rgba(64,232,208,'+ (0.18 + intensity*0.55) +')';
+        ctx.fillText(sym, fx, fy);
+      }
+    }
+    ctx.textBaseline='alphabetic';
+  }
+
+  // ── Induced current direction (CW/CCW arc inside loop) ──
+  if(Math.abs(Iind) > 0.001){
+    // Convention: Φ defined positive in direction of B from wire (n̂ into page).
+    // Under this n̂, RHR makes "positive ε circulation" = CW viewed from front.
+    // Lenz check: when wire I is increasing positively, dΦ/dt > 0, ε < 0 → induced current CCW.
+    var iIndCCW = (Iind < 0);
+    ctx.save();
+    ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
+    var cx = (loopX0+loopX1)/2;
+    var cy = (loopY0+loopY1)/2;
+    var aR = Math.min(w_px, L_disp)*0.30;
+    var span = 2*Math.PI*0.82;
+    var endA = iIndCCW ? -span : span;
+    ctx.beginPath();
+    ctx.arc(cx, cy, aR, 0, endA, iIndCCW);
+    ctx.stroke();
+    // Arrowhead
+    var ex = cx + aR*Math.cos(endA);
+    var ey = cy + aR*Math.sin(endA);
+    var tx = iIndCCW ? Math.sin(endA) : -Math.sin(endA);
+    var ty = iIndCCW ? -Math.cos(endA) : Math.cos(endA);
+    var ang2 = Math.atan2(ty, tx);
+    var ah = 7;
+    ctx.fillStyle = GREEN;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - ah*Math.cos(ang2-0.45), ey - ah*Math.sin(ang2-0.45));
+    ctx.lineTo(ex - ah*Math.cos(ang2+0.45), ey - ah*Math.sin(ang2+0.45));
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = GREEN; ctx.font='bold 11px "Orbitron",monospace'; ctx.textAlign='center';
+    ctx.fillText(iIndCCW?'CCW':'CW', cx, loopY1 + 14);
+    ctx.restore();
+  }
+
+  // ── Induced B arrow inside loop (Lenz: opposes ΔΦ) ──
+  if(showIndB && Math.abs(emf) > 1e-7){
+    // emf > 0 means dΦ/dt < 0, induced B supports Φ (which is in -z direction, i.e., into page)
+    // emf < 0 means dΦ/dt > 0, induced B opposes Φ (i.e., points +z = ⊙ out of page)
+    // For the visualization, draw a small ⊗ or ⊙ marker (opposite sense from primary B inside loop)
+    var indSym = (emf > 0) ? '⊗' : '⊙';
+    ctx.font='bold 18px "Share Tech Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle = 'rgba(255,200,100,0.9)';
+    var ibx = loopX0 + w_px*0.78;  // place toward far edge to distinguish from primary
+    var iby = loopY0 + L_disp*0.18;
+    ctx.fillText(indSym, ibx, iby);
+    ctx.fillStyle = 'rgba(255,200,100,0.7)';
+    ctx.font='9px "Share Tech Mono",monospace';
+    ctx.fillText('B_ind', ibx, iby + 14);
+    ctx.textBaseline='alphabetic';
+  }
+
+  // Wire/loop labels
+  ctx.fillStyle = TX; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('long straight wire', wireX + 8, wireY0 - 4);
+  ctx.textAlign='center';
+  ctx.fillText('d = '+d.toFixed(3)+' m', (wireX + loopX0)/2, loopY0 - 6);
+  ctx.fillText('w = '+w.toFixed(3)+' m', (loopX0 + loopX1)/2, loopY0 - 6);
+  ctx.textAlign='right';
+  ctx.fillText('L = '+L.toFixed(3)+' m', loopX1 - 4, loopY1 + 14);
+
+  /* ── BOTTOM: scope showing I(t) cyan and I_ind(t) amber (90° apart) ── */
+  var sx = 30, sy = 260, sWidth = W - 60, sHeight = 150;
+  var sMidY = sy + sHeight/2;
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sy, sWidth, sHeight);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sy, sWidth, sHeight);
+
+  // Center line
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(sx, sMidY); ctx.lineTo(sx+sWidth, sMidY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Scope label
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('SCOPE — I (cyan, drive) · I_ind (amber, response) · 90° lag', sx + 4, sy - 6);
+  ctx.textAlign='right';
+  ctx.fillStyle=TX;
+  ctx.fillText('I₀ = '+I0+' A · f = '+f.toFixed(1)+' Hz · R = '+R.toFixed(2)+' Ω', sx+sWidth, sy - 6);
+
+  // Plot traces
+  if(wl.history.length > 1){
+    var period = (omega>0) ? 2*Math.PI/omega : 1;
+    var winSec = Math.max(0.05, 4*period);
+    var tEnd = wl.t;
+    var tStart = tEnd - winSec;
+    var pts = wl.history.filter(function(p){return p.t >= tStart;});
+    function tToX(t){ return sx + (t-tStart)/winSec*sWidth; }
+    var Iscale  = (sHeight*0.42) / Math.max(0.001, I0);
+    var IindScale = (sHeight*0.42) / Math.max(0.0001, IindPeak);
+
+    // I(t) cyan
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for(var k=0;k<pts.length;k++){
+      var X = tToX(pts[k].t);
+      var Y = sMidY - pts[k].I*Iscale;
+      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+    ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+    // I_ind(t) amber
+    ctx.strokeStyle = AMBER; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    for(var k=0;k<pts.length;k++){
+      var X = tToX(pts[k].t);
+      var Y = sMidY - pts[k].Iind*IindScale;
+      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+    ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+    // "Now" line
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+sWidth, sy); ctx.lineTo(sx+sWidth, sy+sHeight); ctx.stroke();
+    // Live dots
+    ctx.fillStyle=CYAN;
+    ctx.beginPath(); ctx.arc(sx+sWidth, sMidY-I*Iscale, 3, 0, 2*Math.PI); ctx.fill();
+    ctx.fillStyle=AMBER;
+    ctx.beginPath(); ctx.arc(sx+sWidth, sMidY-Iind*IindScale, 3, 0, 2*Math.PI); ctx.fill();
+  }
+
+  // Scope axis labels
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
+  ctx.fillText('+I₀', sx+sWidth+30, sy + sHeight*0.08 + 3);
+  ctx.fillText('-I₀', sx+sWidth+30, sy + sHeight*0.92 + 3);
+  if(omega > 0){
+    var period_disp = 2*Math.PI/omega;
+    ctx.textAlign='left';
+    ctx.fillText('T = '+(period_disp*1000).toFixed(0)+' ms', sx, sy+sHeight+12);
+    ctx.textAlign='right';
+    ctx.fillText('window: '+(4*period_disp*1000).toFixed(0)+' ms', sx+sWidth, sy+sHeight+12);
+  }
+
+  /* ── Cards ── */
+  // Phase: I(t) sin, I_ind(t) -cos. Phase difference = +π/2 (I_ind lags I by 90°).
+  var dirText = (Math.abs(Iind) > 0.0005) ? (Iind>0?'CW':'CCW') : '—';
+  var dirColor = (Math.abs(Iind) > 0.0005) ? GREEN : TX;
+  var h = '';
+  h += cd('I(t)', I.toFixed(2)+' A', CYAN);
+  h += cd('Φ_B(t)', phi.toExponential(2)+' Wb', CYAN_DIM);
+  h += cd('ε(t)', (emf*1000).toFixed(2)+' mV', AMBER);
+  h += cd('I_ind(t)', (Iind*1000).toFixed(2)+' mA', dirColor);
+  h += cd('Direction', dirText, dirColor);
+  h += cd('Phase lag', '90°', TXH);
+  document.getElementById('w-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PLAY/PAUSE & MODULE SWITCHING
+   ════════════════════════════════════════════════════════════ */
+var PLAY_BTN = { gn:'g-play', lz:'l-play', pw:'p-play', lf:'f-play', wl:'w-play' };
+var PLAY_LABELS = {
+  gn: { on:'PAUSE',   off:'PLAY' },
+  lz: { on:'AUTO',    off:'MANUAL' },
+  pw: { on:'PLAYING', off:'PAUSED' },
+  lf: { on:'PLAYING', off:'PAUSED' },
+  wl: { on:'PLAYING', off:'PAUSED' }
+};
+window.togglePlay = function(mod){
+  play[mod] = !play[mod];
+  var btn = document.getElementById(PLAY_BTN[mod]);
+  if(!btn) return;
+  btn.textContent = play[mod] ? PLAY_LABELS[mod].on : PLAY_LABELS[mod].off;
+  btn.classList.toggle('on', play[mod]);
+};
+
+window.stepBack = function(mod){
+  if(mod==='gn'){
+    gen.theta = 0; gen.history = []; gen.tElapsed = 0;
+    drawGenerator();
+  } else if(mod==='lz'){
+    lenz.x = -180; lenz.vx = 90; lenz.prevPhi = 0; lenz.emf = 0; lenz.iInd = 0;
+    document.getElementById('lX').value = -180;
+    document.getElementById('lX-v').textContent = -180;
+    drawLenz(0);
+  } else if(mod==='pw'){
+    pw.t = 0; pw.history = [];
+    drawPiecewiseB();
+  } else if(mod==='lf'){
+    var w_px = parseInt(document.getElementById('fw').value);
+    lf.xR = -w_px - 20; lf.history = [];
+    drawLoopThroughField();
+  } else if(mod==='wl'){
+    wl.t = 0; wl.history = [];
+    drawWireLoop();
+  }
+};
+
+window.sw = function(t){
+  currentTab = t;
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('p-'+t).classList.add('on');
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('t-'+t).classList.add('on');
+  document.querySelectorAll('.module-ctrl').forEach(function(c){c.style.display='none';});
+  document.getElementById('ctrl-'+t).style.display='block';
+  if(t==='gn') uG();
+  else if(t==='lz') uL();
+  else if(t==='pw') uPW();
+  else if(t==='lf') uLF();
+  else if(t==='wl') uWL();
+  saveHash();
+};
+
+/* ── Defaults & reset ── */
+var DEFAULTS = {
+  gn: {gN:100, gA:20, gB:50, gW:377, gShowFlux:true, gShowEmf:true},
+  lz: {lM:100, lR:10, lX:-180, lFlip:false, lFieldLines:true},
+  pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30, pT3:30},
+  lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
+  wl: {wI:100, wF:10, wD:20, wW:100, wL:200, wR:10, wShowLines:true, wShowInduced:true}
+};
+window.resetModule = function(mod){
+  var d = DEFAULTS[mod];
+  for(var id in d){
+    var el = document.getElementById(id); if(!el) continue;
+    if(el.type==='checkbox') el.checked = d[id];
+    else el.value = d[id];
+  }
+  if(mod==='gn'){
+    gen.theta = 0; gen.history = []; gen.tElapsed = 0;
+    uG();
+  } else if(mod==='lz'){
+    lenz.x = d.lX; lenz.vx = 90; lenz.prevPhi = 0; lenz.emf = 0; lenz.iInd = 0;
+    uL();
+  } else if(mod==='pw'){
+    pw.t = 0; pw.history = [];
+    uPW();
+  } else if(mod==='lf'){
+    lf.xR = -d.fw - 20; lf.history = [];
+    uLF();
+  } else if(mod==='wl'){
+    wl.t = 0; wl.history = [];
+    uWL();
+  }
+  saveHash();
+};
+
+/* ── URL hash for sharing ── */
+function saveHash(){
+  var d = DEFAULTS[currentTab];
+  var parts = ['tab='+currentTab];
+  for(var id in d){
+    var el = document.getElementById(id); if(!el) continue;
+    var val = el.type==='checkbox' ? el.checked : el.value;
+    if(String(val) !== String(d[id])) parts.push(id+'='+encodeURIComponent(val));
+  }
+  history.replaceState(null, '', '#'+parts.join('&'));
+}
+function loadHash(){
+  var h = location.hash.slice(1);
+  if(!h){ sw('pw'); return; }
+  var pairs = h.split('&'), tab = null;
+  for(var i=0;i<pairs.length;i++){
+    var kv = pairs[i].split('=');
+    if(kv.length!==2) continue;
+    var k = kv[0], v = decodeURIComponent(kv[1]);
+    if(k==='tab'){ tab=v; continue; }
+    var el = document.getElementById(k); if(!el) continue;
+    if(el.type==='checkbox') el.checked = (v==='true');
+    else el.value = v;
+  }
+  if(tab) sw(tab); else sw('pw');
+}
+
+/* ── Keyboard shortcuts ── */
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName==='INPUT' || e.target.tagName==='SELECT' || e.target.tagName==='TEXTAREA') return;
+  var order = ['pw','lz','lf','wl','gn'];
+  var idx = order.indexOf(currentTab);
+  if(e.key==='ArrowLeft'){ sw(order[(idx-1+order.length)%order.length]); }
+  else if(e.key==='ArrowRight'){ sw(order[(idx+1)%order.length]); }
+  else if(e.key===' '){ e.preventDefault(); window.togglePlay(currentTab); }
+});
+
+/* ── Initialize ── */
+loadHash();
+requestAnimationFrame(tick);
+
+/* ── KaTeX equation rendering ── */
+function renderKaTeX(){
+  document.querySelectorAll('[data-katex]').forEach(function(el){
+    try {
+      katex.render(el.getAttribute('data-katex'), el, { throwOnError:false, displayMode:false });
+    } catch(e){ el.textContent = el.getAttribute('data-katex'); }
+  });
+}
+if(window.katex) renderKaTeX();
+else document.addEventListener('DOMContentLoaded', function(){
+  var check = setInterval(function(){ if(window.katex){ clearInterval(check); renderKaTeX(); } }, 50);
+  setTimeout(function(){ clearInterval(check); }, 5000);
+});
+
+})();
+</script>
+</body>
+</html>
