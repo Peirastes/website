@@ -225,8 +225,8 @@ body {
         </div>
         <div class="slider-row">
           <span class="sl">Speed ω</span>
-          <input type="range" min="0" max="1000" value="289" step="1" id="gW" oninput="uG()" />
-          <span class="sv" id="gW-v">5.01 rad/s</span>
+          <input type="range" min="0" max="1000" value="115" step="1" id="gW" oninput="uG()" />
+          <span class="sv" id="gW-v">4.99 rad/s</span>
         </div>
         <div class="btn-row">
           <button class="act-btn on" id="g-play" onclick="togglePlay('gn')">PAUSE</button>
@@ -535,13 +535,14 @@ var wl = {
 };
 
 /* ── Animation loop ── */
-// Map gW slider (0..1000) → angular velocity (rad/s) with quadratic curve so the
-// visually meaningful range (ω < 10) gets ~41% of the slider; max ω = 60 rad/s.
-// Default slider 289 → ω ≈ 5 rad/s (~0.8 Hz, comfortable to watch).
+// Map gW slider (0..1000) → angular velocity (rad/s) with quadratic curve.
+// Max ω = 120π ≈ 377 rad/s (exactly 60 Hz, the line-frequency textbook example);
+// ω < 10 rad/s gets ~16% of the slider (slider 0..163).
+// Default slider 115 → ω ≈ 5 rad/s (~0.8 Hz, comfortable to watch).
 function gnOmega(){
   var s = parseFloat(document.getElementById('gW').value);
   var u = s/1000;
-  return u*u*60;
+  return u*u*120*Math.PI;
 }
 
 var lastT = performance.now();
@@ -1988,7 +1989,7 @@ window.sw = function(t){
 
 /* ── Defaults & reset ── */
 var DEFAULTS = {
-  gn: {gN:100, gA:20, gB:50, gW:289, gShowFlux:true, gShowEmf:true},
+  gn: {gN:100, gA:20, gB:50, gW:115, gShowFlux:true, gShowEmf:true},
   lz: {lM:100, lR:10, lX:-180, lFlip:false, lFieldLines:true},
   pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30, pT3:30},
   lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
