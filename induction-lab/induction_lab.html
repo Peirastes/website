@@ -504,10 +504,8 @@ var currentTab = 'pw';
 var play = { gn: true, lz: true, pw: true, lf: true, wl: true };
 
 var gen = {
-  theta: 0,           // rotation angle
-  history: [],        // array of {t, phi, emf}
-  histMax: 600,
-  tElapsed: 0
+  theta: 0,           // rotation angle (accumulates ω·dt while playing)
+  tElapsed: 0         // simulation time elapsed (used as scope's "now" marker)
 };
 
 var lenz = {
@@ -629,11 +627,10 @@ function drawGenerator(){
   var emf0  = N*B*A*w;                          // peak EMF
   var freq  = w/(2*Math.PI);
 
-  // Push to history (only when playing)
-  if(play.gn){
-    gen.history.push({t: gen.tElapsed, phi: phi, emf: emf});
-    if(gen.history.length > gen.histMax) gen.history.shift();
-  }
+  // Note: scope traces are computed analytically below (Φ and ε are pure sinusoids
+  // for a constant ω), so no per-frame history buffer is needed. This guarantees the
+  // scope fills the window at any ω, including very low ones where 4 periods would
+  // exceed the simulation runtime.
 
   /* ── LEFT PANEL: rotating coil seen along its rotation axis ── */
   var lx = 200, ly = H/2;
@@ -760,40 +757,41 @@ function drawGenerator(){
   var wDisp = (w < 10) ? w.toFixed(2) : (w < 100 ? w.toFixed(1) : Math.round(w).toString());
   ctx.fillText(N+' turns · '+B.toFixed(2)+' T · ω='+wDisp+' rad/s', sx+sw, sy - 6);
 
-  // Plot traces
-  if(gen.history.length > 1){
-    var phi0 = N*B*A;            // peak flux linkage
+  // Plot traces — analytical, always fills the scope width regardless of ω.
+  if(w > 0){
+    var phi0 = N*B*A;
     var emf0Val = N*B*A*w;
     var phiScale = (sh*0.42)/Math.max(0.01, phi0);
     var emfScale = (sh*0.42)/Math.max(0.01, emf0Val);
 
-    // Use last ~window seconds
-    var period = w>0 ? 2*Math.PI/w : 0.05;
-    var winSec = Math.max(0.05, 4*period);
+    var period = 2*Math.PI/w;
+    var winSec = 4*period;
     var tEnd = gen.tElapsed;
     var tStart = tEnd - winSec;
-
-    var pts = gen.history.filter(function(p){return p.t>=tStart;});
+    var nSamples = 240;
 
     function tToX(t){ return sx + (t-tStart)/winSec*sw; }
+    // Reconstruct angle at past time t assuming constant ω (current slider value).
+    function thetaAt(t){ return gen.theta - w*(tEnd - t); }
 
     if(showPhi){
       ctx.strokeStyle=CYAN; ctx.lineWidth=1.6; ctx.beginPath();
-      for(var k=0;k<pts.length;k++){
-        var X = tToX(pts[k].t);
-        var Y = sMidY - pts[k].phi*phiScale;
+      for(var k=0;k<nSamples;k++){
+        var t = tStart + (k/(nSamples-1))*winSec;
+        var X = tToX(t);
+        var Y = sMidY - (N*B*A*Math.cos(thetaAt(t)))*phiScale;
         if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
       }
       ctx.stroke();
-      // glow
       ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
     }
 
     if(showEmf){
       ctx.strokeStyle=AMBER; ctx.lineWidth=1.8; ctx.beginPath();
-      for(var k=0;k<pts.length;k++){
-        var X = tToX(pts[k].t);
-        var Y = sMidY - pts[k].emf*emfScale;
+      for(var k=0;k<nSamples;k++){
+        var t = tStart + (k/(nSamples-1))*winSec;
+        var X = tToX(t);
+        var Y = sMidY - (N*B*A*w*Math.sin(thetaAt(t)))*emfScale;
         if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
       }
       ctx.stroke();
@@ -1951,7 +1949,7 @@ window.togglePlay = function(mod){
 
 window.stepBack = function(mod){
   if(mod==='gn'){
-    gen.theta = 0; gen.history = []; gen.tElapsed = 0;
+    gen.theta = 0; gen.tElapsed = 0;
     drawGenerator();
   } else if(mod==='lz'){
     lenz.x = -180; lenz.vx = 90; lenz.prevPhi = 0; lenz.emf = 0; lenz.iInd = 0;
@@ -2003,7 +2001,7 @@ window.resetModule = function(mod){
     else el.value = d[id];
   }
   if(mod==='gn'){
-    gen.theta = 0; gen.history = []; gen.tElapsed = 0;
+    gen.theta = 0; gen.tElapsed = 0;
     uG();
   } else if(mod==='lz'){
     lenz.x = d.lX; lenz.vx = 90; lenz.prevPhi = 0; lenz.emf = 0; lenz.iInd = 0;
