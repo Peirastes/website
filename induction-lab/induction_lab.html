@@ -225,7 +225,7 @@ body {
         </div>
         <div class="slider-row">
           <span class="sl">Speed ω</span>
-          <input type="range" min="0" max="500" value="377" step="1" id="gW" oninput="uG()" />
+          <input type="range" min="0" max="1000" value="868" step="1" id="gW" oninput="uG()" />
           <span class="sv" id="gW-v">377 rad/s</span>
         </div>
         <div class="btn-row">
@@ -535,13 +535,22 @@ var wl = {
 };
 
 /* ── Animation loop ── */
+// Map gW slider (0..1000) → angular velocity (rad/s) with quadratic curve so the
+// visually meaningful range (ω < 10) gets ~30% of the slider while ω = 500 is still
+// reachable at full deflection. Default slider value 868 → ω ≈ 377 (60 Hz textbook).
+function gnOmega(){
+  var s = parseFloat(document.getElementById('gW').value);
+  var u = s/1000;
+  return u*u*500;
+}
+
 var lastT = performance.now();
 function tick(now){
   var dt = Math.min(0.05, (now - lastT)/1000);
   lastT = now;
   if(currentTab==='gn'){
     if(play.gn){
-      var w = parseFloat(document.getElementById('gW').value);
+      var w = gnOmega();
       gen.theta += w*dt;
       gen.tElapsed += dt;
     }
@@ -584,11 +593,13 @@ function uG(){
   var A_cm2 = parseInt(document.getElementById('gA').value);  // 5..100 → 0.005..0.100 m²
   var A = A_cm2/1000;
   var B = parseInt(document.getElementById('gB').value)/100;  // 5..200 → 0.05..2.00 T
-  var w = parseFloat(document.getElementById('gW').value);
+  var w = gnOmega();
   document.getElementById('gN-v').textContent = N;
   document.getElementById('gA-v').textContent = A.toFixed(3)+' m²';
   document.getElementById('gB-v').textContent = B.toFixed(2)+' T';
-  document.getElementById('gW-v').textContent = Math.round(w)+' rad/s';
+  // Display ω with appropriate precision: 2 decimals at low end, integer at high end.
+  var wStr = (w < 10) ? w.toFixed(2) : (w < 100 ? w.toFixed(1) : Math.round(w).toString());
+  document.getElementById('gW-v').textContent = wStr+' rad/s';
   drawGenerator();
 }
 window.uG = uG;
@@ -606,7 +617,7 @@ function drawGenerator(){
   var N = parseInt(document.getElementById('gN').value);
   var A = parseInt(document.getElementById('gA').value)/1000;
   var B = parseInt(document.getElementById('gB').value)/100;
-  var w = parseFloat(document.getElementById('gW').value);
+  var w = gnOmega();
   var showPhi = document.getElementById('gShowFlux').checked;
   var showEmf = document.getElementById('gShowEmf').checked;
 
@@ -671,9 +682,10 @@ function drawGenerator(){
   ctx.strokeStyle=frontCol;
   ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
 
-  // Wire cross-section markers (dot = current out of page, X = into page)
-  // Lenz/right-hand rule: when emf>0, current direction in loop plane has consistent sign.
-  // Use sign(emf) to set which end has dot vs X.
+  // Wire cross-section markers — track the SAME physical wire-end across rotation.
+  // (x1,y1) is one wire of the loop; (x2,y2) is the diametrically opposite wire.
+  // During positive ε, current circulates one way: x1 carries current OUT of page (●),
+  // x2 carries current INTO page (⊗). They swap when ε reverses.
   function drawDot(x,y,col){
     ctx.fillStyle=col;
     ctx.beginPath(); ctx.arc(x,y,8,0,2*Math.PI); ctx.fill();
@@ -688,10 +700,7 @@ function drawGenerator(){
     ctx.moveTo(x+5,y-5); ctx.lineTo(x-5,y+5);
     ctx.stroke();
   }
-  // Pick which end gets dot vs cross based on sign of emf and which end is "top"
-  var topIsX1 = y1 < y2;
-  var emfSign = emf >= 0 ? 1 : -1;
-  if(topIsX1 === (emfSign>0)){
+  if(emf >= 0){
     drawDot(x1,y1,GREEN);
     drawCross(x2,y2,GREEN);
   } else {
@@ -747,7 +756,8 @@ function drawGenerator(){
   ctx.fillText('SCOPE — NΦ_B (cyan) · ε (amber)', sx + 4, sy - 6);
   ctx.textAlign='right';
   ctx.fillStyle=TX;
-  ctx.fillText(N+' turns · '+B.toFixed(2)+' T · ω='+Math.round(w)+' rad/s', sx+sw, sy - 6);
+  var wDisp = (w < 10) ? w.toFixed(2) : (w < 100 ? w.toFixed(1) : Math.round(w).toString());
+  ctx.fillText(N+' turns · '+B.toFixed(2)+' T · ω='+wDisp+' rad/s', sx+sw, sy - 6);
 
   // Plot traces
   if(gen.history.length > 1){
@@ -1978,7 +1988,7 @@ window.sw = function(t){
 
 /* ── Defaults & reset ── */
 var DEFAULTS = {
-  gn: {gN:100, gA:20, gB:50, gW:377, gShowFlux:true, gShowEmf:true},
+  gn: {gN:100, gA:20, gB:50, gW:868, gShowFlux:true, gShowEmf:true},
   lz: {lM:100, lR:10, lX:-180, lFlip:false, lFieldLines:true},
   pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30, pT3:30},
   lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
