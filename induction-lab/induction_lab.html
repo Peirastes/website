@@ -235,7 +235,7 @@ body {
           <span class="sv" id="srM-v">0.10 kg</span>
         </div>
         <div class="btn-row">
-          <button class="act-btn on" id="sr-force" onclick="srToggleForce()">FORCE ON</button>
+          <button class="act-btn" id="sr-force" onclick="srToggleForce()">DRIVE OFF</button>
           <button class="act-btn" id="sr-reset" onclick="stepBack('sr')">RESET</button>
         </div>
         <button class="reset-btn" onclick="resetModule('sr')">Reset defaults</button>
@@ -592,7 +592,7 @@ var sr = {
   x: 250,             // rod x position in canvas px
   v: 5.0,             // current velocity in m/s
   t: 0,               // simulation time
-  forceOn: true,      // pushing rod at constant v vs released to decay
+  forceOn: false,     // DRIVE OFF by default — show exponential decay first
   history: []         // {t, v} for the v(t) trace
 };
 
@@ -657,12 +657,19 @@ function tick(now){
         var alpha = (B_phys*B_phys*L_phys*L_phys)/(m_phys*R_phys);
         sr.v = sr.v * Math.exp(-alpha*dt);
       }
-      // Visual position: scale 1 m = 50 px; wrap when rod exits the right end
+      // Visual position: 1 m → 50 px in canvas
       sr.x += sr.v * 50 * dt;
       var trackXmax = BASE_W - 50;
       var trackXmin = 200;
-      if(sr.x > trackXmax) sr.x = trackXmin;
-      if(sr.x < trackXmin) sr.x = trackXmin;
+      if(sr.forceOn){
+        // DRIVE ON loops the rod back to the start so steady-state stays on screen
+        if(sr.x > trackXmax) sr.x = trackXmin;
+        if(sr.x < trackXmin) sr.x = trackXmin;
+      } else {
+        // DRIVE OFF — let the rod come to rest naturally; clamp at the right edge
+        if(sr.x > trackXmax) sr.x = trackXmax;
+        if(sr.x < trackXmin) sr.x = trackXmin;
+      }
       sr.t += dt;
       sr.history.push({t: sr.t, v: sr.v});
       if(sr.history.length > 600) sr.history.shift();
@@ -2049,7 +2056,10 @@ function uSR(){
   document.getElementById('srR-v').textContent = R.toFixed(1)+' Ω';
   document.getElementById('srV-v').textContent = v.toFixed(1)+' m/s';
   document.getElementById('srM-v').textContent = m.toFixed(2)+' kg';
-  if(sr.forceOn) sr.v = v;
+  // In DRIVE ON: live-track slider. In DRIVE OFF: slider sets a fresh "release velocity"
+  // so dragging it gives the rod a new push (decay restarts from x=initial).
+  sr.v = v;
+  if(!sr.forceOn){ sr.x = 250; sr.t = 0; sr.history = []; }
   drawSlidingRod();
 }
 window.uSR = uSR;
@@ -2057,14 +2067,13 @@ window.uSR = uSR;
 window.srToggleForce = function(){
   sr.forceOn = !sr.forceOn;
   var btn = document.getElementById('sr-force');
-  btn.textContent = sr.forceOn ? 'FORCE ON' : 'RELEASED';
+  btn.textContent = sr.forceOn ? 'DRIVE ON' : 'DRIVE OFF';
   btn.classList.toggle('on', sr.forceOn);
-  if(sr.forceOn){
-    sr.v = parseInt(document.getElementById('srV').value)/10;
-  }
-  // Reset history when toggling so the v(t) trace shows the new regime cleanly
-  sr.history = [];
+  // Snap velocity back to slider value, reset rod position, clear history
+  sr.v = parseInt(document.getElementById('srV').value)/10;
+  sr.x = 250;
   sr.t = 0;
+  sr.history = [];
   drawSlidingRod();
 };
 
@@ -2223,7 +2232,7 @@ function drawSlidingRod(){
 
   // Title strip
   ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
-  var modeLabel = sr.forceOn ? 'FORCE ON · constant v · Block 5' : 'RELEASED · v(t) decay · Block 6';
+  var modeLabel = sr.forceOn ? 'DRIVE ON · constant v held by F_ext · Block 5' : 'DRIVE OFF · free decay  v(t) = v₀ e^(−t/τ) · Block 6';
   ctx.fillText(modeLabel, 16, 26);
   ctx.textAlign='right';
   ctx.fillText('L = '+L.toFixed(2)+' m  ·  m = '+m.toFixed(2)+' kg', W-16, 26);
@@ -2326,9 +2335,9 @@ window.stepBack = function(mod){
   } else if(mod==='sr'){
     sr.x = 250; sr.t = 0; sr.history = [];
     sr.v = parseInt(document.getElementById('srV').value)/10;
-    sr.forceOn = true;
+    sr.forceOn = false;
     var btn = document.getElementById('sr-force');
-    if(btn){ btn.textContent = 'FORCE ON'; btn.classList.add('on'); }
+    if(btn){ btn.textContent = 'DRIVE OFF'; btn.classList.remove('on'); }
     drawSlidingRod();
   }
 };
@@ -2384,9 +2393,9 @@ window.resetModule = function(mod){
   } else if(mod==='sr'){
     sr.x = 250; sr.t = 0; sr.history = [];
     sr.v = parseInt(document.getElementById('srV').value)/10;
-    sr.forceOn = true;
+    sr.forceOn = false;
     var srBtn = document.getElementById('sr-force');
-    if(srBtn){ srBtn.textContent = 'FORCE ON'; srBtn.classList.add('on'); }
+    if(srBtn){ srBtn.textContent = 'DRIVE OFF'; srBtn.classList.remove('on'); }
     uSR();
   }
   saveHash();
