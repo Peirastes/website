@@ -139,7 +139,7 @@ body {
       <div class="section-label">Lecture 1 — Faraday &amp; Lenz</div>
       <div class="module-tab-row" role="tablist">
         <button class="tab on" id="t-pw" onclick="sw('pw')">Piecewise B</button>
-        <button class="tab" id="t-lz" onclick="sw('lz')">Lenz / Magnet</button>
+        <button class="tab" id="t-lz" onclick="sw('lz')">Solenoid + Loop</button>
         <button class="tab" id="t-lf" onclick="sw('lf')">Loop &amp; Field</button>
         <button class="tab" id="t-wl" onclick="sw('wl')">Wire &amp; Loop</button>
       </div>
@@ -378,39 +378,45 @@ body {
       </div>
     </div>
 
-    <!-- Lenz controls -->
+    <!-- Solenoid + Loop controls (Lenz with AC solenoid through surrounding loop) -->
     <div id="ctrl-lz" class="module-ctrl" style="display:none">
       <div class="panel-section">
-        <div class="section-label">Magnet</div>
+        <div class="section-label">Driving Solenoid</div>
         <div class="slider-row">
-          <span class="sl">Strength</span>
-          <input type="range" min="20" max="200" value="100" step="1" id="lM" oninput="uL()" />
-          <span class="sv" id="lM-v">1.00</span>
+          <span class="sl">Current I₀</span>
+          <input type="range" min="1" max="200" value="30" step="1" id="lI" oninput="uL()" />
+          <span class="sv" id="lI-v">3.0 A</span>
         </div>
         <div class="slider-row">
-          <span class="sl">Position x</span>
-          <input type="range" min="-200" max="200" value="-180" step="1" id="lX" oninput="uL()" />
-          <span class="sv" id="lX-v">-180</span>
+          <span class="sl">Frequency f</span>
+          <input type="range" min="1" max="100" value="10" step="1" id="lF" oninput="uL()" />
+          <span class="sv" id="lF-v">1.0 Hz</span>
         </div>
-        <div class="chk-row">
-          <input type="checkbox" id="lFlip" onchange="uL()" />
-          <span>S pole leads (flip magnet)</span>
+        <div class="slider-row">
+          <span class="sl">Turns/m n</span>
+          <input type="range" min="100" max="5000" value="1000" step="100" id="lN" oninput="uL()" />
+          <span class="sv" id="lN-v">1000</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Radius r_s</span>
+          <input type="range" min="10" max="100" value="50" step="1" id="lRsol" oninput="uL()" />
+          <span class="sv" id="lRsol-v">0.050 m</span>
         </div>
       </div>
       <div class="panel-section">
-        <div class="section-label">Loop</div>
+        <div class="section-label">Surrounding Loop</div>
         <div class="slider-row">
           <span class="sl">Resistance</span>
-          <input type="range" min="1" max="50" value="10" step="1" id="lR" oninput="uL()" />
-          <span class="sv" id="lR-v">1.0 Ω</span>
+          <input type="range" min="1" max="100" value="10" step="1" id="lR" oninput="uL()" />
+          <span class="sv" id="lR-v">0.10 Ω</span>
         </div>
         <div class="btn-row">
-          <button class="act-btn on" id="l-play" onclick="togglePlay('lz')">AUTO</button>
+          <button class="act-btn on" id="l-play" onclick="togglePlay('lz')">PLAYING</button>
           <button class="act-btn" id="l-reset" onclick="stepBack('lz')">RESET</button>
         </div>
         <div class="chk-row" style="margin-top:8px">
-          <input type="checkbox" id="lFieldLines" checked onchange="uL()" />
-          <span>Show field lines</span>
+          <input type="checkbox" id="lShowField" checked onchange="uL()" />
+          <span>Show B inside solenoid</span>
         </div>
         <button class="reset-btn" onclick="resetModule('lz')">Reset defaults</button>
       </div>
@@ -491,16 +497,17 @@ body {
         </div>
       </div>
     </div>
-    <!-- Lenz display -->
+    <!-- Solenoid + Loop display -->
     <div class="panel" id="p-lz">
       <div class="crt-screen">
-        <div class="crt-label">Lenz's Law — Bar Magnet Approaching a Loop</div>
+        <div class="crt-label">Lenz's Law — Solenoid Through a Surrounding Loop</div>
         <div class="canvas-wrap"><canvas id="lc"></canvas></div>
         <div class="cards" id="l-cards"></div>
         <div class="eq-strip">
+          <span class="eq" data-katex="B_\text{sol} = \mu_0\, n\, I_s"></span>
+          <span class="eq" data-katex="\Phi_B = \mu_0\, n\, I_s\,\pi r_s^2 \;\text{(uses solenoid area, not loop area)}"></span>
           <span class="eq" data-katex="\mathcal{E} = -d\Phi_B/dt"></span>
-          <span class="eq" data-katex="I_\text{ind} = \mathcal{E}/R"></span>
-          <span class="eq" data-katex="\vec{B}_\text{ind} \;\text{opposes}\; \Delta\Phi_B"></span>
+          <span class="eq" data-katex="I_\text{loop}\;\text{lags}\;I_s\;\text{by}\;90°"></span>
         </div>
       </div>
     </div>
@@ -565,11 +572,9 @@ var gen = {
 };
 
 var lenz = {
-  x: -180,
-  vx: 90,
-  prevPhi: 0,
-  emf: 0,
-  iInd: 0
+  t: 0,
+  history: [],
+  histMax: 600
 };
 
 var pw = {
@@ -619,14 +624,8 @@ function tick(now){
     }
     drawGenerator();
   } else if(currentTab==='lz'){
-    if(play.lz){
-      lenz.x += lenz.vx*dt;
-      if(lenz.x > 200){ lenz.x=200; lenz.vx=-Math.abs(lenz.vx); }
-      if(lenz.x < -200){ lenz.x=-200; lenz.vx= Math.abs(lenz.vx); }
-      document.getElementById('lX').value = Math.round(lenz.x);
-      document.getElementById('lX-v').textContent = Math.round(lenz.x);
-    }
-    drawLenz(dt);
+    if(play.lz) lenz.t += dt;
+    drawLenz();
   } else if(currentTab==='pw'){
     if(play.pw) pw.t += dt;
     drawPiecewiseB();
@@ -960,20 +959,21 @@ function drawGenerator(){
    MODULE 2: LENZ / BAR MAGNET
    ════════════════════════════════════════════════════════════ */
 function uL(){
-  var M = parseInt(document.getElementById('lM').value)/100;
-  var R = parseInt(document.getElementById('lR').value)/10;
-  var manualX = parseInt(document.getElementById('lX').value);
-  document.getElementById('lM-v').textContent = M.toFixed(2);
-  document.getElementById('lR-v').textContent = R.toFixed(1)+' Ω';
-  document.getElementById('lX-v').textContent = manualX;
-  if(!play.lz){
-    lenz.x = manualX;
-  }
-  drawLenz(0);
+  var I0 = parseInt(document.getElementById('lI').value)/10;
+  var f  = parseInt(document.getElementById('lF').value)/10;
+  var n  = parseInt(document.getElementById('lN').value);
+  var rs = parseInt(document.getElementById('lRsol').value)/1000;
+  var R  = parseInt(document.getElementById('lR').value)/100;
+  document.getElementById('lI-v').textContent = I0.toFixed(1)+' A';
+  document.getElementById('lF-v').textContent = f.toFixed(1)+' Hz';
+  document.getElementById('lN-v').textContent = n;
+  document.getElementById('lRsol-v').textContent = rs.toFixed(3)+' m';
+  document.getElementById('lR-v').textContent = R.toFixed(2)+' Ω';
+  drawLenz();
 }
 window.uL = uL;
 
-function drawLenz(dt){
+function drawLenz(){
   var cv = document.getElementById('lc');
   var W = BASE_W, H = BASE_H;
   var ctx = setupCanvas(cv, W, H);
@@ -981,232 +981,230 @@ function drawLenz(dt){
   ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
   grid(ctx,W,H);
 
-  var M = parseInt(document.getElementById('lM').value)/100;
-  var R = parseInt(document.getElementById('lR').value)/10;
-  var flip = document.getElementById('lFlip').checked;
-  var showLines = document.getElementById('lFieldLines').checked;
+  // Read params (SI)
+  var I0 = parseInt(document.getElementById('lI').value)/10;
+  var f  = parseInt(document.getElementById('lF').value)/10;
+  var n  = parseInt(document.getElementById('lN').value);
+  var rs = parseInt(document.getElementById('lRsol').value)/1000;
+  var R  = parseInt(document.getElementById('lR').value)/100;
+  var omega = 2*Math.PI*f;
+  var showField = document.getElementById('lShowField').checked;
 
-  // Loop is at center-right; normal vector points along the magnet's motion axis (horizontal).
-  // Drawn as a tall vertical ellipse — minor axis horizontal (foreshortening from slight perspective),
-  // major axis vertical (true loop diameter). This way the magnet "enters" along the loop's normal.
-  var loopX = W*0.62, loopY = H/2;
-  var loopRx = 28, loopRy = 90;
+  // Live values: AC drive in solenoid → axial B field → flux through surrounding loop
+  var I_s = I0 * Math.sin(omega * lenz.t);
+  var dI_s_dt = I0 * omega * Math.cos(omega * lenz.t);
+  var B_sol = MU0 * n * I_s;                              // axial field inside solenoid
+  var A_sol = Math.PI * rs * rs;
+  var phi   = B_sol * A_sol;                              // flux through surrounding loop
+  var emf   = -MU0 * n * A_sol * dI_s_dt;                  // ε = -dΦ/dt
+  var I_loop = emf / R;
+  var phiPeak = Math.abs(MU0 * n * I0 * A_sol);
+  var emfPeak = phiPeak * omega;
+  var IloopPeak = emfPeak / R;
 
-  // Magnet position relative to canvas center
-  var magCenterX = W/2 + lenz.x;  // lenz.x ranges -200..200
-  var magCenterY = loopY;
-  var magW = 120, magH = 40;
-
-  /* ── Compute flux through loop ──
-     Smoothed on-axis dipole approximation: Φ ∝ 1/(1 + (z/z0)²)^(3/2)
-     where z is signed distance from magnet CENTER to loop center.
-     This makes the flux peak (and the Lenz reversal) coincide with the magnet
-     visually passing through the loop's plane. Sign flips if S leads.
-  */
-  var sign = flip ? -1 : 1;
-  var r = (loopX - magCenterX);                          // signed distance: magnet center → loop center
-  var r0 = 60;
-  var rN = r/r0;
-  var phi = sign * M * 1.0 / Math.pow(1 + rN*rN, 1.5);
-  // EMF = -dPhi/dt (numerical)
-  var dphi = (phi - lenz.prevPhi);
-  var emf  = (dt > 0) ? -dphi/dt : 0;
-  lenz.prevPhi = phi;
-  // Smooth emf for display
-  lenz.emf = lenz.emf*0.7 + emf*0.3;
-  lenz.iInd = lenz.emf / R;
-
-  /* ── Magnet pole positions and colors (used by field lines and body draw) ── */
-  var leftIsN = flip;
-  var leftCol = leftIsN ? RED : '#3060c0';
-  var rightCol = leftIsN ? '#3060c0' : RED;
-  var nPoleX = magCenterX + (flip ? -magW/2 : magW/2);
-  var nPoleY = magCenterY;
-  var sPoleX = magCenterX - (flip ? -magW/2 : magW/2);
-  var sPoleY = magCenterY;
-
-  /* ── Field lines from N pole (drawn first; partially behind everything) ── */
-  if(showLines){
-    ctx.save();
-    ctx.strokeStyle = 'rgba(64,232,208,0.45)';
-    ctx.lineWidth = 1.3;
-    var lineCount = 5;
-    for(var li=0; li<lineCount; li++){
-      var phase = (li - (lineCount-1)/2);  // -2..+2
-      ctx.beginPath();
-      var bow = 70 + Math.abs(phase)*30;
-      var dir = phase>=0 ? 1 : -1;
-      var cx1 = nPoleX + (flip?-1:1)*70;
-      var cy1 = nPoleY + dir*bow;
-      var cx2 = sPoleX - (flip?-1:1)*70;
-      var cy2 = sPoleY + dir*bow;
-      ctx.moveTo(nPoleX, nPoleY);
-      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, sPoleX, sPoleY);
-      ctx.stroke();
-      // Arrowhead at midpoint (N → outward → S)
-      function bez(t, p0, c1, c2, p3){
-        var u = 1-t;
-        return u*u*u*p0 + 3*u*u*t*c1 + 3*u*t*t*c2 + t*t*t*p3;
-      }
-      var t1 = 0.48, t2 = 0.52;
-      var mx  = bez(t1, nPoleX, cx1, cx2, sPoleX);
-      var my  = bez(t1, nPoleY, cy1, cy2, sPoleY);
-      var mx2 = bez(t2, nPoleX, cx1, cx2, sPoleX);
-      var my2 = bez(t2, nPoleY, cy1, cy2, sPoleY);
-      var ang = Math.atan2(my2-my, mx2-mx);
-      var ah = 6;
-      ctx.fillStyle='rgba(64,232,208,0.6)';
-      ctx.beginPath();
-      ctx.moveTo(mx2, my2);
-      ctx.lineTo(mx2 - ah*Math.cos(ang-0.5), my2 - ah*Math.sin(ang-0.5));
-      ctx.lineTo(mx2 - ah*Math.cos(ang+0.5), my2 - ah*Math.sin(ang+0.5));
-      ctx.closePath(); ctx.fill();
-    }
-    ctx.restore();
+  // History (for scope)
+  if(play.lz){
+    lenz.history.push({t: lenz.t, I_s: I_s, phi: phi, emf: emf, I_loop: I_loop});
+    if(lenz.history.length > lenz.histMax) lenz.history.shift();
   }
 
-  /* ── BACK arc of loop (right half: angles -π/2 → π/2). Drawn first, dimmer, suggesting "behind" ── */
+  /* ── TOP: vertical solenoid with horizontal loop encircling it ── */
+  var solX = W/2;
+  var solTop = 30, solBot = 220;
+  var solHeight = solBot - solTop;
+  // Visual radius of solenoid scales loosely with physical r_s for feedback,
+  // but is clamped so the visual stays compact.
+  var solR_visual = Math.max(20, Math.min(50, 25 + (rs/0.05) * 15));
+  var loopY = (solTop + solBot) / 2;
+  var loop_rx = solR_visual + 80;
+  var loop_ry = loop_rx * 0.30;  // foreshortening for oblique 3D feel
+
+  /* ── BACK arc of loop (top half: angles π → 2π in canvas; appears "behind" solenoid) ── */
   ctx.save();
   ctx.strokeStyle = AMBER_DIM;
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.ellipse(loopX, loopY, loopRx, loopRy, 0, -Math.PI/2, Math.PI/2, false);
+  ctx.ellipse(solX, loopY, loop_rx, loop_ry, 0, Math.PI, 2*Math.PI, false);
   ctx.stroke();
   ctx.restore();
 
-  /* ── Bar magnet body (drawn over back arc; appears in front of it) ── */
+  /* ── Solenoid body ── */
+  // Drop-shadowed rectangle suggesting cylinder
   ctx.save();
-  ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8; ctx.shadowOffsetY=2;
-  ctx.fillStyle = leftCol;
-  ctx.fillRect(magCenterX - magW/2, magCenterY - magH/2, magW/2, magH);
-  ctx.fillStyle = rightCol;
-  ctx.fillRect(magCenterX, magCenterY - magH/2, magW/2, magH);
+  ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8;
+  ctx.fillStyle = 'rgba(40,50,70,0.78)';
+  ctx.fillRect(solX - solR_visual, solTop, 2*solR_visual, solHeight);
   ctx.restore();
-  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
-  ctx.strokeRect(magCenterX - magW/2 + 0.5, magCenterY - magH/2 + 0.5, magW-1, magH-1);
-  // N/S labels
-  ctx.fillStyle='#fff'; ctx.font='bold 18px "Orbitron",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(leftIsN?'N':'S', magCenterX - magW/4, magCenterY);
-  ctx.fillText(leftIsN?'S':'N', magCenterX + magW/4, magCenterY);
-  ctx.textBaseline='alphabetic';
 
-  /* ── FRONT arc of loop (left half: angles π/2 → 3π/2). Drawn last, brighter, "in front of" magnet ── */
+  // Helical coil lines suggest a wound coil
+  var coilSpacing = 11;
+  for(var cy = solTop + 6; cy < solBot - 4; cy += coilSpacing){
+    // Front-arc segment (visible, brighter)
+    ctx.strokeStyle='rgba(180,200,220,0.7)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(solX - solR_visual, cy + 3);
+    ctx.bezierCurveTo(solX - solR_visual*0.5, cy + 7, solX + solR_visual*0.5, cy + 7, solX + solR_visual, cy - 4);
+    ctx.stroke();
+    // Back-arc segment (dimmer, suggests wraparound)
+    ctx.strokeStyle='rgba(100,120,150,0.35)';
+    ctx.beginPath();
+    ctx.moveTo(solX - solR_visual, cy + 3);
+    ctx.bezierCurveTo(solX - solR_visual*0.5, cy - 2, solX + solR_visual*0.5, cy - 2, solX + solR_visual, cy - 4);
+    ctx.stroke();
+  }
+
+  // Solenoid outline
+  ctx.strokeStyle='rgba(180,200,220,0.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(solX - solR_visual, solTop, 2*solR_visual, solHeight);
+
+  // B field arrows inside solenoid (axial, ±y depending on sign of I_s)
+  if(showField && Math.abs(I_s) > 0.05){
+    var BdirCanvasY = I_s > 0 ? -1 : 1;   // +I_s → B "up" → smaller canvas-y
+    var Bmag = Math.min(1, Math.abs(I_s)/Math.max(0.01, I0));
+    var Blen = 26 + 26*Bmag;
+    ctx.save();
+    ctx.globalAlpha = 0.40 + 0.50*Bmag;
+    var midY = (solTop + solBot)/2;
+    var ax_offsets = [-solR_visual*0.45, 0, solR_visual*0.45];
+    for(var ai=0; ai<ax_offsets.length; ai++){
+      var ax = solX + ax_offsets[ai];
+      arrow(ctx, ax, midY - BdirCanvasY*Blen/2, ax, midY + BdirCanvasY*Blen/2, CYAN, 2, 7);
+    }
+    ctx.restore();
+    // B label
+    ctx.fillStyle=CYAN_DIM; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('B = '+(B_sol*1000).toFixed(2)+' mT', solX, solTop - 4);
+  }
+
+  // Solenoid current arrows on top and bottom (showing direction of I_s in the windings)
+  // For visualization, just label the direction as ± at top/bottom.
+  ctx.fillStyle=I_s >= 0 ? '#ff8866' : '#66aaff';
+  ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('I_s = '+I_s.toFixed(2)+' A', solX, solBot + 14);
+  ctx.fillText('B = 0 outside  ·  Φ uses solenoid area, not loop area', solX, solBot + 28);
+
+  /* ── FRONT arc of loop (bottom half: angles 0 → π; drawn last, brighter, "in front of" solenoid) ── */
   ctx.save();
   ctx.strokeStyle = AMBER;
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.ellipse(loopX, loopY, loopRx, loopRy, 0, Math.PI/2, 3*Math.PI/2, false);
+  ctx.ellipse(solX, loopY, loop_rx, loop_ry, 0, 0, Math.PI, false);
   ctx.stroke();
-  // Inner shadow for depth (front side only)
+  // Inner shadow (front side only) for depth
   ctx.strokeStyle='rgba(0,0,0,0.4)'; ctx.lineWidth=1.5;
   ctx.beginPath();
-  ctx.ellipse(loopX, loopY, loopRx-2, loopRy-2, 0, Math.PI/2, 3*Math.PI/2, false);
+  ctx.ellipse(solX, loopY, loop_rx-2, loop_ry-2, 0, 0, Math.PI, false);
   ctx.stroke();
   ctx.restore();
 
-  /* ── Velocity arrow above magnet (above all loop layers) ── */
-  if(Math.abs(lenz.vx) > 1){
-    var vDir = lenz.vx>0 ? 1 : -1;
-    var vStartX = magCenterX + vDir*magW/2 + vDir*8;
-    var vEndX   = vStartX + vDir*40;
-    arrow(ctx, vStartX, magCenterY - magH/2 - 20, vEndX, magCenterY - magH/2 - 20, '#fff', 1.5, 6);
-    ctx.fillStyle='#fff'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
-    ctx.fillText('v', (vStartX+vEndX)/2, magCenterY - magH/2 - 26);
-  }
-
-  /* ── Induced current direction: ⊙/⊗ at top and bottom of the loop ──
-     The loop's normal is along the magnet's axis (horizontal in canvas).
-     Loop wires at top (y = loopY - loopRy) and bottom carry current in ±z (in/out of page).
-     Chapter convention: when N pole approaches, induced current is CCW as viewed from the
-     magnet's side. Translating "CCW from +x POV" into our +z-viewing canvas:
-       top of loop ⇒ current OUT of page (⊙), bottom ⇒ INTO page (⊗).
-     With our flux model (Φ same sign as M when N leads, peaks at loop crossing), magnet
-     APPROACHING gives Iind < 0, so iInd<0 ⇒ "CCW from magnet POV" ⇒ top=⊙, bottom=⊗.
+  /* ── Induced current direction: ⊙/⊗ at left/right of loop (where wire is perpendicular to view) ──
+     Convention: when I_s increases positively (B points up, growing), Lenz says induced
+     current flows CW as viewed from above (from +z, the top of the solenoid).
+     With our sign convention emf < 0 ⇒ I_loop < 0 in this case.
+     CW-from-above maps to canvas as: right-of-loop = ⊙ (current OUT of page),
+     left-of-loop = ⊗ (INTO page).  See Ch 29.3 line 226–232.
   */
-  var iAbs = Math.abs(lenz.iInd);
-  if(iAbs > 0.005){
-    var iIndCCW_mag = (lenz.iInd < 0);
-    var topSym = iIndCCW_mag ? '⊙' : '⊗';
-    var botSym = iIndCCW_mag ? '⊗' : '⊙';
+  if(Math.abs(I_loop) > 0.0005){
+    var iLoopCWfromAbove = (I_loop < 0);
+    var rightSym = iLoopCWfromAbove ? '⊙' : '⊗';
+    var leftSym  = iLoopCWfromAbove ? '⊗' : '⊙';
     ctx.save();
-    ctx.globalAlpha = Math.min(1, iAbs*4);
+    ctx.globalAlpha = Math.min(1, Math.abs(I_loop)/Math.max(1e-9, IloopPeak)*1.2);
     ctx.fillStyle = GREEN;
     ctx.font = 'bold 22px "Share Tech Mono",monospace';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(topSym, loopX, loopY - loopRy);
-    ctx.fillText(botSym, loopX, loopY + loopRy);
+    ctx.fillText(rightSym, solX + loop_rx + 4, loopY);
+    ctx.fillText(leftSym,  solX - loop_rx - 4, loopY);
     ctx.textBaseline='alphabetic';
-    // CW/CCW label below loop
+    // Direction label below loop
     ctx.globalAlpha = 1;
-    ctx.font = 'bold 12px "Orbitron",monospace'; ctx.textAlign='center';
-    var dirLabel = iIndCCW_mag ? 'CCW' : 'CW';
-    ctx.fillText(dirLabel + ' (from magnet side)', loopX, loopY + loopRy + 22);
+    ctx.font='bold 12px "Orbitron",monospace'; ctx.textAlign='center';
+    var dirLabel = iLoopCWfromAbove ? 'CW' : 'CCW';
+    ctx.fillText(dirLabel + ' (from above)', solX, loopY + loop_ry + 26);
     ctx.restore();
-  }
-
-  /* ── Induced B field arrow inside loop ──
-     Loop normal is horizontal (along magnet axis). B_ind is along ±normal.
-     Lenz: induced B opposes ΔΦ.
-       External B at loop ∝ sign(M)·(magnet pointing toward loop) ⇒ horizontal.
-       When magnet approaches (dΦ/dt > 0): B_ind opposes external B direction.
-       When magnet recedes (dΦ/dt < 0): B_ind supports external B direction.
-     We draw a horizontal arrow inside the loop body (sized to fit the narrow ellipse).
-  */
-  if(Math.abs(emf) > 0.005){
-    var indBdir = (emf > 0) ? 1 : -1;
-    // Place arrow OUTSIDE the loop on the right side so it doesn't collide with magnet body.
-    // Anchor at midpoint between loop's right edge and the canvas right margin if magnet present,
-    // otherwise inside the loop.
-    var arrowY = loopY + 28;  // offset below loop center to avoid magnet
-    arrow(ctx, loopX - 16*indBdir, arrowY, loopX + 16*indBdir, arrowY, 'rgba(64,232,208,0.95)', 1.5, 6);
-    ctx.fillStyle = 'rgba(64,232,208,0.95)'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
-    ctx.fillText('B_ind', loopX, arrowY - 8);
-  }
-
-  /* ── Force on magnet from loop (Lenz: opposes motion when approaching) ── */
-  if(Math.abs(lenz.vx) > 1 && Math.abs(lenz.iInd) > 0.01){
-    // Force is repulsive when magnet approaches loop, attractive when receding
-    var approaching = (lenz.vx > 0 && lenz.x < 80) || (lenz.vx < 0 && lenz.x > 80);
-    // Simpler: force opposes velocity when |r| decreasing, supports when |r| increasing
-    var d_rdt = -lenz.vx;  // r decreases when vx>0 if magnet on left of loop... let's just use Lenz directly:
-    // Lenz: induced current creates field that opposes ΔΦ → produces force on magnet that opposes velocity (always braking)
-    var fDir = -Math.sign(lenz.vx);
-    var fMag = Math.min(50, Math.abs(lenz.iInd)*60);
-    if(fMag > 6){
-      arrow(ctx, magCenterX, magCenterY + magH/2 + 16, magCenterX + fDir*fMag, magCenterY + magH/2 + 16, RED, 2, 7);
-      ctx.fillStyle=RED; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
-      ctx.fillText('F (Lenz)', magCenterX + fDir*fMag/2, magCenterY + magH/2 + 32);
-    }
   }
 
   /* ── Title strip ── */
   ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
-  ctx.fillText('SIDE VIEW · loop normal ∥ magnet axis', 16, 26);
+  ctx.fillText('SIDE VIEW · loop surrounds solenoid coaxially', 16, 18);
   ctx.textAlign='right';
-  ctx.fillText('R = '+R.toFixed(1)+' Ω', W-16, 26);
+  ctx.fillText('R_loop = '+R.toFixed(2)+' Ω', W-16, 18);
 
-  /* ── Readout cards ── */
+  /* ── BOTTOM: scope showing I_s (drive) and I_loop (response) ── */
+  var sx = 30, sy = 270, sw = W - 60, sh = 145;
+  var sMidY = sy + sh/2;
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sy, sw, sh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sy, sw, sh);
+
+  // Center line
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(sx, sMidY); ctx.lineTo(sx+sw, sMidY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Scope label
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('SCOPE — I_s (cyan, drive) · I_loop (amber, response) · 90° lag', sx + 4, sy - 6);
+  ctx.textAlign='right';
+  ctx.fillStyle=TX;
+  ctx.fillText('I₀='+I0.toFixed(1)+' A · f='+f.toFixed(1)+' Hz · n='+n+'/m', sx+sw, sy - 6);
+
+  // Plot traces
+  if(lenz.history.length > 1 && f > 0){
+    var period = 2*Math.PI/omega;
+    var winSec = Math.max(0.1, 4*period);
+    var tEnd = lenz.t;
+    var tStart = tEnd - winSec;
+    var pts = lenz.history.filter(function(p){return p.t >= tStart;});
+    function tToX(t){ return sx + (t-tStart)/winSec*sw; }
+    var IsScale = (sh*0.42) / Math.max(0.01, I0);
+    var ILScale = (sh*0.42) / Math.max(1e-12, IloopPeak);
+
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6; ctx.beginPath();
+    for(var k=0;k<pts.length;k++){
+      var X = tToX(pts[k].t);
+      var Y = sMidY - pts[k].I_s*IsScale;
+      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+    ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+    ctx.strokeStyle = AMBER; ctx.lineWidth = 1.8; ctx.beginPath();
+    for(var k=0;k<pts.length;k++){
+      var X = tToX(pts[k].t);
+      var Y = sMidY - pts[k].I_loop*ILScale;
+      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+    ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+
+    // Now line and live dots
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+sw, sy); ctx.lineTo(sx+sw, sy+sh); ctx.stroke();
+    ctx.fillStyle=CYAN;
+    ctx.beginPath(); ctx.arc(sx+sw, sMidY-I_s*IsScale, 3, 0, 2*Math.PI); ctx.fill();
+    ctx.fillStyle=AMBER;
+    ctx.beginPath(); ctx.arc(sx+sw, sMidY-I_loop*ILScale, 3, 0, 2*Math.PI); ctx.fill();
+  }
+
+  /* ── Cards ── */
   var dirText = '—';
   var dirColor = TX;
-  if(Math.abs(lenz.iInd) > 0.01){
-    dirText = (lenz.iInd > 0) ? 'CW' : 'CCW';
+  if(Math.abs(I_loop) > 0.0005){
+    dirText = (I_loop < 0) ? 'CW' : 'CCW';
     dirColor = GREEN;
   }
-  var phiSignText = phi.toFixed(3);
-  var emfDisplay = lenz.emf.toFixed(3);
-  var iDisplay = lenz.iInd.toFixed(3);
-
-  var dphiSign = '0';
-  if(Math.abs(emf) > 0.005){ dphiSign = emf>0 ? '↓' : '↑'; }
+  // dΦ/dt arrow indicator for the three-snapshot Lenz drill from your scratch work
+  var dphidt = MU0 * n * A_sol * dI_s_dt;
+  var dphiArrow = Math.abs(dphidt) > 1e-12 ? (dphidt > 0 ? '↑' : '↓') : '·';
 
   var h = '';
-  h += cd('Φ_B (rel.)', phiSignText, CYAN);
-  h += cd('dΦ/dt', dphiSign+' '+(-emf).toFixed(3), AMBER);
-  h += cd('ε ind.', emfDisplay+' V', AMBER);
-  h += cd('I ind.', iDisplay+' A', dirColor);
-  h += cd('I direction', dirText, dirColor);
-  var braking = (Math.abs(lenz.vx)>1 && Math.abs(lenz.iInd)>0.01);
-  h += cd('Force on mag.', braking?'← BRAKE →':'—', braking?RED:TX);
+  h += cd('I_s(t)', I_s.toFixed(2)+' A', CYAN);
+  h += cd('B_sol', (B_sol*1000).toFixed(3)+' mT', CYAN_DIM);
+  h += cd('Φ_B', (phi*1e6).toFixed(2)+' μWb', CYAN);
+  h += cd('dΦ/dt', dphiArrow+' '+(dphidt*1e6).toFixed(2)+' μWb/s', AMBER_DIM);
+  h += cd('ε(t)', (emf*1000).toFixed(3)+' mV', AMBER);
+  h += cd('I_loop', (I_loop*1000).toFixed(2)+' mA  ('+dirText+')', dirColor);
   document.getElementById('l-cards').innerHTML = h;
 }
 
@@ -2328,7 +2326,7 @@ function drawSlidingRod(){
 var PLAY_BTN = { gn:'g-play', lz:'l-play', pw:'p-play', lf:'f-play', wl:'w-play' };
 var PLAY_LABELS = {
   gn: { on:'PAUSE',   off:'PLAY' },
-  lz: { on:'AUTO',    off:'MANUAL' },
+  lz: { on:'PLAYING', off:'PAUSED' },
   pw: { on:'PLAYING', off:'PAUSED' },
   lf: { on:'PLAYING', off:'PAUSED' },
   wl: { on:'PLAYING', off:'PAUSED' }
@@ -2346,10 +2344,8 @@ window.stepBack = function(mod){
     gen.theta = 0; gen.tElapsed = 0;
     drawGenerator();
   } else if(mod==='lz'){
-    lenz.x = -180; lenz.vx = 90; lenz.prevPhi = 0; lenz.emf = 0; lenz.iInd = 0;
-    document.getElementById('lX').value = -180;
-    document.getElementById('lX-v').textContent = -180;
-    drawLenz(0);
+    lenz.t = 0; lenz.history = [];
+    drawLenz();
   } else if(mod==='pw'){
     pw.t = 0; pw.history = [];
     drawPiecewiseB();
@@ -2390,7 +2386,7 @@ window.sw = function(t){
 /* ── Defaults & reset ── */
 var DEFAULTS = {
   gn: {gN:100, gA:20, gB:50, gW:115, gShowFlux:true, gShowEmf:true},
-  lz: {lM:100, lR:10, lX:-180, lFlip:false, lFieldLines:true},
+  lz: {lI:30, lF:10, lN:1000, lRsol:50, lR:10, lShowField:true},
   pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30, pT3:30},
   lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
   wl: {wI:100, wF:10, wD:20, wW:100, wL:200, wR:10, wShowLines:true, wShowInduced:true},
@@ -2407,7 +2403,7 @@ window.resetModule = function(mod){
     gen.theta = 0; gen.tElapsed = 0;
     uG();
   } else if(mod==='lz'){
-    lenz.x = d.lX; lenz.vx = 90; lenz.prevPhi = 0; lenz.emf = 0; lenz.iInd = 0;
+    lenz.t = 0; lenz.history = [];
     uL();
   } else if(mod==='pw'){
     pw.t = 0; pw.history = [];
