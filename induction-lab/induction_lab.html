@@ -180,19 +180,14 @@ body {
           <span class="sv" id="pBpk-v">0.60 T</span>
         </div>
         <div class="slider-row">
-          <span class="sl">Phase 1 dur</span>
+          <span class="sl">Ramp dur</span>
           <input type="range" min="5" max="100" value="20" step="1" id="pT1" oninput="uPW()" />
           <span class="sv" id="pT1-v">0.20 s</span>
         </div>
         <div class="slider-row">
-          <span class="sl">Phase 2 dur</span>
+          <span class="sl">Hold dur</span>
           <input type="range" min="5" max="100" value="30" step="1" id="pT2" oninput="uPW()" />
           <span class="sv" id="pT2-v">0.30 s</span>
-        </div>
-        <div class="slider-row">
-          <span class="sl">Phase 3 dur</span>
-          <input type="range" min="5" max="100" value="30" step="1" id="pT3" oninput="uPW()" />
-          <span class="sv" id="pT3-v">0.30 s</span>
         </div>
         <div class="btn-row">
           <button class="act-btn on" id="p-play" onclick="togglePlay('pw')">PLAYING</button>
@@ -572,9 +567,7 @@ var gen = {
 };
 
 var lenz = {
-  t: 0,
-  history: [],
-  histMax: 600
+  t: 0
 };
 
 var pw = {
@@ -1002,11 +995,7 @@ function drawLenz(){
   var emfPeak = phiPeak * omega;
   var IloopPeak = emfPeak / R;
 
-  // History (for scope)
-  if(play.lz){
-    lenz.history.push({t: lenz.t, I_s: I_s, phi: phi, emf: emf, I_loop: I_loop});
-    if(lenz.history.length > lenz.histMax) lenz.history.shift();
-  }
+  // (Scope traces are plotted analytically from sin(ωt)/cos(ωt) — no history needed.)
 
   /* ── TOP: vertical solenoid with horizontal loop encircling it ── */
   var solX = W/2;
@@ -1149,42 +1138,53 @@ function drawLenz(){
   ctx.fillStyle=TX;
   ctx.fillText('I₀='+I0.toFixed(1)+' A · f='+f.toFixed(1)+' Hz · n='+n+'/m', sx+sw, sy - 6);
 
-  // Plot traces
-  if(lenz.history.length > 1 && f > 0){
+  // Plot traces — analytical, always fills the scope width.
+  // I_s(t) = I₀ sin(ωt);   I_loop(t) = -I_loop_peak cos(ωt)   (90° lag)
+  if(f > 0){
     var period = 2*Math.PI/omega;
-    var winSec = Math.max(0.1, 4*period);
+    var winSec = 4*period;
     var tEnd = lenz.t;
     var tStart = tEnd - winSec;
-    var pts = lenz.history.filter(function(p){return p.t >= tStart;});
-    function tToX(t){ return sx + (t-tStart)/winSec*sw; }
+    var nSamples = 240;
     var IsScale = (sh*0.42) / Math.max(0.01, I0);
     var ILScale = (sh*0.42) / Math.max(1e-12, IloopPeak);
 
+    function tToXl(t){ return sx + (t-tStart)/winSec*sw; }
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
+
     ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6; ctx.beginPath();
-    for(var k=0;k<pts.length;k++){
-      var X = tToX(pts[k].t);
-      var Y = sMidY - pts[k].I_s*IsScale;
-      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    for(var ks=0; ks<nSamples; ks++){
+      var ts = tStart + (ks/(nSamples-1))*winSec;
+      var Xs = tToXl(ts);
+      var Ys = sMidY - (I0*Math.sin(omega*ts))*IsScale;
+      if(ks===0) ctx.moveTo(Xs,Ys); else ctx.lineTo(Xs,Ys);
     }
     ctx.stroke();
     ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
 
     ctx.strokeStyle = AMBER; ctx.lineWidth = 1.8; ctx.beginPath();
-    for(var k=0;k<pts.length;k++){
-      var X = tToX(pts[k].t);
-      var Y = sMidY - pts[k].I_loop*ILScale;
-      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    for(var kl=0; kl<nSamples; kl++){
+      var tl = tStart + (kl/(nSamples-1))*winSec;
+      var Xl = tToXl(tl);
+      var Yl = sMidY - (-IloopPeak*Math.cos(omega*tl))*ILScale;
+      if(kl===0) ctx.moveTo(Xl,Yl); else ctx.lineTo(Xl,Yl);
     }
     ctx.stroke();
     ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
 
-    // Now line and live dots
-    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(sx+sw, sy); ctx.lineTo(sx+sw, sy+sh); ctx.stroke();
+    // Live dots at "now"
     ctx.fillStyle=CYAN;
     ctx.beginPath(); ctx.arc(sx+sw, sMidY-I_s*IsScale, 3, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle=AMBER;
     ctx.beginPath(); ctx.arc(sx+sw, sMidY-I_loop*ILScale, 3, 0, 2*Math.PI); ctx.fill();
+
+    ctx.restore();
+
+    // "Now" cursor (drawn outside clip)
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+sw, sy); ctx.lineTo(sx+sw, sy+sh); ctx.stroke();
   }
 
   /* ── Cards ── */
@@ -1216,27 +1216,29 @@ function uPW(){
   var rPx = parseInt(document.getElementById('pR').value);  // 20..200 → 0.020..0.200 m
   var R = parseInt(document.getElementById('pRes').value)/10;
   var Bpk = parseInt(document.getElementById('pBpk').value)/100;
-  var T1 = parseInt(document.getElementById('pT1').value)/100;
-  var T2 = parseInt(document.getElementById('pT2').value)/100;
-  var T3 = parseInt(document.getElementById('pT3').value)/100;
+  var Tramp = parseInt(document.getElementById('pT1').value)/100;
+  var Thold = parseInt(document.getElementById('pT2').value)/100;
   document.getElementById('pN-v').textContent = N;
   document.getElementById('pR-v').textContent = (rPx/1000).toFixed(3)+' m';
   document.getElementById('pRes-v').textContent = R.toFixed(2)+' Ω';
   document.getElementById('pBpk-v').textContent = Bpk.toFixed(2)+' T';
-  document.getElementById('pT1-v').textContent = T1.toFixed(2)+' s';
-  document.getElementById('pT2-v').textContent = T2.toFixed(2)+' s';
-  document.getElementById('pT3-v').textContent = T3.toFixed(2)+' s';
+  document.getElementById('pT1-v').textContent = Tramp.toFixed(2)+' s';
+  document.getElementById('pT2-v').textContent = Thold.toFixed(2)+' s';
   drawPiecewiseB();
 }
 window.uPW = uPW;
 
-// Returns {B, dBdt, phase}
-function pwSchedule(t, T1, T2, T3, Bpk){
-  var Ttot = T1 + T2 + T3;
+// Symmetric three-phase schedule:
+//   Phase 1 (RAMP UP):   0 → T_ramp, B linearly 0 → B_pk
+//   Phase 2 (HOLD):      T_ramp → T_ramp+T_hold, B = B_pk constant
+//   Phase 3 (RAMP DOWN): T_ramp+T_hold → 2T_ramp+T_hold, B linearly B_pk → 0
+// Both ramps share the same duration so |ε₁| = |ε₃| (single slider for clarity).
+function pwSchedule(t, T_ramp, T_hold, Bpk){
+  var Ttot = 2*T_ramp + T_hold;
   var tWrap = ((t % (Ttot + 0.3)) + (Ttot + 0.3)) % (Ttot + 0.3);
-  if(tWrap < T1)            return {B: Bpk*(tWrap/T1),               dBdt:  Bpk/T1,  phase:1};
-  if(tWrap < T1+T2)         return {B: Bpk,                          dBdt:  0,        phase:2};
-  if(tWrap < T1+T2+T3)      return {B: Bpk*(1 - (tWrap-T1-T2)/T3),   dBdt: -Bpk/T3,   phase:3};
+  if(tWrap < T_ramp)                 return {B: Bpk*(tWrap/T_ramp),                      dBdt:  Bpk/T_ramp, phase:1};
+  if(tWrap < T_ramp + T_hold)        return {B: Bpk,                                     dBdt:  0,           phase:2};
+  if(tWrap < 2*T_ramp + T_hold)      return {B: Bpk*(1 - (tWrap-T_ramp-T_hold)/T_ramp),   dBdt: -Bpk/T_ramp,  phase:3};
   return {B: 0, dBdt: 0, phase:0};
 }
 
@@ -1254,17 +1256,16 @@ function drawPiecewiseB(){
   var A = Math.PI * rM * rM;                       // m²
   var R = parseInt(document.getElementById('pRes').value)/10;
   var Bpk = parseInt(document.getElementById('pBpk').value)/100;
-  var T1 = parseInt(document.getElementById('pT1').value)/100;
-  var T2 = parseInt(document.getElementById('pT2').value)/100;
-  var T3 = parseInt(document.getElementById('pT3').value)/100;
+  var Tramp = parseInt(document.getElementById('pT1').value)/100;
+  var Thold = parseInt(document.getElementById('pT2').value)/100;
 
-  var sched = pwSchedule(pw.t, T1, T2, T3, Bpk);
+  var sched = pwSchedule(pw.t, Tramp, Thold, Bpk);
   var Bnow = sched.B, dBdt = sched.dBdt, phase = sched.phase;
   var emf = -N * A * dBdt;
   var I_now = emf / R;
 
   // Track history within one period
-  var Ttot = T1 + T2 + T3 + 0.3;
+  var Ttot = 2*Tramp + Thold + 0.3;
   var tWrap = ((pw.t % Ttot) + Ttot) % Ttot;
   // Reset history when we wrap
   if(pw.history.length > 0 && tWrap < pw.history[pw.history.length-1].t) pw.history = [];
@@ -1371,52 +1372,52 @@ function drawPiecewiseB(){
   ctx.moveTo(sx, sEmid); ctx.lineTo(sx+sw, sEmid); ctx.stroke();
   ctx.setLineDash([]);
 
-  // X-axis: 0 to Ttot. Use full schedule range.
-  var Tdisplay = T1+T2+T3;
+  // X-axis: 0 to full cycle (2*T_ramp + T_hold).
+  var Tdisplay = 2*Tramp + Thold;
   function tToX(t){ return sx + (t/Tdisplay)*(sw-30) + 15; }
 
   // Phase boundary lines
   ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
   for(var pb=0; pb<3; pb++){
-    var pbx = tToX([T1, T1+T2, T1+T2+T3][pb]);
+    var pbx = tToX([Tramp, Tramp+Thold, 2*Tramp+Thold][pb]);
     ctx.beginPath(); ctx.moveTo(pbx, sBy); ctx.lineTo(pbx, sEy+sEh); ctx.stroke();
   }
   ctx.setLineDash([]);
 
   // Phase labels along bottom
   ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='center';
-  ctx.fillText('I', tToX(T1/2), sEy+sEh+12);
-  ctx.fillText('II', tToX(T1+T2/2), sEy+sEh+12);
-  ctx.fillText('III', tToX(T1+T2+T3/2), sEy+sEh+12);
+  ctx.fillText('I',   tToX(Tramp/2),                   sEy+sEh+12);
+  ctx.fillText('II',  tToX(Tramp + Thold/2),           sEy+sEh+12);
+  ctx.fillText('III', tToX(Tramp + Thold + Tramp/2),   sEy+sEh+12);
 
   // Compute scales
   var BmaxScale = Math.max(0.01, Bpk*1.15);
-  var EmaxAbs = Math.max(0.001, N*A*Math.max(Bpk/Math.max(0.01,T1), Bpk/Math.max(0.01,T3)));
+  var EmaxAbs = Math.max(0.001, N*A*Bpk/Math.max(0.01, Tramp));
   var EmaxScale = EmaxAbs*1.2;
   function BtoY(B){ return sBy + sBh - 6 - (B/BmaxScale)*(sBh-12); }
   function EtoY(E){ return sEmid - (E/EmaxScale)*(sEh*0.42); }
 
-  // Draw analytic schedule (cyan B-curve)
+  // Draw analytic schedule (cyan B-curve): trapezoid — ramp up, hold, ramp down.
   ctx.strokeStyle=CYAN; ctx.lineWidth=1.6;
   ctx.beginPath();
-  ctx.moveTo(tToX(0), BtoY(0));
-  ctx.lineTo(tToX(T1), BtoY(Bpk));
-  ctx.lineTo(tToX(T1+T2), BtoY(Bpk));
-  ctx.lineTo(tToX(T1+T2+T3), BtoY(0));
+  ctx.moveTo(tToX(0),                        BtoY(0));
+  ctx.lineTo(tToX(Tramp),                    BtoY(Bpk));
+  ctx.lineTo(tToX(Tramp+Thold),              BtoY(Bpk));
+  ctx.lineTo(tToX(2*Tramp+Thold),            BtoY(0));
   ctx.stroke();
   ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
 
-  // Draw analytic ε(t) (amber piecewise)
-  var E1 = -N*A*(Bpk/T1);
-  var E3 = -N*A*(-Bpk/T3);
+  // Draw analytic ε(t) (amber piecewise) — symmetric square wave with central zero.
+  var E1 = -N*A*(Bpk/Tramp);
+  var E3 = +N*A*(Bpk/Tramp);
   ctx.strokeStyle=AMBER; ctx.lineWidth=1.8;
   ctx.beginPath();
-  ctx.moveTo(tToX(0), EtoY(E1));
-  ctx.lineTo(tToX(T1), EtoY(E1));
-  ctx.lineTo(tToX(T1), EtoY(0));
-  ctx.lineTo(tToX(T1+T2), EtoY(0));
-  ctx.lineTo(tToX(T1+T2), EtoY(E3));
-  ctx.lineTo(tToX(T1+T2+T3), EtoY(E3));
+  ctx.moveTo(tToX(0),                        EtoY(E1));
+  ctx.lineTo(tToX(Tramp),                    EtoY(E1));
+  ctx.lineTo(tToX(Tramp),                    EtoY(0));
+  ctx.lineTo(tToX(Tramp+Thold),              EtoY(0));
+  ctx.lineTo(tToX(Tramp+Thold),              EtoY(E3));
+  ctx.lineTo(tToX(2*Tramp+Thold),            EtoY(E3));
   ctx.stroke();
   ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
 
@@ -1443,7 +1444,7 @@ function drawPiecewiseB(){
   h += cd('dB/dt', dBdt.toFixed(2)+' T/s', AMBER_DIM);
   h += cd('ε(t)', emf.toFixed(2)+' V', AMBER);
   h += cd('I(t)', I_now.toFixed(3)+' A', iColor);
-  h += cd('|ε₁| · |ε₃|', Math.abs(E1).toFixed(2)+' · '+Math.abs(E3).toFixed(2)+' V', TXH);
+  h += cd('|ε| ramp', Math.abs(E1).toFixed(2)+' V', TXH);
   document.getElementById('p-cards').innerHTML = h;
 }
 
@@ -2589,7 +2590,7 @@ window.stepBack = function(mod){
     gen.theta = 0; gen.tElapsed = 0;
     drawGenerator();
   } else if(mod==='lz'){
-    lenz.t = 0; lenz.history = [];
+    lenz.t = 0;
     drawLenz();
   } else if(mod==='pw'){
     pw.t = 0; pw.history = [];
@@ -2632,7 +2633,7 @@ window.sw = function(t){
 var DEFAULTS = {
   gn: {gN:100, gA:20, gB:50, gW:115, gShowFlux:true, gShowEmf:true},
   lz: {lI:30, lF:10, lN:1000, lRsol:50, lR:10, lShowField:true},
-  pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30, pT3:30},
+  pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30},
   lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
   wl: {wI:100, wF:10, wD:20, wW:100, wL:200, wR:10, wShowLines:true, wShowInduced:true},
   sr: {srL:40, srB:80, srR:20, srV:50, srM:10}
@@ -2648,7 +2649,7 @@ window.resetModule = function(mod){
     gen.theta = 0; gen.tElapsed = 0;
     uG();
   } else if(mod==='lz'){
-    lenz.t = 0; lenz.history = [];
+    lenz.t = 0;
     uL();
   } else if(mod==='pw'){
     pw.t = 0; pw.history = [];
