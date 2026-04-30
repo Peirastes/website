@@ -672,7 +672,8 @@ function tick(now){
       }
       sr.t += dt;
       sr.history.push({t: sr.t, v: sr.v});
-      if(sr.history.length > 600) sr.history.shift();
+      // Keep enough history to span ~60 s of decay at 60 fps without truncation
+      if(sr.history.length > 3600) sr.history.shift();
     }
     drawSlidingRod();
   }
@@ -2257,10 +2258,20 @@ function drawSlidingRod(){
 
   // Plot trace
   if(sr.history.length > 1){
-    var winSec = 6;  // last 6 s
-    var tEnd = sr.t;
-    var tStart = tEnd - winSec;
-    var pts = sr.history.filter(function(p){return p.t >= tStart;});
+    var tauFinite = isFinite(tau) ? tau : 10;
+    var tStart, tEnd, winSec;
+    if(sr.forceOn){
+      // DRIVE ON: rolling 6 s window (steady-state needs no history)
+      winSec = 6;
+      tEnd = sr.t;
+      tStart = tEnd - winSec;
+    } else {
+      // DRIVE OFF: anchor at t=0; stretch x-axis to keep the full decay visible
+      tStart = 0;
+      tEnd = Math.max(8, 6*tauFinite, sr.t);
+      winSec = tEnd;
+    }
+    var pts = sr.history.filter(function(p){return p.t >= tStart && p.t <= tEnd;});
     function tToX(t){ return sx + (t-tStart)/winSec*sw; }
     ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6;
     ctx.beginPath();
@@ -2271,9 +2282,26 @@ function drawSlidingRod(){
     }
     ctx.stroke();
     ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
-    // Live dot
+    // Live dot at the cursor (right edge for DRIVE ON, current sim time for DRIVE OFF)
+    var liveX = sr.forceOn ? sx+sw : tToX(Math.min(sr.t, tEnd));
     ctx.fillStyle = CYAN;
-    ctx.beginPath(); ctx.arc(sx+sw, vToY(sr.v), 3, 0, 2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(liveX, vToY(sr.v), 3, 0, 2*Math.PI); ctx.fill();
+
+    // x-axis time labels (left, mid, right)
+    ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace';
+    ctx.textAlign='left';
+    ctx.fillText('t = '+tStart.toFixed(1)+' s', sx+2, sy+sh-2);
+    ctx.textAlign='right';
+    ctx.fillText('t = '+tEnd.toFixed(1)+' s', sx+sw-2, sy+sh-2);
+    // τ marker (decay mode only) — vertical dashed line at t=τ
+    if(!sr.forceOn && isFinite(tau) && tau > 0 && tau <= tEnd){
+      var tauX = tToX(tau);
+      ctx.strokeStyle='rgba(240,160,48,0.4)'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(tauX, sy+12); ctx.lineTo(tauX, sBaseY); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle=AMBER_DIM; ctx.textAlign='center';
+      ctx.fillText('τ', tauX, sy+10);
+    }
   }
 
   // v scale labels
