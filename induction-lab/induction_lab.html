@@ -1807,152 +1807,261 @@ function drawWireLoop(){
     if(wl.history.length > wl.histMax) wl.history.shift();
   }
 
-  /* ── TOP: visualization (y = 0 to ~240) ── */
-  var topH = 240;
-  var wireX = 110;
-  var wireY0 = 30, wireY1 = topH - 20;
-  var wireH = wireY1 - wireY0;
-
-  // Use display scale: 1 m → 1000 px (so d=0.020 m → 20 px). Cap loop dimensions to fit.
-  var d_px = parseInt(document.getElementById('wD').value);     // 5..100 px
-  var w_px = parseInt(document.getElementById('wW').value);     // 30..200 px
-  var L_px = parseInt(document.getElementById('wL').value);     // 50..300 px → cap to fit topH
-  var L_disp = Math.min(L_px, topH - 60);                       // visual length in canvas
-  var loopX0 = wireX + d_px;
-  var loopX1 = loopX0 + w_px;
-  var loopY0 = (topH - L_disp)/2;
-  var loopY1 = loopY0 + L_disp;
-
-  // ── Wire ──
-  var wireCol = (I >= 0) ? '#ff8866' : '#66aaff';
-  ctx.strokeStyle = '#888'; ctx.lineWidth = 6;
-  ctx.beginPath(); ctx.moveTo(wireX, wireY0); ctx.lineTo(wireX, wireY1); ctx.stroke();
-  ctx.strokeStyle = wireCol; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(wireX, wireY0); ctx.lineTo(wireX, wireY1); ctx.stroke();
-
-  // Current direction arrow on wire
-  var Iabs = Math.min(1, Math.abs(I)/Math.max(0.01, I0));
-  if(Iabs > 0.05){
-    var arrSpacing = 50;
-    for(var ay = wireY0 + 30; ay < wireY1 - 30; ay += arrSpacing){
-      var dy = (I >= 0) ? -14 : 14;  // +I = up, -I = down
-      arrow(ctx, wireX, ay - dy, wireX, ay + dy, wireCol, 2, 6);
-    }
+  /* ════════════════════════════════════════════════════════════════════
+     TOP HALF — 3D OBLIQUE PROJECTION
+     ══════════════════════════════════════════════════════════════════════
+     Projection: rotate world about y (yaw θ), then about x (pitch φ),
+     orthographic project onto canvas (canvas y is down, so we negate world y).
+       sx = wx·cosθ + wz·sinθ
+       sy = -wy·cosφ - wx·sinθ·sinφ + wz·cosθ·sinφ
+     Loop sits in the world xy-plane at z=0 (parallel to wire), so it projects
+     to a parallelogram. B-field circles around the wire are circles in
+     horizontal xz-planes (constant y) and project to horizontal ellipses.
+  ──────────────────────────────────────────────────────────────────────── */
+  var theta = 18 * Math.PI/180;       // yaw
+  var phi   = 22 * Math.PI/180;       // pitch
+  var ct = Math.cos(theta), stθ = Math.sin(theta);
+  var cp = Math.cos(phi),   sp = Math.sin(phi);
+  var origX = 130, origY = 130;
+  function P(wx, wy, wz){
+    return [
+      origX + wx*ct + wz*stθ,
+      origY - wy*cp - wx*stθ*sp + wz*ct*sp
+    ];
   }
-  ctx.fillStyle = wireCol; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
-  ctx.fillText('I = '+I.toFixed(1)+' A', wireX, wireY1 + 14);
 
-  // ── B field arcs around wire ──
-  if(showLines && Iabs > 0.05){
+  // World-space slider values (canvas-px units in 3D world)
+  var d_px = parseInt(document.getElementById('wD').value);
+  var w_px = parseInt(document.getElementById('wW').value);
+  var L_px = Math.min(parseInt(document.getElementById('wL').value), 220);
+  var wireExt = Math.max(L_px/2 + 30, 130);
+
+  var Iabs = Math.min(1, Math.abs(I)/Math.max(0.01, I0));
+  var wireCol = (I >= 0) ? '#ff8866' : '#66aaff';
+
+  // Loop corners (xy-plane, z=0)
+  var loopTL_w = [d_px,        +L_px/2, 0];
+  var loopTR_w = [d_px+w_px,   +L_px/2, 0];
+  var loopBR_w = [d_px+w_px,   -L_px/2, 0];
+  var loopBL_w = [d_px,        -L_px/2, 0];
+  var TL = P(loopTL_w[0], loopTL_w[1], loopTL_w[2]);
+  var TR = P(loopTR_w[0], loopTR_w[1], loopTR_w[2]);
+  var BR = P(loopBR_w[0], loopBR_w[1], loopBR_w[2]);
+  var BL = P(loopBL_w[0], loopBL_w[1], loopBL_w[2]);
+  var loopCx = (TL[0]+BR[0])/2;
+  var loopCy = (TL[1]+BR[1])/2;
+
+  // Wire (vertical line at x=0, z=0)
+  var wireBot = P(0, -wireExt, 0);
+  var wireTop = P(0, +wireExt, 0);
+
+  // ── B-field circle parameters ──
+  // Each circle is in an xz-plane at height y_h, with radius r in world units.
+  // After projection: center at (origX, origY - y_h·cosφ), rx=r, ry=r·sinφ.
+  // FRONT half (z>0 in world) corresponds to canvas-ellipse angles β ∈ (-θ, π-θ)
+  //   (sweeps through the BOTTOM of the ellipse).
+  // BACK half (z<0 in world) corresponds to β ∈ (π-θ, 2π-θ) (TOP of ellipse).
+  function fieldCircles(){
+    if(!showLines || Iabs <= 0.05) return [];
+    // Three heights along the wire, two radii each (inner = inside loop's near edge,
+    // outer = at loop's far edge) — visually shows "field threading through loop"
+    var hs = [-L_px*0.32, 0, +L_px*0.32];
+    var rs = [d_px,                    // touches loop's inner edge
+              d_px + w_px*0.5,         // middle of loop
+              d_px + w_px];            // loop's outer edge
+    var out = [];
+    for(var hi=0; hi<hs.length; hi++){
+      for(var ri=0; ri<rs.length; ri++){
+        out.push({y: hs[hi], r: rs[ri], alpha: 0.18 + 0.10*(2-ri)});
+      }
+    }
+    return out;
+  }
+  var circles = fieldCircles();
+
+  /* ── (1) Draw BACK arcs of B-field ellipses (behind the wire and the loop) ── */
+  if(circles.length){
     ctx.save();
-    var lineCount = 4;
-    for(var li=1; li<=lineCount; li++){
-      var rPx = li * 28;
-      ctx.strokeStyle = 'rgba(64,232,208,'+ (0.32 - li*0.05) +')';
+    for(var ci=0; ci<circles.length; ci++){
+      var c = circles[ci];
+      var cx_e = origX, cy_e = origY - c.y*cp;
+      var rx_e = c.r, ry_e = c.r*sp;
+      ctx.strokeStyle = 'rgba(64,232,208,'+ (c.alpha*Iabs) +')';
       ctx.lineWidth = 1;
-      // Draw circular arc on right side of wire (where the loop is)
-      // I > 0 (up): B circulates CCW viewed from above = into page on the right side
       ctx.beginPath();
-      ctx.arc(wireX, (wireY0+wireY1)/2, rPx, -Math.PI/3, Math.PI/3, false);
+      ctx.ellipse(cx_e, cy_e, rx_e, ry_e, 0, Math.PI - theta, 2*Math.PI - theta, false);
       ctx.stroke();
-      // Direction arrowhead at top of arc
-      var ang = -Math.PI/3;
-      var ex = wireX + rPx*Math.cos(ang);
-      var ey = (wireY0+wireY1)/2 + rPx*Math.sin(ang);
-      // Tangent: I>0 means B circulates CCW from above (in 3D) = into page on right.
-      // For a 2D side-view, we just indicate direction with ⊗ or ⊙ markers next.
-      ctx.fillStyle = 'rgba(64,232,208,'+ (0.32 - li*0.05) +')';
-      ctx.beginPath();
-      ctx.arc(ex, ey, 1.5, 0, 2*Math.PI); ctx.fill();
     }
     ctx.restore();
   }
 
-  // ── Loop ──
-  ctx.strokeStyle = AMBER; ctx.lineWidth = 3;
-  ctx.strokeRect(loopX0, loopY0, w_px, L_disp);
-  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
-  ctx.strokeRect(loopX0+1, loopY0+1, w_px-2, L_disp-2);
+  /* ── (2) Wire (drawn over back arcs) ── */
+  ctx.strokeStyle = '#666'; ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(wireBot[0], wireBot[1]); ctx.lineTo(wireTop[0], wireTop[1]); ctx.stroke();
+  ctx.strokeStyle = wireCol; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(wireBot[0], wireBot[1]); ctx.lineTo(wireTop[0], wireTop[1]); ctx.stroke();
+  // Current direction chevrons along wire
+  if(Iabs > 0.05){
+    var dy = (I >= 0) ? -12 : 12;
+    var ax = (wireBot[0]+wireTop[0])/2;
+    var nMarks = 5;
+    for(var mi=0; mi<nMarks; mi++){
+      var t = (mi+0.5)/nMarks;
+      var ay = wireBot[1] + t*(wireTop[1] - wireBot[1]);
+      arrow(ctx, ax, ay - dy/2, ax, ay + dy/2, wireCol, 2, 6);
+    }
+  }
 
-  // ── B inside loop: ⊗/⊙ symbols with density gradient (denser near wire) ──
+  /* ── (3) Loop parallelogram (z=0 plane; depth-wise sits between front and back arcs) ── */
+  ctx.strokeStyle = AMBER;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(TL[0], TL[1]);
+  ctx.lineTo(TR[0], TR[1]);
+  ctx.lineTo(BR[0], BR[1]);
+  ctx.lineTo(BL[0], BL[1]);
+  ctx.closePath();
+  ctx.stroke();
+  // Subtle inner outline for depth
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(TL[0]+1, TL[1]+1);
+  ctx.lineTo(TR[0]-1, TR[1]+1);
+  ctx.lineTo(BR[0]-1, BR[1]-1);
+  ctx.lineTo(BL[0]+1, BL[1]-1);
+  ctx.closePath();
+  ctx.stroke();
+
+  /* ── (3b) ⊗/⊙ density inside loop (1/r falloff, in projected loop area) ── */
   if(Iabs > 0.05){
     var sym = (I >= 0) ? '⊗' : '⊙';
-    ctx.font = '14px "Share Tech Mono",monospace'; ctx.textAlign = 'center'; ctx.textBaseline='middle';
-    var gridX = Math.max(3, Math.floor(w_px / 30));
-    var gridY = Math.max(2, Math.floor(L_disp / 30));
-    for(var gx = 0; gx < gridX; gx++){
-      for(var gy = 0; gy < gridY; gy++){
-        var fx = loopX0 + (gx + 0.5) * (w_px/gridX);
-        var fy = loopY0 + (gy + 0.5) * (L_disp/gridY);
-        // Density scaling: r from wire (in px), use 1/r-style intensity
-        var rFromWire = (fx - wireX);
-        var intensity = Iabs * Math.min(1, 25/Math.max(8, rFromWire));
+    ctx.font = '13px "Share Tech Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    var nx = Math.max(3, Math.floor(w_px / 32));
+    var ny = Math.max(2, Math.floor(L_px / 35));
+    for(var ix=0; ix<nx; ix++){
+      for(var iy=0; iy<ny; iy++){
+        var wx_pt = d_px + (ix + 0.5) * (w_px/nx);
+        var wy_pt = -L_px/2 + (iy + 0.5) * (L_px/ny);
+        var pp = P(wx_pt, wy_pt, 0);
+        var intensity = Iabs * Math.min(1, 22/Math.max(8, wx_pt));
         ctx.fillStyle = 'rgba(64,232,208,'+ (0.18 + intensity*0.55) +')';
-        ctx.fillText(sym, fx, fy);
+        ctx.fillText(sym, pp[0], pp[1]);
       }
     }
     ctx.textBaseline='alphabetic';
   }
 
-  // ── Induced current direction (CW/CCW arc inside loop) ──
+  /* ── (4) Induced current arrow (CW/CCW) projected into the loop's parallelogram ── */
   if(Math.abs(Iind) > 0.001){
-    // Convention: Φ defined positive in direction of B from wire (n̂ into page).
-    // Under this n̂, RHR makes "positive ε circulation" = CW viewed from front.
-    // Lenz check: when wire I is increasing positively, dΦ/dt > 0, ε < 0 → induced current CCW.
+    // Same sign convention as before: I_ind < 0 ⇒ CCW in front view (loop normal +ẑ).
     var iIndCCW = (Iind < 0);
+    // Sample circular arc in the loop's local plane (xy at z=0), then project
+    // onto canvas to get a CW/CCW arc in 3D-projected space.
+    var cxL_w = d_px + w_px/2;
+    var cyL_w = 0;
+    var aR_w = Math.min(w_px, L_px)*0.28;
+    var span = 2*Math.PI*0.82;
+    var startA = 0;
+    var endA = iIndCCW ? -span : +span;
+    var nSeg = 40;
     ctx.save();
     ctx.strokeStyle = GREEN; ctx.lineWidth = 2;
-    var cx = (loopX0+loopX1)/2;
-    var cy = (loopY0+loopY1)/2;
-    var aR = Math.min(w_px, L_disp)*0.30;
-    var span = 2*Math.PI*0.82;
-    var endA = iIndCCW ? -span : span;
     ctx.beginPath();
-    ctx.arc(cx, cy, aR, 0, endA, iIndCCW);
+    for(var si=0; si<=nSeg; si++){
+      var aa = startA + (endA - startA)*si/nSeg;
+      // Loop-plane coords: x' = cosα radial, y' = sinα along wire-axis direction
+      var wxP = cxL_w + aR_w*Math.cos(aa);
+      var wyP = cyL_w + aR_w*Math.sin(aa);
+      var sp_ = P(wxP, wyP, 0);
+      if(si===0) ctx.moveTo(sp_[0], sp_[1]); else ctx.lineTo(sp_[0], sp_[1]);
+    }
     ctx.stroke();
-    // Arrowhead
-    var ex = cx + aR*Math.cos(endA);
-    var ey = cy + aR*Math.sin(endA);
-    var tx = iIndCCW ? Math.sin(endA) : -Math.sin(endA);
-    var ty = iIndCCW ? -Math.cos(endA) : Math.cos(endA);
-    var ang2 = Math.atan2(ty, tx);
+    // Arrowhead at end of arc
+    var aaEnd = endA;
+    var aaPrev = endA - (endA - startA)/nSeg;
+    var endP   = P(cxL_w + aR_w*Math.cos(aaEnd),  cyL_w + aR_w*Math.sin(aaEnd),  0);
+    var prevP  = P(cxL_w + aR_w*Math.cos(aaPrev), cyL_w + aR_w*Math.sin(aaPrev), 0);
+    var ang2 = Math.atan2(endP[1]-prevP[1], endP[0]-prevP[0]);
     var ah = 7;
     ctx.fillStyle = GREEN;
     ctx.beginPath();
-    ctx.moveTo(ex, ey);
-    ctx.lineTo(ex - ah*Math.cos(ang2-0.45), ey - ah*Math.sin(ang2-0.45));
-    ctx.lineTo(ex - ah*Math.cos(ang2+0.45), ey - ah*Math.sin(ang2+0.45));
+    ctx.moveTo(endP[0], endP[1]);
+    ctx.lineTo(endP[0] - ah*Math.cos(ang2-0.45), endP[1] - ah*Math.sin(ang2-0.45));
+    ctx.lineTo(endP[0] - ah*Math.cos(ang2+0.45), endP[1] - ah*Math.sin(ang2+0.45));
     ctx.closePath(); ctx.fill();
     ctx.fillStyle = GREEN; ctx.font='bold 11px "Orbitron",monospace'; ctx.textAlign='center';
-    ctx.fillText(iIndCCW?'CCW':'CW', cx, loopY1 + 14);
+    ctx.fillText(iIndCCW?'CCW':'CW', loopCx, BR[1] + 16);
     ctx.restore();
   }
 
-  // ── Induced B arrow inside loop (Lenz: opposes ΔΦ) ──
+  /* ── (5) Induced B (Lenz) marker inside loop ── */
   if(showIndB && Math.abs(emf) > 1e-7){
-    // emf > 0 means dΦ/dt < 0, induced B supports Φ (which is in -z direction, i.e., into page)
-    // emf < 0 means dΦ/dt > 0, induced B opposes Φ (i.e., points +z = ⊙ out of page)
-    // For the visualization, draw a small ⊗ or ⊙ marker (opposite sense from primary B inside loop)
+    // emf > 0 ⇒ dΦ/dt < 0 ⇒ induced B supports the (decreasing) primary flux into page = ⊗.
+    // emf < 0 ⇒ dΦ/dt > 0 ⇒ induced B opposes = ⊙.
     var indSym = (emf > 0) ? '⊗' : '⊙';
+    var indPos = P(d_px + w_px*0.78, +L_px*0.30, 0);
     ctx.font='bold 18px "Share Tech Mono",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle = 'rgba(255,200,100,0.9)';
-    var ibx = loopX0 + w_px*0.78;  // place toward far edge to distinguish from primary
-    var iby = loopY0 + L_disp*0.18;
-    ctx.fillText(indSym, ibx, iby);
-    ctx.fillStyle = 'rgba(255,200,100,0.7)';
+    ctx.fillStyle = 'rgba(255,200,100,0.95)';
+    ctx.fillText(indSym, indPos[0], indPos[1]);
+    ctx.fillStyle = 'rgba(255,200,100,0.75)';
     ctx.font='9px "Share Tech Mono",monospace';
-    ctx.fillText('B_ind', ibx, iby + 14);
+    ctx.fillText('B_ind', indPos[0], indPos[1] + 14);
     ctx.textBaseline='alphabetic';
   }
 
-  // Wire/loop labels
+  /* ── (6) FRONT arcs of B-field ellipses (in front of wire and loop) ── */
+  if(circles.length){
+    ctx.save();
+    for(var ci2=0; ci2<circles.length; ci2++){
+      var c2 = circles[ci2];
+      var cx2 = origX, cy2 = origY - c2.y*cp;
+      var rx2 = c2.r,  ry2 = c2.r*sp;
+      ctx.strokeStyle = 'rgba(64,232,208,'+ (c2.alpha*Iabs*1.3) +')';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(cx2, cy2, rx2, ry2, 0, -theta, Math.PI - theta, false);
+      ctx.stroke();
+      // Arrowhead at the front-most point of the front arc (canvas bottom of ellipse, β = π/2)
+      var ahx = cx2 + rx2*Math.cos(Math.PI/2);
+      var ahy = cy2 + ry2*Math.sin(Math.PI/2);
+      // Tangent direction at β = π/2 going forward (β increasing): (-rx·sin β, ry·cos β) = (-rx, 0)
+      // For I>0 (current up the wire), B circulates CCW from above (RHR thumb up → fingers CCW
+      // in xz-plane); on the +x side of the wire, B points in -z direction. In our parametrization
+      // increasing β corresponds to going around the ellipse CW in canvas (since rotation around
+      // y by θ shifts but doesn't flip handedness). Sign of arrowhead therefore tracks I.
+      var aheadDir = (I >= 0) ? -1 : +1;
+      var arrowAng = aheadDir > 0 ? 0 : Math.PI;
+      var ahLen = 6;
+      ctx.fillStyle = 'rgba(64,232,208,'+ (c2.alpha*Iabs*1.3) +')';
+      ctx.beginPath();
+      ctx.moveTo(ahx, ahy);
+      ctx.lineTo(ahx - aheadDir*ahLen, ahy - 2.5);
+      ctx.lineTo(ahx - aheadDir*ahLen, ahy + 2.5);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* ── (7) Labels ── */
   ctx.fillStyle = TX; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
-  ctx.fillText('long straight wire', wireX + 8, wireY0 - 4);
-  ctx.textAlign='center';
-  ctx.fillText('d = '+d.toFixed(3)+' m', (wireX + loopX0)/2, loopY0 - 6);
-  ctx.fillText('w = '+w.toFixed(3)+' m', (loopX0 + loopX1)/2, loopY0 - 6);
+  ctx.fillText('long straight wire', wireTop[0] + 8, wireTop[1] - 4);
+  ctx.fillStyle = wireCol; ctx.textAlign='center';
+  ctx.fillText('I = '+I.toFixed(2)+' A', wireBot[0], wireBot[1] + 14);
+  ctx.fillStyle = TX;
+  // Span labels for d, w, L using projected midpoints
+  var topMid_d = P(d_px/2, +L_px/2 + 12, 0);
+  ctx.fillText('d = '+d.toFixed(3)+' m', topMid_d[0], topMid_d[1]);
+  var topMid_w = P(d_px + w_px/2, +L_px/2 + 12, 0);
+  ctx.fillText('w = '+w.toFixed(3)+' m', topMid_w[0], topMid_w[1]);
   ctx.textAlign='right';
-  ctx.fillText('L = '+L.toFixed(3)+' m', loopX1 - 4, loopY1 + 14);
+  var rightL = P(d_px + w_px, -L_px/2 - 4, 0);
+  ctx.fillText('L = '+L.toFixed(3)+' m', rightL[0], rightL[1] + 14);
+
+  // Title strip
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('OBLIQUE 3D · yaw '+(theta*180/Math.PI).toFixed(0)+'° · pitch '+(phi*180/Math.PI).toFixed(0)+'°', 16, 18);
+  ctx.textAlign='right';
+  ctx.fillText('R_loop = '+R.toFixed(2)+' Ω', W-16, 18);
 
   /* ── BOTTOM: scope showing I(t) cyan and I_ind(t) amber (90° apart) ── */
   var sx = 30, sy = 260, sWidth = W - 60, sHeight = 150;
