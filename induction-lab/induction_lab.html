@@ -145,8 +145,9 @@ body {
       </div>
     </div>
     <div class="panel-section">
-      <div class="section-label">Lecture 2 — Generator</div>
+      <div class="section-label">Lecture 2 — Motional EMF &amp; Generator</div>
       <div class="module-tab-row" role="tablist">
+        <button class="tab" id="t-sr" onclick="sw('sr')">Sliding Rod</button>
         <button class="tab" id="t-gn" onclick="sw('gn')">AC Generator</button>
       </div>
     </div>
@@ -198,6 +199,46 @@ body {
           <button class="act-btn" id="p-step" onclick="stepBack('pw')">RESET</button>
         </div>
         <button class="reset-btn" onclick="resetModule('pw')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- Sliding Rod controls (Block 5/6 — motional EMF) -->
+    <div id="ctrl-sr" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Geometry &amp; Field</div>
+        <div class="slider-row">
+          <span class="sl">Rail sep L</span>
+          <input type="range" min="5" max="100" value="40" step="1" id="srL" oninput="uSR()" />
+          <span class="sv" id="srL-v">0.40 m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Field B</span>
+          <input type="range" min="5" max="200" value="80" step="1" id="srB" oninput="uSR()" />
+          <span class="sv" id="srB-v">0.80 T</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Resistance</span>
+          <input type="range" min="1" max="100" value="20" step="1" id="srR" oninput="uSR()" />
+          <span class="sv" id="srR-v">2.0 Ω</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Rod &amp; Drive</div>
+        <div class="slider-row">
+          <span class="sl">Velocity v</span>
+          <input type="range" min="1" max="200" value="50" step="1" id="srV" oninput="uSR()" />
+          <span class="sv" id="srV-v">5.0 m/s</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Mass m</span>
+          <input type="range" min="5" max="200" value="10" step="1" id="srM" oninput="uSR()" />
+          <span class="sv" id="srM-v">0.10 kg</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="sr-force" onclick="srToggleForce()">FORCE ON</button>
+          <button class="act-btn" id="sr-reset" onclick="stepBack('sr')">RESET</button>
+        </div>
+        <button class="reset-btn" onclick="resetModule('sr')">Reset defaults</button>
       </div>
     </div>
 
@@ -420,6 +461,21 @@ body {
         </div>
       </div>
     </div>
+    <!-- Sliding Rod display (motional EMF) -->
+    <div class="panel" id="p-sr">
+      <div class="crt-screen">
+        <div class="crt-label">Motional EMF — Sliding Rod on Rails</div>
+        <div class="canvas-wrap"><canvas id="sc"></canvas></div>
+        <div class="cards" id="sr-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\mathcal{E} = BLv"></span>
+          <span class="eq" data-katex="I = \mathcal{E}/R"></span>
+          <span class="eq" data-katex="F_\text{brake} = BIL = B^2L^2 v / R"></span>
+          <span class="eq" data-katex="P_\text{mech} = Fv = I^2 R = P_R"></span>
+          <span class="eq" data-katex="v(t) = v_0\,e^{-t/\tau},\;\;\tau = mR/(B^2L^2)"></span>
+        </div>
+      </div>
+    </div>
     <!-- Generator display -->
     <div class="panel" id="p-gn">
       <div class="crt-screen">
@@ -501,7 +557,7 @@ function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div 
    ════════════════════════════════════════════════════════════ */
 var BASE_W = 820, BASE_H = 440;
 var currentTab = 'pw';
-var play = { gn: true, lz: true, pw: true, lf: true, wl: true };
+var play = { gn: true, lz: true, pw: true, lf: true, wl: true, sr: true };
 
 var gen = {
   theta: 0,           // rotation angle (accumulates ω·dt while playing)
@@ -530,6 +586,14 @@ var wl = {
   t: 0,               // simulated time (s)
   history: [],
   histMax: 600
+};
+
+var sr = {
+  x: 250,             // rod x position in canvas px
+  v: 5.0,             // current velocity in m/s
+  t: 0,               // simulation time
+  forceOn: true,      // pushing rod at constant v vs released to decay
+  history: []         // {t, v} for the v(t) trace
 };
 
 /* ── Animation loop ── */
@@ -580,6 +644,30 @@ function tick(now){
   } else if(currentTab==='wl'){
     if(play.wl) wl.t += dt;
     drawWireLoop();
+  } else if(currentTab==='sr'){
+    if(play.sr){
+      var L_phys = parseInt(document.getElementById('srL').value)/100;
+      var B_phys = parseInt(document.getElementById('srB').value)/100;
+      var R_phys = parseInt(document.getElementById('srR').value)/10;
+      var m_phys = parseInt(document.getElementById('srM').value)/100;
+      if(sr.forceOn){
+        sr.v = parseInt(document.getElementById('srV').value)/10;
+      } else {
+        // Free decay: dv/dt = -(B²L²/(mR))·v ⇒ v(t+dt) = v(t)·exp(-α·dt)
+        var alpha = (B_phys*B_phys*L_phys*L_phys)/(m_phys*R_phys);
+        sr.v = sr.v * Math.exp(-alpha*dt);
+      }
+      // Visual position: scale 1 m = 50 px; wrap when rod exits the right end
+      sr.x += sr.v * 50 * dt;
+      var trackXmax = BASE_W - 50;
+      var trackXmin = 200;
+      if(sr.x > trackXmax) sr.x = trackXmin;
+      if(sr.x < trackXmin) sr.x = trackXmin;
+      sr.t += dt;
+      sr.history.push({t: sr.t, v: sr.v});
+      if(sr.history.length > 600) sr.history.shift();
+    }
+    drawSlidingRod();
   }
   requestAnimationFrame(tick);
 }
@@ -1948,8 +2036,258 @@ function drawWireLoop(){
 }
 
 /* ════════════════════════════════════════════════════════════
+   MODULE 6: SLIDING ROD (Block 5/6 — motional EMF + free decay)
+   ════════════════════════════════════════════════════════════ */
+function uSR(){
+  var L = parseInt(document.getElementById('srL').value)/100;
+  var B = parseInt(document.getElementById('srB').value)/100;
+  var R = parseInt(document.getElementById('srR').value)/10;
+  var v = parseInt(document.getElementById('srV').value)/10;
+  var m = parseInt(document.getElementById('srM').value)/100;
+  document.getElementById('srL-v').textContent = L.toFixed(2)+' m';
+  document.getElementById('srB-v').textContent = B.toFixed(2)+' T';
+  document.getElementById('srR-v').textContent = R.toFixed(1)+' Ω';
+  document.getElementById('srV-v').textContent = v.toFixed(1)+' m/s';
+  document.getElementById('srM-v').textContent = m.toFixed(2)+' kg';
+  if(sr.forceOn) sr.v = v;
+  drawSlidingRod();
+}
+window.uSR = uSR;
+
+window.srToggleForce = function(){
+  sr.forceOn = !sr.forceOn;
+  var btn = document.getElementById('sr-force');
+  btn.textContent = sr.forceOn ? 'FORCE ON' : 'RELEASED';
+  btn.classList.toggle('on', sr.forceOn);
+  if(sr.forceOn){
+    sr.v = parseInt(document.getElementById('srV').value)/10;
+  }
+  // Reset history when toggling so the v(t) trace shows the new regime cleanly
+  sr.history = [];
+  sr.t = 0;
+  drawSlidingRod();
+};
+
+function drawSlidingRod(){
+  var cv = document.getElementById('sc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  var L = parseInt(document.getElementById('srL').value)/100;
+  var B = parseInt(document.getElementById('srB').value)/100;
+  var R = parseInt(document.getElementById('srR').value)/10;
+  var m = parseInt(document.getElementById('srM').value)/100;
+
+  var v = sr.v;
+  var emf = B * L * v;
+  var I = emf / R;
+  var Fbrake = B * I * L;
+  var Pmech = Fbrake * v;
+  var PR = I * I * R;
+  var tau = (B*B*L*L > 1e-6) ? (m*R)/(B*B*L*L) : Infinity;
+
+  /* ── TOP: schematic of rails + rod + B field ── */
+  var resistorX = 110;
+  var rodX = sr.x;
+  var railYtop = 110, railYbot = 230;  // visual rail separation (schematic, NOT to scale)
+  var trackXmax = W - 50;
+
+  // B field ⊗ symbols inside the loop area (between resistor and rod)
+  ctx.save();
+  ctx.fillStyle = 'rgba(64,232,208,'+ (0.20 + Math.min(0.55, B/2)) +')';
+  ctx.font = '15px "Share Tech Mono",monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for(var fx = resistorX + 30; fx < rodX - 5; fx += 36){
+    for(var fy = railYtop + 24; fy < railYbot; fy += 32){
+      ctx.fillText('⊗', fx, fy);
+    }
+  }
+  // Also show ⊗ symbols PAST the rod (the field extends beyond, but doesn't contribute to flux)
+  ctx.fillStyle = 'rgba(64,232,208,'+ (0.10 + Math.min(0.25, B/4)) +')';
+  for(var fx2 = rodX + 18; fx2 < trackXmax - 10; fx2 += 36){
+    for(var fy2 = railYtop + 24; fy2 < railYbot; fy2 += 32){
+      ctx.fillText('⊗', fx2, fy2);
+    }
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+
+  // Field label
+  ctx.fillStyle=CYAN_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('B = '+B.toFixed(2)+' T  (into page)', (resistorX + trackXmax)/2, railYtop - 10);
+
+  // Rails (top and bottom)
+  ctx.strokeStyle = '#aaa'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(resistorX, railYtop); ctx.lineTo(trackXmax, railYtop); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(resistorX, railYbot); ctx.lineTo(trackXmax, railYbot); ctx.stroke();
+
+  // Resistor (zigzag) on left side, between the two rails
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 2.5;
+  var rzN = 6, rzH = (railYbot - railYtop)/(rzN*2);
+  ctx.beginPath();
+  ctx.moveTo(resistorX, railYtop);
+  for(var rz=0; rz<rzN; rz++){
+    var py1 = railYtop + (rz*2 + 1)*rzH;
+    var py2 = railYtop + (rz*2 + 2)*rzH;
+    ctx.lineTo(resistorX + (rz%2===0 ? 12 : -12), py1);
+    if(rz < rzN-1) ctx.lineTo(resistorX, py2);
+  }
+  ctx.lineTo(resistorX, railYbot);
+  ctx.stroke();
+
+  // R label
+  ctx.fillStyle=AMBER; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='right';
+  ctx.fillText('R = '+R.toFixed(1)+' Ω', resistorX - 18, (railYtop+railYbot)/2 + 4);
+
+  // Sliding rod (thicker vertical line)
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(rodX, railYtop); ctx.lineTo(rodX, railYbot); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rodX, railYtop); ctx.lineTo(rodX, railYbot); ctx.stroke();
+
+  // Charge separation indicators on rod (+ at top, - at bottom for v>0, B into page)
+  // Magnetic force F = qv×B on positive charges in rod: v is in +x, B is in -z (into page),
+  // so qv×B = q(v x̂ × -B ẑ) = qvB ŷ (y-up). With y-up convention, + accumulates at top.
+  // (In our canvas, top is smaller y, so visually + is at top.)
+  if(Math.abs(v) > 0.05){
+    var sign = v >= 0 ? 1 : -1;
+    var topSign = sign > 0 ? '+' : '−';
+    var botSign = sign > 0 ? '−' : '+';
+    ctx.fillStyle = sign>0 ? '#ff8866' : '#66aaff';
+    ctx.font = 'bold 14px "Orbitron",monospace'; ctx.textAlign='center';
+    ctx.fillText(topSign, rodX, railYtop - 6);
+    ctx.fillStyle = sign>0 ? '#66aaff' : '#ff8866';
+    ctx.fillText(botSign, rodX, railYbot + 14);
+  }
+
+  // Velocity arrow above the rod (rightward when v>0)
+  if(Math.abs(v) > 0.02){
+    var vDir = v >= 0 ? 1 : -1;
+    var vArrowY = railYtop - 28;
+    var vAlen = Math.min(60, Math.abs(v)*8 + 18);
+    arrow(ctx, rodX, vArrowY, rodX + vDir*vAlen, vArrowY, '#fff', 1.5, 7);
+    ctx.fillStyle='#fff'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('v = '+v.toFixed(2)+' m/s', rodX + vDir*vAlen/2, vArrowY - 6);
+  }
+
+  // Braking force arrow (always opposes v, drawn below the rod)
+  if(Math.abs(I) > 0.005 && Math.abs(v) > 0.02){
+    var fDir = -Math.sign(v);
+    var fArrowY = railYbot + 30;
+    var fLen = Math.min(60, Fbrake*60 + 16);
+    arrow(ctx, rodX, fArrowY, rodX + fDir*fLen, fArrowY, RED, 2, 7);
+    ctx.fillStyle=RED; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('F = '+Fbrake.toFixed(3)+' N', rodX + fDir*fLen/2, fArrowY + 14);
+  }
+
+  // External applied force arrow (only in FORCE ON mode, balancing the brake)
+  if(sr.forceOn && Math.abs(v) > 0.02 && Math.abs(I) > 0.005){
+    var feDir = Math.sign(v);
+    var feArrowY = railYbot + 50;
+    var feLen = Math.min(60, Fbrake*60 + 16);
+    arrow(ctx, rodX, feArrowY, rodX + feDir*feLen, feArrowY, GREEN, 2, 7);
+    ctx.fillStyle=GREEN; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+    ctx.fillText('F_ext (you push)', rodX + feDir*feLen/2, feArrowY + 14);
+  }
+
+  // Current direction arrows around the loop perimeter
+  // For v > 0 (rod moving right), B into page: dΦ/dt > 0, ε < 0 by Faraday with normal +ẑ.
+  // By Lenz, induced current circulates CCW (viewed from front of page, i.e., from +ẑ).
+  // CCW means: at top rail, current flows leftward; at right rod, downward;
+  //   at bottom rail, rightward; at left resistor, upward.
+  if(Math.abs(I) > 0.005 && Math.abs(v) > 0.02){
+    var iCCW = (v > 0);  // CCW for v>0, CW for v<0
+    var arrowAlpha = Math.min(1, Math.abs(I)*1.5);
+    ctx.save();
+    ctx.globalAlpha = arrowAlpha;
+    var cmid = (resistorX + rodX) / 2;
+    var rmid = (railYtop + railYbot) / 2;
+    // Top rail arrow (leftward if CCW)
+    var topArrowDir = iCCW ? -1 : 1;
+    arrow(ctx, cmid - topArrowDir*20, railYtop - 14, cmid + topArrowDir*20, railYtop - 14, GREEN, 2, 7);
+    // Bottom rail arrow (rightward if CCW)
+    var botArrowDir = iCCW ? 1 : -1;
+    arrow(ctx, cmid - botArrowDir*20, railYbot + 14, cmid + botArrowDir*20, railYbot + 14, GREEN, 2, 7);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = GREEN; ctx.font='bold 11px "Orbitron",monospace'; ctx.textAlign='center';
+    ctx.fillText((iCCW?'CCW':'CW')+' (front view)', cmid, rmid + 4);
+    ctx.restore();
+  }
+
+  // Title strip
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  var modeLabel = sr.forceOn ? 'FORCE ON · constant v · Block 5' : 'RELEASED · v(t) decay · Block 6';
+  ctx.fillText(modeLabel, 16, 26);
+  ctx.textAlign='right';
+  ctx.fillText('L = '+L.toFixed(2)+' m  ·  m = '+m.toFixed(2)+' kg', W-16, 26);
+
+  /* ── BOTTOM: v(t) trace ── */
+  var sy = 280, sh = 130, sx = 30, sw = W - 60;
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sy, sw, sh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sy, sw, sh);
+
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('SCOPE — v(t) [m/s]'+(sr.forceOn?'  ·  flat (F_ext maintains v)':'  ·  exponential decay  τ='+(isFinite(tau)?tau.toFixed(2)+' s':'∞')), sx+4, sy-4);
+
+  // Center-line / zero
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+  var sBaseY = sy + sh - 14;
+  ctx.beginPath(); ctx.moveTo(sx, sBaseY); ctx.lineTo(sx+sw, sBaseY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // v scale: max v = current slider value (or sr.v in decay mode), fits sh*0.85
+  var vScaleMax = Math.max(parseInt(document.getElementById('srV').value)/10, sr.v, 0.5);
+  var vToY = function(vv){ return sBaseY - (vv / vScaleMax) * (sh - 28); };
+
+  // Plot trace
+  if(sr.history.length > 1){
+    var winSec = 6;  // last 6 s
+    var tEnd = sr.t;
+    var tStart = tEnd - winSec;
+    var pts = sr.history.filter(function(p){return p.t >= tStart;});
+    function tToX(t){ return sx + (t-tStart)/winSec*sw; }
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for(var k=0;k<pts.length;k++){
+      var X = tToX(pts[k].t);
+      var Y = vToY(pts[k].v);
+      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.stroke();
+    ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+    // Live dot
+    ctx.fillStyle = CYAN;
+    ctx.beginPath(); ctx.arc(sx+sw, vToY(sr.v), 3, 0, 2*Math.PI); ctx.fill();
+  }
+
+  // v scale labels
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
+  ctx.fillText(vScaleMax.toFixed(1)+' m/s', sx-4, sy+18);
+  ctx.fillText('0', sx-4, sBaseY+3);
+
+  /* ── Cards ── */
+  var energyOK = Math.abs(Pmech - PR) < 1e-9 ? '✓' : '⚠';
+  var h = '';
+  h += cd('v', v.toFixed(2)+' m/s', CYAN);
+  h += cd('ε = BLv', emf.toFixed(3)+' V', AMBER);
+  h += cd('I', I.toFixed(3)+' A', GREEN);
+  h += cd('F_brake', Fbrake.toFixed(3)+' N', RED);
+  h += cd('P_mech = P_R', Pmech.toFixed(3)+' W '+energyOK, AMBER);
+  h += cd('τ_mech', isFinite(tau)?tau.toFixed(2)+' s':'∞', AMBER_DIM);
+  document.getElementById('sr-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
    PLAY/PAUSE & MODULE SWITCHING
    ════════════════════════════════════════════════════════════ */
+// sr uses srToggleForce() for its primary toggle (FORCE ON/RELEASED), not togglePlay.
 var PLAY_BTN = { gn:'g-play', lz:'l-play', pw:'p-play', lf:'f-play', wl:'w-play' };
 var PLAY_LABELS = {
   gn: { on:'PAUSE',   off:'PLAY' },
@@ -1985,6 +2323,13 @@ window.stepBack = function(mod){
   } else if(mod==='wl'){
     wl.t = 0; wl.history = [];
     drawWireLoop();
+  } else if(mod==='sr'){
+    sr.x = 250; sr.t = 0; sr.history = [];
+    sr.v = parseInt(document.getElementById('srV').value)/10;
+    sr.forceOn = true;
+    var btn = document.getElementById('sr-force');
+    if(btn){ btn.textContent = 'FORCE ON'; btn.classList.add('on'); }
+    drawSlidingRod();
   }
 };
 
@@ -2001,6 +2346,7 @@ window.sw = function(t){
   else if(t==='pw') uPW();
   else if(t==='lf') uLF();
   else if(t==='wl') uWL();
+  else if(t==='sr') uSR();
   saveHash();
 };
 
@@ -2010,7 +2356,8 @@ var DEFAULTS = {
   lz: {lM:100, lR:10, lX:-180, lFlip:false, lFieldLines:true},
   pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30, pT3:30},
   lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
-  wl: {wI:100, wF:10, wD:20, wW:100, wL:200, wR:10, wShowLines:true, wShowInduced:true}
+  wl: {wI:100, wF:10, wD:20, wW:100, wL:200, wR:10, wShowLines:true, wShowInduced:true},
+  sr: {srL:40, srB:80, srR:20, srV:50, srM:10}
 };
 window.resetModule = function(mod){
   var d = DEFAULTS[mod];
@@ -2034,6 +2381,13 @@ window.resetModule = function(mod){
   } else if(mod==='wl'){
     wl.t = 0; wl.history = [];
     uWL();
+  } else if(mod==='sr'){
+    sr.x = 250; sr.t = 0; sr.history = [];
+    sr.v = parseInt(document.getElementById('srV').value)/10;
+    sr.forceOn = true;
+    var srBtn = document.getElementById('sr-force');
+    if(srBtn){ srBtn.textContent = 'FORCE ON'; srBtn.classList.add('on'); }
+    uSR();
   }
   saveHash();
 };
@@ -2068,7 +2422,7 @@ function loadHash(){
 /* ── Keyboard shortcuts ── */
 document.addEventListener('keydown', function(e){
   if(e.target.tagName==='INPUT' || e.target.tagName==='SELECT' || e.target.tagName==='TEXTAREA') return;
-  var order = ['pw','lz','lf','wl','gn'];
+  var order = ['pw','lz','lf','wl','sr','gn'];
   var idx = order.indexOf(currentTab);
   if(e.key==='ArrowLeft'){ sw(order[(idx-1+order.length)%order.length]); }
   else if(e.key==='ArrowRight'){ sw(order[(idx+1)%order.length]); }
