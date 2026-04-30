@@ -1851,7 +1851,10 @@ function drawWireLoop(){
      through the (z=0) loop in the layered render.
   */
   function inducedFieldLines(){
-    if(Math.abs(Iind) <= 0.0005) return {back: [], front: []};
+    // Skip only if induced current is genuinely zero (relative gating, since I_ind
+    // is in mA-scale for typical Wire & Loop defaults). The stroke alpha already
+    // fades to zero with |I_ind|/I_ind_peak.
+    if(IindPeak <= 1e-12 || Math.abs(Iind) / IindPeak < 0.01) return {back: [], front: []};
     var cxLoopW = d_px + w_px/2;
     // r₀ sized to extend modestly beyond the loop
     var r0 = Math.min(95, Math.max(45, Math.max(w_px, L_px) * 0.55));
