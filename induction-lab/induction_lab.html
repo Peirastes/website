@@ -1855,25 +1855,58 @@ function drawWireLoop(){
     // is in mA-scale for typical Wire & Loop defaults). The stroke alpha already
     // fades to zero with |I_ind|/I_ind_peak.
     if(IindPeak <= 1e-12 || Math.abs(Iind) / IindPeak < 0.01) return {back: [], front: []};
+
+    // Loop is a rectangle with half-width a = w/2, half-height b = L/2.
+    // Distance from center to perimeter in direction ψ:
+    //   ρ_perim(ψ) = min(a/|cos ψ|, b/|sin ψ|)
+    // For w ≠ L this varies with ψ, giving the field lines an anisotropic shape
+    // that follows the loop's rectangular footprint instead of a circle's.
     var cxLoopW = d_px + w_px/2;
-    // r₀ sized to extend modestly beyond the loop
-    var r0 = Math.min(95, Math.max(45, Math.max(w_px, L_px) * 0.55));
-    var psis = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, 5*Math.PI/4, 3*Math.PI/2, 7*Math.PI/4];
+    var aHalf = w_px/2, bHalf = L_px/2;
+    function rPerim(psi){
+      var cs = Math.abs(Math.cos(psi)), sn = Math.abs(Math.sin(psi));
+      var rA = (cs > 1e-6) ? aHalf/cs : Infinity;
+      var rB = (sn > 1e-6) ? bHalf/sn : Infinity;
+      return Math.min(rA, rB);
+    }
+
+    // 8 azimuthal directions. Use the rectangle's corner directions explicitly so
+    // the lines visibly fan out toward corners rather than evenly around a circle.
+    var diag = Math.atan2(bHalf, aHalf);  // corner direction (between width and height axes)
+    var psis = [
+      0, diag, Math.PI/2, Math.PI - diag,
+      Math.PI, Math.PI + diag, 3*Math.PI/2, 2*Math.PI - diag
+    ];
+
     var nSeg = 36;
     var thMin = 0.10*Math.PI, thMax = 0.90*Math.PI;
     var back = [], front = [];
     for(var pi=0; pi<psis.length; pi++){
       var psi = psis[pi];
       var cosPsi = Math.cos(psi), sinPsi = Math.sin(psi);
+      var rp = rPerim(psi);
+      // r₀ extends beyond the perimeter by a fixed factor — anisotropic
+      var r0psi = Math.min(140, Math.max(35, rp * 1.45));
+      // Emergence offset: each line's "pole" sits roughly midway out toward the perimeter
+      // along ψ, so lines emerge from across the loop's open face instead of one point.
+      var rOff   = rp * 0.55;
+      var rExt   = r0psi - rOff;
+      // Pole "lift" — gives the field lines a visible height above/below the loop plane.
+      var zPole  = Math.min(20, rp * 0.20);
       var ptsBack = [], ptsFront = [];
       for(var k=0; k<=nSeg; k++){
         var t = thMin + (thMax - thMin) * k/nSeg;
         var s_t = Math.sin(t), c_t = Math.cos(t);
         var s3 = s_t*s_t*s_t;
-        var s2c = s_t*s_t*c_t;
-        var wxF = cxLoopW + r0*s3*cosPsi;
-        var wyF = r0*s3*sinPsi;
-        var wzF = r0*s2c;
+        // Radial component: starts at rOff (just inside perimeter) when t→0/π,
+        // bulges out to (rOff + rExt) at the equator t = π/2.
+        var rho = rOff + rExt * s3;
+        // Axial component: classic dipole shape, scaled so peak height ≈ zPole.
+        // Original formula peaks at r0·sin²θ·cosθ ≈ 0.385·r0; scale to zPole.
+        var zeta = (zPole / 0.385) * s_t*s_t*c_t;
+        var wxF = cxLoopW + rho*cosPsi;
+        var wyF = rho*sinPsi;
+        var wzF = zeta;
         var pp = P(wxF, wyF, wzF);
         var seg = [pp[0], pp[1], wzF];
         if(wzF >= 0) ptsFront.push(seg); else ptsBack.push(seg);
