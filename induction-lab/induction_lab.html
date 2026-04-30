@@ -758,11 +758,19 @@ function drawGenerator(){
   ctx.fillText(N+' turns · '+B.toFixed(2)+' T · ω='+wDisp+' rad/s', sx+sw, sy - 6);
 
   // Plot traces — analytical, always fills the scope width regardless of ω.
+  // Vertical scale is FIXED (not auto-scaled to NBAω), so changes in N, B, A produce
+  // visible amplitude changes. ω-driven amplitude change is normalized away on purpose
+  // (ω is already conveyed by the period / cursor sweep), so changes in ω alone don't
+  // shift the trace height — only NBA does.
+  //   Φ_ref = 2 Wb → defaults (Φ₀ = NBA = 1 Wb) fill ~50% of the panel
+  //   ε_ref = Φ_ref · ω → defaults (ε₀ = NBAω) fill ~50% of the panel at any ω
   if(w > 0){
     var phi0 = N*B*A;
     var emf0Val = N*B*A*w;
-    var phiScale = (sh*0.42)/Math.max(0.01, phi0);
-    var emfScale = (sh*0.42)/Math.max(0.01, emf0Val);
+    var phi_ref = 2;
+    var emf_ref = phi_ref * w;
+    var phiScale = (sh*0.42)/phi_ref;
+    var emfScale = (sh*0.42)/emf_ref;
 
     var period = 2*Math.PI/w;
     var winSec = 4*period;
@@ -773,6 +781,10 @@ function drawGenerator(){
     function tToX(t){ return sx + (t-tStart)/winSec*sw; }
     // Reconstruct angle at past time t assuming constant ω (current slider value).
     function thetaAt(t){ return gen.theta - w*(tEnd - t); }
+
+    // Clip traces to the scope panel so saturation flat-tops cleanly at the rails.
+    ctx.save();
+    ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
 
     if(showPhi){
       ctx.strokeStyle=CYAN; ctx.lineWidth=1.6; ctx.beginPath();
@@ -798,27 +810,34 @@ function drawGenerator(){
       ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
     }
 
-    // Marker line at "now"
-    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(sx+sw, sy); ctx.lineTo(sx+sw, sy+sh); ctx.stroke();
-
-    // Live dot for emf and phi
+    // Live dot for emf and phi (also clipped)
     if(showPhi){
+      var liveY_phi = Math.max(sy, Math.min(sy+sh, sMidY-phi*phiScale));
       ctx.fillStyle=CYAN;
-      ctx.beginPath(); ctx.arc(sx+sw, sMidY-phi*phiScale, 3, 0, 2*Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx+sw, liveY_phi, 3, 0, 2*Math.PI); ctx.fill();
     }
     if(showEmf){
+      var liveY_emf = Math.max(sy, Math.min(sy+sh, sMidY-emf*emfScale));
       ctx.fillStyle=AMBER;
-      ctx.beginPath(); ctx.arc(sx+sw, sMidY-emf*emfScale, 3, 0, 2*Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(sx+sw, liveY_emf, 3, 0, 2*Math.PI); ctx.fill();
     }
+
+    ctx.restore();
+
+    // Marker line at "now" (drawn outside clip so it always shows full panel)
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+sw, sy); ctx.lineTo(sx+sw, sy+sh); ctx.stroke();
   }
 
-  // Scale labels
-  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
-  ctx.fillText('+ε₀', sx+sw+30, sy + sh*0.08 + 3);
-  ctx.fillText('-ε₀', sx+sw+30, sy + sh*0.92 + 3);
-  ctx.textAlign='left';
-  ctx.fillStyle=CYAN_DIM; ctx.fillText('NΦ_B', sx-22, sy + sh*0.08 + 3);
+  // Scale labels — show the actual reference values (fixed scale)
+  ctx.fillStyle=AMBER_DIM; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  var emfRefDisp = (w > 0) ? (2*w).toFixed( 2*w < 10 ? 2 : (2*w < 100 ? 1 : 0) ) : '0';
+  ctx.fillText('+'+emfRefDisp+' V', sx+sw+8, sy + sh*0.08 + 3);
+  ctx.fillText('-'+emfRefDisp+' V', sx+sw+8, sy + sh*0.92 + 3);
+  ctx.textAlign='right';
+  ctx.fillStyle=CYAN_DIM;
+  ctx.fillText('+2 Wb', sx-4, sy + sh*0.08 + 3);
+  ctx.fillText('-2 Wb', sx-4, sy + sh*0.92 + 3);
 
   // Scope footer: window in seconds
   if(w>0){
