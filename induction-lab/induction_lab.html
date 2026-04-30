@@ -151,6 +151,13 @@ body {
         <button class="tab" id="t-gn" onclick="sw('gn')">AC Generator</button>
       </div>
     </div>
+    <div class="panel-section">
+      <div class="section-label">Beyond Lecture (§29.4–6)</div>
+      <div class="module-tab-row" role="tablist">
+        <button class="tab" id="t-em" onclick="sw('em')">Eddy / Falling</button>
+        <button class="tab" id="t-rl" onclick="sw('rl')">RL Circuit</button>
+      </div>
+    </div>
 
     <!-- Piecewise-B controls (Block 1) -->
     <div id="ctrl-pw" class="module-ctrl">
@@ -194,6 +201,62 @@ body {
           <button class="act-btn" id="p-step" onclick="stepBack('pw')">RESET</button>
         </div>
         <button class="reset-btn" onclick="resetModule('pw')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- Falling magnet in copper tube (§29.4 — eddy-current braking) -->
+    <div id="ctrl-em" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Magnet</div>
+        <div class="slider-row">
+          <span class="sl">Mass m</span>
+          <input type="range" min="1" max="50" value="5" step="1" id="emM" oninput="uEM()" />
+          <span class="sv" id="emM-v">5 g</span>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Tube Damping</div>
+        <div class="slider-row">
+          <span class="sl">k (B²·σ·…)</span>
+          <input type="range" min="5" max="200" value="50" step="1" id="emK" oninput="uEM()" />
+          <span class="sv" id="emK-v">0.050 N·s/m</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="em-play" onclick="togglePlay('em')">PLAYING</button>
+          <button class="act-btn" id="em-reset" onclick="stepBack('em')">RESET</button>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="emShowEddy" checked onchange="uEM()" />
+          <span>Show eddy current swirls</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('em')">Reset defaults</button>
+      </div>
+    </div>
+
+    <!-- RL Circuit (§29.5–6 — exponential current rise / decay) -->
+    <div id="ctrl-rl" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Circuit Elements</div>
+        <div class="slider-row">
+          <span class="sl">EMF ε</span>
+          <input type="range" min="10" max="500" value="240" step="1" id="rlE" oninput="uRL()" />
+          <span class="sv" id="rlE-v">24.0 V</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Resistance R</span>
+          <input type="range" min="1" max="200" value="80" step="1" id="rlR" oninput="uRL()" />
+          <span class="sv" id="rlR-v">8.0 Ω</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Inductance L</span>
+          <input type="range" min="1" max="200" value="40" step="1" id="rlL" oninput="uRL()" />
+          <span class="sv" id="rlL-v">4.0 H</span>
+        </div>
+        <div class="btn-row">
+          <button class="act-btn on" id="rl-play" onclick="togglePlay('rl')">PLAYING</button>
+          <button class="act-btn" id="rl-switch" onclick="rlToggleSwitch()">CLOSE SW</button>
+        </div>
+        <button class="reset-btn" onclick="resetModule('rl')">Reset defaults</button>
       </div>
     </div>
 
@@ -462,6 +525,35 @@ body {
         </div>
       </div>
     </div>
+    <!-- Falling magnet in copper tube display -->
+    <div class="panel" id="p-em">
+      <div class="crt-screen">
+        <div class="crt-label">Eddy Currents — Magnet Falling Through a Copper Tube</div>
+        <div class="canvas-wrap"><canvas id="ec"></canvas></div>
+        <div class="cards" id="em-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="m\,dv/dt = mg - k\,v"></span>
+          <span class="eq" data-katex="v(t) = v_t(1 - e^{-t/\tau}),\;\;\tau = m/k,\;\;v_t = mg/k"></span>
+          <span class="eq" data-katex="P_\text{dissip} = F_\text{brake}\,v = k v^2"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RL Circuit display -->
+    <div class="panel" id="p-rl">
+      <div class="crt-screen">
+        <div class="crt-label">RL Circuit — Exponential Current Rise &amp; Decay</div>
+        <div class="canvas-wrap"><canvas id="rc"></canvas></div>
+        <div class="cards" id="rl-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\tau = L/R"></span>
+          <span class="eq" data-katex="I(t) = (\mathcal{E}/R)(1-e^{-t/\tau})\;\;\text{(closing)}"></span>
+          <span class="eq" data-katex="I(t) = I_0\,e^{-t/\tau}\;\;\text{(decaying)}"></span>
+          <span class="eq" data-katex="U_B = \tfrac12 L I^2"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- Sliding Rod display (motional EMF) -->
     <div class="panel" id="p-sr">
       <div class="crt-screen">
@@ -559,7 +651,7 @@ function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div 
    ════════════════════════════════════════════════════════════ */
 var BASE_W = 820, BASE_H = 440;
 var currentTab = 'pw';
-var play = { gn: true, lz: true, pw: true, lf: true, wl: true, sr: true };
+var play = { gn: true, lz: true, pw: true, lf: true, wl: true, sr: true, em: true, rl: true };
 
 var gen = {
   theta: 0,           // rotation angle (accumulates ω·dt while playing)
@@ -592,6 +684,18 @@ var sr = {
   t: 0,               // simulation time
   forceOn: false,     // DRIVE OFF by default — show exponential decay first
   history: []         // {t, v} for the v(t) trace
+};
+
+var em = {
+  yMag: 0.0,          // physical y position of magnet in meters (0 = top of tube)
+  v: 0.0,             // current velocity in m/s (positive = downward)
+  t: 0,               // simulation time
+  history: []         // {t, v}
+};
+
+var rlc = {
+  t: 0,               // simulation time since last switch event
+  switchClosed: false // false = open (decay if I>0), true = closed (rise from 0)
 };
 
 /* ── Animation loop ── */
@@ -668,6 +772,27 @@ function tick(now){
       if(sr.history.length > 3600) sr.history.shift();
     }
     drawSlidingRod();
+  } else if(currentTab==='em'){
+    if(play.em){
+      var m_em = parseInt(document.getElementById('emM').value)/1000;
+      var k_em = parseInt(document.getElementById('emK').value)/1000;
+      // dv/dt = g - (k/m)·v  ⇒  exact step v(t+dt) using the analytic linear-1D solution
+      // v_t = mg/k, τ = m/k, v(t+dt) = v_t + (v - v_t)·exp(-dt/τ)
+      var g_em = 9.81;
+      var v_t = m_em*g_em/k_em;
+      var tau_em = m_em/k_em;
+      em.v = v_t + (em.v - v_t)*Math.exp(-dt/tau_em);
+      em.yMag += em.v*dt;
+      em.t += dt;
+      // Wrap when magnet reaches the bottom of the visible tube (1.0 m physical)
+      if(em.yMag > 1.0){ em.yMag = 0; em.v = 0; em.t = 0; em.history = []; }
+      em.history.push({t: em.t, v: em.v});
+      if(em.history.length > 3600) em.history.shift();
+    }
+    drawFallingMagnet();
+  } else if(currentTab==='rl'){
+    if(play.rl) rlc.t += dt;
+    drawRLCircuit();
   }
   requestAnimationFrame(tick);
 }
@@ -2566,16 +2691,500 @@ function drawSlidingRod(){
 }
 
 /* ════════════════════════════════════════════════════════════
+   MODULE 7: FALLING MAGNET / EDDY CURRENTS (§29.4)
+   ════════════════════════════════════════════════════════════ */
+function uEM(){
+  var m = parseInt(document.getElementById('emM').value)/1000;     // kg (1..50 g)
+  var k = parseInt(document.getElementById('emK').value)/1000;     // N·s/m (0.005..0.200)
+  document.getElementById('emM-v').textContent = (m*1000).toFixed(0)+' g';
+  document.getElementById('emK-v').textContent = k.toFixed(3)+' N·s/m';
+  drawFallingMagnet();
+}
+window.uEM = uEM;
+
+function drawFallingMagnet(){
+  var cv = document.getElementById('ec');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  var m = parseInt(document.getElementById('emM').value)/1000;
+  var k = parseInt(document.getElementById('emK').value)/1000;
+  var showEddy = document.getElementById('emShowEddy').checked;
+  var g_phys = 9.81;
+  var v_t   = m*g_phys/k;
+  var tau   = m/k;
+  var Fg    = m*g_phys;
+  var Fbk   = k*em.v;
+  var Pdiss = Fbk*em.v;
+
+  // Section divider (figure left, scope right)
+  ctx.strokeStyle = IF; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W/2, 18); ctx.lineTo(W/2, H-18); ctx.stroke();
+
+  /* ── LEFT: vertical copper tube + falling magnet ── */
+  // Tube: physical height 1 m maps to canvas y range [50, 410] (360 px tall)
+  var tubeXC = 200;            // tube horizontal center
+  var tubeW  = 90;             // tube width in canvas px
+  var tubeY0 = 50, tubeY1 = 410;
+  var tubeH_canvas = tubeY1 - tubeY0;
+  function yPhysToCanvas(yPhys){ return tubeY0 + yPhys*tubeH_canvas; }
+
+  // Tube body — semi-transparent copper-ish color
+  ctx.save();
+  ctx.fillStyle = 'rgba(120,80,40,0.18)';
+  ctx.fillRect(tubeXC - tubeW/2, tubeY0, tubeW, tubeH_canvas);
+  // Inner shading
+  ctx.fillStyle = 'rgba(40,30,15,0.4)';
+  ctx.fillRect(tubeXC - tubeW/2 + 6, tubeY0, tubeW-12, tubeH_canvas);
+  // Outline
+  ctx.strokeStyle = 'rgba(180,130,80,0.7)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(tubeXC - tubeW/2, tubeY0, tubeW, tubeH_canvas);
+  // Inner walls
+  ctx.strokeStyle = 'rgba(80,50,20,0.6)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(tubeXC - tubeW/2 + 6, tubeY0); ctx.lineTo(tubeXC - tubeW/2 + 6, tubeY1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tubeXC + tubeW/2 - 6, tubeY0); ctx.lineTo(tubeXC + tubeW/2 - 6, tubeY1); ctx.stroke();
+  ctx.restore();
+
+  // Magnet inside the tube — small horizontal block with N (red) above S (blue)
+  // Map em.yMag (0..1) to canvas y; clamp magnet to stay inside tube vertically
+  var magW_canvas = tubeW - 18;
+  var magH_canvas = 28;
+  var magCanvasY = yPhysToCanvas(em.yMag);
+  if(magCanvasY < tubeY0 + magH_canvas/2 + 4) magCanvasY = tubeY0 + magH_canvas/2 + 4;
+  if(magCanvasY > tubeY1 - magH_canvas/2 - 4) magCanvasY = tubeY1 - magH_canvas/2 - 4;
+  var magX0 = tubeXC - magW_canvas/2;
+  var magY0 = magCanvasY - magH_canvas/2;
+
+  // Eddy-current swirls in the tube wall above & below magnet (alpha scales with v)
+  if(showEddy && em.v > 0.01){
+    var swirlAlpha = Math.min(1, em.v/Math.max(0.01, v_t));
+    var nSwirls = 4;
+    ctx.save();
+    ctx.fillStyle = 'rgba(64,232,208,'+ (0.4*swirlAlpha) +')';
+    ctx.font = '14px "Share Tech Mono",monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // Above magnet — current direction (top half of magnet's "shadow" in tube wall)
+    // Below magnet — opposite direction
+    // Convention: magnet falling with N down. As it falls, B_below increases (Lenz: opposing
+    // current creates field up, i.e., wall current CW viewed from top → at left wall ⊙, right wall ⊗).
+    // Above: opposite (left ⊗, right ⊙).
+    for(var sn=0; sn<nSwirls; sn++){
+      var dyAbove = -(sn+1)*22;
+      var dyBelow = +(sn+1)*22;
+      var yAbove = magCanvasY + dyAbove;
+      var yBelow = magCanvasY + dyBelow;
+      // Above magnet (left wall ⊗, right wall ⊙)
+      if(yAbove > tubeY0 + 6){
+        ctx.fillText('⊗', tubeXC - tubeW/2 + 12, yAbove);
+        ctx.fillText('⊙', tubeXC + tubeW/2 - 12, yAbove);
+      }
+      // Below magnet (left wall ⊙, right wall ⊗)
+      if(yBelow < tubeY1 - 6){
+        ctx.fillText('⊙', tubeXC - tubeW/2 + 12, yBelow);
+        ctx.fillText('⊗', tubeXC + tubeW/2 - 12, yBelow);
+      }
+    }
+    ctx.textBaseline = 'alphabetic';
+    ctx.restore();
+  }
+
+  // Magnet body
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=10; ctx.shadowOffsetY=3;
+  ctx.fillStyle = '#3060c0';                                     // top half = S (blue)
+  ctx.fillRect(magX0, magY0, magW_canvas, magH_canvas/2);
+  ctx.fillStyle = RED;                                            // bottom half = N (red, pointing down)
+  ctx.fillRect(magX0, magY0 + magH_canvas/2, magW_canvas, magH_canvas/2);
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1;
+  ctx.strokeRect(magX0+0.5, magY0+0.5, magW_canvas-1, magH_canvas-1);
+  // N/S labels
+  ctx.fillStyle='#fff'; ctx.font='bold 12px "Orbitron",monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('S', tubeXC, magY0 + magH_canvas/4);
+  ctx.fillText('N', tubeXC, magY0 + 3*magH_canvas/4);
+  ctx.textBaseline='alphabetic';
+
+  // Force arrows on magnet — gravity (red, down) and brake (cyan, up)
+  // F_g side
+  var farrowX = tubeXC + tubeW/2 + 18;
+  var fgPx   = 18 + Math.min(36, Fg*40);                   // length scales with Fg (small)
+  var fbkPx  = 18 + Math.min(36, Fbk*40);
+  arrow(ctx, farrowX, magCanvasY - fgPx/2, farrowX, magCanvasY + fgPx/2, RED, 2, 7);
+  ctx.fillStyle=RED; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('F_g', farrowX + 6, magCanvasY + 4);
+  // F_brake side (only show when v > 0)
+  if(em.v > 0.01){
+    var fbX = tubeXC - tubeW/2 - 18;
+    arrow(ctx, fbX, magCanvasY + fbkPx/2, fbX, magCanvasY - fbkPx/2, CYAN, 2, 7);
+    ctx.fillStyle=CYAN; ctx.textAlign='right';
+    ctx.fillText('F_brake', fbX - 6, magCanvasY + 4);
+  }
+
+  // Velocity indicator next to magnet
+  if(em.v > 0.005){
+    var vPx = 14 + Math.min(40, em.v*30);
+    arrow(ctx, tubeXC, magY0 + magH_canvas + 6, tubeXC, magY0 + magH_canvas + 6 + vPx, '#fff', 1.5, 6);
+  }
+
+  // Tube label
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('COPPER TUBE', tubeXC, tubeY0 - 6);
+  ctx.fillText('1.0 m', tubeXC, tubeY1 + 14);
+
+  // Title strip (left half)
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('FALLING MAGNET · m·dv/dt = mg − k·v', 16, 18);
+  ctx.textAlign='right';
+  ctx.fillText('τ = m/k = '+(tau).toFixed(3)+' s', W/2 - 4, 18);
+
+  /* ── RIGHT: scope showing v(t) approaching v_t ── */
+  var sx = W/2 + 30, sy = 50, sw = W - sx - 30, sh = H - 100;
+  var sBaseY = sy + sh - 20;
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sy, sw, sh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sy, sw, sh);
+
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('SCOPE — v(t) approaching v_t = mg/k', sx + 4, sy - 6);
+  ctx.textAlign='right';
+  ctx.fillStyle=TX;
+  ctx.fillText('m='+(m*1000).toFixed(0)+' g · k='+k.toFixed(3), sx+sw, sy - 6);
+
+  // v scale: max = v_t·1.05
+  var vScaleMax = Math.max(v_t*1.10, 0.1);
+  function vToY(vv){ return sBaseY - (vv/vScaleMax)*(sh - 36); }
+  // v_t reference line
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(sx, vToY(v_t)); ctx.lineTo(sx+sw, vToY(v_t)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
+  ctx.fillText('v_t = '+v_t.toFixed(2)+' m/s', sx+sw-4, vToY(v_t)-3);
+
+  // Plot v(t) — analytical (always fills the panel up to current sim time)
+  // v(t) = v_t·(1 - exp(-t/τ))
+  var tEnd = Math.max(em.t, 6*tau);   // window stretches to current time, never less than ~6τ
+  var tStart = 0;
+  function tToXe(t){ return sx + 2 + (t-tStart)/(tEnd-tStart) * (sw-4); }
+  ctx.save();
+  ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
+  // Analytic curve (prediction)
+  ctx.strokeStyle = 'rgba(255,200,100,0.3)'; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  var nSamp = 220;
+  for(var k_=0; k_<nSamp; k_++){
+    var tt = tStart + (k_/(nSamp-1))*(tEnd-tStart);
+    var vv_ = v_t*(1 - Math.exp(-tt/tau));
+    var X_ = tToXe(tt), Y_ = vToY(vv_);
+    if(k_===0) ctx.moveTo(X_,Y_); else ctx.lineTo(X_,Y_);
+  }
+  ctx.stroke();
+  // Live trace (from history)
+  if(em.history.length > 1){
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    for(var ki=0; ki<em.history.length; ki++){
+      var p = em.history[ki];
+      if(p.t > tEnd) continue;
+      var Xh = tToXe(p.t), Yh = vToY(p.v);
+      if(ki===0) ctx.moveTo(Xh,Yh); else ctx.lineTo(Xh,Yh);
+    }
+    ctx.stroke();
+    ctx.shadowColor=CYAN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+    // Live dot at current t
+    ctx.fillStyle=CYAN;
+    ctx.beginPath(); ctx.arc(tToXe(em.t), vToY(em.v), 3, 0, 2*Math.PI); ctx.fill();
+  }
+  // τ marker
+  if(tau <= tEnd){
+    ctx.strokeStyle='rgba(240,160,48,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(tToXe(tau), sy+12); ctx.lineTo(tToXe(tau), sBaseY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=AMBER_DIM; ctx.textAlign='center';
+    ctx.fillText('τ', tToXe(tau), sy+10);
+  }
+  ctx.restore();
+  // Time labels
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace';
+  ctx.textAlign='left';  ctx.fillText('t = 0', sx+2, sy+sh-2);
+  ctx.textAlign='right'; ctx.fillText('t = '+tEnd.toFixed(2)+' s', sx+sw-2, sy+sh-2);
+
+  /* ── Cards ── */
+  var KE = 0.5*m*em.v*em.v;
+  var h = '';
+  h += cd('v(t)', em.v.toFixed(3)+' m/s', CYAN);
+  h += cd('v_t', v_t.toFixed(3)+' m/s', TXH);
+  h += cd('τ', tau.toFixed(3)+' s', AMBER);
+  h += cd('F_g', Fg.toFixed(3)+' N', RED);
+  h += cd('F_brake', Fbk.toFixed(3)+' N', CYAN);
+  h += cd('P_dissip', Pdiss.toFixed(3)+' W', AMBER);
+  document.getElementById('em-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 8: RL CIRCUIT TRANSIENT (§29.6)
+   ════════════════════════════════════════════════════════════ */
+function uRL(){
+  var emfV = parseInt(document.getElementById('rlE').value)/10;     // V (1..50)
+  var R = parseInt(document.getElementById('rlR').value)/10;        // Ω (0.1..20)
+  var L = parseInt(document.getElementById('rlL').value)/10;        // H (0.1..20)
+  document.getElementById('rlE-v').textContent = emfV.toFixed(1)+' V';
+  document.getElementById('rlR-v').textContent = R.toFixed(1)+' Ω';
+  document.getElementById('rlL-v').textContent = L.toFixed(1)+' H';
+  drawRLCircuit();
+}
+window.uRL = uRL;
+
+window.rlToggleSwitch = function(){
+  rlc.switchClosed = !rlc.switchClosed;
+  rlc.t = 0;
+  var btn = document.getElementById('rl-switch');
+  btn.textContent = rlc.switchClosed ? 'OPEN SW' : 'CLOSE SW';
+  drawRLCircuit();
+};
+
+function drawRLCircuit(){
+  var cv = document.getElementById('rc');
+  var W = BASE_W, H = BASE_H;
+  var ctx = setupCanvas(cv, W, H);
+
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grid(ctx,W,H);
+
+  var emfV = parseInt(document.getElementById('rlE').value)/10;
+  var R = parseInt(document.getElementById('rlR').value)/10;
+  var L = parseInt(document.getElementById('rlL').value)/10;
+  var tau_rl = L/R;
+  var I_max = emfV/R;
+
+  // Current at sim time t depends on switch state.
+  // Closed: I(t) = I_max·(1 - e^(-t/τ)). Open: I(t) = I_lastClose·e^(-t/τ).
+  // We treat each switch event as resetting t to 0; rlc.I0_for_decay holds the value
+  // at the moment of opening so decay starts from there.
+  // Simpler: assume closing always starts from 0, opening always starts from I_max.
+  var I_now;
+  if(rlc.switchClosed){
+    I_now = I_max * (1 - Math.exp(-rlc.t/tau_rl));
+  } else {
+    I_now = I_max * Math.exp(-rlc.t/tau_rl);
+  }
+  var V_R = I_now * R;
+  var V_L = (rlc.switchClosed ? emfV : 0) - V_R;
+  // Safer: V_L = ε·exp(-t/τ) closing, V_L = -V_R opening
+  if(rlc.switchClosed) V_L = emfV * Math.exp(-rlc.t/tau_rl);
+  else                  V_L = -V_R;
+  var U_B = 0.5*L*I_now*I_now;
+
+  // Section divider
+  ctx.strokeStyle = IF; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W/2, 18); ctx.lineTo(W/2, H-18); ctx.stroke();
+
+  /* ── LEFT: circuit schematic ── */
+  // Layout: rectangular loop. Battery at top, switch at top-right, R at right, L at bottom, return wire at left.
+  var lx = 60, rx = 360, ty = 80, by = 320;
+  // Wires
+  ctx.strokeStyle = 'rgba(180,180,180,0.85)'; ctx.lineWidth = 2;
+  // Top wire (battery to switch)
+  var batX = (lx + rx)/2;
+  ctx.beginPath(); ctx.moveTo(lx, ty); ctx.lineTo(batX - 18, ty); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(batX + 18, ty); ctx.lineTo(rx - 30, ty); ctx.stroke();
+  // Battery symbol at top
+  // Long line (+) at left, short line (−) at right
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(batX - 6, ty - 14); ctx.lineTo(batX - 6, ty + 14); ctx.stroke();   // long: +
+  ctx.beginPath(); ctx.moveTo(batX + 6, ty -  8); ctx.lineTo(batX + 6, ty +  8); ctx.stroke();   // short: −
+  ctx.fillStyle = AMBER; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('ε = '+emfV.toFixed(1)+' V', batX, ty - 22);
+  ctx.fillText('+', batX - 16, ty + 4);
+  ctx.fillText('−', batX + 16, ty + 4);
+
+  // Switch (upper right)
+  var swX1 = rx - 30, swX2 = rx;
+  ctx.strokeStyle = '#aaa'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(swX1, ty, 3, 0, 2*Math.PI); ctx.fill();
+  ctx.beginPath(); ctx.arc(swX2, ty, 3, 0, 2*Math.PI); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(swX1, ty);
+  if(rlc.switchClosed){
+    ctx.lineTo(swX2, ty);
+  } else {
+    ctx.lineTo(swX2 - 5, ty - 16);  // slanted "open" position
+  }
+  ctx.stroke();
+  ctx.fillStyle=TX; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText(rlc.switchClosed?'closed':'open', (swX1+swX2)/2, ty - 22);
+
+  // Right wire (top to R)
+  ctx.strokeStyle='rgba(180,180,180,0.85)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(rx, ty); ctx.lineTo(rx, 160); ctx.stroke();
+  // Resistor (zigzag) at right
+  var rZigStart = 160, rZigEnd = 240;
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(rx, rZigStart);
+  var rzN = 4;
+  for(var rz=0; rz<rzN; rz++){
+    var py = rZigStart + (rz+0.5)*(rZigEnd - rZigStart)/rzN;
+    ctx.lineTo(rx + (rz%2===0?12:-12), py);
+  }
+  ctx.lineTo(rx, rZigEnd); ctx.stroke();
+  ctx.fillStyle=AMBER; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('R = '+R.toFixed(1)+' Ω', rx + 18, (rZigStart + rZigEnd)/2);
+  // Wire from R to bottom-right
+  ctx.strokeStyle='rgba(180,180,180,0.85)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(rx, rZigEnd); ctx.lineTo(rx, by); ctx.stroke();
+
+  // Bottom wire (right to inductor to left)
+  var indX1 = lx + 90, indX2 = rx - 90;
+  ctx.beginPath(); ctx.moveTo(rx, by); ctx.lineTo(indX2, by); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(indX1, by); ctx.lineTo(lx, by); ctx.stroke();
+  // Inductor (loops) along bottom
+  ctx.strokeStyle = '#7ad0ff'; ctx.lineWidth = 2.5;
+  var nLoops = 5;
+  var loopR = 10;
+  for(var li=0; li<nLoops; li++){
+    var lcx = indX1 + (li+0.5)*(indX2 - indX1)/nLoops;
+    ctx.beginPath();
+    ctx.arc(lcx, by, loopR, Math.PI, 0, false);
+    ctx.stroke();
+  }
+  ctx.fillStyle='#7ad0ff'; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText('L = '+L.toFixed(1)+' H', (indX1 + indX2)/2, by + 22);
+
+  // Left wire (top to bottom)
+  ctx.strokeStyle='rgba(180,180,180,0.85)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(lx, ty); ctx.lineTo(lx, by); ctx.stroke();
+
+  // Current direction arrows around the loop, brightness scales with I
+  if(I_now > 0.001){
+    var iAlpha = Math.min(1, I_now/Math.max(0.01, I_max));
+    ctx.save();
+    ctx.globalAlpha = iAlpha;
+    arrow(ctx, lx + 30, ty - 0, lx + 70, ty - 0, GREEN, 2, 7);             // top going right
+    arrow(ctx, rx + 0,  rZigStart - 16, rx + 0, rZigStart + 4, GREEN, 2, 7); // right going down
+    arrow(ctx, rx - 30, by + 0, rx - 70, by + 0, GREEN, 2, 7);              // bottom going left
+    arrow(ctx, lx + 0, by - 30, lx + 0, by - 70, GREEN, 2, 7);              // left going up (for closing); for decay reverse
+    ctx.restore();
+  }
+
+  // Title strip
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('RL · '+(rlc.switchClosed?'CHARGING (current rises to ε/R)':'DECAYING (current falls to 0)'), 16, 18);
+  ctx.textAlign='right';
+  ctx.fillText('τ = L/R = '+tau_rl.toFixed(3)+' s', W/2 - 4, 18);
+
+  /* ── RIGHT: scope showing I(t), V_R(t), V_L(t) ── */
+  var sx = W/2 + 30, sy = 50, sw = W - sx - 30, sh = H - 100;
+  var sMidY = sy + sh/2;
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sy, sw, sh);
+  ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sy, sw, sh);
+  // Center line
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(sx, sMidY); ctx.lineTo(sx+sw, sMidY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
+  ctx.fillText('SCOPE — I(t) (green) · V_R (cyan) · V_L (amber)', sx + 4, sy - 6);
+  ctx.textAlign='right';
+  ctx.fillStyle=TX;
+  ctx.fillText('I_max = '+I_max.toFixed(2)+' A · τ = '+tau_rl.toFixed(2)+' s', sx+sw, sy - 6);
+
+  // Window: 6τ
+  var winSec = 6*tau_rl;
+  var tStart = 0, tEnd = winSec;
+  function tToXr(t){ return sx + 2 + (t/winSec)*(sw-4); }
+  // Scales
+  var Iscale = (sh*0.42)/Math.max(0.001, I_max);
+  var Vscale = (sh*0.42)/Math.max(0.001, emfV);
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
+  var nS = 240;
+  // I(t) green
+  ctx.strokeStyle = GREEN; ctx.lineWidth = 1.8; ctx.beginPath();
+  for(var k1=0; k1<nS; k1++){
+    var t1 = tStart + (k1/(nS-1))*winSec;
+    var I1 = rlc.switchClosed ? I_max*(1-Math.exp(-t1/tau_rl)) : I_max*Math.exp(-t1/tau_rl);
+    var X1 = tToXr(t1), Y1 = sMidY - I1*Iscale;
+    if(k1===0) ctx.moveTo(X1,Y1); else ctx.lineTo(X1,Y1);
+  }
+  ctx.stroke();
+  ctx.shadowColor=GREEN; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+  // V_R cyan
+  ctx.strokeStyle = CYAN; ctx.lineWidth = 1.4; ctx.beginPath();
+  for(var k2=0; k2<nS; k2++){
+    var t2 = tStart + (k2/(nS-1))*winSec;
+    var I2 = rlc.switchClosed ? I_max*(1-Math.exp(-t2/tau_rl)) : I_max*Math.exp(-t2/tau_rl);
+    var VR_ = I2*R;
+    var X2 = tToXr(t2), Y2 = sMidY - VR_*Vscale;
+    if(k2===0) ctx.moveTo(X2,Y2); else ctx.lineTo(X2,Y2);
+  }
+  ctx.stroke();
+  // V_L amber
+  ctx.strokeStyle = AMBER; ctx.lineWidth = 1.4; ctx.beginPath();
+  for(var k3=0; k3<nS; k3++){
+    var t3 = tStart + (k3/(nS-1))*winSec;
+    var VL_ = rlc.switchClosed ? emfV*Math.exp(-t3/tau_rl) : -(I_max*R*Math.exp(-t3/tau_rl));
+    var X3 = tToXr(t3), Y3 = sMidY - VL_*Vscale;
+    if(k3===0) ctx.moveTo(X3,Y3); else ctx.lineTo(X3,Y3);
+  }
+  ctx.stroke();
+  // Cursor
+  if(rlc.t <= winSec){
+    ctx.fillStyle=GREEN;
+    ctx.beginPath(); ctx.arc(tToXr(rlc.t), sMidY-I_now*Iscale, 3, 0, 2*Math.PI); ctx.fill();
+    ctx.fillStyle=CYAN;
+    ctx.beginPath(); ctx.arc(tToXr(rlc.t), sMidY-V_R*Vscale, 3, 0, 2*Math.PI); ctx.fill();
+    ctx.fillStyle=AMBER;
+    ctx.beginPath(); ctx.arc(tToXr(rlc.t), sMidY-V_L*Vscale, 3, 0, 2*Math.PI); ctx.fill();
+  }
+  // τ marker
+  if(tau_rl <= tEnd){
+    ctx.strokeStyle='rgba(240,160,48,0.4)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(tToXr(tau_rl), sy+12); ctx.lineTo(tToXr(tau_rl), sy+sh-12); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=AMBER_DIM; ctx.textAlign='center';
+    ctx.fillText('τ', tToXr(tau_rl), sy+10);
+  }
+  ctx.restore();
+
+  // Cursor line
+  if(rlc.t <= winSec){
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(tToXr(rlc.t), sy); ctx.lineTo(tToXr(rlc.t), sy+sh); ctx.stroke();
+  }
+
+  // Time labels
+  ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace';
+  ctx.textAlign='left';  ctx.fillText('t = 0', sx+2, sy+sh-2);
+  ctx.textAlign='right'; ctx.fillText('t = '+winSec.toFixed(2)+' s (= 6τ)', sx+sw-2, sy+sh-2);
+
+  /* ── Cards ── */
+  var h = '';
+  h += cd('I(t)', I_now.toFixed(3)+' A', GREEN);
+  h += cd('I_max', I_max.toFixed(3)+' A', TXH);
+  h += cd('V_R', V_R.toFixed(2)+' V', CYAN);
+  h += cd('V_L', V_L.toFixed(2)+' V', AMBER);
+  h += cd('τ = L/R', tau_rl.toFixed(3)+' s', AMBER_DIM);
+  h += cd('U_B', U_B.toFixed(2)+' J', AMBER);
+  document.getElementById('rl-cards').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════════════════
    PLAY/PAUSE & MODULE SWITCHING
    ════════════════════════════════════════════════════════════ */
 // sr uses srToggleForce() for its primary toggle (FORCE ON/RELEASED), not togglePlay.
-var PLAY_BTN = { gn:'g-play', lz:'l-play', pw:'p-play', lf:'f-play', wl:'w-play' };
+var PLAY_BTN = { gn:'g-play', lz:'l-play', pw:'p-play', lf:'f-play', wl:'w-play', em:'em-play', rl:'rl-play' };
 var PLAY_LABELS = {
   gn: { on:'PAUSE',   off:'PLAY' },
   lz: { on:'PLAYING', off:'PAUSED' },
   pw: { on:'PLAYING', off:'PAUSED' },
   lf: { on:'PLAYING', off:'PAUSED' },
-  wl: { on:'PLAYING', off:'PAUSED' }
+  wl: { on:'PLAYING', off:'PAUSED' },
+  em: { on:'PLAYING', off:'PAUSED' },
+  rl: { on:'PLAYING', off:'PAUSED' }
 };
 window.togglePlay = function(mod){
   play[mod] = !play[mod];
@@ -2609,6 +3218,14 @@ window.stepBack = function(mod){
     var btn = document.getElementById('sr-force');
     if(btn){ btn.textContent = 'DRIVE OFF'; btn.classList.remove('on'); }
     drawSlidingRod();
+  } else if(mod==='em'){
+    em.yMag = 0; em.v = 0; em.t = 0; em.history = [];
+    drawFallingMagnet();
+  } else if(mod==='rl'){
+    rlc.t = 0; rlc.switchClosed = false;
+    var rlBtn = document.getElementById('rl-switch');
+    if(rlBtn){ rlBtn.textContent = 'CLOSE SW'; }
+    drawRLCircuit();
   }
 };
 
@@ -2626,6 +3243,8 @@ window.sw = function(t){
   else if(t==='lf') uLF();
   else if(t==='wl') uWL();
   else if(t==='sr') uSR();
+  else if(t==='em') uEM();
+  else if(t==='rl') uRL();
   saveHash();
 };
 
@@ -2636,7 +3255,9 @@ var DEFAULTS = {
   pw: {pN:50, pR:80, pRes:25, pBpk:60, pT1:20, pT2:30},
   lf: {fw:100, fh:60, fB:50, fW:300, fv:20},
   wl: {wI:100, wF:10, wD:20, wW:100, wL:200, wR:10, wShowLines:true, wShowInduced:true},
-  sr: {srL:40, srB:80, srR:20, srV:50, srM:10}
+  sr: {srL:40, srB:80, srR:20, srV:50, srM:10},
+  em: {emM:5, emK:50, emShowEddy:true},
+  rl: {rlE:240, rlR:80, rlL:40}
 };
 window.resetModule = function(mod){
   var d = DEFAULTS[mod];
@@ -2667,6 +3288,14 @@ window.resetModule = function(mod){
     var srBtn = document.getElementById('sr-force');
     if(srBtn){ srBtn.textContent = 'DRIVE OFF'; srBtn.classList.remove('on'); }
     uSR();
+  } else if(mod==='em'){
+    em.yMag = 0; em.v = 0; em.t = 0; em.history = [];
+    uEM();
+  } else if(mod==='rl'){
+    rlc.t = 0; rlc.switchClosed = false;
+    var rlBtn2 = document.getElementById('rl-switch');
+    if(rlBtn2){ rlBtn2.textContent = 'CLOSE SW'; }
+    uRL();
   }
   saveHash();
 };
@@ -2701,7 +3330,7 @@ function loadHash(){
 /* ── Keyboard shortcuts ── */
 document.addEventListener('keydown', function(e){
   if(e.target.tagName==='INPUT' || e.target.tagName==='SELECT' || e.target.tagName==='TEXTAREA') return;
-  var order = ['pw','lz','lf','wl','sr','gn'];
+  var order = ['pw','lz','lf','wl','sr','gn','em','rl'];
   var idx = order.indexOf(currentTab);
   if(e.key==='ArrowLeft'){ sw(order[(idx-1+order.length)%order.length]); }
   else if(e.key==='ArrowRight'){ sw(order[(idx+1)%order.length]); }
