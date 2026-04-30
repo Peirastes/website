@@ -1839,6 +1839,72 @@ function drawWireLoop(){
   var Iabs = Math.min(1, Math.abs(I)/Math.max(0.01, I0));
   var wireCol = (I >= 0) ? '#ff8866' : '#66aaff';
 
+  /* ── Induced B field lines (dipole pattern around the loop) ──
+     Loop sits in xy-plane (z=0), normal along ±z (depending on sign of I_ind).
+     For a magnetic dipole with moment along z, a field line in the plane spanned
+     by ẑ and the unit vector û = (cosψ, sinψ, 0) is parametrized by polar angle θ:
+       ρ(θ) = r₀ sin³θ        (radial distance from loop axis)
+       ζ(θ) = r₀ sin²θ cosθ    (axial position, along ẑ)
+     so the world point is loop_center + ρ·û + ζ·ẑ. As θ goes 0→π the line traces
+     out from north pole, around outside, back to south pole.
+     We split into front (z>0) and back (z<0) halves so the line correctly threads
+     through the (z=0) loop in the layered render.
+  */
+  function inducedFieldLines(){
+    if(Math.abs(Iind) <= 0.0005) return {back: [], front: []};
+    var cxLoopW = d_px + w_px/2;
+    // r₀ sized to extend modestly beyond the loop
+    var r0 = Math.min(95, Math.max(45, Math.max(w_px, L_px) * 0.55));
+    var psis = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, 5*Math.PI/4, 3*Math.PI/2, 7*Math.PI/4];
+    var nSeg = 36;
+    var thMin = 0.10*Math.PI, thMax = 0.90*Math.PI;
+    var back = [], front = [];
+    for(var pi=0; pi<psis.length; pi++){
+      var psi = psis[pi];
+      var cosPsi = Math.cos(psi), sinPsi = Math.sin(psi);
+      var ptsBack = [], ptsFront = [];
+      for(var k=0; k<=nSeg; k++){
+        var t = thMin + (thMax - thMin) * k/nSeg;
+        var s_t = Math.sin(t), c_t = Math.cos(t);
+        var s3 = s_t*s_t*s_t;
+        var s2c = s_t*s_t*c_t;
+        var wxF = cxLoopW + r0*s3*cosPsi;
+        var wyF = r0*s3*sinPsi;
+        var wzF = r0*s2c;
+        var pp = P(wxF, wyF, wzF);
+        var seg = [pp[0], pp[1], wzF];
+        if(wzF >= 0) ptsFront.push(seg); else ptsBack.push(seg);
+      }
+      if(ptsFront.length > 1) front.push(ptsFront);
+      if(ptsBack.length > 1)  back.push(ptsBack);
+    }
+    return {back: back, front: front};
+  }
+  function drawIndFieldSegments(segs, alphaMul){
+    if(!segs || segs.length === 0 || alphaMul <= 0) return;
+    ctx.save();
+    ctx.lineWidth = 1.3;
+    for(var li=0; li<segs.length; li++){
+      var line = segs[li];
+      if(line.length < 2) continue;
+      // Brightness fades with depth so back lines look subtler
+      var avgZ = 0;
+      for(var k=0; k<line.length; k++) avgZ += line[k][2];
+      avgZ /= line.length;
+      var depthFac = 0.35 + 0.45*Math.min(1, Math.max(0, (avgZ + 60)/120));
+      ctx.strokeStyle = 'rgba(255,200,100,'+ (alphaMul*depthFac) +')';
+      ctx.beginPath();
+      ctx.moveTo(line[0][0], line[0][1]);
+      for(var k2=1; k2<line.length; k2++){
+        ctx.lineTo(line[k2][0], line[k2][1]);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  var indFL = inducedFieldLines();
+  var indFLAlpha = Math.min(1.0, Math.abs(Iind) / Math.max(1e-9, IindPeak));
+
   // Loop corners (xy-plane, z=0)
   var loopTL_w = [d_px,        +L_px/2, 0];
   var loopTR_w = [d_px+w_px,   +L_px/2, 0];
@@ -1894,6 +1960,9 @@ function drawWireLoop(){
     }
     ctx.restore();
   }
+
+  /* ── (1b) BACK halves of induced field lines (behind the loop) ── */
+  drawIndFieldSegments(indFL.back, indFLAlpha);
 
   /* ── (2) Wire (drawn over back arcs) ── */
   ctx.strokeStyle = '#666'; ctx.lineWidth = 7;
@@ -2008,6 +2077,9 @@ function drawWireLoop(){
     ctx.fillText('B_ind', indPos[0], indPos[1] + 14);
     ctx.textBaseline='alphabetic';
   }
+
+  /* ── (5b) FRONT halves of induced field lines (in front of loop) ── */
+  drawIndFieldSegments(indFL.front, indFLAlpha);
 
   /* ── (6) FRONT arcs of B-field ellipses (in front of wire and loop) ── */
   if(circles.length){
