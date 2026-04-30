@@ -1801,11 +1801,7 @@ function drawWireLoop(){
   var emfPeak = phiPeak * omega;
   var IindPeak = emfPeak / R;
 
-  // History (for scope)
-  if(play.wl){
-    wl.history.push({t: wl.t, I: I, phi: phi, emf: emf, Iind: Iind});
-    if(wl.history.length > wl.histMax) wl.history.shift();
-  }
+  // (Scope traces are now plotted analytically from sin(ωt)/cos(ωt) — no history needed.)
 
   /* ════════════════════════════════════════════════════════════════════
      TOP HALF — 3D OBLIQUE PROJECTION
@@ -1822,7 +1818,9 @@ function drawWireLoop(){
   var phi   = 22 * Math.PI/180;       // pitch
   var ct = Math.cos(theta), stθ = Math.sin(theta);
   var cp = Math.cos(phi),   sp = Math.sin(phi);
-  var origX = 130, origY = 130;
+  // Figure occupies the LEFT HALF of the canvas (mirrors Generator/Piecewise B layout).
+  // Origin sits in the middle of the left half so the projected scene is centered.
+  var origX = 130, origY = H/2;
   function P(wx, wy, wz){
     return [
       origX + wx*ct + wz*stθ,
@@ -1834,7 +1832,11 @@ function drawWireLoop(){
   var d_px = parseInt(document.getElementById('wD').value);
   var w_px = parseInt(document.getElementById('wW').value);
   var L_px = Math.min(parseInt(document.getElementById('wL').value), 220);
-  var wireExt = Math.max(L_px/2 + 30, 130);
+  var wireExt = Math.max(L_px/2 + 30, 180);
+
+  // Section divider at canvas mid-line (figure left of it, scope right of it)
+  ctx.strokeStyle = IF; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(W/2, 18); ctx.lineTo(W/2, H-18); ctx.stroke();
 
   var Iabs = Math.min(1, Math.abs(I)/Math.max(0.01, I0));
   var wireCol = (I >= 0) ? '#ff8866' : '#66aaff';
@@ -2165,47 +2167,62 @@ function drawWireLoop(){
   var rightL = P(d_px + w_px, -L_px/2 - 4, 0);
   ctx.fillText('L = '+L.toFixed(3)+' m', rightL[0], rightL[1] + 14);
 
-  // Title strip
+  // Title strip (LEFT HALF only — figure annotation)
   ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
   ctx.fillText('OBLIQUE 3D · yaw '+(theta*180/Math.PI).toFixed(0)+'° · pitch '+(phi*180/Math.PI).toFixed(0)+'°', 16, 18);
   ctx.textAlign='right';
-  ctx.fillText('R_loop = '+R.toFixed(2)+' Ω', W-16, 18);
+  ctx.fillText('R_loop = '+R.toFixed(2)+' Ω', W/2 - 4, 18);
 
-  /* ── BOTTOM: scope showing I(t) cyan and I_ind(t) amber (90° apart) ── */
-  var sx = 30, sy = 260, sWidth = W - 60, sHeight = 150;
+  /* ── RIGHT PANEL: dual-trace scope (analytical, always fills) ── */
+  var sx = W/2 + 30, sy = 50, sWidth = W - sx - 30, sHeight = H - 100;
   var sMidY = sy + sHeight/2;
   ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx, sy, sWidth, sHeight);
   ctx.strokeStyle=IF; ctx.lineWidth=1; ctx.strokeRect(sx, sy, sWidth, sHeight);
 
-  // Center line
+  // Scope grid
+  ctx.strokeStyle='rgba(255,255,255,0.05)';
+  for(var sgi=1; sgi<8; sgi++){
+    ctx.beginPath(); ctx.moveTo(sx + sgi*sWidth/8, sy); ctx.lineTo(sx + sgi*sWidth/8, sy+sHeight); ctx.stroke();
+  }
+  for(var sgj=1; sgj<6; sgj++){
+    ctx.beginPath(); ctx.moveTo(sx, sy + sgj*sHeight/6); ctx.lineTo(sx+sWidth, sy + sgj*sHeight/6); ctx.stroke();
+  }
+
+  // Center line (zero)
   ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
   ctx.beginPath(); ctx.moveTo(sx, sMidY); ctx.lineTo(sx+sWidth, sMidY); ctx.stroke();
   ctx.setLineDash([]);
 
   // Scope label
   ctx.fillStyle=AMBER_DIM; ctx.font='10px "Share Tech Mono",monospace'; ctx.textAlign='left';
-  ctx.fillText('SCOPE — I (cyan, drive) · I_ind (amber, response) · 90° lag', sx + 4, sy - 6);
+  ctx.fillText('SCOPE — I (cyan, drive) · I_ind (amber, response)', sx + 4, sy - 6);
   ctx.textAlign='right';
   ctx.fillStyle=TX;
-  ctx.fillText('I₀ = '+I0+' A · f = '+f.toFixed(1)+' Hz · R = '+R.toFixed(2)+' Ω', sx+sWidth, sy - 6);
+  ctx.fillText('I₀='+I0+' A · f='+f.toFixed(1)+' Hz', sx+sWidth, sy - 6);
 
-  // Plot traces
-  if(wl.history.length > 1){
-    var period = (omega>0) ? 2*Math.PI/omega : 1;
-    var winSec = Math.max(0.05, 4*period);
+  // Plot traces — analytical, always fills the scope width.
+  // I(t) = I₀ sin(ωt);   I_ind(t) = -I_ind_peak cos(ωt)   (90° lag)
+  if(omega > 0){
+    var period = 2*Math.PI/omega;
+    var winSec = 4*period;
     var tEnd = wl.t;
     var tStart = tEnd - winSec;
-    var pts = wl.history.filter(function(p){return p.t >= tStart;});
-    function tToX(t){ return sx + (t-tStart)/winSec*sWidth; }
-    var Iscale  = (sHeight*0.42) / Math.max(0.001, I0);
-    var IindScale = (sHeight*0.42) / Math.max(0.0001, IindPeak);
+    var nSamples = 240;
+    var Iscale    = (sHeight*0.42) / Math.max(0.001, I0);
+    var IindScale = (sHeight*0.42) / Math.max(1e-12, IindPeak);
+
+    function tToX_(t){ return sx + (t-tStart)/winSec*sWidth; }
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(sx, sy, sWidth, sHeight); ctx.clip();
 
     // I(t) cyan
     ctx.strokeStyle = CYAN; ctx.lineWidth = 1.6;
     ctx.beginPath();
-    for(var k=0;k<pts.length;k++){
-      var X = tToX(pts[k].t);
-      var Y = sMidY - pts[k].I*Iscale;
+    for(var k=0; k<nSamples; k++){
+      var t_ = tStart + (k/(nSamples-1))*winSec;
+      var X = tToX_(t_);
+      var Y = sMidY - (I0*Math.sin(omega*t_))*Iscale;
       if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
     }
     ctx.stroke();
@@ -2214,34 +2231,45 @@ function drawWireLoop(){
     // I_ind(t) amber
     ctx.strokeStyle = AMBER; ctx.lineWidth = 1.8;
     ctx.beginPath();
-    for(var k=0;k<pts.length;k++){
-      var X = tToX(pts[k].t);
-      var Y = sMidY - pts[k].Iind*IindScale;
-      if(k===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    for(var k2=0; k2<nSamples; k2++){
+      var t2 = tStart + (k2/(nSamples-1))*winSec;
+      var X2 = tToX_(t2);
+      var Y2 = sMidY - (-IindPeak*Math.cos(omega*t2))*IindScale;
+      if(k2===0) ctx.moveTo(X2,Y2); else ctx.lineTo(X2,Y2);
     }
     ctx.stroke();
     ctx.shadowColor=AMBER; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
 
-    // "Now" line
-    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(sx+sWidth, sy); ctx.lineTo(sx+sWidth, sy+sHeight); ctx.stroke();
-    // Live dots
+    // Live dots at "now"
     ctx.fillStyle=CYAN;
     ctx.beginPath(); ctx.arc(sx+sWidth, sMidY-I*Iscale, 3, 0, 2*Math.PI); ctx.fill();
     ctx.fillStyle=AMBER;
     ctx.beginPath(); ctx.arc(sx+sWidth, sMidY-Iind*IindScale, 3, 0, 2*Math.PI); ctx.fill();
+
+    ctx.restore();
+
+    // "Now" cursor (drawn outside clip so it spans full panel)
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(sx+sWidth, sy); ctx.lineTo(sx+sWidth, sy+sHeight); ctx.stroke();
   }
 
   // Scope axis labels
   ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace'; ctx.textAlign='right';
-  ctx.fillText('+I₀', sx+sWidth+30, sy + sHeight*0.08 + 3);
-  ctx.fillText('-I₀', sx+sWidth+30, sy + sHeight*0.92 + 3);
+  ctx.fillText('+I₀', sx+sWidth+28, sy + sHeight*0.08 + 3);
+  ctx.fillText('-I₀', sx+sWidth+28, sy + sHeight*0.92 + 3);
+  ctx.textAlign='left';
+  ctx.fillStyle=AMBER_DIM;
+  ctx.fillText('±I_ind_peak', sx-2, sy + sHeight*0.08 + 3);
+  ctx.fillText('  '+(IindPeak*1000).toFixed(2)+' mA', sx-2, sy + sHeight*0.08 + 14);
+
+  // Period info below scope
   if(omega > 0){
     var period_disp = 2*Math.PI/omega;
+    ctx.fillStyle=TX; ctx.font='9px "Share Tech Mono",monospace';
     ctx.textAlign='left';
     ctx.fillText('T = '+(period_disp*1000).toFixed(0)+' ms', sx, sy+sHeight+12);
     ctx.textAlign='right';
-    ctx.fillText('window: '+(4*period_disp*1000).toFixed(0)+' ms', sx+sWidth, sy+sHeight+12);
+    ctx.fillText('window: '+(4*period_disp*1000).toFixed(0)+' ms · 90° lag', sx+sWidth, sy+sHeight+12);
   }
 
   /* ── Cards ── */
