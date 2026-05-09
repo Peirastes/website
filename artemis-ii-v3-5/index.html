@@ -379,16 +379,17 @@ body::after {
 }
 .tape-gauge__body {
   position: relative;
-  width: 124px;                                 /* fits the 115-wide SVG viewBox + breathing room */
-  height: 116px;                                /* fits the 120-tall SVG viewBox after scaling */
+  width: 118px;                                 /* aspect ~ 115:120 so SVG fills with no side bands */
+  height: 122px;
   overflow: hidden;
   border-radius: 5px;
   background: #08080d;                          /* near-black inner viewport */
   border: 1px solid rgba(255, 255, 255, 0.06);
-  /* recessed shadowing — instrument set into the panel */
+  /* recessed shadowing — tighter blur so it stays at top/bottom edges
+     instead of bleeding into the corners. */
   box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.65),
-    inset 0 -1px 3px rgba(0, 0, 0, 0.45),
+    inset 0 1px 3px rgba(0, 0, 0, 0.60),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.40),
     0 1px 0 rgba(255, 255, 255, 0.04);          /* tiny outer-top highlight */
 }
 .tape-gauge__body::before {
@@ -495,12 +496,12 @@ body::after {
 .event-log {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;                /* always show scrollbar so the canonical glass pill is visible */
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   gap: 1px;                          /* tight tabular spacing — matches v2 */
   overscroll-behavior: contain;
-  padding-right: 4px;
   scroll-behavior: smooth;
 }
 .event-log__item {
