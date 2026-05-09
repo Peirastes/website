@@ -310,7 +310,10 @@ body::after {
   background: rgba(125, 214, 255, 0.42);
 }
 
-/* ─── TAPE GAUGES (telemetry readouts) ────────────────────────── */
+/* ─── TAPE GAUGES (telemetry readouts) ──────────────────────────
+   v3.5 picks up v2's recessed-channel depth: dark inner viewport
+   set into the panel, with linear top/bottom dark fades that make
+   the tape numbers feel like they're moving past a window. */
 
 .tape-cluster {
   display: grid;
@@ -318,14 +321,11 @@ body::after {
   gap: 10px;
 }
 .tape-gauge {
-  background: rgba(6, 10, 18, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-  padding: 10px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  /* no outer background — body owns the depth */
 }
 .tape-gauge__head {
   font-family: 'Orbitron', sans-serif;
@@ -338,20 +338,96 @@ body::after {
   opacity: 0.9;
 }
 .tape-gauge__body {
+  position: relative;
   width: 110px;
   height: 110px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #08080d;                          /* near-black inner viewport */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  /* recessed shadowing — instrument set into the panel */
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.65),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.04);          /* tiny outer-top highlight */
+}
+.tape-gauge__body::before {
+  /* Dark fades at top + bottom — tape numbers fade into the channel */
+  content: '';
+  position: absolute; inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(0, 0, 0, 0.78) 0%,
+    transparent 15%,
+    transparent 85%,
+    rgba(0, 0, 0, 0.78) 100%);
 }
 .tape-gauge__body svg {
   display: block;
+  position: relative;
+  z-index: 1;
 }
 
-/* ─── FLIGHT DYNAMICS GRAPH ──────────────────────────────────── */
+/* ─── FLIGHT DYNAMICS GRAPH ────────────────────────────────────
+   v3.5 picks up v2's "glass slab" depth: gradient fill + chromatic
+   side-edges (cyan left, neon-amber right) + outer drop shadow +
+   diagonal sheen + inset chromatic glow. Adapted to the cinematic
+   palette (cyan #7dd6ff + neon amber #ffae20) instead of v2's
+   teal-cyan + warm-amber. */
 
 .glass-graph {
+  position: relative;
   width: 100%;
-  background: rgba(6, 10, 18, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  background: linear-gradient(180deg,
+    rgba(10, 16, 24, 0.55) 0%,
+    rgba(8, 14, 22, 0.45) 40%,
+    rgba(6, 12, 20, 0.40) 60%,
+    rgba(8, 14, 22, 0.50) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left-color: rgba(125, 214, 255, 0.22);    /* chromatic cyan edge */
+  border-right-color: rgba(255, 174, 32, 0.22);    /* chromatic neon-amber edge */
+  overflow: hidden;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 0 1px rgba(255, 255, 255, 0.06);
+}
+.glass-graph::before {
+  /* diagonal glass sheen */
+  content: '';
+  position: absolute; inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 5px;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 20%,
+    transparent 45%, transparent 65%,
+    rgba(255, 255, 255, 0.01) 85%,
+    rgba(255, 255, 255, 0.03) 100%);
+}
+.glass-graph::after {
+  /* inset chromatic edges + top highlight + bottom shadow */
+  content: '';
+  position: absolute; inset: 0;
   border-radius: 4px;
+  pointer-events: none;
+  z-index: 4;
+  box-shadow:
+    inset 2px 0 8px rgba(125, 214, 255, 0.06),
+    inset -2px 0 8px rgba(255, 174, 32, 0.06),
+    inset 0 1px 4px rgba(255, 255, 255, 0.04),
+    inset 0 -1px 4px rgba(0, 0, 0, 0.20);
+}
+.glass-graph canvas {
+  display: block;
+  width: 100%;
+  position: relative;
+  z-index: 1;
 }
 .graph-legend {
   display: flex;
