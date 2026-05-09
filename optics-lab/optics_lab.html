@@ -52,65 +52,44 @@ body { overflow: hidden !important; font-family: 'Share Tech Mono', monospace; }
   --acr-chrom-cyan: rgba(64,232,208,0.30);
 }
 
+/* Cockpit stage — fills viewport minus a thin top gutter for cinematic chrome
+   (PEIRASTES wordmark + profile pip overlay the corners). No outer chassis. */
 .instrument-stage {
   position: fixed; inset: 0;
-  display: grid; place-items: center;
-  padding: 5.5rem 1.5rem 4.5rem;
+  display: block;
+  padding: 4.5rem 0 0;
   z-index: 8;
   opacity: 0; transform: translateY(20px) scale(0.98);
   transition: opacity 800ms ease 500ms, transform 800ms ease 500ms;
-  overflow: auto;
+  overflow: hidden;
 }
 body.is-ready .instrument-stage { opacity: 1; transform: translateY(0) scale(1); }
 
+/* Transparent passthrough — the wrapper element survives so DOM/JS still works,
+   but the acrylic frame chrome is gone. Inner panels (.control-panel, .crt-screen)
+   carry their own console-tier chrome. */
 .acrylic-panel {
   position: relative;
-  width: clamp(720px, 96vw, 1320px);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(18,22,28,0.65) 0%, rgba(12,16,22,0.6) 60%, rgba(10,14,20,0.65) 100%);
-  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  border: 1px solid var(--amber-edge);
-  box-shadow:
-    1px 0 0 var(--acr-chrom-amber),
-    -1px 0 0 var(--acr-chrom-cyan),
-    0 0 28px rgba(240,160,48,0.13),
-    0 18px 48px rgba(0,0,0,0.65),
-    0 4px 12px rgba(0,0,0,0.5),
-    inset 0 0 40px rgba(240,160,48,0.04),
-    inset 0 1px 0 rgba(240,160,48,0.18);
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   overflow: hidden;
 }
 
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 22px;
-  border-bottom: 1px solid rgba(240,160,48,0.15);
-  background: rgba(8,12,18,0.3);
-}
-.panel-header__label {
-  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
-  color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase;
-  text-shadow: 0 0 8px var(--amber-glow);
-}
-.panel-header__status {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-family: 'Share Tech Mono', monospace; font-size: 10px;
-  color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase;
-}
-.panel-header__status::before {
-  content: ''; display: inline-block;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 4px var(--green), 0 0 8px var(--green);
-  animation: ledPulse 2.5s ease-in-out infinite;
-}
-@keyframes ledPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+/* Identity already covered by cinematic .profile element ("Optics Laboratory · Instrument · v3.0") */
+.panel-header { display: none; }
 
 /* Lab grid (preserves .main-grid classname for compatibility) */
 .main-grid {
   display: grid;
   grid-template-columns: 320px 1fr;   /* sidebar wide enough to fit longest control labels unclipped */
   gap: 0;
+  height: 100%;
   min-height: 0;
 }
 
@@ -120,6 +99,9 @@ body.is-ready .instrument-stage { opacity: 1; transform: translateY(0) scale(1);
   border-right: 1px solid rgba(240,160,48,0.12);
   padding: 16px;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;   /* wheel inside sidebar stays in sidebar */
 }
 
 .panel-section { margin-bottom: 18px; }
@@ -280,6 +262,9 @@ select.input-field:focus {
   flex-direction: column;
   gap: 14px;
   min-width: 0;           /* allow grid child to shrink properly */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;   /* wheel inside display-area stays here */
 }
 
 /* Mounted screen — restyle .crt-screen as acrylic mounted-screen */
@@ -321,7 +306,7 @@ select.input-field:focus {
 .canvas-wrap canvas {
   display: block;
   max-width: 100%;
-  max-height: 58vh;       /* cap canvas vertical so it doesn't blow past the viewport */
+  max-height: 70vh;       /* cockpit mode — chassis removed, more vertical room available */
   width: auto;
   height: auto;
   margin: 0 auto;
@@ -398,12 +383,9 @@ select.input-field:focus {
   .control-panel { border-right: none; border-bottom: 1px solid rgba(240,160,48,0.12); }
 }
 @media (max-width: 720px) {
-  .instrument-stage { padding: 5rem 0.75rem 4rem; }
-  .acrylic-panel { width: 100%; }
+  .instrument-stage { padding: 4rem 0 0; }
   .control-panel { padding: 12px; }
   .display-area { padding: 12px; }
-  .panel-header { padding: 12px 14px; }
-  .panel-header__label { font-size: 10px; letter-spacing: 0.16em; }
   .canvas-wrap canvas { max-height: 50vh; }
 }
 @media (max-width: 550px) {
