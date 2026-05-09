@@ -629,7 +629,8 @@ body::after {
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 1px 2px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  overflow: hidden;
+  /* No overflow:hidden — marker tooltips need to rise above the channel.
+     Fill is inset 1px so it doesn't escape the rounded corners. */
 }
 
 /* Played portion — amber gradient, brightest at the playhead */
@@ -660,7 +661,7 @@ body::after {
   margin-left: -0.5px;
   background: rgba(125, 214, 255, 0.55);
   box-shadow: 0 0 4px rgba(125, 214, 255, 0.45);
-  pointer-events: auto;     /* but the markers themselves get tooltip via title attr */
+  pointer-events: auto;
   cursor: help;
   transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
 }
@@ -669,6 +670,60 @@ body::after {
   box-shadow: 0 0 8px var(--cyan), 0 0 14px var(--cyan-glow);
   transform: scaleX(1.6);
   transform-origin: center;
+}
+
+/* Hover label — pulls event name from data-name (set by post-load JS).
+   Floats above the marker, centered, with a tiny down-pointing notch
+   that tracks the tick. Cinematic glass styling. */
+.playback__scrub-marker::before {
+  content: attr(data-name);
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: rgba(8, 12, 18, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--cyan-faint);
+  border-radius: 3px;
+  padding: 4px 9px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.6),
+    0 0 10px rgba(125, 214, 255, 0.18);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 50;
+}
+.playback__scrub-marker::after {
+  /* Tiny downward notch — points at the tick from the label */
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid rgba(8, 12, 18, 0.94);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+}
+.playback__scrub-marker:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.playback__scrub-marker:hover::after {
+  opacity: 1;
 }
 
 /* Recessed channel inset shadows — deep well effect.
@@ -2722,6 +2777,21 @@ loadData();
   syncStatus();
   // React to all future class changes on btnPlay
   new MutationObserver(syncStatus).observe(play, { attributes: true, attributeFilter: ['class'] });
+
+  // Scrub bar event markers — v2 builds them with `title` for native tooltip.
+  // We render our own cinematic hover label via CSS attr(data-name); copy
+  // title -> data-name and strip title to avoid the doubled browser tooltip.
+  const scrubEvents = document.getElementById('scrubEvents');
+  if (scrubEvents) {
+    function upgradeMarkers() {
+      scrubEvents.querySelectorAll('.playback__scrub-marker[title]').forEach(m => {
+        m.dataset.name = m.getAttribute('title');
+        m.removeAttribute('title');
+      });
+    }
+    upgradeMarkers();   // catches any already in DOM
+    new MutationObserver(upgradeMarkers).observe(scrubEvents, { childList: true });
+  }
 })();
 </script>
 
