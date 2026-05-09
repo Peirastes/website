@@ -297,17 +297,57 @@ body::after {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* Soft cinematic scrollbar (preserves .acrylic-scroll classname) */
-.acrylic-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+/* Canonical chromatic-glass-pill scrollbar (Acrylic HUD heritage,
+   adapted to cinematic palette: cyan + neon amber). Recessed track
+   with inset shadows; pill thumb with chromatic side-edges (cyan
+   left, amber right) + multi-layer inset glow. Same grammar as
+   the Flight Dynamics graph, ties everything together. */
+.acrylic-scroll::-webkit-scrollbar {
+  width: 8px; height: 8px;
+}
 .acrylic-scroll::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02);
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(4, 6, 10, 0.65) 25%,
+    rgba(4, 6, 10, 0.65) 75%,
+    rgba(0, 0, 0, 0.45) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 1px 0 3px rgba(0, 0, 0, 0.55),
+    inset -1px 0 3px rgba(0, 0, 0, 0.55),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+  margin: 4px 0;
 }
 .acrylic-scroll::-webkit-scrollbar-thumb {
-  background: rgba(125, 214, 255, 0.22);
-  border-radius: 2px;
+  border-radius: 4px;
+  background: rgba(40, 52, 68, 0.6);
+  border-left: 1px solid rgba(125, 214, 255, 0.10);
+  border-right: 1px solid rgba(255, 174, 32, 0.22);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    inset 2px 0 4px rgba(125, 214, 255, 0.04),
+    inset -2px 0 4px rgba(255, 174, 32, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 .acrylic-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 214, 255, 0.42);
+  background: rgba(50, 64, 82, 0.7);
+  border-left-color: rgba(125, 214, 255, 0.18);
+  border-right-color: rgba(255, 174, 32, 0.38);
+  border-top-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 2px 0 6px rgba(125, 214, 255, 0.04),
+    inset -2px 0 6px rgba(255, 174, 32, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+/* Firefox fallback */
+.acrylic-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 214, 255, 0.22) rgba(0, 0, 0, 0.5);
 }
 
 /* ─── TAPE GAUGES (telemetry readouts) ──────────────────────────
@@ -339,8 +379,8 @@ body::after {
 }
 .tape-gauge__body {
   position: relative;
-  width: 110px;
-  height: 110px;
+  width: 124px;                                 /* fits the 115-wide SVG viewBox + breathing room */
+  height: 116px;                                /* fits the 120-tall SVG viewBox after scaling */
   overflow: hidden;
   border-radius: 5px;
   background: #08080d;                          /* near-black inner viewport */
@@ -367,6 +407,8 @@ body::after {
   display: block;
   position: relative;
   z-index: 1;
+  width: 100%;                                  /* scale SVG to body — responsive at all sizes */
+  height: 100%;
 }
 
 /* ─── FLIGHT DYNAMICS GRAPH ────────────────────────────────────
