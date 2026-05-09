@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Throttled Cascade — v4 Phase 1 · Peirastes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #e8e4d8;
+    --paper: #0c0d10;
+    --panel: #14161b;
+    --panel-2: #181a20;
+    --rule: #2a2d35;
+    --accent: #c89b3c;
+    --accent-dim: #8a6b28;
+    --frontier: #e07a3c;
+    --periphery: #6ea4c4;
+    --mid: #a89978;
+    --moat: #d05a4a;
+    --cool: #4f7592;
+    --muted: #7a7669;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    min-height: 100vh;
+  }
+  body {
+    background-image:
+      radial-gradient(ellipse 80% 40% at 25% 0%, rgba(224,122,60,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 40% at 75% 100%, rgba(110,164,196,0.04) 0%, transparent 60%);
+    padding: 36px 24px 56px;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+
+  header {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 24px;
+  }
+  h1 { font-weight: 400; font-size: 38px; letter-spacing: -0.01em; line-height: 1.05; }
+  h1 em { font-style: italic; color: var(--accent); }
+  .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-top: 8px;
+  }
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); text-align: right; line-height: 1.8;
+  }
+
+  .legend {
+    border: 1px solid var(--rule);
+    background: var(--panel);
+    padding: 14px 18px 16px;
+    margin-bottom: 22px;
+    font-size: 14px; line-height: 1.55;
+    color: var(--ink);
+  }
+  .legend b {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  .legend code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--frontier);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+
+  .stage {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 16px;
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .stage::before {
+    content: ''; position: absolute;
+    top: -1px; left: -1px; right: -1px; height: 1px;
+    opacity: 0.55;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .stage h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: var(--accent);
+  }
+  .stage h2 .tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-size: 13px;
+    letter-spacing: 0; text-transform: none;
+    color: var(--muted);
+  }
+  canvas {
+    display: block; width: 100%;
+    background: #07080a;
+    border: 1px solid #1a1d22;
+  }
+  .canvas-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    margin-top: 6px;
+    display: flex; justify-content: space-between;
+  }
+
+  .readouts {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .ro {
+    border-left: 2px solid var(--rule);
+    padding-left: 10px;
+  }
+  .ro .k {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .ro .v {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px; color: var(--ink); font-weight: 600;
+  }
+
+  /* sidebar */
+  aside.controls {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 18px 18px 22px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+  .control-group { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+  .control-group:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .control-group h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  button {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em;
+    padding: 7px 11px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { border-color: var(--accent-dim); color: var(--accent); }
+  button.primary:hover { background: rgba(200,155,60,0.08); }
+
+  select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 7px 9px;
+  }
+
+  input[type=range] {
+    width: 100%; margin: 4px 0;
+    -webkit-appearance: none; appearance: none;
+    background: transparent;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 3px; background: var(--rule); border: none;
+  }
+  input[type=range]::-moz-range-track {
+    height: 3px; background: var(--rule); border: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border-radius: 0;
+    margin-top: -5px;
+    cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 12px; height: 12px;
+    background: var(--accent);
+    border: none; border-radius: 0;
+    cursor: pointer;
+  }
+
+  .slider-row {
+    display: grid;
+    grid-template-columns: 56px 1fr 44px;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .slider-row .lbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .slider-row .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--ink);
+    text-align: right;
+  }
+  .slider-row.moaty .val { color: var(--moat); }
+
+  .single-slider .slider-label {
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    margin-top: 2px;
+  }
+  .single-slider .slider-label span:last-child { color: var(--ink); }
+
+  /* ---- mode tabs ---- */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 1px solid var(--rule);
+    margin-bottom: 22px;
+    background: var(--panel);
+  }
+  .tab {
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--rule);
+    padding: 14px 18px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    line-height: 1.4;
+    position: relative;
+    transition: all 0.12s ease;
+  }
+  .tab:last-child { border-right: none; }
+  .tab b {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent-dim);
+    font-weight: 600; margin-bottom: 4px;
+  }
+  .tab.active {
+    background: rgba(200,155,60,0.06);
+    color: var(--ink);
+  }
+  .tab.active b { color: var(--accent); }
+  .tab.active::before {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+  .tab:hover { color: var(--ink); }
+
+  /* ---- mode-conditional visibility ---- */
+  body.mode-manual .arc-only,
+  body.mode-manual .adv-only,
+  body.mode-arc .manual-only,
+  body.mode-arc .adv-only,
+  body.mode-adv .arc-only { display: none; }
+  body.mode-adv .legend.manual-only { display: none; }
+  body.mode-arc input[type=range],
+  body.mode-arc select { opacity: 0.55; cursor: not-allowed; }
+  body.mode-arc input[type=range]::-webkit-slider-thumb { background: var(--accent-dim); }
+
+  /* ---- adv-mode panel cosmetics ---- */
+  .adv-readouts { padding: 14px 16px; }
+  .legend-key {
+    display: inline-flex; gap: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted);
+  }
+  .legend-key .swatch {
+    display: inline-block;
+    width: 10px; height: 10px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* ---- event log ---- */
+  .event-log {
+    border: 1px solid var(--rule);
+    background: var(--panel-2);
+    padding: 8px 10px;
+    min-height: 120px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .event-line {
+    padding: 4px 0;
+    border-bottom: 1px dotted rgba(122,118,105,0.15);
+  }
+  .event-line:last-child { border-bottom: none; }
+  .event-line.fresh { color: var(--accent); }
+
+  /* ---- arc description block ---- */
+  .arc-desc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border-left: 2px solid var(--accent);
+  }
+  .arc-desc .arc-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+    display: block; margin-bottom: 4px;
+  }
+
+  footer.note {
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px; color: var(--muted);
+    line-height: 1.6;
+    max-width: 900px;
+  }
+  footer.note a { color: var(--accent); text-decoration: none; }
+  footer.note a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <h1>Throttled <em>Cascade</em></h1>
+    <div class="sub">v4 · Phases 1—4 · Field + Agents</div>
+  </div>
+  <div class="meta">
+    Companion to "Dispersion and Stratification"<br>
+    Reformulation v0.4
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-mode="manual"><b>Mode 1 · Manual</b>You drive the throttles. Drag sliders, watch the chain restratify.</button>
+  <button class="tab" data-mode="arc"><b>Mode 2 · Historical Arcs</b>Scripted κ(t) plays out a real arc. Watch the moat form, relocate, and persist.</button>
+  <button class="tab" data-mode="adv"><b>Mode 3 · Adversarial</b>Out-group sees a distorted profile and infers κ. Watch them get it wrong.</button>
+</div>
+
+<div class="legend manual-only">
+  <b>What this is.</b> A discrete chain of <code>N=12</code> ranks. Capability $C_n$ flows from the frontier (<code>n=0</code>) toward the periphery (<code>n=11</code>) through throttles $\kappa_{n,n+1}$. Each throttle is a strategic primitive: lowering it concentrates the capability gradient at one position — a <em>moat</em>. The strain bands below show where the gradient is currently piling up. The capability profile shows the kink directly. Drag the throttle sliders and watch the system restratify.
+</div>
+
+<div class="legend arc-only">
+  <b>What this is.</b> Three historical arcs encoded as scripted $\kappa(t)$ trajectories. At each event, one or more throttles change abruptly — modeling regime shifts of Section 3.4. Pick an arc from the sidebar; the manual controls become read-only. Watch the kink relocate as the chain's topology effectively changes (a "new tier activated" is a previously-closed throttle suddenly opening). Compare the moat's shape and persistence across arcs.
+</div>
+
+<div class="legend adv-only">
+  <b>What this is.</b> The in-group has a true throttle profile $\kappa$ — your sliders. The out-group only sees a distorted profile $C_n^{vis}$, the in-group's strategic narrative version of the true $C_n$. They run a steady-state inversion to estimate $\hat\kappa$ from what they see. Push the distortion strength $\lambda$ up and watch the inferred $\hat\kappa$ flatten — the out-group sees a smooth gradient where the moat actually is. The dashed cool-blue line on the profile is what they see; the bars are what's real. The inference panel shows the gap. <em>Weaponized underdetermination is the gap.</em>
+</div>
+
+<div class="grid">
+  <div class="stages">
+
+    <div class="stage arc-only">
+      <h2>Timeline <span class="tag" id="arcTitleTag">— pick an arc —</span></h2>
+      <canvas id="timelineCanvas"></canvas>
+      <div class="canvas-label">
+        <span id="arcStartLabel">start</span>
+        <span id="arcEndLabel">end</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <h2>Capability profile <span class="tag">$C_n$ vs rank</span></h2>
+      <canvas id="profileCanvas"></canvas>
+      <div class="canvas-label">
+        <span>frontier · n = 0</span>
+        <span>periphery · n = 11</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <h2>Capability flow <span class="tag">particles drift at κ-rate, colored by origin rank</span></h2>
+      <canvas id="flowCanvas"></canvas>
+      <div class="canvas-label">
+        <span>frontier · n = 0</span>
+        <span>periphery · n = 11</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <h2>Agent population <span class="tag">people sit at ranks; mobility tracks $\dot C_n$ — promotion ↑, displacement ↓</span></h2>
+      <canvas id="agentsCanvas"></canvas>
+      <div class="canvas-label">
+        <span>colored by <em>origin</em> rank — promoted/displaced agents show as out-of-place colors</span>
+        <span id="agentsCountLabel">60 agents</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <h2>Strain bands <span class="tag">gradient distribution across throttles</span></h2>
+      <canvas id="strainCanvas"></canvas>
+      <div class="canvas-label">
+        <span>each band: throttle (n, n+1)</span>
+        <span>width ∝ |C_n − C_{n+1}|</span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <h2>Moat metric <span class="tag">$M(n^*, t)$ — gradient share at each throttle</span></h2>
+      <canvas id="moatCanvas"></canvas>
+      <div class="canvas-label">
+        <span>0—1</span>
+        <span>5—6</span>
+        <span>10—11</span>
+      </div>
+    </div>
+
+    <div class="stage adv-only">
+      <h2>Throttle inference <span class="tag">true $\kappa$ vs inferred $\hat\kappa$</span></h2>
+      <canvas id="inferenceCanvas"></canvas>
+      <div class="canvas-label">
+        <span class="legend-key">
+          <span><span class="swatch" style="background:#c89b3c"></span>true κ</span>
+          <span><span class="swatch" style="background:#6ea4c4"></span>inferred κ̂</span>
+        </span>
+        <span>per-throttle, scaled 0—1</span>
+      </div>
+    </div>
+
+    <div class="stage readouts-stage">
+      <h2>Readouts</h2>
+      <div class="readouts">
+        <div class="ro"><div class="k">t</div><div class="v" id="tDisp">0.00</div></div>
+        <div class="ro"><div class="k">C₀ frontier</div><div class="v" id="c0Disp">0.00</div></div>
+        <div class="ro"><div class="k">C₁₁ tail</div><div class="v" id="cNDisp">0.00</div></div>
+        <div class="ro"><div class="k">max M</div><div class="v" id="maxMDisp">0.00</div></div>
+        <div class="ro"><div class="k">at throttle</div><div class="v" id="nStarDisp">—</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <aside class="controls">
+
+    <div class="control-group">
+      <h3>Run</h3>
+      <div class="btn-row">
+        <button id="playBtn" class="primary">▶ play</button>
+        <button id="stepBtn">step</button>
+        <button id="resetBtn">reset</button>
+      </div>
+    </div>
+
+    <div class="control-group arc-only">
+      <h3>Historical Arc</h3>
+      <select id="arcSelect">
+        <option value="nuclear">Nuclear (1943—2026)</option>
+        <option value="highered">Elite Higher Ed (1944—2026)</option>
+        <option value="ai">Frontier AI (2017—2026)</option>
+      </select>
+      <div class="arc-desc" id="arcDesc" style="margin-top:10px;">
+        <span class="arc-title" id="arcDescTitle">— select arc —</span>
+        <span id="arcDescBody">Pick an arc to load its scripted $\kappa(t)$.</span>
+      </div>
+    </div>
+
+    <div class="control-group arc-only">
+      <h3>Event log</h3>
+      <div class="event-log" id="eventLog"><div class="event-line">— no arc loaded —</div></div>
+    </div>
+
+    <div class="control-group adv-only">
+      <h3>Distortion (in-group → out-group)</h3>
+      <select id="distortionStrategy">
+        <option value="linearize">Linearize profile (hide kink)</option>
+        <option value="upsmooth">Suppress upstream (hide elite)</option>
+        <option value="downsmooth">Inflate downstream (hide tail)</option>
+      </select>
+      <div style="margin-top: 12px;">
+        <input type="range" id="distortionStrength" min="0" max="1" step="0.01" value="0">
+        <div class="slider-label" style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);">
+          <span>distortion λ</span><span id="distortionStrengthVal" style="color:var(--ink);">0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group adv-only">
+      <h3>Underdetermination</h3>
+      <div class="readouts" style="grid-template-columns:1fr 1fr;padding:0;">
+        <div class="ro" style="padding-left:8px;">
+          <div class="k">‖κ−κ̂‖₂</div>
+          <div class="v" id="udL2Disp" style="font-size:15px;">0.00</div>
+        </div>
+        <div class="ro" style="padding-left:8px;">
+          <div class="k">max gap</div>
+          <div class="v" id="udMaxDisp" style="font-size:15px;">0.00</div>
+        </div>
+      </div>
+      <div style="font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4;">
+        Steady-state inversion assumes the out-group knows $R$ and $\mu$ but only sees $C^{vis}$.
+      </div>
+    </div>
+
+    <div class="control-group manual-only">
+      <h3>Source $R_n$</h3>
+      <select id="sourceSelect">
+        <option value="frontier">Frontier only ($R_0 = 1$)</option>
+        <option value="bimodal">Bimodal ($R_0 = 1$, $R_{11} = 0.1$)</option>
+        <option value="uniform">Uniform ($R_n = 0.1$)</option>
+      </select>
+    </div>
+
+    <div class="control-group single-slider manual-only">
+      <h3>Decay $\mu$</h3>
+      <input type="range" id="muSlider" min="0" max="0.3" step="0.005" value="0.02">
+      <div class="slider-label"><span>$\mu$</span><span id="muVal">0.020</span></div>
+    </div>
+
+    <div class="control-group">
+      <h3>Throttles $\kappa_{n,n+1}$</h3>
+      <div id="throttleSliders"></div>
+    </div>
+
+    <div class="control-group manual-only">
+      <h3>Presets</h3>
+      <div class="btn-row preset">
+        <button data-preset="open">all open</button>
+        <button data-preset="moat0">moat 0—1</button>
+        <button data-preset="moat3">moat 3—4</button>
+        <button data-preset="staged">staged release</button>
+        <button data-preset="closed">all narrow</button>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<footer class="note">
+  <b style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;">PHASES 1—4.</b> Mode 1 is the manual sandbox. Mode 2 plays scripted $\kappa(t)$ histories — Nuclear, Elite Higher Ed, Frontier AI — with topology-change events firing on a timeline. Mode 3 is the adversarial inverse problem: the in-group's true $\kappa$ is your slider state, the out-group sees a strategically distorted $C^{vis}$, and a steady-state inversion estimates $\hat\kappa$ from what they see. The gap $\|\kappa - \hat\kappa\|$ is the operational signature of <em>weaponized underdetermination</em>. The Agent panel adds a sparse layer of people who sit at ranks and only move during regime shifts — promotion when capability surges upstream, displacement when it drops at their rank. The kinetic-theory dual representation (field + particles) is now complete.
+</footer>
+
+</div>
+
+<script>
+(() => {
+  // -------- model --------
+  const N = 12;
+  const C = new Float64Array(N);
+  const kappa = new Float64Array(N - 1);
+  let mu = 0.02;
+  const R = new Float64Array(N);
+  let t = 0;
+  const dt = 0.05;
+  let playing = false;
+  const SUBSTEPS = 4;
+
+  // -------- mode + arc state --------
+  let uiMode = 'manual';     // 'manual' | 'arc' | 'adv'
+  let activeArc = null;
+  const firedEvents = new Set();
+  const eventLog = [];
+
+  // -------- adversarial state --------
+  const Cvis = new Float64Array(N);
+  const kappaHat = new Float64Array(N - 1);
+  let distortionLambda = 0;
+  let distortionStrategy = 'linearize';
+  let udL2 = 0, udMax = 0;
+
+  // -------- flow particles (visualization only — not coupled to physics) --------
+  const FLOW_PARTICLES = [];
+  const MAX_PARTICLES = 240;
+
+  // -------- agents (Phase 4: sparse particle layer for people/mobility) --------
+  const AGENTS = [];
+  const AGENTS_PER_RANK_INIT = 5;
+  const Cprev = new Float64Array(N);
+  const dCsmooth = new Float64Array(N);
+  let promotionCount = 0, displacementCount = 0;
+
+  // initial state
+  function reset() {
+    C.fill(0);
+    Cprev.fill(0);
+    dCsmooth.fill(0);
+    t = 0;
+    firedEvents.clear();
+    FLOW_PARTICLES.length = 0;
+    initAgents();
+    promotionCount = 0;
+    displacementCount = 0;
+  }
+
+  function initAgents() {
+    AGENTS.length = 0;
+    let id = 0;
+    for (let n = 0; n < N; n++) {
+      for (let i = 0; i < AGENTS_PER_RANK_INIT; i++) {
+        AGENTS.push({
+          id: id++,
+          rank: n,
+          sourceRank: n,
+          targetRank: n,
+          moveProgress: 1,
+          yOffset: (Math.random() - 0.5) * 0.7,
+          originalRank: n
+        });
+      }
+    }
+  }
+
+  function setSource(src) {
+    R.fill(0);
+    if (src === 'frontier') R[0] = 1.0;
+    else if (src === 'bimodal') { R[0] = 1.0; R[N - 1] = 0.1; }
+    else if (src === 'uniform') R.fill(0.1);
+  }
+
+  function step() {
+    const dC = new Float64Array(N);
+    for (let n = 0; n < N; n++) {
+      let acc = R[n] - mu * C[n];
+      if (n > 0) acc += kappa[n - 1] * (C[n - 1] - C[n]);
+      if (n < N - 1) acc -= kappa[n] * (C[n] - C[n + 1]);
+      dC[n] = acc;
+    }
+    for (let n = 0; n < N; n++) C[n] += dt * dC[n];
+    t += dt;
+    spawnFlowParticles(dt);
+    updateFlowParticles(dt);
+    updateAgents(dt);
+    if (uiMode === 'arc') fireArcEvents();
+    if (uiMode === 'adv') recomputeAdv();
+  }
+
+  // -------- agent dynamics --------
+  // Agents respond to dC_n/dt:
+  //   dC_n > +threshold  →  attract from rank n+1 (promotion toward frontier)
+  //   dC_n < -threshold  →  expel toward rank n+1 (displacement away from frontier)
+  // In steady state (dC ≈ 0), agents freeze. They move only during regime shifts.
+  function updateAgents(dt_) {
+    // smoothed dC
+    for (let n = 0; n < N; n++) {
+      const inst = (C[n] - Cprev[n]) / Math.max(dt_, 1e-6);
+      dCsmooth[n] = 0.92 * dCsmooth[n] + 0.08 * inst;
+    }
+    Cprev.set(C);
+
+    const PROMOTE_THRESHOLD = 0.5;
+    const DISPLACE_THRESHOLD = -0.25;
+    const BASE_RATE = 0.06;
+
+    for (let n = 0; n < N; n++) {
+      // promotion: agents at rank n+1 want to move to rank n
+      if (dCsmooth[n] > PROMOTE_THRESHOLD && n < N - 1) {
+        const intensity = Math.min(2, dCsmooth[n] - PROMOTE_THRESHOLD);
+        const prob = BASE_RATE * intensity * dt_;
+        for (const a of AGENTS) {
+          if (a.rank !== n + 1 || a.moveProgress < 1) continue;
+          if (Math.random() < prob) {
+            a.sourceRank = a.rank;
+            a.targetRank = n;
+            a.moveProgress = 0;
+            promotionCount++;
+            break; // at most one promotion per rank per dt
+          }
+        }
+      }
+      // displacement: agents at rank n are pushed to rank n+1
+      if (dCsmooth[n] < DISPLACE_THRESHOLD && n < N - 1) {
+        const intensity = Math.min(2, -dCsmooth[n] + DISPLACE_THRESHOLD);
+        const prob = BASE_RATE * intensity * dt_;
+        for (const a of AGENTS) {
+          if (a.rank !== n || a.moveProgress < 1) continue;
+          if (Math.random() < prob) {
+            a.sourceRank = a.rank;
+            a.targetRank = n + 1;
+            a.moveProgress = 0;
+            displacementCount++;
+            break;
+          }
+        }
+      }
+    }
+
+    // animate moves in flight
+    for (const a of AGENTS) {
+      if (a.moveProgress < 1) {
+        a.moveProgress += dt_ * 0.9; // ~1.1 sim time units to complete
+        if (a.moveProgress >= 1) {
+          a.moveProgress = 1;
+          a.rank = a.targetRank;
+          a.yOffset = (Math.random() - 0.5) * 0.7;
+        }
+      }
+    }
+  }
+
+  // -------- flow particle dynamics (visualization only) --------
+  function spawnFlowParticles(dt_) {
+    // emit at any rank with positive source
+    for (let n = 0; n < N; n++) {
+      if (R[n] <= 0) continue;
+      if (FLOW_PARTICLES.length >= MAX_PARTICLES) break;
+      const expected = R[n] * 9 * dt_; // particles per unit sim time per unit R
+      const fullCount = Math.floor(expected);
+      const fracCount = (Math.random() < (expected - fullCount)) ? 1 : 0;
+      const total = fullCount + fracCount;
+      for (let k = 0; k < total && FLOW_PARTICLES.length < MAX_PARTICLES; k++) {
+        FLOW_PARTICLES.push({
+          x: n + (Math.random() - 0.5) * 0.18,
+          y: (Math.random() - 0.5) * 0.7,    // -0.35 .. 0.35 normalized within channel
+          originN: n,
+          age: 0,
+          alive: true
+        });
+      }
+    }
+  }
+
+  function updateFlowParticles(dt_) {
+    for (const p of FLOW_PARTICLES) {
+      if (!p.alive) continue;
+      const ni = Math.floor(p.x);
+      // velocity: follow local gradient sign at the throttle the particle is currently in,
+      // speed proportional to κ (so moats visibly slow particles)
+      let vx = 0;
+      if (ni >= 0 && ni < N - 1) {
+        const grad = C[ni] - C[ni + 1];
+        const sign = grad > 0 ? 1 : (grad < 0 ? -1 : 0);
+        vx = sign * kappa[ni] * 1.8;
+      }
+      p.x += vx * dt_;
+      // bound check — fall off either end
+      if (p.x < -0.05 || p.x > N - 1 + 0.05) { p.alive = false; continue; }
+      // gentle vertical jitter for liquid-flow look
+      p.y += (Math.random() - 0.5) * 0.06;
+      if (p.y > 0.4) p.y = 0.4;
+      if (p.y < -0.4) p.y = -0.4;
+      p.age += dt_;
+      // stochastic decay matched to μ — particles "depreciate" with the field
+      if (Math.random() < mu * dt_ * 0.6) p.alive = false;
+      if (p.age > 40) p.alive = false;
+    }
+    // sweep dead
+    for (let i = FLOW_PARTICLES.length - 1; i >= 0; i--) {
+      if (!FLOW_PARTICLES[i].alive) FLOW_PARTICLES.splice(i, 1);
+    }
+  }
+
+  // -------- adversarial: distortion + inverse problem --------
+  function computeDistortion() {
+    if (distortionStrategy === 'linearize') {
+      // strategic narrative: present the chain as a smooth gradient (no kink)
+      const c0 = C[0], cN = C[N - 1];
+      for (let n = 0; n < N; n++) {
+        const lin = c0 + (cN - c0) * (n / (N - 1));
+        Cvis[n] = (1 - distortionLambda) * C[n] + distortionLambda * lin;
+      }
+    } else if (distortionStrategy === 'upsmooth') {
+      // suppress upstream — make the elite look smaller than they are
+      // blends C[n<N/2] toward the average of itself and its downstream neighbor
+      for (let n = 0; n < N; n++) {
+        if (n < N / 2) {
+          const target = 0.5 * (C[n] + C[Math.min(n + 1, N - 1)]);
+          Cvis[n] = (1 - distortionLambda) * C[n] + distortionLambda * target;
+        } else {
+          Cvis[n] = C[n];
+        }
+      }
+    } else if (distortionStrategy === 'downsmooth') {
+      // inflate downstream — make the tail look bigger than it is
+      const cMax = Math.max(1e-6, ...C);
+      for (let n = 0; n < N; n++) {
+        if (n >= N / 2) {
+          const target = C[n] + 0.35 * cMax;
+          Cvis[n] = (1 - distortionLambda) * C[n] + distortionLambda * target;
+        } else {
+          Cvis[n] = C[n];
+        }
+      }
+    }
+  }
+
+  // Steady-state inverse: assuming dC/dt ≈ 0,
+  //   sum_{m<=k} R_m  -  mu * sum_{m<=k} C_m  =  kappa_{k,k+1} * (C_k - C_{k+1})
+  // The out-group knows R and mu, so they solve for kappa from the visible profile.
+  function computeInference() {
+    let cumR = 0, cumC = 0;
+    for (let k = 0; k < N - 1; k++) {
+      cumR += R[k];
+      cumC += Cvis[k];
+      const num = cumR - mu * cumC;
+      const den = Cvis[k] - Cvis[k + 1];
+      if (Math.abs(den) > 1e-4 && num >= 0) {
+        kappaHat[k] = Math.max(0, Math.min(1.5, num / den));
+      } else {
+        kappaHat[k] = 0;
+      }
+    }
+    // underdetermination metrics
+    let l2 = 0, mx = 0;
+    for (let k = 0; k < N - 1; k++) {
+      const d = kappa[k] - kappaHat[k];
+      l2 += d * d;
+      if (Math.abs(d) > mx) mx = Math.abs(d);
+    }
+    udL2 = Math.sqrt(l2 / (N - 1));
+    udMax = mx;
+  }
+
+  function recomputeAdv() {
+    computeDistortion();
+    computeInference();
+  }
+
+  // -------- historical arcs --------
+  const ARCS = {
+    nuclear: {
+      title: 'Nuclear',
+      span: '1943—2026',
+      desc: 'Single in-group, sharp persistent moat at $n^*=0$. Atoms for Peace opens $\\kappa_{1,2}$ while $\\kappa_{0,1}$ stays closed for eighty years.',
+      duration: 80,
+      tStart: 1943,
+      tEnd: 2026,
+      initial: {
+        kappa: [0.45, 0.4, 0.38, 0.35, 0.3, 0.28, 0.25, 0.22, 0.2, 0.18, 0.15],
+        source: 'frontier',
+        mu: 0.02
+      },
+      events: [
+        { t: 4,  year: 1946, label: 'Atomic Energy Act — κ₀₁ collapses (classification)',
+          changes: { kappa: { 0: 0.04 } } },
+        { t: 6,  year: 1949, label: 'Soviet test — out-group catches band 1',
+          changes: {} },
+        { t: 13, year: 1953, label: 'Atoms for Peace — κ₁₂ opens (civilian release)',
+          changes: { kappa: { 1: 0.5, 2: 0.42 } } },
+        { t: 25, year: 1968, label: 'NPT — κ₀₁ tightens further',
+          changes: { kappa: { 0: 0.025 } } },
+        { t: 31, year: 1974, label: 'India test — proliferation leak at intermediate band',
+          changes: { kappa: { 4: 0.42 } } },
+        { t: 50, year: 1990, label: 'End of Cold War — civilian κ broadens, frontier unchanged',
+          changes: { kappa: { 3: 0.45, 4: 0.45, 5: 0.4 } } },
+        { t: 70, year: 2010, label: 'Stuxnet era — strategic offense moves κ control to digital',
+          changes: { kappa: { 0: 0.02 } } },
+        { t: 79, year: 2026, label: 'Eighty years on — frontier still closed, lead band widens',
+          changes: {} }
+      ]
+    },
+    highered: {
+      title: 'Elite Higher Education',
+      span: '1944—2026',
+      desc: 'Social-rank cascade with topology changes. GI Bill activates a downstream tier; standardized testing then holistic admissions recode the $\\kappa_{0,1}$ throttle.',
+      duration: 80,
+      tStart: 1944,
+      tEnd: 2026,
+      initial: {
+        // narrow elite system before GI Bill — downstream tiers near-frozen
+        kappa: [0.28, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04],
+        source: 'frontier',
+        mu: 0.02
+      },
+      events: [
+        { t: 1,  year: 1944, label: 'GI Bill — mass higher-ed tier activates (κ₁₂, κ₂₃ open)',
+          changes: { kappa: { 1: 0.4, 2: 0.4, 3: 0.35 } } },
+        { t: 14, year: 1958, label: 'Sputnik — public university expansion broadens κ₃₊',
+          changes: { kappa: { 3: 0.5, 4: 0.5, 5: 0.45, 6: 0.4, 7: 0.35 } } },
+        { t: 22, year: 1965, label: 'Standardized testing era — κ₀₁ codified (still tight, but legible)',
+          changes: { kappa: { 0: 0.15 } } },
+        { t: 35, year: 1980, label: 'Holistic admissions — κ₀₁ recoded into illegible criteria',
+          changes: { kappa: { 0: 0.06 } } },
+        { t: 55, year: 2000, label: 'Selectivity compression — frontier band narrows further',
+          changes: { kappa: { 0: 0.04, 1: 0.32 } } },
+        { t: 68, year: 2014, label: 'Hoxby & Avery — self-stratification belief observed',
+          changes: {} },
+        { t: 79, year: 2026, label: 'Throttle preserved through cosmetic reform',
+          changes: {} }
+      ]
+    },
+    ai: {
+      title: 'Frontier AI',
+      span: '2017—2026',
+      desc: 'Multiple in-groups at $n^*\\in\\{0,1\\}$, fast clock. Staged release modulates $\\kappa_{0,1}$; the social-position throttle $\\kappa_{1,2}$ is maintained through credentialing.',
+      duration: 60,
+      tStart: 2017,
+      tEnd: 2026,
+      initial: {
+        // 2017 — open research culture
+        kappa: [0.55, 0.5, 0.45, 0.42, 0.4, 0.35, 0.3, 0.25, 0.22, 0.2, 0.18],
+        source: 'frontier',
+        mu: 0.02
+      },
+      events: [
+        { t: 5,  year: 2018, label: 'Closed labs emerge — κ₀₁ begins to narrow',
+          changes: { kappa: { 0: 0.4 } } },
+        { t: 14, year: 2020, label: 'GPT-3 staged release — κ₀₁ narrows, κ₁₂ controlled',
+          changes: { kappa: { 0: 0.25, 1: 0.32 } } },
+        { t: 25, year: 2022, label: 'API access tiered — κ₁₂ becomes credential-gated',
+          changes: { kappa: { 1: 0.2 } } },
+        { t: 32, year: 2023, label: 'ChatGPT public — κ₂₃ opens (mass access)',
+          changes: { kappa: { 2: 0.5, 3: 0.45 } } },
+        { t: 42, year: 2024, label: 'Compute moats — κ₀₁ tightens, gap accelerates',
+          changes: { kappa: { 0: 0.15 } } },
+        { t: 50, year: 2025, label: 'Open-source convergence at lower rank — κ₃₊ broadens',
+          changes: { kappa: { 3: 0.5, 4: 0.5, 5: 0.45 } } },
+        { t: 58, year: 2026, label: 'Frontier moat at maximum — kink localizes at n*=0',
+          changes: { kappa: { 0: 0.08 } } }
+      ]
+    }
+  };
+
+  function loadArc(name) {
+    const arc = ARCS[name];
+    if (!arc) return;
+    activeArc = arc;
+    reset();
+    eventLog.length = 0;
+    for (let i = 0; i < N - 1; i++) kappa[i] = arc.initial.kappa[i];
+    setSource(arc.initial.source);
+    mu = arc.initial.mu;
+    if (typeof syncThrottleSliders === 'function') syncThrottleSliders();
+    const muSlider = document.getElementById('muSlider');
+    const muVal = document.getElementById('muVal');
+    if (muSlider) { muSlider.value = String(mu); muVal.textContent = mu.toFixed(3); }
+    pushEvent(`Arc loaded: ${arc.title} (${arc.span})`, true);
+    updateArcDescription(arc);
+    draw();
+  }
+
+  function updateArcDescription(arc) {
+    const titleTag = document.getElementById('arcTitleTag');
+    const startLbl = document.getElementById('arcStartLabel');
+    const endLbl = document.getElementById('arcEndLabel');
+    const descTitle = document.getElementById('arcDescTitle');
+    const descBody = document.getElementById('arcDescBody');
+    if (titleTag) titleTag.textContent = `${arc.title} · ${arc.span}`;
+    if (startLbl) startLbl.textContent = String(arc.tStart);
+    if (endLbl) endLbl.textContent = String(arc.tEnd);
+    if (descTitle) descTitle.textContent = arc.title;
+    if (descBody) {
+      descBody.innerHTML = arc.desc;
+      if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([descBody]);
+    }
+  }
+
+  function pushEvent(text, fresh) {
+    eventLog.unshift({ text, fresh: !!fresh });
+    if (eventLog.length > 8) eventLog.pop();
+    // demote previous-fresh entries
+    for (let i = 1; i < eventLog.length; i++) eventLog[i].fresh = false;
+    renderEventLog();
+  }
+
+  function renderEventLog() {
+    const elLog = document.getElementById('eventLog');
+    if (!elLog) return;
+    if (eventLog.length === 0) {
+      elLog.innerHTML = '<div class="event-line">— no events yet —</div>';
+      return;
+    }
+    elLog.innerHTML = eventLog.map(e =>
+      `<div class="event-line${e.fresh ? ' fresh' : ''}">${e.text}</div>`
+    ).join('');
+  }
+
+  function fireArcEvents() {
+    if (!activeArc) return;
+    for (let i = 0; i < activeArc.events.length; i++) {
+      if (firedEvents.has(i)) continue;
+      const ev = activeArc.events[i];
+      if (t >= ev.t) {
+        firedEvents.add(i);
+        if (ev.changes && ev.changes.kappa) {
+          for (const k in ev.changes.kappa) {
+            kappa[parseInt(k, 10)] = ev.changes.kappa[k];
+          }
+          if (typeof syncThrottleSliders === 'function') syncThrottleSliders();
+        }
+        if (ev.changes && ev.changes.source) setSource(ev.changes.source);
+        if (ev.changes && ev.changes.mu !== undefined) {
+          mu = ev.changes.mu;
+          const muSlider = document.getElementById('muSlider');
+          const muVal = document.getElementById('muVal');
+          if (muSlider) { muSlider.value = String(mu); muVal.textContent = mu.toFixed(3); }
+        }
+        pushEvent(`${ev.year} · ${ev.label}`, true);
+      }
+    }
+    // auto-pause at end of arc
+    if (t >= activeArc.duration && playing) {
+      playing = false;
+      const playBtn = document.getElementById('playBtn');
+      if (playBtn) playBtn.textContent = '▶ play';
+    }
+  }
+
+  // -------- canvas helpers --------
+  function fitCanvas(cv, h) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth;
+    cv.height = h;
+    cv.width = w;
+    cv.style.height = h + 'px';
+    if (dpr !== 1) {
+      cv.width = w * dpr;
+      cv.height = h * dpr;
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+  }
+
+  // -------- color ramp --------
+  // rank-to-color: frontier (orange) → periphery (blue), via warm-mid
+  function rankColor(n, alpha = 1) {
+    const f = n / (N - 1); // 0..1
+    // orange #e07a3c -> mid #a89978 -> blue #6ea4c4
+    let r, g, b;
+    if (f < 0.5) {
+      const u = f / 0.5;
+      r = lerp(0xe0, 0xa8, u);
+      g = lerp(0x7a, 0x99, u);
+      b = lerp(0x3c, 0x78, u);
+    } else {
+      const u = (f - 0.5) / 0.5;
+      r = lerp(0xa8, 0x6e, u);
+      g = lerp(0x99, 0xa4, u);
+      b = lerp(0x78, 0xc4, u);
+    }
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha})`;
+  }
+  function lerp(a, b, u) { return a + (b - a) * u; }
+
+  // throttle-to-color: low κ (moat) = red; high κ (open) = cool blue-grey
+  function throttleColor(k, alpha = 1) {
+    // k in [0, 1]
+    const u = Math.max(0, Math.min(1, k));
+    // red #d05a4a -> cool #4f7592
+    const r = lerp(0xd0, 0x4f, u);
+    const g = lerp(0x5a, 0x75, u);
+    const b = lerp(0x4a, 0x92, u);
+    return `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${alpha})`;
+  }
+
+  // -------- drawing: profile --------
+  const profileCv = document.getElementById('profileCanvas');
+  const profileCtx = profileCv.getContext('2d');
+
+  function drawProfile() {
+    fitCanvas(profileCv, 230);
+    const w = profileCv.clientWidth;
+    const h = 230;
+    profileCtx.clearRect(0, 0, w, h);
+
+    const padL = 36, padR = 14, padT = 14, padB = 22;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+
+    const maxC = Math.max(1, ...C) * 1.1;
+
+    // grid
+    profileCtx.strokeStyle = 'rgba(122,118,105,0.15)';
+    profileCtx.lineWidth = 1;
+    for (let g = 0; g <= 4; g++) {
+      const y = padT + (innerH * g) / 4;
+      profileCtx.beginPath();
+      profileCtx.moveTo(padL, y);
+      profileCtx.lineTo(w - padR, y);
+      profileCtx.stroke();
+      const labelV = (maxC * (4 - g) / 4).toFixed(1);
+      profileCtx.fillStyle = '#7a7669';
+      profileCtx.font = '10px JetBrains Mono, monospace';
+      profileCtx.textAlign = 'right';
+      profileCtx.fillText(labelV, padL - 4, y + 3);
+    }
+
+    // bars
+    const barW = innerW / N * 0.78;
+    const slot = innerW / N;
+    for (let n = 0; n < N; n++) {
+      const x = padL + slot * n + (slot - barW) / 2;
+      const barH = (C[n] / maxC) * innerH;
+      const y = padT + innerH - barH;
+      profileCtx.fillStyle = rankColor(n, 0.85);
+      profileCtx.fillRect(x, y, barW, barH);
+      // top edge accent
+      profileCtx.fillStyle = rankColor(n, 1);
+      profileCtx.fillRect(x, y, barW, 2);
+      // rank label
+      profileCtx.fillStyle = '#7a7669';
+      profileCtx.font = '10px JetBrains Mono, monospace';
+      profileCtx.textAlign = 'center';
+      profileCtx.fillText(String(n), x + barW / 2, padT + innerH + 14);
+    }
+
+    // throttle markers between bars (small ticks at base, color by κ)
+    for (let i = 0; i < N - 1; i++) {
+      const xMid = padL + slot * (i + 1);
+      const tickH = 6;
+      profileCtx.fillStyle = throttleColor(kappa[i], 0.85);
+      profileCtx.fillRect(xMid - 2, padT + innerH + 2, 4, tickH);
+    }
+
+    // step-overlay: in manual/arc, traces the true profile (kink legible).
+    // in adv, traces the visible profile $C_n^{vis}$ — what the out-group sees.
+    const overlayData = (uiMode === 'adv') ? Cvis : C;
+    profileCtx.strokeStyle = (uiMode === 'adv')
+      ? 'rgba(110,164,196,0.85)'
+      : 'rgba(232,228,216,0.35)';
+    profileCtx.setLineDash([4, 3]);
+    profileCtx.lineWidth = (uiMode === 'adv') ? 1.6 : 1;
+    profileCtx.beginPath();
+    for (let n = 0; n < N; n++) {
+      const x = padL + slot * n + slot / 2;
+      const y = padT + innerH - (overlayData[n] / maxC) * innerH;
+      if (n === 0) profileCtx.moveTo(x, y);
+      else profileCtx.lineTo(x, y);
+    }
+    profileCtx.stroke();
+    profileCtx.setLineDash([]);
+    // adv mode: dot the C_vis points so the per-rank distortion is visible
+    if (uiMode === 'adv') {
+      for (let n = 0; n < N; n++) {
+        const x = padL + slot * n + slot / 2;
+        const y = padT + innerH - (Cvis[n] / maxC) * innerH;
+        profileCtx.fillStyle = 'rgba(110,164,196,0.95)';
+        profileCtx.beginPath();
+        profileCtx.arc(x, y, 3, 0, Math.PI * 2);
+        profileCtx.fill();
+      }
+    }
+  }
+
+  // -------- drawing: capability flow (particles) --------
+  const flowCv = document.getElementById('flowCanvas');
+  const flowCtx = flowCv ? flowCv.getContext('2d') : null;
+
+  function drawFlow() {
+    if (!flowCtx) return;
+    fitCanvas(flowCv, 140);
+    const w = flowCv.clientWidth;
+    const h = 140;
+    flowCtx.clearRect(0, 0, w, h);
+
+    const padL = 18, padR = 18;
+    const innerW = w - padL - padR;
+    const midY = h * 0.46;
+    const channelHalfH = (h - 36) / 2;
+
+    // 1. CHANNEL OUTLINE — draw the constricted river shape.
+    //    At each rank position, the channel half-height = κ * channelHalfH at the throttle to its right.
+    //    Throttle constrictions appear as visible pinches.
+    flowCtx.fillStyle = 'rgba(20,22,27,0.85)';
+    flowCtx.beginPath();
+    // top edge: left-to-right
+    flowCtx.moveTo(padL, midY - channelHalfH);
+    for (let n = 0; n < N - 1; n++) {
+      const x1 = padL + (n / (N - 1)) * innerW;
+      const x2 = padL + ((n + 1) / (N - 1)) * innerW;
+      const xMid = (x1 + x2) / 2;
+      const k = kappa[n];
+      // pinch height: open throttle = full channel; closed = small slit
+      const pinch = midY - channelHalfH * (0.25 + 0.75 * k);
+      flowCtx.lineTo(xMid, pinch);
+      flowCtx.lineTo(x2, midY - channelHalfH);
+    }
+    // top-right corner; now bottom edge: right-to-left
+    flowCtx.lineTo(padL + innerW, midY + channelHalfH);
+    for (let n = N - 2; n >= 0; n--) {
+      const x1 = padL + (n / (N - 1)) * innerW;
+      const x2 = padL + ((n + 1) / (N - 1)) * innerW;
+      const xMid = (x1 + x2) / 2;
+      const k = kappa[n];
+      const pinch = midY + channelHalfH * (0.25 + 0.75 * k);
+      flowCtx.lineTo(xMid, pinch);
+      flowCtx.lineTo(x1, midY + channelHalfH);
+    }
+    flowCtx.closePath();
+    flowCtx.fill();
+
+    // channel outline stroke
+    flowCtx.strokeStyle = 'rgba(122,118,105,0.35)';
+    flowCtx.lineWidth = 1;
+    flowCtx.stroke();
+
+    // 2. RANK MARKERS — vertical guide lines at each integer rank position
+    for (let n = 0; n < N; n++) {
+      const x = padL + (n / (N - 1)) * innerW;
+      flowCtx.strokeStyle = 'rgba(122,118,105,0.18)';
+      flowCtx.lineWidth = 1;
+      flowCtx.beginPath();
+      flowCtx.moveTo(x, midY - channelHalfH - 2);
+      flowCtx.lineTo(x, midY + channelHalfH + 2);
+      flowCtx.stroke();
+      // rank tick / label
+      flowCtx.fillStyle = '#7a7669';
+      flowCtx.font = '9px JetBrains Mono, monospace';
+      flowCtx.textAlign = 'center';
+      flowCtx.fillText(String(n), x, h - 6);
+    }
+
+    // 3. THROTTLE LABELS — show κ value above each constriction
+    for (let i = 0; i < N - 1; i++) {
+      const x1 = padL + (i / (N - 1)) * innerW;
+      const x2 = padL + ((i + 1) / (N - 1)) * innerW;
+      const xMid = (x1 + x2) / 2;
+      flowCtx.fillStyle = throttleColor(kappa[i], 0.85);
+      flowCtx.font = '9px JetBrains Mono, monospace';
+      flowCtx.textAlign = 'center';
+      flowCtx.fillText(kappa[i].toFixed(2), xMid, 11);
+    }
+
+    // 4. PARTICLES — additive blending for liquid feel
+    flowCtx.globalCompositeOperation = 'lighter';
+    for (const p of FLOW_PARTICLES) {
+      const px = padL + (p.x / (N - 1)) * innerW;
+      const py = midY + p.y * channelHalfH;
+      // age fade
+      const a = Math.max(0, Math.min(1, 1 - p.age / 35));
+      // particle dot
+      flowCtx.fillStyle = rankColor(p.originN, a * 0.7);
+      flowCtx.beginPath();
+      flowCtx.arc(px, py, 2.2, 0, Math.PI * 2);
+      flowCtx.fill();
+      // tiny halo for liquid feel
+      flowCtx.fillStyle = rankColor(p.originN, a * 0.18);
+      flowCtx.beginPath();
+      flowCtx.arc(px, py, 5, 0, Math.PI * 2);
+      flowCtx.fill();
+    }
+    flowCtx.globalCompositeOperation = 'source-over';
+
+    // 5. PARTICLE COUNT readout
+    flowCtx.fillStyle = '#7a7669';
+    flowCtx.font = '9px JetBrains Mono, monospace';
+    flowCtx.textAlign = 'right';
+    flowCtx.fillText(`${FLOW_PARTICLES.length} / ${MAX_PARTICLES} particles`, w - padL, 11);
+  }
+
+  // -------- drawing: agent population --------
+  const agentsCv = document.getElementById('agentsCanvas');
+  const agentsCtx = agentsCv ? agentsCv.getContext('2d') : null;
+
+  function easeInOut(u) { return u < 0.5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2; }
+
+  function drawAgents() {
+    if (!agentsCtx) return;
+    fitCanvas(agentsCv, 150);
+    const w = agentsCv.clientWidth;
+    const h = 150;
+    agentsCtx.clearRect(0, 0, w, h);
+
+    const padL = 18, padR = 18, padT = 18, padB = 24;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const midY = padT + innerH / 2;
+
+    // count agents per rank (current — completed moves only)
+    const ranksCounts = new Array(N).fill(0);
+    for (const a of AGENTS) {
+      if (a.moveProgress >= 1) ranksCounts[a.rank]++;
+    }
+
+    // 1. rank guide lines + count labels
+    for (let n = 0; n < N; n++) {
+      const x = padL + (n / (N - 1)) * innerW;
+      agentsCtx.strokeStyle = 'rgba(122,118,105,0.15)';
+      agentsCtx.lineWidth = 1;
+      agentsCtx.beginPath();
+      agentsCtx.moveTo(x, padT - 4);
+      agentsCtx.lineTo(x, padT + innerH + 4);
+      agentsCtx.stroke();
+      // rank label
+      agentsCtx.fillStyle = '#7a7669';
+      agentsCtx.font = '9px JetBrains Mono, monospace';
+      agentsCtx.textAlign = 'center';
+      agentsCtx.fillText(String(n), x, h - 8);
+      // population count
+      agentsCtx.fillStyle = ranksCounts[n] === AGENTS_PER_RANK_INIT ? '#7a7669' :
+        (ranksCounts[n] > AGENTS_PER_RANK_INIT ? rankColor(n, 0.95) : '#d05a4a');
+      agentsCtx.font = '10px JetBrains Mono, monospace';
+      agentsCtx.fillText(String(ranksCounts[n]), x, padT - 6);
+    }
+
+    // 2. agents
+    for (const a of AGENTS) {
+      const r = a.moveProgress < 1
+        ? a.sourceRank + (a.targetRank - a.sourceRank) * easeInOut(a.moveProgress)
+        : a.rank;
+      const x = padL + (r / (N - 1)) * innerW;
+      const y = midY + a.yOffset * (innerH / 2);
+      const inFlight = a.moveProgress < 1;
+      // halo (more visible for in-flight)
+      agentsCtx.fillStyle = rankColor(a.originalRank, inFlight ? 0.35 : 0.18);
+      agentsCtx.beginPath();
+      agentsCtx.arc(x, y, inFlight ? 7 : 5, 0, Math.PI * 2);
+      agentsCtx.fill();
+      // dot
+      agentsCtx.fillStyle = rankColor(a.originalRank, 0.95);
+      agentsCtx.beginPath();
+      agentsCtx.arc(x, y, 3, 0, Math.PI * 2);
+      agentsCtx.fill();
+      // displaced/promoted ring marker
+      if (a.rank !== a.originalRank) {
+        agentsCtx.strokeStyle = rankColor(a.originalRank, 0.9);
+        agentsCtx.lineWidth = 1;
+        agentsCtx.beginPath();
+        agentsCtx.arc(x, y, 5, 0, Math.PI * 2);
+        agentsCtx.stroke();
+      }
+    }
+
+    // 3. mobility readout in corner
+    agentsCtx.fillStyle = '#7a7669';
+    agentsCtx.font = '9px JetBrains Mono, monospace';
+    agentsCtx.textAlign = 'left';
+    agentsCtx.fillText(`↑ promotions: ${promotionCount}`, padL, 11);
+    agentsCtx.textAlign = 'right';
+    agentsCtx.fillText(`↓ displacements: ${displacementCount}`, w - padR, 11);
+
+    // count label in canvas-label below
+    const countLbl = document.getElementById('agentsCountLabel');
+    if (countLbl) countLbl.textContent = `${AGENTS.length} agents · ${promotionCount}↑ ${displacementCount}↓`;
+  }
+
+  // -------- drawing: strain bands --------
+  // horizontal strip; segments (n, n+1) with width proportional to |C_n - C_{n+1}|.
+  // colored by κ. label positions along bottom.
+  const strainCv = document.getElementById('strainCanvas');
+  const strainCtx = strainCv.getContext('2d');
+
+  function drawStrain() {
+    fitCanvas(strainCv, 110);
+    const w = strainCv.clientWidth;
+    const h = 110;
+    strainCtx.clearRect(0, 0, w, h);
+
+    const padL = 8, padR = 8, padT = 14, padB = 24;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+
+    // gradient magnitudes
+    const gaps = new Float64Array(N - 1);
+    let total = 0;
+    for (let i = 0; i < N - 1; i++) {
+      gaps[i] = Math.abs(C[i] - C[i + 1]);
+      total += gaps[i];
+    }
+
+    // when total is ~0 (initial), draw equal placeholder segments thinly
+    let xCursor = padL;
+    if (total < 1e-9) {
+      const segW = innerW / (N - 1);
+      for (let i = 0; i < N - 1; i++) {
+        strainCtx.fillStyle = throttleColor(kappa[i], 0.35);
+        strainCtx.fillRect(xCursor, padT, segW - 2, innerH);
+        xCursor += segW;
+      }
+    } else {
+      for (let i = 0; i < N - 1; i++) {
+        const segW = (gaps[i] / total) * innerW;
+        strainCtx.fillStyle = throttleColor(kappa[i], 0.9);
+        strainCtx.fillRect(xCursor, padT, Math.max(1, segW - 1), innerH);
+        // label inside if wide enough
+        if (segW > 32) {
+          strainCtx.fillStyle = 'rgba(12,13,16,0.85)';
+          strainCtx.font = '10px JetBrains Mono, monospace';
+          strainCtx.textAlign = 'center';
+          strainCtx.fillText(`${i}—${i + 1}`, xCursor + segW / 2, padT + innerH / 2 + 3);
+        }
+        xCursor += segW;
+      }
+    }
+
+    // bottom hint — minimum/maximum band
+    let maxIdx = 0;
+    for (let i = 1; i < N - 1; i++) if (gaps[i] > gaps[maxIdx]) maxIdx = i;
+    if (total > 1e-6) {
+      strainCtx.fillStyle = '#d05a4a';
+      strainCtx.font = '10px JetBrains Mono, monospace';
+      strainCtx.textAlign = 'left';
+      strainCtx.fillText(
+        `widest band: ${maxIdx}—${maxIdx + 1}  (M = ${(gaps[maxIdx] / total).toFixed(2)})`,
+        padL, h - 8
+      );
+    } else {
+      strainCtx.fillStyle = '#7a7669';
+      strainCtx.font = '10px JetBrains Mono, monospace';
+      strainCtx.textAlign = 'left';
+      strainCtx.fillText('— no gradient yet —', padL, h - 8);
+    }
+  }
+
+  // -------- drawing: moat metric --------
+  const moatCv = document.getElementById('moatCanvas');
+  const moatCtx = moatCv.getContext('2d');
+
+  function drawMoat() {
+    fitCanvas(moatCv, 130);
+    const w = moatCv.clientWidth;
+    const h = 130;
+    moatCtx.clearRect(0, 0, w, h);
+
+    const padL = 36, padR = 12, padT = 12, padB = 22;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+
+    // gradient shares
+    const gaps = new Float64Array(N - 1);
+    let total = 0;
+    for (let i = 0; i < N - 1; i++) {
+      gaps[i] = Math.abs(C[i] - C[i + 1]);
+      total += gaps[i];
+    }
+
+    // grid
+    moatCtx.strokeStyle = 'rgba(122,118,105,0.15)';
+    moatCtx.lineWidth = 1;
+    for (let g = 0; g <= 4; g++) {
+      const y = padT + (innerH * g) / 4;
+      moatCtx.beginPath();
+      moatCtx.moveTo(padL, y);
+      moatCtx.lineTo(w - padR, y);
+      moatCtx.stroke();
+      const labelV = ((4 - g) / 4).toFixed(2);
+      moatCtx.fillStyle = '#7a7669';
+      moatCtx.font = '10px JetBrains Mono, monospace';
+      moatCtx.textAlign = 'right';
+      moatCtx.fillText(labelV, padL - 4, y + 3);
+    }
+
+    const slot = innerW / (N - 1);
+    const barW = slot * 0.7;
+
+    let maxShare = 0, maxIdx = 0;
+    for (let i = 0; i < N - 1; i++) {
+      const share = total > 1e-9 ? gaps[i] / total : 0;
+      if (share > maxShare) { maxShare = share; maxIdx = i; }
+    }
+
+    for (let i = 0; i < N - 1; i++) {
+      const share = total > 1e-9 ? gaps[i] / total : 0;
+      const x = padL + slot * i + (slot - barW) / 2;
+      const barH = share * innerH;
+      const y = padT + innerH - barH;
+      const isMax = (i === maxIdx && maxShare > 0.18);
+      moatCtx.fillStyle = isMax ? 'rgba(208,90,74,0.92)' : throttleColor(kappa[i], 0.55);
+      moatCtx.fillRect(x, y, barW, barH);
+      // label
+      moatCtx.fillStyle = '#7a7669';
+      moatCtx.font = '9px JetBrains Mono, monospace';
+      moatCtx.textAlign = 'center';
+      moatCtx.fillText(`${i}—${i + 1}`, x + barW / 2, padT + innerH + 14);
+    }
+  }
+
+  // -------- readouts --------
+  const tDisp = document.getElementById('tDisp');
+  const c0Disp = document.getElementById('c0Disp');
+  const cNDisp = document.getElementById('cNDisp');
+  const maxMDisp = document.getElementById('maxMDisp');
+  const nStarDisp = document.getElementById('nStarDisp');
+
+  function updateReadouts() {
+    tDisp.textContent = t.toFixed(2);
+    c0Disp.textContent = C[0].toFixed(2);
+    cNDisp.textContent = C[N - 1].toFixed(2);
+    let total = 0, maxShare = 0, maxIdx = -1;
+    const gaps = new Float64Array(N - 1);
+    for (let i = 0; i < N - 1; i++) { gaps[i] = Math.abs(C[i] - C[i + 1]); total += gaps[i]; }
+    if (total > 1e-9) {
+      for (let i = 0; i < N - 1; i++) {
+        const s = gaps[i] / total;
+        if (s > maxShare) { maxShare = s; maxIdx = i; }
+      }
+    }
+    maxMDisp.textContent = maxShare.toFixed(2);
+    nStarDisp.textContent = maxIdx < 0 ? '—' : `${maxIdx}—${maxIdx + 1}`;
+  }
+
+  // -------- drawing: inference comparison (adv mode) --------
+  const inferenceCv = document.getElementById('inferenceCanvas');
+  const inferenceCtx = inferenceCv ? inferenceCv.getContext('2d') : null;
+
+  function drawInference() {
+    if (!inferenceCtx) return;
+    fitCanvas(inferenceCv, 180);
+    const w = inferenceCv.clientWidth;
+    const h = 180;
+    inferenceCtx.clearRect(0, 0, w, h);
+
+    const padL = 36, padR = 14, padT = 14, padB = 28;
+    const innerW = w - padL - padR;
+    const innerH = h - padT - padB;
+    const M = N - 1; // number of throttles
+
+    // y-axis grid (kappa scale 0 to 1)
+    inferenceCtx.strokeStyle = 'rgba(122,118,105,0.15)';
+    inferenceCtx.lineWidth = 1;
+    for (let g = 0; g <= 4; g++) {
+      const y = padT + (innerH * g) / 4;
+      inferenceCtx.beginPath();
+      inferenceCtx.moveTo(padL, y);
+      inferenceCtx.lineTo(w - padR, y);
+      inferenceCtx.stroke();
+      const labelV = ((4 - g) / 4).toFixed(2);
+      inferenceCtx.fillStyle = '#7a7669';
+      inferenceCtx.font = '10px JetBrains Mono, monospace';
+      inferenceCtx.textAlign = 'right';
+      inferenceCtx.fillText(labelV, padL - 4, y + 3);
+    }
+
+    const slot = innerW / M;
+    const pairW = slot * 0.78;
+    const barW = pairW / 2 - 1;
+
+    for (let i = 0; i < M; i++) {
+      const xCenter = padL + slot * i + slot / 2;
+      const xTrue = xCenter - barW - 1;
+      const xHat = xCenter + 1;
+
+      const trueH = Math.min(1, kappa[i]) * innerH;
+      const hatH = Math.min(1, kappaHat[i]) * innerH;
+
+      // true (gold)
+      inferenceCtx.fillStyle = 'rgba(200,155,60,0.85)';
+      inferenceCtx.fillRect(xTrue, padT + innerH - trueH, barW, trueH);
+      // top accent
+      inferenceCtx.fillStyle = '#c89b3c';
+      inferenceCtx.fillRect(xTrue, padT + innerH - trueH, barW, 2);
+
+      // inferred (cool blue)
+      inferenceCtx.fillStyle = 'rgba(110,164,196,0.85)';
+      inferenceCtx.fillRect(xHat, padT + innerH - hatH, barW, hatH);
+      inferenceCtx.fillStyle = '#6ea4c4';
+      inferenceCtx.fillRect(xHat, padT + innerH - hatH, barW, 2);
+
+      // gap connector if pronounced
+      const gap = Math.abs(kappa[i] - kappaHat[i]);
+      if (gap > 0.08) {
+        inferenceCtx.strokeStyle = 'rgba(208,90,74,0.7)';
+        inferenceCtx.lineWidth = 1.5;
+        inferenceCtx.setLineDash([2, 2]);
+        const yT = padT + innerH - trueH;
+        const yH = padT + innerH - hatH;
+        inferenceCtx.beginPath();
+        inferenceCtx.moveTo(xTrue + barW / 2, yT);
+        inferenceCtx.lineTo(xHat + barW / 2, yH);
+        inferenceCtx.stroke();
+        inferenceCtx.setLineDash([]);
+      }
+
+      // throttle label
+      inferenceCtx.fillStyle = '#7a7669';
+      inferenceCtx.font = '9px JetBrains Mono, monospace';
+      inferenceCtx.textAlign = 'center';
+      inferenceCtx.fillText(`${i}—${i + 1}`, xCenter, padT + innerH + 14);
+    }
+  }
+
+  // -------- timeline (arc mode only) --------
+  const timelineCv = document.getElementById('timelineCanvas');
+  const timelineCtx = timelineCv ? timelineCv.getContext('2d') : null;
+
+  function drawTimeline() {
+    if (!timelineCtx || !activeArc) return;
+    fitCanvas(timelineCv, 70);
+    const w = timelineCv.clientWidth;
+    const h = 70;
+    timelineCtx.clearRect(0, 0, w, h);
+
+    const padL = 14, padR = 14, midY = 26;
+    const innerW = w - padL - padR;
+    const dur = activeArc.duration;
+
+    // baseline
+    timelineCtx.strokeStyle = 'rgba(122,118,105,0.35)';
+    timelineCtx.lineWidth = 1;
+    timelineCtx.beginPath();
+    timelineCtx.moveTo(padL, midY);
+    timelineCtx.lineTo(w - padR, midY);
+    timelineCtx.stroke();
+
+    // event markers
+    for (let i = 0; i < activeArc.events.length; i++) {
+      const ev = activeArc.events[i];
+      const x = padL + (ev.t / dur) * innerW;
+      const fired = firedEvents.has(i);
+      // dot
+      timelineCtx.fillStyle = fired ? '#c89b3c' : 'rgba(122,118,105,0.6)';
+      timelineCtx.beginPath();
+      timelineCtx.arc(x, midY, fired ? 5 : 3.5, 0, Math.PI * 2);
+      timelineCtx.fill();
+      if (fired) {
+        timelineCtx.strokeStyle = 'rgba(200,155,60,0.4)';
+        timelineCtx.lineWidth = 1;
+        timelineCtx.beginPath();
+        timelineCtx.arc(x, midY, 9, 0, Math.PI * 2);
+        timelineCtx.stroke();
+      }
+      // year label
+      timelineCtx.fillStyle = fired ? '#c89b3c' : '#7a7669';
+      timelineCtx.font = '9px JetBrains Mono, monospace';
+      timelineCtx.textAlign = 'center';
+      timelineCtx.fillText(String(ev.year), x, midY + 22);
+    }
+
+    // playhead
+    const px = padL + (Math.min(t, dur) / dur) * innerW;
+    timelineCtx.strokeStyle = '#e07a3c';
+    timelineCtx.lineWidth = 2;
+    timelineCtx.beginPath();
+    timelineCtx.moveTo(px, 6);
+    timelineCtx.lineTo(px, midY + 12);
+    timelineCtx.stroke();
+    // playhead head
+    timelineCtx.fillStyle = '#e07a3c';
+    timelineCtx.beginPath();
+    timelineCtx.moveTo(px - 4, 4);
+    timelineCtx.lineTo(px + 4, 4);
+    timelineCtx.lineTo(px, 10);
+    timelineCtx.closePath();
+    timelineCtx.fill();
+
+    // sim time and arc-year readout
+    const yearNow = activeArc.tStart + (t / dur) * (activeArc.tEnd - activeArc.tStart);
+    const yearClamped = Math.min(activeArc.tEnd, Math.max(activeArc.tStart, yearNow));
+    timelineCtx.fillStyle = '#e8e4d8';
+    timelineCtx.font = '10px JetBrains Mono, monospace';
+    timelineCtx.textAlign = 'right';
+    timelineCtx.fillText(`year ${yearClamped.toFixed(0)}`, w - padR, h - 6);
+    timelineCtx.textAlign = 'left';
+    timelineCtx.fillStyle = '#7a7669';
+    timelineCtx.fillText(`t = ${t.toFixed(1)} / ${dur}`, padL, h - 6);
+  }
+
+  // -------- frame --------
+  function draw() {
+    drawProfile();
+    drawFlow();
+    drawAgents();
+    drawStrain();
+    drawMoat();
+    if (uiMode === 'arc') drawTimeline();
+    if (uiMode === 'adv') {
+      drawInference();
+      const udL2El = document.getElementById('udL2Disp');
+      const udMaxEl = document.getElementById('udMaxDisp');
+      if (udL2El) udL2El.textContent = udL2.toFixed(3);
+      if (udMaxEl) udMaxEl.textContent = udMax.toFixed(3);
+    }
+    updateReadouts();
+  }
+
+  function frame() {
+    if (playing) {
+      for (let s = 0; s < SUBSTEPS; s++) step();
+      draw();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // -------- controls --------
+  const playBtn = document.getElementById('playBtn');
+  const stepBtn = document.getElementById('stepBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const sourceSelect = document.getElementById('sourceSelect');
+  const muSlider = document.getElementById('muSlider');
+  const muVal = document.getElementById('muVal');
+
+  playBtn.addEventListener('click', () => {
+    playing = !playing;
+    playBtn.textContent = playing ? '❚❚ pause' : '▶ play';
+  });
+  stepBtn.addEventListener('click', () => {
+    for (let s = 0; s < SUBSTEPS; s++) step();
+    draw();
+  });
+  resetBtn.addEventListener('click', () => {
+    if (uiMode === 'arc' && activeArc) {
+      // reload current arc — replays from t=0
+      const sel = document.getElementById('arcSelect');
+      const name = sel ? sel.value : 'nuclear';
+      loadArc(name);
+    } else {
+      reset();
+      draw();
+    }
+  });
+  sourceSelect.addEventListener('change', (e) => setSource(e.target.value));
+  muSlider.addEventListener('input', (e) => {
+    mu = parseFloat(e.target.value);
+    muVal.textContent = mu.toFixed(3);
+  });
+
+  // throttle sliders
+  const throttleContainer = document.getElementById('throttleSliders');
+  const throttleSliders = [];
+  const throttleVals = [];
+  function buildThrottleSliders() {
+    throttleContainer.innerHTML = '';
+    for (let i = 0; i < N - 1; i++) {
+      const row = document.createElement('div');
+      row.className = 'slider-row';
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = `κ ${i}—${i + 1}`;
+      const inp = document.createElement('input');
+      inp.type = 'range';
+      inp.min = '0';
+      inp.max = '1';
+      inp.step = '0.01';
+      inp.value = String(kappa[i]);
+      const val = document.createElement('div');
+      val.className = 'val';
+      val.textContent = kappa[i].toFixed(2);
+      inp.addEventListener('input', (e) => {
+        kappa[i] = parseFloat(e.target.value);
+        val.textContent = kappa[i].toFixed(2);
+        row.classList.toggle('moaty', kappa[i] < 0.15);
+        if (uiMode === 'adv' && !playing) { recomputeAdv(); draw(); }
+      });
+      row.appendChild(lbl);
+      row.appendChild(inp);
+      row.appendChild(val);
+      if (kappa[i] < 0.15) row.classList.add('moaty');
+      throttleContainer.appendChild(row);
+      throttleSliders.push(inp);
+      throttleVals.push(val);
+    }
+  }
+  function syncThrottleSliders() {
+    for (let i = 0; i < N - 1; i++) {
+      throttleSliders[i].value = String(kappa[i]);
+      throttleVals[i].textContent = kappa[i].toFixed(2);
+      throttleSliders[i].parentElement.classList.toggle('moaty', kappa[i] < 0.15);
+    }
+  }
+
+  // presets
+  function applyPreset(name) {
+    if (name === 'open') for (let i = 0; i < N - 1; i++) kappa[i] = 0.5;
+    else if (name === 'closed') for (let i = 0; i < N - 1; i++) kappa[i] = 0.08;
+    else if (name === 'moat0') {
+      for (let i = 0; i < N - 1; i++) kappa[i] = 0.5;
+      kappa[0] = 0.04;
+    }
+    else if (name === 'moat3') {
+      for (let i = 0; i < N - 1; i++) kappa[i] = 0.5;
+      kappa[3] = 0.04;
+    }
+    else if (name === 'staged') {
+      // tight at frontier, gradually open downstream — Atoms-for-Peace shape
+      kappa[0] = 0.05;
+      kappa[1] = 0.10;
+      kappa[2] = 0.18;
+      for (let i = 3; i < N - 1; i++) kappa[i] = 0.45;
+    }
+    syncThrottleSliders();
+  }
+  document.querySelectorAll('button[data-preset]').forEach(b => {
+    b.addEventListener('click', () => applyPreset(b.dataset.preset));
+  });
+
+  // -------- mode tabs --------
+  function setMode(m) {
+    uiMode = m;
+    document.body.classList.toggle('mode-manual', m === 'manual');
+    document.body.classList.toggle('mode-arc', m === 'arc');
+    document.body.classList.toggle('mode-adv', m === 'adv');
+    // tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.mode === m);
+    });
+    // disable manual inputs only in arc mode (in adv, user IS the in-group)
+    const disabled = (m === 'arc');
+    throttleSliders.forEach(s => s.disabled = disabled);
+    sourceSelect.disabled = disabled;
+    muSlider.disabled = disabled;
+    // pause and reset on mode change
+    playing = false;
+    playBtn.textContent = '▶ play';
+    if (m === 'arc') {
+      const sel = document.getElementById('arcSelect');
+      loadArc(sel ? sel.value : 'nuclear');
+    } else if (m === 'adv') {
+      activeArc = null;
+      eventLog.length = 0;
+      renderEventLog();
+      reset();
+      // apply a default profile with a sharp moat at 0—1 so demo lands immediately
+      applyPreset('moat0');
+      setSource('frontier');
+      mu = 0.02;
+      muSlider.value = String(mu);
+      muVal.textContent = mu.toFixed(3);
+      recomputeAdv();
+      draw();
+    } else {
+      activeArc = null;
+      eventLog.length = 0;
+      renderEventLog();
+      reset();
+      draw();
+    }
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => setMode(tab.dataset.mode));
+  });
+
+  // arc selector
+  const arcSelect = document.getElementById('arcSelect');
+  if (arcSelect) {
+    arcSelect.addEventListener('change', (e) => loadArc(e.target.value));
+  }
+
+  // adversarial controls
+  const distStrategySel = document.getElementById('distortionStrategy');
+  const distStrengthSl = document.getElementById('distortionStrength');
+  const distStrengthVal = document.getElementById('distortionStrengthVal');
+  if (distStrategySel) {
+    distStrategySel.addEventListener('change', (e) => {
+      distortionStrategy = e.target.value;
+      if (uiMode === 'adv') { recomputeAdv(); draw(); }
+    });
+  }
+  if (distStrengthSl) {
+    distStrengthSl.addEventListener('input', (e) => {
+      distortionLambda = parseFloat(e.target.value);
+      if (distStrengthVal) distStrengthVal.textContent = distortionLambda.toFixed(2);
+      if (uiMode === 'adv') { recomputeAdv(); draw(); }
+    });
+  }
+
+  // when user adjusts source, mu, or fires a preset while paused in adv mode, refresh panels.
+  // throttle-slider refresh is handled inline inside buildThrottleSliders.
+  function refreshAdvIfIdle() {
+    if (uiMode === 'adv' && !playing) { recomputeAdv(); draw(); }
+  }
+  sourceSelect.addEventListener('change', refreshAdvIfIdle);
+  muSlider.addEventListener('input', refreshAdvIfIdle);
+  document.querySelectorAll('button[data-preset]').forEach(b =>
+    b.addEventListener('click', refreshAdvIfIdle)
+  );
+
+  // -------- init --------
+  setSource('frontier');
+  for (let i = 0; i < N - 1; i++) kappa[i] = 0.5; // open default; sliders are built next
+  buildThrottleSliders();
+  reset();
+  document.body.classList.add('mode-manual'); // default mode
+  draw();
+  requestAnimationFrame(frame);
+
+  // redraw on resize
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(draw, 100);
+  });
+})();
+</script>
+
+</body>
+</html>
