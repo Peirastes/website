@@ -33,12 +33,16 @@
   --cyan-faint:  rgba(125, 214, 255, 0.22);
   --cyan-glow:   rgba(125, 214, 255, 0.30);
 
-  /* Glass surface tokens */
-  --glass-bg:        rgba(10, 14, 22, 0.74);
-  --glass-bg-deep:   rgba(8, 12, 18, 0.85);
-  --glass-bg-modal:  rgba(10, 14, 22, 0.92);
-  --glass-border:    rgba(255, 255, 255, 0.07);
-  --glass-shadow:    0 10px 28px rgba(0, 0, 0, 0.55);
+  /* Glass surface tokens — more frosted, lets the background through.
+     Bg drops to ~42% opacity, blur cranks to 22px, saturate(1.4) gives
+     the background colors a subtle pop through the glass (canonical
+     macOS-style frosted treatment). */
+  --glass-bg:        rgba(10, 14, 22, 0.42);
+  --glass-bg-deep:   rgba(8, 12, 18, 0.55);
+  --glass-bg-modal:  rgba(10, 14, 22, 0.88);  /* modal stays more opaque for legibility */
+  --glass-border:    rgba(255, 255, 255, 0.10);
+  --glass-blur:      blur(22px) saturate(1.4);
+  --glass-shadow:    0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
   /* Telemetry channel hues (functional, not chrome — distinguishes data) */
   --tel-vel:    #ff9c5c;   /* warm orange */
@@ -278,8 +282,8 @@ body::after {
 .inst-panel {
   border-radius: 6px;
   background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   padding: 14px 16px;
@@ -629,8 +633,8 @@ body::after {
   padding: 8px 18px;
   border-radius: 6px;
   background: var(--glass-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
 }
