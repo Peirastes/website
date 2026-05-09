@@ -344,10 +344,14 @@ body::after {
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2);
 }
-/* Firefox fallback */
-.acrylic-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(125, 214, 255, 0.22) rgba(0, 0, 0, 0.5);
+/* Firefox-only fallback. Scoped with @supports so Chrome/Edge — which
+   would otherwise let `scrollbar-width: thin` override our custom
+   ::-webkit-scrollbar styling — never see these rules. */
+@supports (-moz-appearance: none) {
+  .acrylic-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(125, 214, 255, 0.45) rgba(4, 6, 10, 0.6);
+  }
 }
 
 /* ─── TAPE GAUGES (telemetry readouts) ──────────────────────────
