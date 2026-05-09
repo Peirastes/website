@@ -128,45 +128,59 @@ body .instrument-stage {                  /* fallback: show even without is-read
   100% { opacity: 1; }
 }
 
-/* Acrylic frame — restored as a proper container (was transparent
-   passthrough in the wrong "cockpit-strip" version). Frosted glass
-   so the cinema banner whispers through at the edges. */
+/* Acrylic-panel is a transparent passthrough — the lab void IS the
+   working surface (display-area below provides the deep-space backdrop),
+   and the control panel floats on top. Same pattern as Artemis II:
+   trajectory-panel = backdrop, top-panels/floating-panels = overlay. */
 .acrylic-panel {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   overflow: hidden;
 }
 
 /* The legacy .panel-header is removed; identity lives in cinematic chrome (.cin-title) */
 .panel-header { display: none; }
 
-/* Lab grid */
+/* Lab container — relative positioning so children can absolute-position
+   inside it. .display-area fills it as the void; .control-panel floats on top. */
 .main-grid {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 0;
+  position: relative;
+  display: block;
   height: 100%;
   min-height: 0;
 }
 
-/* ─── SIDEBAR (.control-panel) ───────────────────────────────── */
+/* ─── SIDEBAR (.control-panel) ──────────────────────────────────
+   Floats on the left over the lab void (z-10 above .display-area).
+   Self-contained acrylic glass panel with margins so the void shows
+   around its edges, like a HUD floating on the 3D scene. */
 
 .control-panel {
-  background: var(--glass-bg-deep);     /* slightly deeper for the controls cluster */
-  border-right: 1px solid var(--glass-border);
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  width: 320px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: var(--glass-shadow);
   padding: 16px;
   min-width: 0;
   min-height: 0;
-  overflow-y: scroll;                    /* always show the canonical glass scrollbar */
+  overflow-y: scroll;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
+  z-index: 10;
 }
 
 .panel-section { margin-bottom: 18px; }
@@ -358,60 +372,53 @@ select.input-field:focus {
 
 .module-ctrl { display: block; }
 
-/* ─── DISPLAY AREA ───────────────────────────────────────────── */
+/* ─── DISPLAY AREA — the lab void ─────────────────────────────
+   Fills the full inner area as a deep dark backdrop. Content area
+   starts to the right of the floating control panel (1rem + 320px
+   + 1rem gap). The void background extends BEHIND the controls so
+   the frosted glass overlays it like a HUD on space. */
 
 .display-area {
-  padding: 18px;
+  position: absolute;
+  inset: 0;
+  padding: 1.5rem 1.5rem 1.5rem calc(320px + 2.5rem);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
   min-height: 0;
   overflow-y: scroll;
   scrollbar-gutter: stable;
   overscroll-behavior: contain;
+  /* Deep space — same vibe as Artemis trajectory panel */
+  background: radial-gradient(ellipse at 60% 40%,
+    #0a0e16 0%, #06080c 55%, #04060a 100%);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
-/* ─── CRT SCREEN — chromatic-edged glass slab (v3.5 graph treatment) ── */
-
+/* ─── CRT SCREEN — transparent passthrough now ─────────────────
+   The lab void IS the screen; the canvas floats freely in space.
+   Old amber CRT framing dropped (would feel redundant with the
+   deep-space backdrop). Just a flex column container holding label,
+   canvas, cards, eq strip. */
 .crt-screen {
   position: relative;
-  border-radius: 6px;
-  overflow: hidden;
-  background: linear-gradient(180deg,
-    rgba(14, 10, 6, 0.85) 0%,
-    rgba(10, 7, 4, 0.92) 60%,
-    rgba(4, 4, 4, 0.95) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-left-color: rgba(125, 214, 255, 0.22);    /* chromatic cyan edge */
-  border-right-color: rgba(255, 174, 32, 0.28);    /* chromatic neon-amber edge */
-  box-shadow:
-    inset 0 3px 10px rgba(0, 0, 0, 0.85),
-    inset 0 -1px 4px rgba(0, 0, 0, 0.5),
-    0 4px 16px rgba(0, 0, 0, 0.5),
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    inset 0 0 24px rgba(255, 174, 32, 0.04);
-  padding: 16px;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
 }
-.crt-screen::before {
-  /* CRT scanlines — soft amber */
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
-  background-image: repeating-linear-gradient(0deg,
-    rgba(255, 174, 32, 0.03) 0px, rgba(255, 174, 32, 0.03) 1px,
-    rgba(0, 0, 0, 0.92) 1px, rgba(0, 0, 0, 0.92) 2px);
-  opacity: 0.45;
-  border-radius: 5px;
-}
-.crt-screen::after {
-  /* Inset chromatic glow + sealed edges */
-  content: ''; position: absolute; inset: 0; border-radius: 5px;
-  pointer-events: none; z-index: 6;
-  box-shadow:
-    inset 2px 0 8px rgba(125, 214, 255, 0.06),
-    inset -2px 0 8px rgba(255, 174, 32, 0.06),
-    inset 0 1px 4px rgba(255, 255, 255, 0.04),
-    inset 0 -1px 4px rgba(0, 0, 0, 0.20);
-}
+.crt-screen::before { display: none; }
+.crt-screen::after { display: none; }
 
 .crt-label {
   position: relative; z-index: 7;
@@ -424,11 +431,19 @@ select.input-field:focus {
   text-shadow: 0 0 6px var(--gold-glow);
 }
 
-.canvas-wrap { position: relative; z-index: 7; width: 100%; display: flex; justify-content: center; }
+.canvas-wrap {
+  position: relative; z-index: 1;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
 .canvas-wrap canvas {
   display: block;
   max-width: 100%;
-  max-height: 70vh;
+  max-height: calc(100vh - 16rem);   /* leave room for chrome row + label + cards + eq */
   width: auto;
   height: auto;
   margin: 0 auto;
@@ -486,9 +501,16 @@ select.input-field:focus {
 .crt-label .katex { font-size: 11px; color: inherit; }
 .card-l .katex { font-size: 10px; color: inherit; }
 
-/* Panel display state — preserve .panel.on selector for JS module switching */
+/* Panel display state — preserve .panel.on selector for JS module switching.
+   Active panel becomes a flex column that fills the .display-area, so the
+   canvas inside (.canvas-wrap flex:1) expands to use available space. */
 .panel { display: none; }
-.panel.on { display: block; }
+.panel.on {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
 
 .info-bar {
   font-family: 'Inter', sans-serif;
@@ -792,19 +814,28 @@ select.input-field:focus {
   .cin-status__label, .cin-version { font-size: 0.52rem; }
 }
 
+/* Below 920px the floating control panel becomes a stacked top bar
+   (controls above, lab below) since side-by-side gets cramped. */
 @media (max-width: 920px) {
-  .main-grid { grid-template-columns: 1fr; }
   .control-panel {
-    border-right: none;
-    border-bottom: 1px solid var(--glass-border);
-    max-height: 38vh;
+    position: relative;
+    top: auto; bottom: auto; left: auto;
+    width: auto;
+    margin: 0.6rem 0.6rem 0;
+    max-height: 36vh;
+  }
+  .display-area {
+    padding: 0.6rem 0.6rem 0.6rem 0.6rem;   /* no left-gutter for controls — they're stacked above now */
+    top: calc(36vh + 1.2rem);                /* push down below the controls */
+    bottom: 0;
+    left: 0; right: 0;
   }
 }
 
 @media (max-width: 768px) {
   .instrument-stage { padding: 3.6rem 0.6rem 0.6rem; }
-  .control-panel { padding: 12px; }
-  .display-area  { padding: 12px; }
+  .control-panel { padding: 12px; max-height: 32vh; }
+  .display-area  { padding: 12px; top: calc(32vh + 1.2rem); }
 
   .cin-actions, .cin-hints { display: none; }
   .cin-tick--bl, .cin-tick--br { display: none; }
