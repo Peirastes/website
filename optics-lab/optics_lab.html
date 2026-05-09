@@ -20,136 +20,219 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../css/cinematic.css">
+
 
 <style>
-/* Body scroll override — instrument page is fixed-viewport with internal panel scroll */
-body { overflow: hidden !important; font-family: 'Share Tech Mono', monospace; }
+/* ═══════════════════════════════════════════════════════════════
+   OPTICS LAB — Cinematic Tier (v3.5 retrofit)
+   Same JS/DOM as before, restyled to the canonical cinematic
+   instrument template (matches /artemis-ii-v3-5/).
+   Preserves every JS-referenced class: .tab, .panel, .module-ctrl,
+   .crt-screen, .cards, .eq-strip, .control-panel, .display-area,
+   .input-field, .slider-row, .reset-btn, etc.
+   ═══════════════════════════════════════════════════════════════ */
 
-/* ============================================================
-   ACRYLIC HUD · INNER INSTRUMENT
-   Restyles the existing optics-lab classes (.tab, .panel, .crt-screen, etc.)
-   to match the canonical acrylic-frame aesthetic. Preserves all DOM IDs
-   and class names that the JS depends on.
-   ============================================================ */
 :root {
-  --crt-bg: #0a0e14;
-  --crt-border: #333842;
-  --amber: #f0a030;
-  --amber-dim: #a06820;
-  --amber-glow: rgba(240,160,48,0.25);
-  --amber-edge: rgba(240,160,48,0.45);
-  --amber-hot: #ffd080;
-  --cyan: #40e8d0;
-  --cyan-dim: #208878;
-  --cyan-glow: rgba(64,232,208,0.2);
-  --teal: #20b0a0;
-  --red: #e05040;
-  --green: #40d870;
-  --text-primary: #d0d4da;
-  --text-dim: #707880;
-  --acr-chrom-amber: rgba(240,160,48,0.38);
-  --acr-chrom-cyan: rgba(64,232,208,0.30);
+  /* Cinematic v3.5 palette — neon amber + cool cyan */
+  --gold:        #ffae20;
+  --gold-soft:   rgba(255, 174, 32, 0.72);
+  --gold-faint:  rgba(255, 174, 32, 0.28);
+  --gold-glow:   rgba(255, 174, 32, 0.45);
+  --cyan:        #7dd6ff;
+  --cyan-soft:   rgba(125, 214, 255, 0.65);
+  --cyan-faint:  rgba(125, 214, 255, 0.22);
+  --cyan-glow:   rgba(125, 214, 255, 0.30);
+
+  /* Aliases — every legacy optics rule that says --amber/--amber-glow
+     etc still resolves, just with the v3.5 hue. */
+  --amber:       var(--gold);
+  --amber-dim:   rgba(255, 174, 32, 0.6);
+  --amber-glow:  var(--gold-glow);
+  --amber-edge:  var(--gold-soft);
+  --amber-hot:   #ffd080;
+  --cyan-dim:    rgba(125, 214, 255, 0.55);
+
+  /* Glass surface tokens — same as Artemis v3.5 */
+  --glass-bg:        rgba(10, 14, 22, 0.42);
+  --glass-bg-deep:   rgba(8, 12, 18, 0.55);
+  --glass-blur:      blur(22px) saturate(1.4);
+  --glass-border:    rgba(255, 255, 255, 0.10);
+  --glass-shadow:    0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --bg-void: #06080c;
+  --text-primary: #e8e8e8;
+  --text-dim: #8a8a8a;
 }
 
-/* Cockpit stage — fills viewport minus a thin top gutter for cinematic chrome
-   (PEIRASTES wordmark + profile pip overlay the corners). No outer chassis. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cinema banner backdrop — atmospheric, never the work surface */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background-image: url('../images/PeirastesBanner.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.55) brightness(0.32) contrast(1.05);
+  opacity: 0.85;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(6, 8, 12, 0.65) 95%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Subtle film grain overlay */
+.cin-grain {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAB CONTAINER + ACRYLIC FRAME
+   ═══════════════════════════════════════════════════════════════ */
+
 .instrument-stage {
   position: fixed; inset: 0;
   display: block;
-  padding: 4.5rem 0 0;
+  padding: 5.5rem 1.6rem 1.6rem;        /* shared 1.6rem inset, 5.5rem at top for chrome */
   z-index: 8;
   opacity: 0; transform: translateY(20px) scale(0.98);
   transition: opacity 800ms ease 500ms, transform 800ms ease 500ms;
   overflow: hidden;
+  animation: cin-app-fade 1100ms ease 200ms backwards;
 }
-body.is-ready .instrument-stage { opacity: 1; transform: translateY(0) scale(1); }
+body.is-ready .instrument-stage,
+body .instrument-stage {                  /* fallback: show even without is-ready */
+  opacity: 1; transform: translateY(0) scale(1);
+}
+@keyframes cin-app-fade {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
 
-/* Transparent passthrough — the wrapper element survives so DOM/JS still works,
-   but the acrylic frame chrome is gone. Inner panels (.control-panel, .crt-screen)
-   carry their own console-tier chrome. */
+/* Acrylic frame — restored as a proper container (was transparent
+   passthrough in the wrong "cockpit-strip" version). Frosted glass
+   so the cinema banner whispers through at the edges. */
 .acrylic-panel {
   position: relative;
   width: 100%;
   height: 100%;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
   overflow: hidden;
 }
 
-/* Identity already covered by cinematic .profile element ("Optics Laboratory · Instrument · v3.0") */
+/* The legacy .panel-header is removed; identity lives in cinematic chrome (.cin-title) */
 .panel-header { display: none; }
 
-/* Lab grid (preserves .main-grid classname for compatibility) */
+/* Lab grid */
 .main-grid {
   display: grid;
-  grid-template-columns: 320px 1fr;   /* sidebar wide enough to fit longest control labels unclipped */
+  grid-template-columns: 320px 1fr;
   gap: 0;
   height: 100%;
   min-height: 0;
 }
 
-/* Sidebar (preserves .control-panel classname) */
+/* ─── SIDEBAR (.control-panel) ───────────────────────────────── */
+
 .control-panel {
-  background: rgba(8,12,18,0.4);
-  border-right: 1px solid rgba(240,160,48,0.12);
+  background: var(--glass-bg-deep);     /* slightly deeper for the controls cluster */
+  border-right: 1px solid var(--glass-border);
   padding: 16px;
   min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;   /* wheel inside sidebar stays in sidebar */
+  overflow-y: scroll;                    /* always show the canonical glass scrollbar */
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 .panel-section { margin-bottom: 18px; }
 
 .section-label {
-  font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
-  color: var(--amber); letter-spacing: 0.22em; text-transform: uppercase;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em; text-transform: uppercase;
   margin-bottom: 10px; padding-bottom: 5px;
-  border-bottom: 1px solid rgba(240,160,48,0.25);
-  text-shadow: 0 0 6px var(--amber-glow);
+  border-bottom: 1px solid var(--gold-faint);
+  text-shadow: 0 0 6px var(--gold-glow);
 }
 
-/* Module tabs — preserves .tab classname (used by JS querySelectorAll) */
+/* ─── MODULE TABS (preserves .tab classname for JS) ───────────── */
+
 .module-tab-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+
 .tab {
-  background: rgba(8,12,18,0.5);
-  border: 1px solid rgba(240,160,48,0.18);
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.78) 0%,
+    rgba(8, 12, 18, 0.88) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 2px solid transparent;
-  border-radius: 0;
-  color: var(--text-dim);
-  font-family: 'Share Tech Mono', monospace;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.62);
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
+  font-weight: 500;
   padding: 8px 10px;
   cursor: pointer;
-  transition: all 0.16s ease;
-  letter-spacing: 0.08em;
-  flex: 1; text-align: left;
+  transition: all 0.14s ease;
+  letter-spacing: 0.06em;
+  flex: 1;
+  text-align: left;
   text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
 }
 .tab:hover {
-  background: rgba(240,160,48,0.08);
-  border-color: rgba(240,160,48,0.4);
-  border-left-color: var(--amber-dim);
-  color: var(--amber);
+  color: var(--cyan);
+  background: linear-gradient(180deg,
+    rgba(125, 214, 255, 0.08) 0%,
+    rgba(8, 12, 18, 0.85) 100%);
+  border-color: rgba(125, 214, 255, 0.30);
 }
 .tab.on {
-  background: linear-gradient(90deg, rgba(240,160,48,0.18), rgba(240,160,48,0.02) 90%);
-  border-color: rgba(240,160,48,0.4);
-  border-left: 2px solid var(--amber);
-  color: var(--amber);
-  text-shadow: 0 0 4px var(--amber-glow);
-  box-shadow: inset 0 1px 0 rgba(240,160,48,0.12);
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.20) 0%,
+    rgba(160, 104, 32, 0.10) 100%);
+  border-color: rgba(255, 174, 32, 0.40);
+  border-left: 2px solid var(--gold);
+  color: var(--gold);
+  text-shadow: 0 0 4px var(--gold-glow);
+  box-shadow:
+    inset 0 1px 4px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(255, 174, 32, 0.20),
+    0 0 8px rgba(255, 174, 32, 0.15);
 }
 
-/* Inputs — selects with cyan text on dark recessed bg */
+/* ─── INPUTS (selects, sliders, checkboxes) ─────────────────── */
+
 select.input-field {
-  background: rgba(4,6,10,0.85);
-  border: 1px solid rgba(240,160,48,0.35);
+  background: rgba(4, 6, 10, 0.85);
+  border: 1px solid rgba(255, 174, 32, 0.30);
   border-radius: 3px;
   color: var(--cyan);
   font-family: 'Share Tech Mono', monospace;
@@ -159,7 +242,7 @@ select.input-field {
   width: 100%;
   appearance: none;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='rgba(64,232,208,0.5)' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='rgba(125,214,255,0.6)' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 6px center;
   text-shadow: 0 0 4px var(--cyan-glow);
@@ -172,17 +255,21 @@ select.input-field:focus {
 .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
 .input-group { display: flex; flex-direction: column; min-width: 0; }
 .input-label {
+  font-family: 'Inter', sans-serif;
   font-size: 10px; color: var(--text-dim);
   letter-spacing: 0.08em; margin-bottom: 3px;
   text-transform: uppercase;
+  font-weight: 500;
 }
 
 /* Sliders — recessed channel + amber-thumbed metal nub */
 .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .slider-row .sl {
+  font-family: 'Inter', sans-serif;
   font-size: 10px; color: var(--text-dim);
   letter-spacing: 0.06em; text-transform: uppercase;
   white-space: nowrap; min-width: 88px;
+  font-weight: 500;
 }
 .slider-row input[type=range] {
   flex: 1;
@@ -190,129 +277,164 @@ select.input-field:focus {
   height: 18px;
   background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
   border-radius: 4px;
-  border: 1px solid rgba(0,0,0,0.7);
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.85);
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
   outline: none;
   cursor: pointer;
 }
 .slider-row input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 18px; height: 16px;
-  background: linear-gradient(180deg, #3a3e42 0%, #20242a 50%, #14171a 100%);
+  background: linear-gradient(180deg, #4a4e52 0%, #2a2e34 50%, #14171a 100%);
   border: 1px solid #000; border-radius: 3px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
   cursor: pointer;
 }
 .slider-row input[type=range]::-moz-range-thumb {
   width: 18px; height: 16px;
-  background: linear-gradient(180deg, #3a3e42 0%, #20242a 50%, #14171a 100%);
+  background: linear-gradient(180deg, #4a4e52 0%, #2a2e34 50%, #14171a 100%);
   border: 1px solid #000; border-radius: 3px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
 }
 .slider-row .sv {
-  font-size: 11px; color: var(--amber);
-  text-shadow: 0 0 4px var(--amber-glow);
+  font-size: 11px; color: var(--gold);
+  text-shadow: 0 0 5px var(--gold-glow);
   font-family: 'Share Tech Mono', monospace;
   min-width: 58px; text-align: left;
+  font-weight: 500;
 }
 
 /* Checkboxes */
 .chk-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; margin-bottom: 6px; }
 .chk-row input[type=checkbox] {
-  accent-color: var(--amber);
+  accent-color: var(--gold);
   width: 14px; height: 14px;
   cursor: pointer;
 }
-.chk-row span { font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+.chk-row span {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
 
-/* Reset / share buttons */
+/* Reset / share buttons — v3.5 button depth vocabulary */
 .reset-btn {
-  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
-  border: 1px solid rgba(240,160,48,0.45);
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.92) 0%,
+    rgba(8, 12, 18, 0.95) 100%);
+  border: 1px solid rgba(255, 174, 32, 0.40);
   border-radius: 3px;
-  color: var(--amber);
-  font-family: 'Share Tech Mono', monospace;
+  color: var(--gold);
+  font-family: 'Inter', sans-serif;
   font-size: 10px; font-weight: 600;
-  padding: 7px 12px;
+  padding: 8px 12px;
   cursor: pointer;
   margin-top: 10px;
   transition: all 0.14s ease;
   display: block;
   width: 100%;
-  box-sizing: border-box;       /* explicit — width includes border + padding */
-  letter-spacing: 0.12em;
+  box-sizing: border-box;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  text-shadow: 0 0 6px var(--amber-glow);
-  /* No outer glow on default — only inset highlight (so the button stays inside its layout box) */
-  box-shadow: inset 0 1px 0 rgba(240,160,48,0.12);
+  text-shadow: 0 0 6px var(--gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 174, 32, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.45);
 }
 .reset-btn:hover {
-  background: linear-gradient(180deg, rgba(240,160,48,0.22), rgba(160,104,32,0.14));
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.22) 0%,
+    rgba(160, 104, 32, 0.12) 100%);
   color: #fff;
-  /* Tighter hover glow (was 12px → 6px) so it doesn't spill past panel edges */
-  box-shadow: inset 0 1px 0 rgba(240,160,48,0.22), 0 0 6px rgba(240,160,48,0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 174, 32, 0.22),
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    0 0 8px rgba(255, 174, 32, 0.25);
 }
 
 .module-ctrl { display: block; }
 
-/* Display area — preserves .display-area classname */
+/* ─── DISPLAY AREA ───────────────────────────────────────────── */
+
 .display-area {
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-width: 0;           /* allow grid child to shrink properly */
+  min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;   /* wheel inside display-area stays here */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
-/* Mounted screen — restyle .crt-screen as acrylic mounted-screen */
+/* ─── CRT SCREEN — chromatic-edged glass slab (v3.5 graph treatment) ── */
+
 .crt-screen {
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid rgba(240,160,48,0.55);
+  background: linear-gradient(180deg,
+    rgba(14, 10, 6, 0.85) 0%,
+    rgba(10, 7, 4, 0.92) 60%,
+    rgba(4, 4, 4, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left-color: rgba(125, 214, 255, 0.22);    /* chromatic cyan edge */
+  border-right-color: rgba(255, 174, 32, 0.28);    /* chromatic neon-amber edge */
   box-shadow:
-    inset 0 3px 10px rgba(0,0,0,0.85),
-    inset 0 -1px 4px rgba(0,0,0,0.5),
-    0 0 10px rgba(240,160,48,0.18),
-    inset 0 0 24px rgba(240,160,48,0.05);
-  background: radial-gradient(ellipse at 50% 50%,
-    rgba(18,12,4,0.98) 0%, rgba(10,7,3,1) 60%, rgba(4,4,4,1) 100%);
+    inset 0 3px 10px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 4px rgba(0, 0, 0, 0.5),
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 0 24px rgba(255, 174, 32, 0.04);
   padding: 16px;
 }
 .crt-screen::before {
+  /* CRT scanlines — soft amber */
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
   background-image: repeating-linear-gradient(0deg,
-    rgba(240,160,48,0.04) 0px, rgba(240,160,48,0.04) 1px,
-    rgba(0,0,0,0.92) 1px, rgba(0,0,0,0.92) 2px);
-  opacity: 0.5;
-  border-radius: 4px;
+    rgba(255, 174, 32, 0.03) 0px, rgba(255, 174, 32, 0.03) 1px,
+    rgba(0, 0, 0, 0.92) 1px, rgba(0, 0, 0, 0.92) 2px);
+  opacity: 0.45;
+  border-radius: 5px;
+}
+.crt-screen::after {
+  /* Inset chromatic glow + sealed edges */
+  content: ''; position: absolute; inset: 0; border-radius: 5px;
+  pointer-events: none; z-index: 6;
+  box-shadow:
+    inset 2px 0 8px rgba(125, 214, 255, 0.06),
+    inset -2px 0 8px rgba(255, 174, 32, 0.06),
+    inset 0 1px 4px rgba(255, 255, 255, 0.04),
+    inset 0 -1px 4px rgba(0, 0, 0, 0.20);
 }
 
 .crt-label {
   position: relative; z-index: 7;
-  font-family: 'Orbitron', monospace;
+  font-family: 'Orbitron', sans-serif;
   font-size: 11px; font-weight: 700;
-  color: var(--amber);
-  letter-spacing: 0.2em;
+  color: var(--gold);
+  letter-spacing: 0.22em;
   margin-bottom: 12px;
   text-transform: uppercase;
-  text-shadow: 0 0 6px var(--amber-glow);
+  text-shadow: 0 0 6px var(--gold-glow);
 }
 
 .canvas-wrap { position: relative; z-index: 7; width: 100%; display: flex; justify-content: center; }
 .canvas-wrap canvas {
   display: block;
   max-width: 100%;
-  max-height: 70vh;       /* cockpit mode — chassis removed, more vertical room available */
+  max-height: 70vh;
   width: auto;
   height: auto;
   margin: 0 auto;
 }
 
-/* Cards (readouts) */
+/* Cards (readouts) — recessed + chromatic edges, like tape gauges */
 .cards {
   position: relative; z-index: 7;
   display: grid;
@@ -321,15 +443,20 @@ select.input-field:focus {
   margin-top: 12px;
 }
 .card {
-  background: rgba(10,14,20,0.6);
-  border: 1px solid rgba(240,160,48,0.18);
+  background: rgba(6, 10, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
   padding: 8px 10px;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .card-l {
+  font-family: 'Inter', sans-serif;
   font-size: 9px; color: var(--text-dim);
-  letter-spacing: 0.1em; text-transform: uppercase;
+  letter-spacing: 0.10em; text-transform: uppercase;
   margin-bottom: 4px;
+  font-weight: 500;
 }
 .card-v {
   font-size: 14px;
@@ -343,8 +470,8 @@ select.input-field:focus {
   position: relative; z-index: 7;
   margin-top: 12px;
   padding: 8px 12px;
-  background: rgba(10,14,20,0.4);
-  border: 1px solid rgba(240,160,48,0.18);
+  background: rgba(125, 214, 255, 0.04);
+  border: 1px solid rgba(125, 214, 255, 0.18);
   border-radius: 3px;
   display: flex;
   flex-wrap: wrap;
@@ -353,8 +480,8 @@ select.input-field:focus {
   color: var(--text-dim);
   align-items: center;
 }
-.eq-strip .eq { color: var(--cyan-dim); }
-.eq-strip .katex { font-size: 12px; color: var(--cyan-dim); }
+.eq-strip .eq { color: rgba(125, 214, 255, 0.7); }
+.eq-strip .katex { font-size: 12px; color: rgba(125, 214, 255, 0.7); }
 .input-label .katex { font-size: 11px; color: inherit; }
 .crt-label .katex { font-size: 11px; color: inherit; }
 .card-l .katex { font-size: 10px; color: inherit; }
@@ -364,69 +491,395 @@ select.input-field:focus {
 .panel.on { display: block; }
 
 .info-bar {
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
   color: var(--text-dim);
   line-height: 1.5;
   padding: 8px 10px;
-  background: rgba(240,160,48,0.04);
-  border: 1px solid rgba(240,160,48,0.12);
+  background: rgba(255, 174, 32, 0.04);
+  border: 1px solid rgba(255, 174, 32, 0.12);
   border-radius: 3px;
   margin-bottom: 12px;
 }
 
-/* Hide inline kbd-hint — cinematic chrome shows the equivalent already */
 .kbd-hint { display: none !important; }
 
-/* Responsive */
+/* ═══════════════════════════════════════════════════════════════
+   ACRYLIC GLASS SCROLLBAR (canonical, cinematic palette)
+   ═══════════════════════════════════════════════════════════════ */
+
+.control-panel::-webkit-scrollbar,
+.display-area::-webkit-scrollbar { width: 8px; height: 8px; }
+.control-panel::-webkit-scrollbar-track,
+.display-area::-webkit-scrollbar-track {
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(4, 6, 10, 0.65) 25%,
+    rgba(4, 6, 10, 0.65) 75%,
+    rgba(0, 0, 0, 0.45) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 1px 0 3px rgba(0, 0, 0, 0.55),
+    inset -1px 0 3px rgba(0, 0, 0, 0.55),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+  margin: 4px 0;
+}
+.control-panel::-webkit-scrollbar-thumb,
+.display-area::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(40, 52, 68, 0.6);
+  border-left: 1px solid rgba(125, 214, 255, 0.10);
+  border-right: 1px solid rgba(255, 174, 32, 0.22);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    inset 2px 0 4px rgba(125, 214, 255, 0.04),
+    inset -2px 0 4px rgba(255, 174, 32, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+.control-panel::-webkit-scrollbar-thumb:hover,
+.display-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(50, 64, 82, 0.7);
+  border-left-color: rgba(125, 214, 255, 0.18);
+  border-right-color: rgba(255, 174, 32, 0.38);
+  border-top-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 2px 0 6px rgba(125, 214, 255, 0.04),
+    inset -2px 0 6px rgba(255, 174, 32, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+@supports (-moz-appearance: none) {
+  .control-panel, .display-area {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(125, 214, 255, 0.45) rgba(4, 6, 10, 0.6);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CINEMATIC CHROME LAYER (wordmark, title, action cluster, etc.)
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-wordmark {
+  position: fixed;
+  top: max(1.4rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  left: max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--gold-soft);
+  text-decoration: none;
+  text-shadow: 0 0 8px var(--gold-glow);
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: cin-fade-in 700ms ease 250ms forwards;
+  transition: color 200ms, text-shadow 200ms;
+}
+.cin-wordmark:hover {
+  color: var(--gold);
+  text-shadow: 0 0 14px var(--gold-glow);
+}
+
+.cin-title {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 700ms ease 350ms forwards;
+}
+.cin-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.cin-title__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--cyan-soft);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* Action cluster (top-right) */
+.cin-actions {
+  position: fixed;
+  top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.4rem);
+  right: max(1.6rem, env(safe-area-inset-right, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: cin-fade-in 700ms ease 400ms forwards;
+}
+.cin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.55rem 0.25rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(8, 12, 18, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-right: 0.2rem;
+}
+.cin-status__dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan-glow), 0 0 12px var(--cyan-glow);
+  animation: cin-status-pulse 2.4s ease-in-out infinite;
+}
+@keyframes cin-status-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.cin-status__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.78);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cin-action {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 214, 255, 0.28);
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--cyan);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.10),
+    0 2px 4px rgba(0, 0, 0, 0.45);
+  transition: all 0.16s ease;
+}
+.cin-action:hover {
+  border-color: rgba(125, 214, 255, 0.55);
+  color: #a8e3ff;
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.20),
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    0 0 12px var(--cyan-glow);
+}
+.cin-action--disabled,
+.cin-action[disabled] {
+  cursor: not-allowed;
+  opacity: 0.32;
+  color: rgba(180, 180, 180, 0.5);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.cin-action--disabled:hover,
+.cin-action[disabled]:hover {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: rgba(180, 180, 180, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.cin-version {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 500;
+  color: rgba(125, 214, 255, 0.55);
+  letter-spacing: 0.20em;
+  margin-left: 0.15rem;
+  white-space: nowrap;
+}
+
+/* Corner cartographic ticks */
+.cin-tick {
+  position: fixed;
+  width: 16px; height: 16px;
+  z-index: 99;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 600ms forwards;
+}
+.cin-tick::before, .cin-tick::after {
+  content: '';
+  position: absolute;
+  background: rgba(125, 214, 255, 0.45);
+}
+.cin-tick--tl { top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);    left:  max(0.9rem, env(safe-area-inset-left, 0px)  + 0.3rem); }
+.cin-tick--tr { top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);    right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem); }
+.cin-tick--bl { bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem); left:  max(0.9rem, env(safe-area-inset-left, 0px)  + 0.3rem); }
+.cin-tick--br { bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem); right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem); }
+.cin-tick--tl::before { top: 0; left: 0;  width: 12px; height: 1px; }
+.cin-tick--tl::after  { top: 0; left: 0;  width: 1px;  height: 12px; }
+.cin-tick--tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--tr::after  { top: 0; right: 0; width: 1px;  height: 12px; }
+.cin-tick--bl::before { bottom: 0; left: 0;  width: 12px; height: 1px; }
+.cin-tick--bl::after  { bottom: 0; left: 0;  width: 1px;  height: 12px; }
+.cin-tick--br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--br::after  { bottom: 0; right: 0; width: 1px;  height: 12px; }
+
+/* Hint glyphs bottom-left */
+.cin-hints {
+  position: fixed;
+  bottom: max(1.6rem, env(safe-area-inset-bottom, 0px) + 0.6rem);
+  left:   max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.10em;
+  color: rgba(180, 180, 180, 0.45);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 750ms forwards;
+}
+.cin-hints kbd {
+  font-family: inherit;
+  background: rgba(125, 214, 255, 0.06);
+  border: 1px solid var(--cyan-faint);
+  border-radius: 2px;
+  padding: 1px 5px;
+  margin-right: 0.4rem;
+  color: var(--cyan);
+  font-size: 0.58rem;
+}
+
+@keyframes cin-fade-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .cin-wordmark { font-size: 0.72rem; letter-spacing: 0.24em; }
+  .cin-title__name { font-size: 16px; letter-spacing: 0.20em; }
+  .cin-title__sub  { font-size: 8.5px; }
+  .cin-action      { width: 26px; height: 26px; font-size: 13px; }
+  .cin-status__label, .cin-version { font-size: 0.52rem; }
+}
+
 @media (max-width: 920px) {
   .main-grid { grid-template-columns: 1fr; }
-  .control-panel { border-right: none; border-bottom: 1px solid rgba(240,160,48,0.12); }
+  .control-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--glass-border);
+    max-height: 38vh;
+  }
 }
-@media (max-width: 720px) {
-  .instrument-stage { padding: 4rem 0 0; }
+
+@media (max-width: 768px) {
+  .instrument-stage { padding: 3.6rem 0.6rem 0.6rem; }
   .control-panel { padding: 12px; }
-  .display-area { padding: 12px; }
-  .canvas-wrap canvas { max-height: 50vh; }
+  .display-area  { padding: 12px; }
+
+  .cin-actions, .cin-hints { display: none; }
+  .cin-tick--bl, .cin-tick--br { display: none; }
+  .cin-wordmark {
+    font-size: 0.62rem; top: 0.6rem; left: 0.7rem;
+    letter-spacing: 0.18em;
+  }
+  .cin-title { top: 0.5rem; }
+  .cin-title__name { font-size: 13px; letter-spacing: 0.18em; }
+  .cin-title__sub  { display: none; }
 }
+
 @media (max-width: 550px) {
   .cards { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+  .canvas-wrap canvas { max-height: 50vh; }
+}
+
+@media (max-height: 500px) {
+  .cin-wordmark, .cin-actions, .cin-hints, .cin-title { display: none; }
+  .cin-tick { width: 10px; height: 10px; }
+  .instrument-stage { padding: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after, .cin-grain,
+  .instrument-stage, .cin-wordmark, .cin-title, .cin-actions, .cin-tick, .cin-hints, .cin-status__dot {
+    animation: none !important;
+    transition: none !important;
+  }
+  .cin-wordmark, .cin-actions, .cin-tick, .cin-hints {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+  }
+  .cin-title { opacity: 1 !important; transform: translateX(-50%) !important; }
+  .instrument-stage { opacity: 1 !important; transform: none !important; }
 }
 </style>
 </head>
 <body>
 
-<!-- Cinematic chrome (banner + ticks injected by cinematic.js) -->
-<div class="bg" aria-hidden="true">
-    <div class="bg__image"></div>
-    <div class="bg__vignette"></div>
-    <div class="bg__grain"></div>
+<!-- v3.5 cinematic chrome (matches /artemis-ii-v3-5/ template) -->
+<div class="cin-grain" aria-hidden="true"></div>
+
+<a class="cin-wordmark" href="/" title="Back to Peirastes">PEIRASTES</a>
+
+<div class="cin-title" aria-label="Optics Laboratory">
+  <div class="cin-title__name">Optics Laboratory</div>
+  <div class="cin-title__sub">Ray + Wave Optics &middot; 5 Modules</div>
 </div>
 
-<a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
-
-<div class="profile">
-    <div class="profile__mark">P</div>
-    <div class="profile__meta">
-        <span class="profile__name">Optics Laboratory</span>
-        <span class="profile__sub">Instrument · v3.0</span>
-    </div>
+<div class="cin-actions">
+  <div class="cin-status" id="cinStatus" aria-live="polite">
+    <span class="cin-status__dot"></span>
+    <span class="cin-status__label">Ready</span>
+  </div>
+  <button class="cin-action cin-action--disabled" id="btnInfoOptics" title="Info (coming soon)" aria-label="Info" disabled>&#9432;</button>
+  <button class="cin-action cin-action--disabled" id="btnSettingsOptics" title="Settings (coming soon)" aria-label="Settings" disabled>&#9881;</button>
+  <span class="cin-version">v3.5</span>
 </div>
 
-<div class="hints">
-    <span class="hint"><kbd>← →</kbd> Switch Module</span>
-    <span class="hint"><kbd>Esc</kbd> Home</span>
-</div>
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
 
-<a class="back-to-hub" href="/all-projects.html">← Projects</a>
+<div class="cin-hints" aria-hidden="true">
+  <span><kbd>&larr; &rarr;</kbd> Switch Module</span>
+  <span><kbd>Esc</kbd> Home</span>
+</div>
 
 <!-- Acrylic-framed instrument -->
 <main class="instrument-stage">
     <article class="acrylic-panel" aria-label="Optics Laboratory">
 
-        <header class="panel-header">
-            <span class="panel-header__label">Optics Lab // Ray + Wave Optics</span>
-            <span class="panel-header__status">System Active</span>
-        </header>
+        <!-- panel-header dissolved — identity lives in cinematic chrome -->
 <div class="main-grid">
   <div class="control-panel">
     <!-- Module selector -->
@@ -742,7 +1195,7 @@ select.input-field:focus {
     </article>
 </main>
 
-<script src="../js/cinematic.js"></script>
+
 <script>
 (function(){
 /* ── Rendering constants ── */
@@ -1820,6 +2273,27 @@ else document.addEventListener('DOMContentLoaded', function(){
   setTimeout(function(){ clearInterval(check); }, 5000);
 });
 
+})();
+</script>
+
+<script>
+/* v3.5 chrome wiring */
+(function() {
+  document.body.classList.add('is-ready');
+
+  const dot   = document.querySelector('.cin-status__dot');
+  const label = document.querySelector('.cin-status__label');
+  if (!dot || !label) return;
+
+  function syncModule() {
+    const active = document.querySelector('.tab.on');
+    if (!active) return;
+    label.textContent = active.textContent.trim();
+  }
+  syncModule();
+  document.querySelectorAll('.tab').forEach(t => {
+    new MutationObserver(syncModule).observe(t, { attributes: true, attributeFilter: ['class'] });
+  });
 })();
 </script>
 </body>
