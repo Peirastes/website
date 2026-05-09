@@ -111,13 +111,14 @@
     });
   }
 
-  // ─── Campaign Log filter (queries cards fresh each click — works for hardcoded
-  //     OR async-rendered cards) ───
+  // ─── Filter logic — shared by Campaign Log (quest cards, status×type)
+  //     and Lore Fragments (tag) ───
   const filterPills = document.querySelectorAll('.filter-pill');
-  const filterState = { status: 'all', type: 'all' };
+  const filterState = { status: 'all', type: 'all', tag: 'all' };
 
   function applyQuestFilters() {
     const cards = document.querySelectorAll('.quest-card');
+    if (!cards.length) return;
     const counter = document.querySelector('[data-quest-count]');
     let visible = 0;
     cards.forEach(card => {
@@ -130,6 +131,25 @@
     if (counter) counter.textContent = visible;
   }
 
+  function applyFragmentFilter() {
+    const fragments = document.querySelectorAll('.fragment');
+    if (!fragments.length) return;
+    const counter = document.querySelector('[data-fragment-count]');
+    let visible = 0;
+    fragments.forEach(f => {
+      const tags = (f.dataset.tags || '').split(/\s+/);
+      const ok = filterState.tag === 'all' || tags.indexOf(filterState.tag) !== -1;
+      f.classList.toggle('is-hidden', !ok);
+      if (ok) visible++;
+    });
+    if (counter) counter.textContent = visible;
+  }
+
+  function applyAllFilters() {
+    applyQuestFilters();
+    applyFragmentFilter();
+  }
+
   if (filterPills.length) {
     filterPills.forEach(pill => {
       pill.addEventListener('click', (e) => {
@@ -139,7 +159,7 @@
         document.querySelectorAll('.filter-pill[data-group="' + group + '"]').forEach(p => {
           p.classList.toggle('is-active', p === pill);
         });
-        applyQuestFilters();
+        applyAllFilters();
       });
     });
   }
@@ -200,4 +220,7 @@
         questGrid.innerHTML = '<div class="empty-state">Could not load projects. Check console for details.</div>';
       });
   }
+
+  // Initialize fragment filter on Quotes page (sets initial counter from DOM count)
+  applyFragmentFilter();
 })();
