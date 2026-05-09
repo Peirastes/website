@@ -111,36 +111,93 @@
     });
   }
 
-  // ─── Quest grid filter (Projects Campaign Log — Phase 2) ───
+  // ─── Campaign Log filter (queries cards fresh each click — works for hardcoded
+  //     OR async-rendered cards) ───
   const filterPills = document.querySelectorAll('.filter-pill');
-  if (filterPills.length) {
-    const cards = Array.from(document.querySelectorAll('.quest-card'));
-    const filters = { status: 'all', type: 'all' };
+  const filterState = { status: 'all', type: 'all' };
+
+  function applyQuestFilters() {
+    const cards = document.querySelectorAll('.quest-card');
     const counter = document.querySelector('[data-quest-count]');
+    let visible = 0;
+    cards.forEach(card => {
+      const matchStatus = filterState.status === 'all' || card.dataset.status === filterState.status;
+      const matchType = filterState.type === 'all' || card.dataset.type === filterState.type;
+      const ok = matchStatus && matchType;
+      card.classList.toggle('is-hidden', !ok);
+      if (ok) visible++;
+    });
+    if (counter) counter.textContent = visible;
+  }
 
-    function applyFilters() {
-      let visible = 0;
-      cards.forEach(card => {
-        const matchStatus = filters.status === 'all' || card.dataset.status === filters.status;
-        const matchType = filters.type === 'all' || card.dataset.type === filters.type;
-        const ok = matchStatus && matchType;
-        card.classList.toggle('is-hidden', !ok);
-        if (ok) visible++;
-      });
-      if (counter) counter.textContent = visible;
-    }
-
+  if (filterPills.length) {
     filterPills.forEach(pill => {
       pill.addEventListener('click', (e) => {
         e.preventDefault();
         const group = pill.dataset.group;
-        const value = pill.dataset.filter;
-        filters[group] = value;
+        filterState[group] = pill.dataset.filter;
         document.querySelectorAll('.filter-pill[data-group="' + group + '"]').forEach(p => {
           p.classList.toggle('is-active', p === pill);
         });
-        applyFilters();
+        applyQuestFilters();
       });
     });
+  }
+
+  // ─── Campaign Log render — fetch projects.json and build quest-cards ───
+  const questGrid = document.querySelector('[data-quest-grid]');
+  if (questGrid) {
+    function esc(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    const STATUS_LABEL = { active: 'Active', completed: 'Completed', inactive: 'On Hold' };
+    const TYPE_LABEL = { instrument: 'Instrument', treatise: 'Treatise', discourse: 'Discourse' };
+
+    fetch('projects.json')
+      .then(r => r.json())
+      .then(projects => {
+        const visible = projects.filter(p => p.visible !== false);
+        // Sort by published date, most recent first
+        visible.sort((a, b) => (b.published || '').localeCompare(a.published || ''));
+
+        // Hero stats
+        const stats = {
+          total: visible.length,
+          active: visible.filter(p => p.status === 'active').length,
+          completed: visible.filter(p => p.status === 'completed').length,
+          inactive: visible.filter(p => p.status === 'inactive').length,
+        };
+        Object.keys(stats).forEach(key => {
+          const el = document.querySelector('[data-stat="' + key + '"]');
+          if (el) el.textContent = stats[key];
+        });
+
+        // Render quest-cards
+        questGrid.innerHTML = visible.map(p => {
+          const status = p.status || 'completed';
+          const type = p.type || 'discourse';
+          return '<a class="quest-card" data-status="' + esc(status) + '" data-type="' + esc(type) + '" href="' + esc(p.link) + '">' +
+            '<div class="quest-card__body">' +
+              '<div class="quest-card__meta">' +
+                '<span class="quest-status quest-status--' + esc(status) + '">' + esc(STATUS_LABEL[status] || status) + '</span>' +
+                '<span class="quest-type">' + esc(TYPE_LABEL[type] || type) + '</span>' +
+                '<span class="quest-card__date">' + esc(p.published || '') + '</span>' +
+              '</div>' +
+              '<h3 class="quest-card__title">' + esc(p.title) + '</h3>' +
+              '<p class="quest-card__desc">' + esc(p.description) + '</p>' +
+            '</div>' +
+            '<span class="quest-card__chevron" aria-hidden="true">→</span>' +
+          '</a>';
+        }).join('');
+
+        // Apply current filter state (in case page loaded with active filters)
+        applyQuestFilters();
+      })
+      .catch(err => {
+        console.error('Failed to load projects.json:', err);
+        questGrid.innerHTML = '<div class="empty-state">Could not load projects. Check console for details.</div>';
+      });
   }
 })();
