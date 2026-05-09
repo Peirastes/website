@@ -114,7 +114,7 @@
   // ─── Filter logic — shared by Campaign Log (quest cards, status×type)
   //     and Lore Fragments (tag) ───
   const filterPills = document.querySelectorAll('.filter-pill');
-  const filterState = { status: 'all', type: 'all', tag: 'all' };
+  const filterState = { status: 'all', type: 'all', tag: 'all', era: 'all' };
 
   function applyQuestFilters() {
     const cards = document.querySelectorAll('.quest-card');
@@ -145,9 +145,24 @@
     if (counter) counter.textContent = visible;
   }
 
+  function applyTimelineFilter() {
+    const entries = document.querySelectorAll('.timeline-entry');
+    if (!entries.length) return;
+    const counter = document.querySelector('[data-timeline-count]');
+    let visible = 0;
+    entries.forEach(e => {
+      const tags = (e.dataset.tags || '').split(/\s+/);
+      const ok = filterState.era === 'all' || tags.indexOf(filterState.era) !== -1;
+      e.classList.toggle('is-hidden', !ok);
+      if (ok) visible++;
+    });
+    if (counter) counter.textContent = visible;
+  }
+
   function applyAllFilters() {
     applyQuestFilters();
     applyFragmentFilter();
+    applyTimelineFilter();
   }
 
   if (filterPills.length) {
@@ -221,6 +236,7 @@
       });
   }
 
-  // Initialize fragment filter on Quotes page (sets initial counter from DOM count)
+  // Initialize filters on Quotes/Timeline pages (sets initial counter from DOM count)
   applyFragmentFilter();
+  applyTimelineFilter();
 })();
