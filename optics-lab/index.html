@@ -1,892 +1,1836 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optics Lab — Peirastes</title>
+<meta name="description" content="Interactive optics simulator — Snell's law, thin lenses, single-slit & double-slit diffraction, and N-slit gratings with gas discharge sources (H, He, Hg, Na, Ne) and real-time spectral rendering.">
+<meta property="og:title" content="Optics Lab — Peirastes">
+<meta property="og:description" content="Explore refraction, TIR, thin lenses, diffraction, and grating spectroscopy with gas discharge tubes and real-time spectral color rendering.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://peirastes.com/optics-lab/">
+<meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0d10">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/cinematic.css">
 
-    <title>Optics Lab - Peirastes</title>
+<style>
+/* Body scroll override — instrument page is fixed-viewport with internal panel scroll */
+body { overflow: hidden !important; font-family: 'Share Tech Mono', monospace; }
 
-    <meta name="description" content="Interactive optics simulator — Snell's law, thin lenses, single-slit & double-slit diffraction, and N-slit gratings with gas discharge sources (H, He, Hg, Na, Ne) and real-time spectral rendering.">
-    <meta property="og:title" content="Optics Lab - Peirastes">
-    <meta property="og:description" content="Explore refraction, TIR, thin lenses, diffraction, and grating spectroscopy with gas discharge tubes and real-time spectral color rendering.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://peirastes.com/optics-lab/">
-    <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
+/* ============================================================
+   ACRYLIC HUD · INNER INSTRUMENT
+   Restyles the existing optics-lab classes (.tab, .panel, .crt-screen, etc.)
+   to match the canonical acrylic-frame aesthetic. Preserves all DOM IDs
+   and class names that the JS depends on.
+   ============================================================ */
+:root {
+  --crt-bg: #0a0e14;
+  --crt-border: #333842;
+  --amber: #f0a030;
+  --amber-dim: #a06820;
+  --amber-glow: rgba(240,160,48,0.25);
+  --amber-edge: rgba(240,160,48,0.45);
+  --amber-hot: #ffd080;
+  --cyan: #40e8d0;
+  --cyan-dim: #208878;
+  --cyan-glow: rgba(64,232,208,0.2);
+  --teal: #20b0a0;
+  --red: #e05040;
+  --green: #40d870;
+  --text-primary: #d0d4da;
+  --text-dim: #707880;
+  --acr-chrom-amber: rgba(240,160,48,0.38);
+  --acr-chrom-cyan: rgba(64,232,208,0.30);
+}
 
-    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0a0d10">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Orbitron:wght@500;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/cinematic.css">
+.instrument-stage {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  padding: 5.5rem 1.5rem 4.5rem;
+  z-index: 8;
+  opacity: 0; transform: translateY(20px) scale(0.98);
+  transition: opacity 800ms ease 500ms, transform 800ms ease 500ms;
+  overflow: auto;
+}
+body.is-ready .instrument-stage { opacity: 1; transform: translateY(0) scale(1); }
 
-    <style>
-        /* Body scroll override — instrument page is fixed-viewport with internal panel scroll */
-        body { overflow: hidden !important; }
+.acrylic-panel {
+  position: relative;
+  width: clamp(720px, 96vw, 1320px);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.65) 0%, rgba(12,16,22,0.6) 60%, rgba(10,14,20,0.65) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--acr-chrom-amber),
+    -1px 0 0 var(--acr-chrom-cyan),
+    0 0 28px rgba(240,160,48,0.13),
+    0 18px 48px rgba(0,0,0,0.65),
+    0 4px 12px rgba(0,0,0,0.5),
+    inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+  overflow: hidden;
+}
 
-        /* ============================================================
-           ACRYLIC HUD · INNER INSTRUMENT
-           ============================================================ */
-        :root {
-            --acr-fg: #d0d4da;
-            --acr-fg-2: #9a9890;
-            --acr-fg-3: #707880;
-            --acr-amber: #f0a030;
-            --acr-amber-dim: #a06820;
-            --acr-amber-glow: rgba(240,160,48,0.25);
-            --acr-amber-edge: rgba(240,160,48,0.45);
-            --acr-amber-hot: #ffd080;
-            --acr-cyan: #40e8d0;
-            --acr-cyan-glow: rgba(64,232,208,0.25);
-            --acr-green: #40d870;
-            --acr-red: #e05040;
-            --acr-chrom-amber: rgba(240,160,48,0.38);
-            --acr-chrom-cyan: rgba(64,232,208,0.30);
-            --font-tech: 'Share Tech Mono', monospace;
-            --font-orbit: 'Orbitron', monospace;
-        }
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid rgba(240,160,48,0.15);
+  background: rgba(8,12,18,0.3);
+}
+.panel-header__label {
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+}
+.panel-header__status {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.panel-header__status::before {
+  content: ''; display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 4px var(--green), 0 0 8px var(--green);
+  animation: ledPulse 2.5s ease-in-out infinite;
+}
+@keyframes ledPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 
-        .instrument-stage {
-            position: fixed; inset: 0;
-            display: grid; place-items: center;
-            padding: 5.5rem 2rem 4.5rem;
-            z-index: 8;
-            opacity: 0; transform: translateY(20px) scale(0.98);
-            transition: opacity 800ms ease 500ms, transform 800ms ease 500ms;
-            overflow: auto;
-        }
-        body.is-ready .instrument-stage { opacity: 1; transform: translateY(0) scale(1); }
+/* Lab grid (preserves .main-grid classname for compatibility) */
+.main-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 0;
+  min-height: 0;
+}
 
-        .acrylic-panel {
-            position: relative;
-            width: clamp(720px, 88vw, 1040px);
-            padding: 22px 26px 26px;
-            border-radius: 10px;
-            background: linear-gradient(180deg,
-                rgba(18,22,28,0.62) 0%,
-                rgba(12,16,22,0.58) 60%,
-                rgba(10,14,20,0.62) 100%);
-            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            border: 1px solid var(--acr-amber-edge);
-            box-shadow:
-                1px 0 0 var(--acr-chrom-amber),
-                -1px 0 0 var(--acr-chrom-cyan),
-                0 0 28px rgba(240,160,48,0.13),
-                0 18px 48px rgba(0,0,0,0.65),
-                0 4px 12px rgba(0,0,0,0.5),
-                inset 0 0 40px rgba(240,160,48,0.04),
-                inset 0 1px 0 rgba(240,160,48,0.18);
-        }
+/* Sidebar (preserves .control-panel classname) */
+.control-panel {
+  background: rgba(8,12,18,0.4);
+  border-right: 1px solid rgba(240,160,48,0.12);
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 14rem);
+}
 
-        .panel-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 2px 10px; margin-bottom: 18px;
-            border-bottom: 1px solid rgba(240,160,48,0.15);
-        }
-        .panel-header__label {
-            font-family: var(--font-orbit); font-size: 10px; font-weight: 700;
-            color: var(--acr-amber); letter-spacing: 0.2em; text-transform: uppercase;
-            text-shadow: 0 0 8px var(--acr-amber-glow);
-        }
-        .panel-header__status {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-family: var(--font-tech); font-size: 9px;
-            color: var(--acr-fg-3); letter-spacing: 0.1em; text-transform: uppercase;
-        }
-        .panel-header__status::before {
-            content: ''; display: inline-block;
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--acr-green);
-            box-shadow: 0 0 4px var(--acr-green), 0 0 8px var(--acr-green);
-            animation: ledPulse 2.5s ease-in-out infinite;
-        }
-        @keyframes ledPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+.panel-section { margin-bottom: 18px; }
 
-        /* Lab grid layout */
-        .lab-grid {
-            display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 18px;
-            align-items: stretch;
-        }
+.section-label {
+  font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.22em; text-transform: uppercase;
+  margin-bottom: 10px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(240,160,48,0.25);
+  text-shadow: 0 0 6px var(--amber-glow);
+}
 
-        /* Module sidebar */
-        .module-sidebar {
-            display: flex; flex-direction: column;
-            gap: 4px;
-            padding: 10px 0 0;
-            border-right: 1px solid rgba(240,160,48,0.12);
-            padding-right: 14px;
-        }
-        .module-sidebar__label {
-            font-family: var(--font-orbit); font-size: 9px; font-weight: 700;
-            color: var(--acr-amber); letter-spacing: 0.22em; text-transform: uppercase;
-            text-shadow: 0 0 8px var(--acr-amber-glow);
-            padding: 0 4px 8px;
-        }
-        .module-tab {
-            all: unset; cursor: pointer;
-            display: flex; align-items: baseline; gap: 8px;
-            padding: 9px 10px;
-            background: rgba(8,12,18,0.4);
-            border: 1px solid rgba(240,160,48,0.12);
-            border-left: 2px solid transparent;
-            transition: all 0.16s ease;
-        }
-        .module-tab:hover {
-            background: rgba(240,160,48,0.06);
-            border-color: rgba(240,160,48,0.3);
-            border-left-color: var(--acr-amber-dim);
-        }
-        .module-tab[data-active="true"] {
-            background: linear-gradient(90deg, rgba(240,160,48,0.16), rgba(240,160,48,0.02) 90%);
-            border-color: rgba(240,160,48,0.4);
-            border-left: 2px solid var(--acr-amber);
-            box-shadow: inset 0 1px 0 rgba(240,160,48,0.12);
-        }
-        .module-tab__num {
-            font-family: var(--font-tech); font-size: 8px;
-            color: var(--acr-fg-3); letter-spacing: 0.1em;
-            width: 14px; flex-shrink: 0;
-        }
-        .module-tab[data-active="true"] .module-tab__num {
-            color: var(--acr-amber); text-shadow: 0 0 4px var(--acr-amber-glow);
-        }
-        .module-tab__name {
-            font-family: var(--font-tech); font-size: 10px;
-            color: var(--acr-fg-2); letter-spacing: 0.06em;
-            line-height: 1.2;
-        }
-        .module-tab[data-active="true"] .module-tab__name { color: var(--acr-fg); }
+/* Module tabs — preserves .tab classname (used by JS querySelectorAll) */
+.module-tab-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+.tab {
+  background: rgba(8,12,18,0.5);
+  border: 1px solid rgba(240,160,48,0.18);
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  letter-spacing: 0.08em;
+  flex: 1; text-align: left;
+  text-transform: uppercase;
+}
+.tab:hover {
+  background: rgba(240,160,48,0.08);
+  border-color: rgba(240,160,48,0.4);
+  border-left-color: var(--amber-dim);
+  color: var(--amber);
+}
+.tab.on {
+  background: linear-gradient(90deg, rgba(240,160,48,0.18), rgba(240,160,48,0.02) 90%);
+  border-color: rgba(240,160,48,0.4);
+  border-left: 2px solid var(--amber);
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber-glow);
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.12);
+}
 
-        /* Lab main content */
-        .lab-main {
-            display: flex; flex-direction: column;
-            gap: 14px;
-            min-width: 0;
-        }
+/* Inputs — selects with cyan text on dark recessed bg */
+select.input-field {
+  background: rgba(4,6,10,0.85);
+  border: 1px solid rgba(240,160,48,0.35);
+  border-radius: 3px;
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none'%3E%3Cpath d='M2 3.5L5 6.5L8 3.5' stroke='rgba(64,232,208,0.5)' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  text-shadow: 0 0 4px var(--cyan-glow);
+}
+select.input-field:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan-glow);
+}
 
-        /* Source selector */
-        .source-row {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 12px;
-            background: rgba(8,12,18,0.5);
-            border: 1px solid rgba(240,160,48,0.18);
-            border-radius: 4px;
-        }
-        .source-row__label {
-            font-family: var(--font-orbit); font-size: 9px; font-weight: 700;
-            color: var(--acr-amber); letter-spacing: 0.22em; text-transform: uppercase;
-            text-shadow: 0 0 8px var(--acr-amber-glow);
-            flex-shrink: 0;
-        }
-        .source-pills {
-            display: flex; gap: 6px; flex: 1; flex-wrap: wrap;
-        }
-        .source-pill {
-            all: unset; cursor: pointer;
-            display: flex; align-items: center; gap: 8px;
-            padding: 6px 12px 6px 10px;
-            background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
-            border: 1px solid rgba(240,160,48,0.3); border-radius: 4px;
-            font-family: var(--font-tech);
-            transition: all 0.14s ease;
-        }
-        .source-pill:hover {
-            border-color: rgba(240,160,48,0.55);
-            box-shadow: 0 0 8px rgba(240,160,48,0.18);
-        }
-        .source-pill[data-active="true"] {
-            background: linear-gradient(180deg, rgba(240,160,48,0.28), rgba(160,104,32,0.18));
-            border-color: var(--acr-amber);
-            box-shadow:
-                inset 0 1px 0 rgba(255,220,150,0.22),
-                0 0 14px rgba(240,160,48,0.3),
-                0 2px 6px rgba(0,0,0,0.5);
-        }
-        .source-pill__symbol {
-            font-family: var(--font-orbit); font-weight: 700;
-            font-size: 14px; color: var(--acr-amber);
-            text-shadow: 0 0 6px var(--acr-amber-glow);
-            min-width: 18px; text-align: center;
-        }
-        .source-pill[data-active="true"] .source-pill__symbol { color: #fff; text-shadow: 0 0 8px var(--acr-amber-hot); }
-        .source-pill__name {
-            font-size: 10px; color: var(--acr-fg-3);
-            letter-spacing: 0.08em; text-transform: uppercase;
-        }
-        .source-pill[data-active="true"] .source-pill__name { color: var(--acr-fg); }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.input-group { display: flex; flex-direction: column; min-width: 0; }
+.input-label {
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 0.08em; margin-bottom: 3px;
+  text-transform: uppercase;
+}
 
-        /* Mounted Screen */
-        .mounted-screen {
-            position: relative; border-radius: 6px; overflow: hidden;
-            border: 1px solid rgba(240,160,48,0.55);
-            box-shadow:
-                inset 0 3px 10px rgba(0,0,0,0.85),
-                inset 0 -1px 4px rgba(0,0,0,0.5),
-                0 0 10px rgba(240,160,48,0.18),
-                inset 0 0 24px rgba(240,160,48,0.05);
-            background: radial-gradient(ellipse at 50% 50%,
-                rgba(18,12,4,0.98) 0%, rgba(10,7,3,1) 60%, rgba(4,4,4,1) 100%);
-        }
-        .mounted-screen::before {
-            content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
-            background-image: repeating-linear-gradient(0deg,
-                rgba(240,160,48,0.04) 0px, rgba(240,160,48,0.04) 1px,
-                rgba(0,0,0,0.92) 1px, rgba(0,0,0,0.92) 2px);
-            opacity: 0.7;
-        }
-        .mounted-screen::after {
-            content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 8;
-            background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,0.55) 100%);
-        }
-        .sweep-diffuse {
-            position: absolute; left: -10%; right: -10%; height: 72px;
-            pointer-events: none; z-index: 6;
-            background: linear-gradient(180deg,
-                transparent 0%, rgba(240,160,48,0.02) 15%, rgba(255,200,110,0.07) 45%,
-                rgba(255,200,110,0.09) 55%, rgba(240,160,48,0.02) 85%, transparent 100%);
-            filter: blur(10px); mix-blend-mode: screen;
-            animation: diffuseSweep 14s ease-in-out infinite;
-        }
-        @keyframes diffuseSweep { 0% { top: -80px; } 100% { top: 105%; } }
+/* Sliders — recessed channel + amber-thumbed metal nub */
+.slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.slider-row .sl {
+  font-size: 10px; color: var(--text-dim);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap; min-width: 88px;
+}
+.slider-row input[type=range] {
+  flex: 1;
+  -webkit-appearance: none; appearance: none;
+  height: 18px;
+  background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.7);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.85);
+  outline: none;
+  cursor: pointer;
+}
+.slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 16px;
+  background: linear-gradient(180deg, #3a3e42 0%, #20242a 50%, #14171a 100%);
+  border: 1px solid #000; border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
+  cursor: pointer;
+}
+.slider-row input[type=range]::-moz-range-thumb {
+  width: 18px; height: 16px;
+  background: linear-gradient(180deg, #3a3e42 0%, #20242a 50%, #14171a 100%);
+  border: 1px solid #000; border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+}
+.slider-row .sv {
+  font-size: 11px; color: var(--amber);
+  text-shadow: 0 0 4px var(--amber-glow);
+  font-family: 'Share Tech Mono', monospace;
+  min-width: 58px; text-align: right;
+}
 
-        .spectrum-display { padding: 12px 14px; }
-        .spectrum-display__inner { position: relative; z-index: 7; }
-        .spectrum-display__head {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px;
-        }
-        .spectrum-display__title {
-            font-family: var(--font-tech); font-size: 9px;
-            color: var(--acr-fg-3); letter-spacing: 0.14em; text-transform: uppercase;
-        }
-        .spectrum-display__source {
-            font-family: var(--font-tech); font-size: 11px;
-            color: var(--acr-amber);
-            text-shadow: 0 0 5px var(--acr-amber-glow); letter-spacing: 0.06em;
-        }
-        .spectrum-canvas { display: block; width: 100%; height: 130px; }
-        .spectrum-display__axis {
-            display: flex; justify-content: space-between;
-            font-family: var(--font-tech); font-size: 8px;
-            color: var(--acr-fg-3); letter-spacing: 0.08em;
-            margin-top: 6px; padding: 0 2px;
-        }
+/* Checkboxes */
+.chk-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; margin-bottom: 6px; }
+.chk-row input[type=checkbox] {
+  accent-color: var(--amber);
+  width: 14px; height: 14px;
+  cursor: pointer;
+}
+.chk-row span { font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
 
-        /* Stub for inactive modules */
-        .stub-screen {
-            padding: 50px 30px;
-            display: grid; place-items: center;
-            min-height: 220px;
-        }
-        .stub-screen__inner { position: relative; z-index: 7; text-align: center; }
-        .stub-screen__label {
-            font-family: var(--font-orbit); font-weight: 700;
-            font-size: 13px; letter-spacing: 0.32em;
-            color: var(--acr-amber);
-            text-shadow: 0 0 12px var(--acr-amber-glow);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        .stub-screen__sub {
-            font-family: var(--font-tech); font-size: 10px;
-            color: var(--acr-fg-3); letter-spacing: 0.16em; text-transform: uppercase;
-        }
-        .stub-screen__cta {
-            font-family: var(--font-tech); font-size: 9px;
-            color: var(--acr-amber);
-            letter-spacing: 0.18em; text-transform: uppercase;
-            margin-top: 12px;
-            text-shadow: 0 0 6px var(--acr-amber-glow);
-        }
-        .stub-screen__bars {
-            display: flex; justify-content: center; gap: 4px; margin-top: 18px;
-        }
-        .stub-bar {
-            width: 6px; height: 14px; background: rgba(240,160,48,0.2);
-            border-radius: 1px;
-            animation: barLoad 1.4s ease-in-out infinite;
-        }
-        .stub-bar:nth-child(1) { animation-delay: 0s; }
-        .stub-bar:nth-child(2) { animation-delay: 0.15s; }
-        .stub-bar:nth-child(3) { animation-delay: 0.3s; }
-        .stub-bar:nth-child(4) { animation-delay: 0.45s; }
-        .stub-bar:nth-child(5) { animation-delay: 0.6s; }
-        @keyframes barLoad {
-            0%, 100% { background: rgba(240,160,48,0.2); height: 14px; }
-            50% { background: var(--acr-amber); height: 22px; box-shadow: 0 0 8px var(--acr-amber-glow); }
-        }
+/* Reset / share buttons */
+.reset-btn {
+  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
+  border: 1px solid rgba(240,160,48,0.45);
+  border-radius: 3px;
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  padding: 7px 12px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.14s ease;
+  display: block;
+  width: 100%;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px var(--amber-glow);
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.12), 0 0 6px rgba(240,160,48,0.08);
+}
+.reset-btn:hover {
+  background: linear-gradient(180deg, rgba(240,160,48,0.22), rgba(160,104,32,0.14));
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.22), 0 0 12px rgba(240,160,48,0.3);
+}
 
-        /* Sliders */
-        .slider-row { display: flex; align-items: center; gap: 12px; }
-        .slider-row__label {
-            font-family: var(--font-tech); font-size: 9px;
-            color: var(--acr-fg-3); letter-spacing: 0.16em; text-transform: uppercase;
-            width: 92px; text-align: right; flex-shrink: 0;
-        }
-        .slider-wrap {
-            position: relative; flex: 1; height: 22px;
-            border-radius: 5px;
-            background: linear-gradient(180deg,
-                #020406 0%, #060910 40%, #050810 60%, #030608 100%);
-            border: 1px solid rgba(0,0,0,0.7);
-            box-shadow:
-                inset 0 2px 5px rgba(0,0,0,0.85),
-                inset 0 -1px 2px rgba(255,255,255,0.03);
-        }
-        .slider-fill {
-            position: absolute; top: 50%; left: 4px;
-            transform: translateY(-50%);
-            width: var(--fill, 0%); height: 4px;
-            max-width: calc(100% - 8px);
-            background: linear-gradient(90deg, var(--acr-amber-dim), var(--acr-amber));
-            box-shadow: 0 0 6px rgba(240,160,48,0.5);
-            border-radius: 1px;
-            pointer-events: none;
-        }
-        .slider {
-            appearance: none; -webkit-appearance: none;
-            position: relative;
-            width: 100%; height: 100%;
-            background: transparent; outline: none; cursor: grab;
-            margin: 0;
-        }
-        .slider:active { cursor: grabbing; }
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none;
-            width: 22px; height: 20px;
-            background: linear-gradient(180deg, #3a3e42 0%, #20242a 50%, #14171a 100%);
-            border: 1px solid #000; border-radius: 3px;
-            box-shadow:
-                0 2px 4px rgba(0,0,0,0.7),
-                inset 0 1px 0 rgba(255,255,255,0.12),
-                inset 0 -1px 1px rgba(0,0,0,0.5);
-        }
-        .slider::-moz-range-thumb {
-            width: 22px; height: 20px;
-            background: linear-gradient(180deg, #3a3e42 0%, #20242a 50%, #14171a 100%);
-            border: 1px solid #000; border-radius: 3px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12);
-        }
-        .slider-row__value {
-            font-family: var(--font-tech); font-size: 10px;
-            color: var(--acr-amber);
-            text-shadow: 0 0 5px var(--acr-amber-glow);
-            letter-spacing: 0.06em;
-            width: 92px; flex-shrink: 0;
-        }
+.module-ctrl { display: block; }
 
-        /* Lines readout */
-        .lines-readout {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
-            gap: 6px;
-            margin-top: 4px;
-        }
-        .line-pill {
-            padding: 5px 6px 6px;
-            background: rgba(8,12,18,0.55);
-            border: 1px solid rgba(240,160,48,0.18);
-            border-radius: 3px;
-            font-family: var(--font-tech);
-            text-align: center;
-            font-size: 9px;
-            color: var(--acr-fg-2);
-            line-height: 1.3;
-        }
-        .line-pill__w {
-            display: block;
-            font-size: 11px;
-            color: var(--acr-amber);
-            text-shadow: 0 0 4px var(--acr-amber-glow);
-            letter-spacing: 0.04em;
-        }
-        .line-pill__color {
-            display: block;
-            width: 100%; height: 3px; margin-top: 4px;
-            border-radius: 1px;
-            box-shadow: 0 0 4px currentColor;
-        }
+/* Display area — preserves .display-area classname */
+.display-area {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  max-height: calc(100vh - 14rem);
+}
 
-        /* ─── LAUNCH FULL LAB CTA ─── */
-        .launch-cta {
-            display: flex; align-items: center; justify-content: center; gap: 24px;
-            margin-top: 22px;
-            padding: 18px 28px;
-            background: linear-gradient(180deg, rgba(240,160,48,0.32), rgba(160,104,32,0.22));
-            border: 1px solid var(--acr-amber);
-            border-radius: 5px;
-            text-decoration: none;
-            transition: all 0.18s ease;
-            box-shadow:
-                inset 0 1px 0 rgba(255,220,150,0.22),
-                0 0 18px rgba(240,160,48,0.35),
-                0 4px 8px rgba(0,0,0,0.5);
-        }
-        .launch-cta:hover {
-            background: linear-gradient(180deg, rgba(240,160,48,0.5), rgba(160,104,32,0.32));
-            box-shadow:
-                inset 0 1px 0 rgba(255,220,150,0.32),
-                0 0 28px rgba(240,160,48,0.5),
-                0 4px 10px rgba(0,0,0,0.5);
-        }
-        .launch-cta__text {
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-        }
-        .launch-cta__primary {
-            font-family: var(--font-orbit); font-weight: 700; font-size: 14px;
-            color: #fff;
-            letter-spacing: 0.32em; text-transform: uppercase;
-            text-shadow: 0 0 8px var(--acr-amber-glow);
-        }
-        .launch-cta__sub {
-            font-family: var(--font-tech); font-size: 9px;
-            color: var(--acr-amber-hot);
-            letter-spacing: 0.18em; text-transform: uppercase;
-            text-shadow: 0 0 6px var(--acr-amber-glow);
-        }
-        .launch-cta__arrow {
-            font-size: 18px; color: #fff;
-            transition: transform 0.18s ease;
-        }
-        .launch-cta:hover .launch-cta__arrow { transform: translateX(4px); }
+/* Mounted screen — restyle .crt-screen as acrylic mounted-screen */
+.crt-screen {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(240,160,48,0.55);
+  box-shadow:
+    inset 0 3px 10px rgba(0,0,0,0.85),
+    inset 0 -1px 4px rgba(0,0,0,0.5),
+    0 0 10px rgba(240,160,48,0.18),
+    inset 0 0 24px rgba(240,160,48,0.05);
+  background: radial-gradient(ellipse at 50% 50%,
+    rgba(18,12,4,0.98) 0%, rgba(10,7,3,1) 60%, rgba(4,4,4,1) 100%);
+  padding: 16px;
+}
+.crt-screen::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background-image: repeating-linear-gradient(0deg,
+    rgba(240,160,48,0.04) 0px, rgba(240,160,48,0.04) 1px,
+    rgba(0,0,0,0.92) 1px, rgba(0,0,0,0.92) 2px);
+  opacity: 0.5;
+  border-radius: 4px;
+}
 
-        /* Responsive */
-        @media (max-width: 920px) {
-            .lab-grid { grid-template-columns: 1fr; }
-            .module-sidebar { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid rgba(240,160,48,0.12); padding-right: 0; padding-bottom: 12px; }
-            .module-sidebar__label { width: 100%; }
-            .module-tab { flex: 1; min-width: 140px; }
-        }
-        @media (max-width: 720px) {
-            .instrument-stage { padding: 5rem 1.25rem 4rem; }
-            .acrylic-panel { width: 100%; padding: 18px 16px 22px; }
-            .source-row { flex-direction: column; align-items: stretch; gap: 8px; }
-            .source-pill__name { display: none; }
-            .slider-row__label { width: 70px; font-size: 8px; }
-            .slider-row__value { width: 80px; font-size: 9px; }
-            .launch-cta { padding: 14px 16px; gap: 14px; }
-            .launch-cta__primary { font-size: 11px; letter-spacing: 0.24em; }
-            .launch-cta__sub { font-size: 8px; }
-        }
-    </style>
+.crt-label {
+  position: relative; z-index: 7;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px; font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.2em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px var(--amber-glow);
+}
+
+.canvas-wrap { position: relative; z-index: 7; width: 100%; }
+.canvas-wrap canvas { display: block; width: 100%; height: auto; }
+
+/* Cards (readouts) */
+.cards {
+  position: relative; z-index: 7;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+.card {
+  background: rgba(10,14,20,0.6);
+  border: 1px solid rgba(240,160,48,0.18);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+.card-l {
+  font-size: 9px; color: var(--text-dim);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.card-v {
+  font-size: 14px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--cyan);
+  text-shadow: 0 0 4px var(--cyan-glow);
+}
+
+/* Equation strip */
+.eq-strip {
+  position: relative; z-index: 7;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(10,14,20,0.4);
+  border: 1px solid rgba(240,160,48,0.18);
+  border-radius: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 11px;
+  color: var(--text-dim);
+  align-items: center;
+}
+.eq-strip .eq { color: var(--cyan-dim); }
+.eq-strip .katex { font-size: 12px; color: var(--cyan-dim); }
+.input-label .katex { font-size: 11px; color: inherit; }
+.crt-label .katex { font-size: 11px; color: inherit; }
+.card-l .katex { font-size: 10px; color: inherit; }
+
+/* Panel display state — preserve .panel.on selector for JS module switching */
+.panel { display: none; }
+.panel.on { display: block; }
+
+.info-bar {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: rgba(240,160,48,0.04);
+  border: 1px solid rgba(240,160,48,0.12);
+  border-radius: 3px;
+  margin-bottom: 12px;
+}
+
+/* Hide inline kbd-hint — cinematic chrome shows the equivalent already */
+.kbd-hint { display: none !important; }
+
+/* Responsive */
+@media (max-width: 920px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .control-panel { border-right: none; border-bottom: 1px solid rgba(240,160,48,0.12); max-height: none; }
+  .display-area { max-height: none; }
+}
+@media (max-width: 720px) {
+  .instrument-stage { padding: 5rem 0.75rem 4rem; }
+  .acrylic-panel { width: 100%; }
+  .control-panel { padding: 12px; }
+  .display-area { padding: 12px; }
+  .panel-header { padding: 12px 14px; }
+  .panel-header__label { font-size: 10px; letter-spacing: 0.16em; }
+}
+@media (max-width: 550px) {
+  .cards { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+}
+</style>
 </head>
 <body>
 
-    <!-- Cinematic chrome (banner + ticks injected by cinematic.js) -->
-    <div class="bg" aria-hidden="true">
-        <div class="bg__image"></div>
-        <div class="bg__vignette"></div>
-        <div class="bg__grain"></div>
+<!-- Cinematic chrome (banner + ticks injected by cinematic.js) -->
+<div class="bg" aria-hidden="true">
+    <div class="bg__image"></div>
+    <div class="bg__vignette"></div>
+    <div class="bg__grain"></div>
+</div>
+
+<a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
+
+<div class="profile">
+    <div class="profile__mark">P</div>
+    <div class="profile__meta">
+        <span class="profile__name">Optics Laboratory</span>
+        <span class="profile__sub">Instrument · v3.0</span>
+    </div>
+</div>
+
+<div class="hints">
+    <span class="hint"><kbd>← →</kbd> Switch Module</span>
+    <span class="hint"><kbd>Esc</kbd> Home</span>
+</div>
+
+<a class="back-to-hub" href="/all-projects.html">← Projects</a>
+
+<!-- Acrylic-framed instrument -->
+<main class="instrument-stage">
+    <article class="acrylic-panel" aria-label="Optics Laboratory">
+
+        <header class="panel-header">
+            <span class="panel-header__label">Optics Lab // Ray + Wave Optics</span>
+            <span class="panel-header__status">System Active</span>
+        </header>
+<div class="main-grid">
+  <div class="control-panel">
+    <!-- Module selector -->
+    <div class="panel-section">
+      <div class="section-label">Ray Optics</div>
+      <div class="module-tab-row" role="tablist">
+        <button class="tab on" id="t-sn" onclick="sw('sn')">Snell's Law</button>
+        <button class="tab" id="t-ln" onclick="sw('ln')">Thin Lenses</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="section-label">Wave Optics</div>
+      <div class="module-tab-row" role="tablist">
+        <button class="tab" id="t-ss" onclick="sw('ss')">Single-Slit</button>
+        <button class="tab" id="t-ds" onclick="sw('ds')">Double-Slit</button>
+        <button class="tab" id="t-gr" onclick="sw('gr')">Grating</button>
+      </div>
     </div>
 
-    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
-
-    <div class="profile">
-        <div class="profile__mark">P</div>
-        <div class="profile__meta">
-            <span class="profile__name">Optics Laboratory</span>
-            <span class="profile__sub">Instrument · v3.0</span>
+    <!-- Snell controls -->
+    <div id="ctrl-sn" class="module-ctrl">
+      <div class="panel-section">
+        <div class="section-label">Media</div>
+        <div class="input-group" style="margin-bottom:6px">
+          <div class="input-label">Upper medium</div>
+          <select id="nu" class="input-field" onchange="uS()">
+            <option value="1.00" selected>Air (n = 1.00)</option>
+            <option value="1.33">Water (n = 1.33)</option>
+            <option value="1.52">Crown glass (n = 1.52)</option>
+            <option value="2.42">Diamond (n = 2.42)</option>
+          </select>
         </div>
+        <div class="input-group">
+          <div class="input-label">Lower medium</div>
+          <select id="nl" class="input-field" onchange="uS()">
+            <option value="1.00">Air (n = 1.00)</option>
+            <option value="1.33" selected>Water (n = 1.33)</option>
+            <option value="1.52">Crown glass (n = 1.52)</option>
+            <option value="2.42">Diamond (n = 2.42)</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="600" step="1" id="wl" oninput="uS()" />
+          <span class="sv" id="wl-v">600 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Incidence</span>
+          <input type="range" min="0" max="89" value="40" step="0.5" id="t1" oninput="uS()" />
+          <span class="sv" id="t1-v">40.0&deg;</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="disp" onchange="uS()" />
+          <span>Dispersion (white &rarr; spectrum)</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="dirDown" checked onchange="uS()" />
+          <span>Light from upper medium</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('sn')">Reset defaults</button>
+      </div>
     </div>
 
-    <div class="hints">
-        <span class="hint"><kbd>Esc</kbd> Home</span>
+    <!-- Lens controls -->
+    <div id="ctrl-ln" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Lens</div>
+        <div class="input-group" style="margin-bottom:6px">
+          <div class="input-label">Lens type</div>
+          <select id="lt" class="input-field" onchange="uL()">
+            <option value="c">Converging (f &gt; 0)</option>
+            <option value="d">Diverging (f &lt; 0)</option>
+          </select>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Focal |f|</span>
+          <input type="range" min="3" max="40" value="15" step="0.5" id="fl" oninput="uL()" />
+          <span class="sv" id="fl-v">15.0 cm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Object dist</span>
+          <input type="range" min="2" max="80" value="45" step="0.5" id="od" oninput="uL()" />
+          <span class="sv" id="od-v">45.0 cm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Object ht</span>
+          <input type="range" min="2" max="20" value="10" step="0.5" id="oh" oninput="uL()" />
+          <span class="sv" id="oh-v">10.0 cm</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('ln')">Reset defaults</button>
+      </div>
     </div>
 
-    <a class="back-to-hub" href="/all-projects.html">← Projects</a>
+    <!-- Double-slit controls -->
+    <div id="ctrl-ds" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="600" step="1" id="wl3" oninput="uD()" />
+          <span class="sv" id="wl3-v">600 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit spacing d</span>
+          <input type="range" min="5" max="200" value="40" step="1" id="sd" oninput="uD()" />
+          <span class="sv" id="sd-v">40 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit width a</span>
+          <input type="range" min="1" max="80" value="10" step="1" id="sw3" oninput="uD()" />
+          <span class="sv" id="sw3-v">10 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Screen dist L</span>
+          <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL" oninput="uD()" />
+          <span class="sv" id="sL-v">1.00 m</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="showEnv" checked onchange="uD()" />
+          <span>Diffraction envelope</span>
+        </div>
+        <div class="input-group" style="margin-top:8px">
+          <div class="input-label">Light source</div>
+          <select id="sourceD" class="input-field" onchange="uD()">
+            <option value="mono" selected>Monochromatic (laser)</option>
+            <option value="white">White (continuous)</option>
+            <option value="hydrogen">Hydrogen (H)</option>
+            <option value="helium">Helium (He)</option>
+            <option value="mercury">Mercury (Hg)</option>
+            <option value="sodium">Sodium (Na)</option>
+            <option value="neon">Neon (Ne)</option>
+          </select>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="stretchD" checked onchange="uD()" />
+          <span>Stretch dim lines</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('ds')">Reset defaults</button>
+      </div>
+    </div>
 
-    <!-- Acrylic HUD inner instrument — preview + launch -->
-    <main class="instrument-stage">
-        <article class="acrylic-panel" aria-label="Optics Laboratory">
+    <!-- Single-slit controls -->
+    <div id="ctrl-ss" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="600" step="1" id="wl4" oninput="uSS()" />
+          <span class="sv" id="wl4-v">600 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit width a</span>
+          <input type="range" min="1" max="100" value="20" step="1" id="sa" oninput="uSS()" />
+          <span class="sv" id="sa-v">20 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Screen dist L</span>
+          <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL2" oninput="uSS()" />
+          <span class="sv" id="sL2-v">1.00 m</span>
+        </div>
+        <div class="input-group" style="margin-top:8px">
+          <div class="input-label">Light source</div>
+          <select id="sourceSS" class="input-field" onchange="uSS()">
+            <option value="mono" selected>Monochromatic (laser)</option>
+            <option value="white">White (continuous)</option>
+            <option value="hydrogen">Hydrogen (H)</option>
+            <option value="helium">Helium (He)</option>
+            <option value="mercury">Mercury (Hg)</option>
+            <option value="sodium">Sodium (Na)</option>
+            <option value="neon">Neon (Ne)</option>
+          </select>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="stretchSS" checked onchange="uSS()" />
+          <span>Stretch dim lines</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('ss')">Reset defaults</button>
+      </div>
+    </div>
 
-            <header class="panel-header">
-                <span class="panel-header__label">Optics Lab // <span data-module-label>Gas-Discharge Spectroscopy</span></span>
-                <span class="panel-header__status">Preview Mode</span>
-            </header>
+    <!-- Grating controls -->
+    <div id="ctrl-gr" class="module-ctrl" style="display:none">
+      <div class="panel-section">
+        <div class="section-label">Parameters</div>
+        <div class="slider-row">
+          <span class="sl">Wavelength</span>
+          <input type="range" min="380" max="700" value="600" step="1" id="wl5" oninput="uG()" />
+          <span class="sv" id="wl5-v">600 nm</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit spacing d</span>
+          <input type="range" min="1" max="50" value="10" step="0.5" id="gd" oninput="uG()" />
+          <span class="sv" id="gd-v">10 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Slit width a</span>
+          <input type="range" min="0.5" max="20" value="2" step="0.1" id="ga" oninput="uG()" />
+          <span class="sv" id="ga-v">2.0 &micro;m</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Num slits N</span>
+          <input type="range" min="1" max="200" value="8" step="1" id="gN" oninput="uG()" />
+          <span class="sv" id="gN-v">8</span>
+        </div>
+        <div class="slider-row">
+          <span class="sl">Screen dist L</span>
+          <input type="range" min="0.2" max="3.0" value="1.0" step="0.05" id="sL3" oninput="uG()" />
+          <span class="sv" id="sL3-v">1.00 m</span>
+        </div>
+        <div class="chk-row">
+          <input type="checkbox" id="showGrEnv" checked onchange="uG()" />
+          <span>Diffraction envelope</span>
+        </div>
+        <div class="input-group" style="margin-top:8px">
+          <div class="input-label">Light source</div>
+          <select id="sourceG" class="input-field" onchange="uG()">
+            <option value="mono" selected>Monochromatic (laser)</option>
+            <option value="white">White (continuous)</option>
+            <option value="hydrogen">Hydrogen (H)</option>
+            <option value="helium">Helium (He)</option>
+            <option value="mercury">Mercury (Hg)</option>
+            <option value="sodium">Sodium (Na)</option>
+            <option value="neon">Neon (Ne)</option>
+          </select>
+        </div>
+        <div class="chk-row" style="margin-top:8px">
+          <input type="checkbox" id="stretchG" checked onchange="uG()" />
+          <span>Stretch dim lines</span>
+        </div>
+        <button class="reset-btn" onclick="resetModule('gr')">Reset defaults</button>
+      </div>
+    </div>
 
-            <div class="lab-grid">
+    <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules</div>
+    <button class="reset-btn" id="share-btn" onclick="copyShareLink()" style="margin-top:12px">Copy share link</button>
+  </div>
 
-                <!-- Module sidebar -->
-                <aside class="module-sidebar" aria-label="Module Selector">
-                    <div class="module-sidebar__label">Modules</div>
-                    <button class="module-tab" data-module="refraction">
-                        <span class="module-tab__num">01</span>
-                        <span class="module-tab__name">Refraction &amp; TIR</span>
-                    </button>
-                    <button class="module-tab" data-module="lens">
-                        <span class="module-tab__num">02</span>
-                        <span class="module-tab__name">Thin-Lens Tracing</span>
-                    </button>
-                    <button class="module-tab" data-module="diffraction">
-                        <span class="module-tab__num">03</span>
-                        <span class="module-tab__name">Diffraction</span>
-                    </button>
-                    <button class="module-tab" data-module="grating">
-                        <span class="module-tab__num">04</span>
-                        <span class="module-tab__name">N-Slit Gratings</span>
-                    </button>
-                    <button class="module-tab" data-module="spectroscopy" data-active="true">
-                        <span class="module-tab__num">05</span>
-                        <span class="module-tab__name">Gas-Discharge Spectra</span>
-                    </button>
-                </aside>
+  <!-- Display area -->
+  <div class="display-area">
+    <!-- Snell display -->
+    <div class="panel on" id="p-sn">
+      <div class="crt-screen">
+        <div class="crt-label">Snell's Law &amp; Total Internal Reflection</div>
+        <div class="canvas-wrap"><canvas id="sc"></canvas></div>
+        <div class="cards" id="s-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="n_1 \sin\theta_1 = n_2 \sin\theta_2"></span>
+          <span class="eq" data-katex="\theta_c = \sin^{-1}(n_2/n_1)"></span>
+          <span class="eq" data-katex="n(\lambda) = B + C/\lambda^2"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Lens display -->
+    <div class="panel" id="p-ln">
+      <div class="crt-screen">
+        <div class="crt-label">Thin Lens Ray Tracing</div>
+        <div class="canvas-wrap"><canvas id="lc"></canvas></div>
+        <div class="cards" id="l-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="\dfrac{1}{d_o} + \dfrac{1}{d_i} = \dfrac{1}{f}"></span>
+          <span class="eq" data-katex="M = -\dfrac{d_i}{d_o}"></span>
+          <span class="eq" data-katex="f > 0 \;\text{converging}\quad f < 0 \;\text{diverging}"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Double-slit display -->
+    <div class="panel" id="p-ds">
+      <div class="crt-screen">
+        <div class="crt-label">Young's Double-Slit Interference</div>
+        <div class="canvas-wrap"><canvas id="dc"></canvas></div>
+        <div class="cards" id="d-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="d\sin\theta = m\lambda \;\text{(bright)}"></span>
+          <span class="eq" data-katex="\Delta y = \dfrac{\lambda L}{d}"></span>
+          <span class="eq" data-katex="I = I_0 \cos^2\!\left(\dfrac{\pi d \sin\theta}{\lambda}\right) \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Single-slit display -->
+    <div class="panel" id="p-ss">
+      <div class="crt-screen">
+        <div class="crt-label">Single-Slit Diffraction</div>
+        <div class="canvas-wrap"><canvas id="ssc"></canvas></div>
+        <div class="cards" id="ss-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="a\sin\theta = m\lambda \;\text{(dark, } m \neq 0\text{)}"></span>
+          <span class="eq" data-katex="W_{\text{central}} = \dfrac{2\lambda L}{a}"></span>
+          <span class="eq" data-katex="I = I_0 \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Grating display -->
+    <div class="panel" id="p-gr">
+      <div class="crt-screen">
+        <div class="crt-label">Diffraction Grating (N Slits)</div>
+        <div class="canvas-wrap"><canvas id="gc"></canvas></div>
+        <div class="cards" id="g-cards"></div>
+        <div class="eq-strip">
+          <span class="eq" data-katex="d\sin\theta = m\lambda \;\text{(principal max)}"></span>
+          <span class="eq" data-katex="I \propto \left[\dfrac{\sin(N\beta)}{N\sin\beta}\right]^2 \operatorname{sinc}^2(\alpha)"></span>
+          <span class="eq" data-katex="R = mN \;\text{(resolving power)}"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </article>
+</main>
 
-                <!-- Main lab content -->
-                <div class="lab-main">
+<script src="../js/cinematic.js"></script>
+<script>
+(function(){
+/* ── Rendering constants ── */
+var BG='#08090d',BG2='#0d0f15';
+var GR='rgba(255,255,255,0.035)';
+var IF='rgba(255,255,255,0.12)';
+var NM='rgba(255,255,255,0.06)';
+var TX='rgba(255,255,255,0.5)';
+var TXH='rgba(255,255,255,0.8)';
 
-                    <!-- Spectroscopy preview -->
-                    <div data-panel="spectroscopy">
+/* ── HiDPI canvas setup ── */
+var BASE_W_SN=780, BASE_H_SN=480;
+var BASE_W_LN=780, BASE_H_LN=460;
 
-                        <div class="source-row">
-                            <span class="source-row__label">Source</span>
-                            <div class="source-pills" role="radiogroup">
-                                <button class="source-pill" data-gas="hydrogen" data-active="true">
-                                    <span class="source-pill__symbol">H</span>
-                                    <span class="source-pill__name">Hydrogen</span>
-                                </button>
-                                <button class="source-pill" data-gas="helium">
-                                    <span class="source-pill__symbol">He</span>
-                                    <span class="source-pill__name">Helium</span>
-                                </button>
-                                <button class="source-pill" data-gas="mercury">
-                                    <span class="source-pill__symbol">Hg</span>
-                                    <span class="source-pill__name">Mercury</span>
-                                </button>
-                                <button class="source-pill" data-gas="sodium">
-                                    <span class="source-pill__symbol">Na</span>
-                                    <span class="source-pill__name">Sodium</span>
-                                </button>
-                                <button class="source-pill" data-gas="neon">
-                                    <span class="source-pill__symbol">Ne</span>
-                                    <span class="source-pill__name">Neon</span>
-                                </button>
-                            </div>
-                        </div>
+function setupCanvas(cv, baseW, baseH) {
+  var dpr = window.devicePixelRatio || 1;
+  cv.width = baseW * dpr;
+  cv.height = baseH * dpr;
+  cv.style.width = '100%';
+  cv.style.height = 'auto';
+  cv.style.aspectRatio = baseW + ' / ' + baseH;
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
 
-                        <div class="mounted-screen spectrum-display" style="margin-top: 14px;">
-                            <div class="sweep-diffuse"></div>
-                            <div class="spectrum-display__inner">
-                                <div class="spectrum-display__head">
-                                    <span class="spectrum-display__title">Emission Spectrum &middot; 380&ndash;700 nm</span>
-                                    <span class="spectrum-display__source" data-source-readout>Hydrogen &middot; Balmer Series</span>
-                                </div>
-                                <canvas class="spectrum-canvas" data-canvas="spectrum" width="900" height="130"></canvas>
-                                <div class="spectrum-display__axis">
-                                    <span>380</span><span>440</span><span>500</span><span>560</span><span>620</span><span>700 nm</span>
-                                </div>
-                            </div>
-                        </div>
+/* ── Wavelength → RGB (CIE piecewise approximation) ── */
+function wlRGB(wl){
+  var r=0,g=0,b=0;
+  if(wl>=380&&wl<440){r=-(wl-440)/(440-380);b=1;}
+  else if(wl>=440&&wl<490){g=(wl-440)/(490-440);b=1;}
+  else if(wl>=490&&wl<510){g=1;b=-(wl-510)/(510-490);}
+  else if(wl>=510&&wl<580){r=(wl-510)/(580-510);g=1;}
+  else if(wl>=580&&wl<645){r=1;g=-(wl-645)/(645-580);}
+  else if(wl>=645&&wl<=700){r=1;}
+  var f=1;
+  if(wl>=380&&wl<420)f=0.3+0.7*(wl-380)/(420-380);
+  else if(wl>=645&&wl<=700)f=0.3+0.7*(700-wl)/(700-645);
+  return[Math.round(255*Math.pow(r*f,0.8)),Math.round(255*Math.pow(g*f,0.8)),Math.round(255*Math.pow(b*f,0.8))];
+}
+function wC(wl){var c=wlRGB(wl);return'rgb('+c[0]+','+c[1]+','+c[2]+')';}
 
-                        <div class="lines-readout" data-lines-readout></div>
+/* ── Cauchy dispersion: n(λ) = B + C/λ² (λ in nm) ── */
+function cauchy(nb,wl){
+  if(nb<=1.001)return 1.0;
+  var B,C;
+  if(Math.abs(nb-1.33)<0.01){B=1.3199;C=6878;}       // Water
+  else if(Math.abs(nb-1.52)<0.01){B=1.5046;C=4200;}   // Crown glass
+  else if(Math.abs(nb-2.42)<0.01){B=2.3780;C=12200;}   // Diamond
+  else{B=nb-0.004;C=5000;}                              // Fallback
+  return B+C/(wl*wl);
+}
 
-                        <div class="slider-row" style="margin-top: 14px;">
-                            <span class="slider-row__label">Slit Width</span>
-                            <div class="slider-wrap">
-                                <div class="slider-fill" data-fill="slit"></div>
-                                <input type="range" class="slider" min="0.05" max="2.0" step="0.05" value="0.5" data-slider="slit" aria-label="Slit width">
-                            </div>
-                            <span class="slider-row__value" data-value="slit">0.50 mm</span>
-                        </div>
+/* ── Readout card HTML ── */
+function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div class="card-v" style="color:'+c+'">'+v+'</div></div>';}
 
-                        <div class="slider-row">
-                            <span class="slider-row__label">Grating</span>
-                            <div class="slider-wrap">
-                                <div class="slider-fill" data-fill="grating"></div>
-                                <input type="range" class="slider" min="100" max="2400" step="50" value="600" data-slider="grating" aria-label="Grating lines per mm">
-                            </div>
-                            <span class="slider-row__value" data-value="grating">600 /mm</span>
-                        </div>
+/* ── Light sources: continuous + gas-discharge emission lines (λ in nm, I = relative) ── */
+var SOURCES = {
+  white:    {label:'white', lines:(function(){var a=[]; for(var w=380;w<=700;w+=20) a.push({w:w,I:1}); return a;})()},
+  hydrogen: {label:'H',     lines:[{w:656.3,I:100},{w:486.1,I:35},{w:434.0,I:18},{w:410.2,I:9}]},
+  helium:   {label:'He',    lines:[{w:667.8,I:10},{w:587.6,I:80},{w:501.6,I:30},{w:492.2,I:20},{w:471.3,I:25},{w:447.1,I:60},{w:438.8,I:15},{w:402.6,I:8}]},
+  mercury:  {label:'Hg',    lines:[{w:579.0,I:45},{w:577.0,I:40},{w:546.1,I:100},{w:435.8,I:60},{w:404.7,I:40}]},
+  sodium:   {label:'Na',    lines:[{w:589.0,I:100},{w:589.6,I:50}]},
+  neon:     {label:'Ne',    lines:[{w:640.2,I:100},{w:621.7,I:50},{w:614.3,I:60},{w:585.2,I:30},{w:576.4,I:15},{w:540.1,I:20},{w:659.9,I:10}]}
+};
+function getSource(key){ return (key && key !== 'mono') ? SOURCES[key] : null; }
+function domWl(source){ if(!source) return null; var best=source.lines[0]; for(var i=1;i<source.lines.length;i++) if(source.lines[i].I>best.I) best=source.lines[i]; return best.w; }
+function maxWl(source, wl){ if(!source) return wl; var mx=0; for(var i=0;i<source.lines.length;i++) if(source.lines[i].w>mx) mx=source.lines[i].w; return mx; }
+function adaptViewHalf(lamNm, dimM, L){ var s=(lamNm*1e-9)/dimM; if(s>=1) return 0.3; var y1=L*s/Math.sqrt(1-s*s); return Math.min(2.0, Math.max(0.3, 1.3*y1)); }
+function sourceTubeColor(source){
+  if(!source) return null;
+  var r=0, g=0, b=0;
+  for(var i=0; i<source.lines.length; i++){
+    var ln=source.lines[i], rgbS=wlRGB(ln.w);
+    r+=rgbS[0]*ln.I; g+=rgbS[1]*ln.I; b+=rgbS[2]*ln.I;
+  }
+  var mx=Math.max(r,g,b)||1;
+  return [Math.round(r/mx*255), Math.round(g/mx*255), Math.round(b/mx*255)];
+}
+function computePattern(patternH, viewHalf, L, intensityFn, source, wl){
+  var intensities=[], rgbBuf=source?[]:null;
+  var maxI=0, maxChannel=0;
+  var lam=wl*1e-9;
+  for(var py=0; py<patternH; py++){
+    var yPos=(py/patternH-0.5)*2*viewHalf;
+    var sinTh=yPos/Math.sqrt(yPos*yPos+L*L);
+    if(source){
+      var rA=0, gA=0, bA=0, Itot=0;
+      for(var wi=0; wi<source.lines.length; wi++){
+        var ln=source.lines[wi];
+        var Is=intensityFn(sinTh, ln.w*1e-9) * ln.I;
+        var rgbS=wlRGB(ln.w);
+        rA+=rgbS[0]*Is; gA+=rgbS[1]*Is; bA+=rgbS[2]*Is; Itot+=Is;
+      }
+      intensities.push(Itot); rgbBuf.push([rA,gA,bA]);
+      if(rA>maxChannel) maxChannel=rA;
+      if(gA>maxChannel) maxChannel=gA;
+      if(bA>maxChannel) maxChannel=bA;
+      if(Itot>maxI) maxI=Itot;
+    } else {
+      var I=intensityFn(sinTh, lam);
+      intensities.push(I);
+      if(I>maxI) maxI=I;
+    }
+  }
+  return {intensities:intensities, rgbBuf:rgbBuf, maxI:maxI, maxChannel:maxChannel};
+}
+function screenRGB(pat, py, rgb){
+  if(!pat.rgbBuf) return rgb;
+  var rb=pat.rgbBuf[py], mc=pat.maxChannel||1;
+  return [Math.round(rb[0]/mc*255), Math.round(rb[1]/mc*255), Math.round(rb[2]/mc*255)];
+}
 
-                    </div>
+/* ── Tab switching ── */
+var currentTab = 'sn';
+window.sw=function(t){
+  currentTab = t;
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  document.getElementById('p-'+t).classList.add('on');
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('t-'+t).classList.add('on');
+  document.querySelectorAll('.module-ctrl').forEach(function(c){c.style.display='none';});
+  var ctrl=document.getElementById('ctrl-'+t);
+  if(ctrl)ctrl.style.display='';
+  t==='ln'?uL():t==='ds'?uD():t==='ss'?uSS():t==='gr'?uG():uS();
+};
 
-                    <!-- Stub for inactive modules — invites Launch -->
-                    <div data-panel="stub" hidden>
-                        <div class="mounted-screen stub-screen">
-                            <div class="sweep-diffuse"></div>
-                            <div class="stub-screen__inner">
-                                <div class="stub-screen__label" data-stub-label>Module Available in Full Lab</div>
-                                <div class="stub-screen__sub">This module is fully functional in the launched laboratory below</div>
-                                <div class="stub-screen__bars">
-                                    <span class="stub-bar"></span>
-                                    <span class="stub-bar"></span>
-                                    <span class="stub-bar"></span>
-                                    <span class="stub-bar"></span>
-                                    <span class="stub-bar"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+/* ── Keyboard navigation: arrow keys switch tabs ── */
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    var tabs = ['sn','ln','ss','ds','gr'];
+    var idx = tabs.indexOf(currentTab);
+    if (e.key === 'ArrowRight') idx = (idx + 1) % tabs.length;
+    else idx = (idx - 1 + tabs.length) % tabs.length;
+    sw(tabs[idx]);
+    document.getElementById('t-' + tabs[idx]).focus();
+  }
+});
 
-                </div>
-            </div>
+/* ── Reset to defaults ── */
+var DEFAULTS = {
+  sn: {nu:'1.00',nl:'1.33',wl:600,t1:40,disp:false,dirDown:true},
+  ln: {lt:'c',fl:15,od:45,oh:10},
+  ds: {wl3:600,sd:40,sw3:10,sL:1.0,showEnv:true,sourceD:'mono',stretchD:true},
+  ss: {wl4:600,sa:20,sL2:1.0,sourceSS:'mono',stretchSS:true},
+  gr: {wl5:600,gd:10,ga:2,gN:8,sL3:1.0,showGrEnv:true,sourceG:'mono',stretchG:true}
+};
+window.resetModule=function(mod){
+  var d=DEFAULTS[mod];
+  for(var id in d){
+    var el=document.getElementById(id);
+    if(!el) continue;
+    if(el.type==='checkbox') el.checked=d[id];
+    else el.value=d[id];
+  }
+  mod==='sn'?uS():mod==='ln'?uL():mod==='ds'?uD():mod==='ss'?uSS():uG();
+};
 
-            <!-- LAUNCH FULL LAB — handoff to the actual functional app -->
-            <a class="launch-cta" href="optics_lab.html" aria-label="Launch the full Optics Laboratory">
-                <div class="launch-cta__text">
-                    <span class="launch-cta__primary">Launch Full Laboratory</span>
-                    <span class="launch-cta__sub">All 5 modules &middot; full functionality</span>
-                </div>
-                <span class="launch-cta__arrow" aria-hidden="true">&rarr;</span>
-            </a>
+/* ── Beam glow renderer (5-layer stack) ── */
+function beam(ctx,x1,y1,x2,y2,col,w,al){
+  ctx.save();ctx.lineCap='round';
+  ctx.globalAlpha=(al||1)*0.04;ctx.strokeStyle=col;ctx.lineWidth=(w||3)+12;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=(al||1)*0.1;ctx.lineWidth=(w||3)+6;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=(al||1)*0.25;ctx.lineWidth=(w||3)+3;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=(al||1)*0.7;ctx.lineWidth=w||3;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.globalAlpha=Math.min(1,(al||1)*1.1);ctx.lineWidth=Math.max(0.5,(w||3)*0.35);ctx.strokeStyle='rgba(255,255,255,0.25)';
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.restore();
+}
 
-        </article>
-    </main>
+/* ── Arrowhead ── */
+function aH(ctx,x,y,a,col,sz){
+  sz=sz||9;ctx.save();ctx.translate(x,y);ctx.rotate(a);
+  ctx.fillStyle=col;ctx.globalAlpha=1;
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-sz,-sz*0.38);ctx.lineTo(-sz,sz*0.38);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
 
-    <script src="../js/cinematic.js"></script>
-    <script>
-        (function () {
-            'use strict';
+/* ── Background grid ── */
+function grd(ctx,W,H){
+  ctx.strokeStyle=GR;ctx.lineWidth=0.5;
+  for(var x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(var y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
 
-            // ─── Gas data: real emission lines for visible range ───
-            const gases = {
-                hydrogen: {
-                    name: 'Hydrogen', subtitle: 'Balmer Series', symbol: 'H',
-                    lines: [
-                        { w: 410.2, intensity: 0.55, label: 'Hδ' },
-                        { w: 434.0, intensity: 0.7,  label: 'Hγ' },
-                        { w: 486.1, intensity: 0.85, label: 'Hβ' },
-                        { w: 656.3, intensity: 1.0,  label: 'Hα' },
-                    ]
-                },
-                helium: {
-                    name: 'Helium', subtitle: 'Triplet + Singlet', symbol: 'He',
-                    lines: [
-                        { w: 388.9, intensity: 0.5 },
-                        { w: 447.1, intensity: 0.7 },
-                        { w: 471.3, intensity: 0.4 },
-                        { w: 501.6, intensity: 0.65 },
-                        { w: 587.6, intensity: 1.0, label: 'D₃' },
-                        { w: 667.8, intensity: 0.7 },
-                    ]
-                },
-                mercury: {
-                    name: 'Mercury', subtitle: 'Vapor Lamp', symbol: 'Hg',
-                    lines: [
-                        { w: 404.7, intensity: 0.7 },
-                        { w: 435.8, intensity: 0.95 },
-                        { w: 491.6, intensity: 0.4 },
-                        { w: 546.1, intensity: 1.0, label: 'g-line' },
-                        { w: 577.0, intensity: 0.85, label: 'y₁' },
-                        { w: 579.1, intensity: 0.85, label: 'y₂' },
-                    ]
-                },
-                sodium: {
-                    name: 'Sodium', subtitle: 'D-Doublet', symbol: 'Na',
-                    lines: [
-                        { w: 588.995, intensity: 1.0, label: 'D₂' },
-                        { w: 589.592, intensity: 0.95, label: 'D₁' },
-                        { w: 498.3, intensity: 0.18 },
-                        { w: 568.8, intensity: 0.22 },
-                        { w: 615.4, intensity: 0.25 },
-                    ]
-                },
-                neon: {
-                    name: 'Neon', subtitle: 'Discharge Tube', symbol: 'Ne',
-                    lines: [
-                        { w: 540.1, intensity: 0.55 },
-                        { w: 585.2, intensity: 0.85 },
-                        { w: 588.2, intensity: 0.7 },
-                        { w: 614.3, intensity: 0.75 },
-                        { w: 626.6, intensity: 0.8 },
-                        { w: 633.4, intensity: 0.85 },
-                        { w: 640.2, intensity: 1.0 },
-                        { w: 650.6, intensity: 0.85 },
-                        { w: 659.9, intensity: 0.75 },
-                        { w: 692.9, intensity: 0.65 },
-                    ]
-                },
-            };
+/* ── Angle arc with label ── */
+function arc(ctx,cx,cy,r,a1,a2,col,lbl){
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.globalAlpha=0.5;
+  ctx.beginPath();ctx.arc(cx,cy,r,a1,a2);ctx.stroke();
+  var m=(a1+a2)/2;
+  ctx.globalAlpha=0.8;ctx.fillStyle=col;ctx.font='500 13px "DM Sans",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(lbl,cx+(r+18)*Math.cos(m),cy+(r+18)*Math.sin(m));
+  ctx.restore();
+}
 
-            // ─── Wavelength → RGB (CIE-based) ───
-            function wavelengthToRGB(w) {
-                let r = 0, g = 0, b = 0;
-                if (w >= 380 && w < 440) { r = -(w - 440) / 60; g = 0; b = 1; }
-                else if (w < 490) { r = 0; g = (w - 440) / 50; b = 1; }
-                else if (w < 510) { r = 0; g = 1; b = -(w - 510) / 20; }
-                else if (w < 580) { r = (w - 510) / 70; g = 1; b = 0; }
-                else if (w < 645) { r = 1; g = -(w - 645) / 65; b = 0; }
-                else if (w <= 700) { r = 1; g = 0; b = 0; }
-                let factor = 1;
-                if (w < 420) factor = 0.3 + 0.7 * (w - 380) / 40;
-                else if (w > 645) factor = 0.3 + 0.7 * (700 - w) / 55;
-                return [
-                    Math.round(Math.pow(r * factor, 0.8) * 255),
-                    Math.round(Math.pow(g * factor, 0.8) * 255),
-                    Math.round(Math.pow(b * factor, 0.8) * 255)
-                ];
-            }
-            function rgbStr(rgb, a) { return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + a + ')'; }
+/* ── Snell ray tracer (dy: +1 = upward incident, -1 = downward incident) ── */
+function snRay(ctx,mx,my,t1r,n1,n2,wl,rL,showI,iA,dy){
+  dy=dy||1;
+  var col=wC(wl);
+  var sT2=n1*Math.sin(t1r)/n2;
+  var tir=sT2>1;
+  if(showI!==false){
+    var sx=mx-rL*Math.sin(t1r),sy=my+dy*rL*Math.cos(t1r);
+    beam(ctx,sx,sy,mx,my,col,2.5,iA||1);
+    aH(ctx,mx-6*Math.sin(t1r),my+dy*6*Math.cos(t1r),Math.atan2(my-sy,mx-sx),col);
+  }
+  if(tir){
+    var rx=mx+rL*Math.sin(t1r),ry=my+dy*rL*Math.cos(t1r);
+    beam(ctx,mx,my,rx,ry,col,2.5);
+    aH(ctx,rx,ry,Math.atan2(ry-my,rx-mx),col);
+    return null;
+  }else{
+    var t2r=Math.asin(sT2);
+    var fx=mx+rL*Math.sin(t2r),fy=my-dy*rL*Math.cos(t2r);
+    beam(ctx,mx,my,fx,fy,col,2.5);
+    aH(ctx,fx,fy,Math.atan2(fy-my,fx-mx),col);
+    return t2r;
+  }
+}
 
-            // ─── Spectrum drawing ───
-            const canvas = document.querySelector('[data-canvas="spectrum"]');
-            const ctx = canvas.getContext('2d');
+/* ════════════════════════════════════════════════════════════
+   MODULE 1: Snell's Law & Total Internal Reflection
+   ════════════════════════════════════════════════════════════ */
+function uS(){
+  var dirDown=document.getElementById('dirDown').checked;
+  var dy=dirDown?-1:1;
+  /* n1 = incident medium, n2 = transmitted medium */
+  var n1b=dirDown?parseFloat(document.getElementById('nu').value):parseFloat(document.getElementById('nl').value);
+  var n2b=dirDown?parseFloat(document.getElementById('nl').value):parseFloat(document.getElementById('nu').value);
+  var wl=parseFloat(document.getElementById('wl').value);
+  var t1=parseFloat(document.getElementById('t1').value);
+  var disp=document.getElementById('disp').checked;
+  document.getElementById('wl-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('t1-v').textContent=t1.toFixed(1)+'\u00B0';
 
-            function resizeCanvas() {
-                const rect = canvas.getBoundingClientRect();
-                const dpr = window.devicePixelRatio || 1;
-                canvas.width = rect.width * dpr;
-                canvas.height = rect.height * dpr;
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            }
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
+  var cv=document.getElementById('sc');
+  var W=BASE_W_SN, H=BASE_H_SN;
+  var ctx=setupCanvas(cv, W, H);
+  var mx=W/2,my=H/2;
 
-            const W_MIN = 380, W_MAX = 700;
-            function wToX(w, width) { return ((w - W_MIN) / (W_MAX - W_MIN)) * width; }
+  var n1d=cauchy(n1b,wl),n2d=cauchy(n2b,wl);
 
-            function drawSpectrum(gasKey) {
-                const gas = gases[gasKey];
-                const rect = canvas.getBoundingClientRect();
-                const w = rect.width, h = rect.height;
-                ctx.clearRect(0, 0, w, h);
+  /* Background: two media zones */
+  ctx.fillStyle='#060810';ctx.fillRect(0,0,W,my);
+  ctx.fillStyle=BG;ctx.fillRect(0,my,W,my);
+  grd(ctx,W,H);
 
-                // Faint visible spectrum gradient background
-                for (let x = 0; x < w; x += 2) {
-                    const wavelength = W_MIN + (x / w) * (W_MAX - W_MIN);
-                    const rgb = wavelengthToRGB(wavelength);
-                    ctx.fillStyle = rgbStr(rgb, 0.06);
-                    ctx.fillRect(x, h * 0.15, 2, h * 0.7);
-                }
+  /* Interface line and normal */
+  ctx.strokeStyle=IF;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,my);ctx.lineTo(W,my);ctx.stroke();
+  ctx.setLineDash([5,8]);ctx.strokeStyle=NM;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(mx,15);ctx.lineTo(mx,H-15);ctx.stroke();ctx.setLineDash([]);
 
-                // Axis line
-                ctx.strokeStyle = 'rgba(240, 160, 48, 0.25)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(0, h * 0.85);
-                ctx.lineTo(w, h * 0.85);
-                ctx.stroke();
+  /* Labels */
+  ctx.font='12px "JetBrains Mono",monospace';ctx.textAlign='left';ctx.fillStyle=TX;ctx.fillText('normal',mx+8,30);
+  var uT=document.getElementById('nu').selectedOptions[0].text;
+  var lT=document.getElementById('nl').selectedOptions[0].text;
+  ctx.textAlign='right';ctx.globalAlpha=0.35;ctx.fillText(uT,W-16,my-14);ctx.fillText(lT,W-16,my+24);ctx.globalAlpha=1;
 
-                // Axis ticks every 20nm
-                ctx.strokeStyle = 'rgba(240, 160, 48, 0.18)';
-                for (let wl = 400; wl <= 700; wl += 20) {
-                    const x = wToX(wl, w);
-                    ctx.beginPath();
-                    ctx.moveTo(x, h * 0.85);
-                    ctx.lineTo(x, h * 0.88);
-                    ctx.stroke();
-                }
+  var t1r=t1*Math.PI/180,rL=200;
+  var hasCrit=n1d>n2d;
+  var critA=hasCrit?Math.asin(n2d/n1d)*180/Math.PI:null;
 
-                // Emission lines
-                gas.lines.forEach(line => {
-                    const x = wToX(line.w, w);
-                    const rgb = wavelengthToRGB(line.w);
-                    const lineH = h * 0.7 * line.intensity;
-                    const yTop = h * 0.85 - lineH;
+  /* Rays */
+  if(disp){
+    var steps=[700,660,620,600,580,560,540,520,500,480,460,440,420,400,380];
+    var sx=mx-rL*Math.sin(t1r),sy=my+dy*rL*Math.cos(t1r);
+    beam(ctx,sx,sy,mx,my,'rgba(255,255,255,0.85)',3.5);
+    aH(ctx,mx-6*Math.sin(t1r),my+dy*6*Math.cos(t1r),Math.atan2(my-sy,mx-sx),'rgba(255,255,255,0.7)');
+    for(var i=0;i<steps.length;i++){
+      var w=steps[i];
+      var nn1=cauchy(n1b,w),nn2=cauchy(n2b,w);
+      snRay(ctx,mx,my,t1r,nn1,nn2,w,rL,false,null,dy);
+    }
+  }else{
+    var t2r=snRay(ctx,mx,my,t1r,n1d,n2d,wl,rL,undefined,undefined,dy);
+    var col=wC(wl);
+    if(dy===1){
+      /* Upward incidence: incident from lower-left, refracted to upper-right */
+      arc(ctx,mx,my,38,Math.PI/2,Math.PI/2+t1r,col,'\u03B8\u2081');
+      if(t2r!==null)arc(ctx,mx,my,38,-Math.PI/2,-Math.PI/2+t2r,col,'\u03B8\u2082');
+    }else{
+      /* Downward incidence: incident from upper-left, refracted to lower-right */
+      arc(ctx,mx,my,38,-Math.PI/2-t1r,-Math.PI/2,col,'\u03B8\u2081');
+      if(t2r!==null)arc(ctx,mx,my,38,Math.PI/2-t2r,Math.PI/2,col,'\u03B8\u2082');
+    }
+    /* Fresnel partial reflection (non-TIR only — TIR reflected beam drawn by snRay) */
+    if(t2r!==null){
+      var cT1=Math.cos(t1r),cT2=Math.cos(t2r);
+      var rs=(n1d*cT1-n2d*cT2)/(n1d*cT1+n2d*cT2);
+      var rp=(n2d*cT1-n1d*cT2)/(n2d*cT1+n1d*cT2);
+      var R=(rs*rs+rp*rp)/2;
+      if(R>0.005){
+        var rx=mx+rL*Math.sin(t1r),ry=my+dy*rL*Math.cos(t1r);
+        beam(ctx,mx,my,rx,ry,col,2,R);
+      }
+    }
+  }
 
-                    const grad = ctx.createLinearGradient(x - 8, 0, x + 8, 0);
-                    grad.addColorStop(0, rgbStr(rgb, 0));
-                    grad.addColorStop(0.5, rgbStr(rgb, 0.3 * line.intensity));
-                    grad.addColorStop(1, rgbStr(rgb, 0));
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(x - 8, yTop, 16, lineH);
+  /* Critical angle indicator */
+  if(hasCrit&&critA!==null){
+    var cr=critA*Math.PI/180;
+    ctx.save();ctx.setLineDash([3,6]);ctx.strokeStyle='rgba(255,68,102,0.25)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx-rL*0.7*Math.sin(cr),my+dy*rL*0.7*Math.cos(cr));ctx.lineTo(mx,my);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx-rL*0.7,my);ctx.stroke();
+    ctx.setLineDash([]);ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle='rgba(255,68,102,0.55)';
+    ctx.textAlign='right';ctx.fillText('\u03B8c = '+critA.toFixed(1)+'\u00B0',mx-rL*0.7-8,my+16);
+    ctx.restore();
+  }
 
-                    ctx.fillStyle = rgbStr(rgb, Math.min(1, line.intensity * 1.1));
-                    ctx.fillRect(x - 1, yTop, 2, lineH);
+  /* Hit point */
+  ctx.beginPath();ctx.arc(mx,my,3,0,2*Math.PI);ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fill();
 
-                    if (line.intensity >= 0.6) {
-                        ctx.fillStyle = rgbStr(rgb, 0.85);
-                        ctx.font = 'bold 9px Share Tech Mono';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(line.w.toFixed(1) + ' nm', x, h * 0.13);
-                        if (line.label) {
-                            ctx.fillStyle = 'rgba(112, 120, 128, 0.7)';
-                            ctx.font = '8px Share Tech Mono';
-                            ctx.fillText(line.label, x, h * 0.04);
-                        }
-                    }
-                });
-            }
+  /* Readout cards */
+  var sT2=n1d*Math.sin(t1r)/n2d;var tir=sT2>1;var col=wC(wl);
+  var t2s=tir?'TIR':(Math.asin(sT2)*180/Math.PI).toFixed(1)+'\u00B0';
+  var h='';
+  h+=cd('n\u2081',n1d.toFixed(3),col);
+  h+=cd('n\u2082',n2d.toFixed(3),col);
+  h+=cd('\u03B8\u2081',t1.toFixed(1)+'\u00B0',col);
+  h+=cd('\u03B8\u2082',t2s,tir?'#ff4466':col);
+  if(hasCrit)h+=cd('\u03B8c',critA.toFixed(1)+'\u00B0','#ff4466');
+  var frR;
+  if(tir){frR=1;}else{var cT1=Math.cos(t1r),cT2=Math.sqrt(1-sT2*sT2);var rs2=(n1d*cT1-n2d*cT2)/(n1d*cT1+n2d*cT2);var rp2=(n2d*cT1-n1d*cT2)/(n2d*cT1+n1d*cT2);frR=(rs2*rs2+rp2*rp2)/2;}
+  h+=cd('R',(frR*100).toFixed(1)+'%','#ff8866');
+  h+=cd('\u03BB',Math.round(wl)+' nm',col);
+  document.getElementById('s-cards').innerHTML=h;
+  saveHash();
+}
+window.uS=uS;
 
-            function updateLinesReadout(gasKey) {
-                const gas = gases[gasKey];
-                const container = document.querySelector('[data-lines-readout]');
-                container.innerHTML = '';
-                gas.lines.slice().sort((a, b) => b.intensity - a.intensity).slice(0, 6).forEach(line => {
-                    const rgb = wavelengthToRGB(line.w);
-                    const pill = document.createElement('div');
-                    pill.className = 'line-pill';
-                    pill.innerHTML =
-                        '<span class="line-pill__w">' + line.w.toFixed(1) + ' nm</span>' +
-                        (line.label ? line.label : '·') +
-                        '<span class="line-pill__color" style="background:' + rgbStr(rgb, 0.95) + '; color:' + rgbStr(rgb, 0.7) + ';"></span>';
-                    container.appendChild(pill);
-                });
-            }
+/* ════════════════════════════════════════════════════════════
+   MODULE 2: Thin Lenses
+   ════════════════════════════════════════════════════════════ */
+function uL(){
+  var type=document.getElementById('lt').value;
+  var fAbs=parseFloat(document.getElementById('fl').value);
+  var dObj=parseFloat(document.getElementById('od').value);
+  var hObj=parseFloat(document.getElementById('oh').value);
+  document.getElementById('fl-v').textContent=fAbs.toFixed(1)+' cm';
+  document.getElementById('od-v').textContent=dObj.toFixed(1)+' cm';
+  document.getElementById('oh-v').textContent=hObj.toFixed(1)+' cm';
 
-            // ─── Source selection ───
-            function selectGas(key) {
-                if (!gases[key]) return;
-                document.querySelectorAll('.source-pill').forEach(p => {
-                    p.dataset.active = p.dataset.gas === key ? 'true' : 'false';
-                });
-                document.querySelector('[data-source-readout]').textContent = gases[key].name + ' · ' + gases[key].subtitle;
-                drawSpectrum(key);
-                updateLinesReadout(key);
-            }
-            document.querySelectorAll('.source-pill').forEach(pill => {
-                pill.addEventListener('click', () => selectGas(pill.dataset.gas));
-            });
+  var col=wC(600);
+  var f=type==='c'?fAbs:-fAbs;
+  var inv=1/f-1/dObj;
+  var di=inv!==0?1/inv:Infinity;
+  var M=isFinite(di)?-di/dObj:Infinity;
 
-            // ─── Module selection ───
-            const moduleNames = {
-                refraction: 'Refraction & TIR',
-                lens: 'Thin-Lens Ray Tracing',
-                diffraction: 'Single & Double-Slit Diffraction',
-                grating: 'N-Slit Gratings',
-                spectroscopy: 'Gas-Discharge Spectroscopy',
-            };
-            function selectModule(key) {
-                document.querySelectorAll('.module-tab').forEach(t => {
-                    t.dataset.active = t.dataset.module === key ? 'true' : 'false';
-                });
-                document.querySelector('[data-module-label]').textContent = moduleNames[key] || key;
-                const spectro = document.querySelector('[data-panel="spectroscopy"]');
-                const stub = document.querySelector('[data-panel="stub"]');
-                if (key === 'spectroscopy') {
-                    spectro.hidden = false;
-                    stub.hidden = true;
-                } else {
-                    spectro.hidden = true;
-                    stub.hidden = false;
-                    document.querySelector('[data-stub-label]').textContent = moduleNames[key] + ' — Available in Full Lab';
-                }
-            }
-            document.querySelectorAll('.module-tab').forEach(tab => {
-                tab.addEventListener('click', () => selectModule(tab.dataset.module));
-            });
+  var cv=document.getElementById('lc');
+  var W=BASE_W_LN, H=BASE_H_LN;
+  var ctx=setupCanvas(cv, W, H);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
 
-            // ─── Sliders (visual feedback) ───
-            function bindSlider(id, format) {
-                const slider = document.querySelector('[data-slider="' + id + '"]');
-                const value = document.querySelector('[data-value="' + id + '"]');
-                const fill = document.querySelector('[data-fill="' + id + '"]');
-                function update() {
-                    const v = parseFloat(slider.value);
-                    value.textContent = format(v);
-                    const pct = ((v - parseFloat(slider.min)) / (parseFloat(slider.max) - parseFloat(slider.min))) * 100;
-                    fill.style.setProperty('--fill', pct.toFixed(1) + '%');
-                }
-                slider.addEventListener('input', update);
-                update();
-            }
-            bindSlider('slit', v => v.toFixed(2) + ' mm');
-            bindSlider('grating', v => Math.round(v) + ' /mm');
+  var lx=W*0.5,ay=H*0.5,sc=5;
 
-            // ─── Keyboard: 1-5 switches modules (Esc handled by cinematic.js) ───
-            const moduleKeys = { '1': 'refraction', '2': 'lens', '3': 'diffraction', '4': 'grating', '5': 'spectroscopy' };
-            document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT') return;
-                if (moduleKeys[e.key]) selectModule(moduleKeys[e.key]);
-            });
+  /* Optical axis */
+  ctx.strokeStyle=IF;ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(12,ay);ctx.lineTo(W-12,ay);ctx.stroke();
 
-            // ─── Init ───
-            selectGas('hydrogen');
-        })();
-    </script>
+  /* Lens shape */
+  var lH=160;
+  ctx.strokeStyle='rgba(140,180,255,0.25)';ctx.lineWidth=2;
+  if(type==='c'){
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx+15,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx-15,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.fillStyle='rgba(100,160,255,0.04)';
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx+15,ay,lx,ay+lH/2);ctx.quadraticCurveTo(lx-15,ay,lx,ay-lH/2);ctx.fill();
+  }else{
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx-10,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx+10,ay,lx,ay+lH/2);ctx.stroke();
+    ctx.fillStyle='rgba(100,160,255,0.03)';
+    ctx.beginPath();ctx.moveTo(lx,ay-lH/2);ctx.quadraticCurveTo(lx-10,ay,lx,ay+lH/2);ctx.quadraticCurveTo(lx+10,ay,lx,ay-lH/2);ctx.fill();
+  }
+
+  /* Focal points */
+  var fpx=Math.abs(f)*sc,f1=lx-fpx,f2=lx+fpx;
+  function fM(x,lb){
+    ctx.beginPath();ctx.arc(x,ay,3,0,2*Math.PI);ctx.fillStyle='rgba(255,100,100,0.5)';ctx.fill();
+    ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle='rgba(255,100,100,0.4)';ctx.textAlign='center';ctx.fillText(lb,x,ay+18);
+  }
+  if(type==='c'){fM(f1,'F');fM(f2,"F'");}else{fM(f1,"F'");fM(f2,'F');}
+
+  /* 2f markers */
+  var tf1=lx-2*fpx,tf2=lx+2*fpx;
+  function tM(x,lb){
+    if(x<12||x>W-12) return;
+    ctx.beginPath();ctx.arc(x,ay,2,0,2*Math.PI);ctx.fillStyle='rgba(255,100,100,0.3)';ctx.fill();
+    ctx.font='10px "JetBrains Mono",monospace';ctx.fillStyle='rgba(255,100,100,0.25)';ctx.textAlign='center';ctx.fillText(lb,x,ay+16);
+  }
+  if(type==='c'){tM(tf1,'2F');tM(tf2,"2F'");}else{tM(tf1,"2F'");tM(tf2,'2F');}
+
+  /* Object arrow */
+  var ox=lx-dObj*sc,oH=hObj*sc;
+  ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(ox,ay);ctx.lineTo(ox,ay-oH);ctx.stroke();
+  aH(ctx,ox,ay-oH,-Math.PI/2,col,8);
+
+  /* Ray tracing + image */
+  /* Helper: given a point and slope, find y at x=edge */
+  function yAtX(x0,y0,slope,xTarget){ return y0 + slope*(xTarget-x0); }
+
+  if(!isFinite(di)||Math.abs(di)>160){
+    /* Image at infinity: parallel exit rays */
+    beam(ctx,Math.max(-20,ox),ay-oH,lx,ay-oH,col,2);
+    beam(ctx,lx,ay-oH,W+20,ay-oH,col,2);
+    beam(ctx,Math.max(-20,ox),ay-oH,lx,ay,col,2);
+    beam(ctx,lx,ay,W+20,ay,col,2);
+    /* Canvas annotation */
+    ctx.save();ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle='rgba(255,100,100,0.6)';
+    ctx.textAlign='right';ctx.fillText('image at \u221E',W-16,ay-oH-8);ctx.restore();
+  }else{
+    var ix=lx+di*sc,iH=M*oH;
+    var virt=di<0;
+    var onScreenI=ix>=-20&&ix<=W+20;
+    var onScreenO=ox>=-20&&ox<=W+20;
+
+    /* Draw image arrow only if on screen */
+    if(onScreenI){
+      ctx.strokeStyle=col;ctx.lineWidth=2.5;
+      if(virt)ctx.setLineDash([6,5]);
+      ctx.beginPath();ctx.moveTo(ix,ay);ctx.lineTo(ix,ay-iH);ctx.stroke();
+      aH(ctx,ix,ay-iH,iH>0?-Math.PI/2:Math.PI/2,col,8);
+      ctx.setLineDash([]);
+    }
+
+    /* Draw object arrow only if on screen */
+    if(onScreenO){
+      /* already drawn above, but re-check visibility handled by draw position */
+    }
+
+    if(type==='c'){
+      /* Ray 1: parallel to axis, then through F' */
+      var r1slope=((ay-iH)-(ay-oH))/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay-oH,col,2);
+      if(di>0){
+        beam(ctx,lx,ay-oH,Math.min(W+20,ix),yAtX(lx,ay-oH,r1slope,Math.min(W+20,ix)),col,2);
+      }else{
+        /* Virtual: ray diverges, extend to edge; dashed back-projection */
+        beam(ctx,lx,ay-oH,W+20,yAtX(lx,ay-oH,r1slope,W+20),col,2);
+        ctx.save();ctx.setLineDash([4,5]);
+        beam(ctx,lx,ay-oH,Math.max(-20,ix),yAtX(lx,ay-oH,r1slope,Math.max(-20,ix)),col,1.5,0.2);
+        ctx.restore();ctx.setLineDash([]);
+      }
+
+      /* Ray 2: through lens center */
+      var r2slope=((ay-iH)-ay)/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay,col,2);
+      if(di>0){
+        beam(ctx,lx,ay,Math.min(W+20,ix),yAtX(lx,ay,r2slope,Math.min(W+20,ix)),col,2);
+      }else{
+        beam(ctx,lx,ay,W+20,yAtX(lx,ay,r2slope,W+20),col,2);
+        ctx.save();ctx.setLineDash([4,5]);
+        beam(ctx,lx,ay,Math.max(-20,ix),yAtX(lx,ay,r2slope,Math.max(-20,ix)),col,1.5,0.2);
+        ctx.restore();ctx.setLineDash([]);
+      }
+    }else{
+      /* Diverging lens */
+      /* Ray 1: parallel, then diverges as if from F' */
+      var r1slope=((ay-iH)-(ay-oH))/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay-oH,col,2);
+      beam(ctx,lx,ay-oH,W+20,yAtX(lx,ay-oH,r1slope,W+20),col,2);
+      ctx.save();ctx.setLineDash([4,5]);
+      beam(ctx,lx,ay-oH,Math.max(-20,ix),yAtX(lx,ay-oH,r1slope,Math.max(-20,ix)),col,1.5,0.2);
+      ctx.restore();ctx.setLineDash([]);
+
+      /* Ray 2: through center */
+      var r2slope=((ay-iH)-ay)/(ix-lx);
+      beam(ctx,Math.max(-20,ox),ay-oH,lx,ay,col,2);
+      beam(ctx,lx,ay,W+20,yAtX(lx,ay,r2slope,W+20),col,2);
+      ctx.save();ctx.setLineDash([4,5]);
+      beam(ctx,lx,ay,Math.max(-20,ix),yAtX(lx,ay,r2slope,Math.max(-20,ix)),col,1.5,0.2);
+      ctx.restore();ctx.setLineDash([]);
+    }
+
+    /* Ray 3: through F → exits parallel to axis */
+    var r3den=type==='c'?(dObj-fAbs):(dObj+fAbs);
+    if(Math.abs(r3den)>0.3){
+      var r3y=type==='c'?ay+oH*fAbs/r3den:ay-oH*fAbs/r3den;
+      if(Math.abs(r3y-ay)<lH/2){
+        beam(ctx,Math.max(-20,ox),ay-oH,lx,r3y,col,2);
+        if(di>0){
+          beam(ctx,lx,r3y,Math.min(W+20,ix),r3y,col,2);
+        }else{
+          beam(ctx,lx,r3y,W+20,r3y,col,2);
+          ctx.save();ctx.setLineDash([4,5]);
+          beam(ctx,lx,r3y,Math.max(-20,ix),r3y,col,1.5,0.2);
+          ctx.restore();ctx.setLineDash([]);
+        }
+      }
+    }
+  }
+
+  /* Readout cards */
+  var h='';
+  var dis=!isFinite(di)?'\u221E':di.toFixed(1)+' cm';
+  var ms=!isFinite(M)?'\u221E':M.toFixed(2);
+  var nat='';
+  if(!isFinite(di))nat='At \u221E';
+  else if(di>0)nat='Real, '+(M<0?'inv.':'upr.');
+  else nat='Virtual, '+(M>0?'upr.':'inv.');
+  h+=cd('f',f.toFixed(1)+' cm','rgba(255,100,100,0.65)');
+  h+=cd('d\u2092',dObj.toFixed(1)+' cm',col);
+  h+=cd('d\u1d62',dis,col);
+  h+=cd('h\u2092',hObj.toFixed(1)+' cm',col);
+  h+=cd('h\u1d62',!isFinite(M)?'\u221E':(Math.abs(M)*hObj).toFixed(1)+' cm',col);
+  h+=cd('M',ms,col);
+  h+=cd('Image',nat,TXH);
+  document.getElementById('l-cards').innerHTML=h;
+  saveHash();
+}
+window.uL=uL;
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 3: Young's Double-Slit Interference
+   ════════════════════════════════════════════════════════════ */
+var BASE_W_DS=780, BASE_H_DS=520;
+
+function sinc(x){ return Math.abs(x)<1e-10 ? 1.0 : Math.sin(x)/x; }
+
+function uD(){
+  var wl  = parseFloat(document.getElementById('wl3').value);        // nm
+  var d   = parseFloat(document.getElementById('sd').value);          // µm
+  var a   = parseFloat(document.getElementById('sw3').value);         // µm
+  var L   = parseFloat(document.getElementById('sL').value);          // m
+  var showEnv = document.getElementById('showEnv').checked;
+  var source = getSource(document.getElementById('sourceD').value);
+  var tubeRGB = sourceTubeColor(source);
+  var stretch = document.getElementById('stretchD').checked;
+  document.getElementById('wl3-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('sd-v').textContent=d+' \u00B5m';
+  document.getElementById('sw3-v').textContent=a+' \u00B5m';
+  document.getElementById('sL-v').textContent=L.toFixed(2)+' m';
+
+  // Ensure a <= d
+  if(a > d) { a = d; document.getElementById('sw3').value = a; document.getElementById('sw3-v').textContent=a+' \u00B5m'; }
+
+  var col = tubeRGB ? 'rgb('+tubeRGB[0]+','+tubeRGB[1]+','+tubeRGB[2]+')' : wC(wl);
+  var rgb = tubeRGB || wlRGB(wl);
+
+  var cv = document.getElementById('dc');
+  var W = BASE_W_DS, H = BASE_H_DS;
+  var ctx = setupCanvas(cv, W, H);
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
+
+  // Layout: left side = slit diagram, right side = intensity pattern
+  var slitX   = 120;   // x position of slit barrier
+  // Screen position scales with L
+  var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
+  var srcX    = 30;     // x position of light source
+  var midY    = H/2;
+
+  // Convert to consistent units for physics: λ in m, d in m, a in m
+  var lam = wl * 1e-9;
+  var dM  = d * 1e-6;
+  var aM  = a * 1e-6;
+
+  // Fringe spacing on real screen
+  var dy_fringe = lam * L / dM;  // meters
+
+  // === Draw barrier with two slits ===
+  // Visual slit separation scales with d
+  var slitSepPx = Math.min(120, Math.max(8, d * 1.5));
+  var slitWidPx = Math.max(2, Math.min(slitSepPx * 0.4, a / d * slitSepPx));
+  var s1y = midY - slitSepPx/2;
+  var s2y = midY + slitSepPx/2;
+
+  // Barrier
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(slitX-3, 0, 6, s1y - slitWidPx/2);
+  ctx.fillRect(slitX-3, s1y + slitWidPx/2, 6, s2y - slitWidPx/2 - s1y - slitWidPx/2);
+  ctx.fillRect(slitX-3, s2y + slitWidPx/2, 6, H - s2y - slitWidPx/2);
+
+  // Slit openings (bright)
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(slitX-3, s1y - slitWidPx/2, 6, slitWidPx);
+  ctx.fillRect(slitX-3, s2y - slitWidPx/2, 6, slitWidPx);
+
+  // === Incoming plane wave (left of barrier) ===
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  var waveSpacing = Math.max(12, Math.min(60, wl / 13));
+  for(var wx = srcX; wx < slitX - 4; wx += waveSpacing){
+    ctx.beginPath(); ctx.moveTo(wx, 30); ctx.lineTo(wx, H-30); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Incoming beam
+  beam(ctx, srcX, midY, slitX-3, midY, col, 2, 0.5);
+
+  // === Circular wavefronts from each slit ===
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  var maxR = screenX - slitX;
+  for(var wr = waveSpacing; wr < maxR; wr += waveSpacing){
+    ctx.beginPath(); ctx.arc(slitX, s1y, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
+    ctx.beginPath(); ctx.arc(slitX, s2y, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
+  }
+  ctx.restore();
+
+  // === Detection screen & intensity pattern ===
+  // Draw vertical screen line
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(screenX, 20); ctx.lineTo(screenX, H-20); ctx.stroke();
+
+  // Compute intensity pattern in physical screen coordinates
+  var patternH = H - 60;  // pixel height of pattern
+  var yTop = 30;
+  var viewHalf = adaptViewHalf(maxWl(source, wl), dM, L);
+
+  var pat = computePattern(patternH, viewHalf, L, function(sinTh, lamS){
+    var beta  = Math.PI * dM * sinTh / lamS;
+    var alpha = Math.PI * aM * sinTh / lamS;
+    return Math.cos(beta)*Math.cos(beta) * sinc(alpha)*sinc(alpha);
+  }, source, wl);
+  var intensities = pat.intensities, maxI = pat.maxI;
+
+  // Draw intensity as a filled curve and as glow on the screen
+  var graphX = screenX + 8;
+  var barW = Math.min(50, W - graphX - 4);
+
+  // Screen glow (vertical strip colored by intensity)
+  for(var py = 0; py < patternH; py++){
+    var I = intensities[py] / maxI;
+    var aI = stretch ? Math.pow(I, 0.3) : I;
+    var y = yTop + py;
+    var pr = screenRGB(pat, py, rgb);
+    ctx.fillStyle = 'rgba('+pr[0]+','+pr[1]+','+pr[2]+','+(aI*0.7)+')';
+    ctx.fillRect(screenX - 4, y, 8, 1);
+  }
+
+  // Intensity curve
+  ctx.beginPath();
+  ctx.moveTo(graphX, yTop);
+  for(var py = 0; py < patternH; py++){
+    var I = intensities[py] / maxI;
+    ctx.lineTo(graphX + I * barW, yTop + py);
+  }
+  ctx.lineTo(graphX, yTop + patternH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.08)';
+  ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  for(var py = 0; py < patternH; py++){
+    var I = intensities[py] / maxI;
+    if(py===0) ctx.moveTo(graphX + I * barW, yTop + py);
+    else ctx.lineTo(graphX + I * barW, yTop + py);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Diffraction envelope (dashed)
+  if(showEnv && !source){
+    ctx.save();
+    ctx.setLineDash([4,4]);
+    ctx.strokeStyle = 'rgba(255,100,100,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for(var py = 0; py < patternH; py++){
+      var yPos = (py / patternH - 0.5) * 2 * viewHalf;
+      var sinTh = yPos / Math.sqrt(yPos*yPos + L*L);
+      var alpha = Math.PI * aM * sinTh / lam;
+      var env = sinc(alpha) * sinc(alpha);
+      if(py===0) ctx.moveTo(graphX + env * barW, yTop + py);
+      else ctx.lineTo(graphX + env * barW, yTop + py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // Labels
+  ctx.font = '11px "JetBrains Mono",monospace';
+  ctx.fillStyle = TX; ctx.textAlign = 'center';
+  ctx.fillText('barrier', slitX, H - 8);
+  ctx.fillText('screen', screenX, H - 8);
+  if(barW > 20) ctx.fillText('I(\u03B8)', graphX + barW/2, yTop - 8);
+
+  // Slit labels
+  ctx.font = '10px "JetBrains Mono",monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.textAlign = 'right';
+  ctx.fillText('S\u2081', slitX - 8, s1y + 3);
+  ctx.fillText('S\u2082', slitX - 8, s2y + 3);
+
+  // d label between slits
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(slitX + 12, s1y); ctx.lineTo(slitX + 12, s2y); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.textAlign = 'left'; ctx.font = '10px "JetBrains Mono",monospace';
+  ctx.fillText('d', slitX + 16, midY + 4);
+
+  // Central max label
+  ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.textAlign = 'left';
+  ctx.fillText('m=0', graphX + barW + 6, midY + 3);
+
+  // === Readout cards ===
+  var refLam = source ? domWl(source)*1e-9 : lam;
+  var dy_ref = refLam * L / dM;
+  var sinTh1_ds = refLam/dM;
+  var h = '';
+  h += cd('\u03BB', source ? source.label : Math.round(wl)+' nm', col);
+  h += cd('d', d+' \u00B5m', col);
+  h += cd('a', a+' \u00B5m', col);
+  h += cd('L', L.toFixed(2)+' m', col);
+  h += cd('\u0394y', (dy_ref*1000).toFixed(2)+' mm', col);
+  h += cd('\u03B8\u2081', sinTh1_ds<=1 ? (Math.asin(sinTh1_ds)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a', TXH);
+  document.getElementById('d-cards').innerHTML = h;
+  saveHash();
+}
+window.uD=uD;
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 4: Single-Slit Diffraction
+   ════════════════════════════════════════════════════════════ */
+var BASE_W_SS=780, BASE_H_SS=520;
+
+function uSS(){
+  var wl = parseFloat(document.getElementById('wl4').value);
+  var a  = parseFloat(document.getElementById('sa').value);
+  var L  = parseFloat(document.getElementById('sL2').value);
+  var source = getSource(document.getElementById('sourceSS').value);
+  var tubeRGB = sourceTubeColor(source);
+  var stretch = document.getElementById('stretchSS').checked;
+  document.getElementById('wl4-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('sa-v').textContent=a+' \u00B5m';
+  document.getElementById('sL2-v').textContent=L.toFixed(2)+' m';
+
+  var col = tubeRGB ? 'rgb('+tubeRGB[0]+','+tubeRGB[1]+','+tubeRGB[2]+')' : wC(wl);
+  var rgb = tubeRGB || wlRGB(wl);
+  var lam = wl*1e-9;
+  var aM  = a*1e-6;
+
+  var cv = document.getElementById('ssc');
+  var W = BASE_W_SS, H = BASE_H_SS;
+  var ctx = setupCanvas(cv, W, H);
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
+
+  var midY = H/2;
+  var slitX = 140;
+  // Screen position scales with L
+  var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
+
+  // Barrier with single slit
+  var slitWidPx = Math.max(3, Math.min(60, a*1.2));
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(slitX-3, 0, 6, midY - slitWidPx/2);
+  ctx.fillRect(slitX-3, midY + slitWidPx/2, 6, H - midY - slitWidPx/2);
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(slitX-3, midY - slitWidPx/2, 6, slitWidPx);
+
+  // Incoming plane wave
+  ctx.save(); ctx.globalAlpha=0.25; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var waveSpacing = Math.max(12, Math.min(60, wl/13));
+  for(var wx=30; wx<slitX-4; wx+=waveSpacing){
+    ctx.beginPath(); ctx.moveTo(wx,30); ctx.lineTo(wx,H-30); ctx.stroke();
+  }
+  ctx.restore();
+  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.5);
+
+  // Circular wavefronts from slit
+  ctx.save(); ctx.globalAlpha=0.18; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var maxR = screenX - slitX;
+  for(var wr=waveSpacing; wr<maxR; wr+=waveSpacing){
+    ctx.beginPath(); ctx.arc(slitX, midY, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Intensity pattern in physical screen coordinates
+  var patternH = H - 60, yTop = 30;
+  var viewHalf = adaptViewHalf(maxWl(source, wl), aM, L);
+  var pat = computePattern(patternH, viewHalf, L, function(sinTh, lamS){
+    var alpha = Math.PI * aM * sinTh / lamS;
+    return sinc(alpha) * sinc(alpha);
+  }, source, wl);
+  var intensities = pat.intensities, maxI = pat.maxI;
+
+  // Screen
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(screenX,20); ctx.lineTo(screenX,H-20); ctx.stroke();
+
+  // Screen glow
+  for(var py=0; py<patternH; py++){
+    var I = intensities[py]/maxI;
+    var aI = stretch ? Math.pow(I, 0.3) : I;
+    var pr = screenRGB(pat, py, rgb);
+    ctx.fillStyle='rgba('+pr[0]+','+pr[1]+','+pr[2]+','+(aI*0.7)+')';
+    ctx.fillRect(screenX-4, yTop+py, 8, 1);
+  }
+
+  // Intensity curve
+  var graphX = screenX + 8;
+  var barW = Math.min(50, W - graphX - 4);
+  ctx.beginPath(); ctx.moveTo(graphX, yTop);
+  for(var py=0; py<patternH; py++) ctx.lineTo(graphX + intensities[py]/maxI*barW, yTop+py);
+  ctx.lineTo(graphX, yTop+patternH); ctx.closePath();
+  ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.08)'; ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+  ctx.beginPath();
+  for(var py=0; py<patternH; py++){
+    var I=intensities[py]/maxI;
+    if(py===0) ctx.moveTo(graphX+I*barW,yTop+py); else ctx.lineTo(graphX+I*barW,yTop+py);
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // Labels
+  ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
+  ctx.fillText('barrier',slitX,H-8); ctx.fillText('screen',screenX,H-8);
+  if(barW > 20) ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
+
+  // Slit width label
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(slitX+12,midY-slitWidPx/2); ctx.lineTo(slitX+12,midY+slitWidPx/2); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.textAlign='left'; ctx.font='10px "JetBrains Mono",monospace';
+  ctx.fillText('a',slitX+16,midY+4);
+
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
+  ctx.fillText('m=0',graphX+barW+6,midY+3);
+
+  // Readout cards
+  var refLam = source ? domWl(source)*1e-9 : lam;
+  var centralW = 2*refLam*L/aM;
+  var sinTh1_ss = refLam/aM;
+  var h='';
+  h+=cd('\u03BB',source ? source.label : Math.round(wl)+' nm',col);
+  h+=cd('a',a+' \u00B5m',col);
+  h+=cd('L',L.toFixed(2)+' m',col);
+  h+=cd('Central W',(centralW*1000).toFixed(2)+' mm',col);
+  h+=cd('\u03B8\u2081 (min)',sinTh1_ss<=1 ? (Math.asin(sinTh1_ss)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a',TXH);
+  document.getElementById('ss-cards').innerHTML=h;
+  saveHash();
+}
+window.uSS=uSS;
+
+/* ════════════════════════════════════════════════════════════
+   MODULE 5: Diffraction Grating (N slits)
+   ════════════════════════════════════════════════════════════ */
+var BASE_W_GR=780, BASE_H_GR=520;
+
+function uG(){
+  var wl = parseFloat(document.getElementById('wl5').value);
+  var d  = parseFloat(document.getElementById('gd').value);
+  var a  = parseFloat(document.getElementById('ga').value);
+  var N  = parseInt(document.getElementById('gN').value);
+  var L  = parseFloat(document.getElementById('sL3').value);
+  var showEnv = document.getElementById('showGrEnv').checked;
+  var source = getSource(document.getElementById('sourceG').value);
+  var tubeRGB = sourceTubeColor(source);
+  var stretch = document.getElementById('stretchG').checked;
+
+  // Ensure a <= d
+  if(a > d) { a = d; document.getElementById('ga').value = a; }
+
+  document.getElementById('wl5-v').textContent=Math.round(wl)+' nm';
+  document.getElementById('gd-v').textContent=d+' \u00B5m';
+  document.getElementById('ga-v').textContent=a.toFixed(1)+' \u00B5m';
+  document.getElementById('gN-v').textContent=N;
+  document.getElementById('sL3-v').textContent=L.toFixed(2)+' m';
+
+  var col = tubeRGB ? 'rgb('+tubeRGB[0]+','+tubeRGB[1]+','+tubeRGB[2]+')' : wC(wl);
+  var rgb = tubeRGB || wlRGB(wl);
+  var lam = wl*1e-9;
+  var dM  = d*1e-6;
+  var aM  = a*1e-6;
+
+  var cv = document.getElementById('gc');
+  var W = BASE_W_GR, H = BASE_H_GR;
+  var ctx = setupCanvas(cv, W, H);
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  grd(ctx,W,H);
+
+  var midY = H/2;
+  var slitX = 140;
+  // Screen position scales with L: L=0.2→closer, L=3.0→far right
+  var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
+
+  // Visual slit spacing scales with d (µm): larger d → wider pixel separation
+  var visN = N;
+  var slitSepPx = Math.min(90, Math.max(4, d * 1.8));
+  var totalH = (visN-1)*slitSepPx;
+  // Clamp if the grating would exceed canvas height
+  if(totalH > H - 60){
+    slitSepPx = (H - 60) / (visN - 1);
+    totalH = (visN-1)*slitSepPx;
+  }
+  var slitWidPx = Math.max(1, (a/d) * slitSepPx);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  var topY = midY - totalH/2;
+  // Top barrier
+  ctx.fillRect(slitX-3, 0, 6, topY - slitWidPx/2);
+  // Inter-slit barriers and slit openings
+  for(var i=0; i<visN; i++){
+    var sy = topY + i*slitSepPx;
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    ctx.fillRect(slitX-3, sy-slitWidPx/2, 6, slitWidPx);
+    if(i < visN-1){
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      ctx.fillRect(slitX-3, sy+slitWidPx/2, 6, slitSepPx-slitWidPx);
+    }
+  }
+  // Bottom barrier
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  var botY = topY + (visN-1)*slitSepPx;
+  ctx.fillRect(slitX-3, botY+slitWidPx/2, 6, H-botY-slitWidPx/2);
+
+  // N label
+  ctx.font='10px "JetBrains Mono",monospace'; ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.textAlign='right';
+  ctx.fillText('N='+N, slitX-8, midY+4);
+
+  // Incoming plane wave
+  ctx.save(); ctx.globalAlpha=0.25; ctx.strokeStyle=col; ctx.lineWidth=1;
+  var waveSpacing = Math.max(12, Math.min(60, wl/13));
+  for(var wx=30; wx<slitX-4; wx+=waveSpacing){
+    ctx.beginPath(); ctx.moveTo(wx,30); ctx.lineTo(wx,H-30); ctx.stroke();
+  }
+  ctx.restore();
+  beam(ctx, 30, midY, slitX-3, midY, col, 2, 0.5);
+
+  // Circular wavefronts from each slit (Huygens' principle)
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.04, 0.18 / Math.sqrt(visN));
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1;
+  var maxR = screenX - slitX;
+  for(var i=0; i<visN; i++){
+    var sy = topY + i*slitSepPx;
+    for(var wr=waveSpacing; wr<maxR; wr+=waveSpacing){
+      ctx.beginPath(); ctx.arc(slitX, sy, wr, -Math.PI/3, Math.PI/3); ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // Intensity pattern: I = [sin(Nβ)/(N sinβ)]² · sinc²(α)
+  // Computed in physical screen coordinates so d and L visibly affect fringe spacing
+  var patternH = H - 60, yTop = 30;
+  var viewHalf = adaptViewHalf(maxWl(source, wl), dM, L);
+
+  var pat = computePattern(patternH, viewHalf, L, function(sinTh, lamS){
+    var beta  = Math.PI * dM * sinTh / lamS;
+    var alpha = Math.PI * aM * sinTh / lamS;
+    var sinNb = Math.sin(N*beta);
+    var sinB  = Math.sin(beta);
+    var interf = Math.abs(sinB) < 1e-12 ? 1.0 : (sinNb/(N*sinB));
+    return interf*interf * sinc(alpha)*sinc(alpha);
+  }, source, wl);
+  var intensities = pat.intensities, maxI = pat.maxI;
+
+  // Screen
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(screenX,20); ctx.lineTo(screenX,H-20); ctx.stroke();
+
+  // Screen glow
+  for(var py=0; py<patternH; py++){
+    var I = intensities[py]/maxI;
+    var aI = stretch ? Math.pow(I, 0.3) : I;
+    var pr = screenRGB(pat, py, rgb);
+    ctx.fillStyle='rgba('+pr[0]+','+pr[1]+','+pr[2]+','+(aI*0.7)+')';
+    ctx.fillRect(screenX-4, yTop+py, 8, 1);
+  }
+
+  // Intensity curve
+  var graphX = screenX + 8;
+  var barW = Math.min(50, W - graphX - 4);
+  ctx.beginPath(); ctx.moveTo(graphX, yTop);
+  for(var py=0; py<patternH; py++) ctx.lineTo(graphX+intensities[py]/maxI*barW, yTop+py);
+  ctx.lineTo(graphX, yTop+patternH); ctx.closePath();
+  ctx.fillStyle='rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0.08)'; ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+  ctx.beginPath();
+  for(var py=0; py<patternH; py++){
+    var I=intensities[py]/maxI;
+    if(py===0) ctx.moveTo(graphX+I*barW,yTop+py); else ctx.lineTo(graphX+I*barW,yTop+py);
+  }
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // Diffraction envelope (dashed)
+  if(showEnv && !source){
+    ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(255,100,100,0.4)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    for(var py=0; py<patternH; py++){
+      var yPos=(py/patternH-0.5)*2*viewHalf;
+      var sinTh=yPos/Math.sqrt(yPos*yPos+L*L);
+      var alpha=Math.PI*aM*sinTh/lam;
+      var env=sinc(alpha)*sinc(alpha);
+      if(py===0) ctx.moveTo(graphX+env*barW,yTop+py); else ctx.lineTo(graphX+env*barW,yTop+py);
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  }
+
+  // Labels
+  ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
+  ctx.fillText('grating',slitX,H-8); ctx.fillText('screen',screenX,H-8);
+  if(barW > 20) ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
+  ctx.fillText('m=0',graphX+barW+6,midY+3);
+
+  // Readout cards
+  var refLam = source ? domWl(source)*1e-9 : lam;
+  var sinTh1_gr = refLam/dM;
+  var R = N; // resolving power for m=1
+  var h='';
+  h+=cd('\u03BB',source ? source.label : Math.round(wl)+' nm',col);
+  h+=cd('d',d+' \u00B5m',col);
+  h+=cd('a',a.toFixed(1)+' \u00B5m',col);
+  h+=cd('N',N+'',col);
+  h+=cd('L',L.toFixed(2)+' m',col);
+  h+=cd('\u03B8\u2081',sinTh1_gr<=1 ? (Math.asin(sinTh1_gr)*180/Math.PI).toFixed(2)+'\u00B0' : 'n/a',TXH);
+  h+=cd('R (m=1)',R+'',TXH);
+  document.getElementById('g-cards').innerHTML=h;
+  saveHash();
+}
+window.uG=uG;
+
+/* ── URL hash for sharing configurations ── */
+function saveHash(){
+  var tab=currentTab, d=DEFAULTS[tab], parts=['tab='+tab];
+  for(var id in d){
+    var el=document.getElementById(id); if(!el) continue;
+    var val=el.type==='checkbox'?el.checked:el.value;
+    if(String(val)!==String(d[id])) parts.push(id+'='+encodeURIComponent(val));
+  }
+  history.replaceState(null,'','#'+parts.join('&'));
+}
+function loadHash(){
+  var h=location.hash.slice(1); if(!h){uS();return;}
+  var pairs=h.split('&'), tab=null;
+  for(var i=0;i<pairs.length;i++){
+    var kv=pairs[i].split('='); if(kv.length!==2) continue;
+    var k=kv[0], v=decodeURIComponent(kv[1]);
+    if(k==='tab'){tab=v;continue;}
+    var el=document.getElementById(k); if(!el) continue;
+    if(el.type==='checkbox') el.checked=(v==='true'); else el.value=v;
+  }
+  if(tab) sw(tab); else uS();
+}
+window.copyShareLink=function(){
+  navigator.clipboard.writeText(location.href).then(function(){
+    var btn=document.getElementById('share-btn');
+    btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent='Copy share link';},1500);
+  });
+};
+
+/* ── Initialize ── */
+loadHash();
+
+/* ── Render KaTeX equations ── */
+function renderKaTeX(){
+  document.querySelectorAll('[data-katex]').forEach(function(el){
+    try {
+      katex.render(el.getAttribute('data-katex'), el, {
+        throwOnError: false, displayMode: false
+      });
+    } catch(e) {
+      el.textContent = el.getAttribute('data-katex');
+    }
+  });
+}
+if(window.katex) renderKaTeX();
+else document.addEventListener('DOMContentLoaded', function(){
+  var check = setInterval(function(){ if(window.katex){ clearInterval(check); renderKaTeX(); } }, 50);
+  setTimeout(function(){ clearInterval(check); }, 5000);
+});
+
+})();
+</script>
 </body>
 </html>
