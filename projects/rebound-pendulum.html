@@ -3,419 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Rebound Pendulum - Peirastes</title>
-
     <meta name="description" content="Investigating the energy dynamics and coefficient of restitution in a pendulum collision system through first-principles derivation and experimental verification.">
     <meta property="og:title" content="Rebound Pendulum - Peirastes">
     <meta property="og:description" content="Investigating the energy dynamics and coefficient of restitution in a pendulum collision system through first-principles derivation and experimental verification.">
     <meta property="og:type" content="article">
-
     <meta property="og:url" content="https://peirastes.com/projects/rebound-pendulum.html">
-
     <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
-
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="stylesheet" href="../css/style.css">
-
-    <!-- MathJax for equation rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-    <style>
-        /* ====================================================================
-           DISCOURSE PAGE — Template-specific styles
-           Wide layout WITH text. For presentations, talks, lecture materials.
-           Can embed video, PDF viewer, or app alongside prose.
-           ==================================================================== */
-
-        /* --- Media embed section (video / PDF / slides) --- */
-        .media-embed {
-            max-width: 900px;
-            margin: 0 auto 2rem auto;
-            padding: 0 1rem;
-            box-sizing: border-box;
-        }
-
-        .media-embed iframe {
-            width: 100%;
-            height: calc(70vh);
-            border: none;
-            border-radius: 4px;
-            display: block;
-        }
-
-        .media-embed .media-caption {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-align: center;
-            margin-top: 0.5rem;
-            font-style: italic;
-        }
-
-        @media (max-width: 768px) {
-            .media-embed iframe {
-                height: 50vh;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .media-embed iframe {
-                height: 40vh;
-            }
-        }
-
-        @media (max-height: 600px) {
-            .media-embed iframe {
-                height: 70vh;
-            }
-        }
-
-        /* --- Discourse prose content --- */
-        .content-body {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem 2rem 1.5rem;
-            font-size: 1.1rem;
-            line-height: 1.8;
-        }
-
-        .content-body h2 {
-            font-family: 'Cinzel', serif;
-            font-weight: 600;
-            font-size: 1.6rem;
-            margin-top: 2.5rem;
-            border-bottom: 3px solid var(--primary-accent);
-            padding-bottom: 0.4rem;
-        }
-
-        .content-body h3 {
-            font-family: 'Cinzel', serif;
-            font-weight: 500;
-            font-size: 1.25rem;
-            margin-top: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .content-body p {
-            text-align: justify;
-            margin-bottom: 1rem;
-        }
-
-        /* --- Venue / date / audience metadata block --- */
-        .page-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 1rem 1.25rem;
-            margin: 1rem 0 1.5rem 0;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .page-meta .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .page-meta .meta-label {
-            font-weight: 700;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-        }
-        .meta-download {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 6px;
-            background: var(--primary-accent);
-            color: white;
-            text-decoration: none;
-            font-size: 1rem;
-            transition: opacity 0.2s;
-        }
-        .meta-download:hover {
-            opacity: 0.8;
-        }
-
-        /* --- Driving question callout --- */
-        .driving-question {
-            font-style: italic;
-            font-size: 1.1rem;
-            border-left: 4px solid var(--primary-accent);
-            padding: 1rem 1.5rem;
-            margin: 1.5rem 0;
-            background: var(--bg-card);
-            border-radius: 0 8px 8px 0;
-        }
-
-        /* --- Blockquote with orange left border --- */
-        .content-body blockquote {
-            border-left: 4px solid var(--primary-accent);
-            background-color: rgba(255, 85, 0, 0.03);
-            border-radius: 0 4px 4px 0;
-            padding: 0.75rem 1rem;
-            margin: 1.5rem 0;
-            font-style: italic;
-            color: var(--text-secondary);
-        }
-
-        /* --- Specs grid (2-column structured data) --- */
-        .specs-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin: 1.5rem 0;
-        }
-
-        .spec-card {
-            background: var(--bg-card);
-            padding: 1.25rem;
-            border-radius: 8px;
-            border-left: 3px solid var(--primary-accent);
-        }
-
-        .spec-card h4 {
-            margin: 0 0 0.5rem 0;
-            color: var(--primary-accent);
-            font-size: 0.95rem;
-        }
-
-        .spec-card ul {
-            margin: 0;
-            padding-left: 1.2rem;
-            font-size: 0.9rem;
-        }
-
-        .spec-card li {
-            margin-bottom: 0.3rem;
-        }
-
-        /* --- Figure captions --- */
-        .content-body figure {
-            margin: 2rem 0;
-            text-align: center;
-        }
-
-        .content-body figure img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px var(--shadow-sm);
-        }
-
-        .content-body figcaption {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
-            font-style: italic;
-            line-height: 1.5;
-        }
-
-        /* --- Download buttons row --- */
-        .download-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin: 1.5rem 0;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            background-color: var(--primary-accent);
-            color: #ffffff;
-            padding: 0.6rem 1.2rem;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background-color 0.2s ease, transform 0.15s ease;
-        }
-
-        .download-btn:visited {
-            color: #ffffff;
-        }
-
-        .download-btn:hover {
-            background-color: var(--primary-accent-hover);
-            transform: translateY(-1px);
-            opacity: 1;
-        }
-
-        /* --- Cross-links section --- */
-        .cross-links {
-            max-width: 800px;
-            margin: 3rem auto 0 auto;
-            padding: 1.5rem;
-            border-top: 2px solid var(--border-light);
-        }
-
-        .cross-links h3 {
-            font-family: 'Cinzel', serif;
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-        }
-
-        .cross-links-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .cross-link-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-left: 4px solid var(--secondary-accent);
-            border-radius: 0 8px 8px 0;
-            padding: 1rem 1.25rem;
-            transition: box-shadow 0.3s ease;
-        }
-
-        .cross-link-card:hover {
-            box-shadow: 0 2px 12px var(--shadow-sm);
-        }
-
-        .cross-link-card .label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
-        }
-
-        .cross-link-card a {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .cross-link-card p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 0.25rem 0 0 0;
-            text-align: left;
-        }
-
-        /* --- Tables (mode tables, data tables) --- */
-        .content-body table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5rem 0;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .content-body table th {
-            background-color: var(--primary-accent);
-            color: white;
-            padding: 0.75rem 1rem;
-            text-align: left;
-            font-weight: bold;
-        }
-
-        .content-body table td {
-            padding: 0.6rem 1rem;
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .content-body table tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* --- Math display blocks: horizontal scroll on mobile --- */
-        .content-body .math.display {
-            overflow-x: auto;
-        }
-
-        /* --- Responsive --- */
-        @media (max-width: 768px) {
-            .content-body {
-                padding: 0.75rem;
-                font-size: 1rem;
-                line-height: 1.7;
-            }
-
-            .content-body h2 {
-                font-size: 1.3rem;
-            }
-
-            .content-body h3 {
-                font-size: 1.1rem;
-            }
-
-            .specs-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .cross-links-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .page-meta {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .download-row {
-                flex-direction: column;
-            }
-
-            .download-btn {
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .content-body {
-                padding: 0.5rem;
-                font-size: 0.95rem;
-            }
-
-            .media-embed {
-                padding: 0 0.5rem;
-            }
-        }
-    </style>
-
-    <script src="../js/main.js"></script>
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0d10">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/cinematic.css">
 </head>
-
 <body>
-    <header>
-        <h1>Peirastes</h1>
-        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
-    </header>
 
-    <nav>
-        <a href="../index.html">Home</a>
-        <a href="../about.html">About</a>
-        <a href="../all-projects.html">Projects</a>
-        <a href="../timeline.html">Physics Timeline</a>
-        <a href="../quotes.html">Quotes</a>
-    </nav>
+    <div class="bg" aria-hidden="true">
+        <div class="bg__image"></div>
+        <div class="bg__vignette"></div>
+        <div class="bg__grain"></div>
+    </div>
 
-    <div class="content">
-        <main>
+    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
 
-            <!-- Prose content section -->
-            <div class="content-body">
+    <div class="profile">
+        <div class="profile__mark">P</div>
+        <div class="profile__meta">
+            <span class="profile__name">Peirastes</span>
+            <span class="profile__sub">Visitor</span>
+        </div>
+    </div>
 
-                <h2>Rebound Pendulum</h2>
+    <div class="hints">
+        <span class="hint"><kbd>Esc</kbd> Home</span>
+    </div>
 
-                <!-- Venue / date / audience metadata -->
+    <main class="page">
+        <header class="page-hero">
+            <div class="page-hero__inner">
+                <div class="page-hero__eyebrow">Project · Discourse</div>
+                <h1 class="page-hero__title">Rebound Pendulum</h1>
+                <p class="page-hero__subtitle">Energy Conservation Under Real-World Constraints</p>
+            </div>
+        </header>
+
+        <article class="page-body">
+            <div class="page-body__inner">
+                <div class="content-body">
+<!-- Venue / date / audience metadata -->
                 <div class="page-meta">
                     <div class="meta-item">
                         <span class="meta-label">Venue:</span>
@@ -565,46 +204,11 @@
                         </div>
                     </div>
                 </div>
-
+                </div>
             </div>
-        </main>
-    </div>
+        </article>
+    </main>
 
-    <footer>
-        <p>&copy; 2026 Cole Prather</p>
-    </footer>
-
-    <div id="lightbox-overlay">
-        <span id="lightbox-close">&times;</span>
-        <img id="lightbox-img" src="" alt="Full Image">
-    </div>
-
-    <script>
-        // Lightbox functionality
-        document.addEventListener("DOMContentLoaded", function() {
-            const overlay = document.getElementById("lightbox-overlay");
-            if (!overlay) return;
-
-            const closeBtn = document.getElementById("lightbox-close");
-            document.querySelectorAll(".lightbox-trigger").forEach(link => {
-                link.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    const img = document.getElementById("lightbox-img");
-                    img.src = this.getAttribute("href");
-                    overlay.style.display = "flex";
-                });
-            });
-
-            closeBtn.addEventListener("click", function() {
-                overlay.style.display = "none";
-            });
-
-            overlay.addEventListener("click", function(e) {
-                if (e.target === overlay) {
-                    overlay.style.display = "none";
-                }
-            });
-        });
-    </script>
+    <script src="../js/cinematic.js"></script>
 </body>
 </html>

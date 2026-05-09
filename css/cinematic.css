@@ -1167,6 +1167,249 @@ body.is-ready .page-body { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================================
+   DISCOURSE PAGE CONTENT (Phase 6 discourse pages)
+   Adapts legacy PROJECT_PAGE_TEMPLATE classes to Cinematic Tier
+   so existing HTML inside `.content-body` renders correctly.
+   ============================================================ */
+
+.page-body__inner .content-body {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.content-body h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+  letter-spacing: 0.08em;
+  color: var(--text-bright);
+  margin: 3rem 0 1.5rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(125, 214, 255, 0.18);
+}
+
+.content-body h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.2rem;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  margin: 1.8rem 0 0.8rem;
+}
+
+.content-body h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin: 1.4rem 0 0.6rem;
+}
+
+.content-body p {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text-mid);
+  margin-bottom: 1rem;
+  text-align: justify;
+}
+
+.content-body p strong { color: var(--text-bright); font-weight: 600; }
+.content-body p em { color: var(--gold); font-style: italic; }
+
+.content-body ul, .content-body ol {
+  margin: 0 0 1rem 1.4rem;
+  font-family: var(--font-ui);
+  color: var(--text-mid);
+  line-height: 1.75;
+}
+
+.content-body li { margin-bottom: 0.4rem; }
+.content-body li::marker { color: var(--accent); }
+
+.content-body a {
+  color: var(--accent);
+  border-bottom: 1px solid rgba(125, 214, 255, 0.35);
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.content-body a:hover {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* Legacy meta-label class */
+.page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  padding: 1rem 1.4rem;
+  margin: 0 0 3rem;
+  background: rgba(125, 214, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid var(--accent);
+}
+
+.page-meta .meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--text-mid);
+}
+
+.page-meta .meta-label {
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* Driving question callout */
+.driving-question {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1.1rem, 1.8vw, 1.3rem);
+  line-height: 1.55;
+  color: var(--gold);
+  border-left: 2px solid var(--gold);
+  padding: 0.8rem 0 0.8rem 1.5rem;
+  margin: 2rem 0;
+  letter-spacing: 0.02em;
+  background: transparent;
+  border-radius: 0;
+}
+
+/* Discourse blockquote */
+.content-body blockquote {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--gold);
+  border-left: 2px solid var(--gold);
+  background: transparent;
+  padding: 0.6rem 0 0.6rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0;
+}
+.content-body blockquote p { color: inherit; margin-bottom: 0; text-align: left; }
+
+/* Specs grid (2-column structured info) */
+.specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.spec-card {
+  background: rgba(125, 214, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid var(--accent);
+  padding: 1.2rem 1.4rem;
+  border-radius: 0;
+}
+
+.spec-card h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  margin: 0 0 0.6rem;
+}
+
+.spec-card ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text-mid);
+}
+
+.spec-card li { margin-bottom: 0.3rem; }
+
+/* Media embeds (PDFs, posters) */
+.media-embed {
+  margin: 2rem 0;
+  background: rgba(8, 16, 22, 0.4);
+  border: 1px solid rgba(125, 214, 255, 0.15);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.media-embed iframe {
+  width: 100%;
+  height: 70vh;
+  border: none;
+  display: block;
+  background: #fff;
+}
+
+.media-embed .media-caption {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 0.6rem;
+  padding-bottom: 0.4rem;
+  font-style: italic;
+}
+
+/* Meta download button */
+.meta-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem; height: 2rem;
+  background: var(--accent);
+  color: #0a0d10 !important;
+  text-decoration: none;
+  border-radius: 0;
+  border-bottom: none !important;
+  font-size: 1rem;
+  transition: background 180ms ease;
+}
+.meta-download:hover {
+  background: var(--gold);
+}
+
+/* Figures with captions */
+.content-body figure {
+  margin: 2rem 0;
+  text-align: center;
+}
+.content-body figure img {
+  max-width: 100%;
+  border: 1px solid rgba(125, 214, 255, 0.15);
+  background: #0a0d10;
+}
+.content-body figure figcaption {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .content-body h2 { font-size: 1.4rem; }
+  .content-body h3 { font-size: 1.1rem; }
+  .page-meta { gap: 1.2rem; padding: 0.8rem 1rem; }
+  .specs-grid { grid-template-columns: 1fr; }
+  .media-embed iframe { height: 50vh; }
+}
+
+/* ============================================================
    CARTOGRAPHIC CORNER CHROME — Destiny 2 lineage
    L-bracket marks at viewport corners. Universal.
    ============================================================ */
