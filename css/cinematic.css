@@ -145,11 +145,24 @@ img { max-width: 100%; display: block; }
 
 body.is-ready .title-wordmark { opacity: 1; transform: translateY(0); }
 
+/* Title morphs into the menu-wordmark slot at top-left.
+   - Title text shrinks (~22% scale, landing close to menu-wordmark's
+     1.6rem font) and translates to the menu-wordmark's anchor.
+   - Stays visible (opacity 1) until the very end of the morph; only
+     the last 250ms fades it out so the menu-wordmark (which fades in
+     synchronized) can take over invisibly at the same position.
+   - Tagline fades out quickly so it doesn't shrink-along absurdly. */
 body.stage-menu .title-wordmark {
-  opacity: 0;
-  transform: scale(0.4) translate(-30vw, -38vh);
+  opacity: 1;
+  transform: translate(-40vw, -46vh) scale(0.22);
   pointer-events: none;
-  transition: opacity 700ms ease, transform 1100ms cubic-bezier(0.65, 0, 0.35, 1);
+  transition:
+    opacity 250ms ease 900ms,
+    transform 1150ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+body.stage-menu .title-wordmark__tagline {
+  opacity: 0;
+  transition: opacity 350ms ease;
 }
 
 .title-wordmark__name {
@@ -254,7 +267,13 @@ body.is-ready:not(.is-landing) .chrome-wordmark {
   transform: translateY(0);
 }
 
-body.is-landing.stage-menu .menu-wordmark { transition-delay: 400ms; }
+/* Synchronize the menu-wordmark fade-in with the END of the title's
+   morph — by 950ms the title is at its destination and starting to
+   fade out. The menu-wordmark fades in over the last ~300ms so the
+   two crossfade at the same spot, completing the morph illusion. */
+body.is-landing.stage-menu .menu-wordmark {
+  transition: opacity 350ms ease 950ms, transform 350ms ease 950ms;
+}
 
 .menu-wordmark h1, .chrome-wordmark h1 {
   font-family: var(--font-display);
@@ -1464,6 +1483,13 @@ body.is-ready .page-body { opacity: 1; transform: translateY(0); }
     font-size: clamp(0.6rem, 2.4vw, 0.78rem);
     letter-spacing: 0.20em;
     padding-left: 0.20em;
+  }
+
+  /* Propylaea→Atrium morph for phone — title is smaller (max 3.5rem
+     vs 7rem on desktop) and the menu-wordmark target is at left:1.5rem
+     (mobile @media below sets that). Smaller translate, larger scale. */
+  body.stage-menu .title-wordmark {
+    transform: translate(-22vw, -46vh) scale(0.46);
   }
 
   .menu-wordmark, .chrome-wordmark, .hints { left: 1.5rem; }
