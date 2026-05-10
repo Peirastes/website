@@ -587,10 +587,12 @@ select.input-field:focus {
 
 /* Flank containers — wrap chrome elements at top corners. Stacked column
    so wordmark+version on the left and action-row+status on the right are
-   balanced flanking blocks. */
+   balanced flanking blocks. All chrome shares a uniform 1.6rem inset on
+   all four sides so corner ticks (0.9rem) form a coherent outer frame
+   at the same offset everywhere. */
 .cin-flank {
   position: fixed;
-  top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.4rem);
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -625,13 +627,13 @@ select.input-field:focus {
   text-shadow: 0 0 14px var(--gold-glow);
 }
 
-/* Title floats centered between wordmark (left) and action cluster (right).
-   Default centers on viewport via translateX(-50%); JS overrides `left` to
-   the visual midpoint between flankers. Centered keyframe so the entrance
-   animation preserves the translateX(-50%). */
+/* Title floats centered between left and right flanks. Top inset matches
+   flanks so all chrome shares one baseline. JS chrome wiring overrides
+   `left` to the midpoint between flanks. Centered keyframe preserves
+   translateX(-50%). */
 .cin-title {
   position: fixed;
-  top: 1rem;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
   left: 50%;
   transform: translateX(-50%);
   text-align: center;

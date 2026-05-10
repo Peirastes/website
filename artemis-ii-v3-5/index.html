@@ -892,10 +892,12 @@ body::after {
 
 /* Flank containers — wrap the chrome elements at top-left and top-right.
    Stacked column layout so wordmark+version on the left and action-row+
-   status on the right are balanced flanking blocks. */
+   status on the right are balanced flanking blocks. All chrome shares a
+   uniform 1.6rem inset on all four sides so corner ticks (0.9rem) form
+   a coherent outer frame at the same offset everywhere. */
 .cin-flank {
   position: fixed;
-  top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.4rem);
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -1052,14 +1054,13 @@ body::after {
   text-transform: uppercase;
 }
 
-/* Mission title — floats centered between wordmark (left) and action cluster
-   (right). Default position uses translateX(-50%) for self-centering on its
-   anchor; the JS chrome wiring overrides `left` to the visual midpoint
-   between the two flanking chrome elements. Animation uses a centered
-   keyframe so translateX(-50%) survives the entrance fade. */
+/* Mission title — floats centered between left and right flanks.
+   Top inset matches flanks so all chrome shares one baseline.
+   JS chrome wiring overrides `left` to the visual midpoint between
+   the two flanks. Centered keyframe preserves translateX(-50%). */
 .cin-title {
   position: fixed;
-  top: 1rem;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
