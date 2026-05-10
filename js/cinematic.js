@@ -43,13 +43,24 @@
     /* Measure title H1's current center and menu-wordmark H1's target
        center, set CSS vars for the morph translate. No scale needed —
        CSS animates font-size/letter-spacing/padding to match the menu-
-       wordmark's appearance exactly, so this just provides the position. */
+       wordmark's appearance exactly, so this just provides the position.
+
+       Critically, the menu-wordmark has an entrance transform
+       (translateY(-6px) before fade-in). We temporarily clear it via
+       inline style so we measure its TRUE target position, not the
+       pre-fade offset. */
     function calibrateMorph() {
       const titleH1 = document.querySelector('.title-wordmark__name');
-      const menuH1  = document.querySelector('.menu-wordmark h1');
+      const menuWM  = document.querySelector('.menu-wordmark');
+      const menuH1  = menuWM ? menuWM.querySelector('h1') : null;
       if (!titleH1 || !menuH1) return;
+
+      const origTransform = menuWM.style.transform;
+      menuWM.style.transform = 'none';
       const t = titleH1.getBoundingClientRect();
       const m = menuH1.getBoundingClientRect();
+      menuWM.style.transform = origTransform;
+
       const dx = (m.left + m.width / 2) - (t.left + t.width / 2);
       const dy = (m.top  + m.height / 2) - (t.top  + t.height / 2);
       body.style.setProperty('--morph-x', dx + 'px');
