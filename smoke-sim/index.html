@@ -771,10 +771,6 @@ button.on {
     <button class="cin-action cin-action--disabled" id="btnInfoSmoke" title="Info (coming soon)" aria-label="Info" disabled>&#9432;</button>
     <button class="cin-action cin-action--disabled" id="btnSettingsSmoke" title="Settings (coming soon)" aria-label="Settings" disabled>&#9881;</button>
   </div>
-  <div class="cin-status" id="cinStatus" aria-live="polite">
-    <span class="cin-status__dot"></span>
-    <span class="cin-status__label">Solving</span>
-  </div>
 </div>
 
 <div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
@@ -2122,31 +2118,6 @@ resize();initFBOs();
 /* v3.5 chrome wiring */
 (function() {
   document.body.classList.add('is-ready');
-
-  // Status pip — observe pause button text + mode toggle to show simulator state
-  const dot     = document.querySelector('.cin-status__dot');
-  const label   = document.querySelector('.cin-status__label');
-  const pauseBtn = document.getElementById('b-pause');
-  const obsBtn   = document.getElementById('b-mode-obs');
-
-  function syncStatus() {
-    if (!dot || !label) return;
-    const isPaused = pauseBtn && pauseBtn.textContent.trim() === 'Resume';
-    const isObsMode = obsBtn && obsBtn.classList.contains('on');
-    if (isPaused) {
-      dot.dataset.state = 'paused';
-      label.textContent = 'Paused';
-    } else if (isObsMode) {
-      dot.dataset.state = 'nominal';
-      label.textContent = 'Obstacle Mode';
-    } else {
-      dot.dataset.state = 'nominal';
-      label.textContent = 'Solving';
-    }
-  }
-  syncStatus();
-  if (pauseBtn) new MutationObserver(syncStatus).observe(pauseBtn, { childList: true, characterData: true, subtree: true });
-  if (obsBtn)   new MutationObserver(syncStatus).observe(obsBtn,   { attributes: true, attributeFilter: ['class'] });
 
   // Center cin-title between flanks (visual midpoint, not viewport midpoint)
   const leftFlank  = document.querySelector('.cin-flank--left');
