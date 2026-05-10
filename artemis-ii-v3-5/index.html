@@ -1308,10 +1308,8 @@ body::after {
   <div class="cin-title__crew">Wiseman &bull; Glover &bull; Koch &bull; Hansen</div>
 </div>
 
-<!-- Right flank — action buttons row on top, status pip below.
-     Stacked layout so right flank is visually balanced with the
-     left flank (wordmark + version), letting the title sit at the
-     true horizontal midpoint of the chrome row. -->
+<!-- Right flank — action button row only. (Status pip removed by user
+     decision 2026-05-09 — keeping the chrome row clean across all apps.) -->
 <div class="cin-flank cin-flank--right">
   <div class="cin-action-row">
     <button class="cin-action" id="btnInfo" title="Mission Info" aria-label="Mission Info">
@@ -1320,10 +1318,6 @@ body::after {
     <button class="cin-action cin-action--disabled" id="btnSettings" title="Settings (coming soon)" aria-label="Settings" disabled>
       <span class="cin-action__glyph">&#9881;</span>
     </button>
-  </div>
-  <div class="cin-status" id="cinStatus" aria-live="polite">
-    <span class="cin-status__dot" data-state="nominal"></span>
-    <span class="cin-status__label">Physics Nominal</span>
   </div>
 </div>
 
@@ -2832,30 +2826,11 @@ function tick(ts) {
 loadData();
 </script>
 
-<!-- v3.5 chrome wiring — drives the .cin-status dot off btnPlay's class.
-     Pure observer; no v2 JS modification. -->
+<!-- v3.5 chrome wiring — pure observers; no v2 JS modification.
+     (Status pip removed by user decision 2026-05-09; only scrub-bar
+     marker tooltip upgrade + title centering remain.) -->
 <script>
 (function() {
-  const dot   = document.querySelector('.cin-status__dot');
-  const label = document.querySelector('.cin-status__label');
-  const play  = document.getElementById('btnPlay');
-  if (!dot || !label || !play) return;
-
-  function syncStatus() {
-    const isPlaying = play.classList.contains('active');
-    if (isPlaying) {
-      dot.dataset.state = 'nominal';
-      label.textContent = 'Physics Nominal';
-    } else {
-      dot.dataset.state = 'paused';
-      label.textContent = 'Paused';
-    }
-  }
-  // Initial state — v2 JS sets play to "▶" (paused) on load
-  syncStatus();
-  // React to all future class changes on btnPlay
-  new MutationObserver(syncStatus).observe(play, { attributes: true, attributeFilter: ['class'] });
-
   // Scrub bar event markers — v2 builds them with `title` for native tooltip.
   // We render our own cinematic hover label via CSS attr(data-name); copy
   // title -> data-name and strip title to avoid the doubled browser tooltip.

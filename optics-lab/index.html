@@ -921,10 +921,6 @@ select.input-field:focus {
     <button class="cin-action cin-action--disabled" id="btnInfoOptics" title="Info (coming soon)" aria-label="Info" disabled>&#9432;</button>
     <button class="cin-action cin-action--disabled" id="btnSettingsOptics" title="Settings (coming soon)" aria-label="Settings" disabled>&#9881;</button>
   </div>
-  <div class="cin-status" id="cinStatus" aria-live="polite">
-    <span class="cin-status__dot"></span>
-    <span class="cin-status__label">Ready</span>
-  </div>
 </div>
 
 <div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
@@ -2343,19 +2339,8 @@ else document.addEventListener('DOMContentLoaded', function(){
 (function() {
   document.body.classList.add('is-ready');
 
-  const dot   = document.querySelector('.cin-status__dot');
-  const label = document.querySelector('.cin-status__label');
-  if (!dot || !label) return;
-
-  function syncModule() {
-    const active = document.querySelector('.tab.on');
-    if (!active) return;
-    label.textContent = active.textContent.trim();
-  }
-  syncModule();
-  document.querySelectorAll('.tab').forEach(t => {
-    new MutationObserver(syncModule).observe(t, { attributes: true, attributeFilter: ['class'] });
-  });
+  // (Status pip removed by user decision 2026-05-09 — keeping chrome lean
+  // across all apps. Title centering JS remains below.)
 
   // Center the cin-title at the visual midpoint between the left flank
   // (wordmark + version) and the right flank (action row + status pip).
