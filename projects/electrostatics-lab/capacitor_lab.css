@@ -21,10 +21,217 @@
 
 /* ── Page ──────────────────────────────────────────────────────────────── */
 html, body {
-  margin: 0; height: 100vh; overflow: hidden; padding: 8px;
-  background: radial-gradient(ellipse at 50% 40%, #141618, #090a0c 65%, #040506);
+  margin: 0; height: 100vh; overflow: hidden;
+  padding: 5.5rem 1.6rem 1.6rem;          /* leave room for cinematic chrome row at top */
+  background: transparent;                 /* cinema banner shows through via body::before */
   display: flex; justify-content: center; align-items: center;
   font-family: 'Rajdhani', sans-serif; color: #8899aa;
+}
+
+/* Cinema banner backdrop — visible at viewport edges around the chassis */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background-image: url('../../images/PeirastesBanner.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.55) brightness(0.32) contrast(1.05);
+  opacity: 0.85;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(6, 8, 12, 0.65) 95%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V3.5 CINEMATIC CHROME LAYER (added on top of chassis)
+   Same flank-balanced pattern used across all v3.5 instruments.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-grain {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+.cin-flank {
+  position: fixed;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  opacity: 0; transform: translateY(-8px);
+  animation: cin-fade-in 700ms ease 250ms forwards;
+  font-family: 'Rajdhani', sans-serif;
+}
+.cin-flank--left  { left:  max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem); align-items: flex-start; }
+.cin-flank--right { right: max(1.6rem, env(safe-area-inset-right, 0px) + 0.6rem); align-items: flex-end; animation-delay: 400ms; }
+
+.cin-wordmark {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.28em;
+  color: rgba(255, 174, 32, 0.72);
+  text-decoration: none;
+  text-shadow: 0 0 8px rgba(255, 174, 32, 0.45);
+  transition: color 200ms, text-shadow 200ms;
+  line-height: 1;
+}
+.cin-wordmark:hover {
+  color: #ffae20;
+  text-shadow: 0 0 14px rgba(255, 174, 32, 0.45);
+}
+.cin-version {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.62rem; font-weight: 500;
+  color: rgba(125, 214, 255, 0.55);
+  letter-spacing: 0.20em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.cin-title {
+  position: fixed;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in-centered 700ms ease 350ms forwards;
+}
+.cin-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px; font-weight: 700;
+  color: #ffae20;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px rgba(255, 174, 32, 0.45), 0 0 32px rgba(255, 174, 32, 0.18);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.cin-title__sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px; font-weight: 500;
+  color: rgba(125, 214, 255, 0.65);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.cin-action-row { display: flex; align-items: center; gap: 0.55rem; }
+.cin-action {
+  background: linear-gradient(180deg, rgba(20, 26, 36, 0.82) 0%, rgba(8, 12, 18, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.62);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px; font-weight: 500;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.cin-action[disabled] {
+  cursor: not-allowed; opacity: 0.4;
+  color: rgba(180, 180, 180, 0.5);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.cin-tick {
+  position: fixed; width: 16px; height: 16px;
+  z-index: 99; pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 600ms forwards;
+}
+.cin-tick::before, .cin-tick::after {
+  content: ''; position: absolute; background: rgba(125, 214, 255, 0.45);
+}
+.cin-tick--tl { top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);    left:  max(0.9rem, env(safe-area-inset-left, 0px)  + 0.3rem); }
+.cin-tick--tr { top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);    right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem); }
+.cin-tick--bl { bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem); left:  max(0.9rem, env(safe-area-inset-left, 0px)  + 0.3rem); }
+.cin-tick--br { bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem); right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem); }
+.cin-tick--tl::before { top: 0; left: 0;  width: 12px; height: 1px; }
+.cin-tick--tl::after  { top: 0; left: 0;  width: 1px;  height: 12px; }
+.cin-tick--tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--tr::after  { top: 0; right: 0; width: 1px;  height: 12px; }
+.cin-tick--bl::before { bottom: 0; left: 0;  width: 12px; height: 1px; }
+.cin-tick--bl::after  { bottom: 0; left: 0;  width: 1px;  height: 12px; }
+.cin-tick--br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--br::after  { bottom: 0; right: 0; width: 1px;  height: 12px; }
+
+.cin-hints {
+  position: fixed;
+  bottom: max(1.6rem, env(safe-area-inset-bottom, 0px) + 0.6rem);
+  left:   max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex; flex-direction: column; gap: 0.35rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.10em;
+  color: rgba(180, 180, 180, 0.45);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 750ms forwards;
+}
+.cin-hints kbd {
+  font-family: inherit;
+  background: rgba(125, 214, 255, 0.06);
+  border: 1px solid rgba(125, 214, 255, 0.22);
+  border-radius: 2px;
+  padding: 1px 5px;
+  margin-right: 0.4rem;
+  color: #7dd6ff;
+  font-size: 0.58rem;
+}
+
+@keyframes cin-fade-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes cin-fade-in-centered {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Hide the inline Peirastes back-link — replaced by .cin-wordmark */
+.peirastes-home { display: none !important; }
+
+/* Mobile chrome adjustments */
+@media (max-width: 768px) {
+  html, body { padding: 3.6rem 0.6rem 0.6rem; }
+  .cin-flank--right, .cin-hints { display: none; }
+  .cin-tick--bl, .cin-tick--br { display: none; }
+  .cin-flank--left { top: 0.6rem; left: 0.7rem; gap: 0.15rem; }
+  .cin-wordmark { font-size: 0.62rem; letter-spacing: 0.18em; }
+  .cin-version  { font-size: 0.48rem; }
+  .cin-title    { top: 0.5rem; }
+  .cin-title__name { font-size: 13px; letter-spacing: 0.18em; }
+  .cin-title__sub  { display: none; }
+}
+@media (max-height: 500px) {
+  .cin-flank, .cin-hints, .cin-title { display: none; }
+  .cin-tick { width: 10px; height: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after, .cin-grain,
+  .cin-flank, .cin-title, .cin-tick, .cin-hints {
+    animation: none !important; transition: none !important;
+  }
+  .cin-flank, .cin-tick, .cin-hints { opacity: 1 !important; transform: translateX(0) !important; }
+  .cin-title { opacity: 1 !important; transform: translateX(-50%) !important; }
 }
 
 /* ── Chassis — main instrument housing ─────────────────────────────────── */

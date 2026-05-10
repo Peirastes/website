@@ -20,8 +20,39 @@
   }
   .peirastes-home:hover { color: #e07050; }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&display=swap" rel="stylesheet">
 </head><body>
 <a href="https://peirastes.com" class="peirastes-home" title="Back to Peirastes">Peirastes</a>
+
+<!-- v3.5 cinematic chrome (light retrofit — chassis design preserved) -->
+<div class="cin-grain" aria-hidden="true"></div>
+
+<div class="cin-flank cin-flank--left">
+  <a class="cin-wordmark" href="/" title="Back to Peirastes">PEIRASTES</a>
+  <span class="cin-version">v3.5</span>
+</div>
+
+<div class="cin-title" aria-label="Capacitor Dielectric Lab">
+  <div class="cin-title__name">Capacitor Lab</div>
+  <div class="cin-title__sub">RC Circuit &middot; Dielectric Module &middot; PSE-II</div>
+</div>
+
+<div class="cin-flank cin-flank--right">
+  <div class="cin-action-row">
+    <button class="cin-action" title="Info (coming soon)" aria-label="Info" disabled>&#9432;</button>
+    <button class="cin-action" title="Settings (coming soon)" aria-label="Settings" disabled>&#9881;</button>
+  </div>
+</div>
+
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+<div class="cin-hints" aria-hidden="true">
+  <span><kbd>Esc</kbd> Home</span>
+</div>
+
 <div class="chassis">
   <div class="tex tex-m"></div><div class="tex tex-b"></div><div class="tex tex-r"></div><div class="tex tex-g"></div>
   <div class="rivet" style="top:5px;left:6px"></div><div class="rivet" style="top:5px;right:6px"></div>
@@ -324,4 +355,27 @@ document.addEventListener('change',function(e){if(e.target.id==='chkP'){S.pol=e.
 // Main loop
 function ml(){if(dirty){dirty=false;updDOM()}requestAnimationFrame(ml)}
 requestAnimationFrame(ml);
-</script></body></html>
+</script>
+
+<script>
+/* v3.5 chrome wiring — title centering */
+(function() {
+  const leftFlank  = document.querySelector('.cin-flank--left');
+  const rightFlank = document.querySelector('.cin-flank--right');
+  const title      = document.querySelector('.cin-title');
+  if (leftFlank && rightFlank && title) {
+    const centerTitle = () => {
+      const lRect = leftFlank.getBoundingClientRect();
+      const rRect = rightFlank.getBoundingClientRect();
+      if (lRect.width === 0 || rRect.width === 0) return;
+      title.style.left = ((lRect.right + rRect.left) / 2) + 'px';
+    };
+    centerTitle();
+    window.addEventListener('resize', centerTitle);
+    new ResizeObserver(centerTitle).observe(rightFlank);
+    new ResizeObserver(centerTitle).observe(leftFlank);
+    if (document.fonts) document.fonts.ready.then(centerTitle);
+  }
+})();
+</script>
+</body></html>
