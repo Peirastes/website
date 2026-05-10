@@ -40,29 +40,39 @@
       items.forEach((it, i) => it.classList.toggle('is-active', i === activeIndex));
     }
 
-    /* Measure title H1's current center and menu-wordmark H1's target
-       center, set CSS vars for the morph translate. No scale needed —
-       CSS animates font-size/letter-spacing/padding to match the menu-
-       wordmark's appearance exactly, so this just provides the position.
-
-       Critically, the menu-wordmark has an entrance transform
-       (translateY(-6px) before fade-in). We temporarily clear it via
-       inline style so we measure its TRUE target position, not the
-       pre-fade offset. */
+    /* Measure title H1's current position and the menu-wordmark's
+       target. Use menu-wordmark for X alignment (the visual sibling),
+       but use the PROFILE PIP for Y alignment (it sits at the same
+       top: 2.4rem but is a taller multi-line pill, so its visual
+       vertical center is ~9px lower — aligning the title to it makes
+       the chrome row read as one baseline). Both flanking elements
+       have entrance transforms that we temporarily clear to measure
+       their TRUE target positions. */
     function calibrateMorph() {
       const titleH1 = document.querySelector('.title-wordmark__name');
       const menuWM  = document.querySelector('.menu-wordmark');
       const menuH1  = menuWM ? menuWM.querySelector('h1') : null;
+      const profile = document.querySelector('.profile');
       if (!titleH1 || !menuH1) return;
 
-      const origTransform = menuWM.style.transform;
+      const origMenuTransform = menuWM.style.transform;
+      const origProfileTransform = profile ? profile.style.transform : null;
       menuWM.style.transform = 'none';
+      if (profile) profile.style.transform = 'none';
+
       const t = titleH1.getBoundingClientRect();
       const m = menuH1.getBoundingClientRect();
-      menuWM.style.transform = origTransform;
+      const p = profile ? profile.getBoundingClientRect() : null;
+
+      menuWM.style.transform = origMenuTransform;
+      if (profile) profile.style.transform = origProfileTransform;
 
       const dx = (m.left + m.width / 2) - (t.left + t.width / 2);
-      const dy = (m.top  + m.height / 2) - (t.top  + t.height / 2);
+      // Y: align with profile pip's vertical center (taller pill, lower
+      // center than the menu-wordmark's). Falls back to menu's center
+      // if no profile element is present.
+      const targetCenterY = p ? (p.top + p.height / 2) : (m.top + m.height / 2);
+      const dy = targetCenterY - (t.top + t.height / 2);
       body.style.setProperty('--morph-x', dx + 'px');
       body.style.setProperty('--morph-y', dy + 'px');
     }
