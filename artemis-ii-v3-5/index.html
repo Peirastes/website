@@ -1044,8 +1044,11 @@ body::after {
   white-space: nowrap;
 }
 
-/* Mission title — floats centered between wordmark and profile pip.
-   Was the header__logo + header__sub + header__crew block in v2. */
+/* Mission title — floats centered between wordmark (left) and action cluster
+   (right). Default position uses translateX(-50%) for self-centering on its
+   anchor; the JS chrome wiring overrides `left` to the visual midpoint
+   between the two flanking chrome elements. Animation uses a centered
+   keyframe so translateX(-50%) survives the entrance fade. */
 .cin-title {
   position: fixed;
   top: 1rem;
@@ -1055,7 +1058,11 @@ body::after {
   z-index: 100;
   pointer-events: none;
   opacity: 0;
-  animation: cin-fade-in 700ms ease 350ms forwards;
+  animation: cin-fade-in-centered 700ms ease 350ms forwards;
+}
+@keyframes cin-fade-in-centered {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
 }
 .cin-title__name {
   font-family: 'Orbitron', sans-serif;
@@ -2842,6 +2849,26 @@ loadData();
     }
     upgradeMarkers();   // catches any already in DOM
     new MutationObserver(upgradeMarkers).observe(scrubEvents, { childList: true });
+  }
+
+  // Center the cin-title at the visual midpoint between the wordmark (left)
+  // and the action cluster (right). Pure translateX(-50%) centers on viewport,
+  // but the wordmark and actions are different widths so viewport-center is
+  // not chrome-row-center. Re-center on resize and when actions width changes.
+  const wordmark = document.querySelector('.cin-wordmark');
+  const actions  = document.querySelector('.cin-actions');
+  const title    = document.querySelector('.cin-title');
+  if (wordmark && actions && title) {
+    const centerTitle = () => {
+      const wRect = wordmark.getBoundingClientRect();
+      const aRect = actions.getBoundingClientRect();
+      if (wRect.width === 0 || aRect.width === 0) return;
+      title.style.left = ((wRect.right + aRect.left) / 2) + 'px';
+    };
+    centerTitle();
+    window.addEventListener('resize', centerTitle);
+    new ResizeObserver(centerTitle).observe(actions);
+    if (document.fonts) document.fonts.ready.then(centerTitle);
   }
 })();
 </script>

@@ -607,6 +607,10 @@ select.input-field:focus {
   text-shadow: 0 0 14px var(--gold-glow);
 }
 
+/* Title floats centered between wordmark (left) and action cluster (right).
+   Default centers on viewport via translateX(-50%); JS overrides `left` to
+   the visual midpoint between flankers. Centered keyframe so the entrance
+   animation preserves the translateX(-50%). */
 .cin-title {
   position: fixed;
   top: 1rem;
@@ -616,7 +620,11 @@ select.input-field:focus {
   z-index: 100;
   pointer-events: none;
   opacity: 0;
-  animation: cin-fade-in 700ms ease 350ms forwards;
+  animation: cin-fade-in-centered 700ms ease 350ms forwards;
+}
+@keyframes cin-fade-in-centered {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
 }
 .cin-title__name {
   font-family: 'Orbitron', sans-serif;
@@ -2325,6 +2333,25 @@ else document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('.tab').forEach(t => {
     new MutationObserver(syncModule).observe(t, { attributes: true, attributeFilter: ['class'] });
   });
+
+  // Center the cin-title at the visual midpoint between wordmark and actions.
+  // Re-centers on resize and when the actions cluster width changes (which
+  // happens here when the status pip text changes as user switches modules).
+  const wordmark = document.querySelector('.cin-wordmark');
+  const actions  = document.querySelector('.cin-actions');
+  const title    = document.querySelector('.cin-title');
+  if (wordmark && actions && title) {
+    const centerTitle = () => {
+      const wRect = wordmark.getBoundingClientRect();
+      const aRect = actions.getBoundingClientRect();
+      if (wRect.width === 0 || aRect.width === 0) return;
+      title.style.left = ((wRect.right + aRect.left) / 2) + 'px';
+    };
+    centerTitle();
+    window.addEventListener('resize', centerTitle);
+    new ResizeObserver(centerTitle).observe(actions);
+    if (document.fonts) document.fonts.ready.then(centerTitle);
+  }
 })();
 </script>
 </body>
