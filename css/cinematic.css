@@ -145,31 +145,38 @@ img { max-width: 100%; display: block; }
 
 body.is-ready .title-wordmark { opacity: 1; transform: translateY(0); }
 
-/* Title morphs into the menu-wordmark slot at top-left.
-   The morph transform lives on the H1 itself (not on the .title-wordmark
-   container) so transform-origin is the H1's own center — that way the
-   JS pixel-delta calculation maps 1:1 onto the rendered position with
-   no scale-induced offset. The container only handles the opacity
-   fade-out at the end, plus the tagline fade.
-
-   Fallbacks (0px, 0px, 0.22) cover the brief moment before JS sets the
-   vars — title just shrinks in place, no translate, until calibrated. */
+/* Title morphs into the menu-wordmark slot at top-left — TRULY seamless.
+   Instead of scaling+fading, the H1 animates its actual visual properties
+   (font-size, letter-spacing, padding) to match the menu-wordmark exactly,
+   while translating to the menu-wordmark anchor. At the end of the morph
+   the title IS visually indistinguishable from the menu-wordmark, so no
+   cross-fade is needed — title just stays visible at the new spot, and
+   the menu-wordmark stays hidden (it's redundant in this stage). */
 .title-wordmark__name {
-  transition: transform 1150ms cubic-bezier(0.65, 0, 0.35, 1);
+  transition:
+    font-size      1150ms cubic-bezier(0.65, 0, 0.35, 1),
+    letter-spacing 1150ms cubic-bezier(0.65, 0, 0.35, 1),
+    padding-left   1150ms cubic-bezier(0.65, 0, 0.35, 1),
+    text-shadow    1150ms cubic-bezier(0.65, 0, 0.35, 1),
+    transform      1150ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 body.stage-menu .title-wordmark__name {
-  transform:
-    translate(var(--morph-x, 0px), var(--morph-y, 0px))
-    scale(var(--morph-scale, 0.22));
+  /* Match menu-wordmark visual specs exactly */
+  font-size: 1.6rem;
+  letter-spacing: 0.28em;
+  padding-left: 0.28em;
+  text-shadow: 0 0 18px var(--gold-dim), 0 2px 6px rgba(0,0,0,0.6);
+  /* Position at menu-wordmark anchor (JS-measured, fallback 0,0) */
+  transform: translate(var(--morph-x, 0px), var(--morph-y, 0px));
 }
+/* Container stays visible — no fade-out. Tagline still fades since it
+   doesn't exist in the menu-wordmark. */
 body.stage-menu .title-wordmark {
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 300ms ease 850ms;
 }
 body.stage-menu .title-wordmark__tagline {
   opacity: 0;
-  transition: opacity 350ms ease;
+  transition: opacity 400ms ease;
 }
 
 .title-wordmark__name {
@@ -268,18 +275,17 @@ body.is-ready .prompt__text {
 
 .chrome-wordmark { transition-delay: 200ms; }
 
-body.is-landing.stage-menu .menu-wordmark,
 body.is-ready:not(.is-landing) .chrome-wordmark {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* Menu-wordmark fade-in overlaps the title's fade-out window
-   (title fades 850-1150ms, menu fades 850-1200ms) so the swap at
-   the top-left anchor reads as a continuous element morph. */
-body.is-landing.stage-menu .menu-wordmark {
-  transition: opacity 350ms ease 850ms, transform 350ms ease 850ms;
-}
+/* Menu-wordmark stays hidden on landing — the morphed title takes its
+   visual slot (animates font-size/letter-spacing/padding to match
+   menu-wordmark specs exactly, then sits at its anchor). Keeping the
+   menu-wordmark hidden avoids a duplicate identical wordmark stacked
+   on top of the title at end-of-morph. */
+body.is-landing.stage-menu .menu-wordmark { opacity: 0; }
 
 .menu-wordmark h1, .chrome-wordmark h1 {
   font-family: var(--font-display);

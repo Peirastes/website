@@ -40,23 +40,20 @@
       items.forEach((it, i) => it.classList.toggle('is-active', i === activeIndex));
     }
 
-    /* Measure the title H1's current location and the menu-wordmark H1's
-       target location, compute pixel deltas + scale ratio, set CSS vars.
-       The transform is applied to the H1 itself (transform-origin = H1
-       center), so the deltas map 1:1 to the rendered position — no
-       parent transform-origin to compensate for. */
+    /* Measure title H1's current center and menu-wordmark H1's target
+       center, set CSS vars for the morph translate. No scale needed —
+       CSS animates font-size/letter-spacing/padding to match the menu-
+       wordmark's appearance exactly, so this just provides the position. */
     function calibrateMorph() {
       const titleH1 = document.querySelector('.title-wordmark__name');
       const menuH1  = document.querySelector('.menu-wordmark h1');
       if (!titleH1 || !menuH1) return;
       const t = titleH1.getBoundingClientRect();
       const m = menuH1.getBoundingClientRect();
-      const scale = m.height / t.height;
       const dx = (m.left + m.width / 2) - (t.left + t.width / 2);
       const dy = (m.top  + m.height / 2) - (t.top  + t.height / 2);
       body.style.setProperty('--morph-x', dx + 'px');
       body.style.setProperty('--morph-y', dy + 'px');
-      body.style.setProperty('--morph-scale', scale.toFixed(4));
     }
 
     function enterMenu() {
