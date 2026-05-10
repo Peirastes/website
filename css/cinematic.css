@@ -148,16 +148,17 @@ body.is-ready .title-wordmark { opacity: 1; transform: translateY(0); }
 /* Title morphs into the menu-wordmark slot at top-left.
    - Title text shrinks (~22% scale, landing close to menu-wordmark's
      1.6rem font) and translates to the menu-wordmark's anchor.
-   - Stays visible (opacity 1) until the very end of the morph; only
-     the last 250ms fades it out so the menu-wordmark (which fades in
-     synchronized) can take over invisibly at the same position.
-   - Tagline fades out quickly so it doesn't shrink-along absurdly. */
+   - Stays VISIBLE through most of the morph (opacity transition is
+     delayed 850ms), then fades out over 300ms — overlapping the
+     menu-wordmark's fade-in at the same spot for the swap.
+   - Final state opacity: 0 so it disappears (otherwise the title
+     duplicates the menu-wordmark in the corner permanently). */
 body.stage-menu .title-wordmark {
-  opacity: 1;
+  opacity: 0;
   transform: translate(-40vw, -46vh) scale(0.22);
   pointer-events: none;
   transition:
-    opacity 250ms ease 900ms,
+    opacity 300ms ease 850ms,
     transform 1150ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 body.stage-menu .title-wordmark__tagline {
@@ -267,12 +268,11 @@ body.is-ready:not(.is-landing) .chrome-wordmark {
   transform: translateY(0);
 }
 
-/* Synchronize the menu-wordmark fade-in with the END of the title's
-   morph — by 950ms the title is at its destination and starting to
-   fade out. The menu-wordmark fades in over the last ~300ms so the
-   two crossfade at the same spot, completing the morph illusion. */
+/* Menu-wordmark fade-in overlaps the title's fade-out window
+   (title fades 850-1150ms, menu fades 850-1200ms) so the swap at
+   the top-left anchor reads as a continuous element morph. */
 body.is-landing.stage-menu .menu-wordmark {
-  transition: opacity 350ms ease 950ms, transform 350ms ease 950ms;
+  transition: opacity 350ms ease 850ms, transform 350ms ease 850ms;
 }
 
 .menu-wordmark h1, .chrome-wordmark h1 {
