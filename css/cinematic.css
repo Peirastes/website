@@ -159,10 +159,12 @@ body.stage-menu .title-wordmark {
   letter-spacing: 0.32em;
   color: var(--gold);
   text-shadow: 0 0 40px var(--gold-dim), 0 0 80px rgba(240,192,96,0.18), 0 4px 12px rgba(0,0,0,0.7);
-  /* Compensate visually for the trailing whitespace caused by letter-spacing
-     so PEIRASTES reads truly centered (the 0.32em ghost-space after the last
-     "S" was pushing the title slightly left of center). */
-  padding-right: 0.32em;
+  /* Compensate for the trailing whitespace caused by letter-spacing so
+     PEIRASTES reads truly centered. The 0.32em ghost-space sits AFTER the
+     last "S" (at the right edge of the bounding box), pulling the visible
+     glyphs LEFT of bbox center; padding-LEFT shifts the element right by
+     the same amount, restoring visual centering. */
+  padding-left: 0.32em;
 }
 
 .title-wordmark__tagline {
@@ -172,7 +174,11 @@ body.stage-menu .title-wordmark {
   letter-spacing: 0.34em;
   text-transform: uppercase;
   color: var(--text-mid);
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
+  /* Same trailing-letter-spacing compensation pattern as the title — but
+     applied as padding-LEFT (not right), since the ghost-space sits AFTER
+     the last letter and pulls the visible glyphs LEFT of true center. */
+  padding-left: 0.34em;
 }
 
 /* ============================================================
