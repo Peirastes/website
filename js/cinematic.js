@@ -40,23 +40,18 @@
       items.forEach((it, i) => it.classList.toggle('is-active', i === activeIndex));
     }
 
-    /* Measure the title H1 (current location) and the menu-wordmark
-       H1 (its always-laid-out target — opacity:0 doesn't affect layout)
-       and compute the exact transform that morphs source → destination.
-       Sets CSS vars so the .stage-menu transition uses the measured
-       values instead of hardcoded vw/vh that depend on viewport size. */
+    /* Measure the title H1's current location and the menu-wordmark H1's
+       target location, compute pixel deltas + scale ratio, set CSS vars.
+       The transform is applied to the H1 itself (transform-origin = H1
+       center), so the deltas map 1:1 to the rendered position — no
+       parent transform-origin to compensate for. */
     function calibrateMorph() {
       const titleH1 = document.querySelector('.title-wordmark__name');
       const menuH1  = document.querySelector('.menu-wordmark h1');
       if (!titleH1 || !menuH1) return;
       const t = titleH1.getBoundingClientRect();
       const m = menuH1.getBoundingClientRect();
-      // Scale: ratio of menu h1 height to title h1 height (heights line
-      // up better than widths since letter-spacing differs between them).
       const scale = m.height / t.height;
-      // Translate: from title's current center to menu's center, in
-      // OUTER coordinate space. Applied AFTER scale via CSS, so use
-      // pixel deltas (transform composes scale-then-translate).
       const dx = (m.left + m.width / 2) - (t.left + t.width / 2);
       const dy = (m.top  + m.height / 2) - (t.top  + t.height / 2);
       body.style.setProperty('--morph-x', dx + 'px');
