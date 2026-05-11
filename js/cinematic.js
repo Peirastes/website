@@ -48,6 +48,30 @@
       setActive(0);
     }
 
+    /* Pull a random quote from quotes.html and drop it into the
+       Atrium .atrium-quote element. Quotes.html is the single source
+       of truth — this just fetches, parses, picks, populates. Silent
+       fail if anything goes wrong (the quote is optional flourish). */
+    (function loadRandomQuote() {
+      const target = document.querySelector('.atrium-quote');
+      if (!target) return;
+      fetch('quotes.html')
+        .then(r => r.ok ? r.text() : Promise.reject())
+        .then(html => {
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const fragments = doc.querySelectorAll('.fragment');
+          if (!fragments.length) return;
+          const pick = fragments[Math.floor(Math.random() * fragments.length)];
+          const quoteEl = pick.querySelector('.fragment__quote');
+          const citeEl  = pick.querySelector('.fragment__cite');
+          if (!quoteEl || !citeEl) return;
+          target.querySelector('.atrium-quote__text').textContent = quoteEl.textContent.trim();
+          target.querySelector('.atrium-quote__cite').textContent = citeEl.textContent.trim();
+          target.classList.add('is-loaded');
+        })
+        .catch(() => {});
+    })();
+
     function returnToTitle() {
       if (stage !== 'menu') return;
       stage = 'title';
