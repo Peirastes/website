@@ -145,43 +145,11 @@ img { max-width: 100%; display: block; }
 
 body.is-ready .title-wordmark { opacity: 1; transform: translateY(0); }
 
-/* Title morphs into the menu-wordmark slot at top-left — TRULY seamless.
-   Instead of scaling+fading, the H1 animates its actual visual properties
-   (font-size, letter-spacing, padding) to match the menu-wordmark exactly,
-   while translating to the menu-wordmark anchor. At the end of the morph
-   the title IS visually indistinguishable from the menu-wordmark, so no
-   cross-fade is needed — title just stays visible at the new spot, and
-   the menu-wordmark stays hidden (it's redundant in this stage). */
-.title-wordmark__name {
-  transition:
-    font-size      1150ms cubic-bezier(0.65, 0, 0.35, 1),
-    letter-spacing 1150ms cubic-bezier(0.65, 0, 0.35, 1),
-    padding-left   1150ms cubic-bezier(0.65, 0, 0.35, 1),
-    text-shadow    1150ms cubic-bezier(0.65, 0, 0.35, 1),
-    transform      1150ms cubic-bezier(0.65, 0, 0.35, 1);
-}
-body.stage-menu .title-wordmark__name {
-  /* Match menu-wordmark visual specs exactly. padding-left drops to 0
-     because the menu-wordmark has none — keeping the title's centering
-     compensation here would offset the visible glyphs by ~0.14em right
-     of the menu-wordmark's visible glyphs (since JS aligns bounding
-     boxes, and bbox center coincides with visible center only when both
-     have matched padding compensation). */
-  font-size: 1.6rem;
-  letter-spacing: 0.28em;
-  padding-left: 0;
-  text-shadow: 0 0 18px var(--gold-dim), 0 2px 6px rgba(0,0,0,0.6);
-  /* Position at menu-wordmark anchor (JS-measured, fallback 0,0) */
-  transform: translate(var(--morph-x, 0px), var(--morph-y, 0px));
-}
-/* Container stays visible — no fade-out. Tagline still fades since it
-   doesn't exist in the menu-wordmark. */
 body.stage-menu .title-wordmark {
-  pointer-events: none;
-}
-body.stage-menu .title-wordmark__tagline {
   opacity: 0;
-  transition: opacity 400ms ease;
+  transform: scale(0.4) translate(-30vw, -38vh);
+  pointer-events: none;
+  transition: opacity 700ms ease, transform 1100ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .title-wordmark__name {
@@ -280,17 +248,13 @@ body.is-ready .prompt__text {
 
 .chrome-wordmark { transition-delay: 200ms; }
 
+body.is-landing.stage-menu .menu-wordmark,
 body.is-ready:not(.is-landing) .chrome-wordmark {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* Menu-wordmark stays hidden on landing — the morphed title takes its
-   visual slot (animates font-size/letter-spacing/padding to match
-   menu-wordmark specs exactly, then sits at its anchor). Keeping the
-   menu-wordmark hidden avoids a duplicate identical wordmark stacked
-   on top of the title at end-of-morph. */
-body.is-landing.stage-menu .menu-wordmark { opacity: 0; }
+body.is-landing.stage-menu .menu-wordmark { transition-delay: 400ms; }
 
 .menu-wordmark h1, .chrome-wordmark h1 {
   font-family: var(--font-display);
