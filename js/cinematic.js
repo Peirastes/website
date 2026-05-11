@@ -48,6 +48,26 @@
       setActive(0);
     }
 
+    /* Align the .atrium-quote's TOP edge to the .menu's TOP edge.
+       Both are vertically centered by CSS (top:50% + translateY(-50%)),
+       but they're different heights (menu has 5 items, quote is 2-3
+       lines), so center-anchoring leaves the quote sitting lower than
+       the menu. Pin quote.top to menu.top via JS. */
+    (function alignQuoteToMenu() {
+      const menu  = document.querySelector('.menu');
+      const quote = document.querySelector('.atrium-quote');
+      if (!menu || !quote) return;
+      function sync() {
+        requestAnimationFrame(() => {
+          const t = menu.getBoundingClientRect().top;
+          quote.style.top = t + 'px';
+          quote.style.transform = 'none';
+        });
+      }
+      sync();
+      window.addEventListener('resize', sync);
+    })();
+
     /* Featured card dismiss — clicking the ✕ in the top-right hides
        the card for the current page load. (No persistence yet — refresh
        brings it back. Persistence can be layered in via localStorage.) */
