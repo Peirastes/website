@@ -48,16 +48,20 @@
       setActive(0);
     }
 
-    /* Align the .atrium-quote's TOP edge to the .menu's TOP edge.
-       Both are vertically centered by CSS (top:50% + translateY(-50%)),
-       but they're different heights (menu has 5 items, quote is 2-3
-       lines), so center-anchoring leaves the quote sitting lower than
-       the menu. Pin quote.top to menu.top via JS. */
+    /* Align the .atrium-quote's TOP edge to the .menu's TOP edge on
+       desktop/tablet (both vertically centered, but quote is shorter).
+       On mobile (≤720px) the quote has its own anchor (top: 7rem, below
+       profile pip) — we clear inline styles so mobile CSS takes over. */
     (function alignQuoteToMenu() {
       const menu  = document.querySelector('.menu');
       const quote = document.querySelector('.atrium-quote');
       if (!menu || !quote) return;
       function sync() {
+        if (window.innerWidth <= 720) {
+          quote.style.top = '';
+          quote.style.transform = '';
+          return;
+        }
         requestAnimationFrame(() => {
           const t = menu.getBoundingClientRect().top;
           quote.style.top = t + 'px';
