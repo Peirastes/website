@@ -48,6 +48,20 @@
       setActive(0);
     }
 
+    /* Featured card dismiss — clicking the ✕ in the top-right hides
+       the card for the current page load. (No persistence yet — refresh
+       brings it back. Persistence can be layered in via localStorage.) */
+    (function wireFeaturedDismiss() {
+      const featured = document.querySelector('.featured');
+      const closeBtn = featured && featured.querySelector('.featured__close');
+      if (!featured || !closeBtn) return;
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        featured.classList.add('is-dismissed');
+      });
+    })();
+
     /* Pull a random quote from quotes.html and drop it into the
        Atrium .atrium-quote element. Quotes.html is the single source
        of truth — this just fetches, parses, picks, populates. Silent
