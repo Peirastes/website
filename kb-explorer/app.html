@@ -57,14 +57,32 @@
     }
 
     body {
-      background:
-        radial-gradient(ellipse at 50% 30%, rgba(20, 28, 42, 0.45) 0%, transparent 65%),
-        var(--bg-deep);
+      background: var(--bg-deep);
       color: var(--text);
       font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
       overflow: hidden;
       height: 100vh;
       width: 100vw;
+    }
+
+    /* Cinematic banner backdrop — shows through translucent chrome */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -2;
+      background-image: url('../images/PeirastesBanner.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: saturate(0.45) brightness(0.28) contrast(1.05) hue-rotate(-10deg);
+      opacity: 0.82;
+    }
+    /* Cinematic vignette — radial darkening + scan gradient */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(6, 9, 18, 0.72) 95%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 30%, rgba(0, 0, 0, 0.58) 100%);
     }
 
     /* --- Toolbar ---------------------------------------------------------- */
@@ -76,12 +94,24 @@
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       border-top: 1px solid var(--glass-border);
-      border-bottom: 1px solid var(--glass-border);
+      border-bottom: 1px solid rgba(255, 174, 32, 0.18);
+      box-shadow: 0 1px 0 rgba(255, 174, 32, 0.10), 0 8px 24px rgba(0, 0, 0, 0.35);
       display: flex;
       align-items: center;
       padding: 0 16px;
       gap: 14px;
       z-index: 100;
+    }
+    /* Chrome row backdrop — glass strip behind the title/wordmark */
+    .chrome-row-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; height: 32px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--glass-border);
+      z-index: 95;
+      pointer-events: none;
     }
 
     .peirastes-home {
@@ -110,7 +140,8 @@
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-right: 1px solid var(--glass-border);
+      border-right: 2px solid rgba(125, 214, 255, 0.40);
+      box-shadow: inset -2px 0 12px rgba(125, 214, 255, 0.06);
       padding: 12px 14px;
       z-index: 90;
       display: flex;
@@ -154,24 +185,27 @@
 
     /* Mode buttons (primary mode selection) — amber active */
     .mode-btn.active {
-      background: rgba(255, 174, 32, 0.10);
+      background: linear-gradient(180deg, rgba(255, 174, 32, 0.18), rgba(255, 174, 32, 0.06));
       color: var(--gold);
-      border-color: rgba(255, 174, 32, 0.45);
-      box-shadow: 0 0 8px rgba(255, 174, 32, 0.18);
+      border-color: rgba(255, 174, 32, 0.55);
+      box-shadow: 0 0 14px rgba(255, 174, 32, 0.35), inset 0 0 8px rgba(255, 174, 32, 0.10);
+      text-shadow: 0 0 6px rgba(255, 174, 32, 0.55);
     }
     /* Layer buttons — cyan active (preserves data semantic of "layer") */
     .layer-btn.active {
-      background: rgba(125, 214, 255, 0.10);
+      background: linear-gradient(180deg, rgba(125, 214, 255, 0.18), rgba(125, 214, 255, 0.06));
       color: var(--cyan);
-      border-color: rgba(125, 214, 255, 0.45);
-      box-shadow: 0 0 8px rgba(125, 214, 255, 0.18);
+      border-color: rgba(125, 214, 255, 0.55);
+      box-shadow: 0 0 14px rgba(125, 214, 255, 0.30), inset 0 0 8px rgba(125, 214, 255, 0.10);
+      text-shadow: 0 0 6px rgba(125, 214, 255, 0.45);
     }
     /* Layout buttons — preserve purple semantic from original */
     .layout-btn.active {
-      background: rgba(192, 132, 252, 0.08);
+      background: linear-gradient(180deg, rgba(192, 132, 252, 0.15), rgba(192, 132, 252, 0.04));
       color: #c084fc;
-      border-color: rgba(192, 132, 252, 0.45);
-      box-shadow: 0 0 8px rgba(192, 132, 252, 0.18);
+      border-color: rgba(192, 132, 252, 0.55);
+      box-shadow: 0 0 14px rgba(192, 132, 252, 0.30), inset 0 0 8px rgba(192, 132, 252, 0.10);
+      text-shadow: 0 0 6px rgba(192, 132, 252, 0.45);
     }
 
     .domain-filter {
@@ -236,6 +270,34 @@
       bottom: 26px;
       width: calc(100vw - 150px);
       height: calc(100vh - 98px);
+      background:
+        radial-gradient(ellipse at center, rgba(6, 9, 18, 0.55) 0%, rgba(6, 9, 18, 0.78) 100%);
+    }
+
+    /* Inner frame around the graph viewport — architectural instrument feel */
+    .graph-frame {
+      position: fixed;
+      top: 72px; left: 150px; right: 0;
+      bottom: 26px;
+      pointer-events: none;
+      z-index: 70;
+      border: 1px solid rgba(125, 214, 255, 0.08);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
+    }
+    .graph-frame::before, .graph-frame::after {
+      content: ''; position: absolute; pointer-events: none;
+    }
+    /* Top-left inner tick */
+    .graph-frame::before {
+      top: 8px; left: 8px; width: 20px; height: 20px;
+      border-top: 1px solid rgba(125, 214, 255, 0.30);
+      border-left: 1px solid rgba(125, 214, 255, 0.30);
+    }
+    /* Bottom-right inner tick */
+    .graph-frame::after {
+      bottom: 8px; right: 8px; width: 20px; height: 20px;
+      border-bottom: 1px solid rgba(125, 214, 255, 0.30);
+      border-right: 1px solid rgba(125, 214, 255, 0.30);
     }
 
     /* --- Side Panel ------------------------------------------------------- */
@@ -248,7 +310,8 @@
       background: var(--glass-bg-solid);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-left: 1px solid var(--glass-border);
+      border-left: 2px solid rgba(125, 214, 255, 0.40);
+      box-shadow: inset 2px 0 12px rgba(125, 214, 255, 0.06);
       overflow-y: auto;
       transition: right 0.25s ease;
       z-index: 90;
@@ -637,8 +700,9 @@
 </head>
 <body>
 
-<!-- v3.5 cinematic chrome (light retrofit — original toolbar preserved below) -->
+<!-- v3.5 cinematic chrome -->
 <div class="cin-grain" aria-hidden="true"></div>
+<div class="chrome-row-bg" aria-hidden="true"></div>
 
 <div class="cin-flank cin-flank--left">
   <a class="cin-wordmark" href="https://peirastes.com" title="Back to Peirastes">PEIRASTES</a>
@@ -663,6 +727,7 @@
 <div id="filter-panel"></div>
 <div id="query-panel"></div>
 <svg id="graph"></svg>
+<div class="graph-frame" aria-hidden="true"></div>
 <div id="panel"><div class="p-placeholder">Click a node to inspect</div></div>
 <div id="stats"></div>
 <div id="tooltip"></div>
