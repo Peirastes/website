@@ -12,7 +12,8 @@
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <meta name="robots" content="noindex, nofollow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Orbitron:wght@600;700&family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -49,9 +50,10 @@
     /* --- Toolbar ---------------------------------------------------------- */
     #toolbar {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 32px; left: 0; right: 0;
       height: 40px;
       background: var(--bg-toolbar);
+      border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
@@ -81,7 +83,7 @@
     /* --- Filter Sidebar --------------------------------------------------- */
     #filter-panel {
       position: fixed;
-      top: 40px; left: 0;
+      top: 72px; left: 0;
       width: 150px;
       bottom: 26px;
       background: var(--bg-toolbar);
@@ -197,10 +199,10 @@
     /* --- Side Panel ------------------------------------------------------- */
     #panel {
       position: fixed;
-      top: 40px;
+      top: 72px;
       right: -400px;
       width: 380px;
-      height: calc(100vh - 66px);
+      height: calc(100vh - 98px);
       background: var(--bg-panel);
       border-left: 1px solid var(--border);
       overflow-y: auto;
@@ -339,7 +341,7 @@
 
     /* --- Query Panel ------------------------------------------------------ */
     #query-panel {
-      position: fixed; top: 40px; left: 0; width: 170px; bottom: 26px;
+      position: fixed; top: 72px; left: 0; width: 170px; bottom: 26px;
       background: var(--bg-toolbar); border-right: 1px solid var(--border);
       padding: 12px 14px; z-index: 90; display: none;
       flex-direction: column; gap: 4px; backdrop-filter: blur(8px); overflow-y: auto;
@@ -356,9 +358,162 @@
       cursor: pointer; font-size: 11px; transition: background 0.15s;
     }
     .query-result:hover { background: #1a1e30; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       V3.5 CINEMATIC CHROME LAYER (Path B — light retrofit)
+       Floats above the existing toolbar; original chassis preserved.
+       ═══════════════════════════════════════════════════════════════ */
+
+    .cin-grain {
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none; opacity: 0.04;
+      background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    .cin-flank {
+      position: fixed; top: 8px; z-index: 110;
+      display: flex; align-items: center; gap: 0.5rem;
+      opacity: 0; transform: translateY(-6px);
+      animation: cin-fade-in 700ms ease 250ms forwards;
+      font-family: 'Rajdhani', sans-serif;
+    }
+    .cin-flank--left  { left:  16px; }
+    .cin-flank--right { right: 16px; animation-delay: 400ms; }
+
+    .cin-wordmark {
+      font-family: 'Cinzel', serif;
+      font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.28em;
+      color: rgba(255, 174, 32, 0.78);
+      text-decoration: none;
+      text-shadow: 0 0 8px rgba(255, 174, 32, 0.45);
+      transition: color 200ms, text-shadow 200ms;
+      line-height: 1;
+    }
+    .cin-wordmark:hover {
+      color: #ffae20;
+      text-shadow: 0 0 14px rgba(255, 174, 32, 0.55);
+    }
+    .cin-version {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 0.58rem; font-weight: 500;
+      color: rgba(125, 214, 255, 0.55);
+      letter-spacing: 0.20em;
+      white-space: nowrap;
+      text-transform: uppercase;
+      padding-left: 0.45rem;
+      border-left: 1px solid rgba(125, 214, 255, 0.18);
+    }
+
+    .cin-title {
+      position: fixed; top: 6px; left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 110;
+      pointer-events: none;
+      opacity: 0;
+      animation: cin-fade-in-centered 700ms ease 350ms forwards;
+    }
+    .cin-title__name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px; font-weight: 700;
+      color: #ffae20;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      text-shadow: 0 0 14px rgba(255, 174, 32, 0.45), 0 0 32px rgba(255, 174, 32, 0.18);
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+    .cin-title__sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px; font-weight: 500;
+      color: rgba(125, 214, 255, 0.65);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    .cin-tick {
+      position: fixed; width: 14px; height: 14px;
+      z-index: 99; pointer-events: none;
+      opacity: 0;
+      animation: cin-fade-in 800ms ease 600ms forwards;
+    }
+    .cin-tick::before, .cin-tick::after {
+      content: ''; position: absolute; background: rgba(125, 214, 255, 0.45);
+    }
+    .cin-tick--tl { top: 4px; left: 4px; }
+    .cin-tick--tr { top: 4px; right: 4px; }
+    .cin-tick--bl { bottom: 32px; left: 4px; }   /* sits above the 26px stats bar */
+    .cin-tick--br { bottom: 32px; right: 4px; }
+    .cin-tick--tl::before { top: 0; left: 0;  width: 10px; height: 1px; }
+    .cin-tick--tl::after  { top: 0; left: 0;  width: 1px;  height: 10px; }
+    .cin-tick--tr::before { top: 0; right: 0; width: 10px; height: 1px; }
+    .cin-tick--tr::after  { top: 0; right: 0; width: 1px;  height: 10px; }
+    .cin-tick--bl::before { bottom: 0; left: 0;  width: 10px; height: 1px; }
+    .cin-tick--bl::after  { bottom: 0; left: 0;  width: 1px;  height: 10px; }
+    .cin-tick--br::before { bottom: 0; right: 0; width: 10px; height: 1px; }
+    .cin-tick--br::after  { bottom: 0; right: 0; width: 1px;  height: 10px; }
+
+    @keyframes cin-fade-in {
+      0%   { opacity: 0; transform: translateY(-6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cin-fade-in-centered {
+      0%   { opacity: 0; transform: translate(-50%, -6px); }
+      100% { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    /* Hide the inline Peirastes back-link — replaced by .cin-wordmark */
+    #toolbar .peirastes-home { display: none !important; }
+
+    /* Mobile: collapse chrome row + restore toolbar to top */
+    @media (max-width: 720px) {
+      .cin-flank--right { display: none; }
+      .cin-title__sub  { display: none; }
+      .cin-flank--left { top: 4px; left: 8px; }
+      .cin-wordmark    { font-size: 0.6rem; letter-spacing: 0.18em; }
+      .cin-version     { font-size: 0.5rem; padding-left: 0.3rem; }
+      .cin-title       { top: 4px; }
+      .cin-title__name { font-size: 11px; letter-spacing: 0.18em; }
+    }
+    @media (max-height: 480px) {
+      .cin-flank, .cin-title { display: none; }
+      #toolbar { top: 0; }
+      #filter-panel, #panel, #query-panel { top: 40px; }
+      #panel { height: calc(100vh - 66px); }
+      .cin-tick { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cin-grain, .cin-flank, .cin-title, .cin-tick { animation: none !important; }
+      .cin-flank, .cin-tick { opacity: 1 !important; transform: translateY(0) !important; }
+      .cin-title { opacity: 1 !important; transform: translateX(-50%) !important; }
+    }
   </style>
 </head>
 <body>
+
+<!-- v3.5 cinematic chrome (light retrofit — original toolbar preserved below) -->
+<div class="cin-grain" aria-hidden="true"></div>
+
+<div class="cin-flank cin-flank--left">
+  <a class="cin-wordmark" href="https://peirastes.com" title="Back to Peirastes">PEIRASTES</a>
+  <span class="cin-version">KB Explorer</span>
+</div>
+
+<div class="cin-title" aria-label="Knowledge Base Explorer">
+  <div class="cin-title__name">KB EXPLORER</div>
+  <div class="cin-title__sub">Knowledge Graph &middot; Force-Directed</div>
+</div>
+
+<div class="cin-flank cin-flank--right" aria-hidden="true">
+  <span class="cin-version">v3.5</span>
+</div>
+
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
 
 <div id="toolbar"></div>
 <div id="filter-panel"></div>
