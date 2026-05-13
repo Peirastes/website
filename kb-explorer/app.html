@@ -85,34 +85,26 @@
         linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 30%, rgba(0, 0, 0, 0.58) 100%);
     }
 
-    /* --- Toolbar ---------------------------------------------------------- */
+    /* --- Toolbar (floating inst-panel card) ------------------------------- */
     #toolbar {
       position: fixed;
-      top: 32px; left: 0; right: 0;
-      height: 40px;
+      top: 5.5rem;
+      left: 1.6rem; right: 1.6rem;
+      height: 48px;
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-top: 1px solid var(--glass-border);
-      border-bottom: 1px solid rgba(255, 174, 32, 0.18);
-      box-shadow: 0 1px 0 rgba(255, 174, 32, 0.10), 0 8px 24px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      padding: 0 18px;
       gap: 14px;
-      z-index: 100;
+      z-index: 50;
     }
-    /* Chrome row backdrop — glass strip behind the title/wordmark */
-    .chrome-row-bg {
-      position: fixed;
-      top: 0; left: 0; right: 0; height: 32px;
-      background: var(--glass-bg);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      border-bottom: 1px solid var(--glass-border);
-      z-index: 95;
-      pointer-events: none;
-    }
+    /* No separate chrome-row-bg — chrome row floats over banner directly */
+    .chrome-row-bg { display: none; }
 
     .peirastes-home {
       font-family: 'Cinzel', serif;
@@ -131,56 +123,83 @@
     .tb-section { display: flex; align-items: center; gap: 6px; }
     .tb-section.search { margin-left: auto; }
 
-    /* --- Filter Sidebar --------------------------------------------------- */
+    /* --- Filter Sidebar (floating inst-panel card) ----------------------- */
     #filter-panel {
       position: fixed;
-      top: 72px; left: 0;
+      top: calc(5.5rem + 48px + 12px);              /* below toolbar card */
+      left: 1.6rem;
       width: 300px;
-      bottom: 26px;
+      bottom: calc(26px + 1.6rem);                  /* above stats bar + breathing room */
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-right: 2px solid rgba(125, 214, 255, 0.40);
-      box-shadow: inset -2px 0 12px rgba(125, 214, 255, 0.06);
-      padding: 12px 14px;
-      z-index: 90;
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      padding: 16px 18px;
+      z-index: 50;
       display: flex;
       flex-direction: column;
       gap: 6px;
       overflow-y: auto;
     }
 
+    /* Canonical .inst-panel__title vocabulary — Orbitron amber w/ glow */
     .filter-heading {
       font-family: 'Orbitron', sans-serif;
-      font-size: 9px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.22em;
       text-transform: uppercase;
-      letter-spacing: 2px;
-      color: var(--cyan-dim);
-      font-weight: 600;
-      margin-bottom: 4px;
-      padding-bottom: 3px;
-      border-bottom: 1px solid var(--glass-border);
+      text-shadow: 0 0 8px rgba(255, 174, 32, 0.45);
+      margin-bottom: 11px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    /* Subsequent section headers within the same panel get the small-caps cyan treatment */
+    .filter-heading + .filter-heading,
+    #filter-panel > .filter-heading:not(:first-child) {
+      font-size: 9px;
+      color: var(--cyan);
+      letter-spacing: 0.24em;
+      text-shadow: none;
+      margin-top: 10px;
+      border-bottom: none;
+      padding-bottom: 4px;
     }
 
-    /* Shared base for the three toolbar button groups */
+    /* Shared base — matches v3.5 .cin-action gradient face vocabulary */
     .mode-btn, .layer-btn, .layout-btn {
-      background: var(--bg-input);
-      border: 1px solid var(--glass-border);
-      color: var(--text-dim);
-      padding: 3px 12px;
-      border-radius: 2px;
+      background: linear-gradient(180deg,
+        rgba(20, 26, 36, 0.82) 0%,
+        rgba(8, 12, 18, 0.90) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 2px solid transparent;
+      color: rgba(220, 220, 220, 0.62);
+      padding: 5px 12px;
+      border-radius: 3px;
       cursor: pointer;
-      font-family: 'Rajdhani', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      transition: all 0.15s;
+      transition: all 0.14s ease;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.3);
     }
     .mode-btn:hover, .layer-btn:hover, .layout-btn:hover {
-      color: var(--text);
+      color: var(--cyan);
+      background: linear-gradient(180deg,
+        rgba(125, 214, 255, 0.08) 0%,
+        rgba(8, 12, 18, 0.85) 100%);
       border-color: rgba(125, 214, 255, 0.30);
-      background: rgba(20, 30, 44, 0.7);
+      box-shadow:
+        inset 0 1px 0 rgba(125, 214, 255, 0.15),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 0 8px rgba(125, 214, 255, 0.30);
     }
 
     /* Mode buttons (primary mode selection) — amber active */
@@ -244,80 +263,69 @@
     }
 
     .act-btn {
-      background: var(--bg-input);
-      border: 1px solid var(--glass-border);
-      color: var(--text-dim);
-      padding: 3px 10px;
-      border-radius: 2px;
+      background: linear-gradient(180deg,
+        rgba(20, 26, 36, 0.82) 0%,
+        rgba(8, 12, 18, 0.90) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 2px solid transparent;
+      color: rgba(220, 220, 220, 0.62);
+      padding: 5px 12px;
+      border-radius: 3px;
       cursor: pointer;
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.10em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      transition: all 0.15s;
+      transition: all 0.14s ease;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.3);
     }
     .act-btn:hover {
       color: var(--gold);
-      border-color: rgba(255, 174, 32, 0.45);
-      background: rgba(255, 174, 32, 0.06);
+      background: linear-gradient(180deg,
+        rgba(255, 174, 32, 0.10) 0%,
+        rgba(8, 12, 18, 0.85) 100%);
+      border-color: rgba(255, 174, 32, 0.30);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 174, 32, 0.15),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        0 0 8px rgba(255, 174, 32, 0.30);
     }
 
-    /* --- Graph ------------------------------------------------------------ */
+    /* --- Graph (occupies the full viewport; floating panels overlay) ----- */
     #graph {
       position: fixed;
-      top: 72px; left: 300px; right: 0;
-      bottom: 26px;
-      width: calc(100vw - 300px);
-      height: calc(100vh - 98px);
-      background:
-        radial-gradient(ellipse at center, rgba(6, 9, 18, 0.55) 0%, rgba(6, 9, 18, 0.78) 100%);
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100vw;
+      height: 100vh;
     }
 
-    /* Inner frame around the graph viewport — architectural instrument feel */
-    .graph-frame {
-      position: fixed;
-      top: 72px; left: 300px; right: 0;
-      bottom: 26px;
-      pointer-events: none;
-      z-index: 70;
-      border: 1px solid rgba(125, 214, 255, 0.08);
-      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
-    }
-    .graph-frame::before, .graph-frame::after {
-      content: ''; position: absolute; pointer-events: none;
-    }
-    /* Top-left inner tick */
-    .graph-frame::before {
-      top: 8px; left: 8px; width: 20px; height: 20px;
-      border-top: 1px solid rgba(125, 214, 255, 0.30);
-      border-left: 1px solid rgba(125, 214, 255, 0.30);
-    }
-    /* Bottom-right inner tick */
-    .graph-frame::after {
-      bottom: 8px; right: 8px; width: 20px; height: 20px;
-      border-bottom: 1px solid rgba(125, 214, 255, 0.30);
-      border-right: 1px solid rgba(125, 214, 255, 0.30);
-    }
+    /* Graph frame removed — v3.5 reserves chromatic edges for data-display
+       surfaces (.glass-graph). Knowledge graph reads cleanly against the
+       cinematic banner backdrop without an inner frame. */
+    .graph-frame { display: none; }
 
-    /* --- Side Panel ------------------------------------------------------- */
+    /* --- Side Panel (floating inst-panel card, slides in from right) ----- */
     #panel {
       position: fixed;
-      top: 72px;
-      right: -400px;
+      top: calc(5.5rem + 48px + 12px);
+      right: -420px;
       width: 380px;
-      height: calc(100vh - 98px);
-      background: var(--glass-bg-solid);
+      bottom: calc(26px + 1.6rem);
+      background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-left: 2px solid rgba(125, 214, 255, 0.40);
-      box-shadow: inset 2px 0 12px rgba(125, 214, 255, 0.06);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
       overflow-y: auto;
       transition: right 0.25s ease;
-      z-index: 90;
+      z-index: 50;
     }
 
-    #panel.open { right: 0; box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4); }
+    #panel.open { right: 1.6rem; }
 
     .p-placeholder {
       padding: 30px 20px;
@@ -329,17 +337,19 @@
       text-align: center;
     }
 
-    .p-header { padding: 16px 16px 10px; border-bottom: 1px solid var(--glass-border); position: relative; }
-    .p-close { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; transition: color 0.15s; }
+    .p-header { padding: 18px 18px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); position: relative; }
+    .p-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: rgba(220, 220, 220, 0.5); font-size: 18px; cursor: pointer; transition: color 0.2s; }
     .p-close:hover { color: var(--gold); }
+    /* .inst-panel__title vocabulary — Orbitron amber w/ glow, padded under separator */
     .p-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 14px; font-weight: 600;
+      font-size: 13px; font-weight: 700;
       color: var(--gold);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
       line-height: 1.35;
-      margin-bottom: 6px;
-      text-shadow: 0 0 12px rgba(255, 174, 32, 0.22);
+      margin-bottom: 8px;
+      text-shadow: 0 0 12px rgba(255, 174, 32, 0.45);
     }
     .p-id {
       font-family: 'Share Tech Mono', monospace;
@@ -447,24 +457,26 @@
       border-color: rgba(125, 214, 255, 0.35);
     }
 
-    /* --- Stats ------------------------------------------------------------ */
+    /* --- Stats (slim glass strip at viewport bottom edge) ---------------- */
     #stats {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 26px;
+      bottom: 1.6rem; left: 1.6rem; right: 1.6rem;
+      height: 28px;
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-top: 1px solid var(--glass-border);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
       display: flex;
       align-items: center;
-      padding: 0 16px;
-      gap: 12px;
+      padding: 0 18px;
+      gap: 14px;
       font-family: 'Share Tech Mono', monospace;
       font-size: 10px;
       letter-spacing: 0.06em;
       color: var(--text-dim);
-      z-index: 100;
+      z-index: 50;
     }
 
     #stats .sep { color: var(--glass-border); }
@@ -491,20 +503,22 @@
 
     .tt-meta { color: var(--text-dim); font-size: 10px; font-family: 'Share Tech Mono', monospace; letter-spacing: 0.04em; }
 
-    /* --- Legend ----------------------------------------------------------- */
+    /* --- Legend (floating inst-panel card, bottom-left) ------------------ */
     #legend {
       position: fixed;
-      bottom: 34px; left: 310px;
+      bottom: calc(28px + 1.6rem + 12px);
+      left: calc(1.6rem + 300px + 12px);            /* right of filter panel + gap */
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--glass-border);
-      border-radius: 2px;
-      padding: 8px 12px;
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      padding: 12px 14px;
       font-family: 'Inter', sans-serif;
       font-size: 9px;
       color: var(--text-dim);
-      z-index: 80;
+      z-index: 50;
       line-height: 1.8;
     }
 
@@ -527,12 +541,18 @@
 
     /* --- Query Panel ------------------------------------------------------ */
     #query-panel {
-      position: fixed; top: 72px; left: 0; width: 300px; bottom: 26px;
+      position: fixed;
+      top: calc(5.5rem + 48px + 12px);
+      left: 1.6rem;
+      width: 300px;
+      bottom: calc(26px + 1.6rem);
       background: var(--glass-bg);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
-      border-right: 1px solid var(--glass-border);
-      padding: 12px 14px; z-index: 90; display: none;
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      padding: 16px 18px; z-index: 50; display: none;
       flex-direction: column; gap: 4px; overflow-y: auto;
     }
     .query-btn {
@@ -651,8 +671,8 @@
     }
     .cin-tick--tl { top: 4px; left: 4px; }
     .cin-tick--tr { top: 4px; right: 4px; }
-    .cin-tick--bl { bottom: 32px; left: 4px; }   /* sits above the 26px stats bar */
-    .cin-tick--br { bottom: 32px; right: 4px; }
+    .cin-tick--bl { bottom: 4px; left: 4px; }
+    .cin-tick--br { bottom: 4px; right: 4px; }
     .cin-tick--tl::before { top: 0; left: 0;  width: 10px; height: 1px; }
     .cin-tick--tl::after  { top: 0; left: 0;  width: 1px;  height: 10px; }
     .cin-tick--tr::before { top: 0; right: 0; width: 10px; height: 1px; }
@@ -674,7 +694,7 @@
     /* Hide the inline Peirastes back-link — replaced by .cin-wordmark */
     #toolbar .peirastes-home { display: none !important; }
 
-    /* Mobile: collapse chrome row + restore toolbar to top */
+    /* Mobile: collapse chrome row, panels stretch closer to edges */
     @media (max-width: 720px) {
       .cin-flank--right { display: none; }
       .cin-title__sub  { display: none; }
@@ -683,12 +703,16 @@
       .cin-version     { font-size: 0.5rem; padding-left: 0.3rem; }
       .cin-title       { top: 4px; }
       .cin-title__name { font-size: 11px; letter-spacing: 0.18em; }
+      /* tighten panel insets on mobile */
+      #toolbar { left: 8px; right: 8px; top: 3.2rem; height: 40px; padding: 0 10px; gap: 8px; }
+      #filter-panel, #query-panel { left: 8px; top: calc(3.2rem + 40px + 8px); width: calc(100vw - 16px); bottom: calc(28px + 0.8rem); }
+      #panel { width: calc(100vw - 16px); top: calc(3.2rem + 40px + 8px); bottom: calc(28px + 0.8rem); }
+      #panel.open { right: 8px; }
+      #stats { left: 8px; right: 8px; bottom: 0.8rem; padding: 0 10px; }
+      #legend { display: none; }
     }
     @media (max-height: 480px) {
       .cin-flank, .cin-title { display: none; }
-      #toolbar { top: 0; }
-      #filter-panel, #panel, #query-panel { top: 40px; }
-      #panel { height: calc(100vh - 66px); }
       .cin-tick { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -702,7 +726,6 @@
 
 <!-- v3.5 cinematic chrome -->
 <div class="cin-grain" aria-hidden="true"></div>
-<div class="chrome-row-bg" aria-hidden="true"></div>
 
 <div class="cin-flank cin-flank--left">
   <a class="cin-wordmark" href="https://peirastes.com" title="Back to Peirastes">PEIRASTES</a>
