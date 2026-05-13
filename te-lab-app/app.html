@@ -1069,14 +1069,16 @@ function DataCenterCoolingTestbed() {
       width: "100%", height: "100%", background: "transparent",
       color: "#e2e8f0", fontFamily: "'Inter', 'Segoe UI', sans-serif",
       display: "flex", flexDirection: "column", overflow: "hidden",
+      position: "relative",  // anchor for absolute-positioned floating header bar
     },
-    // Header (title + sub) — HIDDEN; replaced by cinematic chrome row.
-    // Keep tab bar + status badge visible at the top by repurposing this as a control strip.
+    // Header bar — absolute-positioned overlay so tabs + badge float at top-right
+    // of the lab body without consuming vertical layout space. Sits below the
+    // cinematic chrome row (which is at viewport top: 1.6rem).
     header: {
-      background: "transparent",
-      borderBottom: "none",
-      padding: "0 16px 4px",
-      display: "flex", alignItems: "center", justifyContent: "flex-end", flexShrink: 0,
+      position: "absolute",
+      top: 4, right: "1.6rem",
+      zIndex: 5,
+      display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10,
     },
     headerTitle: { display: "none" },  // chrome cin-title is the title now
     headerSub:   { display: "none" },
@@ -1225,7 +1227,7 @@ function DataCenterCoolingTestbed() {
   const PlotView = () => (
     <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
       <div style={styles.sectionLabel}>Temperature Time History</div>
-      <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", marginBottom: 16 }}>
+      <div style={{ background: "rgba(10, 14, 22, 0.42)", backdropFilter: "blur(22px) saturate(1.4)", WebkitBackdropFilter: "blur(22px) saturate(1.4)", borderRadius: 6, padding: 12, border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)", marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
           {chartChannels.map(ch => (
             <button key={ch.key} onClick={() => toggleLine(ch.key)}
@@ -1272,7 +1274,7 @@ function DataCenterCoolingTestbed() {
       {capturedRuns.length > 0 && (
         <>
           <div style={styles.sectionLabel}>Captured Runs — Q Comparison</div>
-          <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", marginBottom: 16, height: 220 }}>
+          <div style={{ background: "rgba(10, 14, 22, 0.42)", backdropFilter: "blur(22px) saturate(1.4)", WebkitBackdropFilter: "blur(22px) saturate(1.4)", borderRadius: 6, padding: 12, border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)", marginBottom: 16, height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={capturedRuns.map(r => ({ ...r, Q_hot: +r.Q_hot, Q_cold: +r.Q_cold }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1287,7 +1289,7 @@ function DataCenterCoolingTestbed() {
           </div>
 
           <div style={styles.sectionLabel}>Captured Runs — UA & R_θ</div>
-          <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", height: 220 }}>
+          <div style={{ background: "rgba(10, 14, 22, 0.42)", backdropFilter: "blur(22px) saturate(1.4)", WebkitBackdropFilter: "blur(22px) saturate(1.4)", borderRadius: 6, padding: 12, border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)", height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={capturedRuns.map(r => ({ ...r, UA: +r.UA, R_theta: +r.R_theta * 1000 }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -1320,7 +1322,7 @@ function DataCenterCoolingTestbed() {
     return (
       <div style={{ padding: 16, overflowY: "auto", flex: 1 }}>
         <div style={styles.sectionLabel}>6-Run Commissioning Matrix</div>
-        <div style={{ background: "#111827", borderRadius: 8, padding: 16, border: "1px solid #1e293b", marginBottom: 16 }}>
+        <div style={{ background: "rgba(10, 14, 22, 0.42)", backdropFilter: "blur(22px) saturate(1.4)", WebkitBackdropFilter: "blur(22px) saturate(1.4)", borderRadius: 6, padding: 16, border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)", marginBottom: 16 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #334155" }}>
@@ -1354,7 +1356,7 @@ function DataCenterCoolingTestbed() {
         {capturedRuns.length > 0 && (
           <>
             <div style={styles.sectionLabel}>Captured Results Table</div>
-            <div style={{ background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #1e293b", overflowX: "auto" }}>
+            <div style={{ background: "rgba(10, 14, 22, 0.42)", backdropFilter: "blur(22px) saturate(1.4)", WebkitBackdropFilter: "blur(22px) saturate(1.4)", borderRadius: 6, padding: 12, border: "1px solid rgba(255, 255, 255, 0.08)", boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)", overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>
                 <thead>
                   <tr style={{ borderBottom: "2px solid #334155" }}>
@@ -1428,9 +1430,9 @@ function DataCenterCoolingTestbed() {
 
         {activeTab === "main" && (
           <>
-            {/* ── TOP: Instruments + Real-Time Chart ── */}
-            <div style={{ background: "#0a0a14", borderBottom: "1px solid #1e293b", padding: "6px 10px 4px", flexShrink: 0 }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
+            {/* ── TOP: Instruments + Real-Time Chart (transparent — banner shows through) ── */}
+            <div style={{ background: "transparent", padding: "4px 1.6rem 4px", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "stretch" }}>
 
                 {/* Left: Instruments */}
                 <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1451,10 +1453,23 @@ function DataCenterCoolingTestbed() {
                   </div>
                 </div>
 
-                {/* Right: Real-time temperature plot */}
-                <div style={{ flex: 1, minWidth: 0, background: "#111827", borderRadius: 8, border: "1px solid #1e293b", padding: "8px 8px 4px 4px", display: "flex", flexDirection: "column" }}>
+                {/* Right: Real-time temperature plot — glass card */}
+                <div style={{ flex: 1, minWidth: 0,
+                  background: "rgba(10, 14, 22, 0.42)",
+                  backdropFilter: "blur(22px) saturate(1.4)",
+                  WebkitBackdropFilter: "blur(22px) saturate(1.4)",
+                  borderRadius: 6, border: "1px solid rgba(255, 255, 255, 0.08)",
+                  boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+                  padding: "10px 12px 6px 6px", display: "flex", flexDirection: "column" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginLeft: 8, marginBottom: 4 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                    <div style={{
+                      fontFamily: "'Orbitron', sans-serif",
+                      fontSize: 10, fontWeight: 700,
+                      color: "#ffae20",
+                      letterSpacing: "0.22em",
+                      textTransform: "uppercase",
+                      textShadow: "0 0 8px rgba(255, 174, 32, 0.45)",
+                    }}>
                       Live Temperature Trace
                     </div>
                     {/* Toggle switches */}
@@ -1507,8 +1522,8 @@ function DataCenterCoolingTestbed() {
                 </div>
               </div>
 
-              {/* Computed metrics strip */}
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "center", marginTop: 4 }}>
+              {/* Computed metrics strip — compact glass pills */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginTop: 6 }}>
                 {[
                   { label: "Q_hot", value: `${Q_hot.toFixed(1)} W`, color: "#ef4444" },
                   { label: "Q_cold", value: `${Q_cold.toFixed(1)} W`, color: "#3b82f6" },
@@ -1519,34 +1534,50 @@ function DataCenterCoolingTestbed() {
                   { label: "ε (eff)", value: eps_calc.toFixed(3), color: "#6ee7b7" },
                   { label: "NTU", value: NTU_calc.toFixed(2), color: "#a78bfa" },
                 ].map(m => (
-                  <div key={m.label} style={{ ...styles.metricCard, padding: "4px 8px" }}>
+                  <div key={m.label} style={{ ...styles.metricCard, padding: "5px 10px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: 80 }}>
                     <div style={{ ...styles.metricValue, fontSize: 13, color: m.color }}>{m.value}</div>
-                    <div style={{ ...styles.metricLabel, fontSize: 9 }}>{m.label}</div>
+                    <div style={{ ...styles.metricLabel, fontSize: 8, marginTop: 1 }}>{m.label}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── MIDDLE: Schematic ── */}
-            <div style={{ flex: 1, minHeight: 0, padding: "4px 8px" }}>
-              <SystemSchematic temps={temps} flowHot={flowHot} flowCold={flowCold} selectedHX={selectedHX} selectedMaterial={selectedMaterial} flowArrangement={flowArrangement} isRunning={isRunning} />
+            {/* ── MIDDLE: Schematic — wrapped as a glass viewport so the SVG sits in a frame ── */}
+            <div style={{ flex: 1, minHeight: 0, padding: "4px 1.6rem", display: "flex" }}>
+              <div style={{ flex: 1,
+                background: "rgba(10, 14, 22, 0.42)",
+                backdropFilter: "blur(22px) saturate(1.4)",
+                WebkitBackdropFilter: "blur(22px) saturate(1.4)",
+                borderRadius: 6, border: "1px solid rgba(255, 255, 255, 0.08)",
+                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+                padding: 8, display: "flex", overflow: "hidden",
+              }}>
+                <SystemSchematic temps={temps} flowHot={flowHot} flowCold={flowCold} selectedHX={selectedHX} selectedMaterial={selectedMaterial} flowArrangement={flowArrangement} isRunning={isRunning} />
+              </div>
             </div>
 
-            {/* ── BOTTOM: Controls ── */}
-            <div style={{ background: "#0a0a14", borderTop: "1px solid #1e293b", padding: "6px 12px", flexShrink: 0 }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+            {/* ── BOTTOM: Controls (transparent strip — banner shows through) ── */}
+            <div style={{ background: "transparent", padding: "4px 1.6rem 1.6rem", flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap",
+                background: "rgba(10, 14, 22, 0.42)",
+                backdropFilter: "blur(22px) saturate(1.4)",
+                WebkitBackdropFilter: "blur(22px) saturate(1.4)",
+                borderRadius: 6, border: "1px solid rgba(255, 255, 255, 0.08)",
+                boxShadow: "0 4px 14px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+                padding: "10px 14px",
+              }}>
 
                 {/* Power */}
                 <div style={{ flex: "1 1 160px", minWidth: 140 }}>
                   <div style={styles.sectionLabel}>Electrical Power</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#f97316" }}>{pElec}<span style={{ fontSize: 9, color: "#94a3b8" }}> W</span></span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Share Tech Mono', monospace", color: "#f97316" }}>{pElec}<span style={{ fontSize: 9, color: "rgba(125, 214, 255, 0.65)", letterSpacing: "0.10em" }}> W</span></span>
                   </div>
                   <input type="range" min={0} max={600} step={5} value={pElec} onChange={e => setPElec(+e.target.value)} style={styles.slider} />
-                  <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
+                  <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
                     {presetPowers.map(p => (
                       <button key={p.label} onClick={() => setPElec(p.value)}
-                        style={{ ...styles.btn(""), flex: 1, padding: "2px 0", fontSize: 9, background: pElec === p.value ? "#4c1d95" : "#1e293b", color: pElec === p.value ? "#c4b5fd" : "#94a3b8", border: pElec === p.value ? "1px solid #7c3aed" : "1px solid #334155", borderRadius: 4 }}>
+                        style={{ ...styles.hxButton(pElec === p.value), flex: 1, padding: "3px 4px", fontSize: 9 }}>
                         {p.label} ({p.value}W)
                       </button>
                     ))}
@@ -1556,11 +1587,11 @@ function DataCenterCoolingTestbed() {
                 {/* IT Loop Flow */}
                 <div style={{ flex: "1 1 120px", minWidth: 100 }}>
                   <div style={styles.sectionLabel}>IT Loop Flow (Hot)</div>
-                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#ef4444" }}>{flowHot.toFixed(1)}<span style={{ fontSize: 9, color: "#94a3b8" }}> L/min</span></span>
+                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Share Tech Mono', monospace", color: "#ef4444" }}>{flowHot.toFixed(1)}<span style={{ fontSize: 9, color: "rgba(125, 214, 255, 0.65)", letterSpacing: "0.10em" }}> L/min</span></span>
                   <input type="range" min={0.5} max={6} step={0.1} value={flowHot} onChange={e => setFlowHot(+e.target.value)} style={{ ...styles.slider, accentColor: "#ef4444" }} />
-                  <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
+                  <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
                     {[{ l: "Low", v: 1 }, { l: "Med", v: 3 }, { l: "High", v: 5 }].map(p => (
-                      <button key={p.l} onClick={() => setFlowHot(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "2px 0", fontSize: 9, background: flowHot === p.v ? "#5c1a1a" : "#1e293b", color: flowHot === p.v ? "#fca5a5" : "#94a3b8", border: flowHot === p.v ? "1px solid #ef4444" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
+                      <button key={p.l} onClick={() => setFlowHot(p.v)} style={{ ...styles.hxButton(flowHot === p.v), flex: 1, padding: "3px 4px", fontSize: 9 }}>{p.l} ({p.v})</button>
                     ))}
                   </div>
                 </div>
@@ -1568,11 +1599,11 @@ function DataCenterCoolingTestbed() {
                 {/* Facility Flow */}
                 <div style={{ flex: "1 1 120px", minWidth: 100 }}>
                   <div style={styles.sectionLabel}>Facility Flow (Cold)</div>
-                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: "#3b82f6" }}>{flowCold.toFixed(1)}<span style={{ fontSize: 9, color: "#94a3b8" }}> L/min</span></span>
+                  <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Share Tech Mono', monospace", color: "#3b82f6" }}>{flowCold.toFixed(1)}<span style={{ fontSize: 9, color: "rgba(125, 214, 255, 0.65)", letterSpacing: "0.10em" }}> L/min</span></span>
                   <input type="range" min={0.5} max={6} step={0.1} value={flowCold} onChange={e => setFlowCold(+e.target.value)} style={{ ...styles.slider, accentColor: "#3b82f6" }} />
-                  <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
+                  <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
                     {[{ l: "Low", v: 1 }, { l: "Med", v: 3 }, { l: "High", v: 5 }].map(p => (
-                      <button key={p.l} onClick={() => setFlowCold(p.v)} style={{ ...styles.btn(""), flex: 1, padding: "2px 0", fontSize: 9, background: flowCold === p.v ? "#1e3a5f" : "#1e293b", color: flowCold === p.v ? "#93c5fd" : "#94a3b8", border: flowCold === p.v ? "1px solid #3b82f6" : "1px solid #334155", borderRadius: 4 }}>{p.l} ({p.v})</button>
+                      <button key={p.l} onClick={() => setFlowCold(p.v)} style={{ ...styles.hxButton(flowCold === p.v), flex: 1, padding: "3px 4px", fontSize: 9 }}>{p.l} ({p.v})</button>
                     ))}
                   </div>
                 </div>
