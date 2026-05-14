@@ -53,6 +53,10 @@ def find_balanced_block(html: str, open_match) -> tuple:
     start = open_match.start()
     pos = open_match.end()
     depth = 1
+    # Pattern matches `<div` or `</div` (not the closing `>`), so we have to
+    # advance pos past the next `>` ourselves after each match — otherwise
+    # the bare `>` gets left behind in the output (Cole noticed this on
+    # 2026-05-13: stray `>` chars on every metaline-migrated page).
     pattern = re.compile(r'<(/?)div\b')
     while depth > 0:
         m = pattern.search(html, pos)
@@ -62,7 +66,11 @@ def find_balanced_block(html: str, open_match) -> tuple:
             depth -= 1
         else:           # <div ...>
             depth += 1
-        pos = m.end()
+        # Advance past attributes and the closing > of THIS tag
+        gt = html.find('>', m.end())
+        if gt == -1:
+            return None
+        pos = gt + 1
     # advance past trailing whitespace + newline if present
     while pos < len(html) and html[pos] in ' \t':
         pos += 1
