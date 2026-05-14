@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acrylic HUD · Scrollbar — Iteration</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-void: #040608;
+  --bg-base: #0a0e14;
+  --fg: #d0d4da;
+  --fg-3: #707880;
+  --amber: #f0a030;
+  --amber-glow: rgba(240,160,48,0.25);
+  --amber-edge: rgba(240,160,48,0.45);
+  --chrom-amber: rgba(240,160,48,0.38);
+  --chrom-cyan: rgba(64,232,208,0.30);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: radial-gradient(ellipse at 50% 40%, #0e141c, var(--bg-base) 60%, var(--bg-void));
+  color: var(--fg);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.007) 2px, rgba(255,255,255,0.007) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.004) 2px, rgba(255,255,255,0.004) 4px);
+}
+
+.site-back {
+  position: fixed; top: 10px; left: 14px; z-index: 100;
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: rgba(224,224,224,0.3); text-decoration: none;
+  letter-spacing: 0.08em;
+}
+.site-back:hover { color: #e07050; }
+
+.page-header { position: relative; z-index: 1; padding: 60px 40px 4px; text-align: center; }
+.page-title {
+  font-family: 'Orbitron', monospace; font-size: 22px; font-weight: 700;
+  color: var(--amber); text-shadow: 0 0 16px var(--amber-glow);
+  letter-spacing: 0.24em; text-transform: uppercase;
+}
+.page-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--fg-3); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 6px;
+}
+.page-sub em { font-style: normal; color: var(--amber); }
+
+.variant-grid {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px; max-width: 1180px; margin: 0 auto; padding: 20px 32px 80px;
+}
+.variant { display: flex; flex-direction: column; gap: 10px; }
+.variant-label {
+  font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase;
+  text-shadow: 0 0 10px var(--amber-glow);
+}
+.variant-label .code { color: var(--fg-3); font-weight: 400; margin-right: 10px; }
+.variant-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  color: var(--fg-3); letter-spacing: 0.08em; line-height: 1.55; min-height: 36px;
+}
+.variant-sub b { color: #9a9890; font-weight: 400; }
+
+.acrylic-panel {
+  position: relative; padding: 20px 22px 22px; border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.62) 0%, rgba(12,16,22,0.58) 60%, rgba(10,14,20,0.62) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber), -1px 0 0 var(--chrom-cyan),
+    0 0 28px rgba(240,160,48,0.13), 0 18px 48px rgba(0,0,0,0.65),
+    0 4px 12px rgba(0,0,0,0.5), inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2px 10px; margin-bottom: 14px;
+  border-bottom: 1px solid rgba(240,160,48,0.15);
+}
+.panel-header__label {
+  font-family: 'Orbitron', monospace; font-size: 9px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+}
+.panel-header__status {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--fg-3); letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLABLE CONTENT BOX — test surface for scrollbar iteration
+   ═══════════════════════════════════════════════════════════════ */
+.scroll-box {
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.scroll-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0;
+  font-size: 9px; color: var(--fg-3); letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(240,160,48,0.04);
+}
+.scroll-dot {
+  width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+  background: var(--amber);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V1 — FLAT AMBER (current baseline)
+   ═══════════════════════════════════════════════════════════════ */
+.scroll-v1 {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(240,160,48,0.25) rgba(10,14,20,0.4);
+}
+.scroll-v1::-webkit-scrollbar { width: 6px; }
+.scroll-v1::-webkit-scrollbar-track { background: rgba(10,14,20,0.4); border-radius: 3px; }
+.scroll-v1::-webkit-scrollbar-thumb { background: rgba(240,160,48,0.25); border-radius: 3px; }
+.scroll-v1::-webkit-scrollbar-thumb:hover { background: rgba(240,160,48,0.4); }
+
+/* ═══════════════════════════════════════════════════════════════
+   V2 — ACRYLIC ROD: glass panel DNA scaled to scrollbar
+   Semi-transparent body, backdrop concept, chromatic edge borders,
+   specular sheen, floating shadow.
+   ═══════════════════════════════════════════════════════════════ */
+.scroll-v2::-webkit-scrollbar { width: 10px; }
+.scroll-v2::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.scroll-v2::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  /* Semi-transparent acrylic body */
+  background:
+    linear-gradient(90deg,
+      rgba(64,232,208,0.08) 0%,
+      rgba(30,40,55,0.5) 15%,
+      rgba(35,45,60,0.55) 35%,
+      rgba(255,255,255,0.12) 48%,
+      rgba(255,255,255,0.18) 50%,
+      rgba(255,255,255,0.12) 52%,
+      rgba(35,45,60,0.55) 65%,
+      rgba(30,40,55,0.5) 85%,
+      rgba(240,160,48,0.08) 100%);
+  /* Chromatic aberration borders */
+  border-left: 1px solid rgba(64,232,208,0.2);
+  border-right: 1px solid rgba(240,160,48,0.2);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.2);
+  /* Floating depth + inner refraction */
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.4),
+    0 0 1px rgba(255,255,255,0.05),
+    inset 1px 0 4px rgba(64,232,208,0.05),
+    inset -1px 0 4px rgba(240,160,48,0.05),
+    inset 0 1px 2px rgba(255,255,255,0.06);
+}
+.scroll-v2::-webkit-scrollbar-thumb:hover {
+  background:
+    linear-gradient(90deg,
+      rgba(64,232,208,0.14) 0%,
+      rgba(35,48,65,0.6) 15%,
+      rgba(40,52,70,0.65) 35%,
+      rgba(255,255,255,0.18) 48%,
+      rgba(255,255,255,0.25) 50%,
+      rgba(255,255,255,0.18) 52%,
+      rgba(40,52,70,0.65) 65%,
+      rgba(35,48,65,0.6) 85%,
+      rgba(240,160,48,0.14) 100%);
+  border-left-color: rgba(64,232,208,0.3);
+  border-right-color: rgba(240,160,48,0.3);
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.5),
+    0 0 2px rgba(255,255,255,0.08),
+    inset 1px 0 6px rgba(64,232,208,0.08),
+    inset -1px 0 6px rgba(240,160,48,0.08),
+    inset 0 1px 3px rgba(255,255,255,0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V3 — ACRYLIC ROD: narrower (8px), recessed track channel
+   ═══════════════════════════════════════════════════════════════ */
+.scroll-v3::-webkit-scrollbar { width: 8px; }
+.scroll-v3::-webkit-scrollbar-track {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.4) 0%, rgba(4,6,10,0.6) 25%,
+    rgba(4,6,10,0.6) 75%, rgba(0,0,0,0.4) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 1px 0 3px rgba(0,0,0,0.5),
+    inset -1px 0 3px rgba(0,0,0,0.5),
+    inset 0 2px 4px rgba(0,0,0,0.3);
+  margin: 4px 0;
+}
+.scroll-v3::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  /* Sunset glass pill — warm/cool edge contrast */
+  background: rgba(40,52,68,0.55);
+  border-left: 1px solid rgba(40,200,190,0.06);
+  border-right: 1px solid rgba(240,140,30,0.22);
+  border-top: 1px solid rgba(255,255,255,0.14);
+  border-bottom: 0.5px solid rgba(0,0,0,0.2);
+  box-shadow:
+    0 1px 4px rgba(0,0,0,0.35),
+    inset 2px 0 4px rgba(40,200,190,0.02),
+    inset -2px 0 4px rgba(240,140,30,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+.scroll-v3::-webkit-scrollbar-thumb:hover {
+  background: rgba(50,64,82,0.65);
+  border-left-color: rgba(40,200,190,0.1);
+  border-right-color: rgba(240,140,30,0.35);
+  border-top-color: rgba(255,255,255,0.2);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.45),
+    inset 2px 0 6px rgba(40,200,190,0.025),
+    inset -2px 0 6px rgba(240,140,30,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V4 — ACRYLIC ROD: 10px, no track, maximum glass effect
+   ═══════════════════════════════════════════════════════════════ */
+.scroll-v4::-webkit-scrollbar { width: 10px; }
+.scroll-v4::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+.scroll-v4::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  /* Darker, more opaque acrylic with strong refraction */
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.06) 0%, transparent 15%, transparent 85%, rgba(255,255,255,0.03) 100%),
+    linear-gradient(90deg,
+      rgba(64,232,208,0.12) 0%,
+      rgba(20,32,48,0.7) 10%,
+      rgba(28,40,56,0.75) 30%,
+      rgba(255,255,255,0.15) 46%,
+      rgba(255,255,255,0.22) 50%,
+      rgba(255,255,255,0.15) 54%,
+      rgba(28,40,56,0.75) 70%,
+      rgba(20,32,48,0.7) 90%,
+      rgba(240,160,48,0.12) 100%);
+  border-left: 1px solid rgba(64,232,208,0.22);
+  border-right: 1px solid rgba(240,160,48,0.22);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.25);
+  box-shadow:
+    0 3px 8px rgba(0,0,0,0.5),
+    0 0 1px rgba(255,255,255,0.06),
+    inset 1.5px 0 5px rgba(64,232,208,0.06),
+    inset -1.5px 0 5px rgba(240,160,48,0.06),
+    inset 0 2px 3px rgba(255,255,255,0.07),
+    inset 0 -1px 2px rgba(0,0,0,0.2);
+}
+.scroll-v4::-webkit-scrollbar-thumb:hover {
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,0.08) 0%, transparent 15%, transparent 85%, rgba(255,255,255,0.04) 100%),
+    linear-gradient(90deg,
+      rgba(64,232,208,0.2) 0%,
+      rgba(25,38,55,0.8) 10%,
+      rgba(32,46,64,0.85) 30%,
+      rgba(255,255,255,0.22) 46%,
+      rgba(255,255,255,0.32) 50%,
+      rgba(255,255,255,0.22) 54%,
+      rgba(32,46,64,0.85) 70%,
+      rgba(25,38,55,0.8) 90%,
+      rgba(240,160,48,0.2) 100%);
+  border-left-color: rgba(64,232,208,0.35);
+  border-right-color: rgba(240,160,48,0.35);
+  box-shadow:
+    0 3px 10px rgba(0,0,0,0.6),
+    0 0 3px rgba(255,255,255,0.08),
+    inset 2px 0 6px rgba(64,232,208,0.08),
+    inset -2px 0 6px rgba(240,160,48,0.08),
+    inset 0 2px 4px rgba(255,255,255,0.09),
+    inset 0 -1px 3px rgba(0,0,0,0.25);
+}
+
+</style>
+</head>
+<body>
+
+<a href="https://peirastes.com" class="site-back" title="Back to Peirastes">Peirastes</a>
+
+<header class="page-header">
+  <div class="page-title">Acrylic HUD · Scrollbar</div>
+  <div class="page-sub">Glass rod iterations — <em>4 variants</em></div>
+</header>
+
+<main class="variant-grid">
+
+  <!-- V1 — FLAT AMBER (baseline) -->
+  <section class="variant">
+    <div class="variant-label"><span class="code">V1</span>Flat Amber (current)</div>
+    <div class="variant-sub"><b>Baseline.</b> 4px thin, flat amber thumb on dark track. Functional but lifeless.</div>
+
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Mission Log</span>
+        <span class="panel-header__status">Flat</span>
+      </div>
+      <div class="scroll-box scroll-v1" id="box1"></div>
+    </div>
+  </section>
+
+  <!-- V2 — GLASS ROD: subtle -->
+  <section class="variant">
+    <div class="variant-label"><span class="code">V2</span>Acrylic Rod · Full</div>
+    <div class="variant-sub"><b>10px.</b> Full acrylic glass DNA — semi-transparent dark body, chromatic borders (cyan L / amber R), specular center highlight, floating shadow, inner refraction glow.</div>
+
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Mission Log</span>
+        <span class="panel-header__status">Glass · Subtle</span>
+      </div>
+      <div class="scroll-box scroll-v2" id="box2"></div>
+    </div>
+  </section>
+
+  <!-- V3 — GLASS ROD: pronounced -->
+  <section class="variant">
+    <div class="variant-label"><span class="code">V3</span>Acrylic Rod · Recessed</div>
+    <div class="variant-sub"><b>8px.</b> Same glass rod in a recessed channel track. Dark track with inset shadows. Glass thumb floats inside.</div>
+
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Mission Log</span>
+        <span class="panel-header__status">Glass · Bold</span>
+      </div>
+      <div class="scroll-box scroll-v3" id="box3"></div>
+    </div>
+  </section>
+
+  <!-- V4 — GLASS ROD: chromatic -->
+  <section class="variant">
+    <div class="variant-label"><span class="code">V4</span>Acrylic Rod · Max Glass</div>
+    <div class="variant-sub"><b>10px.</b> No track — transparent background. Darkest, most opaque acrylic body. Strongest chromatic split + specular. Vertical sheen layer. Maximum 3D.</div>
+
+    <div class="acrylic-panel">
+      <div class="panel-header">
+        <span class="panel-header__label">Mission Log</span>
+        <span class="panel-header__status">Glass · Chrom</span>
+      </div>
+      <div class="scroll-box scroll-v4" id="box4"></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// Populate all boxes with identical sample content
+const events = [
+  { color: '#378add', text: 'T-00:03:25 — Liftoff from LC-39B' },
+  { color: '#707880', text: 'T-00:03:17 — Core stage / ICPS separation' },
+  { color: '#f0a030', text: 'T-00:02:00 — ICPS perigee raise burn' },
+  { color: '#707880', text: 'T-00:00:30 — Orion / ICPS separation' },
+  { color: '#9a6dd7', text: 'T+00:00:00 — Tracking begins' },
+  { color: '#f0a030', text: 'T+00:21:49 — Trans-Lunar Injection' },
+  { color: '#404040', text: 'T+01:13:00 — OTC-1 (cancelled)' },
+  { color: '#404040', text: 'T+02:16:00 — OTC-2 (cancelled)' },
+  { color: '#f0a030', text: 'T+04:01:05 — OTC-3 correction burn' },
+  { color: '#40e8d0', text: 'T+04:21:00 — Lunar perilune (6,546 km)' },
+  { color: '#f0a030', text: 'T+05:22:06 — RTC-1 return burn' },
+  { color: '#f0a030', text: 'T+08:00:53 — RTC-2 return burn' },
+  { color: '#f0a030', text: 'T+08:16:53 — RTC-3 final correction' },
+  { color: '#9a6dd7', text: 'T+08:21:50 — Entry interface (122 km)' },
+  { color: '#e05577', text: 'T+08:22:04 — Splashdown (simulated)' },
+  { color: '#e05577', text: 'T+08:22:07 — Splashdown (published)' },
+];
+
+['box1','box2','box3','box4'].forEach(id => {
+  const box = document.getElementById(id);
+  for (const evt of events) {
+    const item = document.createElement('div');
+    item.className = 'scroll-item';
+    const dot = document.createElement('div');
+    dot.className = 'scroll-dot';
+    dot.style.background = evt.color;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode(evt.text));
+    box.appendChild(item);
+  }
+});
+</script>
+
+</body>
+</html>

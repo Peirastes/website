@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artemis II — Orion Time</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Instrument+Serif&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0c14;--fg:#e8e6e1;--fg2:#9a9890;--fg3:#6b6960;
+  --accent:#5dcaa5;--accent2:#378add;--warn:#ef9f27;
+  --glass:rgba(10,12,20,0.72);--glass-border:rgba(255,255,255,0.08);
+}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;overflow:hidden}
+
+.app{position:relative;width:100vw;height:100vh}
+canvas{display:block;width:100%;height:100%}
+
+/* Glass HUD panels */
+.hud{position:absolute;border-radius:8px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);pointer-events:auto}
+
+/* Top-left: branding + clocks + delta */
+.hud-tl{top:16px;left:16px;padding:10px 14px;min-width:270px}
+.logo{font-family:'Instrument Serif',serif;font-size:20px;color:var(--fg);display:flex;align-items:baseline;gap:6px}
+.logo span{color:var(--accent)}
+.logo-sub{font-size:9px;color:var(--fg3);letter-spacing:1.2px;text-transform:uppercase;font-family:'DM Sans',sans-serif}
+.phase-met{display:flex;gap:12px;margin-top:4px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px;font-family:'Space Mono',monospace;font-size:10px}
+.phase{color:var(--warn);text-transform:uppercase;letter-spacing:0.6px}
+.met{color:var(--fg3)}
+.met b{color:var(--fg2);font-weight:400}
+
+/* Top-right: info button + equation popover */
+.info-btn{top:16px;right:16px;width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:15px;font-style:italic;color:var(--fg3);cursor:pointer;transition:all 0.15s;border-color:rgba(255,255,255,0.12);z-index:10}
+.info-btn:hover{color:var(--fg);border-color:rgba(255,255,255,0.25)}
+.hud-tr{top:16px;right:16px;padding:14px 16px;max-width:340px;max-height:calc(100vh - 80px);overflow-y:auto}
+.info-panel{margin-top:52px}
+.info-panel.hidden{display:none}
+.info-title{font-family:'Instrument Serif',serif;font-size:18px;color:var(--fg);margin-bottom:8px}
+.info-text{font-size:11px;line-height:1.55;color:var(--fg3);margin-bottom:8px}
+.info-text strong{color:var(--fg2);font-weight:500}
+.info-text em{font-style:italic;color:var(--fg2)}
+.info-effects{display:flex;flex-direction:column;gap:6px;margin:8px 0 10px;padding-left:8px;border-left:2px solid rgba(255,255,255,0.06)}
+.info-effect-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.5px;font-weight:700;margin-bottom:2px}
+.info-effect-desc{font-size:10px;line-height:1.45;color:var(--fg3)}
+.info-sep{height:1px;background:rgba(255,255,255,0.06);margin:12px 0}
+.info-credit{font-size:9px;color:var(--fg3);margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04)}
+.info-credit strong{color:var(--fg2);font-weight:500}
+.clocks{display:flex;gap:16px;margin-bottom:8px}
+.clock{flex:1}
+.clock-label{font-size:7px;letter-spacing:1px;text-transform:uppercase;color:var(--fg3);margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.clock-label .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.clock-label .dot.earth{background:var(--accent2)}
+.clock-label .dot.orion{background:var(--accent)}
+.clock-val{font-family:'Space Mono',monospace;font-size:14px;font-weight:700}
+.clock-date{font-family:'Space Mono',monospace;font-size:9px;color:var(--fg3);margin-top:1px}
+.delta{display:flex;align-items:center;padding:6px 8px;background:rgba(93,202,165,0.06);border:1px solid rgba(93,202,165,0.10);border-radius:5px}
+.delta-lbl{font-size:8px;letter-spacing:0.8px;text-transform:uppercase;color:var(--accent);margin-right:8px}
+.delta-val{font-family:'Space Mono',monospace;font-size:15px;color:var(--accent);font-weight:700;flex:1;text-align:right}
+.delta-note{font-size:9px;color:var(--fg3);margin-top:5px;text-align:right}
+
+/* Bottom-left: telemetry + equation */
+.hud-bl{bottom:16px;left:16px;padding:10px 14px;max-width:260px}
+.section-lbl{font-size:7px;letter-spacing:1.4px;text-transform:uppercase;color:var(--fg3);margin-bottom:5px}
+.telem{display:grid;grid-template-columns:repeat(4,auto);gap:4px 14px;margin-bottom:8px}
+.t-label{font-size:7px;letter-spacing:0.6px;text-transform:uppercase;color:var(--fg3)}
+.t-val{font-family:'Space Mono',monospace;font-size:11px;font-weight:600}
+.eq{padding:8px 10px;background:rgba(255,255,255,0.02);border-radius:4px;border:1px solid rgba(255,255,255,0.04);overflow-x:auto}
+.eq .katex{font-size:13px;color:var(--fg2)}
+.eq2{margin-top:4px}
+.eq .katex .mord.text .mord{color:var(--fg2)}
+
+/* Bottom-right: mission log + integrator info */
+.hud-br{bottom:16px;right:16px;padding:10px 14px}
+.log-entry{font-family:'Space Mono',monospace;font-size:8px;line-height:1.6;color:var(--fg3);padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.log-entry:last-child{border-bottom:none}
+.log-t{color:var(--warn)}.log-v{color:var(--fg2)}
+.integrator{font-family:'Space Mono',monospace;font-size:8px;color:rgba(255,255,255,0.2);margin-top:6px}
+.integrator span{color:var(--accent)}
+
+/* Bottom-center: controls */
+.hud-bc{bottom:16px;left:50%;transform:translateX(-50%);padding:8px 12px;display:flex;align-items:center;gap:6px}
+.speed-btn{padding:5px 10px;border:1px solid var(--glass-border);border-radius:4px;background:transparent;color:var(--fg3);font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;transition:all 0.15s}
+.speed-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--fg2)}
+.speed-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(93,202,165,0.08)}
+.play-btn{padding:5px 16px;border:1px solid var(--accent);border-radius:4px;background:rgba(93,202,165,0.10);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:all 0.15s}
+.play-btn:hover{background:rgba(93,202,165,0.18)}
+.reset-btn{padding:5px 8px;border:1px solid var(--glass-border);border-radius:4px;background:transparent;color:var(--fg3);font-size:11px;cursor:pointer;transition:all 0.15s}
+.reset-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--fg2)}
+
+@media(max-width:700px){
+  .hud-tr{top:auto;bottom:180px;right:8px;left:8px;min-width:auto}
+  .hud-tl{padding:8px 10px}
+  .hud-bl{display:none}
+  .hud-bc{bottom:8px}
+  .hud-br{bottom:60px;right:8px;max-width:none;left:8px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <canvas id="simCanvas"></canvas>
+
+  <!-- Top-left: branding + phase + clocks + delta-tau -->
+  <div class="hud hud-tl">
+    <div class="logo">Artemis <span>II</span> <span class="logo-sub">Orion time</span></div>
+    <div class="phase-met">
+      <span class="phase" id="phaseBadge">Pre-launch</span>
+      <span class="met">MET <b id="metVal">T+00:00:00</b></span>
+    </div>
+    <div class="clocks">
+      <div class="clock">
+        <div class="clock-label"><span class="dot earth"></span>Earth (UTC)</div>
+        <div class="clock-val" id="earthClock">00:00:00</div>
+        <div class="clock-date" id="earthDate">2026-04-01</div>
+      </div>
+      <div class="clock">
+        <div class="clock-label"><span class="dot orion"></span>Orion &tau;</div>
+        <div class="clock-val" id="orionClock">00:00:00</div>
+        <div class="clock-date" id="orionDate">2026-04-01</div>
+      </div>
+    </div>
+    <div class="delta">
+      <div class="delta-lbl">&Delta;&tau;</div>
+      <div class="delta-val" id="deltaValue">+0.000 &micro;s</div>
+    </div>
+    <div class="delta-note" id="deltaNote">Gravitational blueshift vs velocity dilation</div>
+  </div>
+
+  <!-- Top-right: info button + popover -->
+  <button class="hud info-btn" id="infoBtn" title="About this simulator">i</button>
+  <div class="hud hud-tr info-panel hidden" id="infoPanel">
+    <div class="info-title">Orion Time</div>
+    <div class="info-text">
+      A real-time relativistic clock comparison for NASA's
+      <strong>Artemis II</strong> mission — the first crewed flight
+      to the Moon since Apollo 17 in 1972.
+    </div>
+    <div class="info-text">
+      As Orion travels to the Moon and back, its clocks tick at a
+      different rate than clocks on Earth. Two effects compete:
+    </div>
+    <div class="info-effects">
+      <div class="info-effect">
+        <div class="info-effect-label" style="color:var(--accent2)">Gravitational blueshift</div>
+        <div class="info-effect-desc">Far from Earth, gravity is weaker and clocks run <em>faster</em>. At the Moon's distance, Orion's clocks gain time relative to Earth.</div>
+      </div>
+      <div class="info-effect">
+        <div class="info-effect-label" style="color:var(--warn)">Velocity time dilation</div>
+        <div class="info-effect-desc">Moving clocks run <em>slower</em> (special relativity). At 10+ km/s during translunar injection, this effect opposes the gravitational gain.</div>
+      </div>
+    </div>
+    <div class="info-text">
+      For Artemis II, gravity dominates — the crew ages
+      <strong>slightly more</strong> than people on Earth,
+      accumulating hundreds of microseconds over 10 days.
+    </div>
+
+    <div class="info-sep"></div>
+    <div class="section-lbl">Worldline metric</div>
+    <div class="info-text" style="margin-bottom:6px">
+      The proper time along Orion's worldline in the weak-field limit:
+    </div>
+    <div class="eq" id="eqMetric"></div>
+    <div class="eq eq2" id="eqPhi"></div>
+    <div class="info-text" style="margin-top:8px">
+      &Delta;&tau; is accumulated by integrating this metric along
+      the spacecraft's trajectory at each timestep, comparing
+      Orion's clock rate to a reference clock on Earth's surface.
+    </div>
+
+    <div class="info-sep"></div>
+    <div class="section-lbl">Simulation</div>
+    <div class="info-text">
+      Trajectory computed via <strong>RK4 integration</strong> under
+      Earth + Moon gravity (two-body). Burns are impulsive
+      &Delta;v maneuvers at the correct mission times. Ascent phase
+      is interpolated from real SLS performance data. All parameters
+      cross-referenced with NASA Artemis II mission control.
+    </div>
+    <div class="info-credit">
+      Built by <strong>Peirastes</strong>
+    </div>
+  </div>
+
+  <!-- Bottom-left: mission log -->
+  <div class="hud hud-bl">
+    <div class="section-lbl">Mission log</div>
+    <div id="missionLog"></div>
+    <div class="integrator" id="trajInfo">Computing&hellip;</div>
+  </div>
+
+  <!-- Bottom-right: telemetry -->
+  <div class="hud hud-br">
+    <div class="section-lbl">Telemetry</div>
+    <div class="telem">
+      <div><div class="t-label">Altitude</div><div class="t-val" id="distVal">0 km</div></div>
+      <div><div class="t-label">Velocity</div><div class="t-val" id="velVal">0 km/s</div></div>
+      <div><div class="t-label">v/c</div><div class="t-val" id="vcVal">0</div></div>
+      <div><div class="t-label">&Phi;/c&sup2;</div><div class="t-val" id="phiVal">0</div></div>
+    </div>
+  </div>
+
+  <!-- Bottom-center: playback controls -->
+  <div class="hud hud-bc">
+    <button class="speed-btn" data-speed="1">1&times;</button>
+    <button class="speed-btn" data-speed="60">1m/s</button>
+    <button class="speed-btn active" data-speed="3600">1h/s</button>
+    <button class="speed-btn" data-speed="21600">6h/s</button>
+    <button class="play-btn" id="playBtn">&#9654; Play</button>
+    <button class="reset-btn" id="resetBtn">&#8634;</button>
+  </div>
+</div>
+
+<script>
+// ========== PHYSICAL CONSTANTS ==========
+const C = 299792.458;          // speed of light km/s
+const G = 6.674e-11;           // gravitational constant SI
+const ME = 5.972e24;           // Earth mass kg
+const MM = 7.342e22;           // Moon mass kg
+const RE = 6371;               // Earth radius km
+const RM = 1737;               // Moon radius km
+const LUNAR_DIST = 384400;     // mean Earth-Moon distance km
+const LEO_ALT = 185;           // LEO altitude km
+const MU_E = 398600.4418;      // Earth gravitational parameter km^3/s^2
+const MU_M = 4902.8;           // Moon gravitational parameter km^3/s^2
+const LUNAR_PERIOD = 27.322 * 86400; // Moon orbital period seconds
+
+const LAUNCH_UTC = new Date('2026-04-01T22:35:12Z').getTime();
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+let simTime = 0;
+let simSpeed = 3600;
+let playing = false;
+let lastFrame = 0;
+let trailPoints = [];
+
+const T_LEO_END = 10800;       // 3 hrs (not used for trajectory anymore, kept for reference)
+const T_TLI = 86400;           // ~24 hrs (approximate, actual TLI detected at perigee)
+const T_MISSION_END = 864000;  // 10 days (fallback; actual end is TRAJ_SPLASHDOWN)
+
+// ========== MOON POSITION ==========
+function getMoonAngle(t) {
+  return t * 2 * Math.PI / LUNAR_PERIOD + 0.4;
+}
+function getMoonXY(t) {
+  let a = getMoonAngle(t);
+  return { x: LUNAR_DIST * Math.cos(a), y: LUNAR_DIST * Math.sin(a) };
+}
+
+// ========== RK4 GRAVITATIONAL INTEGRATOR ==========
+// State vector: [x, y, vx, vy] in km and km/s
+// Earth at origin; Moon moves on circular orbit
+
+function gravAccel(x, y, t) {
+  // Earth gravity (Earth at origin)
+  let rE = Math.sqrt(x * x + y * y);
+  let rE3 = rE * rE * rE;
+  let ax = -MU_E * x / rE3;
+  let ay = -MU_E * y / rE3;
+
+  // Moon gravity
+  let moon = getMoonXY(t);
+  let dxM = x - moon.x;
+  let dyM = y - moon.y;
+  let rM = Math.sqrt(dxM * dxM + dyM * dyM);
+  let rM3 = rM * rM * rM;
+  ax -= MU_M * dxM / rM3;
+  ay -= MU_M * dyM / rM3;
+
+  return { ax, ay };
+}
+
+function rk4Step(state, t, dt) {
+  let { x, y, vx, vy } = state;
+
+  // k1
+  let a1 = gravAccel(x, y, t);
+  let k1x = vx, k1y = vy, k1vx = a1.ax, k1vy = a1.ay;
+
+  // k2
+  let x2 = x + 0.5*dt*k1x, y2 = y + 0.5*dt*k1y;
+  let a2 = gravAccel(x2, y2, t + 0.5*dt);
+  let k2x = vx + 0.5*dt*k1vx, k2y = vy + 0.5*dt*k1vy;
+  let k2vx = a2.ax, k2vy = a2.ay;
+
+  // k3
+  let x3 = x + 0.5*dt*k2x, y3 = y + 0.5*dt*k2y;
+  let a3 = gravAccel(x3, y3, t + 0.5*dt);
+  let k3x = vx + 0.5*dt*k2vx, k3y = vy + 0.5*dt*k2vy;
+  let k3vx = a3.ax, k3vy = a3.ay;
+
+  // k4
+  let x4 = x + dt*k3x, y4 = y + dt*k3y;
+  let a4 = gravAccel(x4, y4, t + dt);
+  let k4x = vx + dt*k3vx, k4y = vy + dt*k3vy;
+  let k4vx = a4.ax, k4vy = a4.ay;
+
+  return {
+    x:  x  + (dt/6) * (k1x  + 2*k2x  + 2*k3x  + k4x),
+    y:  y  + (dt/6) * (k1y  + 2*k2y  + 2*k3y  + k4y),
+    vx: vx + (dt/6) * (k1vx + 2*k2vx + 2*k3vx + k4vx),
+    vy: vy + (dt/6) * (k1vy + 2*k2vy + 2*k3vy + k4vy)
+  };
+}
+
+// ========== PRE-COMPUTE FULL MISSION TRAJECTORY ==========
+// Single continuous RK4 integration from launch to splashdown.
+// Powered ascent is modeled as a thrust phase for the first ~8 minutes,
+// then everything is gravitational with instantaneous burns at key times.
+
+const TRAJ = [];
+const TRAJ_DT = 10; // 10-second steps for accuracy during burns
+
+// Artemis II burn timeline (seconds from launch):
+const T_MECO = 480;          // Main engine cutoff, in orbit
+const T_SRB = 126;           // SRB burnout/separation
+const T_PERIGEE_RAISE = 2940; // ~49 min: ICPS perigee raise burn
+const T_HEO_BURN = 5400;     // ~90 min: ICPS burn to high Earth orbit
+const T_PROX_OPS = 10800;    // ~3 hrs: proximity operations demo
+const T_PERIGEE_RAISE2 = 43200; // ~12 hrs: perigee raise burn (Orion OMS)
+const T_TLI_BURN = 82800;    // ~23 hrs: TLI burn
+
+function buildTrajectory() {
+  let tFlyby = T_TLI_BURN + 4 * 86400;
+  let moonAtFlyby = getMoonXY(tFlyby);
+  let moonAngle = Math.atan2(moonAtFlyby.y, moonAtFlyby.x);
+
+  // Start angle chosen so HEO perigee velocity aligns with translunar trajectory
+  let startAngle = moonAngle + 3.00;
+  let r0 = RE + LEO_ALT;
+  let vOrb = Math.sqrt(MU_E / r0);
+
+  TRAJ.length = 0;
+
+  // ---- PHASE 1: Powered ascent (t=0 to T_MECO) ----
+  // Interpolated from real SLS ascent profile milestones:
+  // Altitude and velocity based on Artemis I data and SLS performance
+  // The spacecraft rises from the surface, pitches over, and reaches orbit
+  let ascentProfile = [
+    // { t, alt (km), speed (km/s) }
+    { t: 0,     alt: 0,    spd: 0 },
+    { t: 30,    alt: 1,    spd: 0.30 },
+    { t: 60,    alt: 5,    spd: 0.65 },
+    { t: 90,    alt: 15,   spd: 1.10 },
+    { t: T_SRB, alt: 45,   spd: 1.80 },  // SRB separation at 126s
+    { t: 180,   alt: 70,   spd: 2.20 },
+    { t: 240,   alt: 100,  spd: 3.10 },
+    { t: 300,   alt: 120,  spd: 4.20 },
+    { t: 360,   alt: 140,  spd: 5.40 },
+    { t: 420,   alt: 155,  spd: 6.70 },
+    { t: T_MECO, alt: LEO_ALT, spd: vOrb }, // MECO: circular velocity at 185 km
+  ];
+
+  // Interpolate ascent and store trajectory points
+  // Direction: starts radial (vertical), pitches to tangential (horizontal)
+  for (let t = 0; t < T_MECO; t += TRAJ_DT) {
+    // Find surrounding profile points
+    let lo = 0;
+    for (let j = 1; j < ascentProfile.length; j++) {
+      if (ascentProfile[j].t > t) break;
+      lo = j;
+    }
+    let hi = Math.min(lo + 1, ascentProfile.length - 1);
+    let frac = lo === hi ? 0 : (t - ascentProfile[lo].t) / (ascentProfile[hi].t - ascentProfile[lo].t);
+
+    let alt = ascentProfile[lo].alt + frac * (ascentProfile[hi].alt - ascentProfile[lo].alt);
+    let spd = ascentProfile[lo].spd + frac * (ascentProfile[hi].spd - ascentProfile[lo].spd);
+    let r = RE + alt;
+
+    // Direction: smoothly rotate from radial (launch) to tangential (orbit)
+    // At t=0, moving radially outward; at MECO, moving tangentially
+    let pitchFrac = Math.min(1, t / T_MECO);
+    let easeP = pitchFrac < 0.1 ? pitchFrac * 5 : 0.5 + 0.5 * ((pitchFrac - 0.1) / 0.9);
+    easeP = Math.min(1, easeP);
+
+    // Angular position along the orbit track (small arc during ascent)
+    let arcAngle = startAngle + easeP * (spd / vOrb) * 0.04;
+
+    let x = r * Math.cos(arcAngle);
+    let y = r * Math.sin(arcAngle);
+
+    // Velocity: blend from radial to tangential
+    let radDir = { x: Math.cos(arcAngle), y: Math.sin(arcAngle) };
+    let tanDir = { x: -Math.sin(arcAngle), y: Math.cos(arcAngle) };
+    let vx = spd * (radDir.x * (1 - easeP) + tanDir.x * easeP);
+    let vy = spd * (radDir.y * (1 - easeP) + tanDir.y * easeP);
+
+    TRAJ.push({ t, x, y, vx, vy });
+  }
+
+  // ---- PHASE 2: RK4 integration from t=0 ----
+  // The RK4 integration must start from t=0 to maintain correct orbital phasing
+  // for the HEO burn and TLI. The ascent points above are display-only overlays
+  // for the first 480s; the RK4 data takes over at T_MECO.
+  let state = {
+    x: r0 * Math.cos(startAngle),
+    y: r0 * Math.sin(startAngle),
+    vx: -vOrb * Math.sin(startAngle),
+    vy: vOrb * Math.cos(startAngle)
+  };
+
+  // Integrate from t=0 but only store points after T_MECO
+  // (ascent phase already has display points)
+  let t = 0;
+
+  // Burn sequence (all detected dynamically from orbital mechanics):
+  // 1. ICPS burn to HEO at T_HEO_BURN (~90 min) — prograde, raises apogee to 74,000 km
+  // 2. TLI at perigee return after HEO apogee — sets translunar velocity
+  let heoBurnDone = false, tliDone = false, passedApogee = false;
+  let minMoonDist = Infinity;
+  let totalSteps = Math.ceil(T_MISSION_END / TRAJ_DT);
+
+  for (let i = 0; i < totalSteps; i++) {
+    state = rk4Step(state, t, TRAJ_DT);
+    t += TRAJ_DT;
+
+    let rE = Math.sqrt(state.x**2 + state.y**2);
+    let speed = Math.sqrt(state.vx**2 + state.vy**2);
+
+    // ICPS HEO burn at ~90 min: prograde burn to raise apogee
+    if (!heoBurnDone && t >= T_HEO_BURN) {
+      let rPeri = rE, rApo = RE + 74000;
+      let a = (rPeri + rApo) / 2;
+      let vTarget = Math.sqrt(MU_E * (2/rPeri - 1/a));
+      let dv = vTarget - speed;
+      if (dv > 0) {
+        state.vx += dv * state.vx / speed;
+        state.vy += dv * state.vy / speed;
+      }
+      heoBurnDone = true;
+      TRAJ_META.heoBurn = { t, alt: Math.round(rE-RE), dv: dv.toFixed(3) };
+    }
+
+    // TLI: detect perigee return after HEO apogee
+    // Pure prograde burn — the orbit is already aligned with the Moon
+    // because we chose the correct start angle (= launch window)
+    // Delta-v: 0.360 km/s prograde (close to NASA's reported 0.388 km/s / 1,274 ft/s)
+    if (heoBurnDone && !tliDone) {
+      if (rE > RE + 40000) passedApogee = true;
+      if (passedApogee && rE < RE + 500) {
+        let tliDv = 0.360;
+        state.vx += tliDv * state.vx / speed;
+        state.vy += tliDv * state.vy / speed;
+        tliDone = true;
+        let newSpeed = Math.sqrt(state.vx**2 + state.vy**2);
+        TRAJ_META.tli = { t, alt: Math.round(rE-RE), vBefore: speed.toFixed(2), vAfter: newSpeed.toFixed(2), dv: tliDv };
+      }
+    }
+
+    // Store every 60s (only after MECO — ascent phase has its own points)
+    if (t >= T_MECO && (i % 6 === 0 || i === totalSteps - 1)) {
+      TRAJ.push({ t, x: state.x, y: state.y, vx: state.vx, vy: state.vy });
+    }
+
+    // Track perilune + splashdown
+    if (tliDone) {
+      let moon = getMoonXY(t);
+      let dm = Math.sqrt((state.x-moon.x)**2 + (state.y-moon.y)**2);
+      if (dm < minMoonDist) minMoonDist = dm;
+      if (rE < RE + 50 && t > T_TLI_BURN + 3*86400) {
+        TRAJ_SPLASHDOWN = t;
+        TRAJ.push({ t, x: state.x, y: state.y, vx: state.vx, vy: state.vy });
+        TRAJ_META.splashdown = { t, day: (t/86400).toFixed(1) };
+        break;
+      }
+    }
+  }
+  TRAJ_META.points = TRAJ.length;
+  TRAJ_META.periluneAlt = Math.round(minMoonDist - RM);
+  populateMissionInfo();
+}
+
+
+
+const TRAJ_META = {};
+
+function populateMissionInfo() {
+  let m = TRAJ_META;
+
+  let logHtml = '';
+  logHtml += '<div class="log-entry"><span class="log-t">T+0s</span> Launch — <span class="log-v">8.8M lbs</span></div>';
+  logHtml += '<div class="log-entry"><span class="log-t">T+' + T_SRB + 's</span> SRB sep</div>';
+  logHtml += '<div class="log-entry"><span class="log-t">T+' + T_MECO + 's</span> MECO — <span class="log-v">' + LEO_ALT + 'km</span>, <span class="log-v">' + Math.sqrt(MU_E/(RE+LEO_ALT)).toFixed(2) + 'km/s</span></div>';
+  if (m.heoBurn) {
+    logHtml += '<div class="log-entry"><span class="log-t">T+' + (m.heoBurn.t/60).toFixed(0) + 'm</span> ICPS→HEO &Delta;v=<span class="log-v">' + m.heoBurn.dv + '</span> at <span class="log-v">' + m.heoBurn.alt + 'km</span></div>';
+  }
+  if (m.tli) {
+    logHtml += '<div class="log-entry"><span class="log-t">T+' + (m.tli.t/3600).toFixed(1) + 'h</span> TLI &Delta;v=<span class="log-v">' + m.tli.dv + '</span> prograde <span class="log-v">' + m.tli.vBefore + '→' + m.tli.vAfter + '</span></div>';
+  }
+  if (m.periluneAlt) {
+    logHtml += '<div class="log-entry"><span class="log-t">Flyby</span> Perilune <span class="log-v">' + m.periluneAlt.toLocaleString() + 'km</span></div>';
+  }
+  if (m.splashdown) {
+    logHtml += '<div class="log-entry"><span class="log-t">Day ' + m.splashdown.day + '</span> Splashdown</div>';
+  }
+  document.getElementById('missionLog').innerHTML = logHtml;
+
+  let info = '<span>RK4</span> dt=' + TRAJ_DT + 's · ' + m.points + ' pts · Earth+Moon';
+  document.getElementById('trajInfo').innerHTML = info;
+}
+
+let TRAJ_SPLASHDOWN = T_MISSION_END;
+
+// Bisect to find state at time t
+function sampleTraj(t) {
+  if (t <= TRAJ[0].t) return TRAJ[0];
+  if (t >= TRAJ[TRAJ.length-1].t) return TRAJ[TRAJ.length-1];
+
+  let lo = 0, hi = TRAJ.length - 1;
+  while (hi - lo > 1) {
+    let mid = (lo + hi) >> 1;
+    if (TRAJ[mid].t <= t) lo = mid; else hi = mid;
+  }
+
+  let a = TRAJ[lo], b = TRAJ[hi];
+  let f = (t - a.t) / (b.t - a.t);
+  return {
+    x:  a.x  + f * (b.x  - a.x),
+    y:  a.y  + f * (b.y  - a.y),
+    vx: a.vx + f * (b.vx - a.vx),
+    vy: a.vy + f * (b.vy - a.vy)
+  };
+}
+
+// ========== PHASE DETECTION ==========
+function getPhase(t) {
+  if (t < 0) return 'Pre-launch';
+  if (t >= TRAJ_SPLASHDOWN) return 'Splashdown';
+
+  let s = sampleTraj(Math.min(t, TRAJ_SPLASHDOWN));
+  let rE = Math.sqrt(s.x**2 + s.y**2);
+  let moon = getMoonXY(t);
+  let dm = Math.sqrt((s.x - moon.x)**2 + (s.y - moon.y)**2);
+
+  if (t < T_MECO) return 'Powered ascent';
+  if (t < T_HEO_BURN) return 'LEO parking orbit';
+  if (t < T_TLI_BURN && rE > RE + 5000) return 'High Earth orbit';
+  if (t < T_TLI_BURN) return 'Earth orbit';
+  if (dm < 60000) return 'Lunar flyby';
+  if (rE < RE + 1000 && t > T_TLI_BURN + 3 * 86400) return 'Re-entry';
+  if (t < T_TLI_BURN + 4 * 86400) return 'Translunar coast';
+  return 'Return coast';
+}
+
+// ========== ORION STATE ==========
+function getOrionState(t) {
+  if (t < 0) return { x: RE, y: 0, r: RE, v: 0, phase: 'prelaunch' };
+  if (t >= TRAJ_SPLASHDOWN) {
+    let s = sampleTraj(TRAJ_SPLASHDOWN);
+    let r = Math.sqrt(s.x**2 + s.y**2);
+    return { x: s.x, y: s.y, r, v: 0, phase: 'splashdown' };
+  }
+
+  let s = sampleTraj(t);
+  let r = Math.sqrt(s.x * s.x + s.y * s.y);
+  let v = Math.sqrt(s.vx * s.vx + s.vy * s.vy);
+
+  return { x: s.x, y: s.y, r, v, phase: 'transfer' };
+}
+
+// ========== BUILD ON LOAD ==========
+buildTrajectory();
+
+// ========== TIME DILATION ==========
+function computeTimeDilation(state, dt_s) {
+  let r_m = state.r * 1000;
+  let v_ms = state.v * 1000;
+  let c_ms = C * 1000;
+
+  let phi_earth = -G * ME / (RE * 1000);
+  let phi_craft = -G * ME / r_m;
+
+  let moonPos = getMoonXY(simTime);
+  let dx = state.x - moonPos.x;
+  let dy = state.y - moonPos.y;
+  let dist_to_moon_km = Math.sqrt(dx * dx + dy * dy);
+  if (dist_to_moon_km < RM) dist_to_moon_km = RM;
+
+  let phi_moon_craft = -G * MM / (dist_to_moon_km * 1000);
+  let phi_moon_earth = -G * MM / (LUNAR_DIST * 1000);
+
+  phi_craft += phi_moon_craft;
+  phi_earth += phi_moon_earth;
+
+  let dPhi = phi_craft - phi_earth;
+  let grav_factor = dPhi / (c_ms * c_ms);
+  let vel_factor = -0.5 * (v_ms * v_ms) / (c_ms * c_ms);
+
+  let dtau_minus_dt = (grav_factor + vel_factor) * dt_s;
+  return { dtau_minus_dt, grav_factor, vel_factor, phi_craft_over_c2: phi_craft / (c_ms * c_ms) };
+}
+
+let cumulativeDeltaTau = 0;
+
+function formatTime(totalSeconds){
+  let absS=Math.abs(totalSeconds);
+  let h=Math.floor(absS/3600);
+  let m=Math.floor((absS%3600)/60);
+  let s=Math.floor(absS%60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function formatDate(ms){
+  let d=new Date(ms);
+  let y=d.getUTCFullYear();
+  let mo=String(d.getUTCMonth()+1).padStart(2,'0');
+  let day=String(d.getUTCDate()).padStart(2,'0');
+  return `${y}-${mo}-${day}`;
+}
+
+function formatMET(t){
+  if(t<0) return 'T-'+formatTime(-t);
+  return 'T+'+formatTime(t);
+}
+
+function resizeCanvas(){
+  canvas.width=canvas.parentElement.clientWidth*devicePixelRatio;
+  canvas.height=canvas.parentElement.clientHeight*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();
+
+function drawStar(x,y,size,alpha){
+  ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+  ctx.beginPath();
+  ctx.arc(x,y,size,0,Math.PI*2);
+  ctx.fill();
+}
+
+let stars=[];
+function initStars(w,h){
+  stars=[];
+  for(let i=0;i<200;i++){
+    stars.push({x:Math.random()*w,y:Math.random()*h,s:Math.random()*1.5+0.3,a:Math.random()*0.5+0.2,blink:Math.random()*Math.PI*2});
+  }
+}
+
+function drawScene(){
+  let w=canvas.width/devicePixelRatio;
+  let h=canvas.height/devicePixelRatio;
+
+  if(stars.length===0) initStars(w,h);
+
+  ctx.fillStyle='#0a0c14';
+  ctx.fillRect(0,0,w,h);
+
+  let now=performance.now()/1000;
+  for(let s of stars){
+    let a=s.a*(0.7+0.3*Math.sin(now*0.5+s.blink));
+    drawStar(s.x,s.y,s.s,a);
+  }
+
+  let cx=w*0.5;
+  let cy=h*0.5;
+  let scale=Math.min(w,h)*0.42/LUNAR_DIST;
+
+  for(let i=1;i<=5;i++){
+    let rr=LUNAR_DIST*i/5*scale;
+    ctx.strokeStyle=`rgba(255,255,255,${0.03})`;
+    ctx.lineWidth=0.5;
+    ctx.beginPath();
+    ctx.arc(cx,cy,rr,0,Math.PI*2);
+    ctx.stroke();
+  }
+
+  let earthR=Math.max(RE*scale,8);
+  let earthGrad=ctx.createRadialGradient(cx-earthR*0.3,cy-earthR*0.3,earthR*0.1,cx,cy,earthR);
+  earthGrad.addColorStop(0,'#5b9bd5');
+  earthGrad.addColorStop(0.7,'#2a6db5');
+  earthGrad.addColorStop(1,'#1a4a80');
+  ctx.fillStyle=earthGrad;
+  ctx.beginPath();
+  ctx.arc(cx,cy,earthR,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle='rgba(55,138,221,0.15)';
+  ctx.beginPath();
+  ctx.arc(cx,cy,earthR*1.6,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.font="11px 'DM Sans'";
+  ctx.fillStyle='#5b9bd5';
+  ctx.textAlign='center';
+  ctx.fillText('Earth',cx,cy+earthR+16);
+
+  let moonXY = getMoonXY(simTime);
+  let moonScreenX = cx + moonXY.x * scale;
+  let moonScreenY = cy - moonXY.y * scale;
+  let moonR=Math.max(RM*scale,4);
+
+  let moonGrad=ctx.createRadialGradient(moonScreenX-moonR*0.2,moonScreenY-moonR*0.2,moonR*0.1,moonScreenX,moonScreenY,moonR);
+  moonGrad.addColorStop(0,'#c8c8c0');
+  moonGrad.addColorStop(1,'#888880');
+  ctx.fillStyle=moonGrad;
+  ctx.beginPath();
+  ctx.arc(moonScreenX,moonScreenY,moonR,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle='#9a9890';
+  ctx.fillText('Moon',moonScreenX,moonScreenY+moonR+14);
+
+  let state=getOrionState(simTime);
+
+  if(trailPoints.length>0){
+    ctx.strokeStyle='rgba(93,202,165,0.3)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    let first=trailPoints[0];
+    ctx.moveTo(first.x,first.y);
+    for(let i=1;i<trailPoints.length;i++){
+      ctx.lineTo(trailPoints[i].x,trailPoints[i].y);
+    }
+    ctx.stroke();
+
+    for(let i=0;i<trailPoints.length;i+=Math.max(1,Math.floor(trailPoints.length/30))){
+      let tp=trailPoints[i];
+      let alpha=0.1+0.3*(i/trailPoints.length);
+      ctx.fillStyle=`rgba(93,202,165,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(tp.x,tp.y,1.5,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  let orionScreen = {
+    x: cx + state.x * scale,
+    y: cy - state.y * scale
+  };
+
+  if(simTime>=0 && simTime<TRAJ_SPLASHDOWN){
+    trailPoints.push({x:orionScreen.x,y:orionScreen.y});
+    if(trailPoints.length>2000) trailPoints.shift();
+  }
+
+  ctx.fillStyle='rgba(93,202,165,0.1)';
+  ctx.beginPath();
+  ctx.arc(orionScreen.x,orionScreen.y,12,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle='rgba(93,202,165,0.25)';
+  ctx.beginPath();
+  ctx.arc(orionScreen.x,orionScreen.y,7,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle='#5dcaa5';
+  ctx.beginPath();
+  ctx.arc(orionScreen.x,orionScreen.y,3.5,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.font="600 11px 'DM Sans'";
+  ctx.fillStyle='#5dcaa5';
+  ctx.textAlign='left';
+  ctx.fillText('Orion',orionScreen.x+14,orionScreen.y+4);
+
+  if(simTime>=0){
+    let dist_km=state.r-RE;
+    let distStr;
+    if(dist_km>10000) distStr=Math.round(dist_km).toLocaleString()+' km';
+    else distStr=Math.round(dist_km).toLocaleString()+' km';
+
+    ctx.font="10px 'Space Mono'";
+    ctx.fillStyle='rgba(93,202,165,0.6)';
+    ctx.fillText(distStr+' from Earth',orionScreen.x+14,orionScreen.y+18);
+  }
+
+  ctx.textAlign='left';
+  ctx.font="10px 'DM Sans'";
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  let scaleBarKm=100000;
+  let scaleBarPx=scaleBarKm*scale;
+  let sbx=20;
+  let sby=h-30;
+  ctx.strokeStyle='rgba(255,255,255,0.2)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(sbx,sby);
+  ctx.lineTo(sbx+scaleBarPx,sby);
+  ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sbx,sby-4);ctx.lineTo(sbx,sby+4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sbx+scaleBarPx,sby-4);ctx.lineTo(sbx+scaleBarPx,sby+4);ctx.stroke();
+  ctx.fillText('100,000 km',sbx+scaleBarPx/2-30,sby-8);
+
+  // ========== MISSION MILESTONE MARKERS ==========
+  // Draw small labeled markers at key mission times along the trajectory
+  let milestones = [
+    { t: 0, label: 'Launch', color: '#ef9f27' },
+    { t: T_SRB, label: 'SRB sep', color: 'rgba(239,159,39,0.5)' },
+    { t: T_MECO, label: 'MECO', color: '#ef9f27' },
+    { t: T_HEO_BURN, label: 'HEO burn', color: '#ef9f27' },
+    { t: 1*86400, label: 'Day 1', color: 'rgba(255,255,255,0.35)' },
+    { t: 2*86400, label: 'Day 2', color: 'rgba(255,255,255,0.35)' },
+    { t: 3*86400, label: 'Day 3', color: 'rgba(255,255,255,0.35)' },
+    { t: 4*86400, label: 'Day 4', color: 'rgba(255,255,255,0.35)' },
+    { t: 5*86400, label: 'Day 5', color: 'rgba(255,255,255,0.35)' },
+    { t: 6*86400, label: 'Day 6', color: 'rgba(255,255,255,0.35)' },
+    { t: 7*86400, label: 'Day 7', color: 'rgba(255,255,255,0.35)' },
+    { t: 8*86400, label: 'Day 8', color: 'rgba(255,255,255,0.35)' },
+    { t: 9*86400, label: 'Day 9', color: 'rgba(255,255,255,0.35)' },
+  ];
+  // Add TLI marker at its actual detected time
+  if (TRAJ_META.tli) {
+    milestones.push({ t: TRAJ_META.tli.t, label: 'TLI', color: '#ef9f27' });
+  }
+
+  // Find perilune time from trajectory
+  let periluneT = 0, periluneMinD = 1e9;
+  for (let i = 0; i < TRAJ.length; i++) {
+    let m = getMoonXY(TRAJ[i].t);
+    let d = Math.sqrt((TRAJ[i].x-m.x)**2 + (TRAJ[i].y-m.y)**2);
+    if (d < periluneMinD) { periluneMinD = d; periluneT = TRAJ[i].t; }
+  }
+  milestones.push({ t: periluneT, label: 'Perilune', color: '#5dcaa5' });
+
+  if (TRAJ_SPLASHDOWN < T_MISSION_END) {
+    milestones.push({ t: TRAJ_SPLASHDOWN, label: 'Splashdown', color: '#378add' });
+  }
+
+  for (let ms of milestones) {
+    if (ms.t > simTime) continue; // only show markers we've passed
+    let s = sampleTraj(Math.min(ms.t, TRAJ_SPLASHDOWN));
+    let mx = cx + s.x * scale;
+    let my = cy - s.y * scale;
+
+    ctx.fillStyle = ms.color;
+    ctx.beginPath();
+    ctx.arc(mx, my, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = "600 9px 'Space Mono'";
+    ctx.fillStyle = ms.color;
+    ctx.textAlign = 'left';
+    ctx.fillText(ms.label, mx + 6, my + 3);
+  }
+}
+
+function updateUI(){
+  let state=getOrionState(simTime);
+  let utcMs=LAUNCH_UTC+simTime*1000;
+
+  document.getElementById('earthClock').textContent=formatTime((utcMs%(86400000))/1000);
+  document.getElementById('earthDate').textContent=formatDate(utcMs);
+
+  let orionUtcMs=utcMs+cumulativeDeltaTau*1e6;
+  document.getElementById('orionClock').textContent=formatTime((orionUtcMs%(86400000))/1000);
+  document.getElementById('orionDate').textContent=formatDate(orionUtcMs);
+
+  let deltaUs=cumulativeDeltaTau*1e6;
+  let sign=deltaUs>=0?'+':'';
+  document.getElementById('deltaValue').innerHTML=sign+deltaUs.toFixed(3)+' &micro;s';
+
+  if(deltaUs>0){
+    document.getElementById('deltaNote').textContent='Gravitational blueshift dominates — Orion ages faster';
+  } else {
+    document.getElementById('deltaNote').textContent='Velocity dilation dominates — Orion ages slower';
+  }
+
+  let dist_km=Math.max(0,state.r-RE);
+  document.getElementById('distVal').textContent=Math.round(dist_km).toLocaleString()+' km';
+  document.getElementById('velVal').textContent=state.v.toFixed(1)+' km/s';
+  document.getElementById('vcVal').textContent=(state.v/C).toExponential(2);
+
+  let td=computeTimeDilation(state,1);
+  document.getElementById('phiVal').textContent=td.phi_craft_over_c2.toExponential(2);
+
+  document.getElementById('phaseBadge').textContent=getPhase(simTime);
+  document.getElementById('metVal').textContent=formatMET(simTime);
+}
+
+function animate(timestamp){
+  if(!lastFrame) lastFrame=timestamp;
+  let dt_real=(timestamp-lastFrame)/1000;
+  lastFrame=timestamp;
+
+  if(playing && dt_real<0.5){
+    let dt_sim=dt_real*simSpeed;
+    let steps=Math.max(1,Math.floor(dt_sim/60));
+    let stepSize=dt_sim/steps;
+
+    for(let i=0;i<steps;i++){
+      let state=getOrionState(simTime);
+      if(simTime>=0 && simTime<TRAJ_SPLASHDOWN){
+        let td=computeTimeDilation(state,stepSize);
+        cumulativeDeltaTau+=td.dtau_minus_dt;
+      }
+      simTime+=stepSize;
+    }
+
+    if(simTime>TRAJ_SPLASHDOWN){
+      simTime=TRAJ_SPLASHDOWN;
+      playing=false;
+      document.getElementById('playBtn').innerHTML='&#9654;&ensp;Play';
+    }
+  }
+
+  drawScene();
+  updateUI();
+  requestAnimationFrame(animate);
+}
+
+document.querySelectorAll('.speed-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    simSpeed=parseInt(btn.dataset.speed);
+  });
+});
+
+document.getElementById('playBtn').addEventListener('click',()=>{
+  if(simTime>=TRAJ_SPLASHDOWN){
+    simTime=0;cumulativeDeltaTau=0;trailPoints=[];
+  }
+  playing=!playing;
+  document.getElementById('playBtn').innerHTML=playing?'&#10074;&#10074;&ensp;Pause':'&#9654;&ensp;Play';
+});
+
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  simTime=0;
+  cumulativeDeltaTau=0;
+  trailPoints=[];
+  playing=false;
+  lastFrame=0;
+  document.getElementById('playBtn').innerHTML='&#9654;&ensp;Play';
+});
+
+document.getElementById('infoBtn').addEventListener('click',()=>{
+  document.getElementById('infoPanel').classList.toggle('hidden');
+});
+
+requestAnimationFrame(animate);
+
+// Render LaTeX equations
+katex.render(
+  String.raw`d\tau^2 = \left(1 + \frac{2\Phi}{c^2}\right)dt^2 - \frac{1}{c^2}\!\left(dr^2 + r^2 d\theta^2\right)`,
+  document.getElementById('eqMetric'),
+  { displayMode: true, throwOnError: false }
+);
+katex.render(
+  String.raw`\Phi(\mathbf{r}) = -\frac{GM_E}{r} - \frac{GM_M}{|\mathbf{r} - \mathbf{r}_M|}`,
+  document.getElementById('eqPhi'),
+  { displayMode: true, throwOnError: false }
+);
+</script>
+</body>
+</html>

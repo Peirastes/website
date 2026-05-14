@@ -1,0 +1,2856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#080a0e">
+  <title>Peirastes Copilot</title>
+  <link rel="manifest" href="/chat/manifest.json">
+  <link rel="apple-touch-icon" href="/chat/icon-192.png">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      background: #040608;
+      height: 100%;
+      height: -webkit-fill-available;
+    }
+
+    :root {
+      --bg:            #080a0e;
+      --surface:       #0e1214;
+      --border:        #1a1e1c;
+      --border-hover:  #2a2e2c;
+      --text:          #e8a040;
+      --text-dim:      #5a6258;
+      --accent:        #e86030;
+      --accent-bg:     #2a1808;
+      --success:       #33cc44;
+      --error:         #ff3344;
+      --purple:        #00c8dc;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+      /* CRT phosphor */
+      --crt-orange:     #e86030;
+      --crt-amber:      #ffaa33;
+      --crt-orange-dim: #a04820;
+      --crt-cyan:       #00c8dc;
+      --crt-cyan-dim:   #007888;
+      --crt-green:      #33cc44;
+      --crt-red:        #ff3344;
+      --crt-yellow:     #ffcc33;
+      --crt-screen-bg:  #080c08;
+
+      /* Metal surface */
+      --metal-hi:      #4a5458;
+      --metal-mid:     #3c4246;
+      --metal-lo:      #2e3438;
+      --metal-shadow:  #1e2428;
+      --metal-deep:    #0e1418;
+      --bezel-border:  #0c1014;
+
+      /* SVG procedural textures */
+      --tex-metal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+      --tex-rust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.15 0.5 0 0 0 0.05 0 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23r)' opacity='0.12'/%3E%3C/svg%3E");
+      --tex-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='turbulence' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23g)' opacity='0.04'/%3E%3C/svg%3E");
+    }
+
+    /* ===== TEXTURE OVERLAYS ===== */
+    .tex { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0; }
+    .tex-n { background-image: var(--tex-metal); background-size: 300px; opacity: .6; }
+    .tex-r { background-image: var(--tex-rust); background-size: 200px; opacity: .35; mix-blend-mode: overlay; }
+    .tex-g { background-image: var(--tex-grain); background-size: 150px; opacity: .5; }
+
+    /* ===== RIVETS ===== */
+    .rivet {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      z-index: 5;
+      border: 1px solid #080c0e;
+      background: radial-gradient(circle at 35% 28%, #6a6e70, #525658 22%, #3c4044 48%, #282c30 74%, #181c20);
+      box-shadow: 0 2px 4px rgba(0,0,0,.7), inset 0 1px 1px rgba(255,255,255,.06);
+    }
+    .rivet::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      pointer-events: none;
+      background: radial-gradient(circle, rgba(120,60,20,.12) 30%, rgba(80,40,10,.06) 60%, transparent 75%);
+    }
+
+    /* ===== NAMEPLATE ===== */
+    .nameplate {
+      text-align: center;
+      padding: 4px 0 2px;
+      position: relative;
+      z-index: 2;
+    }
+    .np-bar {
+      display: inline-block;
+      padding: 2px 16px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.15));
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.2), 0 1px 0 rgba(255,255,255,.03);
+      border: 1px solid rgba(0,0,0,.12);
+    }
+    .np-text {
+      font-size: 8px;
+      font-weight: 700;
+      color: #8a9094;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      text-shadow: 0 1px 0 rgba(255,255,255,.08), 0 -1px 1px rgba(0,0,0,.5);
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: radial-gradient(ellipse at 50% 40%, #1a2024, #0a0e12 65%, #040608);
+      color: var(--text);
+      height: 100%;
+      height: -webkit-fill-available;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overscroll-behavior: none;
+    }
+
+    /* ===== CHASSIS (wraps entire app) ===== */
+    .chassis {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100%;
+      min-height: -webkit-fill-available;
+      height: 100%;
+      height: -webkit-fill-available;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      border-left: 3px solid #0a0e10;
+      border-right: 3px solid #0a0e10;
+      background: linear-gradient(178deg, #586064 0%, #4e5458 4%, #444a4e 10%, #3c4246 28%, #383e42 50%, #3c4246 72%, #444a4e 90%, #4e5458 96%, #586064 100%);
+      box-shadow: 0 18px 60px rgba(0,0,0,.9), 0 4px 20px rgba(0,0,0,.7),
+        inset 0 1px 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(0,0,0,.4);
+    }
+    /* Top-edge bevel highlight */
+    .chassis::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 10px; right: 10px;
+      height: 1px;
+      z-index: 6;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.06) 20%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.06) 80%, transparent);
+    }
+
+    /* ===== LOGIN ===== */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      padding: 24px;
+      gap: 20px;
+      background: linear-gradient(180deg, #020806, #031208 30%, #020e06 70%, #020806);
+      position: relative;
+    }
+    /* Login scanlines */
+    #login-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,.7) 1px, rgba(0,0,0,.7) 2px);
+      background-size: 100% 3px;
+      opacity: .04;
+    }
+    /* Login vignette */
+    #login-screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,.6) 100%);
+    }
+    #login-screen > * { position: relative; z-index: 2; }
+    #login-screen.hidden { display: none; }
+
+    .login-brand {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--crt-cyan-dim);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+    .login-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--crt-orange);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 0 20px rgba(232,96,48,.5), 0 0 40px rgba(232,96,48,.25);
+    }
+    .login-input {
+      width: 100%;
+      max-width: 300px;
+      background: #060a08;
+      border: 2px solid var(--bezel-border);
+      border-radius: 4px;
+      color: var(--crt-amber);
+      padding: 12px 16px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      letter-spacing: 2px;
+      box-shadow: inset 0 3px 10px rgba(0,0,0,.7);
+      text-shadow: 0 0 4px rgba(255,170,51,.3);
+    }
+    .login-input:focus { border-color: var(--crt-orange-dim); outline: none; }
+    .login-input::placeholder { color: var(--text-dim); letter-spacing: 0; text-shadow: none; }
+    .login-btn {
+      width: 100%;
+      max-width: 300px;
+      background: linear-gradient(180deg, #2e3234, #1e2224 40%, #141618);
+      border: 2px solid var(--bezel-border);
+      border-radius: 4px;
+      color: var(--crt-orange);
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.03);
+      text-shadow: 0 0 6px rgba(232,96,48,.3);
+    }
+    .login-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 2px 6px rgba(0,0,0,.5);
+    }
+    .login-error {
+      color: var(--crt-red);
+      font-size: 12px;
+      min-height: 20px;
+      text-shadow: 0 0 6px rgba(255,51,68,.3);
+    }
+
+    /* ===== APP ===== */
+    #app { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    #app.active { display: flex; }
+
+    /* ===== INDICATOR STRIP (header) ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      padding-top: calc(10px + var(--safe-top));
+      background: linear-gradient(180deg, var(--metal-hi), var(--metal-mid) 30%, var(--metal-lo) 70%, var(--metal-shadow));
+      border-bottom: 2px solid var(--bezel-border);
+      flex-shrink: 0;
+      z-index: 10;
+      position: relative;
+    }
+    /* Top-edge highlight */
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 8px; right: 8px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.05) 20%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.05) 80%, transparent);
+    }
+
+    /* LED indicators */
+    .header-avatar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .header-status {
+      position: relative;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid #080c0e;
+      background: #101418;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.7);
+      transition: all .2s;
+    }
+    .header-status.online {
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-green) 35%);
+      box-shadow: 0 0 8px var(--crt-green), 0 0 20px rgba(51,204,68,.2);
+      animation: ldp 2.5s ease-in-out infinite;
+    }
+
+    .led-amber {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid #080c0e;
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-amber) 35%);
+      box-shadow: 0 0 8px var(--crt-amber), 0 0 20px rgba(255,170,51,.2);
+      animation: ldp 2.5s ease-in-out infinite;
+      animation-delay: 1s;
+    }
+
+    @keyframes ldp {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .6; }
+    }
+
+    .header-info { flex: 1; }
+    .header-name {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--crt-cyan-dim);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+    .header-sub {
+      font-size: 8px;
+      color: var(--crt-orange-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .header-actions { display: flex; gap: 4px; }
+    .header-btn {
+      background: linear-gradient(180deg, #2e3234, #1e2224 40%, #141618);
+      border: 1.5px solid var(--bezel-border);
+      border-radius: 3px;
+      color: var(--text-dim);
+      font-size: 9px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.03);
+    }
+    .header-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), inset 0 2px 6px rgba(0,0,0,.4);
+      color: var(--crt-orange);
+    }
+
+    /* ===== LED INDICATOR STRIP ===== */
+    .led-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 5px 12px;
+      background: linear-gradient(180deg, var(--metal-shadow), var(--metal-deep));
+      border-bottom: 1px solid var(--bezel-border);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .led-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .led-group-label {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      text-align: center;
+    }
+    .led-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .led-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .led-bar {
+      flex: 1;
+      height: 5px;
+      border-radius: 2px;
+      border: 1px solid #060a0c;
+      background: #101418;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.7);
+      transition: all .4s;
+    }
+    .led-bar.green {
+      background: linear-gradient(180deg, #66ff88, var(--crt-green) 40%, #1a8830);
+      box-shadow: 0 0 8px rgba(51,204,68,.5), 0 0 16px rgba(51,204,68,.15);
+    }
+    .led-bar.amber {
+      background: linear-gradient(180deg, #ffcc66, var(--crt-amber) 40%, #996614);
+      box-shadow: 0 0 8px rgba(255,170,51,.5), 0 0 16px rgba(255,170,51,.15);
+    }
+    .led-bar.red {
+      background: linear-gradient(180deg, #ff6677, var(--crt-red) 40%, #991422);
+      box-shadow: 0 0 8px rgba(255,51,68,.5), 0 0 16px rgba(255,51,68,.15);
+    }
+    .led-bar.cyan {
+      background: linear-gradient(180deg, #44ddee, var(--crt-cyan) 40%, #006878);
+      box-shadow: 0 0 8px rgba(0,200,220,.5), 0 0 16px rgba(0,200,220,.15);
+    }
+    .led-row-label {
+      font-size: 5px;
+      font-weight: 700;
+      color: #4a5248;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      white-space: nowrap;
+      min-width: 28px;
+    }
+
+    /* ===== BUDGET BAR ===== */
+    .budget-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      background: linear-gradient(180deg, var(--metal-lo), var(--metal-shadow));
+      border-bottom: 1px solid var(--bezel-border);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .budget-label {
+      font-size: 8px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+    .budget-track {
+      flex: 1;
+      height: 6px;
+      background: #0a0e10;
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid #060a0c;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
+    }
+    .budget-fill {
+      height: 100%;
+      border-radius: 1px;
+      background: var(--crt-green);
+      transition: width 0.3s;
+      box-shadow: 0 0 6px rgba(51,204,68,.3);
+    }
+    .budget-fill.warn { background: var(--crt-yellow); box-shadow: 0 0 6px rgba(255,204,51,.3); }
+    .budget-fill.danger { background: var(--crt-red); box-shadow: 0 0 6px rgba(255,51,68,.3); }
+    .budget-cost {
+      font-size: 10px;
+      color: var(--crt-orange-dim);
+      font-family: 'Courier New', monospace;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .budget-detail {
+      display: none;
+      padding: 8px 12px;
+      background: var(--metal-shadow);
+      border-bottom: 1px solid var(--bezel-border);
+      flex-shrink: 0;
+    }
+    .budget-detail.open { display: block; }
+    .budget-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+    }
+    .budget-stat {
+      text-align: center;
+      padding: 6px 4px;
+      background: rgba(0,0,0,.2);
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,.15);
+    }
+    .budget-stat-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--crt-orange);
+      text-shadow: 0 0 4px rgba(232,96,48,.3);
+    }
+    .budget-stat-label {
+      font-size: 7px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-top: 2px;
+      font-weight: 700;
+    }
+    .budget-stat-cost .budget-stat-value { color: var(--crt-yellow); text-shadow: 0 0 4px rgba(255,204,51,.3); }
+
+    /* ===== CRT HOUSING ===== */
+    .crt-housing {
+      flex: 1;
+      padding: 8px 10px;
+      background: linear-gradient(178deg, var(--metal-mid) 0%, var(--metal-lo) 50%, var(--metal-shadow) 100%);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
+    }
+    .crt-bezel {
+      flex: 1;
+      border-radius: 12px;
+      padding: 7px;
+      background: linear-gradient(155deg, #4e5458 0%, #3e4448 15%, #2e3438 55%, #1e2428 95%);
+      box-shadow: 0 4px 16px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.04);
+      border: 2px solid var(--bezel-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
+    }
+    .screen-well {
+      flex: 1;
+      border-radius: 6px;
+      padding: 3px;
+      background: #060a0c;
+      box-shadow: inset 0 5px 20px rgba(0,0,0,.95), inset 0 2px 6px rgba(0,0,0,.8);
+      border: 1px solid #040608;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .screen-glass {
+      flex: 1;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #020806, #031208 30%, #020e06 70%, #020806);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      animation: crt-flicker 8s ease-in-out infinite;
+    }
+    /* Vignette */
+    .screen-glass::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 50%, transparent 48%, rgba(0,0,0,.5) 100%);
+    }
+    /* Scanlines */
+    .screen-glass::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: .06;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,.7) 1px, rgba(0,0,0,.7) 2px);
+      background-size: 100% 3px;
+      animation: scanline-scroll 20s linear infinite;
+    }
+
+    @keyframes crt-flicker {
+      0%, 100% { opacity: 1; }
+      49% { opacity: 1; }
+      50% { opacity: .97; }
+      51% { opacity: 1; }
+    }
+
+    @keyframes scanline-scroll {
+      from { background-position: 0 0; }
+      to { background-position: 0 600px; }
+    }
+
+    /* ===== MESSAGES ===== */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+      z-index: 1;
+    }
+
+    .msg { display: flex; }
+    .msg-user { justify-content: flex-end; }
+    .msg-pm { justify-content: flex-start; }
+    .msg-error { justify-content: flex-start; }
+
+    .bubble {
+      max-width: 95%;
+      padding: 8px 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+      text-shadow: 0 0 4px currentColor;
+      border-radius: 3px;
+      background: linear-gradient(175deg, #2a2e30, #1e2224 35%, #161a1c 65%, #101416);
+      border: 1.5px solid #0c1014;
+      box-shadow:
+        0 3px 6px rgba(0,0,0,.5),
+        0 1px 2px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.04),
+        inset 0 -1px 0 rgba(0,0,0,.3);
+    }
+
+    .bubble-user {
+      border-left: 3px solid var(--crt-cyan);
+      color: var(--crt-cyan);
+      box-shadow:
+        0 3px 6px rgba(0,0,0,.5),
+        0 1px 2px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.04),
+        inset 0 -1px 0 rgba(0,0,0,.3),
+        inset 3px 0 8px rgba(0,200,220,.03);
+    }
+
+    .bubble-pm {
+      border-left: 3px solid var(--crt-orange-dim);
+      color: var(--crt-amber);
+      box-shadow:
+        0 3px 6px rgba(0,0,0,.5),
+        0 1px 2px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.04),
+        inset 0 -1px 0 rgba(0,0,0,.3),
+        inset 3px 0 8px rgba(232,96,48,.03);
+    }
+
+    .bubble-error {
+      border-left: 3px solid var(--crt-red);
+      color: var(--crt-red);
+      font-size: 13px;
+      text-shadow: 0 0 6px rgba(255,51,68,.4);
+      box-shadow:
+        0 3px 6px rgba(0,0,0,.5),
+        0 1px 2px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.04),
+        inset 0 -1px 0 rgba(0,0,0,.3),
+        inset 3px 0 8px rgba(255,51,68,.03);
+    }
+
+    .bubble code {
+      color: var(--crt-cyan);
+      background: rgba(0,200,220,.08);
+      border: 1px solid rgba(0,200,220,.15);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .bubble strong {
+      color: var(--crt-amber);
+      text-shadow: 0 0 8px rgba(255,170,51,.5);
+    }
+
+    /* Tool call badges */
+    .tools-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      padding: 2px 4px;
+    }
+    .tool-pill {
+      font-size: 10px;
+      color: var(--crt-cyan);
+      background: rgba(0,200,220,.08);
+      border: 1px solid rgba(0,200,220,.15);
+      border-radius: 2px;
+      padding: 2px 8px;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    /* Thinking / Activity indicator */
+    .thinking {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px 12px;
+    }
+    .thinking-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .thinking-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--crt-orange);
+      animation: pulse 1.2s ease-in-out infinite;
+      box-shadow: 0 0 6px rgba(232,96,48,.4);
+    }
+    .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+    .thinking-label {
+      font-size: 9px;
+      color: var(--crt-orange-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+    }
+    .thinking-elapsed {
+      font-size: 8px;
+      color: var(--text-dim);
+      font-family: 'Courier New', monospace;
+      margin-left: auto;
+    }
+
+    /* Activity log lines inside thinking */
+    .thinking-activity {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 80px;
+      overflow: hidden;
+    }
+    .activity-line {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      animation: activityIn .3s ease-out;
+    }
+    .activity-cursor {
+      width: 4px; height: 4px;
+      border-radius: 1px;
+      background: var(--crt-cyan);
+      box-shadow: 0 0 4px rgba(0,200,220,.4);
+      animation: blink 1s step-end infinite;
+    }
+    .activity-line.done .activity-cursor {
+      background: var(--crt-green);
+      box-shadow: 0 0 4px rgba(51,204,68,.3);
+      animation: none;
+    }
+    .activity-text {
+      font-size: 8px;
+      font-family: 'Courier New', monospace;
+      color: var(--crt-cyan-dim);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .activity-line.done .activity-text {
+      color: var(--text-dim);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.1); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    @keyframes activityIn {
+      from { opacity: 0; transform: translateX(-6px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Welcome */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 12px;
+      padding: 24px;
+    }
+    .welcome-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--crt-orange);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      text-shadow: 0 0 20px rgba(232,96,48,.5), 0 0 40px rgba(232,96,48,.2);
+    }
+    .welcome-sub {
+      font-size: 12px;
+      color: var(--crt-orange-dim);
+      text-align: center;
+      line-height: 1.6;
+      max-width: 280px;
+    }
+
+    /* ===== CONTROL PANEL ===== */
+    .control-panel {
+      flex-shrink: 0;
+      padding: 8px 10px;
+      padding-bottom: calc(8px + var(--safe-bottom));
+      background: linear-gradient(178deg, var(--metal-mid) 0%, var(--metal-lo) 50%, var(--metal-shadow) 100%);
+      border-top: 3px solid var(--bezel-border);
+      position: relative;
+    }
+    /* Top-edge highlight */
+    .control-panel::before {
+      content: '';
+      position: absolute;
+      top: 3px; left: 8px; right: 8px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.04) 20%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.04) 80%, transparent);
+      pointer-events: none;
+    }
+
+    /* Panel grooves (separator lines) */
+    .panel-groove {
+      height: 1px;
+      margin: 6px 0;
+      background: linear-gradient(90deg, transparent, rgba(0,0,0,.3) 10%, rgba(0,0,0,.3) 90%, transparent);
+      box-shadow: 0 1px 0 rgba(255,255,255,.02);
+    }
+
+    /* Quick actions — 3x2 mode-btn grid */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+      padding: 0 2px;
+      flex-shrink: 0;
+    }
+    .quick-btn {
+      padding: 8px 4px;
+      border-radius: 3px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border: 1.5px solid var(--bezel-border);
+      transition: all .1s;
+      background: linear-gradient(180deg, #2e3234, #1e2224 40%, #141618);
+      box-shadow: 0 2px 4px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.03);
+    }
+    .quick-btn:active {
+      color: var(--crt-orange);
+      border-color: var(--crt-orange-dim);
+      background: linear-gradient(180deg, #1e2224, #141618 40%, #0e1214);
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), inset 0 2px 6px rgba(0,0,0,.4), 0 0 8px rgba(232,96,48,.1);
+      transform: translateY(1px);
+    }
+
+    /* ===== SHIFT GATE SELECTOR ===== */
+    .shift-section {
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+    .shift-gate {
+      position: relative;
+      width: 80px;
+      height: 72px;
+      border-radius: 5px;
+      border: 2px solid #080c0e;
+      background: linear-gradient(175deg, #2a2e30, #1e2224 40%, #141618);
+      box-shadow: inset 0 3px 10px rgba(0,0,0,.7), inset 0 1px 3px rgba(0,0,0,.5),
+        0 1px 0 rgba(255,255,255,.02);
+    }
+    /* Gate channels — etched grooves */
+    .gate-channels {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    /* Vertical slots */
+    .gate-slot-v {
+      position: absolute;
+      width: 6px;
+      border-radius: 3px;
+      background: #0a0e10;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.02);
+    }
+    /* Horizontal crossbar */
+    .gate-slot-h {
+      position: absolute;
+      height: 6px;
+      border-radius: 3px;
+      background: #0a0e10;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.02);
+    }
+    /* Gate position labels */
+    .gate-label {
+      position: absolute;
+      font-size: 6px;
+      font-weight: 700;
+      color: #5a6258;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      text-shadow: 0 1px 0 rgba(255,255,255,.04), 0 -1px 1px rgba(0,0,0,.4);
+      pointer-events: none;
+    }
+    /* N label */
+    .gate-label-n {
+      font-size: 7px;
+      color: #6a7068;
+    }
+    /* Shift knob */
+    .shift-knob {
+      position: absolute;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid #080c0e;
+      background: radial-gradient(circle at 38% 30%, #7a7e80, #5a5e60 20%, #4a4e50 40%, #3a3e40 60%, #2a2e30 80%, #1a1e20);
+      box-shadow: 0 4px 8px rgba(0,0,0,.7), 0 2px 3px rgba(0,0,0,.4),
+        inset 0 2px 3px rgba(255,255,255,.08), inset 0 -2px 4px rgba(0,0,0,.3);
+      z-index: 4;
+      transition: left .12s, top .12s;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transform: translate(-50%, -50%);
+    }
+    /* Knob highlight dot */
+    .shift-knob::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 5px;
+      width: 4px; height: 3px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+    }
+    /* Gate hit zones (invisible tap targets) */
+    .gate-pos {
+      position: absolute;
+      width: 22px; height: 22px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 3;
+      border-radius: 50%;
+    }
+    .shift-title {
+      font-size: 6px;
+      font-weight: 700;
+      color: #4a5248;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      text-align: center;
+      margin-top: 3px;
+    }
+
+    /* ===== INPUT AREA ===== */
+    .input-area {
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .input-field {
+      flex: 1;
+      background: #060a08;
+      border: 2px solid var(--bezel-border);
+      border-radius: 4px;
+      color: var(--crt-amber);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      resize: none;
+      min-height: 42px;
+      max-height: 120px;
+      line-height: 1.4;
+      -webkit-appearance: none;
+      box-shadow: inset 0 3px 10px rgba(0,0,0,.7);
+      text-shadow: 0 0 4px rgba(255,170,51,.3);
+    }
+    .input-field:focus { border-color: var(--crt-orange-dim); outline: none; }
+    .input-field::placeholder { color: #3a4238; text-shadow: none; }
+
+    /* ===== XMIT BUTTON ===== */
+    .xmit-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .xmit-led {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      border: 1px solid #080c0e;
+      background: #101418;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+      transition: all .2s;
+    }
+    .xmit-led.active {
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-amber) 35%);
+      box-shadow: 0 0 6px var(--crt-amber), 0 0 14px rgba(255,170,51,.3);
+      animation: ldp 2.5s ease-in-out infinite;
+    }
+    .send-btn {
+      width: 56px; height: 36px;
+      border-radius: 4px;
+      border: 2px solid var(--bezel-border);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      -webkit-tap-highlight-color: transparent;
+      background: radial-gradient(circle at 40% 30%, #5e6264, #4e5254 18%, #3e4244 38%, #2e3234 62%, #1e2224 85%, #121618);
+      box-shadow: 0 4px 8px rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.4),
+        inset 0 2px 3px rgba(255,255,255,.06), inset 0 -2px 5px rgba(0,0,0,.35);
+      color: #b0b4b8;
+      text-shadow: 0 1px 0 rgba(255,255,255,.1), 0 -1px 1px rgba(0,0,0,.6);
+      transition: all .08s;
+    }
+    .send-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 3px 8px rgba(0,0,0,.6);
+      background: radial-gradient(circle at 50% 55%, #3e4244, #2e3234 35%, #1e2224 65%, #121618 90%);
+    }
+    .send-btn:disabled { opacity: 0.3; }
+    .xmit-label {
+      font-size: 5px;
+      font-weight: 700;
+      color: #4a5248;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    /* ===== LAUNCH PANEL ===== */
+    .launch-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      flex-direction: column;
+    }
+    .launch-overlay.open { display: flex; }
+    .launch-backdrop {
+      flex: 1;
+      background: rgba(0,0,0,.5);
+    }
+    .launch-panel {
+      background: linear-gradient(178deg, #444a4e 0%, var(--metal-mid) 10%, var(--metal-lo) 50%, var(--metal-shadow) 100%);
+      border-top: 3px solid var(--bezel-border);
+      padding: 10px 12px;
+      max-height: 75vh;
+      overflow-y: auto;
+      position: relative;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Top-edge highlight */
+    .launch-panel::before {
+      content: '';
+      position: absolute;
+      top: 3px; left: 8px; right: 8px;
+      height: 1px;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.05) 20%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.05) 80%, transparent);
+    }
+    .launch-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .launch-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--crt-cyan-dim);
+      text-transform: uppercase;
+      letter-spacing: .2em;
+    }
+    .launch-close {
+      background: linear-gradient(180deg, #2e3234, #1e2224 40%, #141618);
+      border: 1.5px solid var(--bezel-border);
+      border-radius: 3px;
+      color: var(--text-dim);
+      font-size: 8px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.03);
+    }
+    .launch-close:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), inset 0 2px 6px rgba(0,0,0,.4);
+    }
+
+    /* Pipeline card grid */
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .pipeline-card {
+      position: relative;
+      padding: 10px 8px;
+      border-radius: 4px;
+      background: linear-gradient(175deg, #2a2e30, #1e2224 35%, #161a1c 65%, #101416);
+      border: 1.5px solid var(--bezel-border);
+      box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.04), inset 0 -1px 0 rgba(0,0,0,.3);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: border-color .15s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pipeline-card.armed {
+      border-color: var(--crt-orange-dim);
+      box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.04), inset 0 -1px 0 rgba(0,0,0,.3),
+        0 0 12px rgba(232,96,48,.1);
+    }
+    .pipeline-card.running {
+      border-color: var(--crt-green);
+      box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 0 12px rgba(51,204,68,.1);
+    }
+    .pipeline-card.error {
+      border-color: var(--crt-red);
+    }
+
+    /* Card LED */
+    .pipe-led {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid #080c0e;
+      background: #101418;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.7);
+      transition: all .3s;
+      flex-shrink: 0;
+    }
+    .pipe-led.idle { }
+    .pipe-led.armed {
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-amber) 35%);
+      box-shadow: 0 0 8px var(--crt-amber), 0 0 16px rgba(255,170,51,.2);
+      animation: ldp 2.5s ease-in-out infinite;
+    }
+    .pipe-led.running {
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-green) 35%);
+      box-shadow: 0 0 8px var(--crt-green), 0 0 16px rgba(51,204,68,.2);
+      animation: ldp 1.5s ease-in-out infinite;
+    }
+    .pipe-led.complete {
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-cyan) 35%);
+      box-shadow: 0 0 8px var(--crt-cyan);
+    }
+    .pipe-led.error {
+      background: radial-gradient(circle at 38% 32%, #fff, var(--crt-red) 35%);
+      box-shadow: 0 0 8px var(--crt-red);
+    }
+
+    .pipe-card-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pipe-status {
+      font-size: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text-dim);
+    }
+    .pipe-status.armed { color: var(--crt-amber); }
+    .pipe-status.running { color: var(--crt-green); }
+    .pipe-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--crt-orange-dim);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      line-height: 1.3;
+    }
+    .pipeline-card.armed .pipe-name { color: var(--crt-orange); text-shadow: 0 0 6px rgba(232,96,48,.3); }
+
+    /* ARM toggle on card */
+    .pipe-arm {
+      padding: 4px;
+      border-radius: 3px;
+      text-align: center;
+      font-size: 7px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-dim);
+      border: 1.5px solid var(--bezel-border);
+      background: linear-gradient(180deg, #2e3234, #1e2224 40%, #141618);
+      box-shadow: 0 2px 4px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.03);
+    }
+    .pipeline-card.armed .pipe-arm {
+      color: var(--crt-orange);
+      border-color: var(--crt-orange-dim);
+      background: linear-gradient(180deg, #1e2224, #141618 40%, #0e1214);
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), inset 0 2px 6px rgba(0,0,0,.4), 0 0 8px rgba(232,96,48,.1);
+    }
+
+    /* Launch status bar */
+    .launch-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: rgba(0,0,0,.15);
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,.15);
+      margin-bottom: 8px;
+    }
+    .launch-armed-name {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--crt-orange-dim);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      flex: 1;
+    }
+    .launch-armed-name.active { color: var(--crt-orange); text-shadow: 0 0 6px rgba(232,96,48,.3); }
+    .launch-progress {
+      flex: 2;
+      height: 6px;
+      background: #0a0e10;
+      border-radius: 2px;
+      overflow: hidden;
+      border: 1px solid #060a0c;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.6);
+    }
+    .launch-progress-fill {
+      height: 100%;
+      border-radius: 1px;
+      background: var(--crt-green);
+      box-shadow: 0 0 6px rgba(51,204,68,.3);
+      transition: width .3s;
+      width: 0%;
+    }
+    .launch-status-text {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Launch + Abort buttons */
+    .launch-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .launch-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 4px;
+      text-align: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      border: 2px solid var(--bezel-border);
+      background: radial-gradient(circle at 40% 30%, #5e6264, #4e5254 18%, #3e4244 38%, #2e3234 62%, #1e2224 85%, #121618);
+      box-shadow: 0 4px 8px rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.4),
+        inset 0 2px 3px rgba(255,255,255,.06), inset 0 -2px 5px rgba(0,0,0,.35);
+      color: var(--text-dim);
+      text-shadow: 0 1px 0 rgba(255,255,255,.08), 0 -1px 1px rgba(0,0,0,.5);
+      transition: all .08s;
+    }
+    .launch-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 3px 8px rgba(0,0,0,.6);
+    }
+    .launch-btn:disabled { opacity: 0.25; }
+    .launch-btn-go {
+      color: var(--crt-green);
+      text-shadow: 0 0 8px rgba(51,204,68,.3), 0 1px 0 rgba(255,255,255,.06);
+    }
+    .launch-btn-go.armed {
+      border-color: rgba(51,204,68,.3);
+      box-shadow: 0 4px 8px rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.4),
+        inset 0 2px 3px rgba(255,255,255,.06), inset 0 -2px 5px rgba(0,0,0,.35),
+        0 0 16px rgba(51,204,68,.08);
+    }
+    .launch-btn-abort {
+      flex: 0 0 auto;
+      width: 70px;
+      color: var(--crt-red);
+      text-shadow: 0 0 6px rgba(255,51,68,.3), 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    /* Parameter input (shown when armed) */
+    .launch-params {
+      display: none;
+      margin-bottom: 8px;
+    }
+    .launch-params.open { display: block; }
+    .launch-params-label {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-bottom: 4px;
+    }
+    .launch-params-input {
+      width: 100%;
+      background: #060a08;
+      border: 2px solid var(--bezel-border);
+      border-radius: 4px;
+      color: var(--crt-amber);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      box-shadow: inset 0 3px 10px rgba(0,0,0,.7);
+      text-shadow: 0 0 4px rgba(255,170,51,.3);
+      resize: none;
+      min-height: 36px;
+      max-height: 80px;
+      line-height: 1.4;
+    }
+    .launch-params-input:focus { border-color: var(--crt-orange-dim); outline: none; }
+    .launch-params-input::placeholder { color: #3a4238; text-shadow: none; }
+
+    .launch-empty {
+      text-align: center;
+      padding: 20px;
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    /* Pipeline card metadata */
+    .pipe-meta {
+      font-size: 6px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      opacity: 0.6;
+    }
+    .pipe-meta .bp-count { color: var(--crt-amber); opacity: 1; }
+
+    /* ===== PREVIEW OVERLAY ===== */
+    .preview-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 25;
+      flex-direction: column;
+    }
+    .preview-overlay.open { display: flex; }
+    .preview-backdrop {
+      flex: 1;
+      background: rgba(0,0,0,.6);
+    }
+    .preview-panel {
+      background: linear-gradient(178deg, #444a4e 0%, var(--metal-mid) 10%, var(--metal-lo) 50%, var(--metal-shadow) 100%);
+      border-top: 3px solid var(--bezel-border);
+      padding: 10px 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      -webkit-overflow-scrolling: touch;
+    }
+    .preview-panel::before {
+      content: '';
+      position: absolute;
+      top: 3px; left: 8px; right: 8px;
+      height: 1px;
+      pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.05) 20%, rgba(255,255,255,.07) 50%, rgba(255,255,255,.05) 80%, transparent);
+    }
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .preview-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--crt-cyan-dim);
+      text-transform: uppercase;
+      letter-spacing: .2em;
+      flex: 1;
+    }
+    .preview-node-badge {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--crt-amber);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: 2px 6px;
+      background: rgba(0,0,0,.25);
+      border: 1px solid rgba(255,170,51,.15);
+      border-radius: 3px;
+      margin-right: 8px;
+    }
+    .preview-close {
+      background: linear-gradient(180deg, #2e3234, #1e2224 40%, #141618);
+      border: 1.5px solid var(--bezel-border);
+      border-radius: 3px;
+      color: var(--text-dim);
+      font-size: 8px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.03);
+    }
+    .preview-close:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.3), inset 0 2px 6px rgba(0,0,0,.4);
+    }
+
+    /* Preview content frame */
+    .preview-frame-wrap {
+      background: #020806;
+      border: 2px solid #060a0c;
+      border-radius: 4px;
+      box-shadow: inset 0 3px 10px rgba(0,0,0,.7), inset 0 0 20px rgba(0,0,0,.3);
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+    .preview-frame-wrap iframe {
+      width: 100%;
+      height: 50vh;
+      border: none;
+      background: #fff;
+    }
+    .preview-frame-wrap.expanded iframe,
+    .preview-frame-wrap.expanded pre {
+      height: 75vh;
+    }
+    .preview-frame-wrap pre {
+      max-height: 50vh;
+      overflow-y: auto;
+      padding: 10px 12px;
+      margin: 0;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      line-height: 1.5;
+      color: var(--crt-amber);
+      text-shadow: 0 0 4px rgba(255,170,51,.2);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .preview-truncated {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--crt-red);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      text-align: center;
+      padding: 4px;
+    }
+
+    /* Breakpoint controls */
+    .preview-bp-controls {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .preview-bp-controls.hidden { display: none; }
+    .preview-bp-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      border: 2px solid var(--bezel-border);
+      background: radial-gradient(circle at 40% 30%, #5e6264, #4e5254 18%, #3e4244 38%, #2e3234 62%, #1e2224 85%, #121618);
+      box-shadow: 0 4px 8px rgba(0,0,0,.65), 0 2px 3px rgba(0,0,0,.4),
+        inset 0 2px 3px rgba(255,255,255,.06), inset 0 -2px 5px rgba(0,0,0,.35);
+      color: var(--text-dim);
+      transition: all .08s;
+    }
+    .preview-bp-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 3px 8px rgba(0,0,0,.6);
+    }
+    .preview-bp-approve {
+      color: var(--crt-green);
+      text-shadow: 0 0 8px rgba(51,204,68,.3);
+    }
+    .preview-bp-revise {
+      color: var(--crt-amber);
+      text-shadow: 0 0 6px rgba(255,170,51,.3);
+    }
+    .preview-bp-abort {
+      flex: 0 0 auto;
+      width: 70px;
+      color: var(--crt-red);
+      text-shadow: 0 0 6px rgba(255,51,68,.3);
+    }
+
+    /* Revision input */
+    .preview-revision {
+      display: none;
+      margin-bottom: 8px;
+    }
+    .preview-revision.open { display: block; }
+    .preview-revision-label {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      margin-bottom: 4px;
+    }
+    .preview-revision-row {
+      display: flex;
+      gap: 6px;
+    }
+    .preview-revision-input {
+      flex: 1;
+      background: #060a08;
+      border: 2px solid var(--bezel-border);
+      border-radius: 4px;
+      color: var(--crt-amber);
+      padding: 8px 10px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      box-shadow: inset 0 3px 10px rgba(0,0,0,.7);
+      text-shadow: 0 0 4px rgba(255,170,51,.3);
+      resize: none;
+      min-height: 36px;
+      max-height: 80px;
+    }
+    .preview-revision-input:focus { border-color: var(--crt-orange-dim); outline: none; }
+    .preview-revision-input::placeholder { color: #3a4238; text-shadow: none; }
+    .preview-revision-send {
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 9px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      border: 2px solid var(--bezel-border);
+      background: radial-gradient(circle at 40% 30%, #5e6264, #3e4244 38%, #1e2224 85%, #121618);
+      box-shadow: 0 3px 6px rgba(0,0,0,.5);
+      color: var(--crt-amber);
+      text-shadow: 0 0 6px rgba(255,170,51,.3);
+    }
+    .preview-revision-send:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 3px 8px rgba(0,0,0,.6);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(232,96,48,.15); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+  <div class="chassis">
+    <!-- Texture overlays -->
+    <div class="tex tex-n"></div>
+    <div class="tex tex-r"></div>
+    <div class="tex tex-g"></div>
+
+    <!-- LOGIN -->
+    <div id="login-screen">
+      <div class="login-brand">Pipeline IDE</div>
+      <div class="login-title">Peirastes Copilot</div>
+      <input type="password" class="login-input" id="login-token" placeholder="Enter access token" autocomplete="off">
+      <button class="login-btn" id="login-btn">Connect</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+
+    <!-- APP -->
+    <div id="app">
+      <div class="header">
+        <div class="header-avatar">
+          <div class="header-status" id="status-dot"></div>
+          <div class="led-amber"></div>
+        </div>
+        <div class="header-info">
+          <div class="header-name">Peirastes Copilot</div>
+          <div class="header-sub" id="header-sub">Connecting...</div>
+        </div>
+        <div class="header-actions">
+          <button class="header-btn" id="btn-clear" title="Clear chat">Clear</button>
+          <button class="header-btn" id="btn-logout" title="Log out">Logout</button>
+        </div>
+      </div>
+
+      <!-- LED Indicator Strip -->
+      <div class="led-strip">
+        <div class="led-group">
+          <div class="led-group-label">Server</div>
+          <div class="led-pair">
+            <div class="led-row">
+              <span class="led-row-label">Link</span>
+              <div class="led-bar" id="led-server"></div>
+            </div>
+            <div class="led-row">
+              <span class="led-row-label">Busy</span>
+              <div class="led-bar" id="led-server-busy"></div>
+            </div>
+          </div>
+        </div>
+        <div class="led-group">
+          <div class="led-group-label">ETM</div>
+          <div class="led-pair">
+            <div class="led-row">
+              <span class="led-row-label">Link</span>
+              <div class="led-bar" id="led-etm"></div>
+            </div>
+            <div class="led-row">
+              <span class="led-row-label">Load</span>
+              <div class="led-bar" id="led-etm-score"></div>
+            </div>
+          </div>
+        </div>
+        <div class="led-group">
+          <div class="led-group-label">ECDO</div>
+          <div class="led-pair">
+            <div class="led-row">
+              <span class="led-row-label">Link</span>
+              <div class="led-bar" id="led-ecdo-conn"></div>
+            </div>
+            <div class="led-row">
+              <span class="led-row-label">Alert</span>
+              <div class="led-bar" id="led-ecdo"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="budget-bar" id="budget-bar">
+        <span class="budget-label">Usage</span>
+        <div class="budget-track"><div class="budget-fill" id="budget-fill" style="width:0%"></div></div>
+        <span class="budget-cost" id="budget-cost">--</span>
+      </div>
+      <div class="budget-detail" id="budget-detail">
+        <div class="budget-grid" id="budget-grid"></div>
+      </div>
+
+      <!-- CRT Housing -->
+      <div class="crt-housing">
+        <div class="crt-bezel">
+          <!-- Bezel corner bolts -->
+          <div class="rivet" style="top:4px;left:4px"></div>
+          <div class="rivet" style="top:4px;right:4px"></div>
+          <div class="rivet" style="bottom:4px;left:4px"></div>
+          <div class="rivet" style="bottom:4px;right:4px"></div>
+          <div class="screen-well">
+            <div class="screen-glass">
+              <div class="messages" id="messages">
+                <div class="welcome">
+                  <div class="welcome-title">Peirastes Copilot</div>
+                  <div class="welcome-sub">Your AI agent team, anywhere. Manage tasks, read files, run commands, or ask any agent to work.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="control-panel">
+        <!-- Corner rivets -->
+        <div class="rivet" style="top:6px;left:6px"></div>
+        <div class="rivet" style="top:6px;right:6px"></div>
+
+        <div class="quick-actions" id="quick-actions">
+          <button class="quick-btn" data-msg="What should I work on next?">Next</button>
+          <button class="quick-btn" data-msg="Show me what's due today">Today</button>
+          <button class="quick-btn" data-msg="Show me all overdue tasks">Overdue</button>
+          <button class="quick-btn" data-msg="Quick status summary">Status</button>
+          <button class="quick-btn" data-msg="Put on your TA hat">TA Hat</button>
+          <button class="quick-btn" data-msg="Put on your CE hat">CE Hat</button>
+        </div>
+
+        <div class="panel-groove"></div>
+
+        <!-- Input row + Send -->
+        <div class="input-area">
+          <div class="input-row">
+            <textarea class="input-field" id="input" rows="1" placeholder="Data entry..."></textarea>
+            <div class="xmit-wrap">
+              <div class="xmit-led" id="xmit-led"></div>
+              <button class="send-btn" id="send-btn" disabled>Send</button>
+              <div class="xmit-label">Transmit</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-groove"></div>
+
+        <!-- Permanent controls row: Launch + Shift gate -->
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <!-- Launch toggle -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <button class="quick-btn" id="btn-launch" style="color:var(--crt-green);border-color:rgba(51,204,68,.2);padding:10px 12px;font-size:8px;">Launch</button>
+            <div style="font-size:5px;font-weight:700;color:#4a5248;text-transform:uppercase;letter-spacing:.12em;">Pipelines</div>
+          </div>
+
+        <!-- Shift gate agent selector -->
+          <div class="shift-section">
+            <div class="shift-gate" id="shift-gate">
+              <!-- Etched gate channels -->
+              <div class="gate-channels">
+                <!-- 3 vertical slots: x=17, x=40, x=63  top=8..64 -->
+                <div class="gate-slot-v" style="left:14px;top:8px;height:56px"></div>
+                <div class="gate-slot-v" style="left:37px;top:8px;height:56px"></div>
+                <div class="gate-slot-v" style="left:60px;top:8px;height:56px"></div>
+                <!-- Horizontal crossbar: y=36 -->
+                <div class="gate-slot-h" style="left:14px;top:33px;width:52px"></div>
+              </div>
+
+              <!-- Position labels -->
+              <div class="gate-label" style="left:11px;top:-1px">PM</div>
+              <div class="gate-label" style="left:34px;top:-1px">TA</div>
+              <div class="gate-label" style="left:57px;top:-1px">RA</div>
+              <div class="gate-label" style="left:11px;bottom:-1px">CE</div>
+              <div class="gate-label" style="left:34px;bottom:-1px">CD</div>
+              <div class="gate-label" style="left:57px;bottom:-1px">SA</div>
+              <div class="gate-label gate-label-n" style="right:-1px;top:30px">N</div>
+
+              <!-- Tap targets (invisible) -->
+              <div class="gate-pos" data-hat="Put on your PM hat" data-x="17" data-y="14" style="left:17px;top:14px"></div>
+              <div class="gate-pos" data-hat="Put on your TA hat" data-x="40" data-y="14" style="left:40px;top:14px"></div>
+              <div class="gate-pos" data-hat="Put on your RA hat" data-x="63" data-y="14" style="left:63px;top:14px"></div>
+              <div class="gate-pos" data-hat="Put on your CE hat" data-x="17" data-y="58" style="left:17px;top:58px"></div>
+              <div class="gate-pos" data-hat="Put on your CD hat" data-x="40" data-y="58" style="left:40px;top:58px"></div>
+              <div class="gate-pos" data-hat="Put on your SA hat" data-x="63" data-y="58" style="left:63px;top:58px"></div>
+              <!-- Neutral: right end of crossbar -->
+              <div class="gate-pos" data-hat="" data-x="69" data-y="36" style="left:69px;top:36px"></div>
+
+              <!-- The knob -->
+              <div class="shift-knob" id="shift-knob" style="left:69px;top:36px"></div>
+            </div>
+            <div class="shift-title">Agent</div>
+          </div>
+        </div>
+
+        <div class="panel-groove"></div>
+
+        <!-- Nameplate -->
+        <div class="nameplate">
+          <div class="np-bar">
+            <div class="np-text">Peirastes Mk-I</div>
+          </div>
+        </div>
+
+        <!-- Bottom rivets -->
+        <div class="rivet" style="bottom:6px;left:6px"></div>
+        <div class="rivet" style="bottom:6px;right:6px"></div>
+      </div>
+
+      <!-- Launch Panel Overlay -->
+      <div class="launch-overlay" id="launch-overlay">
+        <div class="launch-backdrop" id="launch-backdrop"></div>
+        <div class="launch-panel">
+          <div class="rivet" style="top:8px;left:8px"></div>
+          <div class="rivet" style="top:8px;right:8px"></div>
+
+          <div class="launch-header">
+            <div class="launch-title">Pipeline Launch</div>
+            <button class="launch-close" id="launch-close">Close</button>
+          </div>
+
+          <div class="pipeline-grid" id="pipeline-grid">
+            <div class="launch-empty">Loading pipelines...</div>
+          </div>
+
+          <div class="panel-groove"></div>
+
+          <div class="launch-status-bar">
+            <div class="launch-armed-name" id="launch-armed-name">No target</div>
+            <div class="launch-progress"><div class="launch-progress-fill" id="launch-progress-fill"></div></div>
+            <div class="launch-status-text" id="launch-status-text">Idle</div>
+          </div>
+
+          <div class="launch-params" id="launch-params">
+            <div class="launch-params-label">Mission Parameters</div>
+            <textarea class="launch-params-input" id="launch-params-input" rows="1" placeholder="e.g. Chapter 28 — Magnetic Fields"></textarea>
+          </div>
+
+          <div class="launch-actions">
+            <button class="launch-btn launch-btn-go" id="launch-go" disabled>Launch</button>
+            <button class="launch-btn launch-btn-abort" id="launch-abort" disabled>Abort</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Overlay (breakpoint review) -->
+      <div class="preview-overlay" id="preview-overlay">
+        <div class="preview-backdrop" id="preview-backdrop"></div>
+        <div class="preview-panel">
+          <div class="rivet" style="top:8px;left:8px"></div>
+          <div class="rivet" style="top:8px;right:8px"></div>
+
+          <div class="preview-header">
+            <div class="preview-title" id="preview-title">Breakpoint Review</div>
+            <div class="preview-node-badge" id="preview-node-badge">--</div>
+            <button class="preview-close" id="preview-expand">Expand</button>
+            <button class="preview-close" id="preview-close">Close</button>
+          </div>
+
+          <div class="preview-frame-wrap" id="preview-frame-wrap">
+            <!-- iframe or pre inserted dynamically -->
+          </div>
+
+          <div class="preview-bp-controls" id="preview-bp-controls">
+            <button class="preview-bp-btn preview-bp-approve" id="preview-approve">Approve</button>
+            <button class="preview-bp-btn preview-bp-revise" id="preview-revise">Revise</button>
+            <button class="preview-bp-btn preview-bp-abort" id="preview-abort">Abort</button>
+          </div>
+
+          <div class="preview-revision" id="preview-revision">
+            <div class="preview-revision-label">Revision Instruction</div>
+            <div class="preview-revision-row">
+              <textarea class="preview-revision-input" id="preview-revision-input" rows="2" placeholder="Describe the changes you want..."></textarea>
+              <button class="preview-revision-send" id="preview-revision-send">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== STATE =====
+    let token = localStorage.getItem('copilot_token') || '';
+    let sending = false;
+
+    const loginScreen = document.getElementById('login-screen');
+    const appEl = document.getElementById('app');
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('send-btn');
+    const statusDot = document.getElementById('status-dot');
+    const headerSub = document.getElementById('header-sub');
+    const quickActions = document.getElementById('quick-actions');
+
+    // ===== AUTH =====
+    if (token) {
+      showApp();
+    }
+
+    document.getElementById('login-btn').addEventListener('click', tryLogin);
+    document.getElementById('login-token').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tryLogin();
+    });
+
+    async function tryLogin() {
+      const input = document.getElementById('login-token').value.trim();
+      if (!input) return;
+
+      try {
+        const resp = await fetch('/api/copilot/health', {
+          headers: { 'Authorization': `Bearer ${input}` }
+        });
+        if (resp.ok) {
+          token = input;
+          localStorage.setItem('copilot_token', token);
+          showApp();
+        } else {
+          document.getElementById('login-error').textContent = 'Invalid token';
+        }
+      } catch {
+        document.getElementById('login-error').textContent = 'Cannot reach server';
+      }
+    }
+
+    function showApp() {
+      loginScreen.classList.add('hidden');
+      appEl.classList.add('active');
+      checkHealth();
+      loadHistory();
+      inputEl.focus();
+    }
+
+    // ===== API =====
+    function api(endpoint, opts = {}) {
+      return fetch(endpoint, {
+        ...opts,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...opts.headers
+        }
+      });
+    }
+
+    const ledServer = document.getElementById('led-server');
+    const ledServerBusy = document.getElementById('led-server-busy');
+    const ledEtm = document.getElementById('led-etm');
+    const ledEtmScore = document.getElementById('led-etm-score');
+    const ledEcdo = document.getElementById('led-ecdo');
+    const ledEcdoConn = document.getElementById('led-ecdo-conn');
+    const xmitLed = document.getElementById('xmit-led');
+
+    function setLed(el, color) {
+      el.classList.remove('green', 'amber', 'red', 'cyan');
+      if (color) el.classList.add(color);
+    }
+
+    async function checkHealth() {
+      try {
+        const resp = await api('/api/copilot/health');
+        const data = await resp.json();
+        statusDot.classList.toggle('online', data.etm);
+        headerSub.textContent = data.etm ? 'ETM connected' : 'ETM offline';
+        if (data.budget) updateBudgetBar(data.budget);
+
+        // LED strip
+        setLed(ledServer, 'green');
+        setLed(ledServerBusy, sending ? 'amber' : null);
+        setLed(ledEtm, data.etm ? 'green' : 'red');
+        // ETM score + ECDO: placeholder until wired
+        setLed(ledEtmScore, 'amber');
+        setLed(ledEcdoConn, 'amber');
+        setLed(ledEcdo, 'cyan');
+      } catch {
+        statusDot.classList.remove('online');
+        headerSub.textContent = 'Server unreachable';
+        setLed(ledServer, 'red');
+        setLed(ledServerBusy, null);
+        setLed(ledEtm, 'red');
+        setLed(ledEtmScore, null);
+        setLed(ledEcdoConn, null);
+        setLed(ledEcdo, null);
+      }
+    }
+
+    function updateBudgetBar(b) {
+      const fill = document.getElementById('budget-fill');
+      const cost = document.getElementById('budget-cost');
+      fill.style.width = Math.min(b.budgetPct, 100) + '%';
+      fill.className = 'budget-fill' + (b.budgetPct >= 90 ? ' danger' : b.budgetPct >= 60 ? ' warn' : '');
+      // Show as token usage gauge (Max subscription — no real billing)
+      const equivTokens = ((parseFloat(b.monthCost) / parseFloat(b.monthBudget)) * 100).toFixed(0);
+      cost.textContent = `${equivTokens}% · ${b.monthCost} eq`;
+    }
+
+    // Budget bar tap to expand
+    document.getElementById('budget-bar').addEventListener('click', async () => {
+      const detail = document.getElementById('budget-detail');
+      if (detail.classList.contains('open')) {
+        detail.classList.remove('open');
+        return;
+      }
+      try {
+        const resp = await api('/api/copilot/budget');
+        const data = await resp.json();
+        const grid = document.getElementById('budget-grid');
+        grid.innerHTML = `
+          <div class="budget-stat">
+            <div class="budget-stat-value">${data.today.requests}</div>
+            <div class="budget-stat-label">Today Reqs</div>
+          </div>
+          <div class="budget-stat">
+            <div class="budget-stat-value">${formatTokens(data.today.input)}</div>
+            <div class="budget-stat-label">Today In</div>
+          </div>
+          <div class="budget-stat">
+            <div class="budget-stat-value">${formatTokens(data.today.output)}</div>
+            <div class="budget-stat-label">Today Out</div>
+          </div>
+          <div class="budget-stat">
+            <div class="budget-stat-value">${data.month.requests}</div>
+            <div class="budget-stat-label">Month Reqs</div>
+          </div>
+          <div class="budget-stat">
+            <div class="budget-stat-value">${formatTokens(data.month.input)}</div>
+            <div class="budget-stat-label">Month In</div>
+          </div>
+          <div class="budget-stat budget-stat-cost">
+            <div class="budget-stat-value">${formatTokens(data.month.output)}</div>
+            <div class="budget-stat-label">Month Out</div>
+          </div>
+        `;
+        detail.classList.add('open');
+      } catch {}
+    });
+
+    function formatTokens(n) {
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+      return String(n);
+    }
+
+    async function loadHistory() {
+      try {
+        const resp = await api('/api/copilot/history');
+        const data = await resp.json();
+        if (data.messages && data.messages.length > 0) {
+          // Clear welcome screen
+          messagesEl.innerHTML = '';
+          for (const msg of data.messages) {
+            appendMessage(msg.role === 'user' ? 'user' : 'pm', msg.text, false);
+          }
+          scrollToBottom();
+          quickActions.style.display = 'none';
+        }
+      } catch {}
+    }
+
+    // ===== CHAT =====
+    inputEl.addEventListener('input', () => {
+      sendBtn.disabled = !inputEl.value.trim() || sending;
+      // Auto-resize
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    sendBtn.addEventListener('click', send);
+
+    // Quick action buttons
+    quickActions.addEventListener('click', (e) => {
+      const btn = e.target.closest('.quick-btn');
+      if (!btn) return;
+      inputEl.value = btn.dataset.msg;
+      send();
+    });
+
+    async function send() {
+      const text = inputEl.value.trim();
+      if (!text || sending) return;
+
+      sending = true;
+      sendBtn.disabled = true;
+      setLed(ledServerBusy, 'amber');
+      xmitLed.classList.add('active');
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+
+      // Hide welcome / quick actions on first message
+      const welcome = messagesEl.querySelector('.welcome');
+      if (welcome) welcome.remove();
+      quickActions.style.display = 'none';
+
+      appendMessage('user', text);
+      showThinking();
+
+      try {
+        const resp = await api('/api/copilot/chat', {
+          method: 'POST',
+          body: JSON.stringify({ message: text })
+        });
+
+        hideThinking();
+
+        if (resp.status === 401) {
+          localStorage.removeItem('copilot_token');
+          location.reload();
+          return;
+        }
+
+        const data = await resp.json();
+
+        if (data.error) {
+          appendMessage('error', data.error);
+        } else {
+          if (data.toolCalls && data.toolCalls.length > 0) {
+            appendTools(data.toolCalls);
+          }
+          appendMessage('pm', data.text);
+        }
+      } catch (err) {
+        hideThinking();
+        appendMessage('error', 'Failed to reach server');
+      }
+
+      sending = false;
+      setLed(ledServerBusy, null);
+      xmitLed.classList.remove('active');
+      sendBtn.disabled = !inputEl.value.trim();
+      inputEl.focus();
+    }
+
+    // ===== UI HELPERS =====
+    function appendMessage(role, text, scroll = true) {
+      const div = document.createElement('div');
+      div.className = `msg msg-${role}`;
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble bubble-${role}`;
+      bubble.innerHTML = formatText(text);
+
+      div.appendChild(bubble);
+      messagesEl.appendChild(div);
+
+      if (scroll) scrollToBottom();
+    }
+
+    const toolLabels = {
+      get_tasks: 'read tasks',
+      add_task: 'add task',
+      update_task: 'update task',
+      complete_task: 'complete task',
+      delete_task: 'delete task',
+      import_tasks: 'import tasks',
+      get_settings: 'read settings',
+      read_file: 'read file',
+      write_file: 'write file',
+      list_directory: 'list directory',
+      search_files: 'search files',
+      shell_command: 'shell',
+      read_agent_guide: 'load agent',
+      run_pipeline: 'run pipeline',
+      list_pipelines: 'list pipelines',
+      get_pipeline: 'read pipeline',
+    };
+
+    function appendTools(tools) {
+      if (!tools || tools.length === 0) return;
+      const div = document.createElement('div');
+      div.className = 'tools-row';
+      // Deduplicate tool names
+      const seen = new Set();
+      for (const tc of tools) {
+        const name = tc.tool || tc.name || tc;
+        if (seen.has(name)) continue;
+        seen.add(name);
+        const pill = document.createElement('span');
+        pill.className = 'tool-pill';
+        pill.textContent = toolLabels[name] || name.replace(/_/g, ' ');
+        div.appendChild(pill);
+      }
+      messagesEl.appendChild(div);
+    }
+
+    let thinkingInterval = null;
+    let thinkingStart = 0;
+    let activityIndex = 0;
+
+    // Activity phases — shown sequentially as the Copilot works
+    const activityPhases = [
+      { text: 'parsing request', delay: 0 },
+      { text: 'reading context', delay: 2500 },
+      { text: 'consulting tools', delay: 5000 },
+      { text: 'querying etm', delay: 8000 },
+      { text: 'scanning files', delay: 12000 },
+      { text: 'composing response', delay: 18000 },
+      { text: 'reviewing output', delay: 28000 },
+      { text: 'still working...', delay: 45000 },
+    ];
+
+    function showThinking() {
+      thinkingStart = Date.now();
+      activityIndex = 0;
+
+      const div = document.createElement('div');
+      div.className = 'thinking';
+      div.id = 'thinking';
+      div.innerHTML = `
+        <div class="thinking-header">
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+          <span class="thinking-label">processing</span>
+          <span class="thinking-elapsed" id="thinking-elapsed">0s</span>
+        </div>
+        <div class="thinking-activity" id="thinking-activity"></div>
+      `;
+      messagesEl.appendChild(div);
+      scrollToBottom();
+
+      // Add first activity line immediately
+      addActivityLine(activityPhases[0].text);
+      activityIndex = 1;
+
+      // Cycle through activity phases + update elapsed timer
+      thinkingInterval = setInterval(() => {
+        const elapsed = Date.now() - thinkingStart;
+        const elapsedEl = document.getElementById('thinking-elapsed');
+        if (elapsedEl) elapsedEl.textContent = Math.floor(elapsed / 1000) + 's';
+
+        // Check if next activity phase should appear
+        if (activityIndex < activityPhases.length && elapsed >= activityPhases[activityIndex].delay) {
+          // Mark previous line as done
+          const activityEl = document.getElementById('thinking-activity');
+          if (activityEl) {
+            const lines = activityEl.querySelectorAll('.activity-line:not(.done)');
+            lines.forEach(l => l.classList.add('done'));
+          }
+          addActivityLine(activityPhases[activityIndex].text);
+          activityIndex++;
+          scrollToBottom();
+        }
+      }, 500);
+    }
+
+    function addActivityLine(text) {
+      const activityEl = document.getElementById('thinking-activity');
+      if (!activityEl) return;
+      const line = document.createElement('div');
+      line.className = 'activity-line';
+      line.innerHTML = `<div class="activity-cursor"></div><span class="activity-text">${text}</span>`;
+      activityEl.appendChild(line);
+    }
+
+    function hideThinking() {
+      if (thinkingInterval) {
+        clearInterval(thinkingInterval);
+        thinkingInterval = null;
+      }
+      const el = document.getElementById('thinking');
+      if (el) el.remove();
+    }
+
+    function scrollToBottom() {
+      requestAnimationFrame(() => {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      });
+    }
+
+    function formatText(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+    }
+
+    // ===== HEADER ACTIONS =====
+    document.getElementById('btn-clear').addEventListener('click', async () => {
+      if (!confirm('Clear conversation?')) return;
+      await api('/api/copilot/clear', { method: 'POST' });
+      messagesEl.innerHTML = `
+        <div class="welcome">
+          <div class="welcome-title">Peirastes Copilot</div>
+          <div class="welcome-sub">Your AI agent team, anywhere. Manage tasks, read files, run commands, or ask any agent to work.</div>
+        </div>`;
+      quickActions.style.display = '';
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      if (!confirm('Disconnect and log out?')) return;
+      localStorage.removeItem('copilot_token');
+      location.reload();
+    });
+
+    // ===== SHIFT GATE SELECTOR =====
+    const shiftKnob = document.getElementById('shift-knob');
+    const shiftGate = document.getElementById('shift-gate');
+    const gatePositions = document.querySelectorAll('.gate-pos');
+
+    // Gate geometry: 3 vertical slots at x=17,40,63; crossbar y=36; top=14, bottom=58
+    const SLOTS_X = [17, 40, 63];
+    const CROSS_Y = 36;
+    const TOP_Y = 14;
+    const BOT_Y = 58;
+    const NEUTRAL = { x: 69, y: 36 };
+    const SNAP_POSITIONS = [
+      { x: 17, y: 14, hat: 'Put on your PM hat' },
+      { x: 40, y: 14, hat: 'Put on your TA hat' },
+      { x: 63, y: 14, hat: 'Put on your RA hat' },
+      { x: 17, y: 58, hat: 'Put on your CE hat' },
+      { x: 40, y: 58, hat: 'Put on your CD hat' },
+      { x: 63, y: 58, hat: 'Put on your SA hat' },
+      { x: 69, y: 36, hat: '' },
+    ];
+
+    let knobX = 69, knobY = 36;
+    let dragging = false;
+    let prevHat = '';
+
+    function constrainToGate(rawX, rawY) {
+      // Find nearest vertical slot
+      let nearestSlot = SLOTS_X[0];
+      let minDx = Math.abs(rawX - SLOTS_X[0]);
+      for (const sx of SLOTS_X) {
+        const dx = Math.abs(rawX - sx);
+        if (dx < minDx) { minDx = dx; nearestSlot = sx; }
+      }
+
+      // If close to the crossbar y, allow horizontal movement
+      if (Math.abs(rawY - CROSS_Y) < 14) {
+        // On crossbar — clamp x to slot range + neutral
+        const cx = Math.max(SLOTS_X[0], Math.min(rawX, NEUTRAL.x));
+        return { x: cx, y: CROSS_Y };
+      }
+
+      // Otherwise, constrain to nearest vertical slot
+      const cy = Math.max(TOP_Y, Math.min(rawY, BOT_Y));
+      return { x: nearestSlot, y: cy };
+    }
+
+    function snapToNearest(px, py) {
+      let best = SNAP_POSITIONS[6]; // neutral
+      let bestDist = Infinity;
+      for (const sp of SNAP_POSITIONS) {
+        const d = Math.hypot(sp.x - px, sp.y - py);
+        if (d < bestDist) { bestDist = d; best = sp; }
+      }
+      return best;
+    }
+
+    function moveKnob(x, y, animate) {
+      knobX = x; knobY = y;
+      if (animate) {
+        shiftKnob.style.transition = 'left .12s, top .12s';
+      } else {
+        shiftKnob.style.transition = 'none';
+      }
+      shiftKnob.style.left = x + 'px';
+      shiftKnob.style.top = y + 'px';
+    }
+
+    function onGateRelease() {
+      const snap = snapToNearest(knobX, knobY);
+      moveKnob(snap.x, snap.y, true);
+
+      // Fire hat command if changed
+      if (snap.hat !== prevHat) {
+        prevHat = snap.hat;
+        if (snap.hat) {
+          inputEl.value = snap.hat;
+          send();
+        }
+      }
+    }
+
+    // Drag start
+    function onDragStart(e) {
+      e.preventDefault();
+      dragging = true;
+      shiftKnob.style.boxShadow = '0 2px 4px rgba(0,0,0,.5), inset 0 3px 6px rgba(0,0,0,.3)';
+    }
+
+    function getPointerPos(e) {
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = shiftGate.getBoundingClientRect();
+      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
+
+    function onDragMove(e) {
+      if (!dragging) return;
+      e.preventDefault();
+      const pos = getPointerPos(e);
+      const constrained = constrainToGate(pos.x, pos.y);
+      moveKnob(constrained.x, constrained.y, false);
+    }
+
+    function onDragEnd() {
+      if (!dragging) return;
+      dragging = false;
+      shiftKnob.style.boxShadow = '';
+      onGateRelease();
+    }
+
+    // Mouse events
+    shiftKnob.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    // Touch events
+    shiftKnob.addEventListener('touchstart', onDragStart, { passive: false });
+    document.addEventListener('touchmove', onDragMove, { passive: false });
+    document.addEventListener('touchend', onDragEnd);
+
+    // Tap-to-position still works
+    gatePositions.forEach(pos => {
+      pos.addEventListener('click', () => {
+        const snap = { x: +pos.dataset.x, y: +pos.dataset.y, hat: pos.dataset.hat };
+        moveKnob(snap.x, snap.y, true);
+        if (snap.hat !== prevHat) {
+          prevHat = snap.hat;
+          if (snap.hat) {
+            inputEl.value = snap.hat;
+            send();
+          }
+        }
+      });
+    });
+
+    // ===== PIPELINE LAUNCH PANEL =====
+    const launchOverlay = document.getElementById('launch-overlay');
+    const launchGrid = document.getElementById('pipeline-grid');
+    const launchGoBtn = document.getElementById('launch-go');
+    const launchAbortBtn = document.getElementById('launch-abort');
+    const launchArmedName = document.getElementById('launch-armed-name');
+    const launchProgressFill = document.getElementById('launch-progress-fill');
+    const launchStatusText = document.getElementById('launch-status-text');
+    const launchParams = document.getElementById('launch-params');
+    const launchParamsInput = document.getElementById('launch-params-input');
+
+    // Preview overlay elements
+    const previewOverlay = document.getElementById('preview-overlay');
+    const previewTitle = document.getElementById('preview-title');
+    const previewNodeBadge = document.getElementById('preview-node-badge');
+    const previewFrameWrap = document.getElementById('preview-frame-wrap');
+    const previewBpControls = document.getElementById('preview-bp-controls');
+    const previewRevision = document.getElementById('preview-revision');
+    const previewRevisionInput = document.getElementById('preview-revision-input');
+
+    let armedPipeline = null;
+    let armedPipelineName = null;
+    let launchState = 'idle'; // idle, armed, running, paused
+    let pollInterval = null;
+    let currentBreakpointNodeId = null;
+
+    // Open panel
+    document.getElementById('btn-launch').addEventListener('click', () => {
+      launchOverlay.classList.add('open');
+      loadPipelines();
+    });
+
+    // Close panel
+    document.getElementById('launch-close').addEventListener('click', closeLaunchPanel);
+    document.getElementById('launch-backdrop').addEventListener('click', closeLaunchPanel);
+
+    function closeLaunchPanel() {
+      if (launchState !== 'running' && launchState !== 'paused') {
+        launchOverlay.classList.remove('open');
+      }
+    }
+
+    // Load pipelines from the direct API (not via chat)
+    async function loadPipelines() {
+      try {
+        const resp = await api('/api/pipeline/list');
+        const pipelines = await resp.json();
+
+        if (!Array.isArray(pipelines) || pipelines.length === 0) {
+          launchGrid.innerHTML = '<div class="launch-empty">No pipelines found</div>';
+          return;
+        }
+
+        launchGrid.innerHTML = '';
+        for (const p of pipelines) {
+          const displayName = p.name || p.filename.replace(/\.json$/, '').replace(/_/g, ' ');
+          const card = document.createElement('div');
+          card.className = 'pipeline-card';
+          card.dataset.filename = p.filename;
+          card.innerHTML = `
+            <div class="pipe-card-top">
+              <div class="pipe-led idle"></div>
+              <div class="pipe-status">Idle</div>
+            </div>
+            <div class="pipe-name">${escapeHtml(displayName)}</div>
+            <div class="pipe-meta">${p.nodeCount} nodes${p.breakpointCount ? ` · <span class="bp-count">${p.breakpointCount} BP</span>` : ''}</div>
+            <div class="pipe-arm">Arm</div>
+          `;
+          card.addEventListener('click', () => armPipeline(card, p.filename, displayName));
+          launchGrid.appendChild(card);
+        }
+      } catch (err) {
+        launchGrid.innerHTML = '<div class="launch-empty">Failed to load pipelines</div>';
+      }
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function armPipeline(card, filename, name) {
+      if (launchState === 'running' || launchState === 'paused') return;
+
+      // Disarm all
+      document.querySelectorAll('.pipeline-card').forEach(c => {
+        c.classList.remove('armed');
+        c.querySelector('.pipe-led').className = 'pipe-led idle';
+        c.querySelector('.pipe-status').className = 'pipe-status';
+        c.querySelector('.pipe-status').textContent = 'Idle';
+        c.querySelector('.pipe-arm').textContent = 'Arm';
+      });
+
+      // If clicking the already armed one, disarm
+      if (armedPipeline === filename) {
+        armedPipeline = null;
+        armedPipelineName = null;
+        launchGoBtn.disabled = true;
+        launchGoBtn.classList.remove('armed');
+        launchArmedName.textContent = 'No target';
+        launchArmedName.classList.remove('active');
+        launchStatusText.textContent = 'Idle';
+        launchParams.classList.remove('open');
+        launchParamsInput.value = '';
+        launchState = 'idle';
+        return;
+      }
+
+      // Arm this pipeline
+      armedPipeline = filename;
+      armedPipelineName = name;
+      card.classList.add('armed');
+      card.querySelector('.pipe-led').className = 'pipe-led armed';
+      card.querySelector('.pipe-status').className = 'pipe-status armed';
+      card.querySelector('.pipe-status').textContent = 'Armed';
+      card.querySelector('.pipe-arm').textContent = 'Armed';
+
+      launchGoBtn.disabled = false;
+      launchGoBtn.classList.add('armed');
+      launchArmedName.textContent = name;
+      launchArmedName.classList.add('active');
+      launchStatusText.textContent = 'Ready';
+      launchParams.classList.add('open');
+      launchParamsInput.focus();
+      launchState = 'armed';
+    }
+
+    // LAUNCH — calls the pipeline API directly
+    launchGoBtn.addEventListener('click', async () => {
+      if (!armedPipeline || launchState === 'running' || launchState === 'paused') return;
+
+      const paramsText = launchParamsInput.value.trim();
+      // Parse parameters: "KEY=VALUE" per line, or single value → TOPIC
+      const parameters = {};
+      if (paramsText) {
+        if (paramsText.includes('=')) {
+          for (const line of paramsText.split('\n')) {
+            const eq = line.indexOf('=');
+            if (eq > 0) parameters[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+          }
+        } else {
+          parameters.TOPIC = paramsText;
+        }
+      }
+
+      launchState = 'running';
+      launchGoBtn.disabled = true;
+      launchAbortBtn.disabled = false;
+      launchStatusText.textContent = 'Launching...';
+      launchProgressFill.style.width = '5%';
+      launchParams.classList.remove('open');
+
+      // Update card LED
+      const card = document.querySelector(`.pipeline-card[data-filename="${armedPipeline}"]`);
+      if (card) {
+        card.classList.remove('armed');
+        card.classList.add('running');
+        card.querySelector('.pipe-led').className = 'pipe-led running';
+        card.querySelector('.pipe-status').className = 'pipe-status running';
+        card.querySelector('.pipe-status').textContent = 'Running';
+      }
+
+      try {
+        const resp = await api('/api/pipeline/launch', {
+          method: 'POST',
+          body: JSON.stringify({ filename: armedPipeline, parameters })
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+
+        launchStatusText.textContent = 'Running';
+        // Start polling
+        startPolling();
+      } catch (err) {
+        launchStatusText.textContent = 'Error';
+        launchProgressFill.style.width = '0%';
+        if (card) {
+          card.classList.remove('running');
+          card.classList.add('error');
+          card.querySelector('.pipe-led').className = 'pipe-led error';
+          card.querySelector('.pipe-status').textContent = 'Error';
+        }
+        appendMessage('system', 'Pipeline launch failed: ' + err.message);
+        scrollToBottom();
+        resetLaunchState();
+      }
+    });
+
+    // ABORT
+    launchAbortBtn.addEventListener('click', async () => {
+      if (launchState !== 'running' && launchState !== 'paused') return;
+      try {
+        await api('/api/pipeline/abort', { method: 'POST', body: '{}' });
+      } catch {}
+      stopPolling();
+      closePreview();
+      launchStatusText.textContent = 'Aborted';
+      launchProgressFill.style.width = '0%';
+      const card = armedPipeline && document.querySelector(`.pipeline-card[data-filename="${armedPipeline}"]`);
+      if (card) {
+        card.classList.remove('running');
+        card.classList.add('error');
+        card.querySelector('.pipe-led').className = 'pipe-led error';
+        card.querySelector('.pipe-status').textContent = 'Aborted';
+      }
+      resetLaunchState();
+    });
+
+    function resetLaunchState() {
+      launchState = 'idle';
+      armedPipeline = null;
+      armedPipelineName = null;
+      launchGoBtn.disabled = true;
+      launchGoBtn.classList.remove('armed');
+      launchAbortBtn.disabled = true;
+    }
+
+    // ===== POLLING =====
+    function startPolling() {
+      stopPolling();
+      pollInterval = setInterval(pollStatus, 2000);
+      pollStatus(); // immediate first poll
+    }
+
+    function stopPolling() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    async function pollStatus() {
+      try {
+        const resp = await api('/api/pipeline/status');
+        const st = await resp.json();
+        handlePipelineStatus(st);
+      } catch {
+        // Network error — keep polling
+      }
+    }
+
+    function handlePipelineStatus(st) {
+      // Update progress bar
+      if (st.progress) {
+        const pct = st.progress.percent || 0;
+        launchProgressFill.style.width = pct + '%';
+      }
+
+      // Update status text
+      const statusMap = {
+        'idle': 'Idle',
+        'running': 'Running',
+        'paused-breakpoint': 'Breakpoint',
+        'complete': 'Complete',
+        'failed': 'Failed',
+        'aborted': 'Aborted'
+      };
+      launchStatusText.textContent = statusMap[st.status] || st.status;
+
+      const card = st.filename && document.querySelector(`.pipeline-card[data-filename="${st.filename}"]`);
+
+      if (st.status === 'paused-breakpoint' && st.breakpoint) {
+        launchState = 'paused';
+        if (card) {
+          card.querySelector('.pipe-led').className = 'pipe-led armed';
+          card.querySelector('.pipe-status').textContent = 'Breakpoint';
+        }
+        showBreakpointPreview(st.breakpoint);
+      }
+
+      if (st.status === 'complete') {
+        stopPolling();
+        launchProgressFill.style.width = '100%';
+        if (card) {
+          card.classList.remove('running');
+          card.querySelector('.pipe-led').className = 'pipe-led complete';
+          card.querySelector('.pipe-status').textContent = 'Done';
+        }
+        // Show summary in chat
+        let summary = 'Pipeline complete.';
+        if (st.duration) summary += ` (${(st.duration / 1000).toFixed(1)}s)`;
+        if (st.deliverables && st.deliverables.length > 0) {
+          summary += '\n\nDeliverables:\n' + st.deliverables.map(d => `- ${d.label}: ${d.file}`).join('\n');
+        }
+        if (st.tokenUsage && (st.tokenUsage.input || st.tokenUsage.output)) {
+          summary += `\n\nTokens: ${st.tokenUsage.input} in / ${st.tokenUsage.output} out`;
+        }
+        appendMessage('system', summary);
+        scrollToBottom();
+        resetLaunchState();
+      }
+
+      if (st.status === 'failed') {
+        stopPolling();
+        closePreview();
+        launchProgressFill.style.width = '0%';
+        if (card) {
+          card.classList.remove('running');
+          card.classList.add('error');
+          card.querySelector('.pipe-led').className = 'pipe-led error';
+          card.querySelector('.pipe-status').textContent = 'Failed';
+        }
+        appendMessage('system', 'Pipeline failed: ' + (st.error || 'Unknown error'));
+        scrollToBottom();
+        resetLaunchState();
+      }
+
+      if (st.status === 'aborted') {
+        stopPolling();
+        closePreview();
+        resetLaunchState();
+      }
+    }
+
+    // ===== PREVIEW OVERLAY =====
+    function showBreakpointPreview(bp) {
+      currentBreakpointNodeId = bp.nodeId;
+      previewTitle.textContent = 'Breakpoint Review';
+      previewNodeBadge.textContent = bp.nodeLabel || bp.nodeId;
+
+      // Determine content
+      const outputs = bp.outputs || {};
+      let content = outputs.text || outputs.context || outputs.html || '';
+      let contentType = 'text';
+      if (outputs.html) contentType = 'html';
+      else if (content.trim().startsWith('<') && content.includes('</')) contentType = 'html';
+
+      // Truncate for mobile
+      const MAX_PREVIEW = 10000;
+      let truncated = false;
+      if (content.length > MAX_PREVIEW) {
+        content = content.slice(0, MAX_PREVIEW);
+        truncated = true;
+      }
+
+      // Render content
+      previewFrameWrap.innerHTML = '';
+      previewFrameWrap.classList.remove('expanded');
+      if (contentType === 'html') {
+        const iframe = document.createElement('iframe');
+        iframe.sandbox = 'allow-same-origin';
+        iframe.srcdoc = content;
+        previewFrameWrap.appendChild(iframe);
+      } else {
+        const pre = document.createElement('pre');
+        pre.textContent = content;
+        previewFrameWrap.appendChild(pre);
+      }
+      if (truncated) {
+        const note = document.createElement('div');
+        note.className = 'preview-truncated';
+        note.textContent = '[Output truncated — full content available in Pipeline IDE]';
+        previewFrameWrap.appendChild(note);
+      }
+
+      // Show breakpoint controls
+      previewBpControls.classList.remove('hidden');
+      previewRevision.classList.remove('open');
+      previewRevisionInput.value = '';
+
+      previewOverlay.classList.add('open');
+    }
+
+    function closePreview() {
+      previewOverlay.classList.remove('open');
+      currentBreakpointNodeId = null;
+    }
+
+    // Preview close/expand buttons
+    document.getElementById('preview-close').addEventListener('click', closePreview);
+    document.getElementById('preview-backdrop').addEventListener('click', closePreview);
+    document.getElementById('preview-expand').addEventListener('click', () => {
+      previewFrameWrap.classList.toggle('expanded');
+    });
+
+    // Approve — release breakpoint gate, no edits
+    document.getElementById('preview-approve').addEventListener('click', async () => {
+      if (!currentBreakpointNodeId) return;
+      const nodeId = currentBreakpointNodeId;
+      closePreview();
+      launchState = 'running';
+      launchStatusText.textContent = 'Resuming...';
+      try {
+        await api('/api/pipeline/continue', {
+          method: 'POST',
+          body: JSON.stringify({ nodeId })
+        });
+      } catch (err) {
+        appendMessage('system', 'Continue failed: ' + err.message);
+      }
+    });
+
+    // Revise — show revision input
+    document.getElementById('preview-revise').addEventListener('click', () => {
+      previewRevision.classList.toggle('open');
+      if (previewRevision.classList.contains('open')) {
+        previewRevisionInput.focus();
+      }
+    });
+
+    // Send revision
+    document.getElementById('preview-revision-send').addEventListener('click', async () => {
+      if (!currentBreakpointNodeId) return;
+      const instruction = previewRevisionInput.value.trim();
+      if (!instruction) return;
+
+      const nodeId = currentBreakpointNodeId;
+      closePreview();
+      launchState = 'running';
+      launchStatusText.textContent = 'Revising...';
+      try {
+        await api('/api/pipeline/continue', {
+          method: 'POST',
+          body: JSON.stringify({ nodeId, revisionInstruction: instruction })
+        });
+      } catch (err) {
+        appendMessage('system', 'Revision failed: ' + err.message);
+      }
+    });
+
+    // Abort from preview
+    document.getElementById('preview-abort').addEventListener('click', async () => {
+      closePreview();
+      try {
+        await api('/api/pipeline/abort', { method: 'POST', body: '{}' });
+      } catch {}
+      stopPolling();
+      launchStatusText.textContent = 'Aborted';
+      launchProgressFill.style.width = '0%';
+      resetLaunchState();
+    });
+
+    // Health check every 30s
+    setInterval(checkHealth, 30000);
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/chat/sw.js', { scope: '/chat/' }).catch(() => {});
+    }
+  </script>
+</body>
+</html>

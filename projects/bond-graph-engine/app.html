@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Bond Graph Engine</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0b0b14; }
+    #root { width: 100%; height: 100%; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+  <script crossorigin src="https://unpkg.com/recharts@2.15.0/umd/Recharts.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useCallback, useEffect, useMemo } = React;
+const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } = Recharts;
+
+// ═══════════════════════════════════════════════════════════════════
+// Bond Graph Solver (inlined)
+// ═══════════════════════════════════════════════════════════════════
+
+let _nextSolverId = 1;
+function genSolverId() { return _nextSolverId++; }
+function resetSolverIds() { _nextSolverId = 1; }
+
+class SolverElement {
+  constructor(type, value, label) {
+    this.id = genSolverId(); this.type = type; this.value = value;
+    this.label = label || `${type}:${this.id}`; this.state = 0;
+  }
+}
+class SolverJunction {
+  constructor(type, label) {
+    this.id = genSolverId(); this.type = type;
+    this.label = label || `J${type}:${this.id}`;
+  }
+}
+class SolverBond {
+  constructor(fromId, toId) {
+    this.id = genSolverId(); this.from = fromId; this.to = toId;
+    this.effort = NaN; this.flow = NaN;
+  }
+  get power() { return this.effort * this.flow; }
+  clearValues() { this.effort = NaN; this.flow = NaN; }
+}
+
+class BondGraphSolver {
+  constructor() { this.nodes = new Map(); this.bonds = []; this._idx = null; }
+  addElement(type, value, label) { const el = new SolverElement(type, value, label); this.nodes.set(el.id, el); this._idx = null; return el; }
+  addJunction(type, label) { const j = new SolverJunction(type, label); this.nodes.set(j.id, j); this._idx = null; return j; }
+  connect(from, to) { const b = new SolverBond(from.id, to.id); this.bonds.push(b); this._idx = null; return b; }
+
+  _buildIdx() {
+    if (this._idx) return;
+    this._idx = new Map();
+    for (const [id] of this.nodes) this._idx.set(id, []);
+    for (const b of this.bonds) {
+      this._idx.get(b.from).push({ bond: b, inward: false });
+      this._idx.get(b.to).push({ bond: b, inward: true });
+    }
+  }
+  bondsOf(nid) { this._buildIdx(); return this._idx.get(nid) || []; }
+  get storageElements() { return [...this.nodes.values()].filter(n => n instanceof SolverElement && (n.type === 'C' || n.type === 'I')); }
+  get junctions() { return [...this.nodes.values()].filter(n => n instanceof SolverJunction); }
+  getState() { return this.storageElements.map(el => el.state); }
+  setState(vec) { this.storageElements.forEach((el, i) => { el.state = vec[i]; }); }
+  resetState() { this.storageElements.forEach(el => { el.state = 0; }); }
+
+  propagate(srcOv) {
+    for (const b of this.bonds) b.clearValues();
+    for (const [id, node] of this.nodes) {
+      if (!(node instanceof SolverElement)) continue;
+      const conns = this.bondsOf(id); if (conns.length === 0) continue;
+      const { bond } = conns[0];
+      const val = srcOv?.[id] ?? node.value;
+      switch (node.type) {
+        case 'Se': bond.effort = val; break;
+        case 'Sf': bond.flow = val; break;
+        case 'C': bond.effort = node.state / node.value; break;
+        case 'I': bond.flow = node.state / node.value; break;
+      }
+    }
+    for (let iter = 0; iter < 20; iter++) {
+      let prog = false;
+      for (const jn of this.junctions) { if (this._propJn(jn)) prog = true; }
+      for (const [id, node] of this.nodes) {
+        if (!(node instanceof SolverElement) || node.type !== 'R') continue;
+        const { bond } = this.bondsOf(id)[0];
+        if (!isNaN(bond.effort) && isNaN(bond.flow)) { bond.flow = bond.effort / node.value; prog = true; }
+        else if (isNaN(bond.effort) && !isNaN(bond.flow)) { bond.effort = node.value * bond.flow; prog = true; }
+      }
+      if (!prog) break;
+    }
+    return this.bonds.every(b => !isNaN(b.effort) && !isNaN(b.flow));
+  }
+
+  _propJn(jn) {
+    const conns = this.bondsOf(jn.id); let prog = false;
+    if (jn.type === '1') {
+      let kf = NaN;
+      for (const { bond } of conns) { if (!isNaN(bond.flow)) { kf = bond.flow; break; } }
+      if (!isNaN(kf)) { for (const { bond } of conns) { if (isNaN(bond.flow)) { bond.flow = kf; prog = true; } } }
+      let uc = null, un = 0, es = 0;
+      for (const c of conns) { const s = c.inward ? 1 : -1; if (isNaN(c.bond.effort)) { un++; uc = c; } else { es += s * c.bond.effort; } }
+      if (un === 1 && uc) { uc.bond.effort = -es / (uc.inward ? 1 : -1); prog = true; }
+    } else if (jn.type === '0') {
+      let ke = NaN;
+      for (const { bond } of conns) { if (!isNaN(bond.effort)) { ke = bond.effort; break; } }
+      if (!isNaN(ke)) { for (const { bond } of conns) { if (isNaN(bond.effort)) { bond.effort = ke; prog = true; } } }
+      let uc = null, un = 0, fs = 0;
+      for (const c of conns) { const s = c.inward ? 1 : -1; if (isNaN(c.bond.flow)) { un++; uc = c; } else { fs += s * c.bond.flow; } }
+      if (un === 1 && uc) { uc.bond.flow = -fs / (uc.inward ? 1 : -1); prog = true; }
+    }
+    return prog;
+  }
+
+  stateDerivatives() {
+    return this.storageElements.map(el => {
+      const { bond, inward } = this.bondsOf(el.id)[0];
+      if (el.type === 'C') return inward ? bond.flow : -bond.flow;
+      if (el.type === 'I') return inward ? bond.effort : -bond.effort;
+      return 0;
+    });
+  }
+
+  _rhs(sv, t, so) { this.setState(sv); this.propagate(so); return this.stateDerivatives(); }
+  stepRK4(dt, t, so) {
+    const y = this.getState();
+    const k1 = this._rhs(y, t, so);
+    const k2 = this._rhs(y.map((v,i) => v + 0.5*dt*k1[i]), t+0.5*dt, so);
+    const k3 = this._rhs(y.map((v,i) => v + 0.5*dt*k2[i]), t+0.5*dt, so);
+    const k4 = this._rhs(y.map((v,i) => v + dt*k3[i]), t+dt, so);
+    const yn = y.map((v,i) => v + (dt/6)*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+    this.setState(yn); return yn;
+  }
+
+  solveSteadyState(so) {
+    for (const b of this.bonds) b.clearValues();
+    for (const [id, node] of this.nodes) {
+      if (!(node instanceof SolverElement)) continue;
+      const conns = this.bondsOf(id); if (conns.length === 0) continue;
+      const { bond } = conns[0]; const val = so?.[id] ?? node.value;
+      switch (node.type) {
+        case 'Se': bond.effort = val; break; case 'Sf': bond.flow = val; break;
+        case 'C': bond.flow = 0; break; case 'I': bond.effort = 0; break;
+      }
+    }
+    for (let iter = 0; iter < 20; iter++) {
+      let prog = false;
+      for (const jn of this.junctions) { if (this._propJn(jn)) prog = true; }
+      for (const [id, node] of this.nodes) {
+        if (!(node instanceof SolverElement)) continue;
+        const { bond } = this.bondsOf(id)[0];
+        if (node.type === 'R') {
+          if (!isNaN(bond.effort) && isNaN(bond.flow)) { bond.flow = bond.effort / node.value; prog = true; }
+          else if (isNaN(bond.effort) && !isNaN(bond.flow)) { bond.effort = node.value * bond.flow; prog = true; }
+        }
+      }
+      if (!prog) break;
+    }
+    for (const el of this.storageElements) {
+      const { bond } = this.bondsOf(el.id)[0];
+      if (el.type === 'C') el.state = el.value * bond.effort;
+      else if (el.type === 'I') el.state = el.value * bond.flow;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI Constants
+// ═══════════════════════════════════════════════════════════════════
+
+const NODE_W = 90;
+const NODE_H = 68;
+const JN_R = 24;
+const PORT_R = 6;
+const COLORS = {
+  Se: '#22c55e', Sf: '#06b6d4', R: '#f97316', C: '#3b82f6', I: '#a78bfa',
+  '0': '#fbbf24', '1': '#fbbf24',
+};
+const ELEMENT_TYPES = ['Se', 'Sf', 'R', 'C', 'I'];
+const JUNCTION_TYPES = ['0', '1'];
+
+const DEFAULT_VALUES = { Se: 10, Sf: 1, R: 10, C: 0.001, I: 0.1 };
+
+// ═══════════════════════════════════════════════════════════════════
+// Domain skins — visual identity per physical domain
+// ═══════════════════════════════════════════════════════════════════
+
+const DOMAINS = {
+  generic: {
+    label: 'Bond Graph',
+    effortName: 'e', flowName: 'f',
+    accent: '#64748b',
+    elements: {
+      Se: { name: 'Se', unit: '' },
+      Sf: { name: 'Sf', unit: '' },
+      R:  { name: 'R',  unit: '' },
+      C:  { name: 'C',  unit: '' },
+      I:  { name: 'I',  unit: '' },
+    },
+  },
+  electrical: {
+    label: 'Electrical',
+    effortName: 'V', flowName: 'I',
+    accent: '#60a5fa',
+    elements: {
+      Se: { name: 'V_s', unit: 'V',  desc: 'Voltage Source' },
+      Sf: { name: 'I_s', unit: 'A',  desc: 'Current Source' },
+      R:  { name: 'R',   unit: 'Ω',  desc: 'Resistor' },
+      C:  { name: 'C',   unit: 'F',  desc: 'Capacitor' },
+      I:  { name: 'L',   unit: 'H',  desc: 'Inductor' },
+    },
+  },
+  mechanical: {
+    label: 'Mechanical',
+    effortName: 'F', flowName: 'v',
+    accent: '#f59e0b',
+    elements: {
+      Se: { name: 'F',   unit: 'N',     desc: 'Force Source' },
+      Sf: { name: 'v_s', unit: 'm/s',   desc: 'Velocity Source' },
+      R:  { name: 'b',   unit: 'N·s/m', desc: 'Damper' },
+      C:  { name: '1/k', unit: 'm/N',   desc: 'Spring' },
+      I:  { name: 'm',   unit: 'kg',    desc: 'Mass' },
+    },
+  },
+  thermal: {
+    label: 'Thermal',
+    effortName: 'T', flowName: 'Q̇',
+    accent: '#ef4444',
+    elements: {
+      Se: { name: 'T',    unit: 'K',   desc: 'Temperature Source' },
+      Sf: { name: 'Q̇',   unit: 'W',   desc: 'Heat Source' },
+      R:  { name: 'R_th', unit: 'K/W', desc: 'Thermal Resistance' },
+      C:  { name: 'C_th', unit: 'J/K', desc: 'Thermal Mass' },
+      I:  { name: '—',    unit: '',    desc: '(none in thermal)' },
+    },
+  },
+  hydraulic: {
+    label: 'Hydraulic',
+    effortName: 'P', flowName: 'Q',
+    accent: '#06b6d4',
+    elements: {
+      Se: { name: 'P_s', unit: 'Pa',      desc: 'Pressure Source' },
+      Sf: { name: 'Q_s', unit: 'm³/s',    desc: 'Pump' },
+      R:  { name: 'R_f', unit: 'Pa·s/m³', desc: 'Flow Resistance' },
+      C:  { name: 'C_f', unit: 'm³/Pa',   desc: 'Tank / Accumulator' },
+      I:  { name: 'I_f', unit: 'kg/m⁴',   desc: 'Fluid Inertance' },
+    },
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════
+
+let _uiId = 1;
+function uid() { return _uiId++; }
+
+function formatValue(v) {
+  if (Math.abs(v) >= 1) return v.toPrecision(3);
+  if (Math.abs(v) >= 0.001) return (v * 1000).toPrecision(3) + 'm';
+  if (Math.abs(v) >= 0.000001) return (v * 1e6).toPrecision(3) + 'µ';
+  return v.toExponential(2);
+}
+
+function portPos(node, portIdx) {
+  const isJn = node.type === '0' || node.type === '1';
+  if (isJn) {
+    // Distribute ports around circle
+    const n = node.ports || 4;
+    const angle = (portIdx / n) * 2 * Math.PI - Math.PI / 2;
+    return { x: node.x + Math.cos(angle) * (JN_R + 2), y: node.y + Math.sin(angle) * (JN_R + 2) };
+  }
+  // Element: port on right side
+  return { x: node.x + NODE_W / 2 + 2, y: node.y };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Auto-orient: ensure bonds flow source→junction and junction→element
+// ═══════════════════════════════════════════════════════════════════
+
+function isSource(type) { return type === 'Se' || type === 'Sf'; }
+function isPassive(type) { return type === 'R' || type === 'C' || type === 'I'; }
+function isJunction(type) { return type === '0' || type === '1'; }
+
+/** Returns true if wire should be flipped so power flows correctly */
+function shouldFlip(fromType, toType) {
+  // Sources should be 'from', pointing into junction
+  if (isSource(toType) && isJunction(fromType)) return true;
+  // Passive elements should be 'to', receiving from junction
+  if (isPassive(fromType) && isJunction(toType)) return true;
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Causality assignment (simplified SCAP)
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Assigns causality to each wire.
+ * Returns: { wireId: 'from' | 'to' }
+ * The value indicates which END of the bond has the causality stroke.
+ * The end WITH the stroke RECEIVES effort and PROVIDES flow.
+ */
+function assignCausality(nodes, wires) {
+  const result = {};   // wireId → 'from' | 'to'
+  const assigned = new Set();
+
+  const nodeMap = {};
+  for (const n of nodes) nodeMap[n.id] = n;
+
+  function wiresOfJunction(jnId) {
+    return wires.filter(w => w.fromNodeId === jnId || w.toNodeId === jnId);
+  }
+
+  // Step 1: Required causality for sources
+  for (const w of wires) {
+    const from = nodeMap[w.fromNodeId];
+    const to = nodeMap[w.toNodeId];
+    if (!from || !to) continue;
+
+    if (from.type === 'Se') {
+      // Se provides effort → stroke at the OTHER end (to end receives effort)
+      result[w.id] = 'to';
+      assigned.add(w.id);
+    } else if (to.type === 'Se') {
+      result[w.id] = 'from';
+      assigned.add(w.id);
+    } else if (from.type === 'Sf') {
+      // Sf provides flow → stroke at Sf end (from end receives effort)
+      result[w.id] = 'from';
+      assigned.add(w.id);
+    } else if (to.type === 'Sf') {
+      result[w.id] = 'to';
+      assigned.add(w.id);
+    }
+  }
+
+  // Step 2: Propagate through junctions iteratively
+  let changed = true;
+  let iter = 0;
+  while (changed && iter < 20) {
+    changed = false;
+    iter++;
+
+    for (const jn of nodes) {
+      if (!isJunction(jn.type)) continue;
+      const jnWires = wiresOfJunction(jn.id);
+      const unassigned = jnWires.filter(w => !assigned.has(w.id));
+
+      if (jn.type === '1') {
+        // 1-junction: exactly ONE bond has stroke AT junction end
+        // "stroke at junction" means: junction receives effort from that bond's element
+        let strokeAtJnCount = 0;
+        for (const w of jnWires) {
+          if (!assigned.has(w.id)) continue;
+          const jnIsFr = w.fromNodeId === jn.id;
+          const strokeAtJn = (jnIsFr && result[w.id] === 'from') || (!jnIsFr && result[w.id] === 'to');
+          if (strokeAtJn) strokeAtJnCount++;
+        }
+
+        if (strokeAtJnCount === 1 && unassigned.length > 0) {
+          // All remaining: stroke AWAY from junction (at element end)
+          for (const w of unassigned) {
+            const jnIsFr = w.fromNodeId === jn.id;
+            result[w.id] = jnIsFr ? 'to' : 'from';
+            assigned.add(w.id);
+            changed = true;
+          }
+        } else if (strokeAtJnCount === 0 && unassigned.length > 0) {
+          // Pick one to have stroke at junction — prefer C (integral causality)
+          const pick = unassigned.find(w => {
+            const other = w.fromNodeId === jn.id ? nodeMap[w.toNodeId] : nodeMap[w.fromNodeId];
+            return other?.type === 'C';
+          }) || unassigned.find(w => {
+            const other = w.fromNodeId === jn.id ? nodeMap[w.toNodeId] : nodeMap[w.fromNodeId];
+            return other?.type === 'I';
+          }) || unassigned[0];
+
+          if (pick) {
+            const jnIsFr = pick.fromNodeId === jn.id;
+            result[pick.id] = jnIsFr ? 'from' : 'to';
+            assigned.add(pick.id);
+            changed = true;
+          }
+        }
+      } else if (jn.type === '0') {
+        // 0-junction: exactly ONE bond has stroke AWAY from junction
+        let strokeAwayCount = 0;
+        for (const w of jnWires) {
+          if (!assigned.has(w.id)) continue;
+          const jnIsFr = w.fromNodeId === jn.id;
+          const strokeAway = (jnIsFr && result[w.id] === 'to') || (!jnIsFr && result[w.id] === 'from');
+          if (strokeAway) strokeAwayCount++;
+        }
+
+        if (strokeAwayCount === 1 && unassigned.length > 0) {
+          // All remaining: stroke AT junction
+          for (const w of unassigned) {
+            const jnIsFr = w.fromNodeId === jn.id;
+            result[w.id] = jnIsFr ? 'from' : 'to';
+            assigned.add(w.id);
+            changed = true;
+          }
+        } else if (strokeAwayCount === 0 && unassigned.length > 0) {
+          // Pick one to have stroke away — prefer I (integral causality)
+          const pick = unassigned.find(w => {
+            const other = w.fromNodeId === jn.id ? nodeMap[w.toNodeId] : nodeMap[w.fromNodeId];
+            return other?.type === 'I';
+          }) || unassigned.find(w => {
+            const other = w.fromNodeId === jn.id ? nodeMap[w.toNodeId] : nodeMap[w.fromNodeId];
+            return other?.type === 'C';
+          }) || unassigned[0];
+
+          if (pick) {
+            const jnIsFr = pick.fromNodeId === jn.id;
+            result[pick.id] = jnIsFr ? 'to' : 'from';
+            assigned.add(pick.id);
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Domain-specific schematic symbols (SVG inline, centered at cx,cy)
+// ═══════════════════════════════════════════════════════════════════
+
+function DomainSymbol({ type, domain, cx, cy, color }) {
+  const s = 14; // half-size of symbol area
+  const c = color + '99'; // slightly transparent
+  const w = 1.8;
+
+  if (domain === 'electrical') {
+    if (type === 'R') {
+      // Zigzag resistor
+      return <polyline points={`${cx-s},${cy} ${cx-s+4},${cy-5} ${cx-s+8},${cy+5} ${cx-s+12},${cy-5} ${cx-s+16},${cy+5} ${cx-s+20},${cy-5} ${cx-s+24},${cy+5} ${cx+s},${cy}`}
+        fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />;
+    }
+    if (type === 'C') {
+      // Capacitor plates
+      return <g>
+        <line x1={cx-3} y1={cy-s+2} x2={cx-3} y2={cy+s-2} stroke={c} strokeWidth={w+0.5} />
+        <line x1={cx+3} y1={cy-s+2} x2={cx+3} y2={cy+s-2} stroke={c} strokeWidth={w+0.5} />
+        <line x1={cx-s} y1={cy} x2={cx-3} y2={cy} stroke={c} strokeWidth={w} />
+        <line x1={cx+3} y1={cy} x2={cx+s} y2={cy} stroke={c} strokeWidth={w} />
+      </g>;
+    }
+    if (type === 'I') {
+      // Inductor coils
+      const arcs = [];
+      for (let i = 0; i < 4; i++) {
+        const x = cx - 10 + i * 6;
+        arcs.push(`A 3 3 0 0 1 ${x + 6} ${cy}`);
+      }
+      return <path d={`M ${cx-s} ${cy} L ${cx-10} ${cy} ${arcs.join(' ')} L ${cx+s} ${cy}`}
+        fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" />;
+    }
+    if (type === 'Se') {
+      // Voltage source (circle with + -)
+      return <g>
+        <circle cx={cx} cy={cy} r={s-2} fill="none" stroke={c} strokeWidth={w} />
+        <text x={cx-5} y={cy+4} fontSize={12} fill={c} fontWeight="700" fontFamily="sans-serif">+</text>
+        <text x={cx+3} y={cy+4} fontSize={12} fill={c} fontWeight="700" fontFamily="sans-serif">−</text>
+      </g>;
+    }
+    if (type === 'Sf') {
+      // Current source (circle with arrow)
+      return <g>
+        <circle cx={cx} cy={cy} r={s-2} fill="none" stroke={c} strokeWidth={w} />
+        <line x1={cx-6} y1={cy} x2={cx+6} y2={cy} stroke={c} strokeWidth={w} />
+        <polygon points={`${cx+6},${cy} ${cx+1},${cy-3} ${cx+1},${cy+3}`} fill={c} />
+      </g>;
+    }
+  }
+
+  if (domain === 'mechanical') {
+    if (type === 'R') {
+      // Damper (piston in cylinder)
+      return <g>
+        <rect x={cx-6} y={cy-s+3} width={12} height={s*2-6} rx={1} fill="none" stroke={c} strokeWidth={w} />
+        <line x1={cx-4} y1={cy-2} x2={cx+4} y2={cy-2} stroke={c} strokeWidth={w+0.5} />
+        <line x1={cx} y1={cy-2} x2={cx} y2={cy-s+3} stroke={c} strokeWidth={w} />
+        <line x1={cx} y1={cy+s-3} x2={cx} y2={cy+2} stroke={c} strokeWidth={w} />
+      </g>;
+    }
+    if (type === 'C') {
+      // Spring (zigzag vertical)
+      return <polyline points={`${cx},${cy-s+2} ${cx+6},${cy-7} ${cx-6},${cy-3} ${cx+6},${cy+1} ${cx-6},${cy+5} ${cx+6},${cy+9} ${cx},${cy+s-2}`}
+        fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />;
+    }
+    if (type === 'I') {
+      // Mass (solid block)
+      return <g>
+        <rect x={cx-s+2} y={cy-7} width={s*2-4} height={14} rx={2} fill={c} opacity={0.3} stroke={c} strokeWidth={w} />
+        <text x={cx} y={cy+4} textAnchor="middle" fontSize={9} fill={c} fontWeight="700" fontFamily="sans-serif">m</text>
+      </g>;
+    }
+    if (type === 'Se') {
+      // Force arrow
+      return <g>
+        <line x1={cx-s+2} y1={cy} x2={cx+s-5} y2={cy} stroke={c} strokeWidth={w+0.5} />
+        <polygon points={`${cx+s-2},${cy} ${cx+s-8},${cy-4} ${cx+s-8},${cy+4}`} fill={c} />
+      </g>;
+    }
+    if (type === 'Sf') {
+      // Velocity arrow (double line)
+      return <g>
+        <line x1={cx-s+2} y1={cy-2} x2={cx+s-5} y2={cy-2} stroke={c} strokeWidth={w} />
+        <line x1={cx-s+2} y1={cy+2} x2={cx+s-5} y2={cy+2} stroke={c} strokeWidth={w} />
+        <polygon points={`${cx+s-2},${cy} ${cx+s-8},${cy-5} ${cx+s-8},${cy+5}`} fill={c} />
+      </g>;
+    }
+  }
+
+  if (domain === 'thermal') {
+    if (type === 'R') {
+      // Thermal resistance (brick wall pattern)
+      return <g>
+        <rect x={cx-8} y={cy-s+3} width={16} height={s*2-6} fill="none" stroke={c} strokeWidth={w} />
+        <line x1={cx-8} y1={cy-4} x2={cx+8} y2={cy-4} stroke={c} strokeWidth={0.8} opacity={0.5} />
+        <line x1={cx} y1={cy-s+3} x2={cx} y2={cy-4} stroke={c} strokeWidth={0.8} opacity={0.5} />
+        <line x1={cx-8} y1={cy+4} x2={cx+8} y2={cy+4} stroke={c} strokeWidth={0.8} opacity={0.5} />
+        <line x1={cx-4} y1={cy-4} x2={cx-4} y2={cy+4} stroke={c} strokeWidth={0.8} opacity={0.5} />
+        <line x1={cx+4} y1={cy-4} x2={cx+4} y2={cy+4} stroke={c} strokeWidth={0.8} opacity={0.5} />
+      </g>;
+    }
+    if (type === 'C') {
+      // Thermal mass (filled block with heat lines)
+      return <g>
+        <rect x={cx-s+3} y={cy-8} width={s*2-6} height={16} rx={2} fill={c} opacity={0.2} stroke={c} strokeWidth={w} />
+        <path d={`M${cx-5} ${cy-3} Q${cx-3} ${cy-6} ${cx-1} ${cy-3} Q${cx+1} ${cy} ${cx+3} ${cy-3}`} fill="none" stroke={c} strokeWidth={1} opacity={0.6} />
+      </g>;
+    }
+    if (type === 'Se') {
+      // Temperature (thermometer)
+      return <g>
+        <rect x={cx-2} y={cy-s+3} width={4} height={s+4} rx={2} fill="none" stroke={c} strokeWidth={w} />
+        <circle cx={cx} cy={cy+6} r={5} fill={c} opacity={0.4} stroke={c} strokeWidth={w} />
+        <rect x={cx-1} y={cy-4} width={2} height={8} fill={c} opacity={0.6} />
+      </g>;
+    }
+    if (type === 'Sf') {
+      // Heat source (flame)
+      return <path d={`M${cx} ${cy-s+4} Q${cx+7} ${cy-4} ${cx+3} ${cy+2} Q${cx+5} ${cy+6} ${cx} ${cy+s-3} Q${cx-5} ${cy+6} ${cx-3} ${cy+2} Q${cx-7} ${cy-4} ${cx} ${cy-s+4}`}
+        fill={c} opacity={0.3} stroke={c} strokeWidth={w} />;
+    }
+  }
+
+  if (domain === 'hydraulic') {
+    if (type === 'R') {
+      // Flow restriction (narrow pipe)
+      return <g>
+        <line x1={cx-s} y1={cy-6} x2={cx-4} y2={cy-2} stroke={c} strokeWidth={w} />
+        <line x1={cx-s} y1={cy+6} x2={cx-4} y2={cy+2} stroke={c} strokeWidth={w} />
+        <line x1={cx+4} y1={cy-2} x2={cx+s} y2={cy-6} stroke={c} strokeWidth={w} />
+        <line x1={cx+4} y1={cy+2} x2={cx+s} y2={cy+6} stroke={c} strokeWidth={w} />
+      </g>;
+    }
+    if (type === 'C') {
+      // Tank / reservoir
+      return <g>
+        <path d={`M${cx-s+3} ${cy-s+5} L${cx-s+3} ${cy+s-5} L${cx+s-3} ${cy+s-5} L${cx+s-3} ${cy-s+5}`} fill="none" stroke={c} strokeWidth={w} />
+        <rect x={cx-s+5} y={cy} width={s*2-10} height={s-5} fill={c} opacity={0.2} />
+        <path d={`M${cx-s+5} ${cy} Q${cx} ${cy+3} ${cx+s-5} ${cy}`} fill="none" stroke={c} strokeWidth={1} opacity={0.5} />
+      </g>;
+    }
+    if (type === 'I') {
+      // Fluid inertance (pipe section)
+      return <g>
+        <rect x={cx-s+2} y={cy-5} width={s*2-4} height={10} rx={5} fill="none" stroke={c} strokeWidth={w} />
+        <line x1={cx-4} y1={cy} x2={cx+4} y2={cy} stroke={c} strokeWidth={w} />
+        <polygon points={`${cx+5},${cy} ${cx+1},${cy-2.5} ${cx+1},${cy+2.5}`} fill={c} />
+      </g>;
+    }
+    if (type === 'Sf') {
+      // Pump (circle with triangle)
+      return <g>
+        <circle cx={cx} cy={cy} r={s-3} fill="none" stroke={c} strokeWidth={w} />
+        <polygon points={`${cx-4},${cy-5} ${cx-4},${cy+5} ${cx+6},${cy}`} fill={c} opacity={0.4} stroke={c} strokeWidth={1} />
+      </g>;
+    }
+    if (type === 'Se') {
+      // Pressure source (gauge)
+      return <g>
+        <circle cx={cx} cy={cy} r={s-3} fill="none" stroke={c} strokeWidth={w} />
+        <text x={cx} y={cy+4} textAnchor="middle" fontSize={10} fill={c} fontWeight="700" fontFamily="sans-serif">P</text>
+      </g>;
+    }
+  }
+
+  // Generic fallback — just the type letter
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// React App
+// ═══════════════════════════════════════════════════════════════════
+
+function App() {
+  const [nodes, setNodes] = useState([]);
+  const [wires, setWires] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [connecting, setConnecting] = useState(null); // {nodeId, portIdx, x0, y0}
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [dragging, setDragging] = useState(null); // {nodeId, offsetX, offsetY}
+  const [panning, setPanning] = useState(null);
+  const [solverResults, setSolverResults] = useState(null);
+  const [causality, setCausality] = useState({});
+  const [domain, setDomain] = useState('generic');
+  const [editValue, setEditValue] = useState('');
+  const [simRunning, setSimRunning] = useState(false);
+  const [simHistory, setSimHistory] = useState([]);
+  const [simTime, setSimTime] = useState(0);
+  const [bottomTab, setBottomTab] = useState('schematic');
+  const svgRef = useRef(null);
+  const solverRef = useRef(null);
+  const simTimeRef = useRef(0);
+  const animRef = useRef(null);
+
+  // Convert screen coords to canvas coords
+  const toCanvas = useCallback((sx, sy) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    return { x: (sx - rect.left - pan.x) / zoom, y: (sy - rect.top - pan.y) / zoom };
+  }, [pan, zoom]);
+
+  // ── Add node ──────────────────────────────────────────────
+  const addNode = useCallback((type) => {
+    const isJn = type === '0' || type === '1';
+    const cx = (400 - pan.x) / zoom;
+    const cy = (300 - pan.y) / zoom;
+    // Offset randomly so nodes don't stack
+    const ox = (Math.random() - 0.5) * 100;
+    const oy = (Math.random() - 0.5) * 100;
+    setNodes(prev => [...prev, {
+      id: uid(),
+      type,
+      x: cx + ox,
+      y: cy + oy,
+      value: DEFAULT_VALUES[type] || 0,
+      label: isJn ? `${type}-junction` : type,
+      ports: isJn ? 4 : 1,
+    }]);
+    setSolverResults(null); setCausality({});
+  }, [pan, zoom]);
+
+  // ── Delete selected ───────────────────────────────────────
+  const deleteSelected = useCallback(() => {
+    if (!selected) return;
+    setWires(prev => prev.filter(w => w.fromNodeId !== selected && w.toNodeId !== selected));
+    setNodes(prev => prev.filter(n => n.id !== selected));
+    setSelected(null);
+    setSolverResults(null); setCausality({});
+  }, [selected]);
+
+  // ── Load example graph ────────────────────────────────────
+  const loadExample = useCallback((key) => {
+    _uiId = 1; // reset IDs for clean numbering
+    setSolverResults(null); setCausality({}); setSelected(null);
+
+    const examples = {
+      // ── RLC Series ──────────────────────────────────────
+      'rlc-series': {
+        title: 'RLC Series', domain: 'electrical',
+        nodes: [
+          { id: 1, type: 'Se', x: 80,  y: 200, value: 10,    label: 'Vs',  ports: 1 },
+          { id: 2, type: '1',  x: 260, y: 200, value: 0,     label: '1-jn', ports: 4 },
+          { id: 3, type: 'R',  x: 440, y: 100, value: 10,    label: 'R',   ports: 1 },
+          { id: 4, type: 'C',  x: 440, y: 200, value: 100e-6, label: 'C',   ports: 1 },
+          { id: 5, type: 'I',  x: 440, y: 300, value: 100e-3, label: 'L',   ports: 1 },
+        ],
+        wires: [
+          { id: 6, fromNodeId: 1, fromPortIdx: 0, toNodeId: 2, toPortIdx: 0 },
+          { id: 7, fromNodeId: 2, fromPortIdx: 1, toNodeId: 3, toPortIdx: 0 },
+          { id: 8, fromNodeId: 2, fromPortIdx: 2, toNodeId: 4, toPortIdx: 0 },
+          { id: 9, fromNodeId: 2, fromPortIdx: 3, toNodeId: 5, toPortIdx: 0 },
+        ],
+      },
+
+      // ── RC Parallel ─────────────────────────────────────
+      'rc-parallel': {
+        title: 'RC Parallel', domain: 'electrical',
+        nodes: [
+          { id: 1, type: 'Sf', x: 80,  y: 200, value: 0.5,   label: 'Is',  ports: 1 },
+          { id: 2, type: '0',  x: 260, y: 200, value: 0,     label: '0-jn', ports: 4 },
+          { id: 3, type: 'R',  x: 440, y: 140, value: 100,   label: 'R',   ports: 1 },
+          { id: 4, type: 'C',  x: 440, y: 260, value: 1e-3,  label: 'C',   ports: 1 },
+        ],
+        wires: [
+          { id: 5, fromNodeId: 1, fromPortIdx: 0, toNodeId: 2, toPortIdx: 0 },
+          { id: 6, fromNodeId: 2, fromPortIdx: 1, toNodeId: 3, toPortIdx: 0 },
+          { id: 7, fromNodeId: 2, fromPortIdx: 2, toNodeId: 4, toPortIdx: 0 },
+        ],
+      },
+
+      // ── Mass-Spring-Damper ──────────────────────────────
+      'msd': {
+        title: 'Mass-Spring-Damper', domain: 'mechanical',
+        nodes: [
+          { id: 1, type: 'Se', x: 80,  y: 200, value: 5,     label: 'F',    ports: 1 },
+          { id: 2, type: '1',  x: 260, y: 200, value: 0,     label: '1-jn', ports: 4 },
+          { id: 3, type: 'I',  x: 440, y: 100, value: 2,     label: 'm',    ports: 1 },
+          { id: 4, type: 'C',  x: 440, y: 200, value: 0.01,  label: '1/k',  ports: 1 },
+          { id: 5, type: 'R',  x: 440, y: 300, value: 3,     label: 'b',    ports: 1 },
+        ],
+        wires: [
+          { id: 6, fromNodeId: 1, fromPortIdx: 0, toNodeId: 2, toPortIdx: 0 },
+          { id: 7, fromNodeId: 2, fromPortIdx: 1, toNodeId: 3, toPortIdx: 0 },
+          { id: 8, fromNodeId: 2, fromPortIdx: 2, toNodeId: 4, toPortIdx: 0 },
+          { id: 9, fromNodeId: 2, fromPortIdx: 3, toNodeId: 5, toPortIdx: 0 },
+        ],
+      },
+
+      // ── Thermal RC (heat source into room through wall) ─
+      'thermal-rc': {
+        title: 'Thermal RC', domain: 'thermal',
+        nodes: [
+          { id: 1, type: 'Se', x: 80,  y: 200, value: 350,   label: 'T_src',   ports: 1 },
+          { id: 2, type: '1',  x: 260, y: 200, value: 0,     label: '1-jn',    ports: 4 },
+          { id: 3, type: 'R',  x: 440, y: 140, value: 5,     label: 'R_wall',  ports: 1 },
+          { id: 4, type: 'C',  x: 440, y: 260, value: 1000,  label: 'C_room',  ports: 1 },
+        ],
+        wires: [
+          { id: 5, fromNodeId: 1, fromPortIdx: 0, toNodeId: 2, toPortIdx: 0 },
+          { id: 6, fromNodeId: 2, fromPortIdx: 1, toNodeId: 3, toPortIdx: 0 },
+          { id: 7, fromNodeId: 2, fromPortIdx: 2, toNodeId: 4, toPortIdx: 0 },
+        ],
+      },
+
+      // ── Simple Hydraulic (pump + pipe + tank) ──────────
+      'hydraulic': {
+        title: 'Hydraulic', domain: 'hydraulic',
+        nodes: [
+          { id: 1, type: 'Sf', x: 80,  y: 200, value: 0.002, label: 'Pump',  ports: 1 },
+          { id: 2, type: '1',  x: 260, y: 200, value: 0,     label: '1-jn',  ports: 4 },
+          { id: 3, type: 'R',  x: 440, y: 130, value: 5e5,   label: 'R_pipe', ports: 1 },
+          { id: 4, type: 'I',  x: 440, y: 270, value: 1e4,   label: 'I_fluid', ports: 1 },
+          { id: 5, type: 'C',  x: 560, y: 200, value: 1e-7,  label: 'C_tank', ports: 1 },
+        ],
+        wires: [
+          { id: 6, fromNodeId: 1, fromPortIdx: 0, toNodeId: 2, toPortIdx: 0 },
+          { id: 7, fromNodeId: 2, fromPortIdx: 1, toNodeId: 3, toPortIdx: 0 },
+          { id: 8, fromNodeId: 2, fromPortIdx: 2, toNodeId: 4, toPortIdx: 0 },
+          { id: 9, fromNodeId: 2, fromPortIdx: 3, toNodeId: 5, toPortIdx: 0 },
+        ],
+      },
+    };
+
+    const ex = examples[key];
+    if (!ex) return;
+    _uiId = Math.max(...ex.nodes.map(n => n.id), ...ex.wires.map(w => w.id)) + 1;
+    setNodes(ex.nodes);
+    setWires(ex.wires);
+    setDomain(ex.domain || 'generic');
+  }, []);
+
+  // ── Solve ─────────────────────────────────────────────────
+  const solve = useCallback(() => {
+    if (nodes.length === 0 || wires.length === 0) return;
+
+    resetSolverIds();
+    const bg = new BondGraphSolver();
+    const nmap = {};
+
+    for (const n of nodes) {
+      if (n.type === '0' || n.type === '1') {
+        nmap[n.id] = bg.addJunction(n.type, n.label);
+      } else {
+        nmap[n.id] = bg.addElement(n.type, n.value, n.label);
+      }
+    }
+
+    const bondMap = [];
+    for (const w of wires) {
+      const from = nmap[w.fromNodeId];
+      const to = nmap[w.toNodeId];
+      if (from && to) {
+        const bond = bg.connect(from, to);
+        bondMap.push({ wireId: w.id, bondId: bond.id });
+      }
+    }
+
+    bg.solveSteadyState();
+
+    const results = {};
+    for (const bm of bondMap) {
+      const bond = bg.bonds.find(b => b.id === bm.bondId);
+      if (bond) {
+        results[bm.wireId] = {
+          effort: bond.effort,
+          flow: bond.flow,
+          power: bond.effort * bond.flow,
+        };
+      }
+    }
+    setSolverResults(results);
+    setCausality(assignCausality(nodes, wires));
+  }, [nodes, wires]);
+
+  // ── Build solver from current graph ───────────────────────
+  const buildSolver = useCallback(() => {
+    if (nodes.length === 0 || wires.length === 0) return null;
+    resetSolverIds();
+    const bg = new BondGraphSolver();
+    const nmap = {};
+    for (const n of nodes) {
+      if (n.type === '0' || n.type === '1') nmap[n.id] = bg.addJunction(n.type, n.label);
+      else nmap[n.id] = bg.addElement(n.type, n.value, n.label);
+    }
+    const bmap = [];
+    for (const w of wires) {
+      const from = nmap[w.fromNodeId], to = nmap[w.toNodeId];
+      if (from && to) bmap.push({ wireId: w.id, bond: bg.connect(from, to) });
+    }
+    return { bg, nmap, bmap };
+  }, [nodes, wires]);
+
+  // ── Extract current bond values from solver as solverResults format
+  const extractResults = useCallback((bmap) => {
+    const results = {};
+    for (const { wireId, bond } of bmap) {
+      results[wireId] = { effort: bond.effort, flow: bond.flow, power: bond.effort * bond.flow };
+    }
+    return results;
+  }, []);
+
+  // ── Simulation: Play ──────────────────────────────────────
+  const simPlay = useCallback(() => {
+    const built = buildSolver();
+    if (!built) return;
+    const { bg, bmap } = built;
+    bg.resetState();
+    solverRef.current = { bg, bmap };
+    simTimeRef.current = 0;
+    setSimHistory([]);
+    setSimRunning(true);
+    setBottomTab('transient');
+    setCausality(assignCausality(nodes, wires));
+  }, [buildSolver, nodes, wires]);
+
+  // ── Simulation: Stop ──────────────────────────────────────
+  const simStop = useCallback(() => {
+    setSimRunning(false);
+  }, []);
+
+  // ── Simulation: Reset ─────────────────────────────────────
+  const simReset = useCallback(() => {
+    setSimRunning(false);
+    setSimHistory([]);
+    setSimTime(0);
+    simTimeRef.current = 0;
+    solverRef.current = null;
+    setSolverResults(null); setCausality({});
+  }, []);
+
+  // ── Simulation animation loop ─────────────────────────────
+  useEffect(() => {
+    if (!simRunning || !solverRef.current) return;
+    const { bg, bmap } = solverRef.current;
+
+    // Auto-scale dt and steps based on system
+    // Estimate characteristic frequency from storage elements
+    const storEls = bg.storageElements;
+    let charFreq = 100; // default 100 rad/s
+    const cEls = storEls.filter(e => e.type === 'C');
+    const iEls = storEls.filter(e => e.type === 'I');
+    if (cEls.length > 0 && iEls.length > 0) {
+      charFreq = 1 / Math.sqrt(iEls[0].value * cEls[0].value);
+    } else if (cEls.length > 0) {
+      // RC system: use 1/(RC) — find R in the graph
+      const rEls = [...bg.nodes.values()].filter(n => n instanceof SolverElement && n.type === 'R');
+      if (rEls.length > 0) charFreq = 1 / (rEls[0].value * cEls[0].value);
+    }
+
+    const dt = Math.min(0.001, 1 / (charFreq * 40)); // At least 40 steps per cycle
+    const stepsPerFrame = Math.max(5, Math.ceil(charFreq * 0.3)); // Advance ~0.3 periods per frame
+
+    const tick = () => {
+      for (let i = 0; i < stepsPerFrame; i++) {
+        bg.stepRK4(dt, simTimeRef.current);
+        simTimeRef.current += dt;
+      }
+      bg.propagate();
+
+      // Record data point
+      const dm = DOMAINS[domain] || DOMAINS.generic;
+      const point = { t: parseFloat(simTimeRef.current.toFixed(6)) };
+      storEls.forEach(el => {
+        const conns = bg.bondsOf(el.id);
+        if (conns.length === 0) return;
+        const { bond } = conns[0];
+        // Use the user-visible label from the node that created this element
+        const uiNode = nodes.find(n => n.label === el.label) || {};
+        const elInfo = dm.elements[el.type] || {};
+        const name = uiNode.label || elInfo.name || el.type;
+        point[`${dm.effortName}_${name}`] = parseFloat(bond.effort.toFixed(6));
+        point[`${dm.flowName}_${name}`] = parseFloat(bond.flow.toFixed(6));
+      });
+
+      setSimHistory(prev => {
+        const next = [...prev, point];
+        return next.length > 600 ? next.slice(-600) : next;
+      });
+      setSimTime(simTimeRef.current);
+      setSolverResults(extractResults(bmap));
+
+      animRef.current = requestAnimationFrame(tick);
+    };
+
+    animRef.current = requestAnimationFrame(tick);
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [simRunning, domain, extractResults]);
+
+  // ── Compute chart line definitions from domain ────────────
+  const chartLines = useMemo(() => {
+    if (simHistory.length === 0) return [];
+    const keys = Object.keys(simHistory[0]).filter(k => k !== 't');
+    const dm = DOMAINS[domain] || DOMAINS.generic;
+    // Distinct colors for each element, solid for effort, dashed for flow
+    const palette = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#a78bfa', '#06b6d4'];
+    // Group by element name (everything after the first underscore)
+    const elementNames = [...new Set(keys.map(k => k.substring(k.indexOf('_') + 1)))];
+    return keys.map(k => {
+      const isEffort = k.startsWith(dm.effortName + '_');
+      const elName = k.substring(k.indexOf('_') + 1);
+      const elIdx = elementNames.indexOf(elName);
+      const baseColor = palette[elIdx % palette.length];
+      return {
+        key: k,
+        label: `${isEffort ? dm.effortName : dm.flowName} across ${elName}`,
+        color: baseColor,
+        dash: isEffort ? undefined : '6 3',
+        width: isEffort ? 2 : 1.5,
+        opacity: isEffort ? 1 : 0.7,
+      };
+    });
+  }, [simHistory.length > 0 ? Object.keys(simHistory[0]).join() : '', domain]);
+
+  // ── Mouse handlers ────────────────────────────────────────
+  const onMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
+    const { clientX, clientY } = e;
+    const pos = toCanvas(clientX, clientY);
+
+    // Check if clicking a port
+    for (const n of nodes) {
+      const isJn = n.type === '0' || n.type === '1';
+      const numPorts = isJn ? (n.ports || 4) : 1;
+      for (let pi = 0; pi < numPorts; pi++) {
+        const pp = portPos(n, pi);
+        const dx = pos.x - pp.x, dy = pos.y - pp.y;
+        if (dx * dx + dy * dy < (PORT_R + 4) * (PORT_R + 4)) {
+          setConnecting({ nodeId: n.id, portIdx: pi, x0: pp.x, y0: pp.y });
+          e.stopPropagation();
+          return;
+        }
+      }
+    }
+
+    // Check if clicking a node body
+    for (const n of [...nodes].reverse()) {
+      const isJn = n.type === '0' || n.type === '1';
+      if (isJn) {
+        const dx = pos.x - n.x, dy = pos.y - n.y;
+        if (dx * dx + dy * dy < JN_R * JN_R) {
+          setDragging({ nodeId: n.id, offsetX: pos.x - n.x, offsetY: pos.y - n.y });
+          setSelected(n.id);
+          return;
+        }
+      } else {
+        if (pos.x >= n.x - NODE_W / 2 && pos.x <= n.x + NODE_W / 2 &&
+            pos.y >= n.y - NODE_H / 2 && pos.y <= n.y + NODE_H / 2) {
+          setDragging({ nodeId: n.id, offsetX: pos.x - n.x, offsetY: pos.y - n.y });
+          setSelected(n.id);
+          return;
+        }
+      }
+    }
+
+    // Canvas pan
+    setSelected(null);
+    setPanning({ startX: clientX, startY: clientY, panX: pan.x, panY: pan.y });
+  }, [nodes, pan, toCanvas]);
+
+  const onMouseMove = useCallback((e) => {
+    const { clientX, clientY } = e;
+    const pos = toCanvas(clientX, clientY);
+    setMousePos(pos);
+
+    if (dragging) {
+      setNodes(prev => prev.map(n =>
+        n.id === dragging.nodeId
+          ? { ...n, x: pos.x - dragging.offsetX, y: pos.y - dragging.offsetY }
+          : n
+      ));
+    }
+
+    if (panning) {
+      setPan({
+        x: panning.panX + (clientX - panning.startX),
+        y: panning.panY + (clientY - panning.startY),
+      });
+    }
+  }, [dragging, panning, toCanvas]);
+
+  const onMouseUp = useCallback((e) => {
+    if (connecting) {
+      const pos = toCanvas(e.clientX, e.clientY);
+      // Check if releasing on a port
+      for (const n of nodes) {
+        if (n.id === connecting.nodeId) continue;
+        const isJn = n.type === '0' || n.type === '1';
+        const numPorts = isJn ? (n.ports || 4) : 1;
+        for (let pi = 0; pi < numPorts; pi++) {
+          const pp = portPos(n, pi);
+          const dx = pos.x - pp.x, dy = pos.y - pp.y;
+          if (dx * dx + dy * dy < (PORT_R + 8) * (PORT_R + 8)) {
+            // Create wire — auto-orient so power flows source→junction→element
+            const fromNode = nodes.find(nd => nd.id === connecting.nodeId);
+            const flip = fromNode && shouldFlip(fromNode.type, n.type);
+            setWires(prev => [...prev, {
+              id: uid(),
+              fromNodeId: flip ? n.id : connecting.nodeId,
+              fromPortIdx: flip ? pi : connecting.portIdx,
+              toNodeId: flip ? connecting.nodeId : n.id,
+              toPortIdx: flip ? connecting.portIdx : pi,
+            }]);
+            // Auto-expand junction ports if needed
+            if (isJn) {
+              setNodes(prev => prev.map(nd =>
+                nd.id === n.id ? { ...nd, ports: Math.max(nd.ports || 4, pi + 2) } : nd
+              ));
+            }
+            if (fromNode && isJunction(fromNode.type)) {
+              setNodes(prev => prev.map(nd =>
+                nd.id === fromNode.id ? { ...nd, ports: Math.max(nd.ports || 4, connecting.portIdx + 2) } : nd
+              ));
+            }
+            setSolverResults(null); setCausality({});
+            setCausality({});
+            break;
+          }
+        }
+      }
+      setConnecting(null);
+    }
+    setDragging(null);
+    setPanning(null);
+  }, [connecting, nodes, toCanvas]);
+
+  const onWheel = useCallback((e) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    const rect = svgRef.current.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    setZoom(z => {
+      const nz = Math.max(0.2, Math.min(3, z * factor));
+      setPan(p => ({
+        x: mx - (mx - p.x) * (nz / z),
+        y: my - (my - p.y) * (nz / z),
+      }));
+      return nz;
+    });
+  }, []);
+
+  // Keyboard
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (document.activeElement?.tagName === 'INPUT') return;
+        deleteSelected();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [deleteSelected]);
+
+  // Selected node data
+  const selectedNode = nodes.find(n => n.id === selected);
+
+  // ── Render ────────────────────────────────────────────────
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#0b0b14', color: '#e2e8f0', fontFamily: "'Inter', system-ui, sans-serif" }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 16px', background: '#111827', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#60a5fa' }}>Bond Graph Engine</div>
+          <div style={{ display: 'flex', gap: 3 }}>
+            {[
+              { key: 'rlc-series', label: 'RLC Series', dom: 'electrical' },
+              { key: 'rc-parallel', label: 'RC Parallel', dom: 'electrical' },
+              { key: 'msd', label: 'Mass-Spring-Damper', dom: 'mechanical' },
+              { key: 'thermal-rc', label: 'Thermal RC', dom: 'thermal' },
+              { key: 'hydraulic', label: 'Pump + Pipe', dom: 'hydraulic' },
+            ].map(ex => (
+              <button key={ex.key} onClick={() => loadExample(ex.key)} style={{
+                background: '#1e293b', border: `1px solid ${DOMAINS[ex.dom]?.accent || '#334155'}44`, borderRadius: 4,
+                padding: '3px 8px', fontSize: 9, color: DOMAINS[ex.dom]?.accent || '#94a3b8', cursor: 'pointer',
+                fontFamily: "'Inter', sans-serif",
+              }} title={`${DOMAINS[ex.dom]?.label}: ${ex.label}`}>
+                {ex.label}
+              </button>
+            ))}
+            {/* Domain badge */}
+            {domain !== 'generic' && (
+              <span style={{
+                background: `${DOMAINS[domain]?.accent}22`, border: `1px solid ${DOMAINS[domain]?.accent}44`,
+                borderRadius: 4, padding: '2px 8px', fontSize: 9, fontWeight: 600,
+                color: DOMAINS[domain]?.accent, fontFamily: "'JetBrains Mono', monospace",
+              }}>{DOMAINS[domain]?.label}</span>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button onClick={solve} style={{ background: '#22c55e', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+            Solve (DC)
+          </button>
+          {!simRunning ? (
+            <button onClick={simPlay} style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              ▶ Play
+            </button>
+          ) : (
+            <button onClick={simStop} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              ■ Stop
+            </button>
+          )}
+          {(simHistory.length > 0 || simRunning) && (
+            <button onClick={simReset} style={{ background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', borderRadius: 4, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+              ↺ Reset
+            </button>
+          )}
+          {simRunning && (
+            <span style={{ fontSize: 10, color: '#4ade80', fontFamily: "'JetBrains Mono', monospace" }}>
+              t = {simTime < 1 ? (simTime * 1000).toFixed(1) + 'ms' : simTime.toFixed(3) + 's'}
+            </span>
+          )}
+          <button onClick={() => { setNodes([]); setWires([]); setSolverResults(null); setCausality({}); setSelected(null); simReset(); }} style={{ background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', borderRadius: 4, padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+
+        {/* Palette */}
+        <div style={{ width: 100, background: '#0f0f18', borderRight: '1px solid #1e293b', padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Elements</div>
+          {ELEMENT_TYPES.map(t => (
+            <button key={t} onClick={() => addNode(t)} style={{
+              background: '#1e293b', border: `1px solid ${COLORS[t]}44`, borderRadius: 4,
+              padding: '5px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              color: COLORS[t], fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: COLORS[t], opacity: 0.6 }} />
+              {t}
+            </button>
+          ))}
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>Junctions</div>
+          {JUNCTION_TYPES.map(t => (
+            <button key={t} onClick={() => addNode(t)} style={{
+              background: '#1e293b', border: `1px solid ${COLORS[t]}44`, borderRadius: 4,
+              padding: '5px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              color: COLORS[t], fontSize: 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[t], opacity: 0.6 }} />
+              {t}-jn
+            </button>
+          ))}
+        </div>
+
+        {/* Center column: canvas + schematic */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+
+        {/* Canvas */}
+        <svg
+          ref={svgRef}
+          style={{ flex: 1, minHeight: 0, cursor: panning ? 'grabbing' : dragging ? 'move' : connecting ? 'crosshair' : 'grab' }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onWheel={onWheel}
+        >
+          {/* Background */}
+          <rect width="100%" height="100%" fill="#0b0b14" />
+
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+            {/* Grid */}
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect x={-5000} y={-5000} width={10000} height={10000} fill="url(#grid)" />
+
+            {/* Wires (bonds) */}
+            {wires.map(w => {
+              const fromNode = nodes.find(n => n.id === w.fromNodeId);
+              const toNode = nodes.find(n => n.id === w.toNodeId);
+              if (!fromNode || !toNode) return null;
+              const p1 = portPos(fromNode, w.fromPortIdx);
+              const p2 = portPos(toNode, w.toPortIdx);
+              const res = solverResults?.[w.id];
+              const mx = (p1.x + p2.x) / 2;
+              const my = (p1.y + p2.y) / 2;
+
+              // Unit vector along bond (from → to)
+              const dx = p2.x - p1.x, dy = p2.y - p1.y;
+              const len = Math.sqrt(dx * dx + dy * dy) || 1;
+              const ux = dx / len, uy = dy / len;
+              // Perpendicular (rotated 90° CCW)
+              const px = -uy, py = ux;
+
+              // ── Half-arrow (prominent, at midpoint, pointing toward 'to')
+              const hx = mx + ux * 7, hy = my + uy * 7;
+              const ha1x = mx - ux * 1 + px * 5, ha1y = my - uy * 1 + py * 5;
+              const ha2x = mx - ux * 1 - px * 5, ha2y = my - uy * 1 - py * 5;
+
+              // ── Causality stroke (perpendicular tick at one end)
+              const cEnd = causality[w.id]; // 'from' or 'to' — which end has the stroke
+              let strokeLine = null;
+              if (cEnd) {
+                const sp = cEnd === 'from' ? p1 : p2;
+                // Draw perpendicular line at that end, slightly inset
+                const inset = 8; // pixels from the port
+                const sign = cEnd === 'from' ? 1 : -1;
+                const sx = sp.x + sign * ux * inset;
+                const sy = sp.y + sign * uy * inset;
+                const strokeLen = 8;
+                strokeLine = {
+                  x1: sx + px * strokeLen, y1: sy + py * strokeLen,
+                  x2: sx - px * strokeLen, y2: sy - py * strokeLen,
+                };
+              }
+
+              return (
+                <g key={w.id}>
+                  {/* Bond line */}
+                  <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#64748b" strokeWidth={2.5} />
+
+                  {/* Half-arrow (power direction) */}
+                  <polygon points={`${hx},${hy} ${ha1x},${ha1y} ${ha2x},${ha2y}`} fill="#94a3b8" />
+
+                  {/* Causality stroke (perpendicular tick) */}
+                  {strokeLine && (
+                    <line x1={strokeLine.x1} y1={strokeLine.y1} x2={strokeLine.x2} y2={strokeLine.y2}
+                      stroke="#e2e8f0" strokeWidth={2.5} strokeLinecap="round" />
+                  )}
+
+                  {/* Solver values — effort/flow with domain-specific names */}
+                  {res && !isNaN(res.effort) && (() => {
+                    const dm = DOMAINS[domain] || DOMAINS.generic;
+                    return (
+                      <g>
+                        <text x={mx + px * 14} y={my + py * 14 - 1} textAnchor="middle" fontSize={9} fill="#ef4444" fontFamily="'JetBrains Mono', monospace" fontWeight="600">
+                          {dm.effortName}={formatValue(res.effort)}
+                        </text>
+                        <text x={mx - px * 14} y={my - py * 14 + 3} textAnchor="middle" fontSize={9} fill="#3b82f6" fontFamily="'JetBrains Mono', monospace" fontWeight="600">
+                          {dm.flowName}={formatValue(res.flow)}
+                        </text>
+                      </g>
+                    );
+                  })()}
+                </g>
+              );
+            })}
+
+            {/* Wire being drawn */}
+            {connecting && (
+              <line x1={connecting.x0} y1={connecting.y0} x2={mousePos.x} y2={mousePos.y}
+                stroke="#60a5fa" strokeWidth={2} strokeDasharray="6 4" opacity={0.7} />
+            )}
+
+            {/* Nodes */}
+            {nodes.map(n => {
+              const isJn = n.type === '0' || n.type === '1';
+              const isSel = n.id === selected;
+              const dm = DOMAINS[domain] || DOMAINS.generic;
+              const elInfo = dm.elements[n.type] || DOMAINS.generic.elements[n.type] || {};
+              const color = isSel ? '#60a5fa' : dm.accent;
+              const jnColor = isSel ? '#60a5fa' : COLORS[n.type];
+
+              // Domain-specific display name and unit
+              const displayName = n.label !== n.type && n.label !== `${n.type}-junction`
+                ? n.label  // user-set label from example
+                : (elInfo.name || n.type);
+              const unit = elInfo.unit || '';
+
+              return (
+                <g key={n.id}>
+                  {isJn ? (
+                    <>
+                      <circle cx={n.x} cy={n.y} r={JN_R} fill="#111827" stroke={jnColor} strokeWidth={isSel ? 2.5 : 1.5} />
+                      <text x={n.x} y={n.y + 5} textAnchor="middle" fontSize={16} fontWeight="700" fill={jnColor} fontFamily="'JetBrains Mono', monospace">{n.type}</text>
+                      {/* Junction type label */}
+                      <text x={n.x} y={n.y + JN_R + 12} textAnchor="middle" fontSize={8} fill="#4b5563" fontFamily="'Inter', sans-serif">
+                        {n.type === '1' ? 'series' : 'parallel'}
+                      </text>
+                    </>
+                  ) : (
+                    <>
+                      {/* Node background */}
+                      <rect x={n.x - NODE_W / 2} y={n.y - NODE_H / 2} width={NODE_W} height={NODE_H} rx={6}
+                        fill="#111827" stroke={color} strokeWidth={isSel ? 2.5 : 1.5} />
+                      {/* Colored top bar with bond graph type */}
+                      <rect x={n.x - NODE_W / 2} y={n.y - NODE_H / 2} width={NODE_W} height={13} rx={6}
+                        fill={color} opacity={0.15} />
+                      <text x={n.x} y={n.y - NODE_H / 2 + 10} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily="'JetBrains Mono', monospace">
+                        {n.type} — {displayName}
+                      </text>
+                      {/* Domain-specific schematic symbol (center) */}
+                      <DomainSymbol type={n.type} domain={domain} cx={n.x} cy={n.y + 2} color={color} />
+                      {/* Value + unit (bottom) */}
+                      <text x={n.x} y={n.y + NODE_H / 2 - 4} textAnchor="middle" fontSize={9} fill="#94a3b8" fontFamily="'JetBrains Mono', monospace">
+                        {formatValue(n.value)} {unit}
+                      </text>
+                    </>
+                  )}
+
+                  {/* Ports */}
+                  {Array.from({ length: isJn ? (n.ports || 4) : 1 }).map((_, pi) => {
+                    const pp = portPos(n, pi);
+                    return (
+                      <circle key={pi} cx={pp.x} cy={pp.y} r={PORT_R} fill="#1e293b" stroke={isJn ? jnColor : color} strokeWidth={1}
+                        style={{ cursor: 'crosshair' }} />
+                    );
+                  })}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+
+        {/* Bottom panel — tabs: Schematic / Transient */}
+        {(nodes.length > 0) && (
+        <div style={{ flexShrink: 0, background: '#0a0a12', borderTop: '1px solid #1e293b' }}>
+          {/* Tab bar */}
+          <div style={{ display: 'flex', gap: 2, padding: '3px 8px', background: '#0f0f18' }}>
+            {['schematic', 'transient'].map(tab => (
+              <button key={tab} onClick={() => setBottomTab(tab)} style={{
+                background: bottomTab === tab ? '#1e293b' : 'transparent',
+                border: bottomTab === tab ? '1px solid #334155' : '1px solid transparent',
+                borderRadius: 3, padding: '2px 10px', fontSize: 9, fontWeight: 600, cursor: 'pointer',
+                color: bottomTab === tab ? '#e2e8f0' : '#4b5563', textTransform: 'capitalize',
+                fontFamily: "'Inter', sans-serif",
+              }}>{tab}</button>
+            ))}
+            {simHistory.length > 0 && (
+              <span style={{ marginLeft: 'auto', fontSize: 9, color: '#4b5563', fontFamily: "'JetBrains Mono', monospace", alignSelf: 'center' }}>
+                {simHistory.length} pts, t = {simTime < 1 ? (simTime * 1000).toFixed(1) + 'ms' : simTime.toFixed(3) + 's'}
+              </span>
+            )}
+          </div>
+
+          {/* Transient chart */}
+          {bottomTab === 'transient' && (
+            <div style={{ height: 180, padding: '4px 8px 8px' }}>
+              {simHistory.length > 1 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={simHistory} margin={{ top: 4, right: 12, left: 0, bottom: 2 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="t" stroke="#4b5563" fontSize={9} tickFormatter={v => v < 1 ? `${(v*1000).toFixed(0)}ms` : `${v.toFixed(2)}s`} />
+                    <YAxis stroke="#4b5563" fontSize={9} />
+                    <Tooltip
+                      contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 6, fontSize: 10 }}
+                      labelStyle={{ color: '#94a3b8', fontSize: 9 }}
+                      labelFormatter={v => `t = ${v < 1 ? (v*1000).toFixed(2) + 'ms' : v.toFixed(4) + 's'}`}
+                      formatter={(val, name) => [val.toFixed(4), name]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 9 }} />
+                    {chartLines.map(cl => (
+                      <Line key={cl.key} type="monotone" dataKey={cl.key} name={cl.label}
+                        stroke={cl.color} strokeWidth={cl.width} strokeDasharray={cl.dash}
+                        strokeOpacity={cl.opacity || 1}
+                        dot={false} isAnimationActive={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4b5563', fontSize: 12 }}>
+                  Click ▶ Play to run transient simulation
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Schematic */}
+          {bottomTab === 'schematic' && domain !== 'generic' && (() => {
+          // Find junctions and their connected elements
+          const junctions = nodes.filter(n => isJunction(n.type));
+          const elements = nodes.filter(n => !isJunction(n.type));
+          if (junctions.length === 0 || elements.length < 2) return null;
+
+          const dm = DOMAINS[domain] || DOMAINS.generic;
+          const accent = dm.accent;
+          const sw = 600; // schematic width
+          const sh = 140; // schematic height
+
+          // Classify elements by role
+          const sources = elements.filter(n => isSource(n.type));
+          const passives = elements.filter(n => isPassive(n.type));
+          const jn = junctions[0]; // primary junction
+          const jnType = jn?.type;
+
+          // Get solver values for annotation
+          const getWireResult = (nodeId) => {
+            const w = wires.find(ww => ww.fromNodeId === nodeId || ww.toNodeId === nodeId);
+            return w && solverResults?.[w.id];
+          };
+
+          return (
+            <div style={{ height: sh + 30, flexShrink: 0, background: '#0a0a12', borderTop: '1px solid #1e293b', padding: '4px 12px' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: '#4b5563', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>
+                {dm.label} Schematic {jnType === '1' ? '(Series)' : '(Parallel)'}
+              </div>
+              <svg viewBox={`0 0 ${sw} ${sh}`} style={{ width: '100%', height: sh, display: 'block' }}>
+
+                {jnType === '1' ? (() => {
+                  // SERIES schematic — elements in a loop
+                  // Source on left, passives along top, return wire on bottom
+                  const src = sources[0];
+                  const all = passives;
+                  const n = all.length;
+                  const margin = 60;
+                  const topY = 25;
+                  const botY = sh - 20;
+                  const srcX = margin - 20;
+                  const spacing = n > 0 ? (sw - margin * 2) / n : 100;
+
+                  return (
+                    <g>
+                      {/* Top wire */}
+                      <line x1={srcX} y1={topY} x2={margin + n * spacing} y2={topY} stroke="#334155" strokeWidth={1.5} />
+                      {/* Bottom return wire */}
+                      <line x1={srcX} y1={botY} x2={margin + n * spacing} y2={botY} stroke="#334155" strokeWidth={1.5} />
+                      {/* Left vertical (source) */}
+                      <line x1={srcX} y1={topY} x2={srcX} y2={botY} stroke="#334155" strokeWidth={1.5} />
+                      {/* Right vertical (closing loop) */}
+                      <line x1={margin + n * spacing} y1={topY} x2={margin + n * spacing} y2={botY} stroke="#334155" strokeWidth={1.5} />
+
+                      {/* Source symbol on left side */}
+                      {src && (
+                        <g>
+                          <DomainSymbol type={src.type} domain={domain} cx={srcX} cy={(topY + botY) / 2} color={accent} />
+                          <text x={srcX - 22} y={(topY + botY) / 2 + 4} textAnchor="middle" fontSize={10} fill={accent} fontWeight="600" fontFamily="'JetBrains Mono', monospace">
+                            {dm.elements[src.type]?.name || src.type}
+                          </text>
+                          <text x={srcX - 22} y={(topY + botY) / 2 + 16} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily="'JetBrains Mono', monospace">
+                            {formatValue(src.value)}{dm.elements[src.type]?.unit || ''}
+                          </text>
+                        </g>
+                      )}
+
+                      {/* Passive elements along top */}
+                      {all.map((el, i) => {
+                        const cx = margin + i * spacing + spacing / 2;
+                        const elInfo = dm.elements[el.type] || {};
+                        const res = getWireResult(el.id);
+                        return (
+                          <g key={el.id}>
+                            {/* Break in the wire for the symbol */}
+                            <line x1={margin + i * spacing} y1={topY} x2={cx - 16} y2={topY} stroke="#334155" strokeWidth={1.5} />
+                            <line x1={cx + 16} y1={topY} x2={margin + (i + 1) * spacing} y2={topY} stroke="#334155" strokeWidth={1.5} />
+                            {/* Symbol */}
+                            <DomainSymbol type={el.type} domain={domain} cx={cx} cy={topY} color={accent} />
+                            {/* Label above */}
+                            <text x={cx} y={topY - 18} textAnchor="middle" fontSize={10} fill={accent} fontWeight="600" fontFamily="'JetBrains Mono', monospace">
+                              {elInfo.name || el.type}
+                            </text>
+                            <text x={cx} y={topY + 28} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily="'JetBrains Mono', monospace">
+                              {formatValue(el.value)} {elInfo.unit || ''}
+                            </text>
+                            {/* Solver annotation */}
+                            {res && !isNaN(res.effort) && (
+                              <text x={cx} y={topY + 40} textAnchor="middle" fontSize={7} fill="#4b5563" fontFamily="'JetBrains Mono', monospace">
+                                {dm.effortName}={formatValue(res.effort)} {dm.flowName}={formatValue(res.flow)}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+
+                      {/* Current/flow direction arrow on bottom wire */}
+                      {solverResults && (
+                        <g>
+                          <polygon points={`${sw/2+6},${botY} ${sw/2-2},${botY-3} ${sw/2-2},${botY+3}`} fill="#4b5563" />
+                          <text x={sw/2 + 14} y={botY + 12} fontSize={8} fill="#4b5563" fontFamily="'JetBrains Mono', monospace">{dm.flowName}</text>
+                        </g>
+                      )}
+
+                      {/* Ground/reference symbol */}
+                      <g>
+                        <line x1={(srcX + margin + n * spacing) / 2 - 8} y1={botY + 6} x2={(srcX + margin + n * spacing) / 2 + 8} y2={botY + 6} stroke="#334155" strokeWidth={1} />
+                        <line x1={(srcX + margin + n * spacing) / 2 - 5} y1={botY + 9} x2={(srcX + margin + n * spacing) / 2 + 5} y2={botY + 9} stroke="#334155" strokeWidth={1} />
+                        <line x1={(srcX + margin + n * spacing) / 2 - 2} y1={botY + 12} x2={(srcX + margin + n * spacing) / 2 + 2} y2={botY + 12} stroke="#334155" strokeWidth={1} />
+                      </g>
+                    </g>
+                  );
+                })() : (() => {
+                  // PARALLEL schematic — elements as vertical branches
+                  const src = sources[0];
+                  const all = passives;
+                  const n = all.length;
+                  const margin = 70;
+                  const topY = 20;
+                  const botY = sh - 15;
+                  const srcX = margin - 30;
+                  const spacing = n > 0 ? (sw - margin * 2) / (n + 1) : 100;
+
+                  return (
+                    <g>
+                      {/* Top rail */}
+                      <line x1={srcX} y1={topY} x2={sw - margin + 20} y2={topY} stroke="#334155" strokeWidth={1.5} />
+                      {/* Bottom rail */}
+                      <line x1={srcX} y1={botY} x2={sw - margin + 20} y2={botY} stroke="#334155" strokeWidth={1.5} />
+
+                      {/* Source as first vertical branch */}
+                      {src && (
+                        <g>
+                          <line x1={srcX} y1={topY} x2={srcX} y2={(topY+botY)/2 - 16} stroke="#334155" strokeWidth={1.5} />
+                          <line x1={srcX} y1={(topY+botY)/2 + 16} x2={srcX} y2={botY} stroke="#334155" strokeWidth={1.5} />
+                          <DomainSymbol type={src.type} domain={domain} cx={srcX} cy={(topY+botY)/2} color={accent} />
+                          <text x={srcX} y={botY + 12} textAnchor="middle" fontSize={9} fill={accent} fontWeight="600" fontFamily="'JetBrains Mono', monospace">
+                            {dm.elements[src.type]?.name || src.type}: {formatValue(src.value)}{dm.elements[src.type]?.unit || ''}
+                          </text>
+                        </g>
+                      )}
+
+                      {/* Passive elements as vertical branches */}
+                      {all.map((el, i) => {
+                        const cx = margin + (i + 1) * spacing;
+                        const elInfo = dm.elements[el.type] || {};
+                        const res = getWireResult(el.id);
+                        return (
+                          <g key={el.id}>
+                            <line x1={cx} y1={topY} x2={cx} y2={(topY+botY)/2 - 16} stroke="#334155" strokeWidth={1.5} />
+                            <line x1={cx} y1={(topY+botY)/2 + 16} x2={cx} y2={botY} stroke="#334155" strokeWidth={1.5} />
+                            <DomainSymbol type={el.type} domain={domain} cx={cx} cy={(topY+botY)/2} color={accent} />
+                            <text x={cx} y={topY - 6} textAnchor="middle" fontSize={9} fill={accent} fontWeight="600" fontFamily="'JetBrains Mono', monospace">
+                              {elInfo.name || el.type}
+                            </text>
+                            <text x={cx} y={botY + 12} textAnchor="middle" fontSize={8} fill="#64748b" fontFamily="'JetBrains Mono', monospace">
+                              {formatValue(el.value)} {elInfo.unit || ''}
+                            </text>
+                            {res && !isNaN(res.effort) && (
+                              <text x={cx} y={(topY+botY)/2 + 30} textAnchor="middle" fontSize={7} fill="#4b5563" fontFamily="'JetBrains Mono', monospace">
+                                {dm.flowName}={formatValue(res.flow)}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+
+                      {/* Common effort annotation on top rail */}
+                      {solverResults && sources[0] && (() => {
+                        const res = getWireResult(sources[0].id);
+                        return res && !isNaN(res.effort) ? (
+                          <text x={sw/2} y={topY - 6} textAnchor="middle" fontSize={8} fill="#4b5563" fontFamily="'JetBrains Mono', monospace">
+                            {dm.effortName} = {formatValue(res.effort)} (common)
+                          </text>
+                        ) : null;
+                      })()}
+                    </g>
+                  );
+                })()}
+              </svg>
+            </div>
+          );
+        })()}
+
+        </div>)}
+
+        </div>{/* end center column */}
+
+        {/* Property panel */}
+        {selectedNode && (
+          <div style={{ width: 180, background: '#0f0f18', borderLeft: '1px solid #1e293b', padding: 12, flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Properties</div>
+            {(() => {
+              const dm = DOMAINS[domain] || DOMAINS.generic;
+              const elInfo = dm.elements[selectedNode.type] || {};
+              const isJn = selectedNode.type === '0' || selectedNode.type === '1';
+              return (<>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isJn ? COLORS[selectedNode.type] : dm.accent, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {isJn ? `${selectedNode.type}-junction` : (elInfo.name || selectedNode.type)}
+                </div>
+                {elInfo.desc && <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}>{elInfo.desc}</div>}
+                {isJn && <div style={{ fontSize: 10, color: '#64748b', marginBottom: 6 }}>{selectedNode.type === '1' ? 'Common flow, efforts sum to zero' : 'Common effort, flows sum to zero'}</div>}
+                <div style={{ fontSize: 9, color: '#4b5563', marginBottom: 8 }}>Bond graph type: {selectedNode.type}</div>
+              </>);
+            })()}
+
+            {selectedNode.type !== '0' && selectedNode.type !== '1' && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 3 }}>Value {(() => { const u = (DOMAINS[domain] || DOMAINS.generic).elements[selectedNode.type]?.unit; return u ? `(${u})` : ''; })()}</div>
+                <input
+                  type="number"
+                  step="any"
+                  value={selected === editValue?.id ? editValue.val : selectedNode.value}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v)) {
+                      setNodes(prev => prev.map(n => n.id === selected ? { ...n, value: v } : n));
+                      setSolverResults(null); setCausality({});
+                    }
+                    setEditValue({ id: selected, val: e.target.value });
+                  }}
+                  onBlur={() => setEditValue(null)}
+                  style={{
+                    width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: 4,
+                    color: '#e2e8f0', padding: '4px 8px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Show solver results for connected wires */}
+            {solverResults && (() => {
+              const connWires = wires.filter(w => w.fromNodeId === selected || w.toNodeId === selected);
+              if (connWires.length === 0) return null;
+              return (
+                <div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 4, marginTop: 8 }}>Bond Values</div>
+                  {connWires.map(w => {
+                    const r = solverResults[w.id];
+                    if (!r || isNaN(r.effort)) return null;
+                    return (
+                      <div key={w.id} style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", marginBottom: 2 }}>
+                        <span style={{ color: '#ef4444' }}>e={formatValue(r.effort)}</span>{' '}
+                        <span style={{ color: '#3b82f6' }}>f={formatValue(r.flow)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            <button onClick={deleteSelected} style={{
+              marginTop: 12, width: '100%', background: '#1e293b', border: '1px solid #ef444444',
+              borderRadius: 4, padding: '4px 8px', color: '#ef4444', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+            }}>Delete</button>
+          </div>
+        )}
+      </div>
+
+      {/* Status bar */}
+      <div style={{ padding: '4px 16px', background: '#111827', borderTop: '1px solid #1e293b', fontSize: 10, color: '#64748b', display: 'flex', gap: 16, flexShrink: 0 }}>
+        <span>{nodes.length} nodes, {wires.length} bonds</span>
+        <span>zoom: {(zoom * 100).toFixed(0)}%</span>
+        {solverResults && <span style={{ color: '#22c55e' }}>DC steady state solved</span>}
+        <span style={{ marginLeft: 'auto', color: '#4b5563' }}>Click port → drag to port to connect | Scroll to zoom | Del to remove</span>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

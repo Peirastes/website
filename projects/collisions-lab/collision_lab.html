@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENGR 2000 — 2D Particle Collision Simulator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+  :root {
+    --chassis-bg: #1a1d21;
+    --chassis-border: #2a2d32;
+    --crt-bg: #0a0e14;
+    --crt-border: #333842;
+    --amber: #f0a030;
+    --amber-dim: #a06820;
+    --amber-glow: rgba(240,160,48,0.25);
+    --cyan: #40e8d0;
+    --cyan-dim: #208878;
+    --cyan-glow: rgba(64,232,208,0.2);
+    --teal: #20b0a0;
+    --red: #e05040;
+    --green: #40d870;
+    --text-primary: #d0d4da;
+    --text-dim: #707880;
+    --rivet: radial-gradient(circle at 35% 35%, #555, #222 60%, #111);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Share Tech Mono', monospace;
+    background: var(--chassis-bg); color: var(--text-primary);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.008) 2px, rgba(255,255,255,0.008) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.005) 2px, rgba(255,255,255,0.005) 4px);
+  }
+
+  .header {
+    background: linear-gradient(180deg, #222630, #1a1d24);
+    border-bottom: 2px solid var(--chassis-border);
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  .header-title { font-family:'Orbitron',monospace; font-size:15px; font-weight:700; color:var(--amber); text-shadow:0 0 12px var(--amber-glow); letter-spacing:2px; }
+  .header-sub { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+  .rivet { width:10px; height:10px; border-radius:50%; background:var(--rivet); box-shadow:inset 0 1px 2px rgba(255,255,255,0.15),0 1px 3px rgba(0,0,0,0.6); flex-shrink:0; }
+  .header-rivets { display:flex; gap:14px; align-items:center; }
+
+  .main-grid { display:grid; grid-template-columns:320px 1fr; gap:0; min-height:calc(100vh - 52px); }
+
+  .control-panel { background:linear-gradient(180deg,#181b20,#14161c); border-right:2px solid var(--chassis-border); padding:16px; overflow-y:auto; }
+  .panel-section { margin-bottom:16px; }
+  .section-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; padding-bottom:4px; border-bottom:1px solid var(--amber-dim); }
+  .input-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+  .input-group { display:flex; flex-direction:column; min-width:0; }
+  .input-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:3px; }
+  .input-label .katex { font-size:11px; color:inherit; }
+  .result-card-title .katex { font-size:11px; color:inherit; }
+  .energy-bar-label .katex { font-size:10px; color:inherit; }
+  .crt-label .katex { font-size:11px; color:inherit; }
+  .input-field { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--cyan); font-family:'Share Tech Mono',monospace; font-size:12px; padding:5px 6px; text-align:right; outline:none; transition:border-color 0.2s,box-shadow 0.2s; width:100%; min-width:0; box-sizing:border-box; }
+  .input-field:focus { border-color:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); }
+
+  .slider-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .slider-row input[type="range"] { flex:1; -webkit-appearance:none; appearance:none; height:4px; background:var(--crt-border); border-radius:2px; outline:none; }
+  .slider-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--amber); box-shadow:0 0 6px var(--amber-glow); cursor:pointer; }
+  .slider-value { font-size:13px; color:var(--cyan); min-width:42px; text-align:right; }
+
+  .preset-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .preset-btn { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:10px; padding:4px 10px; cursor:pointer; transition:all 0.2s; letter-spacing:0.5px; }
+  .preset-btn:hover { border-color:var(--amber); color:var(--amber); box-shadow:0 0 6px var(--amber-glow); }
+  .preset-btn.active { border-color:var(--amber); color:var(--chassis-bg); background:var(--amber); }
+
+  .run-btn { width:100%; padding:10px; font-family:'Orbitron',monospace; font-size:13px; font-weight:700; letter-spacing:3px; color:var(--chassis-bg); background:linear-gradient(180deg,var(--amber),#d08020); border:none; border-radius:4px; cursor:pointer; box-shadow:0 2px 10px var(--amber-glow); transition:all 0.2s; }
+  .run-btn:hover { background:linear-gradient(180deg,#ffb840,var(--amber)); box-shadow:0 4px 16px var(--amber-glow); transform:translateY(-1px); }
+  .run-btn:active { transform:translateY(0); }
+
+  .display-area { padding:16px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; }
+  .crt-screen { background:var(--crt-bg); border:2px solid var(--crt-border); border-radius:6px; padding:16px; position:relative; box-shadow:inset 0 0 30px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.4); }
+  .crt-screen::before { content:''; position:absolute; top:0; left:0; right:0; bottom:0; background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(255,255,255,0.015) 1px,rgba(255,255,255,0.015) 2px); pointer-events:none; border-radius:4px; }
+  .crt-label { font-family:'Orbitron',monospace; font-size:10px; font-weight:700; color:var(--amber-dim); letter-spacing:2px; margin-bottom:12px; text-transform:uppercase; }
+  .canvas-container { width:100%; aspect-ratio:16/9; position:relative; }
+  .canvas-container canvas { width:100%; height:100%; display:block; }
+
+  .anim-controls { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .anim-btn { background:var(--crt-bg); border:1px solid var(--crt-border); border-radius:3px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; font-size:18px; width:36px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; line-height:1; }
+  .anim-btn:hover { border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 6px var(--cyan-glow); }
+  .anim-btn:disabled { opacity:0.3; cursor:default; }
+  .anim-btn:disabled:hover { border-color:var(--crt-border); color:var(--text-dim); box-shadow:none; }
+  .speed-label { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-left:8px; }
+  .speed-slider { width:100px; -webkit-appearance:none; appearance:none; height:4px; background:var(--crt-border); border-radius:2px; outline:none; }
+  .speed-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:12px; height:12px; border-radius:50%; background:var(--cyan); box-shadow:0 0 4px var(--cyan-glow); cursor:pointer; }
+  .phase-indicator { font-size:10px; color:var(--amber); letter-spacing:1px; margin-left:auto; padding:2px 8px; border:1px solid var(--amber-dim); border-radius:3px; }
+
+  .energy-bar-container { display:flex; gap:12px; margin-top:10px; align-items:stretch; }
+  .energy-bar-group { flex:1; }
+  .energy-bar-label { font-size:9px; color:var(--text-dim); letter-spacing:1px; margin-bottom:3px; }
+  .energy-bar-track { height:20px; background:rgba(255,255,255,0.04); border:1px solid var(--crt-border); border-radius:3px; overflow:hidden; position:relative; display:flex; align-items:center; }
+  .energy-bar-fill { height:100%; border-radius:2px; transition:width 0.06s linear; min-width:0; display:flex; align-items:center; justify-content:flex-end; padding-right:4px; }
+  .energy-bar-fill.ke1 { background:linear-gradient(90deg,#208878,var(--cyan)); }
+  .energy-bar-fill.ke2 { background:linear-gradient(90deg,var(--amber-dim),var(--amber)); }
+  .energy-bar-fill.lost { background:linear-gradient(90deg,#802020,var(--red)); }
+  .energy-bar-val-inside { font-size:9px; color:var(--chassis-bg); font-weight:bold; text-shadow:0 0 3px rgba(0,0,0,0.5); white-space:nowrap; }
+  .energy-bar-val-outside { font-size:9px; color:var(--text-dim); white-space:nowrap; margin-left:4px; flex-shrink:0; }
+
+  .results-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .result-card { background:rgba(10,14,20,0.6); border:1px solid var(--crt-border); border-radius:4px; padding:10px; }
+  .result-card-title { font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:6px; }
+  .result-value { font-size:14px; color:var(--cyan); text-shadow:0 0 6px var(--cyan-glow); }
+  .result-value.amber { color:var(--amber); text-shadow:0 0 6px var(--amber-glow); }
+  .verify-row { display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+  .badge { font-size:10px; padding:3px 10px; border-radius:3px; letter-spacing:0.5px; }
+  .badge.pass { background:rgba(64,216,112,0.12); border:1px solid rgba(64,216,112,0.4); color:var(--green); }
+  .badge.fail { background:rgba(224,80,64,0.12); border:1px solid rgba(224,80,64,0.4); color:var(--red); }
+
+  .chart-container { width:100%; height:280px; position:relative; }
+  .chart-container canvas { width:100%; height:100%; }
+
+  .toggle-group { display:flex; align-items:center; gap:6px; margin-left:8px; }
+  .toggle-label { font-size:9px; color:var(--text-dim); letter-spacing:0.5px; }
+  .toggle-switch { position:relative; width:32px; height:16px; cursor:pointer; flex-shrink:0; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-track { position:absolute; top:0; left:0; right:0; bottom:0; background:var(--crt-border); border-radius:8px; transition:background 0.2s; }
+  .toggle-switch input:checked + .toggle-track { background:var(--amber-dim); }
+  .toggle-knob { position:absolute; top:2px; left:2px; width:12px; height:12px; background:var(--text-dim); border-radius:50%; transition:transform 0.2s, background 0.2s; }
+  .toggle-switch input:checked ~ .toggle-knob { transform:translateX(16px); background:var(--amber); }
+
+  @media (max-width:900px) { .main-grid { grid-template-columns:1fr; } .control-panel { border-right:none; border-bottom:2px solid var(--chassis-border); } .results-grid { grid-template-columns:1fr 1fr; } }
+  @media (max-width:550px) { .results-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+  <div style="text-align:center;">
+    <div class="header-title">2D PARTICLE COLLISION LAB</div>
+    <div class="header-sub">ENGR 2000 · ENGINEERING DYNAMICS · SPRING 2026</div>
+  </div>
+  <div class="header-rivets"><div class="rivet"></div><div class="rivet"></div></div>
+</div>
+
+<div class="main-grid">
+  <div class="control-panel">
+    <div class="panel-section">
+      <div class="section-label">Test Presets</div>
+      <div class="preset-row">
+        <button class="preset-btn" onclick="loadPreset(1)">TEST 1: 1D Elastic</button>
+        <button class="preset-btn" onclick="loadPreset(2)">TEST 2: 1D Inelastic</button>
+        <button class="preset-btn" onclick="loadPreset(3)">TEST 3: 2D Oblique</button>
+        <button class="preset-btn" onclick="loadPreset(4)">TEST 4: General 2D</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="section-label">Particle 1</div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="m_1 \text{ (kg)}"></div><input type="number" id="m1" class="input-field" value="3" step="0.1" min="0.1"></div>
+        <div class="input-group"><div class="input-label">&nbsp;</div><div style="height:31px;"></div></div>
+      </div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="v_{1x} \text{ (m/s)}"></div><input type="number" id="v1x" class="input-field" value="4" step="0.1"></div>
+        <div class="input-group"><div class="input-label" data-katex="v_{1y} \text{ (m/s)}"></div><input type="number" id="v1y" class="input-field" value="0" step="0.1"></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="section-label">Particle 2</div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="m_2 \text{ (kg)}"></div><input type="number" id="m2" class="input-field" value="1" step="0.1" min="0.1"></div>
+        <div class="input-group"><div class="input-label">&nbsp;</div><div style="height:31px;"></div></div>
+      </div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="v_{2x} \text{ (m/s)}"></div><input type="number" id="v2x" class="input-field" value="0" step="0.1"></div>
+        <div class="input-group"><div class="input-label" data-katex="v_{2y} \text{ (m/s)}"></div><input type="number" id="v2y" class="input-field" value="0" step="0.1"></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="section-label">Collision Parameters</div>
+      <div class="input-label" style="margin-bottom:4px;" data-katex="e \text{ — Coefficient of Restitution}"></div>
+      <div class="slider-row">
+        <input type="range" id="e-slider" min="0" max="1" step="0.01" value="1.0"
+               oninput="document.getElementById('e-val').textContent=parseFloat(this.value).toFixed(2); document.getElementById('e-input').value=this.value;">
+        <span class="slider-value" id="e-val">1.00</span>
+      </div>
+      <div class="input-row">
+        <div class="input-group"><div class="input-label" data-katex="e \text{ (exact)}"></div>
+          <input type="number" id="e-input" class="input-field" value="1.0" step="0.01" min="0" max="1"
+                 oninput="document.getElementById('e-slider').value=this.value; document.getElementById('e-val').textContent=parseFloat(this.value).toFixed(2);"></div>
+        <div class="input-group"><div class="input-label" data-katex="\theta \text{ (degrees)}"></div>
+          <input type="number" id="theta" class="input-field" value="0" step="1"></div>
+      </div>
+    </div>
+    <div class="panel-section"><button class="run-btn" onclick="runCollision()">▶ COMPUTE &amp; ANIMATE</button></div>
+    <div class="panel-section">
+      <div class="section-label">Parametric Sweep</div>
+      <div class="input-label" style="margin-bottom:6px;color:var(--text-dim);" data-katex="\text{Sweep } e \text{ from 0→1 using current parameters.}"></div>
+      <button class="run-btn" style="background:linear-gradient(180deg,var(--teal),#188878);box-shadow:0 2px 10px var(--cyan-glow);" onclick="runParametric()">◆ RUN SWEEP</button>
+    </div>
+  </div>
+
+  <div class="display-area">
+    <div class="crt-screen">
+      <div class="crt-label">Collision Visualization</div>
+      <div class="canvas-container"><canvas id="viz-canvas"></canvas></div>
+      <div class="anim-controls">
+        <button class="anim-btn" id="btn-replay" title="Replay" disabled onclick="replayAnimation()">↺</button>
+        <button class="anim-btn" id="btn-pause" title="Pause / Play" disabled onclick="togglePause()">⏸</button>
+        <span class="speed-label">SPEED</span>
+        <input type="range" class="speed-slider" id="speed-slider" min="0.1" max="3" step="0.1" value="1.0"
+               oninput="animSpeed=parseFloat(this.value);document.getElementById('speed-val').textContent=this.value+'×';">
+        <span class="slider-value" id="speed-val" style="min-width:32px;">1×</span>
+        <label class="toggle-group"><span class="toggle-label">FLASH</span><span class="toggle-switch"><input type="checkbox" id="flash-toggle"><span class="toggle-track"></span><span class="toggle-knob"></span></span></label>
+        <span class="phase-indicator" id="phase-ind">IDLE</span>
+      </div>
+      <div class="energy-bar-container">
+        <div class="energy-bar-group"><div class="energy-bar-label" data-katex="KE_1 \text{ (Particle 1)}"></div>
+          <div class="energy-bar-track"><div class="energy-bar-fill ke1" id="ebar-ke1"><span class="energy-bar-val-inside" id="ebar-ke1-in"></span></div><span class="energy-bar-val-outside" id="ebar-ke1-out"></span></div></div>
+        <div class="energy-bar-group"><div class="energy-bar-label" data-katex="KE_2 \text{ (Particle 2)}"></div>
+          <div class="energy-bar-track"><div class="energy-bar-fill ke2" id="ebar-ke2"><span class="energy-bar-val-inside" id="ebar-ke2-in"></span></div><span class="energy-bar-val-outside" id="ebar-ke2-out"></span></div></div>
+        <div class="energy-bar-group"><div class="energy-bar-label" data-katex="\Delta KE \text{ Lost}"></div>
+          <div class="energy-bar-track"><div class="energy-bar-fill lost" id="ebar-lost"><span class="energy-bar-val-inside" id="ebar-lost-in"></span></div><span class="energy-bar-val-outside" id="ebar-lost-out"></span></div></div>
+      </div>
+    </div>
+
+    <div class="crt-screen" id="results-panel" style="display:none;">
+      <div class="crt-label">Computed Results</div>
+      <div class="results-grid">
+        <div class="result-card"><div class="result-card-title" data-katex="\vec{v}_{1f} \text{ (m/s)}"></div><div class="result-value" id="res-v1f">—</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="\vec{v}_{2f} \text{ (m/s)}"></div><div class="result-value" id="res-v2f">—</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="\Delta KE \text{ (J)}"></div><div class="result-value amber" id="res-dke">—</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="|\vec{v}_{1f}| \text{ (m/s)}"></div><div class="result-value" id="res-v1f-mag">—</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="|\vec{v}_{2f}| \text{ (m/s)}"></div><div class="result-value" id="res-v2f-mag">—</div></div>
+        <div class="result-card"><div class="result-card-title" data-katex="KE_i \text{ / } KE_f \text{ (J)}"></div><div class="result-value amber" id="res-ke-totals">—</div></div>
+      </div>
+      <div class="verify-row" id="verify-badges"></div>
+    </div>
+
+    <div class="crt-screen" id="parametric-panel" style="display:none;">
+      <div class="crt-label" data-katex="\text{Parametric Study — } \Delta KE \text{ vs. } e"></div>
+      <div class="chart-container"><canvas id="param-canvas"></canvas></div>
+      <div id="param-formula" style="margin-top:8px;font-size:12px;color:var(--text-dim);"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PHYSICS ENGINE
+// ============================================================
+function collide(m1, m2, v1i, v2i, e, theta_deg) {
+  const th = theta_deg * Math.PI / 180;
+  const nx = Math.cos(th), ny = Math.sin(th), tx = -ny, ty = nx;
+  const v1n = v1i[0]*nx+v1i[1]*ny, v1t = v1i[0]*tx+v1i[1]*ty;
+  const v2n = v2i[0]*nx+v2i[1]*ny, v2t = v2i[0]*tx+v2i[1]*ty;
+  const M = m1+m2;
+  const u1n = (m1*v1n+m2*v2n - m2*e*(v1n-v2n))/M;
+  const u2n = (m1*v1n+m2*v2n + m1*e*(v1n-v2n))/M;
+  const v1f = [u1n*nx+v1t*tx, u1n*ny+v1t*ty];
+  const v2f = [u2n*nx+v2t*tx, u2n*ny+v2t*ty];
+  const KE_i = .5*m1*(v1i[0]**2+v1i[1]**2)+.5*m2*(v2i[0]**2+v2i[1]**2);
+  const KE_f = .5*m1*(v1f[0]**2+v1f[1]**2)+.5*m2*(v2f[0]**2+v2f[1]**2);
+  return { v1f, v2f, delta_KE:KE_i-KE_f, KE_i, KE_f };
+}
+function verifyMom(m1,m2,v1i,v2i,v1f,v2f) {
+  return { px_ok:Math.abs(m1*v1i[0]+m2*v2i[0]-m1*v1f[0]-m2*v2f[0])<1e-9,
+           py_ok:Math.abs(m1*v1i[1]+m2*v2i[1]-m1*v1f[1]-m2*v2f[1])<1e-9 };
+}
+
+// ============================================================
+// PRESETS & INPUTS
+// ============================================================
+const presets = {
+  1:{m1:3,m2:1,v1x:4,v1y:0,v2x:0,v2y:0,e:1.0,theta:0},
+  2:{m1:4,m2:2,v1x:6,v1y:0,v2x:0,v2y:0,e:0.0,theta:0},
+  3:{m1:1,m2:1,v1x:5,v1y:0,v2x:0,v2y:0,e:0.8,theta:30},
+  4:{m1:2,m2:3,v1x:4,v1y:2,v2x:-1,v2y:3,e:0.5,theta:40},
+};
+function loadPreset(n) {
+  const p=presets[n];
+  document.getElementById('m1').value=p.m1; document.getElementById('m2').value=p.m2;
+  document.getElementById('v1x').value=p.v1x; document.getElementById('v1y').value=p.v1y;
+  document.getElementById('v2x').value=p.v2x; document.getElementById('v2y').value=p.v2y;
+  document.getElementById('e-slider').value=p.e; document.getElementById('e-input').value=p.e;
+  document.getElementById('e-val').textContent=p.e.toFixed(2); document.getElementById('theta').value=p.theta;
+  document.querySelectorAll('.preset-btn').forEach((b,i)=>b.classList.toggle('active',i===n-1));
+}
+function readInputs() {
+  return { m1:+document.getElementById('m1').value, m2:+document.getElementById('m2').value,
+    v1i:[+document.getElementById('v1x').value,+document.getElementById('v1y').value],
+    v2i:[+document.getElementById('v2x').value,+document.getElementById('v2y').value],
+    e:+document.getElementById('e-input').value, theta:+document.getElementById('theta').value };
+}
+
+// ============================================================
+// ANIMATION ENGINE — continuous physics, no freeze
+// ============================================================
+let animFrame = null, animSpeed = 1.0, animPaused = false, AD = null;
+
+// Timeline: simTime runs from -T_APPROACH to +T_DEPART.
+// simTime = 0 is the instant of surface contact.
+// Objects move with initial velocities for t<0, final velocities for t>0.
+// NO separate flash phase — flash is a cosmetic overlay that decays from t=0.
+const T_APPROACH = 1.6;
+const T_DEPART   = 1.6;
+const FLASH_DECAY = 0.25; // seconds for flash to fade (real time equivalent at 1x)
+
+function sizeCanvas() {
+  const c = document.getElementById('viz-canvas');
+  const dpr = window.devicePixelRatio||1;
+  const r = c.parentElement.getBoundingClientRect();
+  c.width=r.width*dpr; c.height=r.height*dpr;
+  c.style.width=r.width+'px'; c.style.height=r.height+'px';
+  return {canvas:c, W:c.width, H:c.height, dpr};
+}
+
+function initAnimation(inp, res) {
+  const {canvas,W,H,dpr} = sizeCanvas();
+  const cx=W/2, cy=H/2;
+
+  // Object radii: proportional to mass^(1/3) for volume scaling (3D sphere feel)
+  // Base radius chosen so objects are visually substantial
+  const baseR = 18 * dpr;
+  const maxM = Math.max(inp.m1, inp.m2);
+  const r1 = baseR * Math.cbrt(inp.m1 / maxM) + 8*dpr;
+  const r2 = baseR * Math.cbrt(inp.m2 / maxM) + 8*dpr;
+
+  // Velocity scaling: map velocities to px/simSecond so particles traverse visible distance
+  const vels = [inp.v1i, inp.v2i, res.v1f, res.v2f];
+  const maxV = Math.max(...vels.map(v=>Math.sqrt(v[0]**2+v[1]**2)), 0.1);
+  const pxPerMps = Math.min(W,H)*0.26 / maxV;
+
+  // Contact geometry: at t=0, the two sphere SURFACES touch at the collision point (cx,cy).
+  // The line of impact passes through both centers.
+  // Center of particle 1 at contact: displaced from (cx,cy) by -r1 along n̂
+  // Center of particle 2 at contact: displaced from (cx,cy) by +r2 along n̂
+  // (n̂ points from particle 1 toward particle 2)
+  const theta = inp.theta * Math.PI/180;
+  const nxHat = Math.cos(theta), nyHat = Math.sin(theta);
+  // Contact center positions (canvas coords, y inverted for ny)
+  const c1x_contact = cx - r1*nxHat;
+  const c1y_contact = cy + r1*nyHat; // +ny because canvas y is flipped
+  const c2x_contact = cx + r2*nxHat;
+  const c2y_contact = cy - r2*nyHat;
+
+  AD = {
+    canvas, inp, res, W, H, cx, cy, dpr, pxPerMps, r1, r2,
+    c1x_contact, c1y_contact, c2x_contact, c2y_contact,
+    simTime: -T_APPROACH,
+    hasCollided: false,
+    flashAge: 999, // time since collision (for flash decay)
+    trail1:[], trail2:[],
+    lastTrailT: -999,
+    lastTS: null,
+  };
+
+  animPaused = false;
+  document.getElementById('btn-pause').disabled=false;
+  document.getElementById('btn-pause').textContent='⏸';
+  document.getElementById('btn-replay').disabled=false;
+  setPhase('APPROACH');
+}
+
+function getPos(ad, idx, t) {
+  // Returns canvas (x,y) of particle CENTER at sim time t.
+  // At t=0, centers are at their contact positions (surface-to-surface touch).
+  // For t<0, offset by initial velocity * t (backward from contact).
+  // For t>0, offset by final velocity * t (forward from contact).
+  const {pxPerMps, inp, res, c1x_contact, c1y_contact, c2x_contact, c2y_contact} = ad;
+  let cx0, cy0, vx, vy;
+  if (idx === 0) {
+    cx0 = c1x_contact; cy0 = c1y_contact;
+    vx = t<=0 ? inp.v1i[0] : res.v1f[0];
+    vy = t<=0 ? inp.v1i[1] : res.v1f[1];
+  } else {
+    cx0 = c2x_contact; cy0 = c2y_contact;
+    vx = t<=0 ? inp.v2i[0] : res.v2f[0];
+    vy = t<=0 ? inp.v2i[1] : res.v2f[1];
+  }
+  return [cx0 + vx*pxPerMps*t, cy0 - vy*pxPerMps*t];
+}
+
+function tick(ts) {
+  if (!AD) return;
+  if (AD.lastTS===null) AD.lastTS=ts;
+  const dtReal = Math.min((ts-AD.lastTS)/1000, 0.05); // cap to avoid spiral
+  AD.lastTS=ts;
+
+  if (!animPaused) {
+    const dtSim = dtReal * animSpeed;
+    AD.simTime += dtSim;
+
+    // Detect collision crossing
+    if (!AD.hasCollided && AD.simTime >= 0) {
+      AD.hasCollided = true;
+      AD.flashAge = 0;
+      setPhase('SEPARATING');
+    }
+
+    // Flash ages in sim-time
+    if (AD.hasCollided) AD.flashAge += dtSim;
+
+    // Update phase indicator
+    if (!AD.hasCollided) setPhase('APPROACH');
+
+    // End condition
+    if (AD.simTime >= T_DEPART) {
+      AD.simTime = T_DEPART;
+      setPhase('COMPLETE');
+      document.getElementById('btn-pause').disabled=true;
+      drawFrame(AD);
+      updateEnergyBars(AD);
+      return; // stop loop
+    }
+
+    // Trail recording
+    if (Math.abs(AD.simTime - AD.lastTrailT) >= 0.015) {
+      const [x1,y1]=getPos(AD,0,AD.simTime), [x2,y2]=getPos(AD,1,AD.simTime);
+      AD.trail1.push({x:x1,y:y1,t:AD.simTime});
+      AD.trail2.push({x:x2,y:y2,t:AD.simTime});
+      AD.lastTrailT=AD.simTime;
+    }
+  }
+
+  drawFrame(AD);
+  updateEnergyBars(AD);
+  animFrame = requestAnimationFrame(tick);
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function drawFrame(ad) {
+  const {canvas,W,H,cx,cy,inp,res,r1,r2,pxPerMps,dpr} = ad;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle='#0a0e14'; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  const gs=40*dpr;
+  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let x=cx%gs;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=cy%gs;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Line of impact
+  const theta=inp.theta*Math.PI/180;
+  const diag=Math.max(W,H);
+  ctx.strokeStyle='rgba(240,160,48,0.15)'; ctx.lineWidth=dpr;
+  ctx.setLineDash([6*dpr,4*dpr]);
+  ctx.beginPath();
+  ctx.moveTo(cx-diag*Math.cos(theta),cy+diag*Math.sin(theta));
+  ctx.lineTo(cx+diag*Math.cos(theta),cy-diag*Math.sin(theta));
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // n̂ / t̂
+  const al=40*dpr;
+  drawArrow(ctx,cx,cy,cx+al*Math.cos(theta),cy-al*Math.sin(theta),'rgba(240,160,48,0.35)',1.2*dpr);
+  drawArrow(ctx,cx,cy,cx-al*Math.sin(theta),cy-al*Math.cos(theta),'rgba(64,232,208,0.35)',1.2*dpr);
+  ctx.font=`${10*dpr}px Share Tech Mono`; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle='rgba(240,160,48,0.45)';
+  ctx.fillText('n̂',cx+al*Math.cos(theta)+4*dpr,cy-al*Math.sin(theta)-4*dpr);
+  ctx.fillStyle='rgba(64,232,208,0.45)';
+  ctx.fillText('t̂',cx-al*Math.sin(theta)+4*dpr,cy-al*Math.cos(theta)-4*dpr);
+
+  // Trails
+  drawTrail(ctx, ad.trail1, '#40e8d0', ad.simTime);
+  drawTrail(ctx, ad.trail2, '#f0a030', ad.simTime);
+
+  // Positions
+  const [x1,y1] = getPos(ad,0,ad.simTime);
+  const [x2,y2] = getPos(ad,1,ad.simTime);
+
+  // Impact flash — cosmetic overlay, gated on toggle
+  if (ad.hasCollided && ad.flashAge < FLASH_DECAY && document.getElementById('flash-toggle').checked) {
+    const intensity = 1.0 - (ad.flashAge / FLASH_DECAY);
+    const i2 = intensity*intensity; // quadratic decay for snappy feel
+    const flashR = (40 + 30*i2) * dpr;
+    // Flash centered at contact point (cx,cy)
+    const g = ctx.createRadialGradient(cx,cy,0,cx,cy,flashR);
+    g.addColorStop(0,`rgba(255,245,220,${0.6*i2})`);
+    g.addColorStop(0.5,`rgba(240,160,48,${0.3*i2})`);
+    g.addColorStop(1,'rgba(240,160,48,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,flashR,0,Math.PI*2); ctx.fill();
+  }
+
+  // Velocity arrows (attached to objects, drawn from surface)
+  const arrowScale = pxPerMps*0.4;
+  const preCollision = ad.simTime <= 0;
+  const v1 = preCollision ? inp.v1i : res.v1f;
+  const v2 = preCollision ? inp.v2i : res.v2f;
+  const c1a = preCollision ? 'rgba(64,232,208,0.45)' : '#40e8d0';
+  const c2a = preCollision ? 'rgba(240,160,48,0.45)' : '#f0a030';
+  const lwa = preCollision ? 1.2*dpr : 2*dpr;
+  drawVelArrowFromSurface(ctx,x1,y1,r1,v1,arrowScale,c1a,lwa);
+  drawVelArrowFromSurface(ctx,x2,y2,r2,v2,arrowScale,c2a,lwa);
+
+  // Draw pucks
+  drawPuck(ctx,x1,y1,r1,'#40e8d0','m₁',inp.m1,dpr);
+  drawPuck(ctx,x2,y2,r2,'#f0a030','m₂',inp.m2,dpr);
+
+  // Contact point marker
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath(); ctx.arc(cx,cy,3*dpr,0,Math.PI*2); ctx.fill();
+
+  // Legend
+  ctx.font=`${9*dpr}px Share Tech Mono`; ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
+  ctx.fillText('trail = trajectory    arrows = velocity    contact point at center', 8*dpr, H-6*dpr);
+}
+
+function drawPuck(ctx, x, y, r, baseColor, label, mass, dpr) {
+  const rgb = hexToRGB(baseColor);
+  const dark = `rgb(${Math.max(0,rgb.r-70)},${Math.max(0,rgb.g-70)},${Math.max(0,rgb.b-70)})`;
+  const mid = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+  const lite = `rgb(${Math.min(255,rgb.r+50)},${Math.min(255,rgb.g+50)},${Math.min(255,rgb.b+50)})`;
+  const bevel = 4 * dpr; // edge thickness
+
+  // Drop shadow
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = 8*dpr;
+  ctx.shadowOffsetX = 2*dpr;
+  ctx.shadowOffsetY = 3*dpr;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle = dark;
+  ctx.fill();
+  ctx.restore();
+
+  // Outer bevel ring removed — face fills full radius
+
+  // Face — flat top surface
+  const faceG = ctx.createLinearGradient(x, y-r, x, y+r);
+  faceG.addColorStop(0, lite);
+  faceG.addColorStop(0.4, mid);
+  faceG.addColorStop(1, dark);
+  ctx.fillStyle = faceG;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+
+  // Subtle circular score line on face (like a machined groove)
+  ctx.strokeStyle = `rgba(${Math.max(0,rgb.r-40)},${Math.max(0,rgb.g-40)},${Math.max(0,rgb.b-40)},0.3)`;
+  ctx.lineWidth = 1*dpr;
+  ctx.beginPath(); ctx.arc(x,y,r*0.7,0,Math.PI*2); ctx.stroke();
+
+  // Outer rim stroke
+  ctx.strokeStyle = `rgba(255,255,255,0.12)`;
+  ctx.lineWidth = 1*dpr;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+
+  // Top edge highlight — thin bright arc at the top
+  ctx.strokeStyle = `rgba(255,255,255,0.18)`;
+  ctx.lineWidth = 1.5*dpr;
+  ctx.beginPath(); ctx.arc(x,y,r-1*dpr, -Math.PI*0.8, -Math.PI*0.2); ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.max(9, Math.min(13, r*0.5/dpr))*dpr}px Share Tech Mono`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(label, x, y - r*0.1);
+
+  // Mass value
+  ctx.font = `${Math.max(7, Math.min(10, r*0.38/dpr))*dpr}px Share Tech Mono`;
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.fillText(mass+'kg', x, y + r*0.3);
+
+  ctx.textAlign='start'; ctx.textBaseline='alphabetic';
+}
+
+function hexToRGB(hex) {
+  const h = hex.replace('#','');
+  return { r:parseInt(h.substr(0,2),16), g:parseInt(h.substr(2,2),16), b:parseInt(h.substr(4,2),16) };
+}
+
+function drawTrail(ctx, trail, color, curT) {
+  if (trail.length<2) return;
+  for (let i=1;i<trail.length;i++) {
+    const age=Math.abs(curT-trail[i].t);
+    const a=Math.max(0.05,Math.min(0.65,0.65-age*0.1));
+    const hex=Math.round(a*255).toString(16).padStart(2,'0');
+    ctx.strokeStyle=color+hex;
+    ctx.lineWidth=Math.max(1,3.5-age*0.3);
+    ctx.beginPath(); ctx.moveTo(trail[i-1].x,trail[i-1].y); ctx.lineTo(trail[i].x,trail[i].y); ctx.stroke();
+  }
+}
+
+function drawVelArrowFromSurface(ctx,cx,cy,r,vel,scale,color,lw) {
+  const mag=Math.sqrt(vel[0]**2+vel[1]**2);
+  if(mag<0.001) return;
+  // Arrow starts at sphere surface in the direction of velocity
+  const ux=vel[0]/mag, uy=vel[1]/mag;
+  const sx=cx+ux*r, sy=cy-uy*r; // surface point (canvas y inverted)
+  const ex=sx+vel[0]*scale, ey=sy-vel[1]*scale;
+  drawArrow(ctx,sx,sy,ex,ey,color,lw);
+}
+
+function drawArrow(ctx,x1,y1,x2,y2,color,lw) {
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2)return;
+  const ux=dx/len,uy=dy/len;
+  const hl=Math.min(10*(window.devicePixelRatio||1),len*0.3);
+  ctx.strokeStyle=color; ctx.lineWidth=lw;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hl*ux+hl*0.35*uy,y2-hl*uy-hl*0.35*ux);
+  ctx.lineTo(x2-hl*ux-hl*0.35*uy,y2-hl*uy+hl*0.35*ux);
+  ctx.closePath(); ctx.fill();
+}
+
+// ============================================================
+// ENERGY BARS
+// ============================================================
+function updateEnergyBars(ad) {
+  const {inp,res}=ad;
+  // Pre-collision or post-collision — instant switch at t=0 (no interpolation = no fake physics)
+  const pre = ad.simTime <= 0;
+  const v1 = pre ? inp.v1i : res.v1f;
+  const v2 = pre ? inp.v2i : res.v2f;
+  const ke1=.5*inp.m1*(v1[0]**2+v1[1]**2);
+  const ke2=.5*inp.m2*(v2[0]**2+v2[1]**2);
+  const keLost=Math.max(0,res.KE_i-ke1-ke2);
+  const mx=res.KE_i||1;
+  setBar('ebar-ke1','ebar-ke1-in','ebar-ke1-out',ke1,mx);
+  setBar('ebar-ke2','ebar-ke2-in','ebar-ke2-out',ke2,mx);
+  setBar('ebar-lost','ebar-lost-in','ebar-lost-out',keLost,mx);
+}
+function setBar(bId,iId,oId,val,mx) {
+  const pct=Math.min(100,(val/mx)*100);
+  document.getElementById(bId).style.width=pct+'%';
+  const t=val.toFixed(2)+' J';
+  document.getElementById(iId).textContent = pct>=20 ? t : '';
+  document.getElementById(oId).textContent = pct<20 ? t : '';
+}
+
+// ============================================================
+// TRANSPORT CONTROLS
+// ============================================================
+function setPhase(t){document.getElementById('phase-ind').textContent=t;}
+function togglePause(){
+  if(!AD||AD.simTime>=T_DEPART)return;
+  animPaused=!animPaused;
+  document.getElementById('btn-pause').textContent=animPaused?'▶':'⏸';
+  if(!animPaused){AD.lastTS=null;animFrame=requestAnimationFrame(tick);}
+}
+function replayAnimation(){
+  if(!AD)return;
+  if(animFrame)cancelAnimationFrame(animFrame);
+  initAnimation(AD.inp,AD.res);
+  animFrame=requestAnimationFrame(tick);
+}
+
+// ============================================================
+// RUN COLLISION
+// ============================================================
+function runCollision(){
+  if(animFrame)cancelAnimationFrame(animFrame);
+  const inp=readInputs();
+  const res=collide(inp.m1,inp.m2,inp.v1i,inp.v2i,inp.e,inp.theta);
+  const ver=verifyMom(inp.m1,inp.m2,inp.v1i,inp.v2i,res.v1f,res.v2f);
+  initAnimation(inp,res);
+  animFrame=requestAnimationFrame(tick);
+
+  document.getElementById('results-panel').style.display='';
+  const fmt=v=>`(${v[0].toFixed(3)}, ${v[1].toFixed(3)})`;
+  const mag=v=>Math.sqrt(v[0]**2+v[1]**2).toFixed(3);
+  document.getElementById('res-v1f').textContent=fmt(res.v1f);
+  document.getElementById('res-v2f').textContent=fmt(res.v2f);
+  document.getElementById('res-dke').textContent=res.delta_KE.toFixed(4);
+  document.getElementById('res-v1f-mag').textContent=mag(res.v1f);
+  document.getElementById('res-v2f-mag').textContent=mag(res.v2f);
+  document.getElementById('res-ke-totals').textContent=`${res.KE_i.toFixed(3)} / ${res.KE_f.toFixed(3)}`;
+
+  const bd=document.getElementById('verify-badges');bd.innerHTML='';
+  const ab=(l,ok)=>{const b=document.createElement('span');b.className=`badge ${ok?'pass':'fail'}`;b.textContent=`${ok?'✓':'✗'} ${l}`;bd.appendChild(b);};
+  ab('pₓ conserved',ver.px_ok); ab('pᵧ conserved',ver.py_ok);
+  if(inp.e===1) ab('ΔKE ≈ 0 (elastic)',Math.abs(res.delta_KE)<1e-9);
+  if(inp.e===0) ab('v₁f = v₂f (inelastic)',Math.abs(res.v1f[0]-res.v2f[0])<1e-9&&Math.abs(res.v1f[1]-res.v2f[1])<1e-9);
+}
+
+// ============================================================
+// PARAMETRIC STUDY
+// ============================================================
+function runParametric(){
+  const inp=readInputs();
+  const eV=[],dV=[];
+  for(let i=0;i<=100;i++){const e=i/100;eV.push(e);dV.push(collide(inp.m1,inp.m2,inp.v1i,inp.v2i,e,inp.theta).delta_KE);}
+  const th=inp.theta*Math.PI/180;
+  const v1n=inp.v1i[0]*Math.cos(th)+inp.v1i[1]*Math.sin(th);
+  const v2n=inp.v2i[0]*Math.cos(th)+inp.v2i[1]*Math.sin(th);
+  const C=.5*(inp.m1*inp.m2)/(inp.m1+inp.m2)*(v1n-v2n)**2;
+  document.getElementById('parametric-panel').style.display='';
+  const canvas=document.getElementById('param-canvas');
+  canvas.width=canvas.parentElement.clientWidth;canvas.height=canvas.parentElement.clientHeight;
+  drawParamChart(canvas,eV,dV,C);
+  document.getElementById('param-formula').innerHTML=`Analytical: ΔKE = ${C.toFixed(3)}(1 − e²) J | ΔKE(e=0) = ${C.toFixed(3)} J | ΔKE(e=1) = 0 J`;
+}
+function drawParamChart(canvas,eV,dV,C){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  const ml=60,mr=20,mt=20,mb=40,pw=W-ml-mr,ph=H-mt-mb;
+  ctx.fillStyle='#0a0e14';ctx.fillRect(0,0,W,H);
+  const mx=Math.max(...dV,1)*1.1;
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){const y=mt+ph-(i/5)*ph;ctx.beginPath();ctx.moveTo(ml,y);ctx.lineTo(ml+pw,y);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px Share Tech Mono';ctx.textAlign='right';ctx.fillText((mx*i/5).toFixed(1),ml-6,y+3);}
+  for(let i=0;i<=5;i++){const x=ml+(i/5)*pw;ctx.beginPath();ctx.moveTo(x,mt);ctx.lineTo(x,mt+ph);ctx.stroke();ctx.textAlign='center';ctx.fillText((i*0.2).toFixed(1),x,mt+ph+14);}
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='11px Share Tech Mono';ctx.textAlign='center';
+  ctx.fillText('e (coefficient of restitution)',ml+pw/2,H-4);
+  ctx.save();ctx.translate(14,mt+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('ΔKE (J)',0,0);ctx.restore();
+  ctx.beginPath();ctx.moveTo(ml,mt+ph);
+  for(let i=0;i<=100;i++)ctx.lineTo(ml+(i/100)*pw,mt+ph-(C*(1-(i/100)**2)/mx)*ph);
+  ctx.lineTo(ml+pw,mt+ph);ctx.closePath();ctx.fillStyle='rgba(240,160,48,0.08)';ctx.fill();
+  ctx.beginPath();
+  for(let i=0;i<=100;i++){const x=ml+(i/100)*pw,y=mt+ph-(C*(1-(i/100)**2)/mx)*ph;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+  ctx.strokeStyle='#f0a030';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#40e8d0';
+  for(let i=0;i<=100;i+=5){ctx.beginPath();ctx.arc(ml+eV[i]*pw,mt+ph-(dV[i]/mx)*ph,3,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#e05040';
+  ctx.beginPath();ctx.arc(ml,mt+ph-(dV[0]/mx)*ph,5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(ml+pw,mt+ph-(dV[100]/mx)*ph,5,0,Math.PI*2);ctx.fill();
+  const lx=ml+pw-180,ly=mt+16;
+  ctx.fillStyle='#f0a030';ctx.fillRect(lx,ly-3,16,3);
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.textAlign='left';ctx.fillText('Analytical',lx+22,ly+1);
+  ctx.fillStyle='#40e8d0';ctx.beginPath();ctx.arc(lx+7,ly+14,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.fillText('Simulated',lx+22,ly+17);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load',()=>{
+  // Render all KaTeX labels
+  document.querySelectorAll('[data-katex]').forEach(el => {
+    try {
+      katex.render(el.getAttribute('data-katex'), el, {
+        throwOnError: false,
+        displayMode: false,
+        output: 'html',
+      });
+    } catch(e) {
+      el.textContent = el.getAttribute('data-katex');
+    }
+  });
+
+  loadPreset(1);
+  const{canvas,W,H,dpr}=sizeCanvas();
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#0a0e14';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font=`${13*dpr}px Share Tech Mono`;
+  ctx.textAlign='center';ctx.fillText('Press COMPUTE & ANIMATE to begin',W/2,H/2);
+});
+</script>
+</body>
+</html>

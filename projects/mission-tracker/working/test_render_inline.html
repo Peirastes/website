@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Tracker — Phase 2 Render Test</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000510;
+    color: #d0d4da;
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+  }
+  #canvas-wrap {
+    position: fixed;
+    inset: 0;
+    display: block;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #hud {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 5, 16, 0.7);
+    border: 1px solid rgba(120, 160, 220, 0.3);
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.6;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  #hud h2 {
+    font-size: 12px;
+    color: #e07050;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  #hud .label { color: rgba(208, 212, 218, 0.5); }
+  #hud .value { color: #d0d4da; }
+  #controls {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(0, 5, 16, 0.7);
+    border: 1px solid rgba(120, 160, 220, 0.3);
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.8;
+    border-radius: 4px;
+  }
+  #controls label { display: block; }
+  #controls input[type=range] {
+    width: 200px;
+    vertical-align: middle;
+  }
+  #controls button {
+    background: rgba(224, 112, 80, 0.2);
+    border: 1px solid #e07050;
+    color: #e07050;
+    padding: 4px 10px;
+    margin: 2px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  #controls button:hover {
+    background: rgba(224, 112, 80, 0.4);
+  }
+</style>
+</head>
+<body>
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div id="hud">
+  <h2>MISSION TRACKER — PHASE 2</h2>
+  <div><span class="label">MET:</span> <span class="value" id="met">0</span></div>
+  <div><span class="label">Sim time:</span> <span class="value" id="sim-time">0</span> days</div>
+  <div><span class="label">Spacecraft:</span> <span class="value" id="sc-pos">—</span></div>
+  <div><span class="label">Earth dist:</span> <span class="value" id="earth-dist">—</span> km</div>
+  <div><span class="label">Moon dist:</span> <span class="value" id="moon-dist">—</span> km</div>
+</div>
+
+<div id="controls">
+  <button id="play">⏵ Play</button>
+  <button id="pause">⏸ Pause</button>
+  <button id="reset">⟲ Reset</button>
+  <button id="speed-up">⏩ Speed +</button>
+  <button id="speed-down">⏪ Speed −</button>
+  <br>
+  <button id="view-earth">🌍 Earth</button>
+  <button id="view-leo">🛰 LEO</button>
+  <button id="view-heo">⬭ HEO</button>
+  <button id="view-moon">🌙 Moon view</button>
+  <button id="view-far">🔭 Far</button>
+  <br>
+  <label>Azimuth: <input type="range" id="azimuth" min="0" max="360" value="0"></label>
+  <label>Elevation: <input type="range" id="elevation" min="-89" max="89" value="89"></label>
+  <label>Distance: <input type="range" id="distance" min="20000" max="2000000" value="800000" step="10000"></label>
+</div>
+
+<script>
+(function(){
+/**
+ * Mission Tracker — 3D Physics Engine
+ *
+ * Foundational module for the Mission Tracker framework. Computes spacecraft
+ * trajectories under N-body gravity using a 3D RK4 integrator. State vectors
+ * are 6D: [x, y, z, vx, vy, vz] in km and km/s, J2000-like inertial frame
+ * with Earth at origin.
+ *
+ * This is the validation gate from SPEC §11 Phase 3: it must reproduce the
+ * Artemis II free-return trajectory using only real burns (no synthetic TCM).
+ *
+ * Usage:
+ *   const physics = require('./physics3d');
+ *   const traj = physics.integrate(initialState, burns, t_end, dt);
+ *
+ * Status: Phase 1 — initial implementation, awaiting standalone tests
+ */
+
+'use strict';
+
+// =============================================================================
+// PHYSICAL CONSTANTS
+// =============================================================================
+
+const CONST = {
+  // Gravitational parameters (km^3/s^2)
+  MU_EARTH: 398600.4418,
+  MU_MOON:  4902.8,
+  MU_SUN:   132712440018,
+
+  // Bodies (km)
+  R_EARTH: 6371,
+  R_MOON:  1737,
+  R_SUN:   695700,
+
+  // Distances (km)
+  LUNAR_DIST: 384400,        // mean Earth-Moon
+  AU:         149597870.7,   // 1 AU
+
+  // Periods (seconds)
+  LUNAR_PERIOD:  27.321661 * 86400,  // sidereal lunar month
+  EARTH_YEAR:    365.25 * 86400,
+
+  // Inclinations (radians)
+  MOON_INCL_ECLIPTIC: 5.145 * Math.PI / 180,  // Moon orbit to ecliptic
+  ECLIPTIC_OBLIQUITY: 23.44 * Math.PI / 180,  // ecliptic to equator (J2000)
+};
+
+// =============================================================================
+// 3D VECTOR UTILITIES
+// =============================================================================
+
+const V = {
+  add:   (a, b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]],
+  sub:   (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
+  scale: (a, s) => [a[0]*s, a[1]*s, a[2]*s],
+  dot:   (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2],
+  cross: (a, b) => [
+    a[1]*b[2] - a[2]*b[1],
+    a[2]*b[0] - a[0]*b[2],
+    a[0]*b[1] - a[1]*b[0]
+  ],
+  mag:   (a) => Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]),
+  norm:  (a) => {
+    const m = V.mag(a);
+    return m > 0 ? [a[0]/m, a[1]/m, a[2]/m] : [0,0,0];
+  },
+};
+
+// =============================================================================
+// EPHEMERIS — Moon and Sun positions in 3D (Earth-centered inertial frame)
+// =============================================================================
+//
+// Coordinate convention: Earth-centered inertial (ECI), J2000-like.
+// X-axis: vernal equinox direction (toward Sun at vernal equinox)
+// Z-axis: Earth's rotation axis (north pole)
+// Y-axis: completes right-handed frame
+//
+// Moon orbit: simplified Keplerian circular orbit in a plane inclined
+// 5.145° to the ecliptic, which itself is inclined 23.44° to the equator.
+// This is sufficient for trajectory accuracy at the ~minutes level.
+//
+// Sun position: apparent geocentric position assuming circular Earth orbit
+// in the ecliptic plane.
+// =============================================================================
+
+// Module-level ephemeris configuration. The test harness or framework caller
+// can adjust these to align the model with a specific mission's launch geometry.
+const EPHEMERIS = {
+  moonLaunchPhase: 0.4,  // Moon angle at t=0 (radians)
+  sunLaunchPhase:  3.54, // Sun angle at t=0 (radians)
+  moonInclination: CONST.MOON_INCL_ECLIPTIC, // Set to 0 to put Moon in equatorial plane
+  applyObliquity:  true, // Set to false to skip ecliptic→equatorial rotation
+};
+
+/**
+ * Rotate a vector by an angle around the X axis.
+ * Used to transform from ecliptic to equatorial coordinates.
+ */
+function rotX(v, angle) {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  return [v[0], v[1]*c - v[2]*s, v[1]*s + v[2]*c];
+}
+
+/**
+ * Get Moon position in 3D (ECI frame, km).
+ * t is mission elapsed time in seconds from launch.
+ *
+ * Uses the module-level EPHEMERIS.moonLaunchPhase. Set via setEphemeris() to
+ * align the model with a specific mission's launch geometry.
+ */
+function moonPosition(t, launchPhase) {
+  if (launchPhase === undefined) launchPhase = EPHEMERIS.moonLaunchPhase;
+  // Moon position in its own orbital plane (inclined to ecliptic)
+  const meanAnomaly = launchPhase + 2 * Math.PI * t / CONST.LUNAR_PERIOD;
+  const x_orbit = CONST.LUNAR_DIST * Math.cos(meanAnomaly);
+  const y_orbit = CONST.LUNAR_DIST * Math.sin(meanAnomaly);
+  const z_orbit = 0;
+
+  // Apply Moon orbital inclination (5.145° to ecliptic)
+  // Use the configurable EPHEMERIS.moonInclination so tests can disable it
+  // (e.g., to put the Moon in the equatorial plane for a planar setup).
+  const ecliptic = rotX([x_orbit, y_orbit, z_orbit], EPHEMERIS.moonInclination);
+
+  // Apply ecliptic-to-equatorial rotation (Earth axial tilt)
+  if (EPHEMERIS.applyObliquity) {
+    return rotX(ecliptic, CONST.ECLIPTIC_OBLIQUITY);
+  }
+  return ecliptic;
+}
+
+/**
+ * Get Sun position in 3D (ECI frame, km).
+ * Earth in circular orbit around Sun; we represent the Sun's apparent
+ * geocentric position.
+ *
+ * The sunPhase parameter sets the Sun's position at t=0.
+ */
+function sunPosition(t, sunPhase) {
+  if (sunPhase === undefined) sunPhase = EPHEMERIS.sunLaunchPhase;
+  // Sun apparent motion in the ecliptic
+  const meanLongitude = sunPhase + 2 * Math.PI * t / CONST.EARTH_YEAR;
+  const x_ecliptic = CONST.AU * Math.cos(meanLongitude);
+  const y_ecliptic = CONST.AU * Math.sin(meanLongitude);
+  const z_ecliptic = 0;
+
+  // Convert from ecliptic to equatorial frame (gated by EPHEMERIS.applyObliquity
+  // so the test harness can put the Sun in the equatorial plane for 2D-vs-3D
+  // sanity checks).
+  if (EPHEMERIS.applyObliquity) {
+    return rotX([x_ecliptic, y_ecliptic, z_ecliptic], CONST.ECLIPTIC_OBLIQUITY);
+  }
+  return [x_ecliptic, y_ecliptic, z_ecliptic];
+}
+
+// =============================================================================
+// GRAVITY MODEL
+// =============================================================================
+
+/**
+ * Compute 3D gravitational acceleration on a spacecraft at position pos,
+ * at mission time t.
+ *
+ * Includes Earth gravity (point mass), Moon gravity (point mass), and
+ * Sun tidal perturbation (Earth-centered non-inertial frame correction).
+ *
+ * Returns acceleration vector [ax, ay, az] in km/s^2.
+ */
+function gravityAccel(pos, t) {
+  // Earth gravity
+  const rE = V.mag(pos);
+  const rE3 = rE * rE * rE;
+  let a = V.scale(pos, -CONST.MU_EARTH / rE3);
+
+  // Moon gravity
+  const moon = moonPosition(t);
+  const dM = V.sub(pos, moon);
+  const rM = V.mag(dM);
+  const rM3 = rM * rM * rM;
+  a = V.add(a, V.scale(dM, -CONST.MU_MOON / rM3));
+
+  // Sun tidal perturbation
+  // The Sun's direct pull on the spacecraft is mostly canceled by the
+  // Earth's free-fall toward the Sun (we're in a rotating Earth-centered
+  // frame). The residual tidal acceleration is the difference.
+  const sun = sunPosition(t);
+  const dS = V.sub(pos, sun);
+  const rS = V.mag(dS);
+  const rS3 = rS * rS * rS;
+  const rSE = V.mag(sun);
+  const rSE3 = rSE * rSE * rSE;
+  // Tidal: -mu_sun * (dS/rS^3 + sun/rSE^3)
+  // First term: Sun's pull on spacecraft
+  // Second term: Sun's pull on Earth (subtracted to get relative accel)
+  const tidal = V.add(
+    V.scale(dS,  -CONST.MU_SUN / rS3),
+    V.scale(sun, -CONST.MU_SUN / rSE3)
+  );
+  a = V.add(a, tidal);
+
+  return a;
+}
+
+// =============================================================================
+// RK4 INTEGRATOR — 6D state vector
+// =============================================================================
+
+/**
+ * State: { pos: [x,y,z], vel: [vx,vy,vz] }
+ *
+ * Advance the state by one timestep using the classic RK4 method.
+ */
+function rk4Step(state, t, dt) {
+  // k1
+  const k1_pos = state.vel;
+  const k1_vel = gravityAccel(state.pos, t);
+
+  // k2 (midpoint estimate)
+  const pos2 = V.add(state.pos, V.scale(k1_pos, 0.5*dt));
+  const vel2 = V.add(state.vel, V.scale(k1_vel, 0.5*dt));
+  const k2_pos = vel2;
+  const k2_vel = gravityAccel(pos2, t + 0.5*dt);
+
+  // k3 (midpoint refined)
+  const pos3 = V.add(state.pos, V.scale(k2_pos, 0.5*dt));
+  const vel3 = V.add(state.vel, V.scale(k2_vel, 0.5*dt));
+  const k3_pos = vel3;
+  const k3_vel = gravityAccel(pos3, t + 0.5*dt);
+
+  // k4 (endpoint)
+  const pos4 = V.add(state.pos, V.scale(k3_pos, dt));
+  const vel4 = V.add(state.vel, V.scale(k3_vel, dt));
+  const k4_pos = vel4;
+  const k4_vel = gravityAccel(pos4, t + dt);
+
+  // Weighted sum
+  const dPos = V.scale(
+    V.add(V.add(k1_pos, V.scale(k2_pos, 2)),
+          V.add(V.scale(k3_pos, 2), k4_pos)),
+    dt / 6
+  );
+  const dVel = V.scale(
+    V.add(V.add(k1_vel, V.scale(k2_vel, 2)),
+          V.add(V.scale(k3_vel, 2), k4_vel)),
+    dt / 6
+  );
+
+  return {
+    pos: V.add(state.pos, dPos),
+    vel: V.add(state.vel, dVel)
+  };
+}
+
+// =============================================================================
+// BURNS — 3D delta-v application
+// =============================================================================
+
+/**
+ * Apply an impulsive burn to a state vector.
+ *
+ * burn = {
+ *   met: number,            // mission elapsed time (seconds)
+ *   dv_magnitude: number,   // m/s (will be converted to km/s internally)
+ *   frame: 'RTN' | 'ECI',   // reference frame
+ *   components: [r, t, n]   // direction unit vector in the chosen frame
+ * }
+ *
+ * RTN frame:
+ *   R = Radial    (unit vector from Earth center to spacecraft, outward)
+ *   T = Tangential (in orbital plane, perpendicular to R, in direction of motion)
+ *   N = Normal    (perpendicular to orbital plane, R × T direction)
+ *
+ * Returns a new state with updated velocity.
+ */
+function applyBurn(state, burn) {
+  const dv_kms = burn.dv_magnitude / 1000; // m/s → km/s
+
+  let dv_eci;
+  if (burn.frame === 'ECI') {
+    // Direct ECI components
+    dv_eci = V.scale(burn.components, dv_kms);
+  } else {
+    // RTN frame: convert to ECI
+    const R = V.norm(state.pos);
+    const h = V.cross(state.pos, state.vel);  // angular momentum direction
+    const N = V.norm(h);
+    const T = V.cross(N, R);                  // R × N would be wrong direction; N × R gives prograde
+
+    const [cR, cT, cN] = burn.components;
+    dv_eci = [
+      cR * R[0] + cT * T[0] + cN * N[0],
+      cR * R[1] + cT * T[1] + cN * N[1],
+      cR * R[2] + cT * T[2] + cN * N[2],
+    ];
+    dv_eci = V.scale(dv_eci, dv_kms);
+  }
+
+  return {
+    pos: state.pos,
+    vel: V.add(state.vel, dv_eci),
+  };
+}
+
+// =============================================================================
+// TRAJECTORY INTEGRATION
+// =============================================================================
+
+/**
+ * Integrate a trajectory from initial state to t_end, applying burns at
+ * scheduled times.
+ *
+ * Stops early if the spacecraft re-enters Earth's atmosphere (altitude
+ * below `reentryAlt` km, default 50 km) AFTER moving beyond the initial
+ * altitude (so the start condition doesn't trigger an immediate stop).
+ *
+ * Returns an array of {t, pos, vel} samples.
+ */
+function integrate(initialState, burns, t_end, dt = 10, opts = {}) {
+  const reentryAlt = opts.reentryAlt ?? 50; // km
+  const reentryR = CONST.R_EARTH + reentryAlt;
+  const minDepartTime = opts.minDepartTime ?? 3600; // don't trigger reentry until ≥1h after launch
+
+  const trajectory = [];
+  let state = { pos: [...initialState.pos], vel: [...initialState.vel] };
+  let t = 0;
+
+  // Sort burns by MET
+  const sortedBurns = [...burns].sort((a, b) => a.met - b.met);
+  let burnIdx = 0;
+
+  trajectory.push({ t, pos: [...state.pos], vel: [...state.vel] });
+
+  let hasDeparted = false;
+
+  while (t < t_end) {
+    // Apply any burns due at or before the current time
+    while (burnIdx < sortedBurns.length && sortedBurns[burnIdx].met <= t) {
+      state = applyBurn(state, sortedBurns[burnIdx]);
+      burnIdx++;
+    }
+
+    // Advance one RK4 step
+    state = rk4Step(state, t, dt);
+    t += dt;
+
+    trajectory.push({ t, pos: [...state.pos], vel: [...state.vel] });
+
+    // Re-entry detection: spacecraft must have departed first, then return
+    const r = V.mag(state.pos);
+    if (!hasDeparted && t > minDepartTime && r > CONST.R_EARTH + 5000) {
+      hasDeparted = true;
+    }
+    if (hasDeparted && r < reentryR) {
+      // Trajectory ends here — atmospheric re-entry
+      break;
+    }
+  }
+
+  return trajectory;
+}
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
+function setEphemeris(opts) {
+  if (opts.moonLaunchPhase !== undefined) EPHEMERIS.moonLaunchPhase = opts.moonLaunchPhase;
+  if (opts.sunLaunchPhase  !== undefined) EPHEMERIS.sunLaunchPhase  = opts.sunLaunchPhase;
+  if (opts.moonInclination !== undefined) EPHEMERIS.moonInclination = opts.moonInclination;
+  if (opts.applyObliquity  !== undefined) EPHEMERIS.applyObliquity  = opts.applyObliquity;
+}
+
+function getEphemeris() {
+  return { ...EPHEMERIS };
+}
+
+window.MissionPhysics = {
+  CONST,
+  V,
+  EPHEMERIS,
+  setEphemeris,
+  getEphemeris,
+  moonPosition,
+  sunPosition,
+  gravityAccel,
+  rk4Step,
+  applyBurn,
+  integrate,
+};
+
+})();
+</script>
+<script>
+(function(){
+/**
+ * Mission Tracker — 3D Rendering Engine
+ *
+ * Projects 3D world coordinates onto a 2D Canvas2D viewport. Handles:
+ *   - Camera with 3D orientation (azimuth, elevation, roll, distance)
+ *   - Orthographic projection (perspective is a future option)
+ *   - Viewport-aware auto-fit and auto-centering
+ *   - Earth rendered as a procedural sphere with day/night shading,
+ *     rotation, axial tilt, and lat/lon grid
+ *   - Moon as a smaller sphere with phase shading
+ *   - Trajectory line with depth-correct ordering
+ *
+ * No external dependencies. No WebGL. Single Canvas2D context.
+ *
+ * Status: Phase 2 — initial implementation
+ */
+
+'use strict';
+
+// =============================================================================
+// CONSTANTS (mirrors physics3d.js — kept here for browser-side independence)
+// =============================================================================
+
+const RENDER_CONST = {
+  R_EARTH: 6371,
+  R_MOON:  1737,
+  R_SUN:   695700,
+  AU:      149597870.7,
+  LUNAR_DIST: 384400,
+
+  // Earth rotation
+  SIDEREAL_DAY: 86164.0905,  // seconds (one full rotation in inertial frame)
+
+  // Axial tilt (already applied to ephemeris in physics3d.js)
+  ECLIPTIC_OBLIQUITY: 23.44 * Math.PI / 180,
+};
+
+// =============================================================================
+// 3D VECTOR UTILITIES (subset; full set in physics3d.js)
+// =============================================================================
+
+const V = {
+  add:   (a, b) => [a[0]+b[0], a[1]+b[1], a[2]+b[2]],
+  sub:   (a, b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]],
+  scale: (a, s) => [a[0]*s, a[1]*s, a[2]*s],
+  dot:   (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2],
+  cross: (a, b) => [
+    a[1]*b[2] - a[2]*b[1],
+    a[2]*b[0] - a[0]*b[2],
+    a[0]*b[1] - a[1]*b[0]
+  ],
+  mag:   (a) => Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]),
+  norm:  (a) => {
+    const m = V.mag(a);
+    return m > 0 ? [a[0]/m, a[1]/m, a[2]/m] : [0,0,0];
+  },
+};
+
+// =============================================================================
+// CAMERA — 3D orientation, orthographic projection
+// =============================================================================
+
+/**
+ * A camera defined by spherical coordinates around the origin.
+ *
+ *   azimuth   — rotation around Z axis (radians, 0 = looking from +X)
+ *   elevation — angle above the X-Y plane (radians, 0 = equatorial, π/2 = polar)
+ *   roll      — rotation around the view axis (radians, 0 = "up" is +Z)
+ *   distance  — viewer distance from origin (km, used for scale and perspective)
+ *
+ * Default view: looking down on the equatorial plane from above (elevation=π/2).
+ * This matches the conventional "top-down" view of orbital diagrams while still
+ * being a real 3D projection that can be rotated to any angle.
+ */
+function makeCamera(opts = {}) {
+  return {
+    azimuth:   opts.azimuth   ?? 0,
+    elevation: opts.elevation ?? (Math.PI / 2 - 0.0001), // nearly polar by default
+    roll:      opts.roll      ?? 0,
+    distance:  opts.distance  ?? 800000, // km
+    fov:       opts.fov       ?? 'ortho', // 'ortho' or perspective scale
+  };
+}
+
+/**
+ * Compute the camera basis vectors (right, up, forward) for the current
+ * orientation. Forward points from the camera toward the origin.
+ */
+function cameraBasis(cam) {
+  const ce = Math.cos(cam.elevation);
+  const se = Math.sin(cam.elevation);
+  const ca = Math.cos(cam.azimuth);
+  const sa = Math.sin(cam.azimuth);
+
+  // Camera position in world coordinates
+  const cam_pos = [
+    cam.distance * ce * ca,
+    cam.distance * ce * sa,
+    cam.distance * se,
+  ];
+
+  // Forward: from camera toward origin (negative of cam_pos direction)
+  const forward = V.norm(V.scale(cam_pos, -1));
+
+  // World up is +Z. Compute right = forward × world_up, then up = right × forward.
+  let right = V.cross(forward, [0, 0, 1]);
+  if (V.mag(right) < 1e-6) {
+    // Looking straight up or down — use world +Y as a fallback
+    right = V.cross(forward, [0, 1, 0]);
+  }
+  right = V.norm(right);
+  const up = V.norm(V.cross(right, forward));
+
+  // Apply roll (rotation around forward axis)
+  if (cam.roll !== 0) {
+    const cr = Math.cos(cam.roll);
+    const sr = Math.sin(cam.roll);
+    const r2 = [
+      right[0]*cr + up[0]*sr,
+      right[1]*cr + up[1]*sr,
+      right[2]*cr + up[2]*sr,
+    ];
+    const u2 = [
+      -right[0]*sr + up[0]*cr,
+      -right[1]*sr + up[1]*cr,
+      -right[2]*sr + up[2]*cr,
+    ];
+    return { cam_pos, forward, right: r2, up: u2 };
+  }
+
+  return { cam_pos, forward, right, up };
+}
+
+/**
+ * Project a 3D world-space point to 2D screen-space coordinates.
+ *
+ * Returns { x, y, depth } where (x, y) are screen coordinates (origin at
+ * canvas center) and depth is the distance from the camera (for sorting).
+ */
+function project(point, cam, basis, scale) {
+  const rel = point; // origin is the world origin (Earth center)
+  // Project onto camera right and up axes
+  const x = V.dot(rel, basis.right) * scale;
+  const y = -V.dot(rel, basis.up) * scale; // negate Y because canvas Y is down
+  // Depth: distance along forward axis (negative because forward points inward)
+  const depth = -V.dot(V.sub(rel, basis.cam_pos), basis.forward);
+  return { x, y, depth };
+}
+
+/**
+ * Compute a uniform scale factor (pixels per km) such that the trajectory
+ * fits comfortably within the canvas with margin.
+ */
+function autoFitScale(canvasW, canvasH, trajectoryExtent, marginFrac = 0.85) {
+  const minDim = Math.min(canvasW, canvasH);
+  return (minDim * marginFrac) / (2 * trajectoryExtent);
+}
+
+// =============================================================================
+// EARTH RENDERING — procedural sphere with rotation, lat/lon, day/night
+// =============================================================================
+
+/**
+ * Render the Earth as a sphere centered at world origin, with:
+ *   - Day/night shading from the current Sun direction
+ *   - Lat/lon grid that rotates with the Earth (sidereal rotation rate)
+ *   - Simplified continent outlines (optional, see continent_outlines below)
+ *   - Axial tilt applied via the inertial frame (no extra work here — the
+ *     ECI frame already accounts for Earth's tilt)
+ *
+ * t_seconds: mission elapsed time (used to compute Earth rotation angle)
+ * sun_pos: Sun position in 3D world coordinates (from physics3d.sunPosition)
+ */
+function renderEarth(ctx, cam, basis, scale, t_seconds, sun_pos, opts = {}) {
+  const R = RENDER_CONST.R_EARTH;
+  // Earth at world origin. project([0,0,0]) returns (0,0) in screen-relative
+  // coordinates. Add the canvas center to get the actual draw position, matching
+  // the convention in renderTrajectory, renderMoon, and renderSpacecraft.
+  const proj = project([0,0,0], cam, basis, scale);
+  const cw = ctx.canvas.width;
+  const ch = ctx.canvas.height;
+  const center_screen = { x: cw / 2 + proj.x, y: ch / 2 + proj.y };
+
+  // Earth radius in screen pixels (orthographic, so it's just R*scale)
+  const r_px = R * scale;
+
+  if (r_px < 2) {
+    // Too small to render as a sphere — draw a single dot
+    ctx.fillStyle = '#4a8eff';
+    ctx.beginPath();
+    ctx.arc(center_screen.x, center_screen.y, Math.max(1, r_px), 0, Math.PI*2);
+    ctx.fill();
+    return;
+  }
+
+  // Sun direction (for day/night terminator)
+  const sun_dir = V.norm(sun_pos);
+
+  // Earth's rotation angle around its own axis (sidereal)
+  // The +X direction at t=0 corresponds to a specific Earth-fixed longitude.
+  // For a generic framework, we don't need to be precise about which longitude
+  // is at +X at launch — just that the rotation rate is correct.
+  const earth_rot_angle = (t_seconds / RENDER_CONST.SIDEREAL_DAY) * 2 * Math.PI;
+
+  // Draw filled Earth disk as a solid ocean-blue circle FIRST (no clip needed)
+  ctx.fillStyle = '#0a2540';
+  ctx.beginPath();
+  ctx.arc(center_screen.x, center_screen.y, r_px, 0, Math.PI*2);
+  ctx.fill();
+
+  // Save context for clipping the subsequent drawing to stay inside the Earth disk
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(center_screen.x, center_screen.y, r_px, 0, Math.PI*2);
+  ctx.clip();
+
+  // Render lat/lon grid
+  // Walk through latitudes (parallels) and longitudes (meridians) and project
+  // each point on the sphere to screen space.
+  ctx.strokeStyle = 'rgba(140, 180, 255, 0.25)';
+  ctx.lineWidth = 0.5;
+
+  // Latitudes (every 15°)
+  for (let lat_deg = -75; lat_deg <= 75; lat_deg += 15) {
+    const lat = lat_deg * Math.PI / 180;
+    ctx.beginPath();
+    let started = false;
+    for (let lon_deg = 0; lon_deg <= 360; lon_deg += 5) {
+      const lon = lon_deg * Math.PI / 180 + earth_rot_angle;
+      // Earth-fixed → ECI: rotate around Z by Earth rotation angle
+      const x = R * Math.cos(lat) * Math.cos(lon);
+      const y = R * Math.cos(lat) * Math.sin(lon);
+      const z = R * Math.sin(lat);
+      // Apply axial tilt? The ECI frame already has Earth's axis along +Z,
+      // so we don't apply tilt here. The tilt is reflected in where the Sun
+      // position vector points in the ECI frame.
+      const p = [x, y, z];
+      // Cull points on the far side of the sphere
+      const view_dot = V.dot(V.norm(p), basis.forward);
+      if (view_dot > 0) { started = false; continue; }
+      const screen = project(p, cam, basis, scale);
+      if (!started) {
+        ctx.moveTo(center_screen.x + screen.x, center_screen.y + screen.y);
+        started = true;
+      } else {
+        ctx.lineTo(center_screen.x + screen.x, center_screen.y + screen.y);
+      }
+    }
+    ctx.stroke();
+  }
+
+  // Longitudes (every 15°)
+  for (let lon_deg = 0; lon_deg < 360; lon_deg += 15) {
+    const lon = lon_deg * Math.PI / 180 + earth_rot_angle;
+    ctx.beginPath();
+    let started = false;
+    for (let lat_deg = -90; lat_deg <= 90; lat_deg += 5) {
+      const lat = lat_deg * Math.PI / 180;
+      const x = R * Math.cos(lat) * Math.cos(lon);
+      const y = R * Math.cos(lat) * Math.sin(lon);
+      const z = R * Math.sin(lat);
+      const p = [x, y, z];
+      const view_dot = V.dot(V.norm(p), basis.forward);
+      if (view_dot > 0) { started = false; continue; }
+      const screen = project(p, cam, basis, scale);
+      if (!started) {
+        ctx.moveTo(center_screen.x + screen.x, center_screen.y + screen.y);
+        started = true;
+      } else {
+        ctx.lineTo(center_screen.x + screen.x, center_screen.y + screen.y);
+      }
+    }
+    ctx.stroke();
+  }
+
+  // Equator emphasis
+  ctx.strokeStyle = 'rgba(180, 220, 255, 0.45)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  let started = false;
+  for (let lon_deg = 0; lon_deg <= 360; lon_deg += 3) {
+    const lon = lon_deg * Math.PI / 180 + earth_rot_angle;
+    const p = [R * Math.cos(lon), R * Math.sin(lon), 0];
+    const view_dot = V.dot(V.norm(p), basis.forward);
+    if (view_dot > 0) { started = false; continue; }
+    const screen = project(p, cam, basis, scale);
+    if (!started) {
+      ctx.moveTo(center_screen.x + screen.x, center_screen.y + screen.y);
+      started = true;
+    } else {
+      ctx.lineTo(center_screen.x + screen.x, center_screen.y + screen.y);
+    }
+  }
+  ctx.stroke();
+
+  // Day/night terminator: shade the night side with a strong linear gradient
+  // along the anti-Sun direction. The gradient darkens the night side heavily
+  // while leaving the day side bright.
+  const sun_screen_x = V.dot(sun_dir, basis.right);
+  const sun_screen_y = -V.dot(sun_dir, basis.up);
+
+  const grad_mag = Math.sqrt(sun_screen_x*sun_screen_x + sun_screen_y*sun_screen_y);
+  if (grad_mag > 0.01) {
+    // Unit vector toward the Sun in screen coordinates
+    const ux = sun_screen_x / grad_mag;
+    const uy = sun_screen_y / grad_mag;
+    // Gradient line goes from ANTI-SUN (night side) to SUN (day side) across the Earth disk
+    const grad = ctx.createLinearGradient(
+      center_screen.x - ux*r_px, center_screen.y - uy*r_px, // anti-sun (night)
+      center_screen.x + ux*r_px, center_screen.y + uy*r_px  // sun (day)
+    );
+    grad.addColorStop(0.0, 'rgba(0,0,0,0.92)'); // deep night
+    grad.addColorStop(0.35, 'rgba(0,0,0,0.72)'); // dusk
+    grad.addColorStop(0.5, 'rgba(0,0,0,0.35)'); // terminator edge
+    grad.addColorStop(0.65, 'rgba(0,0,0,0.0)');  // just past dawn
+    grad.addColorStop(1.0, 'rgba(0,0,0,0.0)');   // full daylight
+    ctx.fillStyle = grad;
+    ctx.fillRect(center_screen.x - r_px, center_screen.y - r_px, r_px*2, r_px*2);
+  }
+
+  ctx.restore();
+
+  // Earth limb (outline of the disk)
+  ctx.strokeStyle = 'rgba(120, 160, 220, 0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(center_screen.x, center_screen.y, r_px, 0, Math.PI*2);
+  ctx.stroke();
+
+  // Atmosphere glow (subtle)
+  if (r_px > 8) {
+    const glow = ctx.createRadialGradient(
+      center_screen.x, center_screen.y, r_px,
+      center_screen.x, center_screen.y, r_px * 1.15
+    );
+    glow.addColorStop(0, 'rgba(120, 180, 255, 0.25)');
+    glow.addColorStop(1, 'rgba(120, 180, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(center_screen.x, center_screen.y, r_px * 1.15, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// =============================================================================
+// MOON RENDERING
+// =============================================================================
+
+function renderMoon(ctx, cam, basis, scale, moon_pos, sun_pos) {
+  const R = RENDER_CONST.R_MOON;
+  const screen = project(moon_pos, cam, basis, scale);
+  const center_x = ctx.canvas.width / 2 + screen.x;
+  const center_y = ctx.canvas.height / 2 + screen.y;
+  const r_px = Math.max(2, R * scale);
+
+  // Moon surface
+  ctx.fillStyle = '#bbb';
+  ctx.beginPath();
+  ctx.arc(center_x, center_y, r_px, 0, Math.PI*2);
+  ctx.fill();
+
+  // Phase shading
+  if (r_px > 4) {
+    const moon_to_sun = V.norm(V.sub(sun_pos, moon_pos));
+    const sun_screen_x = V.dot(moon_to_sun, basis.right);
+    const sun_screen_y = -V.dot(moon_to_sun, basis.up);
+    const grad_mag = Math.sqrt(sun_screen_x*sun_screen_x + sun_screen_y*sun_screen_y);
+    if (grad_mag > 0.01) {
+      const ux = sun_screen_x / grad_mag;
+      const uy = sun_screen_y / grad_mag;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(center_x, center_y, r_px, 0, Math.PI*2);
+      ctx.clip();
+      const grad = ctx.createLinearGradient(
+        center_x - ux*r_px, center_y - uy*r_px,
+        center_x + ux*r_px, center_y + uy*r_px
+      );
+      grad.addColorStop(0, 'rgba(0,0,0,0.7)');
+      grad.addColorStop(0.5, 'rgba(0,0,0,0.0)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(center_x - r_px, center_y - r_px, r_px*2, r_px*2);
+      ctx.restore();
+    }
+  }
+
+  // Limb
+  ctx.strokeStyle = 'rgba(180, 180, 180, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(center_x, center_y, r_px, 0, Math.PI*2);
+  ctx.stroke();
+}
+
+// =============================================================================
+// TRAJECTORY RENDERING
+// =============================================================================
+
+function renderTrajectory(ctx, cam, basis, scale, trajectory, opts = {}) {
+  const cw = ctx.canvas.width;
+  const ch = ctx.canvas.height;
+  const cx = cw / 2;
+  const cy = ch / 2;
+
+  const color = opts.color || '#e07050';
+  const width = opts.width || 1.5;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  for (let i = 0; i < trajectory.length; i++) {
+    const screen = project(trajectory[i].pos, cam, basis, scale);
+    const px = cx + screen.x;
+    const py = cy + screen.y;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+
+// =============================================================================
+// SPACECRAFT MARKER
+// =============================================================================
+
+function renderSpacecraft(ctx, cam, basis, scale, pos) {
+  const cw = ctx.canvas.width;
+  const ch = ctx.canvas.height;
+  const screen = project(pos, cam, basis, scale);
+  const px = cw / 2 + screen.x;
+  const py = ch / 2 + screen.y;
+
+  // Bright dot with glow
+  const grad = ctx.createRadialGradient(px, py, 0, px, py, 6);
+  grad.addColorStop(0, 'rgba(255, 220, 120, 1)');
+  grad.addColorStop(0.5, 'rgba(255, 180, 80, 0.6)');
+  grad.addColorStop(1, 'rgba(255, 180, 80, 0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(px, py, 6, 0, Math.PI*2);
+  ctx.fill();
+
+  // Center
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(px, py, 1.5, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// =============================================================================
+// MAIN RENDER LOOP — assemble the full scene
+// =============================================================================
+
+/**
+ * Render a complete scene to the canvas.
+ *
+ * scene = {
+ *   t_seconds: number,
+ *   trajectory: [{t, pos, vel}, ...],
+ *   spacecraft_pos: [x,y,z],
+ *   moon_pos: [x,y,z],
+ *   sun_pos: [x,y,z],
+ *   camera: { azimuth, elevation, roll, distance },
+ * }
+ */
+function renderScene(ctx, scene) {
+  const cw = ctx.canvas.width;
+  const ch = ctx.canvas.height;
+
+  // Background
+  ctx.fillStyle = '#000510';
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Compute trajectory extent for auto-fit
+  let max_extent = RENDER_CONST.LUNAR_DIST * 1.2;
+  if (scene.trajectory && scene.trajectory.length > 0) {
+    for (const pt of scene.trajectory) {
+      const r = V.mag(pt.pos);
+      if (r > max_extent) max_extent = r;
+    }
+  }
+
+  // Camera distance acts as zoom: smaller distance → bigger scale (zoom in)
+  // Reference distance is 800,000 km (the default). Scale factor inverts the
+  // relationship so closer = larger.
+  const REFERENCE_DISTANCE = 800000;
+  const cam = scene.camera;
+  const zoomFactor = REFERENCE_DISTANCE / cam.distance;
+  const scale = autoFitScale(cw, ch, max_extent) * zoomFactor;
+
+  const basis = cameraBasis(cam);
+
+  // Render order (back to front):
+  //   1. Distant stars (skipped for now)
+  //   2. Earth (always at world origin)
+  //   3. Trajectory
+  //   4. Moon
+  //   5. Spacecraft
+
+  renderEarth(ctx, cam, basis, scale, scene.t_seconds, scene.sun_pos);
+
+  if (scene.trajectory) {
+    renderTrajectory(ctx, cam, basis, scale, scene.trajectory);
+  }
+
+  if (scene.moon_pos) {
+    renderMoon(ctx, cam, basis, scale, scene.moon_pos, scene.sun_pos);
+  }
+
+  if (scene.spacecraft_pos) {
+    renderSpacecraft(ctx, cam, basis, scale, scene.spacecraft_pos);
+  }
+}
+
+// =============================================================================
+// EXPORTS (for both Node.js test environment and browser)
+// =============================================================================
+
+window.MissionRender = { RENDER_CONST, V, makeCamera, cameraBasis, project, autoFitScale, renderEarth, renderMoon, renderTrajectory, renderSpacecraft, renderScene };
+
+})();
+</script>
+<script>
+// =============================================================================
+// MAIN
+// =============================================================================
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let camera = MissionRender.makeCamera({
+  azimuth: 0,
+  elevation: Math.PI/2 - 0.0001,
+  distance: 800000,
+});
+
+// Camera presets for quick zoom (distance in km)
+const CAMERA_PRESETS = {
+  earth: 30000,   // close-up of Earth — sphere ~120 px
+  leo:   60000,   // Earth + LEO orbits
+  heo:   250000,  // HEO orbit visible
+  moon:  800000,  // full Earth-Moon view (default)
+  far:   1500000, // wide view, full trajectory
+};
+
+let simTime = 0;          // mission elapsed time (seconds)
+let simSpeed = 600;       // 1 real second = 600 sim seconds (10 min/s)
+let playing = false;
+let lastFrame = 0;
+
+let trajectory = null;
+
+// Resize canvas to match display
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Build the Artemis II trajectory using the calibrated 2D simulator's
+// initial conditions and burn sequence, lifted into 3D physics.
+//
+// This is the result of Phase 3 Step 1 (2D vs 3D sanity check): we verified
+// that the 3D engine produces identical output to the 2D engine when given
+// the same inputs in a coplanar setup. So we use the same calibrated start
+// angle, the same dynamic burn detection, and the same synthetic TCM as the
+// deployed Artemis II simulator. The result will match the deployed simulator
+// exactly — but rendered through the new 3D pipeline with mouse controls and
+// proper sphere visuals.
+function buildTestTrajectory() {
+  const MU_E = MissionPhysics.CONST.MU_EARTH;
+  const RE = MissionPhysics.CONST.R_EARTH;
+  const RM = MissionPhysics.CONST.R_MOON;
+  const LUNAR_DIST = MissionPhysics.CONST.LUNAR_DIST;
+  const LUNAR_PERIOD = MissionPhysics.CONST.LUNAR_PERIOD;
+  const V = MissionRender.V;
+
+  const LEO_ALT = 185;
+  const T_HEO_BURN = 5400;       // 90 min
+  const T_MISSION_END = 864000;  // 10 days
+  const TRAJ_DT = 10;
+
+  // Coplanar setup (matches the 2D simulator's planar physics)
+  MissionPhysics.setEphemeris({
+    moonInclination: 0,
+    applyObliquity: false,
+    moonLaunchPhase: 0.4,   // matches 2D getMoonAngle(t) = t*ω + 0.4
+    sunLaunchPhase: 3.54,
+  });
+
+  // Calibrated start angle: anchor the spacecraft's initial position to the
+  // Moon's position at NASA's confirmed perilune time (April 6, 23:02 UTC =
+  // T+5d 0h 27m = 432,420 s). The 3.145 rad offset was tuned in the 2D
+  // simulator to make the natural trajectory hit the Moon at the right time.
+  const tFlyby = 432420;
+  const moonAtFlyby = MissionPhysics.moonPosition(tFlyby);
+  const moonAngle = Math.atan2(moonAtFlyby[1], moonAtFlyby[0]);
+  const startAngle = moonAngle + 3.145;
+
+  console.log(`Moon angle at NASA flyby (T+5d 0h 27m): ${moonAngle.toFixed(3)} rad`);
+  console.log(`Start angle: ${startAngle.toFixed(3)} rad`);
+
+  // Initial state: circular LEO at 185 km, with the spacecraft positioned at
+  // startAngle and moving prograde (perpendicular to the radial direction)
+  const r0 = RE + LEO_ALT;
+  const vOrb = Math.sqrt(MU_E / r0);
+
+  let state = {
+    pos: [r0 * Math.cos(startAngle), r0 * Math.sin(startAngle), 0],
+    vel: [-vOrb * Math.sin(startAngle), vOrb * Math.cos(startAngle), 0],
+  };
+
+  const traj = [];
+  // Sample interval: every 60 seconds for visualization
+  let t = 0;
+  let heoBurnDone = false, tliDone = false, passedApogee = false, tcmDone = false;
+  let minMoonDist = Infinity;
+  let periluneTime = -1;
+  let splashdownTime = -1;
+
+  const totalSteps = Math.ceil(T_MISSION_END / TRAJ_DT);
+  let sampleEvery = 6; // sample every 60 seconds (6 * 10s steps)
+
+  for (let i = 0; i < totalSteps; i++) {
+    state = MissionPhysics.rk4Step(state, t, TRAJ_DT);
+    t += TRAJ_DT;
+
+    const rE = V.mag(state.pos);
+    const speed = V.mag(state.vel);
+
+    // HEO burn at t=5400s: prograde, raise apogee to 76,757 km
+    if (!heoBurnDone && t >= T_HEO_BURN) {
+      const rPeri = rE, rApo = RE + 76757;
+      const a = (rPeri + rApo) / 2;
+      const vTarget = Math.sqrt(MU_E * (2/rPeri - 1/a));
+      const dv = vTarget - speed;
+      if (dv > 0) {
+        // Prograde = along velocity direction
+        state.vel = V.add(state.vel, V.scale(state.vel, dv / speed));
+      }
+      heoBurnDone = true;
+      console.log(`HEO burn at t=${(t/3600).toFixed(2)}h, dv=${dv.toFixed(3)} km/s`);
+    }
+
+    // TLI: detect perigee return after HEO apogee
+    if (heoBurnDone && !tliDone) {
+      if (rE > RE + 40000) passedApogee = true;
+      if (passedApogee && rE < RE + 500) {
+        const tliDv = 0.335;
+        state.vel = V.add(state.vel, V.scale(state.vel, tliDv / speed));
+        tliDone = true;
+        console.log(`TLI burn at t=${(t/3600).toFixed(2)}h, dv=${tliDv} km/s`);
+      }
+    }
+
+    // Track perilune
+    if (tliDone) {
+      const moon = MissionPhysics.moonPosition(t);
+      const dm = V.mag(V.sub(state.pos, moon));
+      if (dm < minMoonDist) { minMoonDist = dm; periluneTime = t; }
+    }
+
+    // Synthetic TCM 1h after perilune
+    if (!tcmDone && periluneTime > 0 && t >= periluneTime + 3600) {
+      const tcmDv = 0.160;
+      const rr = V.mag(state.pos);
+      // Radial-in: subtract dv * (pos / |pos|)
+      state.vel = V.sub(state.vel, V.scale(state.pos, tcmDv / rr));
+      tcmDone = true;
+      console.log(`Synthetic TCM at t=${(t/3600).toFixed(2)}h, dv=${tcmDv} km/s radial-in`);
+    }
+
+    // Splashdown detection
+    if (tliDone && rE < RE + 50 && t > 82800 + 3*86400) {
+      traj.push({ t, pos: [...state.pos], vel: [...state.vel] });
+      splashdownTime = t;
+      break;
+    }
+
+    if (i % sampleEvery === 0) {
+      traj.push({ t, pos: [...state.pos], vel: [...state.vel] });
+    }
+  }
+
+  console.log(`Trajectory: ${traj.length} points over ${(t/86400).toFixed(2)} days`);
+  console.log(`Perilune altitude: ${(minMoonDist - RM).toFixed(0)} km at day ${(periluneTime/86400).toFixed(2)}`);
+  console.log(`Splashdown: ${splashdownTime > 0 ? 'day ' + (splashdownTime/86400).toFixed(2) : 'not reached'}`);
+
+  return traj;
+}
+
+trajectory = buildTestTrajectory();
+console.log('Trajectory built:', trajectory.length, 'points');
+
+// Get spacecraft state at a given simulation time
+function getStateAt(t) {
+  if (!trajectory || trajectory.length === 0) return null;
+  // Linear interpolation between trajectory points
+  if (t <= trajectory[0].t) return trajectory[0];
+  if (t >= trajectory[trajectory.length-1].t) return trajectory[trajectory.length-1];
+  let lo = 0, hi = trajectory.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (trajectory[mid].t <= t) lo = mid;
+    else hi = mid;
+  }
+  return trajectory[lo];
+}
+
+// Format helpers
+function formatTime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${days}d ${hours}h ${mins}m`;
+}
+
+function updateHUD(state, moonPos) {
+  document.getElementById('met').textContent = formatTime(simTime);
+  document.getElementById('sim-time').textContent = (simTime / 86400).toFixed(2);
+  if (state) {
+    const r_earth = MissionRender.V.mag(state.pos);
+    const r_moon = MissionRender.V.mag(MissionRender.V.sub(state.pos, moonPos));
+    document.getElementById('sc-pos').textContent =
+      `(${state.pos[0].toFixed(0)}, ${state.pos[1].toFixed(0)}, ${state.pos[2].toFixed(0)})`;
+    document.getElementById('earth-dist').textContent = r_earth.toFixed(0);
+    document.getElementById('moon-dist').textContent = r_moon.toFixed(0);
+  }
+}
+
+function frame(now) {
+  if (lastFrame > 0 && playing) {
+    const dt_real = (now - lastFrame) / 1000;
+    simTime += dt_real * simSpeed;
+    if (simTime > 10 * 86400) simTime = 0;
+  }
+  lastFrame = now;
+
+  const state = getStateAt(simTime);
+  const moonPos = MissionPhysics.moonPosition(simTime);
+  const sunPos = MissionPhysics.sunPosition(simTime);
+
+  // Camera is updated by mouse/touch/slider events directly — not every frame
+
+  MissionRender.renderScene(ctx, {
+    t_seconds: simTime,
+    trajectory: trajectory,
+    spacecraft_pos: state ? state.pos : null,
+    moon_pos: moonPos,
+    sun_pos: sunPos,
+    camera: camera,
+  });
+
+  updateHUD(state, moonPos);
+
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('play').onclick = () => playing = true;
+document.getElementById('pause').onclick = () => playing = false;
+document.getElementById('reset').onclick = () => simTime = 0;
+document.getElementById('speed-up').onclick = () => simSpeed *= 2;
+document.getElementById('speed-down').onclick = () => simSpeed = Math.max(1, simSpeed / 2);
+
+// Camera preset buttons
+function applyCameraPreset(name) {
+  camera.distance = CAMERA_PRESETS[name];
+  document.getElementById('distance').value = camera.distance;
+}
+document.getElementById('view-earth').onclick = () => applyCameraPreset('earth');
+document.getElementById('view-leo').onclick   = () => applyCameraPreset('leo');
+document.getElementById('view-heo').onclick   = () => applyCameraPreset('heo');
+document.getElementById('view-moon').onclick  = () => applyCameraPreset('moon');
+document.getElementById('view-far').onclick   = () => applyCameraPreset('far');
+
+// Slider oninput → update camera directly (sliders are one source of truth, mouse is another)
+document.getElementById('azimuth').addEventListener('input', (e) => {
+  camera.azimuth = parseFloat(e.target.value) * Math.PI / 180;
+});
+document.getElementById('elevation').addEventListener('input', (e) => {
+  camera.elevation = parseFloat(e.target.value) * Math.PI / 180;
+});
+document.getElementById('distance').addEventListener('input', (e) => {
+  camera.distance = parseFloat(e.target.value);
+});
+
+// =============================================================================
+// MOUSE / TOUCH CAMERA CONTROLS
+// =============================================================================
+
+let isDragging = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+function syncSliders() {
+  document.getElementById('azimuth').value = (camera.azimuth * 180 / Math.PI) % 360;
+  document.getElementById('elevation').value = camera.elevation * 180 / Math.PI;
+  document.getElementById('distance').value = camera.distance;
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+  canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+  canvas.style.cursor = 'grab';
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouseX;
+  const dy = e.clientY - lastMouseY;
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+
+  // Drag horizontally → azimuth, drag vertically → elevation
+  camera.azimuth += dx * 0.01;
+  camera.elevation -= dy * 0.01;
+
+  // Clamp elevation to [-89°, +89°] to avoid gimbal lock
+  const maxEl = Math.PI / 2 - 0.01;
+  if (camera.elevation > maxEl) camera.elevation = maxEl;
+  if (camera.elevation < -maxEl) camera.elevation = -maxEl;
+
+  syncSliders();
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  // Zoom: positive deltaY = scroll down = zoom out
+  const factor = e.deltaY > 0 ? 1.1 : 1/1.1;
+  camera.distance *= factor;
+  // Clamp to reasonable range
+  if (camera.distance < 20000) camera.distance = 20000;
+  if (camera.distance > 5000000) camera.distance = 5000000;
+  syncSliders();
+}, { passive: false });
+
+// Touch support (single-finger drag = rotate, pinch = zoom)
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    lastMouseX = e.touches[0].clientX;
+    lastMouseY = e.touches[0].clientY;
+  } else if (e.touches.length === 2) {
+    isDragging = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    const dx = e.touches[0].clientX - lastMouseX;
+    const dy = e.touches[0].clientY - lastMouseY;
+    lastMouseX = e.touches[0].clientX;
+    lastMouseY = e.touches[0].clientY;
+    camera.azimuth += dx * 0.01;
+    camera.elevation -= dy * 0.01;
+    const maxEl = Math.PI / 2 - 0.01;
+    if (camera.elevation > maxEl) camera.elevation = maxEl;
+    if (camera.elevation < -maxEl) camera.elevation = -maxEl;
+    syncSliders();
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (lastTouchDist > 0) {
+      const factor = lastTouchDist / dist;
+      camera.distance *= factor;
+      if (camera.distance < 20000) camera.distance = 20000;
+      if (camera.distance > 5000000) camera.distance = 5000000;
+    }
+    lastTouchDist = dist;
+    syncSliders();
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  isDragging = false;
+  lastTouchDist = 0;
+});
+
+// Initial cursor
+canvas.style.cursor = 'grab';
+
+// Keyboard shortcuts: arrow keys = rotate, +/- = zoom, space = play/pause, R = reset
+window.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'ArrowLeft':  camera.azimuth -= 0.05; syncSliders(); break;
+    case 'ArrowRight': camera.azimuth += 0.05; syncSliders(); break;
+    case 'ArrowUp':    camera.elevation = Math.min(Math.PI/2 - 0.01, camera.elevation + 0.05); syncSliders(); break;
+    case 'ArrowDown':  camera.elevation = Math.max(-Math.PI/2 + 0.01, camera.elevation - 0.05); syncSliders(); break;
+    case '+':
+    case '=':          camera.distance *= 0.9; syncSliders(); break;
+    case '-':
+    case '_':          camera.distance *= 1.1; syncSliders(); break;
+    case ' ':          e.preventDefault(); playing = !playing; break;
+    case 'r':
+    case 'R':          simTime = 0; break;
+  }
+});
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

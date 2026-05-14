@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bond Graph Engine — RLC Validation (M1)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0b0b14; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; }
+    h1 { font-size: 18px; margin-bottom: 4px; color: #60a5fa; }
+    h2 { font-size: 14px; margin: 20px 0 8px; color: #a78bfa; }
+    .subtitle { font-size: 12px; color: #64748b; margin-bottom: 20px; }
+    pre { background: #111827; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace; overflow-x: auto; margin: 8px 0; line-height: 1.6; white-space: pre-wrap; }
+    .pass { color: #4ade80; }
+    .fail { color: #ef4444; }
+    .info { color: #94a3b8; }
+    canvas { background: #111827; border: 1px solid #1e293b; border-radius: 6px; margin: 8px 0; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Bond Graph Engine — M1 Validation</h1>
+  <div class="subtitle">RLC Series Circuit: Se(10V) → 1-junction → R(10Ω), C(100µF), I(100mH)</div>
+
+  <div id="output"></div>
+  <canvas id="chart" width="800" height="300"></canvas>
+
+  <script>
+// ═══════════════════════════════════════════════════════════════════
+// Bond Graph Solver (inlined for file:// compatibility)
+// ═══════════════════════════════════════════════════════════════════
+
+let _nextId = 1;
+function genId() { return _nextId++; }
+function resetIds() { _nextId = 1; }
+
+class Element {
+  constructor(type, value, label) {
+    this.id = genId();
+    this.type = type;
+    this.value = value;
+    this.label = label || `${type}:${this.id}`;
+    this.state = 0;
+  }
+  reset() { this.state = 0; }
+}
+
+class Junction {
+  constructor(type, label) {
+    this.id = genId();
+    this.type = type;
+    this.label = label || `J${type}:${this.id}`;
+  }
+}
+
+class Bond {
+  constructor(fromId, toId) {
+    this.id = genId();
+    this.from = fromId;
+    this.to = toId;
+    this.effort = NaN;
+    this.flow = NaN;
+  }
+  get power() { return this.effort * this.flow; }
+  clearValues() { this.effort = NaN; this.flow = NaN; }
+}
+
+class BondGraph {
+  constructor() {
+    this.nodes = new Map();
+    this.bonds = [];
+    this._bondsByNode = null;
+  }
+
+  addElement(type, value, label) {
+    const el = new Element(type, value, label);
+    this.nodes.set(el.id, el);
+    this._bondsByNode = null;
+    return el;
+  }
+
+  addJunction(type, label) {
+    const j = new Junction(type, label);
+    this.nodes.set(j.id, j);
+    this._bondsByNode = null;
+    return j;
+  }
+
+  connect(from, to) {
+    const b = new Bond(from.id, to.id);
+    this.bonds.push(b);
+    this._bondsByNode = null;
+    return b;
+  }
+
+  _buildIndex() {
+    if (this._bondsByNode) return;
+    this._bondsByNode = new Map();
+    for (const [id] of this.nodes) this._bondsByNode.set(id, []);
+    for (const b of this.bonds) {
+      this._bondsByNode.get(b.from).push({ bond: b, inward: false, otherNodeId: b.to });
+      this._bondsByNode.get(b.to).push({ bond: b, inward: true, otherNodeId: b.from });
+    }
+  }
+
+  bondsOf(nodeId) {
+    this._buildIndex();
+    return this._bondsByNode.get(nodeId) || [];
+  }
+
+  get storageElements() {
+    return [...this.nodes.values()].filter(n => n instanceof Element && (n.type === 'C' || n.type === 'I'));
+  }
+
+  get junctions() {
+    return [...this.nodes.values()].filter(n => n instanceof Junction);
+  }
+
+  getState() { return this.storageElements.map(el => el.state); }
+  setState(vec) { this.storageElements.forEach((el, i) => { el.state = vec[i]; }); }
+  resetState() { this.storageElements.forEach(el => { el.state = 0; }); }
+
+  propagate(sourceOverrides) {
+    for (const b of this.bonds) b.clearValues();
+
+    for (const [id, node] of this.nodes) {
+      if (!(node instanceof Element)) continue;
+      const conns = this.bondsOf(id);
+      if (conns.length === 0) continue;
+      const { bond } = conns[0];
+      const val = sourceOverrides?.[id] ?? node.value;
+
+      switch (node.type) {
+        case 'Se': bond.effort = val; break;
+        case 'Sf': bond.flow = val; break;
+        case 'C':  bond.effort = node.state / node.value; break;
+        case 'I':  bond.flow = node.state / node.value; break;
+      }
+    }
+
+    for (let iter = 0; iter < 20; iter++) {
+      let progress = false;
+      for (const jn of this.junctions) {
+        if (this._propagateJunction(jn)) progress = true;
+      }
+      for (const [id, node] of this.nodes) {
+        if (!(node instanceof Element) || node.type !== 'R') continue;
+        const { bond } = this.bondsOf(id)[0];
+        if (!isNaN(bond.effort) && isNaN(bond.flow)) { bond.flow = bond.effort / node.value; progress = true; }
+        else if (isNaN(bond.effort) && !isNaN(bond.flow)) { bond.effort = node.value * bond.flow; progress = true; }
+      }
+      if (!progress) break;
+    }
+    return this.bonds.every(b => !isNaN(b.effort) && !isNaN(b.flow));
+  }
+
+  _propagateJunction(jn) {
+    const conns = this.bondsOf(jn.id);
+    let progress = false;
+
+    if (jn.type === '1') {
+      let knownFlow = NaN;
+      for (const { bond } of conns) { if (!isNaN(bond.flow)) { knownFlow = bond.flow; break; } }
+      if (!isNaN(knownFlow)) {
+        for (const { bond } of conns) { if (isNaN(bond.flow)) { bond.flow = knownFlow; progress = true; } }
+      }
+      let unknownConn = null, unknownCount = 0, effortSum = 0;
+      for (const conn of conns) {
+        const sign = conn.inward ? 1 : -1;
+        if (isNaN(conn.bond.effort)) { unknownCount++; unknownConn = conn; }
+        else { effortSum += sign * conn.bond.effort; }
+      }
+      if (unknownCount === 1 && unknownConn) {
+        const sign = unknownConn.inward ? 1 : -1;
+        unknownConn.bond.effort = -effortSum / sign;
+        progress = true;
+      }
+    } else if (jn.type === '0') {
+      let knownEffort = NaN;
+      for (const { bond } of conns) { if (!isNaN(bond.effort)) { knownEffort = bond.effort; break; } }
+      if (!isNaN(knownEffort)) {
+        for (const { bond } of conns) { if (isNaN(bond.effort)) { bond.effort = knownEffort; progress = true; } }
+      }
+      let unknownConn = null, unknownCount = 0, flowSum = 0;
+      for (const conn of conns) {
+        const sign = conn.inward ? 1 : -1;
+        if (isNaN(conn.bond.flow)) { unknownCount++; unknownConn = conn; }
+        else { flowSum += sign * conn.bond.flow; }
+      }
+      if (unknownCount === 1 && unknownConn) {
+        const sign = unknownConn.inward ? 1 : -1;
+        unknownConn.bond.flow = -flowSum / sign;
+        progress = true;
+      }
+    }
+    return progress;
+  }
+
+  stateDerivatives() {
+    return this.storageElements.map(el => {
+      const { bond, inward } = this.bondsOf(el.id)[0];
+      if (el.type === 'C') return inward ? bond.flow : -bond.flow;
+      if (el.type === 'I') return inward ? bond.effort : -bond.effort;
+      return 0;
+    });
+  }
+
+  _rhs(stateVec, t, sourceOverrides) {
+    this.setState(stateVec);
+    this.propagate(sourceOverrides);
+    return this.stateDerivatives();
+  }
+
+  stepRK4(dt, t, sourceOverrides) {
+    const y = this.getState();
+    const k1 = this._rhs(y, t, sourceOverrides);
+    const y2 = y.map((v, i) => v + 0.5 * dt * k1[i]);
+    const k2 = this._rhs(y2, t + 0.5 * dt, sourceOverrides);
+    const y3 = y.map((v, i) => v + 0.5 * dt * k2[i]);
+    const k3 = this._rhs(y3, t + 0.5 * dt, sourceOverrides);
+    const y4 = y.map((v, i) => v + dt * k3[i]);
+    const k4 = this._rhs(y4, t + dt, sourceOverrides);
+    const yNext = y.map((v, i) => v + (dt / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+    this.setState(yNext);
+    return yNext;
+  }
+
+  solveTransient({ dt, duration, recordInterval = 1, sourceOverrides } = {}) {
+    const history = [];
+    const steps = Math.ceil(duration / dt);
+    let t = 0;
+    this.propagate(sourceOverrides);
+    history.push(this._snapshot(t));
+    for (let i = 0; i < steps; i++) {
+      this.stepRK4(dt, t, sourceOverrides);
+      t += dt;
+      if ((i + 1) % recordInterval === 0) {
+        this.propagate(sourceOverrides);
+        history.push(this._snapshot(t));
+      }
+    }
+    return history;
+  }
+
+  solveSteadyState(sourceOverrides) {
+    for (const b of this.bonds) b.clearValues();
+    for (const [id, node] of this.nodes) {
+      if (!(node instanceof Element)) continue;
+      const conns = this.bondsOf(id);
+      if (conns.length === 0) continue;
+      const { bond } = conns[0];
+      const val = sourceOverrides?.[id] ?? node.value;
+      switch (node.type) {
+        case 'Se': bond.effort = val; break;
+        case 'Sf': bond.flow = val; break;
+        case 'C': bond.flow = 0; break;
+        case 'I': bond.effort = 0; break;
+      }
+    }
+    for (let iter = 0; iter < 20; iter++) {
+      let progress = false;
+      for (const jn of this.junctions) { if (this._propagateJunction(jn)) progress = true; }
+      for (const [id, node] of this.nodes) {
+        if (!(node instanceof Element)) continue;
+        const { bond } = this.bondsOf(id)[0];
+        if (node.type === 'R') {
+          if (!isNaN(bond.effort) && isNaN(bond.flow)) { bond.flow = bond.effort / node.value; progress = true; }
+          else if (isNaN(bond.effort) && !isNaN(bond.flow)) { bond.effort = node.value * bond.flow; progress = true; }
+        }
+      }
+      if (!progress) break;
+    }
+    for (const el of this.storageElements) {
+      const { bond } = this.bondsOf(el.id)[0];
+      if (el.type === 'C') el.state = el.value * bond.effort;
+      else if (el.type === 'I') el.state = el.value * bond.flow;
+    }
+    return this._snapshot(Infinity);
+  }
+
+  _snapshot(t) {
+    return {
+      t,
+      state: this.getState(),
+      bonds: this.bonds.map(b => ({ id: b.id, from: b.from, to: b.to, effort: b.effort, flow: b.flow, power: b.power })),
+      elements: [...this.nodes.values()].filter(n => n instanceof Element).map(el => ({ id: el.id, type: el.type, label: el.label, value: el.value, state: el.state })),
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Test Harness
+// ═══════════════════════════════════════════════════════════════════
+
+const out = document.getElementById('output');
+function log(html) { out.innerHTML += html + '\n'; }
+function section(title) { log(`<h2>${title}</h2><pre>`); }
+function endSection() { log('</pre>'); }
+function pass(msg) { log(`<span class="pass">  ✓ ${msg}</span>`); }
+function fail(msg) { log(`<span class="fail">  ✗ ${msg}</span>`); }
+function info(msg) { log(`<span class="info">  ${msg}</span>`); }
+function check(label, actual, expected, tol = 0.01) {
+  const err = Math.abs(actual - expected);
+  const relErr = expected !== 0 ? err / Math.abs(expected) : err;
+  if (relErr < tol || err < 1e-10) {
+    pass(`${label}: ${actual.toFixed(6)} (expected ${expected.toFixed(6)}, err=${(relErr*100).toFixed(4)}%)`);
+  } else {
+    fail(`${label}: ${actual.toFixed(6)} (expected ${expected.toFixed(6)}, err=${(relErr*100).toFixed(2)}%)`);
+  }
+}
+
+// ─── Test Parameters ─────────────────────────────────────────
+const V_s = 10;
+const R_val = 10;
+const C_val = 100e-6;
+const L_val = 100e-3;
+
+const omega_n = 1 / Math.sqrt(L_val * C_val);
+const zeta = R_val / (2 * Math.sqrt(L_val / C_val));
+const omega_d = omega_n * Math.sqrt(1 - zeta * zeta);
+
+info(`ω_n = ${omega_n.toFixed(2)} rad/s, ζ = ${zeta.toFixed(4)}, ω_d = ${omega_d.toFixed(2)} rad/s`);
+info(`System is ${zeta < 1 ? 'UNDERDAMPED' : zeta === 1 ? 'CRITICALLY DAMPED' : 'OVERDAMPED'}`);
+
+// ─── Test 1: Build ───────────────────────────────────────────
+section('Test 1: Bond Graph Construction');
+
+resetIds();
+const bg = new BondGraph();
+const se = bg.addElement('Se', V_s, 'Vs');
+const r  = bg.addElement('R', R_val, 'R');
+const c  = bg.addElement('C', C_val, 'C');
+const l  = bg.addElement('I', L_val, 'L');
+const j1 = bg.addJunction('1', 'J1');
+
+bg.connect(se, j1);
+bg.connect(j1, r);
+bg.connect(j1, c);
+bg.connect(j1, l);
+
+info(`Nodes: ${bg.nodes.size} (1 Se, 1 R, 1 C, 1 I, 1 Junction)`);
+info(`Bonds: ${bg.bonds.length}`);
+info(`Storage elements: ${bg.storageElements.length} (${bg.storageElements.map(e => e.label).join(', ')})`);
+pass('Bond graph constructed');
+endSection();
+
+// ─── Test 2: DC Steady State ─────────────────────────────────
+section('Test 2: DC Steady State');
+
+const ss = bg.solveSteadyState();
+info('At DC steady state: C is open (f=0), I is short (e=0)');
+
+const bond_se = bg.bonds[0];
+const bond_r  = bg.bonds[1];
+const bond_c  = bg.bonds[2];
+const bond_l  = bg.bonds[3];
+
+check('V_source (effort)', bond_se.effort, V_s);
+check('V_R (effort)', bond_r.effort, 0);
+check('V_C (effort)', bond_c.effort, V_s);
+check('V_I (effort)', bond_l.effort, 0);
+check('I (flow, all bonds)', bond_se.flow, 0);
+check('q_C (charge)', c.state, C_val * V_s);
+check('p_I (flux linkage)', l.state, 0);
+endSection();
+
+// ─── Test 3: Transient Response ──────────────────────────────
+section('Test 3: Transient Response (step from zero)');
+
+bg.resetState();
+
+const dt = 0.00005;
+const duration = 0.05;
+const recordEvery = 4;
+
+const t0 = performance.now();
+const history = bg.solveTransient({ dt, duration, recordInterval: recordEvery });
+const elapsed = performance.now() - t0;
+
+info(`Simulated ${duration * 1000} ms with dt = ${dt * 1e6} µs, ${history.length} points in ${elapsed.toFixed(0)} ms`);
+
+function analyticalVC(t) {
+  if (t <= 0) return 0;
+  const exp = Math.exp(-zeta * omega_n * t);
+  return V_s * (1 - exp * (Math.cos(omega_d * t) + (zeta / Math.sqrt(1 - zeta * zeta)) * Math.sin(omega_d * t)));
+}
+
+function analyticalI(t) {
+  if (t <= 0) return 0;
+  return (V_s / (omega_d * L_val)) * Math.exp(-zeta * omega_n * t) * Math.sin(omega_d * t);
+}
+
+const checkTimes = [0.005, 0.010, 0.015, 0.020, 0.030, 0.040, 0.050];
+let maxVcErr = 0;
+
+for (const tc of checkTimes) {
+  const pt = history.reduce((best, h) => Math.abs(h.t - tc) < Math.abs(best.t - tc) ? h : best);
+  const vc_sim = pt.bonds[2].effort;
+  const vc_ana = analyticalVC(pt.t);
+  const vcErr = Math.abs(vc_sim - vc_ana) / Math.max(Math.abs(vc_ana), 1e-6);
+  maxVcErr = Math.max(maxVcErr, vcErr);
+  check(`V_C(${(pt.t*1000).toFixed(1)}ms)`, vc_sim, vc_ana, 0.02);
+}
+
+info('');
+info(`Max V_C relative error: ${(maxVcErr * 100).toFixed(4)}%`);
+if (maxVcErr < 0.02) pass('Transient V_C matches analytical within 2%');
+else fail(`Transient V_C error too high: ${(maxVcErr * 100).toFixed(2)}%`);
+
+const finalPt = history[history.length - 1];
+const finalQ = finalPt.elements.find(e => e.label === 'C').state;
+info(`Final V_C = ${(finalQ / C_val).toFixed(4)} V (should approach ${V_s} V)`);
+endSection();
+
+// ─── Test 4: Power Balance ───────────────────────────────────
+section('Test 4: Power Balance at 1-Junction');
+
+const midPt = history[Math.floor(history.length / 4)];
+const P_se = midPt.bonds[0].power;
+const P_r  = midPt.bonds[1].power;
+const P_c  = midPt.bonds[2].power;
+const P_l  = midPt.bonds[3].power;
+
+info(`t = ${(midPt.t * 1000).toFixed(1)} ms`);
+info(`P_source = ${P_se.toFixed(6)} W`);
+info(`P_R = ${P_r.toFixed(6)} W, P_C = ${P_c.toFixed(6)} W, P_I = ${P_l.toFixed(6)} W`);
+check('Power balance (P_in - P_out)', P_se - P_r - P_c - P_l, 0, 0.001);
+endSection();
+
+// ─── Chart ───────────────────────────────────────────────────
+section('Test 5: Visual Comparison');
+info('Chart: blue = V_C (sim), orange dashed = V_C (analytical), green = I (sim, scaled)');
+endSection();
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const pad = { top: 20, right: 20, bottom: 40, left: 60 };
+const plotW = W - pad.left - pad.right;
+const plotH = H - pad.top - pad.bottom;
+
+const tMax = duration;
+const vMin = -2, vMax = V_s * 1.4;
+function tx(t) { return pad.left + (t / tMax) * plotW; }
+function ty(v) { return pad.top + plotH - ((v - vMin) / (vMax - vMin)) * plotH; }
+
+// Grid
+ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 0.5;
+for (let v = 0; v <= vMax; v += 2) { ctx.beginPath(); ctx.moveTo(pad.left, ty(v)); ctx.lineTo(W - pad.right, ty(v)); ctx.stroke(); }
+for (let t = 0; t <= tMax; t += 0.005) { ctx.beginPath(); ctx.moveTo(tx(t), pad.top); ctx.lineTo(tx(t), H - pad.bottom); ctx.stroke(); }
+
+// Axes
+ctx.strokeStyle = '#4b5563'; ctx.lineWidth = 1;
+ctx.beginPath(); ctx.moveTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.stroke();
+
+// Labels
+ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+for (let t = 0; t <= tMax; t += 0.01) ctx.fillText(`${(t * 1000).toFixed(0)}ms`, tx(t), H - pad.bottom + 16);
+ctx.textAlign = 'right';
+for (let v = 0; v <= vMax; v += 2) ctx.fillText(`${v.toFixed(0)}V`, pad.left - 8, ty(v) + 4);
+
+// Analytical (orange dashed)
+ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+ctx.beginPath();
+for (let t = 0; t <= tMax; t += 0.0001) {
+  const v = analyticalVC(t);
+  if (t === 0) ctx.moveTo(tx(t), ty(v)); else ctx.lineTo(tx(t), ty(v));
+}
+ctx.stroke(); ctx.setLineDash([]);
+
+// Simulation V_C (blue)
+ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2;
+ctx.beginPath();
+history.forEach((pt, i) => {
+  const v = pt.bonds[2].effort;
+  if (i === 0) ctx.moveTo(tx(pt.t), ty(v)); else ctx.lineTo(tx(pt.t), ty(v));
+});
+ctx.stroke();
+
+// Simulation I (green, scaled)
+const iPeak = analyticalI(Math.PI / (2 * omega_d));
+const iScale = (vMax * 0.3) / iPeak;
+ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+ctx.beginPath();
+history.forEach((pt, i) => {
+  const iVal = pt.bonds[0].flow * iScale;
+  if (i === 0) ctx.moveTo(tx(pt.t), ty(iVal)); else ctx.lineTo(tx(pt.t), ty(iVal));
+});
+ctx.stroke(); ctx.globalAlpha = 1;
+
+// Legend
+ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+const lx = pad.left + 12, ly = pad.top + 16;
+ctx.fillStyle = '#60a5fa'; ctx.fillRect(lx, ly - 8, 20, 3); ctx.fillText(' V_C (sim)', lx + 24, ly - 3);
+ctx.fillStyle = '#f97316'; ctx.fillRect(lx, ly + 8, 20, 3); ctx.fillText(' V_C (analytical)', lx + 24, ly + 13);
+ctx.fillStyle = '#4ade80'; ctx.fillRect(lx, ly + 24, 20, 3); ctx.fillText(` I x${iScale.toFixed(0)} (sim)`, lx + 24, ly + 29);
+  </script>
+</body>
+</html>

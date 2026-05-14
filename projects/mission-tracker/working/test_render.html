@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Tracker — Phase 2 Render Test</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000510;
+    color: #d0d4da;
+    font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+  }
+  #canvas-wrap {
+    position: fixed;
+    inset: 0;
+    display: block;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #hud {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 5, 16, 0.7);
+    border: 1px solid rgba(120, 160, 220, 0.3);
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.6;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  #hud h2 {
+    font-size: 12px;
+    color: #e07050;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  #hud .label { color: rgba(208, 212, 218, 0.5); }
+  #hud .value { color: #d0d4da; }
+  #controls {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(0, 5, 16, 0.7);
+    border: 1px solid rgba(120, 160, 220, 0.3);
+    padding: 10px 14px;
+    font-size: 11px;
+    line-height: 1.8;
+    border-radius: 4px;
+  }
+  #controls label { display: block; }
+  #controls input[type=range] {
+    width: 200px;
+    vertical-align: middle;
+  }
+  #controls button {
+    background: rgba(224, 112, 80, 0.2);
+    border: 1px solid #e07050;
+    color: #e07050;
+    padding: 4px 10px;
+    margin: 2px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  #controls button:hover {
+    background: rgba(224, 112, 80, 0.4);
+  }
+</style>
+</head>
+<body>
+<div id="canvas-wrap">
+  <canvas id="canvas"></canvas>
+</div>
+
+<div id="hud">
+  <h2>MISSION TRACKER — PHASE 2</h2>
+  <div><span class="label">MET:</span> <span class="value" id="met">0</span></div>
+  <div><span class="label">Sim time:</span> <span class="value" id="sim-time">0</span> days</div>
+  <div><span class="label">Spacecraft:</span> <span class="value" id="sc-pos">—</span></div>
+  <div><span class="label">Earth dist:</span> <span class="value" id="earth-dist">—</span> km</div>
+  <div><span class="label">Moon dist:</span> <span class="value" id="moon-dist">—</span> km</div>
+</div>
+
+<div id="controls">
+  <button id="play">⏵ Play</button>
+  <button id="pause">⏸ Pause</button>
+  <button id="reset">⟲ Reset</button>
+  <button id="speed-up">⏩ Speed +</button>
+  <button id="speed-down">⏪ Speed −</button>
+  <br>
+  <label>Azimuth: <input type="range" id="azimuth" min="0" max="360" value="0"></label>
+  <label>Elevation: <input type="range" id="elevation" min="-89" max="89" value="89"></label>
+  <label>Distance: <input type="range" id="distance" min="100000" max="2000000" value="800000" step="50000"></label>
+</div>
+
+<script src="physics3d.js" type="module"></script>
+<script>
+// Load physics3d as a script (CommonJS-style export). Since browsers don't
+// directly support require(), we manually inline a simplified loader here.
+//
+// For this test harness, we'll load both modules via a small shim.
+</script>
+<script src="physics3d_browser.js"></script>
+<script src="render3d_browser.js"></script>
+<script>
+// =============================================================================
+// MAIN
+// =============================================================================
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let camera = MissionRender.makeCamera({
+  azimuth: 0,
+  elevation: Math.PI/2 - 0.0001,
+  distance: 800000,
+});
+
+let simTime = 0;          // mission elapsed time (seconds)
+let simSpeed = 600;       // 1 real second = 600 sim seconds (10 min/s)
+let playing = false;
+let lastFrame = 0;
+
+let trajectory = null;
+
+// Resize canvas to match display
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Build a simple test trajectory using the 3D physics engine
+function buildTestTrajectory() {
+  const r_perigee = MissionPhysics.CONST.R_EARTH + 185;
+  const r_apogee_heo = MissionPhysics.CONST.R_EARTH + 76757;
+  const a_heo = (r_perigee + r_apogee_heo) / 2;
+  const v_perigee_heo = Math.sqrt(MissionPhysics.CONST.MU_EARTH * (2/r_perigee - 1/a_heo));
+
+  const initialState = {
+    pos: [r_perigee, 0, 0],
+    vel: [0, v_perigee_heo, 0],
+  };
+
+  // TLI burn
+  const burns = [{
+    met: 0,
+    dv_magnitude: 388,
+    frame: 'RTN',
+    components: [0, 1, 0],
+  }];
+
+  // Integrate for 10 days
+  const t_end = 10 * 86400;
+  const dt = 60;
+  return MissionPhysics.integrate(initialState, burns, t_end, dt);
+}
+
+trajectory = buildTestTrajectory();
+console.log('Trajectory built:', trajectory.length, 'points');
+
+// Get spacecraft state at a given simulation time
+function getStateAt(t) {
+  if (!trajectory || trajectory.length === 0) return null;
+  // Linear interpolation between trajectory points
+  if (t <= trajectory[0].t) return trajectory[0];
+  if (t >= trajectory[trajectory.length-1].t) return trajectory[trajectory.length-1];
+  let lo = 0, hi = trajectory.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (trajectory[mid].t <= t) lo = mid;
+    else hi = mid;
+  }
+  return trajectory[lo];
+}
+
+// Format helpers
+function formatTime(seconds) {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${days}d ${hours}h ${mins}m`;
+}
+
+function updateHUD(state, moonPos) {
+  document.getElementById('met').textContent = formatTime(simTime);
+  document.getElementById('sim-time').textContent = (simTime / 86400).toFixed(2);
+  if (state) {
+    const r_earth = MissionRender.V.mag(state.pos);
+    const r_moon = MissionRender.V.mag(MissionRender.V.sub(state.pos, moonPos));
+    document.getElementById('sc-pos').textContent =
+      `(${state.pos[0].toFixed(0)}, ${state.pos[1].toFixed(0)}, ${state.pos[2].toFixed(0)})`;
+    document.getElementById('earth-dist').textContent = r_earth.toFixed(0);
+    document.getElementById('moon-dist').textContent = r_moon.toFixed(0);
+  }
+}
+
+function frame(now) {
+  if (lastFrame > 0 && playing) {
+    const dt_real = (now - lastFrame) / 1000;
+    simTime += dt_real * simSpeed;
+    if (simTime > 10 * 86400) simTime = 0;
+  }
+  lastFrame = now;
+
+  const state = getStateAt(simTime);
+  const moonPos = MissionPhysics.moonPosition(simTime);
+  const sunPos = MissionPhysics.sunPosition(simTime);
+
+  // Update camera from sliders
+  camera.azimuth = parseFloat(document.getElementById('azimuth').value) * Math.PI / 180;
+  camera.elevation = parseFloat(document.getElementById('elevation').value) * Math.PI / 180;
+  camera.distance = parseFloat(document.getElementById('distance').value);
+
+  MissionRender.renderScene(ctx, {
+    t_seconds: simTime,
+    trajectory: trajectory,
+    spacecraft_pos: state ? state.pos : null,
+    moon_pos: moonPos,
+    sun_pos: sunPos,
+    camera: camera,
+  });
+
+  updateHUD(state, moonPos);
+
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('play').onclick = () => playing = true;
+document.getElementById('pause').onclick = () => playing = false;
+document.getElementById('reset').onclick = () => simTime = 0;
+document.getElementById('speed-up').onclick = () => simSpeed *= 2;
+document.getElementById('speed-down').onclick = () => simSpeed = Math.max(1, simSpeed / 2);
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

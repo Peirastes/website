@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artemis II — High-Fidelity Mission Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═════════════════════════════════════════════════════════════════
+   Artemis II v2 — Acrylic HUD tier (Style Guide v2.2)
+   Layout: full-bleed trajectory canvas + floating glass HUD panels.
+   Panel primitive + mounted-screen + sweep/noise locked from the
+   Acrylic HUD prototype (2026-04-11).
+   ═════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-void:     #040608;
+  --bg-base:     #0a0e14;
+  --bg-deep:     #060a10;
+
+  --fg:          #d0d4da;
+  --fg-2:        #9a9890;
+  --fg-3:        #707880;
+
+  --amber:       #f0a030;
+  --amber-dim:   #a06820;
+  --amber-glow:  rgba(240,160,48,0.25);
+  --amber-edge:  rgba(240,160,48,0.45);
+  --cyan:        #40e8d0;
+  --cyan-dim:    #208878;
+  --cyan-glow:   rgba(64,232,208,0.20);
+  --green:       #40d870;
+  --red:         #e05040;
+
+  --chrom-amber: rgba(240,160,48,0.38);
+  --chrom-cyan:  rgba(64,232,208,0.30);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, #0e141c, var(--bg-base) 60%, var(--bg-void));
+  color: var(--fg);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Faint body-level scanline texture — unifies the backdrop */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(0deg,  transparent, transparent 2px, rgba(255,255,255,0.007) 2px, rgba(255,255,255,0.007) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.004) 2px, rgba(255,255,255,0.004) 4px);
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   FULL-BLEED TRAJECTORY CANVAS (the world)
+   ═════════════════════════════════════════════════════════════════ */
+#trajectory-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  display: block;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   SITE BACK LINK — fixed top-left, dim Cinzel
+   ═════════════════════════════════════════════════════════════════ */
+.site-back {
+  position: fixed;
+  top: 10px;
+  left: 14px;
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(224,224,224,0.3);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  transition: color 0.2s ease;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+.site-back:hover { color: #e07050; }
+
+/* ═════════════════════════════════════════════════════════════════
+   ACRYLIC HUD PANEL — the core primitive
+   Locked values: 10px radius, 1px amber border, 14px backdrop-blur,
+   1px chromatic split (amber right, cyan left).
+   ═════════════════════════════════════════════════════════════════ */
+.acrylic-panel {
+  position: fixed;
+  z-index: 10;
+  padding: 14px 16px 16px;
+  border-radius: 10px;
+  background: linear-gradient(180deg,
+    rgba(18,22,28,0.62) 0%,
+    rgba(12,16,22,0.58) 60%,
+    rgba(10,14,20,0.62) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber),
+    -1px 0 0 var(--chrom-cyan),
+    0 0 28px rgba(240,160,48,0.13),
+    0 18px 48px rgba(0,0,0,0.65),
+    0 4px 12px rgba(0,0,0,0.5),
+    inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+  pointer-events: auto;
+}
+
+/* Panel header strip — section label at top */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: -2px -2px 10px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid rgba(240,160,48,0.15);
+}
+.panel-header__label {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+  white-space: nowrap;
+}
+.panel-header__status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--fg-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   MOUNTED SCREEN — holographic projection area inside a panel
+   ═════════════════════════════════════════════════════════════════ */
+.mounted-screen {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(240,160,48,0.55);
+  box-shadow:
+    inset 0 3px 10px rgba(0,0,0,0.85),
+    inset 0 -1px 4px rgba(0,0,0,0.5),
+    0 0 10px rgba(240,160,48,0.18),
+    inset 0 0 24px rgba(240,160,48,0.05);
+  background: radial-gradient(ellipse at 50% 50%,
+    rgba(18,12,4,0.98) 0%,
+    rgba(10,7,3,1) 60%,
+    rgba(4,4,4,1) 100%);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Dense static scanlines (laser scan) */
+.mounted-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(240,160,48,0.04) 0px,
+    rgba(240,160,48,0.04) 1px,
+    rgba(0,0,0,0.92) 1px,
+    rgba(0,0,0,0.92) 2px);
+  opacity: 0.75;
+}
+
+/* Vignette */
+.mounted-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+  background: radial-gradient(ellipse at 50% 50%,
+    transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+
+/* Diffuse sweep — 72px blurred amber gradient, 12s cycle */
+.sweep-diffuse {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  height: 72px;
+  pointer-events: none;
+  z-index: 6;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(240,160,48,0.02) 15%,
+    rgba(255,200,110,0.09) 45%,
+    rgba(255,200,110,0.11) 55%,
+    rgba(240,160,48,0.02) 85%,
+    transparent 100%);
+  filter: blur(10px);
+  mix-blend-mode: screen;
+  animation: diffuseSweep 12s ease-in-out infinite;
+}
+@keyframes diffuseSweep {
+  0%   { top: -80px; }
+  100% { top: 105%; }
+}
+
+/* Phosphor interference — 9s drift, no flicker */
+.sweep-noise {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  z-index: 6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.95  0.7 0 0 0 0.65  0 0 0 0 0.2  0 0 0 0.8 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  mix-blend-mode: screen;
+  opacity: 0.08;
+  animation: noiseDrift 9s linear infinite;
+}
+@keyframes noiseDrift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 200px 200px; }
+}
+
+/* Content layer — lives above sweep/noise, below scanlines + vignette */
+.screen-content {
+  position: relative;
+  z-index: 7;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+}
+
+/* Canvas (for energy plot) fills its mounted-screen */
+.screen-content canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: block;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   MOUNTED CONTROLS — bezel-ringed components on the glass
+   ═════════════════════════════════════════════════════════════════ */
+.mounted-btn {
+  padding: 5px 12px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
+  border: 1px solid rgba(240,160,48,0.5);
+  border-radius: 4px;
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(240,160,48,0.15),
+    0 0 8px rgba(240,160,48,0.12),
+    0 2px 4px rgba(0,0,0,0.4);
+  text-shadow: 0 0 6px var(--amber-glow);
+  white-space: nowrap;
+}
+.mounted-btn:hover {
+  background: linear-gradient(180deg, rgba(240,160,48,0.12), rgba(160,104,32,0.1));
+  box-shadow:
+    inset 0 1px 0 rgba(240,160,48,0.22),
+    0 0 14px rgba(240,160,48,0.3),
+    0 2px 4px rgba(0,0,0,0.4);
+}
+.mounted-btn--accent {
+  background: linear-gradient(180deg, rgba(240,160,48,0.35), rgba(160,104,32,0.25));
+  border-color: var(--amber);
+  color: #fff;
+  text-shadow: 0 0 6px rgba(255,220,150,0.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255,220,150,0.25),
+    0 0 16px rgba(240,160,48,0.35),
+    0 2px 6px rgba(0,0,0,0.5);
+}
+.mounted-btn--active {
+  background: linear-gradient(180deg, rgba(240,160,48,0.12), rgba(160,104,32,0.1));
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,0.5),
+    0 0 10px rgba(240,160,48,0.3);
+  color: #fff;
+  text-shadow: 0 0 8px rgba(255,220,150,0.6);
+}
+
+.mounted-led {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 8px;
+  background: rgba(8,12,18,0.75);
+  border: 1px solid rgba(240,160,48,0.4);
+  border-radius: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  box-shadow:
+    inset 0 1px 0 rgba(240,160,48,0.1),
+    0 0 6px rgba(240,160,48,0.1);
+}
+.led-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow:
+    0 0 4px currentColor,
+    0 0 8px currentColor,
+    inset 0 -1px 1px rgba(0,0,0,0.3);
+  animation: ledPulse 2.5s ease-in-out infinite;
+}
+.led-dot.green { background: var(--green); color: var(--green); }
+.led-dot.cyan  { background: var(--cyan);  color: var(--cyan); }
+.led-dot.amber { background: var(--amber); color: var(--amber); }
+.led-dot.red   { background: var(--red);   color: var(--red); }
+@keyframes ledPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+/* ═════════════════════════════════════════════════════════════════
+   HUD PANEL POSITIONS
+   ═════════════════════════════════════════════════════════════════ */
+
+/* Header — top center, wide & thin */
+.hud-header {
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 480px;
+  padding: 12px 24px 14px;
+}
+.hud-header .panel-header { display: none; } /* header content IS the header */
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+.header-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 14px rgba(240,160,48,0.5),
+    0 1px 2px rgba(0,0,0,0.7);
+  line-height: 1;
+}
+.header-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--fg-3);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 18px;
+  border-left: 1px solid rgba(240,160,48,0.18);
+}
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--fg-3);
+}
+.version-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  padding: 3px 10px;
+  border-radius: 2px;
+  background: rgba(8,12,18,0.85);
+  border: 1px solid rgba(240,160,48,0.4);
+  color: var(--amber);
+  text-shadow: 0 0 6px var(--amber-glow);
+}
+
+/* Clocks panel — top-left (below header / back link) */
+.hud-clocks {
+  top: 110px;
+  left: 18px;
+  width: 260px;
+}
+.clocks-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  align-items: center;
+}
+.clocks-grid .k {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--fg-3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.clocks-grid .v {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  text-align: right;
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan-glow);
+}
+.clocks-grid .v--amber { color: var(--amber); text-shadow: 0 0 6px var(--amber-glow); }
+.clocks-grid .v--phase { color: var(--green); text-shadow: 0 0 5px rgba(64,216,112,0.3); font-size: 11px; }
+
+/* Telemetry panel — top-right */
+.hud-telemetry {
+  top: 110px;
+  right: 18px;
+  width: 280px;
+  max-height: calc(50vh - 100px);
+  display: flex;
+  flex-direction: column;
+}
+.hud-telemetry .mounted-screen {
+  flex: 1;
+  min-height: 200px;
+}
+#telemetry-content {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  align-content: start;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--amber);
+  text-shadow: 0 0 4px rgba(240,160,48,0.2);
+  overflow-y: auto;
+}
+.tele-label {
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 8px;
+  align-self: center;
+}
+.tele-value {
+  color: var(--amber);
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: right;
+}
+.tele-group {
+  grid-column: 1 / -1;
+  font-family: 'Orbitron', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim);
+  border-bottom: 1px solid rgba(255,136,34,0.12);
+  padding: 8px 0 3px;
+  margin-top: 4px;
+}
+.tele-group:first-child { margin-top: 0; padding-top: 0; }
+
+/* Mission log panel — bottom-left */
+.hud-log {
+  bottom: 100px;
+  left: 18px;
+  width: 320px;
+  max-height: 40vh;
+  display: flex;
+  flex-direction: column;
+}
+.hud-log .mounted-screen {
+  flex: 1;
+  min-height: 180px;
+}
+#log-content {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--status-positive, var(--green));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#log-content::-webkit-scrollbar       { width: 5px; }
+#log-content::-webkit-scrollbar-track { background: transparent; }
+#log-content::-webkit-scrollbar-thumb { background: rgba(80,200,120,0.25); border-radius: 3px; }
+.log-entry {
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(80,200,120,0.08);
+  opacity: 0.4;
+  transition: opacity 200ms, color 200ms;
+  color: #80c8a0;
+}
+.log-entry--current {
+  opacity: 1;
+  color: var(--green);
+  text-shadow: 0 0 5px rgba(51,255,102,0.3);
+  border-left: 2px solid var(--green);
+  margin-left: -12px;
+  padding-left: 10px;
+}
+.log-entry--past   { opacity: 0.55; }
+.log-entry--future { opacity: 0.28; }
+.log-entry__type {
+  display: inline-block;
+  font-size: 8px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-right: 4px;
+}
+.log-entry__time { font-weight: 600; letter-spacing: 0.05em; margin-right: 4px; }
+
+/* Energy plot panel — bottom-right */
+.hud-energy {
+  bottom: 100px;
+  right: 18px;
+  width: 320px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+.hud-energy .mounted-screen {
+  flex: 1;
+  min-height: 0;
+}
+.hud-energy .screen-content {
+  padding: 0;
+}
+
+/* Controls panel — bottom center */
+.hud-controls {
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(820px, calc(100vw - 36px));
+  padding: 10px 16px 12px;
+}
+.hud-controls .panel-header { display: none; }
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ctrl-btn {
+  padding: 6px 12px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
+  border: 1px solid rgba(240,160,48,0.45);
+  border-radius: 4px;
+  color: var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(240,160,48,0.12),
+    0 0 6px rgba(240,160,48,0.1),
+    0 2px 4px rgba(0,0,0,0.4);
+  text-shadow: 0 0 6px var(--amber-glow);
+  white-space: nowrap;
+  min-width: 38px;
+}
+.ctrl-btn:hover { color: #fff; box-shadow: inset 0 1px 0 rgba(240,160,48,0.22), 0 0 12px rgba(240,160,48,0.3), 0 2px 4px rgba(0,0,0,0.4); }
+.ctrl-btn--accent {
+  background: linear-gradient(180deg, rgba(240,160,48,0.32), rgba(160,104,32,0.22));
+  border-color: var(--amber);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,220,150,0.22), 0 0 14px rgba(240,160,48,0.3), 0 2px 6px rgba(0,0,0,0.5);
+}
+.ctrl-btn--active {
+  background: linear-gradient(180deg, rgba(240,160,48,0.18), rgba(160,104,32,0.12));
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.5), 0 0 10px rgba(240,160,48,0.28);
+  color: #fff;
+}
+
+.speed-group { display: flex; gap: 3px; }
+
+.scrubber {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.scrubber__track {
+  flex: 1;
+  position: relative;
+  height: 16px;
+  background: linear-gradient(180deg, #040608, #0a0e14 40%, #040608);
+  border: 1px solid rgba(240,160,48,0.35);
+  border-radius: 3px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+  cursor: pointer;
+  min-width: 120px;
+}
+.scrubber__fill {
+  position: absolute;
+  top: 1px; left: 1px; bottom: 1px;
+  width: 0;
+  background: linear-gradient(180deg,
+    rgba(240,160,48,0.28), rgba(240,160,48,0.12));
+  border-right: 1px solid var(--amber);
+  box-shadow: 0 0 8px rgba(240,160,48,0.5);
+  border-radius: 2px 0 0 2px;
+  pointer-events: none;
+}
+.scrubber__marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 6px rgba(240,160,48,0.8);
+  pointer-events: none;
+  transform: translateX(-1px);
+}
+.scrubber__event {
+  position: absolute;
+  top: 1px; bottom: 1px;
+  width: 2px;
+  background: rgba(200,208,224,0.38);
+  pointer-events: none;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   LOADING OVERLAY
+   ═════════════════════════════════════════════════════════════════ */
+.loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4,6,8,0.96);
+  z-index: 1000;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  text-shadow: 0 0 10px var(--amber-glow);
+}
+.loader.hidden { display: none; }
+.loader::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 12px var(--amber), 0 0 20px var(--amber);
+  margin-right: 14px;
+  animation: ledPulse 1s ease-in-out infinite;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═════════════════════════════════════════════════════════════════ */
+@media (max-width: 1279px) {
+  .hud-header { min-width: 0; max-width: calc(100vw - 140px); padding: 10px 16px 12px; }
+  .header-title { font-size: 15px; }
+  .hud-clocks, .hud-log { width: 280px; }
+  .hud-telemetry, .hud-energy { width: 260px; }
+}
+@media (max-width: 1023px) {
+  .hud-header { left: 18px; transform: none; max-width: calc(100vw - 36px); }
+  .hud-clocks { top: 88px; }
+  .hud-telemetry { top: 88px; }
+  .hud-log { bottom: 90px; max-height: 30vh; }
+  .hud-energy { bottom: 90px; height: 160px; width: 260px; }
+}
+@media (max-width: 767px) {
+  .hud-header { top: 8px; left: 8px; right: 8px; max-width: calc(100vw - 16px); padding: 8px 12px; }
+  .header-inner { gap: 10px; flex-wrap: wrap; justify-content: flex-start; }
+  .header-title { font-size: 13px; letter-spacing: 0.2em; }
+  .header-sub { display: none; }
+  .header-right { padding-left: 8px; gap: 6px; }
+
+  .hud-clocks { display: none; }
+  .hud-telemetry { display: none; }
+  .hud-log { left: 8px; bottom: 74px; width: calc(100vw - 16px); max-height: 28vh; }
+  .hud-energy { display: none; }
+  .hud-controls { left: 8px; right: 8px; width: auto; transform: none; bottom: 8px; padding: 8px 10px; }
+  .controls-row { gap: 5px; flex-wrap: wrap; }
+  .ctrl-btn { padding: 5px 8px; font-size: 9px; min-width: 0; }
+  .scrubber__track { min-width: 100px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loader" id="loader">LOADING MISSION DATA</div>
+
+<!-- Fixed site back link -->
+<a href="https://peirastes.com" class="site-back" title="Back to Peirastes">Peirastes</a>
+
+<!-- ═════════ FULL-BLEED TRAJECTORY CANVAS (the world) ═════════ -->
+<canvas id="trajectory-canvas"></canvas>
+
+<!-- ═════════ HUD PANELS (Acrylic HUD tier) ═════════ -->
+
+<!-- Header panel — top center -->
+<header class="acrylic-panel hud-header">
+  <div class="header-inner">
+    <div>
+      <div class="header-title">Artemis II</div>
+      <div class="header-sub">High-Fidelity Mission Tracker · 3D Framework</div>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator">
+        <span class="led-dot green"></span>
+        NASA Horizons
+      </div>
+      <div class="version-badge">V2</div>
+    </div>
+  </div>
+</header>
+
+<!-- Clocks panel — top-left -->
+<aside class="acrylic-panel hud-clocks">
+  <div class="panel-header">
+    <span class="panel-header__label">Mission Time</span>
+    <span class="panel-header__status">· Live</span>
+  </div>
+  <div class="clocks-grid">
+    <span class="k">MET</span><span class="v v--amber" id="readout-met">T+00d 00:00</span>
+    <span class="k">UTC</span><span class="v" id="clock-utc">—</span>
+    <span class="k">Phase</span><span class="v v--phase" id="readout-phase">—</span>
+    <span class="k">|r|</span><span class="v" id="readout-dist-earth">—</span>
+    <span class="k">dM</span><span class="v v--amber" id="readout-dist-moon">—</span>
+    <span class="k">|v|</span><span class="v" id="readout-vel">—</span>
+  </div>
+  <!-- Hidden duplicate for JS compat (not rendered) -->
+  <span id="clock-met" style="display:none"></span>
+</aside>
+
+<!-- Telemetry panel — top-right -->
+<aside class="acrylic-panel hud-telemetry">
+  <div class="panel-header">
+    <span class="panel-header__label">Telemetry · State Vectors</span>
+    <span class="panel-header__status">ECI · J2000</span>
+  </div>
+  <div class="mounted-screen">
+    <div class="sweep-noise"></div>
+    <div class="screen-content">
+      <div id="telemetry-content"><!-- populated by JS --></div>
+    </div>
+  </div>
+</aside>
+
+<!-- Mission log panel — bottom-left -->
+<aside class="acrylic-panel hud-log">
+  <div class="panel-header">
+    <span class="panel-header__label">Mission Log</span>
+    <span class="panel-header__status">auto-scroll</span>
+  </div>
+  <div class="mounted-screen">
+    <div class="sweep-noise"></div>
+    <div class="screen-content">
+      <div id="log-content"><!-- populated by JS --></div>
+    </div>
+  </div>
+</aside>
+
+<!-- Energy plot panel — bottom-right -->
+<aside class="acrylic-panel hud-energy">
+  <div class="panel-header">
+    <span class="panel-header__label">Specific Orbital Energy</span>
+    <span class="panel-header__status">E = ½v² − μ/r</span>
+  </div>
+  <div class="mounted-screen">
+    <div class="sweep-noise"></div>
+    <div class="screen-content">
+      <canvas id="energy-canvas"></canvas>
+    </div>
+  </div>
+</aside>
+
+<!-- Controls panel — bottom center -->
+<footer class="acrylic-panel hud-controls">
+  <div class="controls-row">
+    <button class="ctrl-btn" id="btn-rewind" title="Rewind to start">⏮</button>
+    <button class="ctrl-btn ctrl-btn--accent" id="btn-play" title="Play / Pause">▶ Play</button>
+    <button class="ctrl-btn" id="btn-skip" title="Skip to next event">⏭</button>
+
+    <div class="scrubber">
+      <div class="scrubber__track" id="scrubber-track">
+        <div class="scrubber__fill" id="scrubber-fill"></div>
+        <div class="scrubber__marker" id="scrubber-marker"></div>
+      </div>
+    </div>
+
+    <div class="speed-group">
+      <button class="ctrl-btn" data-speed="60">×1m</button>
+      <button class="ctrl-btn" data-speed="600">×10m</button>
+      <button class="ctrl-btn ctrl-btn--active" data-speed="3600">×1h</button>
+      <button class="ctrl-btn" data-speed="21600">×6h</button>
+      <button class="ctrl-btn" data-speed="86400">×1d</button>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════
+   Artemis II v2 — App JS
+   Loads artemis2_trajectory.json and drives all HUD panels.
+   ═════════════════════════════════════════════════════════════════ */
+'use strict';
+
+// Globals
+let TRAJ = null;           // parsed trajectory JSON
+let simTime = 0;            // current mission time in seconds
+let playing = false;
+let playSpeed = 3600;       // sim seconds per wall second
+let lastFrameMs = 0;
+
+const RE_KM = 6371;
+const MU_E  = 398600.4418;
+
+// ─── Load trajectory data ─────────────────────────────────────────
+// Prefers inline data (window.__TRAJ_INLINE__, set by build_standalone.js)
+// so the file works via file:// without a local server. Falls back to fetch.
+async function loadTrajectory() {
+  if (typeof window.__TRAJ_INLINE__ === 'object' && window.__TRAJ_INLINE__) {
+    TRAJ = window.__TRAJ_INLINE__;
+    console.log(`Loaded ${TRAJ.time.n_samples} samples (inline)`);
+    initializeApp();
+    return;
+  }
+  try {
+    const resp = await fetch('artemis2_trajectory.json');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    TRAJ = await resp.json();
+    console.log(`Loaded ${TRAJ.time.n_samples} samples (fetch)`);
+    initializeApp();
+  } catch (err) {
+    const loader = document.getElementById('loader');
+    loader.innerHTML =
+      '<div style="max-width:520px;line-height:1.5;letter-spacing:0.1em;text-align:center">' +
+      'COULD NOT LOAD TRAJECTORY DATA<br><br>' +
+      '<span style="font-size:10px;color:#8899aa;letter-spacing:0.14em">' +
+      err.message + '</span><br><br>' +
+      '<span style="font-size:10px;color:#7a8690;letter-spacing:0.12em;text-transform:none">' +
+      'This HTML file is served via file:// which blocks fetch(). ' +
+      'Use artemis2_v2_standalone.html instead (built with inline data), ' +
+      'or serve this directory via HTTP.' +
+      '</span></div>';
+    console.error(err);
+  }
+}
+
+function initializeApp() {
+  document.getElementById('loader').classList.add('hidden');
+
+  // Populate mission log
+  buildMissionLog();
+
+  // Place event markers on scrubber
+  buildScrubberEvents();
+
+  // Wire up controls
+  wireControls();
+
+  // Start at t=0
+  simTime = 0;
+  renderAll();
+
+  // Start render loop (even when paused, for smooth display)
+  requestAnimationFrame(frame);
+
+  // Responsive canvas
+  window.addEventListener('resize', () => {
+    resizeCanvases();
+    renderTrajectory();
+    renderEnergy();
+  });
+  resizeCanvases();
+  renderTrajectory();
+  renderEnergy();
+}
+
+// ─── Interpolation helpers ────────────────────────────────────────
+function sampleAt(t) {
+  const STEP = TRAJ.time.step_seconds;
+  const N = TRAJ.time.n_samples;
+  const max_t = (N - 1) * STEP;
+  t = Math.max(0, Math.min(t, max_t));
+  const fIdx = t / STEP;
+  const i0 = Math.min(Math.floor(fIdx), N - 2);
+  const i1 = i0 + 1;
+  const f = fIdx - i0;
+  const p0 = TRAJ.spacecraft.trajectory_pos_km[i0];
+  const p1 = TRAJ.spacecraft.trajectory_pos_km[i1];
+  const v0 = TRAJ.spacecraft.trajectory_vel_km_s[i0];
+  const v1 = TRAJ.spacecraft.trajectory_vel_km_s[i1];
+  const m0 = TRAJ.moon.trajectory_pos_km[i0];
+  const m1 = TRAJ.moon.trajectory_pos_km[i1];
+  return {
+    pos: [ p0[0]+f*(p1[0]-p0[0]), p0[1]+f*(p1[1]-p0[1]), p0[2]+f*(p1[2]-p0[2]) ],
+    vel: [ v0[0]+f*(v1[0]-v0[0]), v0[1]+f*(v1[1]-v0[1]), v0[2]+f*(v1[2]-v0[2]) ],
+    moonPos: [ m0[0]+f*(m1[0]-m0[0]), m0[1]+f*(m1[1]-m0[1]), m0[2]+f*(m1[2]-m0[2]) ],
+    idx: i0,
+  };
+}
+const mag = (v) => Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+const sub = (a,b) => [a[0]-b[0], a[1]-b[1], a[2]-b[2]];
+
+// ─── Mission phase ─────────────────────────────────────────────────
+function currentPhase(t) {
+  const events = TRAJ.events;
+  let phase = 'HEO Coast';
+  for (const e of events) {
+    if (e.epoch_offset_seconds > t) break;
+    if (e.type === 'burn' && e.name === 'TLI') phase = 'Outbound Cislunar';
+    else if (e.type === 'perilune') phase = 'Return Cislunar';
+    else if (e.type === 'burn' && e.name === 'RTC-3') phase = 'Pre-Entry';
+    else if (e.type === 'milestone' && e.name.indexOf('entry') >= 0) phase = 'Atmospheric Entry';
+    else if (e.type === 'splashdown' || e.type === 'splashdown_predicted') phase = 'Splashdown';
+  }
+  return phase;
+}
+
+// ─── Mission log ──────────────────────────────────────────────────
+function buildMissionLog() {
+  const container = document.getElementById('log-content');
+  container.innerHTML = '';
+  for (const e of TRAJ.events) {
+    if (e.annotation_only) continue;
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.dataset.offset = e.epoch_offset_seconds;
+    const h = (e.epoch_offset_seconds / 3600);
+    const hFmt = (h >= 0 ? '+' : '') + h.toFixed(1) + 'h';
+    const typeCode = e.type.substring(0,5).toUpperCase();
+    div.innerHTML =
+      `<span class="log-entry__type">${typeCode}</span>` +
+      `<span class="log-entry__time">T${hFmt}</span> ` +
+      `<span class="log-entry__name">${e.name}</span>`;
+    container.appendChild(div);
+  }
+}
+
+function updateMissionLog(t) {
+  const container = document.getElementById('log-content');
+  const entries = container.querySelectorAll('.log-entry');
+  let currentIdx = -1;
+  entries.forEach((el, i) => {
+    const offset = parseFloat(el.dataset.offset);
+    if (offset <= t) currentIdx = i;
+  });
+  entries.forEach((el, i) => {
+    el.classList.remove('log-entry--current', 'log-entry--past', 'log-entry--future');
+    if (i < currentIdx) el.classList.add('log-entry--past');
+    else if (i === currentIdx) el.classList.add('log-entry--current');
+    else el.classList.add('log-entry--future');
+  });
+  if (currentIdx >= 0 && entries[currentIdx]) {
+    entries[currentIdx].scrollIntoView({ block: 'center', behavior: 'auto' });
+  }
+}
+
+// ─── Telemetry ────────────────────────────────────────────────────
+function updateTelemetry(s) {
+  const c = document.getElementById('telemetry-content');
+  const r = mag(s.pos);
+  const v = mag(s.vel);
+  const moonDist = mag(sub(s.pos, s.moonPos));
+  const alt = r - RE_KM;
+  const altMoon = moonDist - 1737;
+  const E = 0.5*v*v - MU_E/r;
+  const a = E < 0 ? -MU_E/(2*E) : null;
+
+  const fmtKm = (x) => Math.abs(x) > 1000 ? (x/1000).toFixed(2) + ' Mm' : x.toFixed(1) + ' km';
+
+  c.innerHTML = `
+    <div class="tele-group">Position (Ecliptic J2000)</div>
+    <div class="tele-label">X</div><div class="tele-value">${s.pos[0].toFixed(1)} km</div>
+    <div class="tele-label">Y</div><div class="tele-value">${s.pos[1].toFixed(1)} km</div>
+    <div class="tele-label">Z</div><div class="tele-value">${s.pos[2].toFixed(1)} km</div>
+    <div class="tele-label">|r|</div><div class="tele-value">${fmtKm(r)}</div>
+    <div class="tele-label">alt</div><div class="tele-value">${fmtKm(alt)}</div>
+
+    <div class="tele-group">Velocity</div>
+    <div class="tele-label">vX</div><div class="tele-value">${s.vel[0].toFixed(4)} km/s</div>
+    <div class="tele-label">vY</div><div class="tele-value">${s.vel[1].toFixed(4)} km/s</div>
+    <div class="tele-label">vZ</div><div class="tele-value">${s.vel[2].toFixed(4)} km/s</div>
+    <div class="tele-label">|v|</div><div class="tele-value">${v.toFixed(4)} km/s</div>
+
+    <div class="tele-group">Orbital Elements</div>
+    <div class="tele-label">E</div><div class="tele-value">${E.toFixed(4)} km²/s²</div>
+    <div class="tele-label">a</div><div class="tele-value">${a ? fmtKm(a) : 'unbound'}</div>
+
+    <div class="tele-group">Lunar</div>
+    <div class="tele-label">dM</div><div class="tele-value">${fmtKm(moonDist)}</div>
+    <div class="tele-label">alt M</div><div class="tele-value">${fmtKm(altMoon)}</div>
+  `;
+}
+
+// ─── Readouts ─────────────────────────────────────────────────────
+function updateReadouts(t, s) {
+  const fmtT = (sec) => {
+    const sign = sec < 0 ? '-' : '+';
+    sec = Math.abs(sec);
+    const d = Math.floor(sec / 86400);
+    const h = Math.floor((sec % 86400) / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return `T${sign}${d}d ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  };
+  document.getElementById('readout-met').innerText = fmtT(t);
+
+  const r = mag(s.pos);
+  const moonDist = mag(sub(s.pos, s.moonPos));
+  const v = mag(s.vel);
+
+  document.getElementById('readout-dist-earth').innerText =
+    (r/1000).toFixed(1) + ' Mm';
+  document.getElementById('readout-dist-moon').innerText =
+    (moonDist/1000).toFixed(1) + ' Mm';
+  document.getElementById('readout-vel').innerText =
+    v.toFixed(3) + ' km/s';
+  document.getElementById('readout-phase').innerText = currentPhase(t);
+
+  const epochMs = new Date(TRAJ.time.epoch_start_utc).getTime();
+  const utc = new Date(epochMs + t * 1000).toISOString().replace('T',' ').replace(/\.\d+Z/,' UTC');
+  document.getElementById('clock-utc').innerText = utc;
+  document.getElementById('clock-met').innerText = fmtT(t);
+}
+
+// ─── Trajectory canvas ────────────────────────────────────────────
+const trajCanvas = document.getElementById('trajectory-canvas');
+const trajCtx = trajCanvas.getContext('2d');
+const energyCanvas = document.getElementById('energy-canvas');
+const energyCtx = energyCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const dpr = window.devicePixelRatio || 1;
+  [trajCanvas, energyCanvas].forEach(c => {
+    const r = c.getBoundingClientRect();
+    c.width = r.width * dpr;
+    c.height = r.height * dpr;
+    c.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+}
+
+let trajExtent = null;
+function computeExtent() {
+  let maxAbs = 0;
+  for (const p of TRAJ.spacecraft.trajectory_pos_km) {
+    if (Math.abs(p[0]) > maxAbs) maxAbs = Math.abs(p[0]);
+    if (Math.abs(p[1]) > maxAbs) maxAbs = Math.abs(p[1]);
+  }
+  for (const p of TRAJ.moon.trajectory_pos_km) {
+    if (Math.abs(p[0]) > maxAbs) maxAbs = Math.abs(p[0]);
+    if (Math.abs(p[1]) > maxAbs) maxAbs = Math.abs(p[1]);
+  }
+  trajExtent = maxAbs * 1.1;
+}
+
+function renderTrajectory() {
+  if (!TRAJ) return;
+  if (!trajExtent) computeExtent();
+
+  const w = trajCanvas.clientWidth;
+  const h = trajCanvas.clientHeight;
+  if (w <= 0 || h <= 0) return;
+
+  const ctx = trajCtx;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const scale = Math.min(w, h) / (2 * trajExtent);
+
+  const proj = (p) => [cx + p[0] * scale, cy - p[1] * scale];
+
+  drawGrid(ctx, cx, cy, w, h, scale);
+
+  const points = TRAJ.spacecraft.trajectory_pos_km;
+  ctx.strokeStyle = 'rgba(240, 160, 48, 0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    const [x, y] = proj(points[i]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  const s = sampleAt(simTime);
+  ctx.strokeStyle = 'rgba(240, 160, 48, 0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = '#f0a030';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  for (let i = 0; i <= s.idx; i++) {
+    const [x, y] = proj(points[i]);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  const [spx, spy] = proj(s.pos);
+  ctx.lineTo(spx, spy);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  drawEarth(ctx, cx, cy, Math.max(4, RE_KM * scale));
+
+  const [mx, my] = proj(s.moonPos);
+  drawMoon(ctx, mx, my, Math.max(3, 1737 * scale));
+
+  for (const ev of TRAJ.events) {
+    if (ev.annotation_only) continue;
+    if (ev.epoch_offset_seconds < 0 || ev.epoch_offset_seconds > (TRAJ.time.n_samples - 1) * TRAJ.time.step_seconds) continue;
+    const evS = sampleAt(ev.epoch_offset_seconds);
+    const [ex, ey] = proj(evS.pos);
+    const color = eventColor(ev.type);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(ex, ey, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '9px "Share Tech Mono", monospace';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ev.name, ex + 6, ey);
+  }
+
+  // Spacecraft
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#ffaa33';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(spx, spy, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Velocity vector
+  const vlen = mag(s.vel);
+  if (vlen > 0) {
+    const vx = spx + (s.vel[0] / vlen) * 20;
+    const vy = spy - (s.vel[1] / vlen) * 20;
+    ctx.strokeStyle = '#ffaa33';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(spx, spy);
+    ctx.lineTo(vx, vy);
+    ctx.stroke();
+  }
+}
+
+function drawGrid(ctx, cx, cy, w, h, scale) {
+  const tickKm = 100000;
+  const tickPx = tickKm * scale;
+  if (tickPx < 10) return;
+
+  ctx.strokeStyle = 'rgba(240, 160, 48, 0.04)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  for (let x = cx % tickPx; x < w; x += tickPx) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+  }
+  for (let y = cy % tickPx; y < h; y += tickPx) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+  }
+  ctx.stroke();
+}
+
+function drawEarth(ctx, x, y, r) {
+  const g = ctx.createRadialGradient(x - r*0.3, y - r*0.3, 0, x, y, r);
+  g.addColorStop(0, '#4a8ad4');
+  g.addColorStop(0.6, '#1e4a80');
+  g.addColorStop(1, '#0a1a30');
+  ctx.fillStyle = g;
+  ctx.shadowColor = 'rgba(100,160,240,0.5)';
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = 'rgba(150,200,255,0.5)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+function drawMoon(ctx, x, y, r) {
+  const g = ctx.createRadialGradient(x - r*0.3, y - r*0.3, 0, x, y, r);
+  g.addColorStop(0, '#d0d0cc');
+  g.addColorStop(0.6, '#858580');
+  g.addColorStop(1, '#404040');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(200,200,200,0.4)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+function eventColor(type) {
+  switch (type) {
+    case 'burn':       return '#ff8822';
+    case 'milestone':  return '#00ccdd';
+    case 'perilune':   return '#50c878';
+    case 'splashdown': case 'splashdown_predicted': return '#ff3344';
+    default:           return '#8899aa';
+  }
+}
+
+// ─── Energy plot ──────────────────────────────────────────────────
+let energyData = null;
+function computeEnergyData() {
+  const N = TRAJ.time.n_samples;
+  const STEP = TRAJ.time.step_seconds;
+  const arr = new Float64Array(N);
+  let minE = Infinity, maxE = -Infinity;
+  for (let i = 0; i < N; i++) {
+    const p = TRAJ.spacecraft.trajectory_pos_km[i];
+    const v = TRAJ.spacecraft.trajectory_vel_km_s[i];
+    const r = Math.sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2]);
+    const v2 = v[0]*v[0]+v[1]*v[1]+v[2]*v[2];
+    arr[i] = 0.5*v2 - MU_E/r;
+    if (arr[i] < minE) minE = arr[i];
+    if (arr[i] > maxE) maxE = arr[i];
+  }
+  energyData = { arr, minE, maxE, N, STEP };
+}
+
+function renderEnergy() {
+  if (!TRAJ) return;
+  if (!energyData) computeEnergyData();
+  const w = energyCanvas.clientWidth;
+  const h = energyCanvas.clientHeight;
+  if (w <= 0 || h <= 0) return;
+  const ctx = energyCtx;
+  ctx.clearRect(0, 0, w, h);
+
+  const padL = 6, padR = 6, padT = 4, padB = 16;
+  const pw = w - padL - padR;
+  const ph = h - padT - padB;
+  if (pw <= 0 || ph <= 0) return;
+
+  const { arr, minE, maxE, N, STEP } = energyData;
+  const range = maxE - minE || 1;
+
+  ctx.strokeStyle = 'rgba(240,160,48,0.18)';
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(padL, padT, pw, ph);
+
+  ctx.strokeStyle = 'rgba(240,160,48,0.85)';
+  ctx.lineWidth = 1.2;
+  ctx.shadowColor = '#f0a030';
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const x = padL + (i / (N - 1)) * pw;
+    const y = padT + ph - ((arr[i] - minE) / range) * ph;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const fIdx = simTime / STEP;
+  const idxClamped = Math.max(0, Math.min(fIdx, N - 1));
+  const mx = padL + (idxClamped / (N - 1)) * pw;
+  const curE = arr[Math.floor(idxClamped)];
+  const my = padT + ph - ((curE - minE) / range) * ph;
+
+  ctx.strokeStyle = 'rgba(64,232,208,0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(mx, padT);
+  ctx.lineTo(mx, padT + ph);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(64,232,208,1)';
+  ctx.shadowColor = '#40e8d0';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.font = '8px "Share Tech Mono", monospace';
+  ctx.fillStyle = 'rgba(240,160,48,0.6)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(maxE.toFixed(2), padL + 2, padT + 1);
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(minE.toFixed(2), padL + 2, padT + ph - 1);
+  ctx.fillText('E = ½v² − μ/r  [km²/s²]', padL, h - 3);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(64,232,208,0.9)';
+  ctx.fillText(curE.toFixed(3), padL + pw - 2, padT + ph - 1);
+}
+
+// ─── Scrubber events ──────────────────────────────────────────────
+function buildScrubberEvents() {
+  const track = document.getElementById('scrubber-track');
+  const maxT = (TRAJ.time.n_samples - 1) * TRAJ.time.step_seconds;
+  for (const e of TRAJ.events) {
+    if (e.annotation_only) continue;
+    const offset = e.epoch_offset_seconds;
+    if (offset < 0 || offset > maxT) continue;
+    const marker = document.createElement('div');
+    marker.className = 'scrubber__event';
+    marker.style.left = ((offset / maxT) * 100) + '%';
+    marker.title = e.name;
+    track.appendChild(marker);
+  }
+}
+
+function updateScrubber() {
+  const maxT = (TRAJ.time.n_samples - 1) * TRAJ.time.step_seconds;
+  const track = document.getElementById('scrubber-track');
+  const trackW = track.clientWidth;
+  document.getElementById('scrubber-fill').style.width =
+    ((simTime / maxT) * trackW - 2) + 'px';
+  document.getElementById('scrubber-marker').style.left =
+    ((simTime / maxT) * trackW) + 'px';
+}
+
+// ─── Render all ───────────────────────────────────────────────────
+function renderAll() {
+  const s = sampleAt(simTime);
+  updateReadouts(simTime, s);
+  updateTelemetry(s);
+  updateMissionLog(simTime);
+  renderTrajectory();
+  renderEnergy();
+  updateScrubber();
+}
+
+// ─── Controls ─────────────────────────────────────────────────────
+function wireControls() {
+  document.getElementById('btn-play').addEventListener('click', () => {
+    playing = !playing;
+    const btn = document.getElementById('btn-play');
+    btn.innerText = playing ? '⏸ Pause' : '▶ Play';
+  });
+  document.getElementById('btn-rewind').addEventListener('click', () => {
+    simTime = 0;
+    renderAll();
+  });
+  document.getElementById('btn-skip').addEventListener('click', () => {
+    for (const e of TRAJ.events) {
+      if (e.annotation_only) continue;
+      if (e.epoch_offset_seconds > simTime + 0.1) {
+        simTime = e.epoch_offset_seconds;
+        renderAll();
+        return;
+      }
+    }
+  });
+  document.querySelectorAll('[data-speed]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playSpeed = parseFloat(btn.dataset.speed);
+      document.querySelectorAll('[data-speed]').forEach(b =>
+        b.classList.remove('ctrl-btn--active'));
+      btn.classList.add('ctrl-btn--active');
+    });
+  });
+
+  const track = document.getElementById('scrubber-track');
+  let scrubbing = false;
+  const handleScrub = (ev) => {
+    const r = track.getBoundingClientRect();
+    const x = Math.max(0, Math.min(ev.clientX - r.left, r.width));
+    const maxT = (TRAJ.time.n_samples - 1) * TRAJ.time.step_seconds;
+    simTime = (x / r.width) * maxT;
+    renderAll();
+  };
+  track.addEventListener('mousedown', (e) => { scrubbing = true; handleScrub(e); });
+  window.addEventListener('mousemove', (e) => { if (scrubbing) handleScrub(e); });
+  window.addEventListener('mouseup', () => { scrubbing = false; });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      document.getElementById('btn-play').click();
+    }
+  });
+}
+
+// ─── Animation loop ───────────────────────────────────────────────
+function frame(nowMs) {
+  if (lastFrameMs > 0 && playing) {
+    const dt = (nowMs - lastFrameMs) / 1000;
+    simTime += dt * playSpeed;
+    const maxT = (TRAJ.time.n_samples - 1) * TRAJ.time.step_seconds;
+    if (simTime >= maxT) {
+      simTime = maxT;
+      playing = false;
+      document.getElementById('btn-play').innerText = '▶ Play';
+    }
+    renderAll();
+  }
+  lastFrameMs = nowMs;
+  requestAnimationFrame(frame);
+}
+
+// ─── Kickoff ──────────────────────────────────────────────────────
+loadTrajectory();
+
+</script>
+</body>
+</html>

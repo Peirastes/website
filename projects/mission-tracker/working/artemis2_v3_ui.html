@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artemis II — High-Fidelity Simulator v3 (Cinematic + Console synthesis)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   ARTEMIS II v2 — Acrylic HUD Component Library Application
+   Physics: 0.05 km RMS vs JPL Horizons
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-void: #040608;
+  --bg-base: #0a0e14;
+  --fg: #d0d4da;
+  --fg-2: #9a9890;
+  --fg-3: #707880;
+  --amber: #f0a030;
+  --amber-dim: #a06820;
+  --amber-glow: rgba(240,160,48,0.25);
+  --amber-edge: rgba(240,160,48,0.45);
+  --cyan: #40e8d0;
+  --blue: #378add;
+  --purple: #9a6dd7;
+  --red: #e05577;
+  --chrom-amber: rgba(240,160,48,0.38);
+  --chrom-cyan: rgba(64,232,208,0.30);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: radial-gradient(ellipse at 50% 40%, #0e141c, var(--bg-base) 60%, var(--bg-void));
+  color: var(--fg);
+  font-family: 'Share Tech Mono', monospace;
+  height: 100vh; overflow: hidden;
+}
+
+/* ── LAYOUT ── */
+.app {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+/* Top panels — header + playback in a flex column with consistent gap */
+.top-panels {
+  position: absolute; top: 8px; left: 12px; right: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+  z-index: 10; pointer-events: none;
+}
+.top-panels > * { pointer-events: auto; }
+
+/* Header bar — floating acrylic panel */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px 8px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.62) 0%, rgba(12,16,22,0.58) 60%, rgba(10,14,20,0.62) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber), -1px 0 0 var(--chrom-cyan),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+  z-index: 10;
+}
+.header__brand {
+  font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+  color: rgba(224,224,224,0.3); letter-spacing: 0.08em;
+  text-decoration: none;
+}
+.header__brand:hover { color: #e07050; }
+.header__logo {
+  font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 700;
+  color: var(--amber); letter-spacing: 2px;
+  display: flex; align-items: baseline; gap: 6px; justify-content: center;
+  text-shadow: 0 0 12px var(--amber-glow), 0 0 30px rgba(240,160,48,0.15);
+}
+.header__sub {
+  font-family: 'Courier New', monospace; font-size: 9px;
+  color: var(--fg-3); letter-spacing: 1.5px; text-transform: uppercase;
+}
+.header__crew {
+  font-family: 'Courier New', monospace; font-size: 9px;
+  color: var(--fg-3); letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* 3D callout labels */
+.label-3d {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.label-3d--earth { color: rgba(55,138,221,0.7); }
+.label-3d--moon { color: rgba(208,212,218,0.6); }
+.label-3d--orion {
+  color: var(--amber);
+  text-shadow: 0 0 6px var(--amber-glow), 0 1px 3px rgba(0,0,0,0.8);
+}
+.label-3d--event {
+  font-size: 8px; color: rgba(240,160,48,0.6);
+  background: rgba(10,14,20,0.6);
+  border: 1px solid rgba(240,160,48,0.15);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.label-3d--event.active {
+  color: var(--amber);
+  border-color: rgba(240,160,48,0.4);
+  background: rgba(10,14,20,0.8);
+}
+
+/* Info panel — floating acrylic overlay */
+.info-panel {
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px; max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px 24px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.92) 0%, rgba(12,16,22,0.90) 60%, rgba(10,14,20,0.92) 100%);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber), -1px 0 0 var(--chrom-cyan),
+    0 8px 24px rgba(0,0,0,0.5),
+    inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+  z-index: 20;
+}
+.info-panel.visible { display: block; }
+.info-panel__close {
+  position: absolute; top: 8px; right: 12px;
+  font-size: 16px; color: var(--fg-3); cursor: pointer;
+  background: none; border: none; font-family: inherit;
+}
+.info-panel__close:hover { color: var(--amber); }
+.info-panel__title {
+  font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--amber-glow);
+  margin-bottom: 14px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(240,160,48,0.15);
+}
+.info-panel__section {
+  margin-bottom: 12px;
+}
+.info-panel__section-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.12em; text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.info-panel__text {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px;
+  color: var(--fg-2); line-height: 1.6; letter-spacing: 0.02em;
+}
+.info-panel__text strong { color: var(--fg); font-weight: 600; }
+.info-panel__row {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 2px 0; font-size: 9px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.info-panel__row-key { color: var(--fg-3); }
+.info-panel__row-val { color: var(--fg); text-align: right; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — iPad + phone
+   ═══════════════════════════════════════════════════════════════ */
+
+/* iPad portrait / small laptops (≤1024px) */
+@media (max-width: 1024px) {
+  .floating-panels { width: 280px; padding: 0 8px; }
+  .tape-gauge__body { width: 100px; height: 100px; }
+  .tape-gauge__body svg { width: 100px; height: 100px; viewBox: '0 0 115 100'; }
+  .tape-gauge__head { font-size: 8px; }
+  .tape-cluster { gap: 4px; }
+  .header__logo { font-size: 15px; }
+  .header__sub, .header__crew { font-size: 8px; }
+  .event-log { max-height: 100px; }
+  .glass-graph { height: 80px !important; }
+  .inst-panel { padding: 8px 10px; }
+  .inst-panel__title { font-size: 7px; margin-bottom: 5px; padding-bottom: 4px; }
+}
+
+/* Tablet portrait / large phone landscape (≤768px) — panels at bottom, vertical scroll */
+@media (max-width: 768px) {
+  .top-panels { left: 8px; right: 8px; }
+  .header { padding: 6px 12px; }
+  .header__logo { font-size: 14px; gap: 4px; }
+  .header__sub { display: none; }
+  .header__crew { font-size: 7px; }
+  .playback { padding: 4px 10px; gap: 8px; }
+  .playback__left { width: 140px; }
+  .playback__met { font-size: 10px; }
+  .playback__event { font-size: 7px; }
+
+  .floating-panels {
+    top: auto !important; bottom: 0; left: 0; right: 0;
+    width: 100%; height: 50vh;
+    flex-direction: column;
+    padding: 8px; gap: 8px;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .inst-panel { flex-shrink: 0; }
+  .inst-panel--flex { flex: none; min-height: unset; }
+  .event-log { max-height: 120px; }
+  .glass-graph { height: 100px !important; }
+  .tape-cluster { grid-template-columns: 1fr 1fr; gap: 4px; }
+  .tape-gauge__body { width: 100px; height: 90px; }
+  .tape-gauge__body svg { width: 100px; height: 90px; }
+}
+
+/* Phone portrait (≤480px) */
+@media (max-width: 480px) {
+  .header__logo { font-size: 12px; }
+  #cameraTarget { display: none; }
+  .playback__speeds { display: none; }
+  .playback__left { width: 100px; }
+  .floating-panels { height: 55vh; }
+  .tape-gauge__body { width: 90px; height: 80px; }
+  .tape-gauge__body svg { width: 90px; height: 80px; }
+  .event-log__header { font-size: 9px; }
+}
+
+/* Landscape with limited height */
+@media (max-height: 500px) {
+  .top-panels { gap: 4px; }
+  .header { padding: 4px 12px; }
+  .header__sub, .header__crew { display: none; }
+  .playback { padding: 3px 10px; }
+  .floating-panels { height: 35vh; }
+}
+
+/* Main 3D viewport — fills entire viewport behind all floating panels */
+.trajectory-panel {
+  position: absolute; inset: 0; overflow: hidden;
+  background: #040608;
+}
+.trajectory-panel canvas {
+  width: 100% !important; height: 100% !important; display: block;
+}
+
+/* Floating panels layer — fills available height, no overflow */
+.floating-panels {
+  position: absolute; right: 0; bottom: 8px;
+  width: 340px;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 0 12px;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+.floating-panels > * { pointer-events: auto; }
+/* Each panel fills equal share of available height */
+.inst-panel--flex {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* Playback controls bar */
+.playback {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 16px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.62) 0%, rgba(12,16,22,0.58) 60%, rgba(10,14,20,0.62) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber), -1px 0 0 var(--chrom-cyan),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+  z-index: 10;
+}
+.playback__btn {
+  width: 28px; height: 28px; border-radius: 4px; border: 1px solid rgba(240,160,48,0.3);
+  background: linear-gradient(180deg, rgba(18,22,28,0.9), rgba(8,12,18,0.9));
+  color: var(--amber); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.1), 0 2px 4px rgba(0,0,0,0.4);
+  transition: all 0.12s ease;
+}
+.playback__btn:hover {
+  box-shadow: inset 0 1px 0 rgba(240,160,48,0.15), 0 0 10px rgba(240,160,48,0.15);
+}
+.playback__btn.active {
+  background: linear-gradient(180deg, rgba(240,160,48,0.15), rgba(160,104,32,0.1));
+  border-color: rgba(240,160,48,0.5);
+}
+.playback__speeds {
+  display: flex; gap: 0;
+}
+.playback__speed-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; color: var(--fg-3); letter-spacing: 0.06em;
+  cursor: pointer; padding: 4px 8px;
+  white-space: nowrap;
+  border: 1px solid rgba(240,160,48,0.15);
+  border-right-width: 0;
+  background: rgba(10,14,20,0.8);
+  transition: all 0.12s ease;
+}
+.playback__speed-btn:first-child { border-radius: 3px 0 0 3px; }
+.playback__speed-btn:last-child { border-radius: 0 3px 3px 0; border-right-width: 1px; }
+.playback__speed-btn:hover { background: rgba(240,160,48,0.06); color: var(--fg-2); }
+.playback__speed-btn.active {
+  background: rgba(240,160,48,0.12);
+  border-color: rgba(240,160,48,0.4);
+  color: var(--amber);
+  text-shadow: 0 0 6px var(--amber-glow);
+  box-shadow: inset 0 1px 4px rgba(0,0,0,0.3), 0 0 6px rgba(240,160,48,0.1);
+}
+/* Give active button its own right border */
+.playback__speed-btn.active + .playback__speed-btn { border-left-color: rgba(240,160,48,0.4); }
+.playback__scrub {
+  flex: 1; position: relative; height: 24px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #020406 0%, #060910 40%, #050810 60%, #030608 100%);
+  border: 1px solid rgba(14,18,22,0.95);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+.playback__scrub-events {
+  position: absolute; inset: 0; z-index: 3;
+}
+.playback__scrub-marker {
+  position: absolute; top: 0; bottom: 0; width: 11px; margin-left: -5px;
+  cursor: default;
+}
+.playback__scrub-marker::after {
+  content: ''; position: absolute; inset: 0;
+  width: 1px; margin: 0 auto;
+  background: rgba(240,160,48,0.3);
+}
+.playback__scrub-fill {
+  position: absolute; top: 1px; left: 1px; bottom: 1px;
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(90deg, rgba(255,160,0,0.06) 0%, rgba(255,170,0,0.2) 40%, rgba(255,180,0,0.42) 100%);
+  z-index: 0;
+}
+.playback__scrub::after {
+  content: ''; position: absolute; inset: 0; border-radius: 4px;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), inset 0 -1px 3px rgba(0,0,0,0.5),
+    inset 2px 0 4px rgba(0,0,0,0.5), inset -2px 0 4px rgba(0,0,0,0.5);
+  pointer-events: none; z-index: 2;
+}
+/* Left group — fixed width: MET + current event */
+.playback__left {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 200px; flex-shrink: 0;
+}
+.playback__met {
+  font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.06em;
+  text-shadow: 0 0 6px var(--amber-glow);
+}
+.playback__event {
+  font-size: 8px; color: var(--fg-3); letter-spacing: 0.06em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Right group — fixed width: play + speed gang */
+.playback__right {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── FLOATING INSTRUMENT PANELS — catalogue acrylic DNA ── */
+.inst-panel {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(18,22,28,0.62) 0%, rgba(12,16,22,0.58) 60%, rgba(10,14,20,0.62) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--amber-edge);
+  box-shadow:
+    1px 0 0 var(--chrom-amber), -1px 0 0 var(--chrom-cyan),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 0 40px rgba(240,160,48,0.04),
+    inset 0 1px 0 rgba(240,160,48,0.18);
+}
+.inst-panel__title {
+  font-family: 'Orbitron', monospace; font-size: 8px; font-weight: 700;
+  color: var(--amber); letter-spacing: 0.18em; text-transform: uppercase;
+  text-shadow: 0 0 6px var(--amber-glow);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(240,160,48,0.12);
+}
+
+/* Tape gauge sizing for sidebar */
+.tape-cluster {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; justify-items: center;
+}
+.tape-gauge { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tape-gauge__head {
+  font-family: 'Courier New', monospace; font-size: 9px;
+  letter-spacing: 1px; font-weight: 700;
+}
+.tape-gauge__body {
+  position: relative; width: 115px; height: 120px;
+  overflow: hidden; border-radius: 5px;
+  background: #0c0e16;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.tape-gauge__body::before {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(0,0,0,0.7) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.7) 100%);
+}
+
+/* Arc gauge sizing */
+.arc-cluster {
+  display: flex; justify-content: space-around; gap: 6px;
+}
+.arc-gauge { display: flex; flex-direction: column; align-items: center; }
+.arc-gauge__bezel {
+  position: relative; padding: 4px; border-radius: 50%;
+  background: linear-gradient(150deg, #4a4e50, #3a3e40 25%, #2a2e30 55%, #1a1e20);
+  border: 1.5px solid #060a0c;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.arc-gauge__canvas { display: block; border-radius: 50%; }
+.arc-gauge__plate {
+  position: relative; margin-top: -14px; z-index: 4;
+  display: flex; align-items: center; gap: 3px;
+  padding: 1px 8px 2px;
+  background: linear-gradient(180deg, #4a4e52, #3a3e42 30%, #2e3236 70%, #242a2e);
+  border: 1px solid #0c1014; border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.arc-gauge__plate-value {
+  font-size: 9px; font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.arc-gauge__plate-unit {
+  font-size: 6px; color: #8a9094; font-weight: 400;
+}
+
+/* Glass graph */
+.glass-graph {
+  position: relative; border-radius: 6px;
+  background: linear-gradient(180deg,
+    rgba(10,16,24,0.45) 0%, rgba(8,14,22,0.35) 40%,
+    rgba(6,12,20,0.3) 60%, rgba(8,14,22,0.4) 100%);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-left-color: rgba(64,232,208,0.12);
+  border-right-color: rgba(240,160,48,0.12);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.06);
+}
+.glass-graph::before {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 20%,
+    transparent 45%, transparent 65%,
+    rgba(255,255,255,0.01) 85%, rgba(255,255,255,0.03) 100%);
+  border-radius: 6px;
+}
+.glass-graph::after {
+  content: ''; position: absolute; inset: 0; border-radius: 5px;
+  box-shadow: inset 2px 0 8px rgba(64,232,208,0.04), inset -2px 0 8px rgba(240,160,48,0.04),
+    inset 0 1px 4px rgba(255,255,255,0.03), inset 0 -1px 4px rgba(0,0,0,0.15);
+  pointer-events: none; z-index: 4;
+}
+.glass-graph canvas { display: block; width: 100%; position: relative; z-index: 1; }
+
+/* Graph legend */
+.graph-legend {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 4px;
+}
+.graph-legend__item {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 7px; color: var(--fg-3); letter-spacing: 0.08em; text-transform: uppercase;
+}
+.graph-legend__swatch { width: 10px; height: 2px; border-radius: 1px; }
+
+/* Event log */
+.event-log {
+  display: flex; flex-direction: column; gap: 2px;
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Acrylic scrollbar — sunset glass pill in recessed track */
+.acrylic-scroll::-webkit-scrollbar { width: 8px; }
+.acrylic-scroll::-webkit-scrollbar-track {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.4) 0%, rgba(4,6,10,0.6) 25%,
+    rgba(4,6,10,0.6) 75%, rgba(0,0,0,0.4) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 1px 0 3px rgba(0,0,0,0.5),
+    inset -1px 0 3px rgba(0,0,0,0.5),
+    inset 0 2px 4px rgba(0,0,0,0.3);
+  margin: 4px 0;
+}
+.acrylic-scroll::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(40,52,68,0.55);
+  border-left: 1px solid rgba(40,200,190,0.06);
+  border-right: 1px solid rgba(240,140,30,0.22);
+  border-top: 1px solid rgba(255,255,255,0.14);
+  border-bottom: 0.5px solid rgba(0,0,0,0.2);
+  box-shadow:
+    0 1px 4px rgba(0,0,0,0.35),
+    inset 2px 0 4px rgba(40,200,190,0.02),
+    inset -2px 0 4px rgba(240,140,30,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+.acrylic-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(50,64,82,0.65);
+  border-left-color: rgba(40,200,190,0.1);
+  border-right-color: rgba(240,140,30,0.35);
+  border-top-color: rgba(255,255,255,0.2);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.45),
+    inset 2px 0 6px rgba(40,200,190,0.025),
+    inset -2px 0 6px rgba(240,140,30,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+}
+/* Event log items — v1 two-tier layout */
+.event-log__item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: opacity 0.3s, background 0.15s ease;
+}
+.event-log__item:last-child { border-bottom: none; }
+.event-log__item:hover { background: rgba(240,160,48,0.04); }
+
+/* Left side: dot + label + detail (two tiers) */
+.event-log__left {
+  display: flex; align-items: flex-start; gap: 6px;
+  min-width: 0; flex: 1;
+}
+.event-log__dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  margin-top: 4px;
+}
+.event-log__text {
+  display: flex; flex-direction: column; gap: 1px; min-width: 0;
+}
+.event-log__name {
+  font-family: 'Courier New', monospace; font-size: 11px; font-weight: 600;
+  color: var(--fg);
+}
+.event-log__sub {
+  font-family: 'Courier New', monospace; font-size: 9px;
+  color: var(--fg-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Right side: MET */
+.event-log__met {
+  font-family: 'Courier New', monospace; font-size: 8px;
+  color: var(--fg-3); flex-shrink: 0; margin-left: 6px;
+  text-align: right; white-space: nowrap;
+}
+/* Expandable detail */
+.event-log__detail {
+  display: none;
+  font-family: 'Courier New', monospace;
+  font-size: 9px; color: var(--fg-2); line-height: 1.55;
+  padding: 4px 0 2px 12px;
+  border-left: 1px solid rgba(240,160,48,0.12);
+  margin-left: 3px; margin-top: 3px;
+}
+.event-log__item.expanded {
+  flex-wrap: wrap;
+}
+.event-log__item.expanded .event-log__detail {
+  display: block; width: 100%;
+}
+/* State classes */
+.event-log__item.active .event-log__name { color: var(--fg); }
+.event-log__item.active .event-log__met { color: var(--fg-3); }
+.event-log__item.active .event-log__dot { box-shadow: 0 0 4px currentColor; }
+.event-log__item.future {
+  opacity: 0.25;
+}
+.event-log__item.current {
+  background: rgba(240,160,48,0.05);
+  border-left: 2px solid var(--amber);
+}
+.event-log__item.current .event-log__name { color: var(--amber); }
+.event-log__item.current .event-log__sub { color: var(--amber); opacity: 0.7; }
+.event-log__item.current .event-log__met { color: var(--amber); opacity: 0.8; }
+/* Cancelled events */
+.event-log__item.cancelled .event-log__name {
+  text-decoration: line-through; opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   V3 — CINEMATIC CHROME LAYER (lean — hints + corner ticks only)
+   v2's existing header chrome owns identity (logo + Peirastes brand
+   link). v3 contributes only new vocab v2 doesn't have:
+     1. Cinematic styling on the existing .header__brand back-link
+     2. Faint cyan corner ticks (universal site signature)
+     3. Cinematic-style keyboard hint glyphs bottom-left
+   No duplication of identity. No competing wordmark.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --cin-gold: #f0c060;          /* warm cinema gold (cinematic-tier signature) */
+  --cin-cyan: #7dd6ff;          /* cool cinema cyan */
+  --cin-cyan-soft: rgba(125, 214, 255, 0.40);
+  --cin-cyan-faint: rgba(125, 214, 255, 0.18);
+}
+
+/* (1) Upgrade v2's existing brand link in place — same DOM element,
+   cinematic-tier vocabulary. Gold Cinzel, generous tracking, gentle
+   glow on hover. This is the back-link to the wider site. */
+.header__brand {
+  font-family: 'Cinzel', serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: rgba(240, 192, 96, 0.70) !important;
+  letter-spacing: 0.22em !important;
+  text-transform: uppercase !important;
+  text-decoration: none;
+  text-shadow: 0 0 6px rgba(240, 192, 96, 0.18);
+  transition: color 200ms, text-shadow 200ms;
+}
+.header__brand:hover {
+  color: #f5d488 !important;
+  text-shadow: 0 0 12px rgba(240, 192, 96, 0.45);
+}
+
+/* Cartographic L-bracket corner ticks — universal site signature.
+   Faint cyan, 12px arms, low opacity. Same vocabulary as cinematic.js
+   injects on Atrium and Rooms. */
+.cin-tick {
+  position: fixed;
+  width: 16px; height: 16px;
+  z-index: 99;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 600ms forwards;
+}
+.cin-tick::before, .cin-tick::after {
+  content: '';
+  position: absolute;
+  background: var(--cin-cyan-soft);
+}
+.cin-tick--tl {
+  top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);
+  left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem);
+}
+.cin-tick--tl::before { top: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--tl::after  { top: 0; left: 0; width: 1px; height: 12px; }
+
+.cin-tick--tr {
+  top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);
+  right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem);
+}
+.cin-tick--tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--tr::after  { top: 0; right: 0; width: 1px; height: 12px; }
+
+.cin-tick--bl {
+  bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem);
+  left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem);
+}
+.cin-tick--bl::before { bottom: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--bl::after  { bottom: 0; left: 0; width: 1px; height: 12px; }
+
+.cin-tick--br {
+  bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem);
+  right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem);
+}
+.cin-tick--br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--br::after  { bottom: 0; right: 0; width: 1px; height: 12px; }
+
+/* Hint glyphs bottom-left — keyboard / interaction hints in cinematic vocab */
+.cin-hints {
+  position: fixed;
+  bottom: max(1.2rem, env(safe-area-inset-bottom, 0px) + 0.5rem);
+  left: max(1.5rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(180, 180, 180, 0.42);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 750ms forwards;
+}
+.cin-hints kbd {
+  font-family: inherit;
+  background: rgba(125, 214, 255, 0.06);
+  border: 1px solid var(--cin-cyan-faint);
+  border-radius: 2px;
+  padding: 1px 5px;
+  margin-right: 0.35rem;
+  color: var(--cin-cyan);
+  font-size: 0.58rem;
+}
+
+/* Entrance fade keyframe — used by all v3 chrome elements */
+@keyframes cin-fade-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* The whole .app gets a soft delayed entrance so the v2 lab frame
+   appears with the same rhythm as the cinematic chrome. v2's existing
+   transforms (none on .app itself) are not affected. */
+.app {
+  animation: cin-app-fade 1000ms ease 200ms backwards;
+}
+@keyframes cin-app-fade {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* ─── MOBILE / TABLET RESPONSIVE — progressive degradation ─── */
+
+/* Phone & small landscape (≤768px) — hide hints (touch device, no
+   keyboard) and bottom corner ticks (would collide with v2's
+   floating-panels stacked at bottom 50vh). */
+@media (max-width: 768px) {
+  .cin-hints       { display: none; }
+  .cin-tick--bl,
+  .cin-tick--br    { display: none; }
+}
+
+/* Landscape limited height — mirror v2's slim mode */
+@media (max-height: 500px) {
+  .cin-hints { display: none; }
+  .cin-tick  { width: 10px; height: 10px; }
+}
+
+/* Reduced motion — disable all v3 entrance animations */
+@media (prefers-reduced-motion: reduce) {
+  .cin-tick,
+  .cin-hints,
+  .app {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     V3 CINEMATIC CHROME LAYER (minimal — hints + corner ticks only)
+     Identity is owned by v2's existing header (logo + brand link).
+     v3 contributes new affordances v2 doesn't have, in cinematic vocab.
+     ═══════════════════════════════════════════════════════════ -->
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+<div class="cin-hints" aria-hidden="true">
+  <span><kbd>Click + Drag</kbd> Camera</span>
+  <span><kbd>Esc</kbd> Home</span>
+</div>
+
+<div class="app">
+
+  <div class="top-panels">
+  <!-- HEADER -->
+  <header class="header">
+    <a href="https://peirastes.com" class="header__brand">Peirastes</a>
+    <div style="text-align:center">
+      <div class="header__logo">Artemis <span>II</span></div>
+      <div class="header__sub">Orion MPCV &mdash; Integrity Crew</div>
+      <div class="header__crew">Wiseman &bull; Glover &bull; Koch &bull; Hansen</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="playback__speeds" id="cameraTarget">
+        <div class="playback__speed-btn active" data-target="earth">Earth</div>
+        <div class="playback__speed-btn" data-target="moon">Moon</div>
+        <div class="playback__speed-btn" data-target="orion">Orion</div>
+      </div>
+      <div class="playback__btn" id="btnInfo" title="Mission Info">ⓘ</div>
+    </div>
+  </header>
+
+  <!-- PLAYBACK BAR -->
+  <div class="playback">
+    <div class="playback__left">
+      <div class="playback__met" id="metDisplay">T+00:00:00:00</div>
+      <div class="playback__event" id="eventDisplay">—</div>
+    </div>
+    <div class="playback__scrub" id="scrub">
+      <div class="playback__scrub-events" id="scrubEvents"></div>
+      <div class="playback__scrub-fill" id="scrubFill"></div>
+    </div>
+    <div class="playback__right">
+      <div class="playback__btn" id="btnPlay">▶</div>
+      <div class="playback__speeds" id="speedPanel">
+        <div class="playback__speed-btn active" data-mult="1">1×</div>
+        <div class="playback__speed-btn" data-mult="60">1m/s</div>
+        <div class="playback__speed-btn" data-mult="3600">1h/s</div>
+        <div class="playback__speed-btn" data-mult="86400">1d/s</div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- 3D TRAJECTORY VIEWPORT + FLOATING PANELS -->
+  <div class="trajectory-panel" id="viewport3d">
+
+    <!-- INFO PANEL -->
+    <div class="info-panel acrylic-scroll" id="infoPanel">
+      <button class="info-panel__close" id="btnInfoClose">✕</button>
+      <div class="info-panel__title">Artemis II — Mission Simulator</div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Mission</div>
+        <div class="info-panel__text">
+          <strong>Artemis II</strong> — the first crewed lunar mission since Apollo 17 (1972). Four astronauts aboard the <strong>Orion MPCV (Integrity)</strong> flew a free-return trajectory around the Moon, reaching 6,546 km above the lunar surface at perilune before returning to Earth. Launched April 1, 2026 from Kennedy Space Center LC-39B. Splashdown April 11, 2026, Pacific Ocean.
+        </div>
+      </div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Crew</div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Commander</span><span class="info-panel__row-val">Reid Wiseman</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Pilot</span><span class="info-panel__row-val">Victor Glover</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Mission Specialist 1</span><span class="info-panel__row-val">Christina Koch</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Mission Specialist 2</span><span class="info-panel__row-val">Jeremy Hansen (CSA)</span></div>
+      </div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Simulator</div>
+        <div class="info-panel__text">
+          This simulator computes Orion's trajectory from first principles using <strong>3D RK4 integration</strong> under Earth + Moon + Sun gravity with J2 oblateness and solar radiation pressure perturbations. Spacecraft state is injected from <strong>JPL Horizons</strong> at 30-minute cadence — effectively ground truth between injection points.
+        </div>
+      </div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Physics Model</div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Integrator</span><span class="info-panel__row-val">RK4, 5-second inner step</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Moon ephemeris</span><span class="info-panel__row-val">Chebyshev DE440 (sub-mm)</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Sun model</span><span class="info-panel__row-val">Circular Keplerian</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Earth oblateness</span><span class="info-panel__row-val">J2 = 1.08263×10⁻³</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Solar radiation</span><span class="info-panel__row-val">CR = 1.3, A = 32 m²</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">State injection</span><span class="info-panel__row-val">Horizons 30-min cadence</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Burn model</span><span class="info-panel__row-val">State injection (not Δv)</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Atmospheric entry</span><span class="info-panel__row-val">Exponential ρ, L/D = 0.05</span></div>
+      </div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Accuracy</div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Position RMS vs Horizons</span><span class="info-panel__row-val">0.05 km</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Position max error</span><span class="info-panel__row-val">0.08 km</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Perilune altitude</span><span class="info-panel__row-val">6,545 km (NASA: 6,546)</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Splashdown offset</span><span class="info-panel__row-val">880 km (bank guidance N/A)</span></div>
+        <div class="info-panel__row"><span class="info-panel__row-key">Trajectory samples</span><span class="info-panel__row-val">12,845 at 60s cadence</span></div>
+      </div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Known Limitations</div>
+        <div class="info-panel__text">
+          <strong>Atmospheric entry:</strong> Orion uses closed-loop bank-angle modulation to steer toward the landing target. This guidance law is not public. Our constant L/D model places splashdown 880 km from the published point.<br><br>
+          <strong>Launch phase:</strong> The pre-tracking trajectory (T-10s to T+3.4h) is a Hermite spline interpolation from KSC to the first Horizons sample — not physics-integrated.<br><br>
+          <strong>Missing perturbations:</strong> Solid-body tides, ocean tides, relativistic frame-dragging, solar wind variability, spacecraft outgassing.
+        </div>
+      </div>
+
+      <div class="info-panel__section">
+        <div class="info-panel__section-title">Credits</div>
+        <div class="info-panel__text">
+          Trajectory data: <strong>NASA JPL Horizons</strong><br>
+          Moon ephemeris: <strong>JPL DE440</strong> via Chebyshev fit<br>
+          Earth texture: <strong>NASA Blue Marble</strong><br>
+          Built by <strong>Cole Prather</strong> · <strong>Peirastes</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOATING INSTRUMENT PANELS -->
+  <div class="floating-panels" id="telPanel">
+
+    <!-- Mission Log -->
+    <div class="inst-panel inst-panel--flex">
+      <div class="inst-panel__title">Mission Log</div>
+      <div class="event-log acrylic-scroll" id="eventLog"></div>
+    </div>
+
+    <!-- Flight Dynamics Graph -->
+    <div class="inst-panel" style="flex-shrink:1;">
+      <div class="inst-panel__title">Flight Dynamics</div>
+      <div class="glass-graph" style="height:100px">
+        <canvas id="graphCanvas"></canvas>
+      </div>
+      <div class="graph-legend" id="graphLegend"></div>
+    </div>
+
+    <!-- Tape Gauges -->
+    <div class="inst-panel" style="flex-shrink:0;">
+      <div class="inst-panel__title">Telemetry</div>
+      <div class="tape-cluster">
+        <div class="tape-gauge" id="tapeVel">
+          <div class="tape-gauge__head" style="color:#f0a030">VEL</div>
+          <div class="tape-gauge__body">
+            <svg viewBox="0 0 115 120" width="115" height="120" style="display:block"></svg>
+          </div>
+        </div>
+        <div class="tape-gauge" id="tapeAlt">
+          <div class="tape-gauge__head" style="color:#378add">ALT</div>
+          <div class="tape-gauge__body">
+            <svg viewBox="0 0 115 120" width="115" height="120" style="display:block"></svg>
+          </div>
+        </div>
+        <div class="tape-gauge" id="tapeLunar">
+          <div class="tape-gauge__head" style="color:#40e8d0">LUNAR</div>
+          <div class="tape-gauge__body">
+            <svg viewBox="0 0 115 120" width="115" height="120" style="display:block"></svg>
+          </div>
+        </div>
+        <div class="tape-gauge" id="tapePhi">
+          <div class="tape-gauge__head" style="color:#9a6dd7">Φ</div>
+          <div class="tape-gauge__body">
+            <svg viewBox="0 0 115 120" width="115" height="120" style="display:block"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DATA LOADING + INITIALIZATION
+   ═══════════════════════════════════════════════════════════════ */
+const DPR = Math.min(devicePixelRatio || 1, 2);
+const EARTH_R = 6371; // km
+const DEG = Math.PI / 180;
+
+let DATA = null;
+let playing = false;
+let cameraTarget = 'earth'; // 'earth' | 'moon' | 'orion'
+let userPanning = false;
+let panResetTimer = null;
+let userExpandedEvent = false;
+let autoScrollTimer = null;
+let userScrollTimer = null;
+let simTime = 0; // seconds from tracking start
+let speedMultiplier = 1;
+const speeds = [
+  { mult: 1,     label: '1×  (real-time)' },
+  { mult: 60,    label: '1 min/s' },
+  { mult: 3600,  label: '1 hr/s' },
+  { mult: 86400, label: '1 day/s' },
+];
+let speedIdx = 0;
+
+async function loadData() {
+  const resp = await fetch('artemis2_trajectory.json?v=' + Date.now());
+  DATA = await resp.json();
+
+  // Prepend synthetic launch phase (T-10s to Tracking Begins)
+  // Hermite spline from KSC launch pad → first Horizons sample
+  // with tangent continuity at the junction
+  const LAUNCH_OFFSET = 12288;
+  const PRELAUNCH = 10;
+  const TOTAL_PREPEND = LAUNCH_OFFSET + PRELAUNCH;
+  const PREPEND_STEP = DATA.time.step_seconds;
+  const nPrepend = Math.ceil(TOTAL_PREPEND / PREPEND_STEP);
+
+  const sc0 = DATA.spacecraft.trajectory_pos_km[0];
+  const sv0 = DATA.spacecraft.trajectory_vel_km_s[0];
+  const mn0 = DATA.moon.trajectory_pos_km[0];
+  const r0 = Math.sqrt(sc0[0]**2 + sc0[1]**2 + sc0[2]**2);
+
+  // --- KSC position in ECI ecliptic at launch time ---
+  // Computed by physics3d engine: GMST → ECEF → ECI equatorial → ecliptic
+  // KSC 28.57°N 80.65°W, April 1, 2026 22:35:12 UTC, obliquity 23.4393°
+  const kscPos = [-4655.6, 4059.3, 1561.2]; // km, ecliptic ECI
+  const kscR = Math.sqrt(kscPos[0]**2 + kscPos[1]**2 + kscPos[2]**2);
+  const kscDir = kscPos.map(v => v / kscR);
+
+  // Launch tangent: radially outward from KSC (initial vertical ascent)
+  // Scaled by typical ascent rate — Orion reaches 185 km in ~8 min at avg ~0.4 km/s
+  const launchTangent = kscDir.map(v => v * 0.8); // km/s upward
+
+  // End tangent: first Horizons velocity (ensures tangent continuity)
+  const endTangent = sv0;
+
+  // --- Hermite spline: p(t) = h00*p0 + h10*m0 + h01*p1 + h11*m1 ---
+  // h00 = 2t³ - 3t² + 1, h10 = t³ - 2t² + t, h01 = -2t³ + 3t², h11 = t³ - t²
+  // Tangents scaled by duration for correct parametric speed
+  const DUR = TOTAL_PREPEND; // seconds
+  const m0 = launchTangent.map(v => v * DUR);
+  const m1 = endTangent.map(v => v * DUR);
+
+  const prependSC = [];
+  const prependVel = [];
+  const prependMoon = [];
+
+  // Moon backtrack
+  const mn1 = DATA.moon.trajectory_pos_km[1];
+  const moonVel = mn1.map((v, i) => (v - mn0[i]) / PREPEND_STEP);
+
+  for (let i = 0; i < nPrepend; i++) {
+    const t = i / nPrepend;
+    const t2 = t * t, t3 = t2 * t;
+
+    // Hermite basis functions
+    const h00 = 2*t3 - 3*t2 + 1;
+    const h10 = t3 - 2*t2 + t;
+    const h01 = -2*t3 + 3*t2;
+    const h11 = t3 - t2;
+
+    const pos = [
+      h00*kscPos[0] + h10*m0[0] + h01*sc0[0] + h11*m1[0],
+      h00*kscPos[1] + h10*m0[1] + h01*sc0[1] + h11*m1[1],
+      h00*kscPos[2] + h10*m0[2] + h01*sc0[2] + h11*m1[2],
+    ];
+    prependSC.push(pos);
+
+    // Hermite velocity (derivative of position)
+    const dh00 = 6*t2 - 6*t;
+    const dh10 = 3*t2 - 4*t + 1;
+    const dh01 = -6*t2 + 6*t;
+    const dh11 = 3*t2 - 2*t;
+    const vel = [
+      (dh00*kscPos[0] + dh10*m0[0] + dh01*sc0[0] + dh11*m1[0]) / DUR,
+      (dh00*kscPos[1] + dh10*m0[1] + dh01*sc0[1] + dh11*m1[1]) / DUR,
+      (dh00*kscPos[2] + dh10*m0[2] + dh01*sc0[2] + dh11*m1[2]) / DUR,
+    ];
+    prependVel.push(vel);
+
+    // Moon: backtrack linearly
+    const dt = -(nPrepend - i) * PREPEND_STEP;
+    const moonPos = mn0.map((v, j) => v + moonVel[j] * dt);
+    prependMoon.push(moonPos);
+  }
+
+  // Prepend to trajectory arrays
+  DATA.spacecraft.trajectory_pos_km = [...prependSC, ...DATA.spacecraft.trajectory_pos_km];
+  DATA.spacecraft.trajectory_vel_km_s = [...prependVel, ...DATA.spacecraft.trajectory_vel_km_s];
+  DATA.moon.trajectory_pos_km = [...prependMoon, ...DATA.moon.trajectory_pos_km];
+
+  // Update time metadata
+  DATA.time.n_samples = DATA.spacecraft.trajectory_pos_km.length;
+  DATA.time.duration_seconds += TOTAL_PREPEND;
+  DATA._launchOffset = TOTAL_PREPEND; // store for event offset adjustment
+  DATA._nPrepend = nPrepend;
+
+  // Shift all event offsets forward by the prepend duration
+  for (const evt of DATA.events) {
+    evt.epoch_offset_seconds += TOTAL_PREPEND;
+  }
+
+  initUI();
+  init3D();
+  positionFloatingPanels();
+  window.addEventListener('resize', positionFloatingPanels);
+  requestAnimationFrame(tick);
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DERIVED QUANTITIES — compute telemetry from state vectors
+   ═══════════════════════════════════════════════════════════════ */
+function getSampleAtTime(t) {
+  const step = DATA.time.step_seconds;
+  const n = DATA.time.n_samples;
+  const idx = Math.max(0, Math.min(n - 1, Math.floor(t / step)));
+  const idx2 = Math.min(n - 1, idx + 1);
+  const frac = (t / step) - idx;
+
+  const sc = DATA.spacecraft.trajectory_pos_km;
+  const sv = DATA.spacecraft.trajectory_vel_km_s;
+  const mn = DATA.moon.trajectory_pos_km;
+
+  // Interpolate
+  const lerp = (a, b, f) => a.map((v, i) => v + (b[i] - v) * f);
+  const pos = lerp(sc[idx], sc[idx2], frac);
+  const vel = lerp(sv[idx], sv[idx2], frac);
+  const moonPos = lerp(mn[idx], mn[idx2], frac);
+
+  const alt = Math.sqrt(pos[0]**2 + pos[1]**2 + pos[2]**2) - EARTH_R;
+  const speed = Math.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2);
+  const lunarDist = Math.sqrt(
+    (pos[0]-moonPos[0])**2 + (pos[1]-moonPos[1])**2 + (pos[2]-moonPos[2])**2
+  );
+  const r = Math.sqrt(pos[0]**2 + pos[1]**2 + pos[2]**2);
+  const phi = -398600.4418 / r; // gravitational potential (km²/s²)
+
+  return { pos, vel, moonPos, alt, speed, lunarDist, phi, idx };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAPE GAUGE BUILDER (from catalogue)
+   ═══════════════════════════════════════════════════════════════ */
+const TAPE_H = 540, TAPE_CY = 60;
+
+function buildTapeSVG(svg, min, max, color, majorStep, halfStep, minorSubs, unit) {
+  const W = 115, range = max - min;
+  const scrollG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scrollG.classList.add('tape-scroll');
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bg.setAttribute('x','0'); bg.setAttribute('y','0');
+  bg.setAttribute('width', W); bg.setAttribute('height', TAPE_H);
+  bg.setAttribute('fill', '#0c0e16');
+  scrollG.appendChild(bg);
+
+  const ctr = W/2, lTickEnd = Math.round(W*0.27), rTickStart = Math.round(W*0.73);
+  const subStep = halfStep / minorSubs;
+
+  for (let v = min; v <= max + subStep*0.5; v += subStep) {
+    const frac = (v-min)/range, y = TAPE_H - frac*TAPE_H;
+    const isMajor = Math.abs(v%majorStep)<subStep*0.5 || Math.abs(v%majorStep-majorStep)<subStep*0.5;
+    const isHalf = !isMajor && (Math.abs(v%halfStep)<subStep*0.5 || Math.abs(v%halfStep-halfStep)<subStep*0.5);
+    const inset = isMajor?0:isHalf?4:8;
+
+    const lt = document.createElementNS('http://www.w3.org/2000/svg','line');
+    lt.setAttribute('x1',3+inset); lt.setAttribute('x2',lTickEnd);
+    lt.setAttribute('y1',y); lt.setAttribute('y2',y);
+    lt.setAttribute('stroke',color);
+    lt.setAttribute('stroke-width',isMajor?'1.5':isHalf?'0.8':'0.5');
+    lt.setAttribute('stroke-opacity',isMajor?'0.85':isHalf?'0.5':'0.2');
+    scrollG.appendChild(lt);
+
+    const rt = document.createElementNS('http://www.w3.org/2000/svg','line');
+    rt.setAttribute('x1',rTickStart); rt.setAttribute('x2',W-3-inset);
+    rt.setAttribute('y1',y); rt.setAttribute('y2',y);
+    rt.setAttribute('stroke',color);
+    rt.setAttribute('stroke-width',isMajor?'1.5':isHalf?'0.8':'0.5');
+    rt.setAttribute('stroke-opacity',isMajor?'0.85':isHalf?'0.5':'0.2');
+    scrollG.appendChild(rt);
+
+    const minorIndex = Math.round((v-min)/subStep);
+    const isMinorLabel = !isMajor && !isHalf && (minorIndex%2===0);
+    if (isMajor || isHalf || isMinorLabel) {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+      txt.setAttribute('x',ctr); txt.setAttribute('y',y+4);
+      txt.setAttribute('text-anchor','middle');
+      txt.setAttribute('font-family',"'Courier New',monospace");
+      txt.setAttribute('font-size',isMajor?'11':isHalf?'9':'7');
+      txt.setAttribute('fill',color);
+      txt.setAttribute('fill-opacity',isMajor?'0.7':isHalf?'0.35':'0.18');
+      txt.textContent = Math.round(v);
+      scrollG.appendChild(txt);
+    }
+  }
+  svg.appendChild(scrollG);
+
+  // Static elements
+  const staticG = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const rwPad=4, rwX=rwPad, rwW=W-rwPad*2;
+
+  const rBg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rBg.setAttribute('x',rwX); rBg.setAttribute('y','47');
+  rBg.setAttribute('width',rwW); rBg.setAttribute('height','26');
+  rBg.setAttribute('rx','3'); rBg.setAttribute('fill','#0a0c14');
+  rBg.setAttribute('stroke',color); rBg.setAttribute('stroke-width','1.2');
+  staticG.appendChild(rBg);
+
+  const isFraction = unit&&unit.includes('/');
+  const uParts = isFraction?unit.split('/'):[unit];
+  const uw = unit ? 34 : 0;
+
+  const rTxt = document.createElementNS('http://www.w3.org/2000/svg','text');
+  rTxt.setAttribute('x', W/2); rTxt.setAttribute('y','65');
+  rTxt.setAttribute('text-anchor','middle');
+  rTxt.setAttribute('font-family',"'Courier New',monospace");
+  rTxt.setAttribute('font-size','14'); rTxt.setAttribute('font-weight','700');
+  rTxt.setAttribute('fill',color);
+  rTxt.classList.add('tape-readout');
+  staticG.appendChild(rTxt);
+
+  // Unit window
+  if (unit) {
+    const ux = rwX+rwW-uw-2, ucx = ux+uw/2;
+    const uBg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    uBg.setAttribute('x',ux); uBg.setAttribute('y','51');
+    uBg.setAttribute('width',uw); uBg.setAttribute('height','18');
+    uBg.setAttribute('rx','2'); uBg.setAttribute('fill','#040608');
+    uBg.setAttribute('stroke','rgba(255,255,255,0.06)'); uBg.setAttribute('stroke-width','0.5');
+    staticG.appendChild(uBg);
+    if (isFraction) {
+      const nT = document.createElementNS('http://www.w3.org/2000/svg','text');
+      nT.setAttribute('x',ucx-4); nT.setAttribute('y','59');
+      nT.setAttribute('text-anchor','end');
+      nT.setAttribute('font-family',"'Courier New',monospace");
+      nT.setAttribute('font-size','7'); nT.setAttribute('font-weight','600');
+      nT.setAttribute('fill',color); nT.setAttribute('fill-opacity','0.55');
+      nT.textContent=uParts[0]; staticG.appendChild(nT);
+      const dL = document.createElementNS('http://www.w3.org/2000/svg','line');
+      dL.setAttribute('x1',ucx-3); dL.setAttribute('x2',ucx+3);
+      dL.setAttribute('y1','66'); dL.setAttribute('y2','54');
+      dL.setAttribute('stroke',color); dL.setAttribute('stroke-opacity','0.4');
+      dL.setAttribute('stroke-width','0.7'); staticG.appendChild(dL);
+      const dT = document.createElementNS('http://www.w3.org/2000/svg','text');
+      dT.setAttribute('x',ucx+4); dT.setAttribute('y','66');
+      dT.setAttribute('text-anchor','start');
+      dT.setAttribute('font-family',"'Courier New',monospace");
+      dT.setAttribute('font-size','7'); dT.setAttribute('font-weight','600');
+      dT.setAttribute('fill',color); dT.setAttribute('fill-opacity','0.55');
+      dT.textContent=uParts[1]; staticG.appendChild(dT);
+    } else {
+      const uT = document.createElementNS('http://www.w3.org/2000/svg','text');
+      uT.setAttribute('x',ucx); uT.setAttribute('y','64');
+      uT.setAttribute('text-anchor','middle');
+      uT.setAttribute('font-family',"'Courier New',monospace");
+      uT.setAttribute('font-size','8'); uT.setAttribute('font-weight','600');
+      uT.setAttribute('fill',color); uT.setAttribute('fill-opacity','0.55');
+      uT.textContent=unit; staticG.appendChild(uT);
+    }
+  }
+
+  // Pointers
+  const lp = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  lp.setAttribute('points','0,54 6,60 0,66'); lp.setAttribute('fill',color);
+  staticG.appendChild(lp);
+  const rp = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  rp.setAttribute('points',`${W},54 ${W-6},60 ${W},66`); rp.setAttribute('fill',color);
+  staticG.appendChild(rp);
+  svg.appendChild(staticG);
+}
+
+function updateTape(el, val, min, max) {
+  const svg = el.querySelector('svg');
+  const scrollG = svg.querySelector('.tape-scroll');
+  if (!scrollG) return;
+  const f = Math.max(0, Math.min(1, (val-min)/(max-min)));
+  const offset = TAPE_CY - (1-f)*TAPE_H;
+  scrollG.setAttribute('transform',`translate(0,${offset.toFixed(1)})`);
+  const readout = svg.querySelector('.tape-readout');
+  if (readout) {
+    const str = val.toFixed(1);
+    readout.textContent = str;
+    const charW = 8.4, dotIdx = str.indexOf('.');
+    readout.setAttribute('text-anchor','start');
+    readout.setAttribute('x', (57.5 - dotIdx*charW - charW/2).toFixed(1));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3D TRAJECTORY — THREE.js scene
+   ═══════════════════════════════════════════════════════════════ */
+const SCALE = 1 / 1000; // 1 unit = 1000 km
+let scene, camera, renderer, controls, labelRenderer;
+let earthMesh, moonMesh, scDot, scGlow, trajLine;
+let moonLabel, orionLabel, eventMarkers = [];
+let trajPositions, trajDrawCount = 0;
+const MOON_R_SCALED = 1737 * SCALE;
+const EARTH_R_SCALED = EARTH_R * SCALE;
+
+function init3D() {
+  const container = document.getElementById('viewport3d');
+
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x040608);
+
+  // Camera — positioned to see Earth-Moon system
+  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.5, 5000);
+  camera.position.set(0, 300, 500);
+  camera.lookAt(0, 0, 0);
+
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  container.insertBefore(renderer.domElement, container.firstChild);
+
+  // Orbit controls
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = true;
+  controls.minDistance = 15;
+  controls.maxDistance = 1500;
+  controls.target.set(0, 0, 0);
+  // Left = orbit, Right = pan, Middle = dolly
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.PAN,
+  };
+
+  // Detect any user interaction — pause auto camera tracking
+  controls.addEventListener('start', () => {
+    userPanning = true;
+    clearTimeout(panResetTimer);
+  });
+
+  // Lighting — Sun as directional light, positioned from actual Sun direction
+  scene.add(new THREE.AmbientLight(0x223344, 0.3));
+  const sunLight = new THREE.DirectionalLight(0xfff8f0, 1.4);
+  // Sun position at mission epoch (April 2, 2026): ~12° Aries in ecliptic
+  // In ECI ecliptic: Sun is at ~12° from vernal equinox, ~1 AU
+  // Approximate: cos(12°)*AU, sin(12°)*AU, 0 → mapped to scene coords
+  const sunAngle = 12 * Math.PI / 180;
+  const sunDist = 600; // scene units (just for light direction)
+  sunLight.position.set(
+    sunDist * Math.cos(sunAngle),
+    0,
+    -sunDist * Math.sin(sunAngle)
+  );
+  scene.add(sunLight);
+  // Subtle fill (earthshine/ambient)
+  const fillLight = new THREE.DirectionalLight(0x1a2840, 0.2);
+  fillLight.position.set(-300, -100, 200);
+  scene.add(fillLight);
+
+  // Sun sphere (visual marker — far away, bright)
+  const sunGeo = new THREE.SphereGeometry(8, 16, 12);
+  const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff4e0 });
+  const sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  sunMesh.position.copy(sunLight.position);
+  scene.add(sunMesh);
+  // Sun glow sprite
+  const sunGlowCanvas = document.createElement('canvas');
+  sunGlowCanvas.width = 64; sunGlowCanvas.height = 64;
+  const sgCtx = sunGlowCanvas.getContext('2d');
+  const sgGrad = sgCtx.createRadialGradient(32,32,0,32,32,32);
+  sgGrad.addColorStop(0, 'rgba(255,248,224,0.6)');
+  sgGrad.addColorStop(0.3, 'rgba(255,240,200,0.2)');
+  sgGrad.addColorStop(1, 'rgba(255,240,200,0)');
+  sgCtx.fillStyle = sgGrad; sgCtx.fillRect(0,0,64,64);
+  const sunGlowTex = new THREE.CanvasTexture(sunGlowCanvas);
+  const sunGlowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: sunGlowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  sunGlowSprite.scale.set(40, 40, 1);
+  sunGlowSprite.position.copy(sunLight.position);
+  scene.add(sunGlowSprite);
+
+  // Texture loader
+  const texLoader = new THREE.TextureLoader();
+  texLoader.crossOrigin = 'anonymous';
+
+  // Earth
+  const earthGeo = new THREE.SphereGeometry(EARTH_R_SCALED, 64, 48);
+  const earthMat = new THREE.MeshPhongMaterial({
+    color: 0x2244aa,
+    emissive: 0x061228,
+    shininess: 25,
+    specular: 0x333333,
+  });
+  // Load texture async — Earth renders blue until texture loads
+  texLoader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+    function(tex) { earthMat.map = tex; earthMat.color.set(0xffffff); earthMat.needsUpdate = true; },
+    undefined,
+    function(err) { console.warn('Earth texture failed, using fallback color'); }
+  );
+  earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  scene.add(earthMesh);
+
+  // Earth atmosphere glow
+  const atmosGeo = new THREE.SphereGeometry(EARTH_R_SCALED * 1.015, 48, 32);
+  const atmosMat = new THREE.MeshPhongMaterial({
+    color: 0x4488cc, transparent: true, opacity: 0.08,
+    side: THREE.FrontSide, depthWrite: false,
+  });
+  scene.add(new THREE.Mesh(atmosGeo, atmosMat));
+
+  // Moon — true scale (1,737 km radius)
+  const moonVisualR = MOON_R_SCALED;
+  const moonGeo = new THREE.SphereGeometry(moonVisualR, 48, 32);
+  const moonMat = new THREE.MeshPhongMaterial({
+    color: 0xaaaaaa,
+    emissive: 0x222222,
+    shininess: 3,
+    specular: 0x111111,
+  });
+  texLoader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg',
+    function(tex) { moonMat.map = tex; moonMat.color.set(0xffffff); moonMat.needsUpdate = true; },
+    undefined,
+    function(err) { console.warn('Moon texture failed, using fallback color'); }
+  );
+  moonMesh = new THREE.Mesh(moonGeo, moonMat);
+  scene.add(moonMesh);
+
+  // Trajectory — full path as faint line + active portion brighter
+  try {
+    const maxPts = DATA.spacecraft.trajectory_pos_km.length;
+    const trajGeo = new THREE.BufferGeometry();
+    trajPositions = new Float32Array(maxPts * 3);
+    const sc = DATA.spacecraft.trajectory_pos_km;
+    for (let i = 0; i < maxPts; i++) {
+      trajPositions[i * 3] = sc[i][0] * SCALE;
+      trajPositions[i * 3 + 1] = sc[i][2] * SCALE;
+      trajPositions[i * 3 + 2] = -sc[i][1] * SCALE;
+    }
+    trajGeo.setAttribute('position', new THREE.BufferAttribute(trajPositions, 3));
+    // Full trajectory (faint)
+    const fullTrajMat = new THREE.LineBasicMaterial({
+      color: 0xf0a030, transparent: true, opacity: 0.12,
+    });
+    scene.add(new THREE.Line(trajGeo, fullTrajMat));
+    // Active trajectory (bright, draw range updated in tick)
+    const activeTrajGeo = trajGeo.clone();
+    activeTrajGeo.setDrawRange(0, 0);
+    const activeTrajMat = new THREE.LineBasicMaterial({
+      color: 0xf0a030, transparent: true, opacity: 0.6,
+    });
+    trajLine = new THREE.Line(activeTrajGeo, activeTrajMat);
+    scene.add(trajLine);
+    console.log('Trajectory built:', maxPts, 'points');
+  } catch(e) { console.error('Trajectory error:', e); }
+
+  // Orion MPCV — refined procedural model with canvas textures
+  try {
+    const orion = new THREE.Group();
+    const S = 0.45;
+
+    // --- Canvas texture generators ---
+    function makeTileTexture(baseColor, lineColor, tileW, tileH, w, h) {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = baseColor; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = lineColor; ctx.lineWidth = 0.5;
+      for (let x = 0; x <= w; x += tileW) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+      for (let y = 0; y <= h; y += tileH) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function makeMLITexture() {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#b8a848';
+      ctx.fillRect(0, 0, 128, 128);
+      // Wrinkle pattern
+      for (let i = 0; i < 60; i++) {
+        ctx.strokeStyle = `rgba(${140+Math.random()*40},${120+Math.random()*40},${30+Math.random()*20},0.3)`;
+        ctx.lineWidth = 0.5 + Math.random();
+        ctx.beginPath();
+        const y = Math.random() * 128;
+        ctx.moveTo(0, y); ctx.bezierCurveTo(32, y+Math.random()*6-3, 96, y+Math.random()*6-3, 128, y+Math.random()*4-2);
+        ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    // --- Crew Module ---
+    const cmProfile = [
+      new THREE.Vector2(0, 0),
+      new THREE.Vector2(0.12*S, 0),
+      new THREE.Vector2(0.20*S, -0.08*S),
+      new THREE.Vector2(0.20*S, -0.25*S),
+      new THREE.Vector2(0.30*S, -0.35*S),
+      new THREE.Vector2(0.50*S, -0.65*S),
+      new THREE.Vector2(0.75*S, -1.0*S),
+      new THREE.Vector2(1.00*S, -1.3*S),
+      new THREE.Vector2(1.20*S, -1.55*S),
+      new THREE.Vector2(1.32*S, -1.70*S),
+      new THREE.Vector2(1.38*S, -1.78*S),
+      new THREE.Vector2(1.40*S, -1.82*S),
+      new THREE.Vector2(1.40*S, -1.90*S),
+      new THREE.Vector2(0, -1.90*S),
+    ];
+    const cmGeo = new THREE.LatheGeometry(cmProfile, 48);
+    const cmTex = makeTileTexture('#c8c0b8', 'rgba(100,95,85,0.25)', 6, 8, 128, 128);
+    cmTex.repeat.set(8, 4);
+    const cmMat = new THREE.MeshPhongMaterial({
+      map: cmTex, color: 0xd8d0c8, emissive: 0x181510,
+      shininess: 30, specular: 0x444444,
+    });
+    const cm = new THREE.Mesh(cmGeo, cmMat);
+    cm.position.y = 3.0*S;
+    orion.add(cm);
+
+    // Heat shield — AVCOAT ablator (dark charred brown)
+    const hsGeo = new THREE.CircleGeometry(1.40*S, 48);
+    const hsTex = makeTileTexture('#2a1a0a', 'rgba(60,40,15,0.3)', 10, 10, 64, 64);
+    hsTex.repeat.set(4, 4);
+    const hsMat = new THREE.MeshPhongMaterial({
+      map: hsTex, color: 0x3a2210, emissive: 0x080400, shininess: 2,
+    });
+    const hs = new THREE.Mesh(hsGeo, hsMat);
+    hs.rotation.x = Math.PI / 2;
+    hs.position.y = 3.0*S - 1.90*S;
+    orion.add(hs);
+
+    // --- CMA/SM adapter ring ---
+    const adapterGeo = new THREE.CylinderGeometry(1.38*S, 1.35*S, 0.15*S, 48);
+    const adapterMat = new THREE.MeshPhongMaterial({
+      color: 0x666666, emissive: 0x0a0a0a, shininess: 40, specular: 0x555555,
+    });
+    const adapter = new THREE.Mesh(adapterGeo, adapterMat);
+    adapter.position.y = 1.03*S;
+    orion.add(adapter);
+
+    // --- European Service Module ---
+    const esmProfile = [
+      new THREE.Vector2(1.35*S, 0),
+      new THREE.Vector2(1.38*S, -0.08*S),
+      new THREE.Vector2(1.38*S, -1.90*S),
+      new THREE.Vector2(1.30*S, -2.05*S),
+      new THREE.Vector2(1.0*S, -2.15*S),
+      new THREE.Vector2(0.6*S, -2.20*S),
+      new THREE.Vector2(0, -2.20*S),
+    ];
+    const esmGeo = new THREE.LatheGeometry(esmProfile, 48);
+    const mliTex = makeMLITexture();
+    mliTex.repeat.set(6, 3);
+    const esmMat = new THREE.MeshPhongMaterial({
+      map: mliTex, color: 0xc8b858, emissive: 0x1a1808,
+      shininess: 15, specular: 0x444422,
+    });
+    const esmMesh = new THREE.Mesh(esmGeo, esmMat);
+    esmMesh.position.y = 0.95*S;
+    orion.add(esmMesh);
+
+    // ESM radiator panels (8 white panels around cylinder)
+    for (let i = 0; i < 8; i++) {
+      const rpGeo = new THREE.PlaneGeometry(0.5*S, 1.6*S);
+      const rpMat = new THREE.MeshPhongMaterial({
+        color: 0xdddddd, emissive: 0x111111, shininess: 20, side: THREE.DoubleSide,
+      });
+      const rp = new THREE.Mesh(rpGeo, rpMat);
+      const angle = (i / 8) * Math.PI * 2;
+      rp.position.set(Math.cos(angle) * 1.40*S, 0, Math.sin(angle) * 1.40*S);
+      rp.rotation.y = angle + Math.PI / 2;
+      orion.add(rp);
+    }
+
+    // AJ10 engine bell
+    const bellProfile = [
+      new THREE.Vector2(0.12*S, 0),
+      new THREE.Vector2(0.16*S, -0.08*S),
+      new THREE.Vector2(0.28*S, -0.35*S),
+      new THREE.Vector2(0.38*S, -0.55*S),
+      new THREE.Vector2(0.42*S, -0.65*S),
+    ];
+    const bellGeo = new THREE.LatheGeometry(bellProfile, 32);
+    const bellMat = new THREE.MeshPhongMaterial({
+      color: 0x505050, emissive: 0x050505, shininess: 70, specular: 0x999999,
+      side: THREE.DoubleSide,
+    });
+    const bell = new THREE.Mesh(bellGeo, bellMat);
+    bell.position.y = -1.25*S;
+    orion.add(bell);
+
+    // --- Solar Array Wings (4 X-pattern) ---
+    const cellTex = makeTileTexture('#0a1230', 'rgba(30,50,100,0.35)', 6, 6, 128, 32);
+    cellTex.repeat.set(6, 1);
+    for (let i = 0; i < 4; i++) {
+      const panelGroup = new THREE.Group();
+      const angle = (i * Math.PI / 2) + Math.PI / 4;
+
+      // Two-segment panel (folded deployment)
+      for (let seg = 0; seg < 2; seg++) {
+        const pGeo = new THREE.BoxGeometry(2.8*S, 0.02*S, 0.85*S);
+        const pMat = new THREE.MeshPhongMaterial({
+          map: cellTex.clone(), color: 0x0c1838, emissive: 0x030810,
+          shininess: 90, specular: 0x3355aa, side: THREE.DoubleSide,
+        });
+        const panel = new THREE.Mesh(pGeo, pMat);
+        panel.position.x = (seg === 0 ? -1.4 : 1.4) * S;
+        panelGroup.add(panel);
+      }
+
+      // Deployment hinge
+      const hingeGeo = new THREE.CylinderGeometry(0.025*S, 0.025*S, 0.9*S, 6);
+      const hingeMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 40 });
+      const hinge = new THREE.Mesh(hingeGeo, hingeMat);
+      hinge.rotation.x = Math.PI / 2;
+      panelGroup.add(hinge);
+
+      // Arm from ESM to panel
+      const armGeo = new THREE.CylinderGeometry(0.025*S, 0.025*S, 1.2*S, 6);
+      const arm = new THREE.Mesh(armGeo, hingeMat.clone());
+      arm.rotation.z = Math.PI / 2;
+      arm.position.x = -2.4*S;
+      panelGroup.add(arm);
+
+      panelGroup.position.set(
+        Math.cos(angle) * 4.2*S,
+        0.15*S,
+        Math.sin(angle) * 4.2*S
+      );
+      panelGroup.rotation.y = angle;
+      orion.add(panelGroup);
+    }
+
+    scDot = orion;
+    scene.add(scDot);
+
+    // Glow sprite
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 64; glowCanvas.height = 64;
+    const gCtx = glowCanvas.getContext('2d');
+    const grad = gCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(240,160,48,0.6)');
+    grad.addColorStop(0.3, 'rgba(240,160,48,0.2)');
+    grad.addColorStop(0.7, 'rgba(240,160,48,0.03)');
+    grad.addColorStop(1, 'rgba(240,160,48,0)');
+    gCtx.fillStyle = grad;
+    gCtx.fillRect(0, 0, 64, 64);
+    const glowTex = new THREE.CanvasTexture(glowCanvas);
+    const spriteMat = new THREE.SpriteMaterial({
+      map: glowTex, transparent: true, opacity: 0.5,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    scGlow = new THREE.Sprite(spriteMat);
+    scGlow.scale.set(5, 5, 1);
+    scene.add(scGlow);
+    console.log('Orion MPCV built (LatheGeometry)');
+  } catch(e) { console.error('Spacecraft error:', e); }
+
+  // Starfield
+  const starGeo = new THREE.BufferGeometry();
+  const starVerts = new Float32Array(2000 * 3);
+  for (let i = 0; i < 2000; i++) {
+    const r = 800 + Math.random() * 400;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    starVerts[i*3] = r * Math.sin(phi) * Math.cos(theta);
+    starVerts[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    starVerts[i*3+2] = r * Math.cos(phi);
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starVerts, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0.6 });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  // --- CSS2D Label Renderer for 3D callouts ---
+  labelRenderer = new THREE.CSS2DRenderer();
+  labelRenderer.setSize(container.clientWidth, container.clientHeight);
+  labelRenderer.domElement.style.position = 'absolute';
+  labelRenderer.domElement.style.top = '0';
+  labelRenderer.domElement.style.left = '0';
+  labelRenderer.domElement.style.pointerEvents = 'none';
+  container.appendChild(labelRenderer.domElement);
+
+  // Earth label
+  const earthLabel = makeLabel('Earth', 'label-3d label-3d--earth');
+  earthLabel.position.set(0, EARTH_R_SCALED + 2, 0);
+  scene.add(earthLabel);
+
+  // Moon label (position updated in update3D)
+  moonLabel = makeLabel('Moon', 'label-3d label-3d--moon');
+  scene.add(moonLabel);
+
+  // Orion label (position updated in update3D)
+  orionLabel = makeLabel('Orion', 'label-3d label-3d--orion');
+  scene.add(orionLabel);
+
+  // Event markers + callout labels offset from trajectory with leader lines
+  eventMarkers = [];
+  const sc = DATA.spacecraft.trajectory_pos_km;
+  for (const evt of DATA.events) {
+    if (evt.epoch_offset_seconds < 0) continue;
+    const eIdx = Math.min(Math.floor(evt.epoch_offset_seconds / DATA.time.step_seconds), sc.length - 1);
+    if (eIdx < 0) continue;
+    const ePos = sc[eIdx];
+
+    // Position on trajectory
+    const trajPt = new THREE.Vector3(ePos[0] * SCALE, ePos[2] * SCALE, -ePos[1] * SCALE);
+
+    // Small dot on the trajectory line
+    const dotGeo = new THREE.SphereGeometry(0.3, 8, 6);
+    const dotMat = new THREE.MeshBasicMaterial({ color: 0xf0a030, transparent: true, opacity: 0.6 });
+    const dot = new THREE.Mesh(dotGeo, dotMat);
+    dot.position.copy(trajPt);
+    scene.add(dot);
+
+    // Offset the label away from Earth (outward + up)
+    const dir = trajPt.clone().normalize();
+    const offsetDist = 15; // scene units away from trajectory
+    const labelPos = trajPt.clone().add(dir.multiplyScalar(offsetDist));
+    labelPos.y += 5; // additional lift
+
+    // Leader line from dot to label position
+    const lineGeo = new THREE.BufferGeometry().setFromPoints([trajPt, labelPos]);
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xf0a030, transparent: true, opacity: 0.2 });
+    const line = new THREE.Line(lineGeo, lineMat);
+    scene.add(line);
+
+    // Label at offset position
+    const shortName = evt.name.replace(' (cancelled)', '').replace('Lunar ', '');
+    const label = makeLabel(shortName, 'label-3d label-3d--event');
+    label.position.copy(labelPos);
+    scene.add(label);
+
+    eventMarkers.push({ dot, line, label, offset: evt.epoch_offset_seconds, type: evt.type });
+  }
+
+  // Resize handler
+  function updateCameraOffset() {
+    const w = container.clientWidth, h = container.clientHeight;
+    const panelW = 340; // right panel width
+    // Shift camera center to the middle of the open canvas area
+    // setViewOffset(fullW, fullH, offsetX, offsetY, viewW, viewH)
+    camera.aspect = w / h;
+    camera.setViewOffset(w, h, panelW / 2, 0, w, h);
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    labelRenderer.setSize(w, h);
+  }
+  updateCameraOffset();
+  window.addEventListener('resize', updateCameraOffset);
+}
+
+function makeLabel(text, className) {
+  const div = document.createElement('div');
+  div.className = className;
+  div.textContent = text;
+  const label = new THREE.CSS2DObject(div);
+  return label;
+}
+
+function update3D(sample) {
+  if (!scene) return;
+
+  // Earth rotation — in ecliptic ECI frame, Earth's spin axis is tilted by obliquity.
+  // We apply obliquity tilt to the Earth mesh, then rotate around its local Y (spin axis).
+  if (earthMesh) {
+    const OBL_E = 23.4393 * Math.PI / 180;
+    const EARTH_ROT_RATE = 2 * Math.PI / 86164;
+    // GMST at tracking start epoch (April 2, 02:00 UTC)
+    // Computed from the same formula as launch GMST
+    const JD_EPOCH = 2461132.583333;
+    const T_c = (JD_EPOCH - 2451545.0) / 36525;
+    const GMST0_deg = (280.46061837 + 360.98564736629 * (JD_EPOCH - 2451545.0)
+      + 0.000387933 * T_c * T_c) % 360;
+    const GMST0 = GMST0_deg * Math.PI / 180;
+
+    // Reset rotation, apply obliquity tilt (x-axis), then spin
+    earthMesh.rotation.set(0, 0, 0);
+    earthMesh.rotation.x = -OBL_E; // tilt spin axis in ecliptic frame
+    earthMesh.rotation.y = GMST0 + simTime * EARTH_ROT_RATE;
+  }
+
+  // Moon position
+  if (moonMesh) {
+    moonMesh.position.set(
+      sample.moonPos[0] * SCALE,
+      sample.moonPos[2] * SCALE,
+      -sample.moonPos[1] * SCALE
+    );
+  }
+
+  // Spacecraft position + orientation along velocity vector
+  if (scDot) {
+    const scPos = new THREE.Vector3(
+      sample.pos[0] * SCALE,
+      sample.pos[2] * SCALE,
+      -sample.pos[1] * SCALE
+    );
+    scDot.position.copy(scPos);
+
+    // Orient capsule: Y-axis (up in model) aligned to velocity direction
+    const velDir = new THREE.Vector3(
+      sample.vel[0], sample.vel[2], -sample.vel[1]
+    ).normalize();
+    const up = new THREE.Vector3(0, 1, 0);
+    const quat = new THREE.Quaternion().setFromUnitVectors(up, velDir);
+    scDot.quaternion.copy(quat);
+  }
+  if (scGlow) scGlow.position.copy(scDot.position);
+
+  // Active trajectory draw count
+  if (trajLine) {
+    trajLine.geometry.setDrawRange(0, Math.min(sample.idx + 1, DATA.spacecraft.trajectory_pos_km.length));
+  }
+
+  // Position Moon + Orion labels
+  if (moonLabel && moonMesh) {
+    moonLabel.position.copy(moonMesh.position);
+    moonLabel.position.y += MOON_R_SCALED + 1.5;
+  }
+  if (orionLabel && scDot) {
+    orionLabel.position.copy(scDot.position);
+    orionLabel.position.y += 3;
+  }
+
+  // Show/hide event callouts based on playback progress
+  for (const em of eventMarkers) {
+    const isPast = em.offset <= simTime;
+    const isCurrent = isPast && simTime - em.offset < 3600;
+    em.dot.visible = isPast;
+    em.line.visible = isPast;
+    em.label.visible = isPast;
+    em.dot.material.opacity = isCurrent ? 0.9 : 0.5;
+    em.line.material.opacity = isCurrent ? 0.35 : 0.15;
+    if (em.label.element) {
+      em.label.element.className = 'label-3d label-3d--event' + (isCurrent ? ' active' : '');
+    }
+  }
+
+  // Camera target tracking — only when not manually panned
+  if (!userPanning) {
+    const targetPos = new THREE.Vector3(0, 0, 0);
+    if (cameraTarget === 'moon' && moonMesh) {
+      targetPos.copy(moonMesh.position);
+    } else if (cameraTarget === 'orion' && scDot) {
+      targetPos.copy(scDot.position);
+    }
+    controls.target.lerp(targetPos, 0.05);
+  }
+
+  // Render
+  controls.update();
+  renderer.render(scene, camera);
+  if (labelRenderer) labelRenderer.render(scene, camera);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FLIGHT DYNAMICS GRAPH
+   ═══════════════════════════════════════════════════════════════ */
+const graphTraces = [
+  { key: 'alt', label: 'ALT', color: '#378add' },
+  { key: 'speed', label: 'VEL', color: '#f0a030' },
+  { key: 'phi', label: 'Φ', color: '#9a6dd7' },
+  { key: 'lunarDist', label: 'LUNAR', color: '#40e8d0' },
+];
+let graphData = []; // pre-computed from full trajectory at init
+
+function drawFlightGraph(canvas, frac) {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = Math.round(rect.width*DPR), h = Math.round(rect.height*DPR);
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const pad = {l:4*DPR, r:4*DPR, t:4*DPR, b:4*DPR};
+  const gw = w-pad.l-pad.r, gh = h-pad.t-pad.b;
+
+  // Etched grid
+  for (let i=1;i<=9;i++) {
+    const x = pad.l+(i/10)*gw;
+    ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+gh); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.03)';
+    ctx.beginPath(); ctx.moveTo(x+1,pad.t); ctx.lineTo(x+1,pad.t+gh); ctx.stroke();
+  }
+
+  if (graphData.length < 2) return;
+
+  const maxes = {};
+  for (const tr of graphTraces) {
+    maxes[tr.key] = tr._max || 1;
+  }
+
+  for (const tr of graphTraces) {
+    const pts = [];
+    for (const d of graphData) {
+      if (d.t > frac) break; // only draw up to current playhead
+      pts.push({
+        x: pad.l + d.t * gw,
+        y: pad.t + gh * (1 - Math.abs(d[tr.key]) / maxes[tr.key])
+      });
+    }
+    if (pts.length < 2) continue;
+    function stroke(c) { c.beginPath(); c.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) c.lineTo(pts[i].x,pts[i].y); c.stroke(); }
+    // Bloom
+    ctx.save(); ctx.shadowColor=tr.color; ctx.shadowBlur=8*DPR;
+    ctx.strokeStyle=tr.color; ctx.lineWidth=2.5*DPR; ctx.globalAlpha=0.12;
+    stroke(ctx); ctx.restore();
+    // Core
+    ctx.strokeStyle=tr.color; ctx.lineWidth=1.2*DPR; ctx.globalAlpha=0.85;
+    stroke(ctx); ctx.globalAlpha=1;
+  }
+
+  // Playhead
+  const px = pad.l + frac * gw;
+  ctx.beginPath(); ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=1*DPR;
+  ctx.moveTo(px,pad.t); ctx.lineTo(px,pad.t+gh); ctx.stroke();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI INITIALIZATION
+   ═══════════════════════════════════════════════════════════════ */
+function initUI() {
+  // Build tape gauges
+  const tapes = [
+    { id: 'tapeVel', min: 0, max: 12, color: '#f0a030', major: 2, half: 1, minor: 4, unit: 'km/s' },
+    { id: 'tapeAlt', min: 0, max: 500, color: '#378add', major: 100, half: 50, minor: 4, unit: 'Mm' },
+    { id: 'tapeLunar', min: 0, max: 500, color: '#40e8d0', major: 100, half: 50, minor: 4, unit: 'Mm' },
+    { id: 'tapePhi', min: -70, max: 0, color: '#9a6dd7', major: 10, half: 5, minor: 4, unit: 'MJ/kg' },
+  ];
+  for (const t of tapes) {
+    const el = document.getElementById(t.id);
+    const svg = el.querySelector('svg');
+    buildTapeSVG(svg, t.min, t.max, t.color, t.major, t.half, t.minor, t.unit);
+  }
+
+  // Pre-compute graph data from full trajectory (sample every 60th point = 1hr)
+  const sc = DATA.spacecraft.trajectory_pos_km;
+  const sv = DATA.spacecraft.trajectory_vel_km_s;
+  const mn = DATA.moon.trajectory_pos_km;
+  const dur = DATA.time.duration_seconds;
+  graphData = [];
+  for (let i = 0; i < sc.length; i += 60) {
+    const pos = sc[i], vel = sv[i], moonP = mn[i];
+    const r = Math.sqrt(pos[0]**2 + pos[1]**2 + pos[2]**2);
+    graphData.push({
+      t: (i * DATA.time.step_seconds) / dur, // fractional 0-1
+      alt: (r - EARTH_R) / 1000, // Mm
+      speed: Math.sqrt(vel[0]**2 + vel[1]**2 + vel[2]**2),
+      phi: (-398600.4418 / r) / 1e6,
+      lunarDist: Math.sqrt((pos[0]-moonP[0])**2 + (pos[1]-moonP[1])**2 + (pos[2]-moonP[2])**2) / 1000,
+    });
+  }
+  // Pre-compute maxes for stable axis scaling
+  for (const tr of graphTraces) {
+    let mx = 0;
+    for (const d of graphData) { const v = Math.abs(d[tr.key]); if (v > mx) mx = v; }
+    tr._max = mx || 1;
+  }
+
+  // Scrub bar event markers
+  const scrubEvents = document.getElementById('scrubEvents');
+  const totalDur = DATA.time.duration_seconds;
+  for (const evt of DATA.events) {
+    if (evt.epoch_offset_seconds < 0) continue;
+    const frac = evt.epoch_offset_seconds / totalDur;
+    const marker = document.createElement('div');
+    marker.className = 'playback__scrub-marker';
+    marker.style.left = (frac * 100) + '%';
+    marker.title = evt.name;
+    scrubEvents.appendChild(marker);
+  }
+
+  // Build event log with expandable details
+  const log = document.getElementById('eventLog');
+  const typeColors = { burn: '#f0a030', launch: '#378add', perilune: '#40e8d0',
+    separation: '#707880', milestone: '#9a6dd7', cancelled: '#404040',
+    splashdown: '#e05577', splashdown_predicted: '#e05577' };
+
+  // Generate technical subtitle for each event — every event gets one
+  function eventSubtitle(evt) {
+    if (evt.type === 'launch') return 'SLS Block 1 · LC-39B · 8.8M lbs thrust · crew of 4';
+    if (evt.type === 'separation' && evt.name.includes('Core')) return 'Core stage jettison · ICPS coast phase begins';
+    if (evt.type === 'separation' && evt.name.includes('Orion')) return 'Orion free-flight begins · ICPS disposal burn';
+    if (evt.type === 'burn' && evt.name.includes('perigee')) return 'ICPS HEO insertion · apogee 76,757 km · 23.5h period';
+    if (evt.type === 'burn' && evt.name === 'TLI') return 'Δv ' + (evt.dv_magnitude_ms||388) + ' m/s · ' + (evt.duration_seconds||350) + 's · ESM AJ10 main engine';
+    if (evt.type === 'burn' && evt.name === 'OTC-3') return 'Δv ' + (evt.dv_magnitude_ms||'~12') + ' m/s · course correction · FD5';
+    if (evt.type === 'burn' && evt.name === 'RTC-1') return 'Δv ' + (evt.dv_magnitude_ms||'490') + ' m/s · first return correction · FD7';
+    if (evt.type === 'burn' && evt.name === 'RTC-2') return 'Δv ' + (evt.dv_magnitude_ms||'400') + ' m/s · second return correction · FD9';
+    if (evt.type === 'burn' && evt.name === 'RTC-3') return 'Δv ' + (evt.dv_magnitude_ms||'8') + ' m/s · final entry alignment · FD10';
+    if (evt.type === 'cancelled' && evt.name.includes('OTC-1')) return 'Cancelled — TLI was nominal, no correction needed';
+    if (evt.type === 'cancelled' && evt.name.includes('OTC-2')) return 'Cancelled — translunar coast on target';
+    if (evt.type === 'perilune') return '6,546 km alt · 8,283 km from center · free-return slingshot';
+    if (evt.type === 'milestone' && evt.name.includes('Tracking')) return 'JPL Horizons epoch · state injection begins';
+    if (evt.type === 'milestone' && evt.name.includes('entry')) return '122 km altitude · Mach 32 · hypersonic re-entry';
+    if (evt.type === 'splashdown_predicted') return 'Sim prediction · ~800 km off (Orion bank guidance N/A)';
+    if (evt.type === 'splashdown') return 'Pacific Ocean · ~50 mi off San Diego · USS recovery';
+    return evt.description ? evt.description.slice(0, 60) : '—';
+  }
+
+  // v2 transparency: methodology + accuracy + known limitations per event
+  function eventTransparency(evt) {
+    const t = {
+      'Liftoff':
+        'Exact — hardcoded to NASA\'s confirmed launch time (April 1, 2026, 22:35:12 UTC). No model involved. The pre-tracking trajectory from liftoff to Horizons epoch is a synthetic smoothstep interpolation for visualization only — not physics-integrated.',
+
+      'Core stage / ICPS sep':
+        'Timing from NASA press kit. Approximate — the ascent timeline is interpolated from SLS milestones, not propulsively simulated. Actual separation altitude and velocity are not modeled.',
+
+      'ICPS perigee raise':
+        'Timing from NASA blog. The perigee raise placed Orion in a ~23.5-hour HEO (76,757 km apogee). In v2, this burn epoch comes from Horizons state injection — the simulator resets spacecraft state to Horizons values at this time, so the post-burn trajectory is exact by construction.',
+
+      'Orion / ICPS sep':
+        'Timing from NASA mission timeline. After separation, ICPS performed a disposal burn. Orion\'s subsequent trajectory is tracked by JPL Horizons from the next epoch.',
+
+      'Tracking begins':
+        'This is the first JPL Horizons sample (April 2, 02:00 UTC). All spacecraft positions from this point forward are state-injected from Horizons at 30-minute cadence — effectively ground truth. Position accuracy: 0.05 km RMS / 0.08 km max over the full 9-day mission.',
+
+      'TLI':
+        'Trans-Lunar Injection. ESM AJ10 main engine, Δv 388 m/s, 350-second burn at HEO perigee. Epoch from NASA blog (April 2, 23:49 UTC) cross-validated against Horizons energy method. In v2, the burn is modeled via state injection — spacecraft state is reset to Horizons values at this epoch. The trajectory before and after TLI matches Horizons to sub-km precision.',
+
+      'OTC-1 (cancelled)':
+        'Outbound Trajectory Correction 1 was scheduled for Flight Day 3 but cancelled by mission control — the TLI placed Orion on a near-nominal translunar trajectory requiring no correction. Exact — this is a confirmed operational decision, not a model prediction.',
+
+      'OTC-2 (cancelled)':
+        'Outbound Trajectory Correction 2 was also cancelled. The translunar coast remained nominal through Flight Day 4. Exact — confirmed by NASA mission blog.',
+
+      'OTC-3':
+        'The only outbound correction that fired. 17.5-second burn on Flight Day 5. Source: NASA blog April 5 + Horizons discontinuity detection. In v2, modeled via state injection at this epoch. The post-OTC-3 trajectory matches Horizons to <0.1 km.',
+
+      'Lunar perilune':
+        'Closest approach to the Moon — 6,546 km above the lunar surface (8,283 km from Moon center). Free-return slingshot trajectory. In v2, the Moon position comes from a Chebyshev fit to JPL DE440 ephemeris (sub-millimeter accuracy). The spacecraft-Moon distance at perilune matches NASA\'s published value to within 1 km. This is the mission\'s most gravitationally dynamic phase — small position errors here amplify exponentially on the return leg.',
+
+      'RTC-1':
+        'First return trajectory correction. Δv ~0.49 m/s. Source: NASA blog April 7 (FD7). Modeled via state injection — spacecraft state reset to Horizons values. The naive Δv extraction from Horizons velocity differences failed for small RTC burns because gravity contamination over the 30-min sampling window dominates the signal (1.8× to 13× off published values). State injection bypasses this problem entirely.',
+
+      'RTC-2':
+        'Second return correction. Δv ~0.40 m/s. Source: NASA blog April 9 (FD9). Same state injection methodology as RTC-1. The return leg trajectory between RTC burns matches Horizons to <1 km — the cislunar gravity assist creates chaotic sensitivity, but 30-minute injection cadence keeps errors bounded.',
+
+      'RTC-3':
+        'Final entry alignment burn. Δv ~8 m/s. Source: NASA blog April 10 (FD10). This burn sets the precise entry corridor angle. State-injected from Horizons. Post-RTC-3 coast to atmospheric entry matches Horizons to <0.5 km.',
+
+      'Atmospheric entry interface':
+        'Orion crossed 122 km altitude at approximately Mach 32, beginning hypersonic re-entry. In v2, the entry phase uses a simplified atmospheric model (exponential density + constant L/D = 0.05). The real Orion uses closed-loop bank-angle modulation to steer toward the landing target — this guidance law is not public, so our entry prediction diverges from the actual flight path.',
+
+      'Splashdown (simulated)':
+        'v2 simulator prediction using ballistic + constant L/D entry model. Lands approximately 803 km from NASA\'s published target zone. The error is entirely due to the missing bank-modulation guidance — the spacecraft trajectory up to entry interface is accurate to <0.5 km. Constant L/D values ranging from 0 (ballistic) to 0.15 were tested; L/D = 0.05 gives the closest match but cannot replicate the real skip-entry maneuver.',
+
+      'Splashdown (published)':
+        'NASA\'s published splashdown: Pacific Ocean, approximately 50 miles off the coast of San Diego, California. April 11, 2026, 00:07 UTC. Recovery by USS Portland. This is the confirmed ground truth — the v2 simulator\'s atmospheric prediction is 803 km off this point.',
+    };
+    return t[evt.name] || evt.description || null;
+  }
+
+  for (const evt of DATA.events) {
+    const item = document.createElement('div');
+    item.className = 'event-log__item future';
+    if (evt.type === 'cancelled') item.classList.add('cancelled');
+    item.dataset.offset = evt.epoch_offset_seconds;
+
+    // Compute MET string
+    const liftoffOffset = DATA._launchOffset - 10;
+    const evtMet = evt.epoch_offset_seconds - liftoffOffset;
+    const sign = evtMet >= 0 ? '+' : '-';
+    const abs = Math.abs(Math.floor(evtMet));
+    const d = Math.floor(abs / 86400), h = Math.floor((abs % 86400) / 3600);
+    const m = Math.floor((abs % 3600) / 60);
+    const metStr = `T${sign}${d}d${String(h).padStart(2,'0')}h`;
+
+    // Left side: dot + two-tier text
+    const left = document.createElement('div');
+    left.className = 'event-log__left';
+    const dot = document.createElement('div');
+    dot.className = 'event-log__dot';
+    dot.style.background = typeColors[evt.type] || '#707880';
+    const text = document.createElement('div');
+    text.className = 'event-log__text';
+    const name = document.createElement('div');
+    name.className = 'event-log__name';
+    name.textContent = evt.name;
+    text.appendChild(name);
+    const sub = eventSubtitle(evt);
+    if (sub) {
+      const subEl = document.createElement('div');
+      subEl.className = 'event-log__sub';
+      subEl.textContent = sub;
+      text.appendChild(subEl);
+    }
+    left.appendChild(dot);
+    left.appendChild(text);
+    item.appendChild(left);
+
+    // Right side: MET
+    const met = document.createElement('div');
+    met.className = 'event-log__met';
+    met.textContent = metStr;
+    item.appendChild(met);
+
+    // Expandable detail — v2 transparency descriptions
+    const transparency = eventTransparency(evt);
+    if (transparency) {
+      const detail = document.createElement('div');
+      detail.className = 'event-log__detail';
+      detail.textContent = transparency;
+      item.appendChild(detail);
+    }
+
+    // Click to expand/collapse
+    item.addEventListener('click', function() {
+      const wasExpanded = this.classList.contains('expanded');
+      log.querySelectorAll('.event-log__item.expanded').forEach(el => el.classList.remove('expanded'));
+      if (!wasExpanded) {
+        this.classList.add('expanded');
+        userExpandedEvent = true;
+        clearTimeout(autoScrollTimer);
+        autoScrollTimer = setTimeout(() => {
+          this.classList.remove('expanded');
+          userExpandedEvent = false;
+        }, 5000);
+      } else {
+        userExpandedEvent = false;
+      }
+    });
+
+    log.appendChild(item);
+  }
+
+  // Graph legend
+  const legend = document.getElementById('graphLegend');
+  for (const tr of graphTraces) {
+    const item = document.createElement('div');
+    item.className = 'graph-legend__item';
+    item.innerHTML = `<div class="graph-legend__swatch" style="background:${tr.color}"></div>${tr.label}`;
+    legend.appendChild(item);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAYBACK CONTROLS
+   ═══════════════════════════════════════════════════════════════ */
+// Pause auto-scroll when user manually scrolls the event log
+document.getElementById('eventLog')?.addEventListener('scroll', function() {
+  if (!userExpandedEvent) {
+    userExpandedEvent = true;
+    clearTimeout(userScrollTimer);
+    userScrollTimer = setTimeout(() => { userExpandedEvent = false; }, 3000);
+  }
+}, { passive: true });
+
+function positionFloatingPanels() {
+  const topPanels = document.querySelector('.top-panels');
+  const floatingPanels = document.querySelector('.floating-panels');
+  if (topPanels && floatingPanels) {
+    const bottom = topPanels.getBoundingClientRect().bottom;
+    floatingPanels.style.top = (bottom + 10) + 'px'; // 10px gap
+  }
+}
+
+document.getElementById('btnPlay').addEventListener('click', function() {
+  playing = !playing;
+  this.textContent = playing ? '⏸' : '▶';
+  this.classList.toggle('active', playing);
+});
+// Initial button state
+document.getElementById('btnPlay').textContent = '▶';
+
+// Camera target selector
+document.querySelectorAll('#cameraTarget .playback__speed-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('#cameraTarget .playback__speed-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    cameraTarget = this.dataset.target;
+    userPanning = false; // resume auto-tracking
+  });
+});
+
+document.querySelectorAll('.playback__speed-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.playback__speed-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    speedMultiplier = parseInt(this.dataset.mult);
+  });
+});
+
+// Info panel toggle
+document.getElementById('btnInfo').addEventListener('click', function() {
+  document.getElementById('infoPanel').classList.toggle('visible');
+  this.classList.toggle('active');
+});
+document.getElementById('btnInfoClose').addEventListener('click', function() {
+  document.getElementById('infoPanel').classList.remove('visible');
+  document.getElementById('btnInfo').classList.remove('active');
+});
+
+// Scrub bar
+const scrubEl = document.getElementById('scrub');
+let scrubbing = false;
+scrubEl.addEventListener('mousedown', e => {
+  scrubbing = true;
+  scrubTo(e);
+});
+document.addEventListener('mousemove', e => { if (scrubbing) scrubTo(e); });
+document.addEventListener('mouseup', () => { scrubbing = false; });
+function scrubTo(e) {
+  const rect = scrubEl.getBoundingClientRect();
+  const frac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  simTime = frac * DATA.time.duration_seconds;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN LOOP
+   ═══════════════════════════════════════════════════════════════ */
+let lastFrame = 0;
+
+function tick(ts) {
+  const dt = lastFrame ? (ts - lastFrame) / 1000 : 0;
+  lastFrame = ts;
+
+  if (playing && DATA) {
+    simTime += dt * speedMultiplier;
+    if (simTime > DATA.time.duration_seconds) simTime = 0;
+  }
+
+  if (DATA) {
+    const sample = getSampleAtTime(simTime);
+    const frac = simTime / DATA.time.duration_seconds;
+
+    // Update 3D trajectory
+    update3D(sample);
+
+    // Update tape gauges
+    updateTape(document.getElementById('tapeVel'), sample.speed, 0, 12);
+    updateTape(document.getElementById('tapeAlt'), sample.alt / 1000, 0, 500); // Mm
+    updateTape(document.getElementById('tapeLunar'), sample.lunarDist / 1000, 0, 500);
+    updateTape(document.getElementById('tapePhi'), sample.phi / 1e6, -70, 0); // MJ/kg
+
+    // Flight dynamics graph — pre-computed data, playhead tracks current time
+    drawFlightGraph(document.getElementById('graphCanvas'), frac);
+
+    // Update scrub bar
+    document.getElementById('scrubFill').style.width = (frac * 100) + '%';
+
+    // Update MET display — relative to liftoff
+    const liftoffTime = DATA._launchOffset - 10; // liftoff is 10s after prepend start
+    const met = simTime - liftoffTime; // seconds since liftoff (negative before)
+    const sign = met >= 0 ? '+' : '-';
+    const absMet = Math.abs(Math.floor(met));
+    const days = Math.floor(absMet / 86400);
+    const hrs = Math.floor((absMet % 86400) / 3600);
+    const mins = Math.floor((absMet % 3600) / 60);
+    const secs = absMet % 60;
+    document.getElementById('metDisplay').textContent =
+      `T${sign}${String(days).padStart(2,'0')}:${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+    // Update event log — mark past/current/future + update relative T+/-
+    let currentEvent = null;
+    let currentItem = null;
+    const logItems = document.querySelectorAll('.event-log__item');
+    logItems.forEach(item => {
+      const offset = parseFloat(item.dataset.offset);
+      item.classList.remove('active', 'current', 'future');
+      if (offset <= simTime) {
+        item.classList.add('active');
+        currentEvent = item.querySelector('.event-log__name')?.textContent;
+        currentItem = item;
+      } else {
+        item.classList.add('future');
+      }
+
+      // Update relative MET badge — adaptive two-pair: DD:HH or HH:MM or MM:SS
+      const metEl = item.querySelector('.event-log__met');
+      if (metEl) {
+        const delta = offset - simTime;
+        const sign = delta <= 0 ? '+' : '-';
+        const abs = Math.abs(Math.floor(delta));
+        const d = Math.floor(abs / 86400);
+        const h = Math.floor((abs % 86400) / 3600);
+        const m = Math.floor((abs % 3600) / 60);
+        const s = abs % 60;
+        if (d > 0) {
+          metEl.textContent = `T${sign}${String(d).padStart(2,'0')}d:${String(h).padStart(2,'0')}h`;
+        } else if (h > 0) {
+          metEl.textContent = `T${sign}${String(h).padStart(2,'0')}h:${String(m).padStart(2,'0')}m`;
+        } else {
+          metEl.textContent = `T${sign}${String(m).padStart(2,'0')}m:${String(s).padStart(2,'0')}s`;
+        }
+      }
+    });
+    // Mark the most recent past event as "current"
+    if (currentItem) {
+      currentItem.classList.add('current');
+    }
+    document.getElementById('eventDisplay').textContent = currentEvent || '—';
+
+    // Auto-scroll to current event (unless user is interacting)
+    if (currentItem && !userExpandedEvent && playing) {
+      const logEl = document.getElementById('eventLog');
+      const itemTop = currentItem.offsetTop;
+      const logH = logEl.clientHeight;
+      const targetScroll = itemTop - logH / 2 + currentItem.offsetHeight / 2;
+      logEl.scrollTop = targetScroll;
+    }
+  }
+
+  requestAnimationFrame(tick);
+}
+
+loadData();
+</script>
+
+</body>
+</html>
