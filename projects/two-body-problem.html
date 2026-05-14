@@ -3,407 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Two-Body Gravitational Free Fall - Peirastes</title>
-
     <meta name="description" content="Analysis of two equal masses falling under mutual gravitational attraction, comparing exact solutions with kinematic approximations.">
     <meta property="og:title" content="Two-Body Gravitational Free Fall - Peirastes">
     <meta property="og:description" content="Analysis of two equal masses falling under mutual gravitational attraction, comparing exact solutions with kinematic approximations.">
     <meta property="og:type" content="article">
-
     <meta property="og:url" content="https://peirastes.com/projects/two-body-problem.html">
-
     <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
-
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0d10">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/cinematic.css">
 
     <!-- MathJax for equation rendering -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-    <style>
-        /* ====================================================================
-           TREATISE PAGE — Template-specific styles
-           Narrow, tall, academic layout for long-form scholarly content.
-           ==================================================================== */
-
-        /* --- Abstract / Summary Block --- */
-        .abstract {
-            background: var(--bg-card);
-            border-left: 4px solid var(--primary-accent);
-            border-radius: 0 8px 8px 0;
-            padding: 1.25rem 1.5rem;
-            margin: 1.5rem 0 2rem 0;
-            font-size: 1rem;
-            line-height: 1.7;
-            color: var(--text-secondary);
-        }
-
-        .abstract h3 {
-            font-family: 'Cinzel', serif;
-            font-size: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin: 0 0 0.5rem 0;
-            color: var(--primary-accent);
-        }
-
-        /* --- Publication metadata --- */
-        .page-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 1rem 1.25rem;
-            margin: 1rem 0 1.5rem 0;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        .page-meta .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .page-meta .meta-label {
-            font-weight: 700;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-        }
-        .meta-download {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 6px;
-            background: var(--primary-accent);
-            color: white;
-            text-decoration: none;
-            font-size: 1rem;
-            transition: opacity 0.2s;
-        }
-        .meta-download:hover {
-            opacity: 0.8;
-        }
-
-        /* --- Treatise typography overrides --- */
-        .content-body {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem 2rem 1.5rem;
-            font-size: 1.1rem;
-            line-height: 1.8;
-        }
-
-        .content-body h2 {
-            font-family: 'Cinzel', serif;
-            font-weight: 600;
-            font-size: 1.6rem;
-            margin-top: 2.5rem;
-            border-bottom: 3px solid var(--primary-accent);
-            padding-bottom: 0.4rem;
-        }
-
-        .content-body h3 {
-            font-family: 'Cinzel', serif;
-            font-weight: 500;
-            font-size: 1.25rem;
-            margin-top: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .content-body h4 {
-            font-family: 'Lato', sans-serif;
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin-top: 1.5rem;
-            color: var(--text-secondary);
-        }
-
-        .content-body p {
-            text-align: justify;
-            margin-bottom: 1rem;
-        }
-
-        /* --- Blockquote with orange left border --- */
-        .content-body blockquote {
-            border-left: 4px solid var(--primary-accent);
-            background-color: rgba(255, 85, 0, 0.03);
-            border-radius: 0 4px 4px 0;
-            padding: 0.75rem 1rem;
-            margin: 1.5rem 0;
-            font-style: italic;
-            color: var(--text-secondary);
-        }
-
-        /* --- Figure captions --- */
-        .content-body figure {
-            margin: 2rem 0;
-            text-align: center;
-        }
-
-        .content-body figure img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px var(--shadow-sm);
-        }
-
-        .content-body figcaption {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-top: 0;
-            font-style: italic;
-            line-height: 1.5;
-        }
-
-        /* --- Math display blocks: horizontal scroll on mobile --- */
-        .content-body .math.display {
-            overflow-x: auto;
-        }
-
-        /* --- Download buttons row --- */
-        .download-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin: 1.5rem 0;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            background-color: var(--primary-accent);
-            color: #ffffff;
-            padding: 0.6rem 1.2rem;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background-color 0.2s ease, transform 0.15s ease;
-        }
-
-        .download-btn:visited {
-            color: #ffffff;
-        }
-
-        .download-btn:hover {
-            background-color: var(--primary-accent-hover);
-            transform: translateY(-1px);
-            opacity: 1;
-        }
-
-        /* --- Cross-links section --- */
-        .cross-links {
-            margin-top: 3rem;
-            padding-top: 1.5rem;
-            border-top: 2px solid var(--border-light);
-        }
-
-        .cross-links h3 {
-            font-family: 'Cinzel', serif;
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-            border-bottom: none;
-        }
-
-        .cross-links-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .cross-link-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-left: 4px solid var(--secondary-accent);
-            border-radius: 0 8px 8px 0;
-            padding: 1rem 1.25rem;
-            transition: box-shadow 0.3s ease;
-        }
-
-        .cross-link-card:hover {
-            box-shadow: 0 2px 12px var(--shadow-sm);
-        }
-
-        .cross-link-card .label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
-        }
-
-        .cross-link-card a {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .cross-link-card p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 0.25rem 0 0 0;
-            text-align: left;
-        }
-
-        /* --- Table of Contents (inline) --- */
-        .toc {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 1rem 1.5rem;
-            margin: 1.5rem 0 2rem 0;
-        }
-
-        .toc summary {
-            font-family: 'Cinzel', serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--primary-accent);
-            cursor: pointer;
-            list-style: none;
-        }
-        .toc summary::-webkit-details-marker { display: none; }
-        .toc summary::before {
-            content: '\25B8 ';
-            display: inline-block;
-        }
-        .toc[open] summary::before {
-            content: '\25BE ';
-        }
-        .toc ol {
-            margin-top: 0.5rem;
-        }
-
-        .toc ol {
-            margin: 0;
-            padding-left: 1.5rem;
-        }
-
-        .toc li {
-            margin-bottom: 0.3rem;
-            font-size: 0.95rem;
-        }
-
-        .toc a {
-            text-decoration: none;
-        }
-
-        .toc a:hover {
-            text-decoration: underline;
-        }
-
-        /* --- Responsive --- */
-        @media (max-width: 768px) {
-            .content-body {
-                padding: 0.75rem;
-                font-size: 1rem;
-                line-height: 1.7;
-            }
-
-            .content-body h2 {
-                font-size: 1.3rem;
-            }
-
-            .content-body h3 {
-                font-size: 1.1rem;
-            }
-
-            .cross-links-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .download-row {
-                flex-direction: column;
-            }
-
-            .download-btn {
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .content-body {
-                padding: 0.5rem;
-                font-size: 0.95rem;
-            }
-        }
-    </style>
-
-    <script src="../js/main.js"></script>
 </head>
-
 <body>
-    <header>
-        <h1>Peirastes</h1>
-        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
-    </header>
 
-    <nav>
-        <a href="../index.html">Home</a>
-        <a href="../about.html">About</a>
-        <a href="../all-projects.html">Projects</a>
-        <a href="../timeline.html">Physics Timeline</a>
-        <a href="../quotes.html">Quotes</a>
-    </nav>
+    <div class="bg" aria-hidden="true">
+        <div class="bg__image"></div>
+        <div class="bg__vignette"></div>
+        <div class="bg__grain"></div>
+    </div>
 
-    <div class="content">
-        <main>
-            <div class="content-body">
+    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
 
-                    <!-- Page title -->
-                    <h2>Two-Body Gravitational Free Fall</h2>
+    <div class="profile">
+        <div class="profile__mark">P</div>
+        <div class="profile__meta">
+            <span class="profile__name">Peirastes</span>
+            <span class="profile__sub">Visitor</span>
+        </div>
+    </div>
 
-                    <!-- Abstract / Summary -->
-                    <div class="abstract">
-                        <h3>Abstract</h3>
-                        <p>An analysis of two equal masses falling under mutual gravitational attraction, deriving the exact collision time via energy methods and reduced-mass formalism. Starting from conservation of energy, progressing through kinematic approximations, and arriving at the exact integral solution, this treatise demonstrates how gravitational free-fall time scales as the 3/2 power of separation distance.</p>
+    <div class="hints">
+        <span class="hint"><kbd>Esc</kbd> Home</span>
+    </div>
+
+    <main class="page">
+        <header class="page-hero">
+            <div class="page-hero__inner">
+                <div class="page-hero__eyebrow">Project &middot; Treatise</div>
+                <h1 class="page-hero__title">Two-Body Gravitational Free Fall</h1>
+                <p class="page-hero__subtitle">Exact Collision Time via Energy Methods and the Reduced Mass</p>
+            </div>
+        </header>
+
+        <article class="page-body">
+            <div class="page-body__inner">
+                <div class="content-body">
+
+                <!-- Publication metadata -->
+                <div class="page-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Published:</span>
+                        <span>November 1, 2025</span>
                     </div>
-
-                    <!-- Publication metadata -->
-                    <div class="page-meta">
-                        <div class="meta-item">
-                            <span class="meta-label">Published:</span>
-                            <span>November 1, 2025</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Last Updated:</span>
-                            <span>March 2026</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Status:</span>
-                            <span>Published</span>
-                        </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Last Updated:</span>
+                        <span>March 2026</span>
                     </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Status:</span>
+                        <span>Published</span>
+                    </div>
+                </div>
 
-                    <!-- Table of Contents -->
-                    <details class="toc">
-                        <summary>Contents</summary>
-                        <ol>
-                            <li><a href="#two-body-gravitational-free-fall">Part 1: Conservation of Energy</a></li>
-                            <li><a href="#discussion">Discussion</a></li>
-                            <li><a href="#first-order-approximation-of-gravitational-potential-energy-at-earths-surface">First-Order Approximation of Gravitational PE</a></li>
-                        </ol>
-                    </details>
+                <!-- Driving question — the hook -->
+                <p class="driving-question">
+                    Two equal masses are released from rest, separated by a distance R. How long until they collide under nothing but their own mutual gravity &mdash; and why does the kinematic answer disagree with the energy-method one?
+                </p>
 
-                    <!-- ============================================================
-                         QMD CONTENT INJECTION ZONE
-                         Quarto-rendered HTML is injected between these markers by
-                         the Publish workflow in the Agent Pipeline IDE.
-                         ============================================================ -->
-                    <!-- QMD_CONTENT_START -->
+                <!-- ============================================================
+                     QMD CONTENT INJECTION ZONE
+                     Quarto-rendered HTML is injected between these markers by
+                     the Publish workflow in the Agent Pipeline IDE.
+                     ============================================================ -->
+                <!-- QMD_CONTENT_START -->
 
 <section id="two-body-gravitational-free-fall" class="level1">
 <h1>Two-Body Gravitational Free Fall</h1>
@@ -538,7 +219,7 @@
 <p><span class="math display">\[\dot{r} = \sqrt{2G\left( m_{1} + m_{2} \right)\left( \frac{1}{r} - \frac{1}{R} \right)}\]</span></p>
 <p>And,</p>
 <p><span class="math display">\[\dot{r} = \frac{dr}{dt} \rightarrow dt = \frac{dr}{\dot{r}}\]</span></p>
-<p>Then, to find time – integrate:</p>
+<p>Then, to find time &ndash; integrate:</p>
 <p><span class="math display">\[t = \int_{0}^{t}{dt} = \int_{0}^{R}\frac{dr}{\sqrt{2G\left( m_{1} + m_{2} \right)\left( \frac{1}{r} - \frac{1}{R} \right)}} = \frac{1}{\sqrt{2G(m_{1} + m_{2})}}\int_{0}^{R}\frac{dr}{\sqrt{\frac{1}{r} - \frac{1}{R}}}\]</span></p>
 <p>Performing a similar change of variable, since <span class="math inline">\(r = 2x\)</span>, let <span class="math inline">\(r = R\sin^{2}\theta\)</span> and <span class="math inline">\(dr = 2Rsin\theta cos\theta d\theta\)</span>, such that,</p>
 <p><span class="math display">\[\frac{1}{r} - \frac{1}{R} = \frac{1}{Rsin^{2}\theta} - \frac{1}{R} = \frac{1 - sin^{2}\theta}{Rsin^{2}\theta} = \frac{cos^{2}\theta}{Rsin^{2}\theta}\]</span></p>
@@ -569,7 +250,7 @@
 <h2 class="anchored" data-anchor-id="first-order-approximation-of-gravitational-potential-energy-at-earths-surface">First-Order Approximation of Gravitational Potential Energy at Earth's Surface</h2>
 <p>Starting with Newtonian gravitational potential energy,</p>
 <p><span class="math display">\[U(r) = - \frac{Gm_{1}m_{2}}{r}\]</span></p>
-<p>Or, more properly labeled to reflect the planet – satellite system,</p>
+<p>Or, more properly labeled to reflect the planet &ndash; satellite system,</p>
 <p><span class="math display">\[U(r) = - \frac{GmM}{r}\]</span></p>
 <p>Where <span class="math inline">\(M\ \)</span>is the mass of the Earth, <span class="math inline">\(m\)</span> is the mass of an object on or near Earth's surface, and <span class="math inline">\(r\)</span> is the Earth's radius + however high the object is above Earth's surface, <span class="math inline">\(r = R_{E} + h\)</span>.</p>
 <p>So,</p>
@@ -598,64 +279,30 @@
 </section>
 </section>
 
-                    <!-- QMD_CONTENT_END -->
+                <!-- QMD_CONTENT_END -->
 
-                    <!-- Cross-links to related Instrument and Discourse pages -->
-                    <div class="cross-links">
-                        <h3>Related Work</h3>
-                        <div class="cross-links-grid">
-                            <div class="cross-link-card">
-                                <div class="label">Treatise</div>
-                                <a href="on-dynamical-systems.html">On Dynamical Systems</a>
-                                <p>The broader framework unifying gravitational and electrostatic force laws under a single mathematical structure.</p>
-                            </div>
-                            <div class="cross-link-card">
-                                <div class="label">Treatise</div>
-                                <a href="work-energy-principle.html">The Work-Energy Principle</a>
-                                <p>A unified treatment of energy methods across mechanics and electrostatics -- the same tools used in this analysis.</p>
-                            </div>
+                <!-- Cross-links to related Treatise pages -->
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="on-dynamical-systems.html">On Dynamical Systems</a>
+                            <p>The broader framework unifying gravitational and electrostatic force laws under a single mathematical structure.</p>
+                        </div>
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="work-energy-principle.html">The Work-Energy Principle</a>
+                            <p>A unified treatment of energy methods across mechanics and electrostatics &mdash; the same tools used in this analysis.</p>
                         </div>
                     </div>
+                </div>
 
+                </div>
             </div>
-        </main>
-    </div>
+        </article>
+    </main>
 
-    <footer>
-        <p>&copy; 2026 Cole Prather</p>
-    </footer>
-
-    <div id="lightbox-overlay">
-        <span id="lightbox-close">&times;</span>
-        <img id="lightbox-img" src="" alt="Full Image">
-    </div>
-
-    <script>
-        // Lightbox functionality
-        document.addEventListener("DOMContentLoaded", function() {
-            const overlay = document.getElementById("lightbox-overlay");
-            if (!overlay) return;
-
-            const closeBtn = document.getElementById("lightbox-close");
-            document.querySelectorAll(".lightbox-trigger").forEach(link => {
-                link.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    const img = document.getElementById("lightbox-img");
-                    img.src = this.getAttribute("href");
-                    overlay.style.display = "flex";
-                });
-            });
-
-            closeBtn.addEventListener("click", function() {
-                overlay.style.display = "none";
-            });
-
-            overlay.addEventListener("click", function(e) {
-                if (e.target === overlay) {
-                    overlay.style.display = "none";
-                }
-            });
-        });
-    </script>
+    <script src="../js/cinematic.js"></script>
 </body>
 </html>
