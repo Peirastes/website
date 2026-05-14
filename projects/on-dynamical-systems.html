@@ -3,568 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>On Dynamical Systems - Peirastes</title>
-
     <meta name="description" content="A unifying mathematical framework for dynamical systems built on the product structure Behavior = Response x Drive.">
     <meta property="og:title" content="On Dynamical Systems - Peirastes">
     <meta property="og:description" content="A unifying mathematical framework for dynamical systems built on the product structure Behavior = Response x Drive.">
     <meta property="og:type" content="article">
-
     <meta property="og:url" content="https://peirastes.com/projects/on-dynamical-systems.html">
-
     <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
-
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0d10">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/cinematic.css">
 
-    <!-- QUARTO_CSS_START -->
-    <!-- Quarto inline styles -->
-    <style>
-        code{white-space: pre-wrap;}
-        span.smallcaps{font-variant: small-caps;}
-        div.columns{display: flex; gap: min(4vw, 1.5em);}
-        div.column{flex: auto; overflow-x: auto;}
-        div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-        ul.task-list{list-style: none;}
-        ul.task-list li input[type="checkbox"] {
-          width: 0.8em;
-          margin: 0 0.8em 0.2em -1em;
-          vertical-align: middle;
-        }
-        div.csl-bib-body { }
-        div.csl-entry { clear: both; margin-bottom: 0em; }
-        .hanging-indent div.csl-entry { margin-left:2em; text-indent:-2em; }
-        div.csl-left-margin { min-width:2em; float:left; }
-        div.csl-right-inline { margin-left:2em; padding-left:1em; }
-        div.csl-indent { margin-left: 2em; }
-    </style>
-
-    <!-- Quarto CSS — Bootstrap removed (conflicts with site layout); syntax highlighting kept -->
-    <link href="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-    <!-- QUARTO_CSS_END -->
-
-    <!-- Site CSS (loaded last to override Bootstrap for layout elements) -->
-    <link rel="stylesheet" href="../css/style.css">
-
-    <!-- Page-level overrides: neutralize Bootstrap bleed on site layout -->
-    <style>
-        :root {
-            --bs-root-font-size: 16px;
-        }
-        body > header,
-        body > header *,
-        body > nav,
-        body > nav * {
-            box-sizing: content-box;
-            line-height: normal;
-        }
-
-        /* ====================================================================
-           TREATISE PAGE — Template-specific styles
-           ==================================================================== */
-
-        /* --- Abstract / Summary Block --- */
-        .abstract {
-            background: var(--bg-card);
-            border-left: 4px solid var(--primary-accent);
-            border-radius: 0 8px 8px 0;
-            padding: 1.25rem 1.5rem;
-            margin: 1.5rem 0 2rem 0;
-            font-size: 1rem;
-            line-height: 1.7;
-            color: var(--text-secondary);
-        }
-
-        .abstract h3 {
-            font-family: 'Cinzel', serif;
-            font-size: 1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin: 0 0 0.5rem 0;
-            color: var(--primary-accent);
-        }
-
-        /* --- Publication metadata --- */
-        .page-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 1rem 1.25rem;
-            margin: 1rem 0 1.5rem 0;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        .page-meta .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .page-meta .meta-label {
-            font-weight: 700;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-        }
-        .meta-download {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 6px;
-            background: var(--primary-accent);
-            color: white;
-            text-decoration: none;
-            font-size: 1rem;
-            transition: opacity 0.2s;
-        }
-        .meta-download:hover {
-            opacity: 0.8;
-        }
-
-        /* --- Treatise typography overrides --- */
-        .content-body {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 1rem 1.5rem 2rem 1.5rem;
-            font-size: 1.1rem;
-            line-height: 1.8;
-        }
-
-        .content-body h2 {
-            font-family: 'Cinzel', serif;
-            font-weight: 600;
-            font-size: 1.6rem;
-            margin-top: 2.5rem;
-            border-bottom: 3px solid var(--primary-accent);
-            padding-bottom: 0.4rem;
-        }
-
-        .content-body h3 {
-            font-family: 'Cinzel', serif;
-            font-weight: 500;
-            font-size: 1.25rem;
-            margin-top: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .content-body h4 {
-            font-family: 'Lato', sans-serif;
-            font-weight: 700;
-            font-size: 1.05rem;
-            margin-top: 1.5rem;
-            color: var(--text-secondary);
-        }
-
-        .content-body p {
-            text-align: justify;
-            margin-bottom: 1rem;
-        }
-
-        /* --- Blockquote with orange left border --- */
-        .content-body blockquote {
-            border-left: 4px solid var(--primary-accent);
-            background-color: rgba(255, 85, 0, 0.03);
-            border-radius: 0 4px 4px 0;
-            padding: 0.75rem 1rem;
-            margin: 1.5rem 0;
-            font-style: italic;
-            color: var(--text-secondary);
-        }
-
-        /* --- Figure captions --- */
-        .content-body figure {
-            margin: 2rem 0;
-            text-align: center;
-        }
-
-        .content-body figure img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px var(--shadow-sm);
-        }
-
-        .content-body figcaption {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-top: 0;
-            font-style: italic;
-            line-height: 1.5;
-        }
-
-        /* --- Math display blocks: horizontal scroll on mobile --- */
-        .content-body .math.display {
-            overflow-x: auto;
-        }
-
-        /* --- Download buttons row --- */
-        .download-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin: 1.5rem 0;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            background-color: var(--primary-accent);
-            color: #ffffff;
-            padding: 0.6rem 1.2rem;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: background-color 0.2s ease, transform 0.15s ease;
-        }
-
-        .download-btn:visited {
-            color: #ffffff;
-        }
-
-        .download-btn:hover {
-            background-color: var(--primary-accent-hover);
-            transform: translateY(-1px);
-            opacity: 1;
-        }
-
-        /* --- Cross-links section --- */
-        .cross-links {
-            margin-top: 3rem;
-            padding-top: 1.5rem;
-            border-top: 2px solid var(--border-light);
-        }
-
-        .cross-links h3 {
-            font-family: 'Cinzel', serif;
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-            border-bottom: none;
-        }
-
-        .cross-links-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .cross-link-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-left: 4px solid var(--secondary-accent);
-            border-radius: 0 8px 8px 0;
-            padding: 1rem 1.25rem;
-            transition: box-shadow 0.3s ease;
-        }
-
-        .cross-link-card:hover {
-            box-shadow: 0 2px 12px var(--shadow-sm);
-        }
-
-        .cross-link-card .label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
-        }
-
-        .cross-link-card a {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .cross-link-card p {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin: 0.25rem 0 0 0;
-            text-align: left;
-        }
-
-        /* --- Table of Contents (inline) --- */
-        .toc {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            padding: 1rem 1.5rem;
-            margin: 1.5rem 0 2rem 0;
-        }
-
-        .toc summary {
-            font-family: 'Cinzel', serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--primary-accent);
-            cursor: pointer;
-            list-style: none;
-        }
-        .toc summary::-webkit-details-marker { display: none; }
-        .toc summary::before {
-            content: '\25B8 ';
-            display: inline-block;
-        }
-        .toc[open] summary::before {
-            content: '\25BE ';
-        }
-        .toc ol {
-            margin-top: 0.5rem;
-        }
-
-        .toc ol {
-            margin: 0;
-            padding-left: 1.5rem;
-        }
-
-        .toc li {
-            margin-bottom: 0.3rem;
-            font-size: 0.95rem;
-        }
-
-        .toc a {
-            text-decoration: none;
-        }
-
-        .toc a:hover {
-            text-decoration: underline;
-        }
-
-        /* -- Quarto content styling (orange accent) -- */
-
-        /* Tinted equation boxes for display math */
-        .math.display {
-            display: block;
-            background-color: rgba(255, 85, 0, 0.05);
-            padding: 0.5rem 0.75rem;
-            border-left: 3px solid var(--primary-accent);
-            border-radius: 3px;
-            margin: 0.75rem 0;
-            overflow-x: auto;
-        }
-
-        /* Orange-header tables */
-        .content-body table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5rem 0;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .content-body table th {
-            background-color: var(--primary-accent);
-            color: white;
-            padding: 0.75rem 1rem;
-            text-align: left;
-            font-weight: bold;
-        }
-        .content-body table td {
-            padding: 0.6rem 1rem;
-            border-bottom: 1px solid var(--border-light);
-        }
-        .content-body table tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Orange accent on callout boxes */
-        .callout {
-            border-left: 4px solid var(--primary-accent) !important;
-            background-color: rgba(255, 85, 0, 0.03);
-            border-radius: 4px;
-            margin: 1.5rem 0;
-        }
-        .callout-header {
-            color: var(--primary-accent);
-        }
-
-        /* Orange rule under title block */
-        .quarto-title-block {
-            border-bottom: 3px solid var(--primary-accent);
-            padding-bottom: 1rem;
-            margin-bottom: 2rem;
-        }
-        /* Section divider HRs */
-        .content-body hr {
-            border: none;
-            border-top: 2px solid var(--primary-accent);
-            opacity: 0.3;
-            margin: 2.5rem 0;
-        }
-
-        /* Section numbers in accent color */
-        .header-section-number {
-            color: var(--primary-accent);
-            font-weight: bold;
-        }
-
-        /* References appendix */
-        #quarto-appendix.default {
-            background-color: var(--bg-body);
-            border-top-color: var(--border-light);
-        }
-
-        /* --- Responsive --- */
-        @media (max-width: 768px) {
-            .content-body {
-                padding: 0.75rem;
-                font-size: 1rem;
-                line-height: 1.7;
-            }
-
-            .content-body h2 {
-                font-size: 1.3rem;
-            }
-
-            .content-body h3 {
-                font-size: 1.1rem;
-            }
-
-            .cross-links-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .download-row {
-                flex-direction: column;
-            }
-
-            .download-btn {
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .content-body {
-                padding: 0.5rem;
-                font-size: 0.95rem;
-            }
-        }
-    </style>
-
-    <!-- QUARTO_JS_START -->
-    <!-- Quarto JS -->
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/clipboard/clipboard.min.js"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/quarto.js" type="module"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/popper.min.js"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/tippy.umd.min.js"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/quarto-html/anchor.min.js"></script>
-    <script src="dynamical-systems/on-dynamical-systems_files/libs/bootstrap/bootstrap.min.js"></script>
-
-    <!-- MathJax -->
-    <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+    <!-- MathJax for equation rendering -->
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-    <script type="text/javascript">
-    const typesetMath = (el) => {
-      if (window.MathJax) {
-        window.MathJax.typeset([el]);
-      } else if (window.katex) {
-        var mathElements = el.getElementsByClassName("math");
-        var macros = [];
-        for (var i = 0; i < mathElements.length; i++) {
-          var texText = mathElements[i].firstChild;
-          if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
-            window.katex.render(texText.data, mathElements[i], {
-              displayMode: mathElements[i].classList.contains('display'),
-              throwOnError: false,
-              macros: macros,
-              fleqn: false
-            });
-          }
-        }
-      }
-    }
-    window.Quarto = {
-      typesetMath
-    };
-    </script>
-    <!-- QUARTO_JS_END -->
-
-    <script src="../js/main.js"></script>
 </head>
-
 <body>
-    <header>
-        <h1>Peirastes</h1>
-        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
-    </header>
 
-    <nav>
-        <a href="../index.html">Home</a>
-        <a href="../about.html">About</a>
-        <a href="../all-projects.html">Projects</a>
-        <a href="../timeline.html">Physics Timeline</a>
-        <a href="../quotes.html">Quotes</a>
-    </nav>
+    <div class="bg" aria-hidden="true">
+        <div class="bg__image"></div>
+        <div class="bg__vignette"></div>
+        <div class="bg__grain"></div>
+    </div>
 
-    <div class="content">
-        <main>
-            <div class="content-body">
+    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
 
-                    <!-- Page title -->
-                    <h2>On Dynamical Systems</h2>
+    <div class="profile">
+        <div class="profile__mark">P</div>
+        <div class="profile__meta">
+            <span class="profile__name">Peirastes</span>
+            <span class="profile__sub">Visitor</span>
+        </div>
+    </div>
 
-                    <!-- Abstract / Summary -->
-                    <div class="abstract">
-                        <h3>Abstract</h3>
-                        <p>A wide class of physical laws shares a common structure: observable behavior emerges as the product of an intrinsic response and an extrinsic drive. Ohmic conduction, Fourier heat conduction, Fick diffusion, linear elasticity, Newtonian mechanics, and linear response theory all admit this product form. This treatise develops a unifying mathematical framework built on the product structure B&nbsp;=&nbsp;R&nbsp;&times;&nbsp;D, tracing the pattern through cross-domain analogies, bond-graph power conjugacy, and evolution equations on function spaces, arriving at a formal demonstration that the interaction structure implies structural underdetermination of causal attributions at every level.</p>
-                    </div>
+    <div class="hints">
+        <span class="hint"><kbd>Esc</kbd> Home</span>
+    </div>
 
-                    <!-- Publication metadata -->
-                    <div class="page-meta">
-                        <div class="meta-item">
-                            <span class="meta-label">Published:</span>
-                            <span>February 10, 2026</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Last Updated:</span>
-                            <span>March 27, 2026</span>
-                        </div>
-                        <div class="meta-item">
-                            <span class="meta-label">Status:</span>
-                            <span>Published</span>
-                        </div>
-                        <div class="meta-item" style="margin-left:auto">
-                            <span class="meta-label">Download:</span>
-                            <a href="dynamical-systems/on-dynamical-systems.pdf" class="meta-download" title="Download PDF" download>&#x2B07;</a>
-                        </div>
-                    </div>
+    <main class="page">
+        <header class="page-hero">
+            <div class="page-hero__inner">
+                <div class="page-hero__eyebrow">Project &middot; Treatise</div>
+                <h1 class="page-hero__title">On Dynamical Systems</h1>
+                <p class="page-hero__subtitle">Behavior = Response &times; Drive &mdash; A Unifying Mathematical Framework</p>
+            </div>
+        </header>
 
-                    <!-- Table of Contents -->
-                    <details class="toc" open>
-                        <summary>Contents</summary>
-                        <ol>
-                            <li><a href="#abstract">Abstract</a></li>
-                            <li><a href="#part-i-the-fundamental-pattern">Part I: The Fundamental Pattern</a></li>
-                            <li><a href="#part-ii-potential-energy-and-potential">Part II: Potential Energy and Potential</a></li>
-                            <li><a href="#part-iii-the-three-energy-modes">Part III: The Three Energy Modes</a></li>
-                            <li><a href="#part-iv-impedance-power-and-bond-graphs">Part IV: Impedance, Power, and Bond Graphs</a></li>
-                            <li><a href="#part-v-the-complete-cross-domain-analogy">Part V: The Complete Cross-Domain Analogy</a></li>
-                            <li><a href="#part-vi-mathematical-framework">Part VI: Mathematical Framework</a></li>
-                            <li><a href="#part-vii-conservation-laws-and-constitutive-relations">Part VII: Conservation Laws and Constitutive Relations</a></li>
-                            <li><a href="#part-viii-spectral-geometry-and-the-state-manifold">Part VIII: Spectral Geometry and the State Manifold</a></li>
-                            <li><a href="#part-ix-causal-attribution-and-the-underdetermination-theorem">Part IX: Causal Attribution and the Underdetermination Theorem</a></li>
-                        </ol>
-                    </details>
+        <article class="page-body">
+            <div class="page-body__inner">
+                <div class="content-body">
 
-                    <!-- ============================================================
-                         QMD CONTENT INJECTION ZONE
-                         Quarto-rendered HTML is injected between these markers by
-                         the Publish workflow in the Agent Pipeline IDE.
-                         ============================================================ -->
+                <div class="page-meta">
+                    <div class="meta-item"><span class="meta-label">Published:</span><span>February 10, 2026</span></div>
+                    <div class="meta-item"><span class="meta-label">Status:</span><span>Published</span></div>
+                </div>
+
+                <p class="driving-question">
+                    Why do Ohmic conduction, heat flow, diffusion, elasticity, and Newtonian motion all share the same product structure? Because behavior emerges as the product of an intrinsic response and an extrinsic drive &mdash; and that pattern carries deep consequences for causal attribution.
+                </p>
+
+                <!-- ============================================================
+                     QMD CONTENT INJECTION ZONE
+                     Quarto-rendered HTML is injected between these markers by
+                     the Publish workflow in the Agent Pipeline IDE.
+                     ============================================================ -->
                     <!-- QMD_CONTENT_START -->
 
 <div id="title-block-header" class="quarto-title-block default">
@@ -1761,67 +1268,27 @@ Quine, Willard Van Orman. 1951. <span>“Two Dogmas of Empiricism.”</span> <em
 
 <!-- QMD_CONTENT_END -->
 
-                    <!-- Cross-links to related Instrument and Discourse pages -->
-                    <div class="cross-links">
-                        <h3>Related Work</h3>
-                        <div class="cross-links-grid">
-                            <div class="cross-link-card">
-                                <div class="label">Instrument</div>
-                                <a href="dynamical-systems-lab.html">Dynamical Systems Laboratory</a>
-                                <p>Interactive simulation exploring the dynamical systems and cross-domain analogies discussed in this treatise.</p>
-                            </div>
-                            <div class="cross-link-card">
-                                <div class="label">Discourse</div>
-                                <a href="on-analogies-of-dynamical-systems.html">On Analogies of Dynamical Systems</a>
-                                <p>A companion discourse exploring the philosophical implications of cross-domain structural analogies.</p>
-                            </div>
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Instrument</div>
+                            <a href="dynamical-systems-lab.html">Dynamical Systems Laboratory</a>
+                            <p>Interactive simulation exploring the dynamical systems and cross-domain analogies discussed in this treatise.</p>
+                        </div>
+                        <div class="cross-link-card">
+                            <div class="label">Discourse</div>
+                            <a href="on-analogies-of-dynamical-systems.html">On Analogies of Dynamical Systems</a>
+                            <p>A companion discourse exploring the philosophical implications of cross-domain structural analogies.</p>
                         </div>
                     </div>
+                </div>
 
+                </div>
             </div>
-        </main>
-    </div>
+        </article>
+    </main>
 
-    <footer>
-        <p>&copy; 2026 Cole Prather</p>
-    </footer>
-
-    <div id="lightbox-overlay">
-        <span id="lightbox-close">&times;</span>
-        <img id="lightbox-img" src="" alt="Full Image">
-    </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Typeset math content with MathJax
-            if (window.MathJax) {
-                window.MathJax.typeset();
-            }
-
-            // Lightbox functionality
-            const overlay = document.getElementById("lightbox-overlay");
-            if (!overlay) return;
-
-            const closeBtn = document.getElementById("lightbox-close");
-            document.querySelectorAll(".lightbox-trigger").forEach(link => {
-                link.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    const img = document.getElementById("lightbox-img");
-                    img.src = this.getAttribute("href");
-                    overlay.style.display = "flex";
-                });
-            });
-
-            closeBtn.addEventListener("click", function() {
-                overlay.style.display = "none";
-            });
-
-            overlay.addEventListener("click", function(e) {
-                if (e.target === overlay) {
-                    overlay.style.display = "none";
-                }
-            });
-        });
-    </script>
+    <script src="../js/cinematic.js"></script>
 </body>
 </html>
