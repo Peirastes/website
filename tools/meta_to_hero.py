@@ -93,10 +93,10 @@ def detect_type(items: dict) -> str:
 
 
 def build_metaline(items: dict, type_label: str) -> str:
+    """Build a single-line metaline below the subtitle. The type label
+    (Treatise/Discourse) is NOT included — it was redundant with the
+    page title context. Cole's call 2026-05-13."""
     parts = []
-    if type_label:
-        parts.append(f'<span>{type_label}</span>')
-
     if type_label == 'Treatise':
         if 'Published' in items:
             parts.append(f'<span>Published {items["Published"]}</span>')
