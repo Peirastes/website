@@ -1234,6 +1234,18 @@ body.is-ready .page-body { opacity: 1; transform: translateY(0); }
   line-height: 1.75;
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+   CONTENT-BODY HEADING CONTRACT
+   The page's only h1 lives in .page-hero__title (the hero strip).
+   Inside .content-body, the heading hierarchy starts at h2:
+     h2 = major section  (white, large, cyan underline)
+     h3 = sub-section    (amber/gold, smaller)
+     h4 = sub-sub        (cyan, smaller still)
+   Quarto by default emits h1 for level1 sections. QMD content must
+   be heading-shifted before injection so it conforms to this contract.
+   See: tools/demote_qmd.py and the Pipeline IDE Publish workflow.
+   ───────────────────────────────────────────────────────────────────── */
+
 .content-body h2 {
   font-family: var(--font-display);
   font-weight: 600;
@@ -1261,6 +1273,21 @@ body.is-ready .page-body { opacity: 1; transform: translateY(0); }
   letter-spacing: 0.04em;
   color: var(--accent);
   margin: 1.4rem 0 0.6rem;
+}
+
+/* Defensive fallback: if QMD content slips through with an h1, style it
+   as if it were h2 so it doesn't render as the browser default. (The
+   correct fix is still to demote at injection time — this just prevents
+   ugly rendering when that step is skipped.) */
+.content-body h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+  letter-spacing: 0.08em;
+  color: var(--text-bright);
+  margin: 3rem 0 1.5rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(125, 214, 255, 0.18);
 }
 
 .content-body p {
