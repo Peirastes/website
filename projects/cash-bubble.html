@@ -7,240 +7,104 @@
     <meta name="description" content="A mathematical framework treating personal finance as a dynamical system governed by fluid mechanics and thermodynamics.">
     <meta property="og:title" content="Thermofluidic Finance - Peirastes">
     <meta property="og:description" content="A mathematical framework treating personal finance as a dynamical system governed by fluid mechanics and thermodynamics.">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
     <meta property="og:url" content="https://peirastes.com/projects/cash-bubble.html">
     <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-    <link rel="stylesheet" href="../css/style.css">
-    <script src="../js/main.js"></script>
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0d10">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/cinematic.css">
+
+    <!-- MathJax for equation rendering -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
     <style>
-        .paper-content {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
-            line-height: 1.8;
-            font-size: 1.05rem;
-            color: var(--text-primary);
-        }
-        .paper-content h1 {
-            text-align: center;
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            margin-top: 2rem;
-        }
-        .paper-content h2 {
-            margin-top: 3rem;
-            margin-bottom: 1.5rem;
-            font-size: 1.6rem;
-            border-bottom: 3px solid var(--primary-accent);
-            padding-bottom: 0.5rem;
-        }
-        .paper-content h3 {
-            margin-top: 2rem;
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-            color: var(--text-secondary);
-        }
-        .paper-content p {
-            margin-bottom: 1rem;
-            text-align: justify;
-        }
-        .paper-content ul, .paper-content ol {
-            margin-bottom: 1.5rem;
-            margin-left: 2rem;
-        }
-        .paper-content li {
-            margin-bottom: 0.75rem;
-            line-height: 1.7;
-        }
-        .paper-content code {
-            background-color: var(--neutral-light);
-            padding: 0.3rem 0.6rem;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.95rem;
-        }
-        .paper-content pre {
-            background-color: var(--neutral-light);
-            padding: 1rem;
-            border-radius: 5px;
-            overflow-x: auto;
-            margin: 1.5rem 0;
-            border-left: 4px solid var(--primary-accent);
-        }
-        .paper-content pre code {
-            background-color: transparent;
-            padding: 0;
-        }
-        .paper-content table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1.5rem 0;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 5px;
+        /* Embedded interactive simulator — full content-width, recessed frame */
+        .simulator-embed {
+            margin: 0 0 2.5rem;
+            border: 1px solid rgba(125, 214, 255, 0.12);
+            border-radius: 6px;
             overflow: hidden;
+            background: rgba(6, 10, 18, 0.6);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         }
-        .paper-content table th {
-            background-color: var(--primary-accent);
-            color: white;
-            padding: 1rem;
-            text-align: left;
-            font-weight: bold;
-        }
-        .paper-content table td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border-light);
-        }
-        .paper-content table tr:last-child td {
-            border-bottom: none;
-        }
-        .paper-content em {
-            font-style: italic;
-        }
-        .paper-content strong {
-            font-weight: bold;
-            color: var(--text-secondary);
-        }
-        .divider {
-            text-align: center;
-            margin: 3rem 0;
-            color: var(--border-medium);
-            font-size: 1.5rem;
-        }
-        .abstract-box {
-            background-color: var(--bg-card);
-            border-left: 5px solid var(--primary-accent);
-            padding: 2rem;
-            margin: 2rem 0;
-            border-radius: 5px;
-            box-shadow: 0 2px 8px var(--shadow-sm);
-        }
-        .section-number {
-            font-weight: bold;
-            color: var(--primary-accent);
-        }
-        .equation-box {
-            background-color: rgba(255, 85, 0, 0.05);
-            padding: 0.5rem 0.5rem;
-            border-left: 3px solid var(--primary-accent);
-            margin: 0.5rem 0;
-            border-radius: 3px;
-            overflow: hidden;
-            max-width: 100%;
-            box-sizing: border-box;
-            line-height: 1.2;
-        }
-        .equation-box > * {
-            margin: 0 !important;
-        }
-        .figure-caption {
-            text-align: center;
-            font-family: Georgia, serif;
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-            margin-bottom: 2rem;
-            line-height: 1.5;
-        }
-        .back-to-top {
-            display: inline-block;
-            margin-top: 3rem;
-            padding: 0.5rem 1rem;
-            background-color: var(--primary-accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .back-to-top:hover {
-            background-color: var(--primary-accent-hover);
-        }
-        .content {
+        .simulator-embed iframe {
             display: block;
-            flex-direction: unset;
-        }
-        #simulator-container {
             width: 100%;
+            min-height: 520px;
             border: none;
-            display: block;
-            height: 960px;
-            margin-top: 0;
         }
-        .simulator-section {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 0 10px 10px !important;
-            overflow: hidden;
-        }
-        .read-paper-btn {
-            display: inline-block;
-            margin-top: 0.5rem;
-            padding: 0.6rem 1.5rem;
-            background-color: var(--primary-accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .read-paper-btn:hover {
-            background-color: var(--primary-accent-hover);
-        }
-        .paper-separator {
-            max-width: 900px;
-            margin: 0 auto;
-            border: none;
-            border-top: 3px solid var(--primary-accent);
-            margin-bottom: 2rem;
-        }
-        @media (prefers-color-scheme: dark) {
-            .paper-content {
-                color: var(--text-primary);
-            }
+        .content-body .equation-box {
+            margin: 1.4rem 0;
+            padding: 0.6rem 1rem;
         }
     </style>
 </head>
-
 <body>
-    <header>
-        <h1>Peirastes</h1>
-        <p class="tagline"><em>Probing the fidelity of Nature and Reason</em></p>
-    </header>
 
-    <nav>
-            <a href="../index.html">Home</a>
-            <a href="../about.html">About</a>
-            <a href="../all-projects.html">Projects</a>
-            <a href="../timeline.html">Physics Timeline</a>
-            <a href="../quotes.html">Quotes</a>
-        </nav>
+    <div class="bg" aria-hidden="true">
+        <div class="bg__image"></div>
+        <div class="bg__vignette"></div>
+        <div class="bg__grain"></div>
+    </div>
 
-    <div class="content">
+    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
 
-        <section class="simulator-section">
-            <iframe id="simulator-container" src="cash-bubble/CashBubbleSimulator_v1.html" scrolling="no"></iframe>
-        </section>
-
-        <div style="text-align: center; padding: 1.5rem 0;">
-            <a href="#paper-start" class="read-paper-btn">Read the Working Paper &#8595;</a>
+    <div class="profile">
+        <div class="profile__mark">P</div>
+        <div class="profile__meta">
+            <span class="profile__name">Peirastes</span>
+            <span class="profile__sub">Visitor</span>
         </div>
+    </div>
 
-        <hr class="paper-separator">
+    <div class="hints">
+        <span class="hint"><kbd>Esc</kbd> Home</span>
+    </div>
 
-        <main class="paper-content">
+    <main class="page">
+        <header class="page-hero">
+            <div class="page-hero__inner">
+                <h1 class="page-hero__title">Thermofluidic Finance</h1>
+                <p class="page-hero__subtitle">A Physical Theory of Personal Financial Dynamics</p>
+            </div>
+        </header>
 
-<h1 id="paper-start">Thermofluidic Finance: A Physical Theory of Personal Financial Dynamics</h1>
-<div class="project-meta">Published Feb 15, 2026</div>
+        <article class="page-body">
+            <div class="page-body__inner">
 
-<p style="text-align: center; color: var(--text-muted);"><strong>Working Paper Draft v0.5</strong></p>
+                <div class="meta-row">
+                    <div class="meta-item">
+                        <span class="meta-item__label">Form</span>
+                        <span class="meta-item__value">Treatise</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item__label">Version</span>
+                        <span class="meta-item__value">Draft v0.5</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item__label">Published</span>
+                        <span class="meta-item__value">February 15th, 2026</span>
+                    </div>
+                </div>
 
-<div class="divider">---</div>
+                <div class="simulator-embed">
+                    <iframe id="simulator-container" src="cash-bubble/CashBubbleSimulator_v1.html" title="Cash Bubble Simulator" scrolling="no"></iframe>
+                </div>
+
+                <div class="content-body">
+
+                <p class="driving-question">
+                    What if your bank account obeyed the same laws as a tank of pressurized fluid?
+                </p>
 
 <h2>Abstract</h2>
 
-<div class="abstract-box">
 <p>The language of personal finance is saturated with fluid metaphors&mdash;cash <em>flow</em>, liquid <em>assets</em>, financial <em>liquidity</em>&mdash;yet these terms remain purely figurative. In this paper, a rigorous mathematical framework is developed in which personal finance operates as an actual dynamical system governed by conservation laws from fluid mechanics and energy relations from thermodynamics.</p>
 
 <p>Cash accounts are modeled as interconnected reservoirs of incompressible fluid, where the fundamental balance equation \(dV/dt = Q_{in} - Q_{out}\) directly parallels the continuity equation for mass conservation. The multi-account system is expressed in state-space form \(\dot{\mathbf{x}} = \mathbf{A}\mathbf{x} + \mathbf{B}\mathbf{u}\), opening access to the full machinery of dynamical systems theory.</p>
@@ -248,10 +112,6 @@
 <p>The central novelty lies in treating volatile investments as <em>compressible media</em> suspended within this financial fluid. Because investment value \(V = nP\) depends on both quantity held \(n\) and market price \(P\), it exhibits compressibility&mdash;its &ldquo;volume&rdquo; changes with external &ldquo;pressure&rdquo; even absent any flow. Applying the product rule yields an exact First Law of Thermodynamics: unrealized appreciation \(\delta Q = n\,dP\) enters as heat from the market environment, while realized gains \(\delta W = -P\,dn\) are extracted as thermodynamic work. This decomposition is assumption-free, requiring no equation of state.</p>
 
 <p>A compressibility spectrum classifies financial instruments from incompressible (cash) through highly compressible (equities) to supercompressible (derivatives). At the position level, a lot-level buoyancy model characterizes each purchase lot by its &ldquo;depth&rdquo; \(d = \ln(P_{entry}/P)\), governed by an Ornstein-Uhlenbeck process whose analytic solutions yield underwater-time distributions, recovery statistics, and drawdown risk measures with direct applications to tax-loss harvesting and portfolio diagnostics.</p>
-</div>
-
-<div class="divider">---</div>
-
 <!-- ==================== SECTION I ==================== -->
 
 <h2>I. Introduction</h2>
@@ -299,8 +159,6 @@
 <h3>1.5 Paper Roadmap</h3>
 
 <p>Section II develops the core framework for cash accounts as incompressible fluid, introducing the multi-tank topology and state-space formulation. Section III presents the thermodynamic structure of compressible investments, deriving the First Law decomposition and introducing the compressibility spectrum. Section IV develops lot-level buoyancy dynamics as a major extension connecting the framework to practical portfolio analytics. Section V discusses limitations, future directions, and related areas for further exploration. Appendix A provides complete mathematical derivations.</p>
-
-<div class="divider">---</div>
 
 <!-- ==================== SECTION II ==================== -->
 
@@ -417,8 +275,6 @@
 <p>This is fundamentally different from cash behavior. It&rsquo;s as if the water in a tank could spontaneously expand or contract. In fluid mechanics, that&rsquo;s called compressibility&mdash;and it brings thermodynamic structure with it.</p>
 
 <p>The next section develops this insight into the central contribution of this paper: the thermodynamic theory of compressible investments.</p>
-
-<div class="divider">---</div>
 
 <!-- ==================== SECTION III ==================== -->
 
@@ -627,8 +483,6 @@
 
 <p>The next section extends this framework from the macro level (whole accounts) to the micro level (individual purchase lots), connecting the thermofluidic model to practical portfolio analytics.</p>
 
-<div class="divider">---</div>
-
 <!-- ==================== SECTION IV ==================== -->
 
 <h2>IV. Lot-Level Buoyancy Dynamics</h2>
@@ -793,8 +647,6 @@
 
 <p>The fluid analogy extends naturally from system to account to position, offering a coherent physical framework across multiple scales of financial analysis.</p>
 
-<div class="divider">---</div>
-
 <!-- ==================== SECTION V ==================== -->
 
 <h2>V. Discussion and Future Directions</h2>
@@ -892,15 +744,11 @@
 
 <p>The framework is not a forecasting tool&mdash;it does not predict where prices will go. It is a <em>structural</em> tool: it describes <em>how</em> financial value is stored, transformed, and extracted, using the same mathematical language that describes these processes in physical systems. That the language fits so precisely suggests that the structural similarities between financial and physical systems run deeper than metaphor.</p>
 
-<div class="divider">---</div>
-
 <!-- ==================== ACKNOWLEDGMENTS ==================== -->
 
 <h2>Acknowledgments</h2>
 
 <p>This framework originated from the simple observation that interconnected tank-draining problems in differential equations&mdash;reservoirs of fluid connected by regulated flows, governed by conservation laws&mdash;are structurally identical to a system of personal financial accounts. The leap from that observation to a full thermofluidic theory was developed in collaboration with Anthropic&rsquo;s Claude (Opus 4.5 and 4.6), whose contributions to the mathematical formalization, critical review, and iterative refinement of the framework were substantial.</p>
-
-<div class="divider">---</div>
 
 <!-- ==================== REFERENCES ==================== -->
 
@@ -948,13 +796,9 @@
 <li>Poterba, J. M., and Summers, L. H. (1988). &ldquo;Mean Reversion in Stock Prices: Evidence and Implications.&rdquo; <em>Journal of Financial Economics</em>, 22(1), 27&ndash;59.</li>
 </ol>
 
-<div class="divider">---</div>
-
 <!-- ==================== APPENDIX A ==================== -->
 
 <h2>Appendix A: Mathematical Derivations</h2>
-
-<div class="divider">---</div>
 
 <h3>A.1 State-Space Formulation from First Principles</h3>
 
@@ -1049,8 +893,6 @@ b_{n,I} & -b_{n,S}
 0 & 0
 \end{bmatrix} \tag{A.10}$$</div>
 
-<div class="divider">---</div>
-
 <h3>A.2 Stability Analysis via Eigenvalues</h3>
 
 <h4>A.2.1 System Stability Criterion</h4>
@@ -1078,8 +920,6 @@ b_{n,I} & -b_{n,S}
 <div class="equation-box">$$\tau_{checking} = \frac{1}{\tau_{12}}, \quad \tau_{savings} = \frac{1}{\tau_{23}} \tag{A.13}$$</div>
 
 <p>Large transfer rates yield small time constants (fast equilibration). If \(\tau_{12} = 0.2\) (20% of checking transferred monthly), \(\tau_{checking} = 5\) months&mdash;the characteristic time for checking balance to adjust.</p>
-
-<div class="divider">---</div>
 
 <h3>A.3 Thermodynamics of Compressible Investments</h3>
 
@@ -1116,8 +956,6 @@ b_{n,I} & -b_{n,S}
 <div class="equation-box">$$W_{isobaric} = P \cdot (n_1 - n_2) = P \cdot \Delta n \tag{A.19}$$</div>
 
 <p>This equals the realized proceeds from selling \(\Delta n\) shares at price \(P\).</p>
-
-<div class="divider">---</div>
 
 <h3>A.4 Lot-Level Buoyancy: Derivations</h3>
 
@@ -1217,8 +1055,6 @@ b_{n,I} & -b_{n,S}
 </tr>
 </table>
 
-<div class="divider">---</div>
-
 <h3>A.5 Compressibility Measures</h3>
 
 <h4>A.5.1 Definition of Financial Compressibility</h4>
@@ -1265,8 +1101,6 @@ b_{n,I} & -b_{n,S}
 <td>Amplifies compressibility: \(\beta_{leveraged} = L \cdot \beta_{underlying}\)</td>
 </tr>
 </table>
-
-<div class="divider">---</div>
 
 <h3>Summary of Key Equations</h3>
 
@@ -1338,69 +1172,33 @@ b_{n,I} & -b_{n,S}
 </tr>
 </table>
 
-<div class="divider">---</div>
 
-<p><em>End of Appendix A</em></p>
 
-<a href="../index.html" class="back-to-top">&larr; Back to Home</a>
-
+                </div>
+            </div>
+        </article>
     </main>
 
-
-    </div>
-
-    <footer>
-        <p>&copy; 2026 Cole Prather</p>
-    </footer>
-
-    <div id="lightbox-overlay">
-        <span id="lightbox-close">&times;</span>
-        <img id="lightbox-img" src="" alt="Full Image">
-    </div>
+    <script src="../js/cinematic.js"></script>
 
     <script>
-        // Auto-size simulator iframe to match its content
-        var simFrame = document.getElementById('simulator-container');
-        simFrame.addEventListener('load', function() {
-            try {
-                var doc = simFrame.contentDocument || simFrame.contentWindow.document;
-                doc.body.style.alignItems = 'flex-start';
-                doc.body.style.minHeight = '0';
-                doc.body.style.padding = '0';
-                var chassis = doc.querySelector('.chassis');
-                if (chassis) {
-                    simFrame.style.height = (chassis.offsetHeight * 1.1 + 20) + 'px';
-                }
-            } catch(e) {}
-        });
+        // Auto-size simulator iframe to match its content (best-effort)
+        (function () {
+            var simFrame = document.getElementById('simulator-container');
+            if (!simFrame) return;
+            simFrame.addEventListener('load', function () {
+                try {
+                    var doc = simFrame.contentDocument || simFrame.contentWindow.document;
+                    doc.body.style.alignItems = 'flex-start';
+                    doc.body.style.minHeight = '0';
+                    doc.body.style.padding = '0';
+                    var chassis = doc.querySelector('.chassis');
+                    if (chassis) {
+                        simFrame.style.height = (chassis.offsetHeight * 1.1 + 20) + 'px';
+                    }
+                } catch (e) { /* cross-origin or before-load — leave default */ }
+            });
+        })();
     </script>
-    <script>
-        // Lightbox functionality
-        document.addEventListener("DOMContentLoaded", function() {
-            const overlay = document.getElementById("lightbox-overlay");
-            if (!overlay) return;
-
-            const closeBtn = document.getElementById("lightbox-close");
-            document.querySelectorAll(".lightbox-trigger").forEach(link => {
-                link.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    const img = document.getElementById("lightbox-img");
-                    img.src = this.getAttribute("href");
-                    overlay.style.display = "flex";
-                });
-            });
-
-            closeBtn.addEventListener("click", function() {
-                overlay.style.display = "none";
-            });
-
-            overlay.addEventListener("click", function(e) {
-                if (e.target === overlay) {
-                    overlay.style.display = "none";
-                }
-            });
-        });
-    </script>
-
 </body>
 </html>
