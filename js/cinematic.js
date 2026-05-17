@@ -121,11 +121,11 @@
         .then(r => r.ok ? r.text() : Promise.reject())
         .then(html => {
           const doc = new DOMParser().parseFromString(html, 'text/html');
-          const fragments = doc.querySelectorAll('.fragment');
-          if (!fragments.length) return;
-          const pick = fragments[Math.floor(Math.random() * fragments.length)];
-          const quoteEl = pick.querySelector('.fragment__quote');
-          const citeEl  = pick.querySelector('.fragment__cite');
+          const quoteEls = doc.querySelectorAll('.quote');
+          if (!quoteEls.length) return;
+          const pick = quoteEls[Math.floor(Math.random() * quoteEls.length)];
+          const quoteEl = pick.querySelector('.quote__text');
+          const citeEl  = pick.querySelector('.quote__cite');
           if (!quoteEl || !citeEl) return;
           target.querySelector('.atrium-quote__text').textContent = quoteEl.textContent.trim();
           target.querySelector('.atrium-quote__cite').textContent = citeEl.textContent.trim();
@@ -222,12 +222,12 @@
     if (counter) counter.textContent = visible;
   }
 
-  function applyFragmentFilter() {
-    const fragments = document.querySelectorAll('.fragment');
-    if (!fragments.length) return;
-    const counter = document.querySelector('[data-fragment-count]');
+  function applyQuoteFilter() {
+    const quoteEls = document.querySelectorAll('.quote');
+    if (!quoteEls.length) return;
+    const counter = document.querySelector('[data-quote-count]');
     let visible = 0;
-    fragments.forEach(f => {
+    quoteEls.forEach(f => {
       const tags = (f.dataset.tags || '').split(/\s+/);
       const ok = filterState.tag === 'all' || tags.indexOf(filterState.tag) !== -1;
       f.classList.toggle('is-hidden', !ok);
@@ -252,7 +252,7 @@
 
   function applyAllFilters() {
     applyQuestFilters();
-    applyFragmentFilter();
+    applyQuoteFilter();
     applyTimelineFilter();
   }
 
@@ -328,6 +328,6 @@
   }
 
   // Initialize filters on Quotes/Timeline pages (sets initial counter from DOM count)
-  applyFragmentFilter();
+  applyQuoteFilter();
   applyTimelineFilter();
 })();
