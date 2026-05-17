@@ -888,15 +888,19 @@
 <script>
 // --- Constants ----------------------------------------------------------------
 const COLORS = {
-  foundation:'#d0d8e8', PHIL:'#b8a0d8', EPI:'#6ea8fe', ECDO:'#e07050', TF:'#50c878',
+  foundation:'#d0d8e8', PHIL:'#b8a0d8', EPI:'#b8a0d8', ECDO:'#e07050', TF:'#50c878',
   DSL:'#c084fc', PED:'#fbbf24', ARCH:'#f87171', PHYS:'#60b8e0', tes:'#607080', quotes:'#a08850', unknown:'#555',
   ai_shared:'#7a8a9a', human_skills:'#e8a040',
   CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
+// Canonical fields of study. Epistemology is merged into Philosophy — EPI is an
+// alias of PHIL (same sector, color, label). SECTOR_OF normalizes any EPI-coded
+// node onto the Philosophy sector at every consumption point.
+const SECTOR_OF = c => (c === 'EPI' ? 'PHIL' : c);
 const DOMAIN_NAMES = {
-  foundation:'Foundation', PHIL:'Philosophy & Ethics', EPI:'Epistemology', ECDO:'ECDO Theory', TF:'Thermofluidic Finance',
-  DSL:'Dynamical Systems', PED:'Pedagogy & Assessment', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
-  ai_shared:'Computer Systems & AI', human_skills:'Human Skills',
+  foundation:'Foundation', PHIL:'Philosophy', EPI:'Philosophy', ECDO:'Geophysics', TF:'Economics & Finance',
+  DSL:'Applied Mathematics', PED:'Education', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
+  ai_shared:'Computer Science', human_skills:'Human Skills',
   CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
 };
 const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
@@ -908,14 +912,16 @@ const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 // Genealogical order: Philosophy (root) → core fields → fringe research → back
 const DOMAIN_ANGLES = {
   foundation: null, // tier 0 FPs spread by data-driven domain assignment
-  // Core fields (clockwise from root): Philosophy begets Physics begets frameworks
-  PHIL: 0, PHYS: 40, DSL: 80, TF: 120,
-  // Methodology & practice: how we investigate and teach
-  EPI: 160, PED: 200,
-  // Tools & systems
-  ai_shared: 240,
-  // Fringe research (opposite from core)
-  ARCH: 280, ECDO: 320
+  // 8 canonical fields of study, clockwise from root (Philosophy).
+  // Epistemology is merged into Philosophy — no separate EPI sector.
+  PHIL: 0,        // Philosophy (incl. Epistemology & Methodology)
+  PHYS: 45,       // Physics
+  DSL: 90,        // Applied Mathematics
+  TF: 135,        // Economics & Finance
+  PED: 180,       // Education
+  ai_shared: 225, // Computer Science
+  ARCH: 270,      // Archaeoastronomy
+  ECDO: 315       // Geophysics
 };
 
 // Force layout cluster positions — derived from the locked radial sector angles
@@ -934,7 +940,7 @@ const FORCE_CLUSTERS = (function() {
 
 function getClusterPos(d) {
   // Use getRadialDomainForForce to map nodes to knowledge domains, same as radial
-  const dom = getRadialDomainForForce(d);
+  const dom = SECTOR_OF(getRadialDomainForForce(d));
   return FORCE_CLUSTERS[dom] || { x: 0, y: 0 };
 }
 
@@ -1065,7 +1071,8 @@ function octPath(r) {
 // --- State --------------------------------------------------------------------
 let mode = 'survey';
 let layerMode = 'both';
-let layout = 'force'; // 'force' or 'radial'
+// Radial is the only user-facing geometry. ?layout=force is a hidden dev escape hatch.
+let layout = (new URLSearchParams(location.search).get('layout') === 'force') ? 'force' : 'radial';
 let focusedIds = new Set();
 let simulation, nodeEls, linkEls, labelEls, zoomBehavior;
 let graphData;
@@ -1083,9 +1090,10 @@ const PROJECT_DISTRICTS = [
   { name: 'Eisenhower Task Manager', domains: ['ai_shared'],        color: '#7a8a9a' },
   { name: 'Propendulum',             nodes: ['PHYS-013','PHYS-016','DSL-008','PHYS-030','PHYS-027'], color: '#ff8866' },
   { name: 'ECDO Watch',              domains: ['ECDO','ARCH'],      color: '#e07050' },
-  { name: 'PSCPR',                   domains: ['EPI','PED'],        color: '#6ea8fe' },
-  { name: 'Inferential Dynamics',    domains: ['DSL','EPI','PHYS'], color: '#e0a050' },
+  { name: 'PSCPR',                   domains: ['PHIL','PED'],       color: '#6ea8fe' },
+  { name: 'Inferential Dynamics',    domains: ['DSL','PHIL','PHYS'],color: '#e0a050' },
   { name: 'Agent Pipeline IDE',      domains: ['ai_shared','PED'],  color: '#00d4aa' },
+  { name: 'Physics Simulations',     domains: ['PHYS'],             color: '#3fb8d8' },
 ];
 let vennCircles = null;
 
@@ -1159,11 +1167,9 @@ async function init() {
     if (e.key === '2') setMode('focus');
     if (e.key === 'l' || e.key === 'L') setMode('lineage');
     if (e.key === 'q' || e.key === 'Q') setMode('query');
-    if (e.key === 'r' || e.key === 'R') setLayout(layout === 'radial' ? 'force' : 'radial');
     if (e.key === '3') setLayer('human');
     if (e.key === '4') setLayer('both');
     if (e.key === '5') setLayer('ai');
-    if (e.key === 'v' || e.key === 'V') setLayer('venn');
   });
 }
 
@@ -1443,7 +1449,7 @@ function computeRadialPositions(nodes, links, width, height) {
   const groups = new Map();
   for (const n of nodes) {
     const t = tiers.get(n.id) || 0;
-    const rd = getRadialDomain(n);
+    const rd = SECTOR_OF(getRadialDomain(n));
     const key = `${t}:${rd}`;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(n);
@@ -1455,7 +1461,7 @@ function computeRadialPositions(nodes, links, width, height) {
   for (const n of nodes) {
     const t = tiers.get(n.id) || 0;
     const r = tierRadius(t);
-    const rd = getRadialDomain(n);
+    const rd = SECTOR_OF(getRadialDomain(n));
     const key = `${t}:${rd}`;
     const group = groups.get(key);
     const indexInGroup = group.indexOf(n);
@@ -1662,7 +1668,7 @@ function renderGraph(nodes, links) {
         // Collect nodes: by specific IDs if defined, otherwise by domain
         const dNodes = nodes.filter(n => {
           if (district.nodes) return district.nodes.includes(n.id);
-          if (district.domains) return district.domains.includes(getRadialDomainForForce(n));
+          if (district.domains) return district.domains.includes(SECTOR_OF(getRadialDomainForForce(n)));
           return false;
         }).filter(n => n.x !== undefined && n.y !== undefined);
         if (dNodes.length < 3) continue;
@@ -1915,6 +1921,14 @@ function renderGraph(nodes, links) {
 
   nodeEls.each(function(d) {
     const g = d3.select(this); const r = nRadius(d);
+    // Cross-layer "bridge" encoding: shared nodes (human↔AI) get a dashed halo.
+    // Replaces the retired Venn geometry — the distinction now lives on the radial map.
+    if (d.layer === 'shared') {
+      g.append('circle').attr('r', r + 4)
+        .attr('fill','none').attr('stroke','#d0d8e8')
+        .attr('stroke-width',1).attr('stroke-opacity',0.5)
+        .attr('stroke-dasharray','2,2');
+    }
     if (d.type==='fp') {
       g.append('path').attr('d',`M0,${-r} L${r},0 L0,${r} L${-r},0 Z`)
         .attr('fill',nColor(d)).attr('fill-opacity',nOpacity(d)).attr('stroke',nColor(d)).attr('stroke-width',1.5).attr('stroke-opacity',0.8);
@@ -2528,14 +2542,9 @@ function buildToolbar() {
       <button class="mode-btn" onclick="setMode('query')">Query</button>
     </div>
     <div class="tb-section">
-      <button class="layout-btn active" onclick="setLayout('force')">Force</button>
-      <button class="layout-btn" onclick="setLayout('radial')">Radial</button>
-    </div>
-    <div class="tb-section">
       <button class="layer-btn" onclick="setLayer('human')">Human</button>
       <button class="layer-btn active" onclick="setLayer('both')">Both</button>
       <button class="layer-btn" onclick="setLayer('ai')">AI</button>
-      <button class="layer-btn" onclick="setLayer('venn')">Venn</button>
     </div>
     <div class="tb-section search">
       <input type="text" class="search-input" placeholder="Search ideas..." oninput="onSearch(this.value)">
@@ -2550,11 +2559,10 @@ function buildToolbar() {
 function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
   const allDomains = [
-    ['foundation','Foundation'], ['PHIL','Philosophy & Ethics'], ['PHYS','Physics'],
-    ['DSL','Dynamical Systems'], ['TF','Thermofluidic Finance'],
-    ['EPI','Epistemology'], ['PED','Pedagogy & Assessment'],
-    ['ai_shared','Computer Systems & AI'],
-    ['ARCH','Archaeoastronomy'], ['ECDO','ECDO Theory']
+    ['foundation','Foundation'], ['PHIL','Philosophy'], ['PHYS','Physics'],
+    ['DSL','Applied Mathematics'], ['TF','Economics & Finance'],
+    ['PED','Education'], ['ai_shared','Computer Science'],
+    ['ARCH','Archaeoastronomy'], ['ECDO','Geophysics']
   ];
 
   let html = '';
@@ -2656,12 +2664,12 @@ function setLayer(m) {
 
 function toggleDomain(domain, visible) {
   const hidden = !visible;
-  nodeEls.style('display', d => (d.domain===domain && hidden) ? 'none' : null);
-  labelEls.style('display', d => (d.domain===domain && hidden) ? 'none' : null);
+  nodeEls.style('display', d => (SECTOR_OF(d.domain)===domain && hidden) ? 'none' : null);
+  labelEls.style('display', d => (SECTOR_OF(d.domain)===domain && hidden) ? 'none' : null);
   linkEls.style('display', d => {
     const sd = (typeof d.source==='object'?d.source:graphData.nodes.find(n=>n.id===d.source))?.domain;
     const td = (typeof d.target==='object'?d.target:graphData.nodes.find(n=>n.id===d.target))?.domain;
-    return ((sd===domain||td===domain) && hidden) ? 'none' : null;
+    return ((SECTOR_OF(sd)===domain||SECTOR_OF(td)===domain) && hidden) ? 'none' : null;
   });
 }
 
@@ -2693,7 +2701,7 @@ function filterDistrict(idx) {
   for (const n of graphData.nodes) {
     if (district.nodes && district.nodes.includes(n.id)) {
       districtIds.add(n.id);
-    } else if (district.domains && district.domains.includes(getRadialDomainForForce(n))) {
+    } else if (district.domains && district.domains.includes(SECTOR_OF(getRadialDomainForForce(n)))) {
       districtIds.add(n.id);
     }
   }
