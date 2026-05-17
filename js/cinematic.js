@@ -86,6 +86,30 @@
       });
     })();
 
+    /* Shrink .atrium-quote__text font-size until the quote panel fits
+       within a viewport-relative budget. Prevents long quotes from
+       overflowing the screen (which previously got hard-clipped at
+       3 lines via CSS max-height). */
+    function fitAtriumQuote(target) {
+      if (!target) return;
+      const textEl = target.querySelector('.atrium-quote__text');
+      if (!textEl) return;
+      // Available vertical budget — narrower on mobile where it has to
+      // share space between profile pip and menu.
+      const isMobile = window.innerWidth <= 720;
+      const budgetPx = window.innerHeight * (isMobile ? 0.35 : 0.62);
+      // Read computed font size, shrink in 0.5px steps until panel fits
+      // its budget or we hit a readability floor (10px).
+      let fs = parseFloat(getComputedStyle(textEl).fontSize);
+      textEl.style.fontSize = fs + 'px';   // pin it so reads aren't from clamp
+      const floor = 10;
+      let safety = 80;
+      while (target.scrollHeight > budgetPx && fs > floor && safety-- > 0) {
+        fs -= 0.5;
+        textEl.style.fontSize = fs + 'px';
+      }
+    }
+
     /* Pull a random quote from quotes.html and drop it into the
        Atrium .atrium-quote element. Quotes.html is the single source
        of truth — this just fetches, parses, picks, populates. Silent
@@ -106,6 +130,11 @@
           target.querySelector('.atrium-quote__text').textContent = quoteEl.textContent.trim();
           target.querySelector('.atrium-quote__cite').textContent = citeEl.textContent.trim();
           target.classList.add('is-loaded');
+          // Fit after layout + fonts settle (fonts can shift word wrapping)
+          requestAnimationFrame(() => fitAtriumQuote(target));
+          if (document.fonts) document.fonts.ready.then(() => fitAtriumQuote(target));
+          // Re-fit on resize / orientation change
+          window.addEventListener('resize', () => fitAtriumQuote(target));
         })
         .catch(() => {});
     })();
