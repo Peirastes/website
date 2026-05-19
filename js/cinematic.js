@@ -159,9 +159,13 @@
     function returnToTitle() {
       if (stage !== 'menu') return;
       stage = 'title';
-      body.classList.remove('stage-menu');
+      body.classList.remove('stage-menu', 'is-returning');
       body.classList.add('stage-title');
       items.forEach(it => it.classList.remove('is-active'));
+      // Clear the returning-visit flag so a reload from here starts
+      // fresh at the Propylaea. Pressing Esc is now a "reset to first
+      // impression" affordance, not just a within-page transition.
+      try { sessionStorage.removeItem('atrium-visited'); } catch (e) {}
     }
 
     function activate(index) {
