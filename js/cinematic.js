@@ -35,6 +35,15 @@
     let stage = 'title';
     let activeIndex = 0;
 
+    // Returning-visitor short-circuit: if the user has already entered
+    // the Atrium during this browser session, skip Propylaea and land
+    // them directly in the menu. New sessions still see the first-
+    // impression entrance through the title.
+    let isReturning = false;
+    try {
+      isReturning = sessionStorage.getItem('atrium-visited') === '1';
+    } catch (e) { /* private mode / storage disabled — fall through */ }
+
     function setActive(index) {
       activeIndex = ((index % items.length) + items.length) % items.length;
       items.forEach((it, i) => it.classList.toggle('is-active', i === activeIndex));
@@ -46,6 +55,14 @@
       body.classList.remove('stage-title');
       body.classList.add('stage-menu');
       setActive(0);
+      try { sessionStorage.setItem('atrium-visited', '1'); } catch (e) {}
+    }
+
+    // If returning, fire the transition immediately and tag the body
+    // so CSS can drop the entrance-animation delays for snappy reentry.
+    if (isReturning) {
+      body.classList.add('is-returning');
+      enterMenu();
     }
 
     /* Align the .atrium-quote's TOP edge to the .menu's TOP edge on
