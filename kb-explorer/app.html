@@ -889,19 +889,39 @@
 // --- Constants ----------------------------------------------------------------
 const COLORS = {
   foundation:'#d0d8e8', PHIL:'#b8a0d8', EPI:'#b8a0d8', ECDO:'#e07050', TF:'#50c878',
-  DSL:'#c084fc', PED:'#fbbf24', ARCH:'#f87171', PHYS:'#60b8e0', tes:'#607080', quotes:'#a08850', unknown:'#555',
-  ai_shared:'#7a8a9a', human_skills:'#e8a040',
+  DSL:'#c084fc', PED:'#fbbf24', ARCH:'#e07050', PHYS:'#60b8e0', tes:'#607080', quotes:'#a08850', unknown:'#555',
+  ai_shared:'#7a8a9a', human_skills:'#e8a040', ENG:'#4a90c2',
   CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
-// Canonical fields of study. Epistemology is merged into Philosophy — EPI is an
-// alias of PHIL (same sector, color, label). SECTOR_OF normalizes any EPI-coded
-// node onto the Philosophy sector at every consumption point.
-const SECTOR_OF = c => (c === 'EPI' ? 'PHIL' : c);
+// Canonical fields of study. Aliases: EPI (Epistemology) → PHIL (Philosophy & Epistemology);
+// ARCH (Archaeoastronomy) → ECDO (Earth & Space Science). SECTOR_OF normalizes alias-coded
+// nodes onto the canonical sector at every consumption point.
+const SECTOR_OF = c => (c === 'EPI' ? 'PHIL' : (c === 'ARCH' ? 'ECDO' : c));
 const DOMAIN_NAMES = {
-  foundation:'Foundation', PHIL:'Philosophy', EPI:'Philosophy', ECDO:'Geophysics', TF:'Economics & Finance',
-  DSL:'Applied Mathematics', PED:'Education', ARCH:'Archaeoastronomy', PHYS:'Physics', tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
+  foundation:'Foundation', PHIL:'Philosophy & Epistemology', EPI:'Philosophy & Epistemology',
+  ECDO:'Earth & Space Science', ARCH:'Earth & Space Science',
+  TF:'Economics & Finance', DSL:'Mathematics', PED:'Education & Pedagogy', PHYS:'Physics', ENG:'Engineering',
+  tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
   ai_shared:'Computer Science', human_skills:'Human Skills',
   CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
+};
+// Explicit per-claim sector overrides. Checked first in both classifiers, before any
+// type/domain heuristic. Add a node ID here to pin it to a specific sector regardless
+// of its raw domain. Auditable in one place.
+const CLAIM_SECTOR_OVERRIDES = {
+  // PHYS claims migrating to Mathematics (formal methods, not physics content)
+  'PHYS-014': 'DSL',  // Numerical Methods for Physics
+  'PHYS-015': 'DSL',  // Dynamical Systems Theory
+  'PHYS-017': 'DSL',  // Eigenvalue Methods in Physics
+  'PHYS-019': 'DSL',  // Differential Equations in Physics
+  'PHYS-030': 'DSL',  // Qualitative Dynamics and Chaos
+  // PHYS claims migrating to Engineering (applied control)
+  'PHYS-016': 'ENG',  // Control Systems and PID
+  // PHYS claims migrating to Computer Science (algorithms/visualization)
+  'PHYS-020': 'ai_shared',  // Marching Cubes and Field Visualization
+  // DSL claims migrating to Engineering (control + modeling formalism for devices)
+  'DSL-007': 'ENG',   // Bond Graph Theory as Unifying Representation
+  'DSL-008': 'ENG',   // Feedback Control as Dynamical System Application
 };
 const STATUS_OP = { Established:1, Hypothesized:0.85, Speculative:0.45, Unknown:0.3, Retracted:0.15,
   Active:1, Draft:0.6, Deprecated:0.25, Proposed:0.7 };
@@ -912,16 +932,16 @@ const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 // Genealogical order: Philosophy (root) → core fields → fringe research → back
 const DOMAIN_ANGLES = {
   foundation: null, // tier 0 FPs spread by data-driven domain assignment
-  // 8 canonical fields of study, clockwise from root (Philosophy).
-  // Epistemology is merged into Philosophy — no separate EPI sector.
-  PHIL: 0,        // Philosophy (incl. Epistemology & Methodology)
+  // 8 canonical fields of study, clockwise from root (Philosophy & Epistemology).
+  // Engineering takes the slot freed by merging Archaeoastronomy into Earth & Space Science.
+  PHIL: 0,        // Philosophy & Epistemology (incl. Epistemology & Methodology)
   PHYS: 45,       // Physics
-  DSL: 90,        // Applied Mathematics
+  DSL: 90,        // Mathematics
   TF: 135,        // Economics & Finance
-  PED: 180,       // Education
+  PED: 180,       // Education & Pedagogy
   ai_shared: 225, // Computer Science
-  ARCH: 270,      // Archaeoastronomy
-  ECDO: 315       // Geophysics
+  ENG: 270,       // Engineering
+  ECDO: 315       // Earth & Space Science (incl. Geophysics + Archaeoastronomy)
 };
 
 // Force layout cluster positions — derived from the locked radial sector angles
@@ -946,6 +966,7 @@ function getClusterPos(d) {
 
 // Lightweight version of getRadialDomain for force layout (no link data needed)
 function getRadialDomainForForce(n) {
+  if (CLAIM_SECTOR_OVERRIDES[n.id]) return CLAIM_SECTOR_OVERRIDES[n.id];
   if (n.type === 'fp') return 'PHIL'; // FPs are philosophical axioms
   if (n.type === 'hsk') {
     if (n.skillDomain === 'PHYS') return 'PED';
@@ -975,6 +996,7 @@ function getRadialDomainForForce(n) {
     if (n.owner === 'RA') return 'EPI';
     if (n.owner === 'CE') {
       const t = (n.title||'').toLowerCase();
+      if (t.includes('control') || t.includes('embedded') || t.includes('firmware') || t.includes('hardware') || t.includes('mechanical')) return 'ENG';
       if (t.includes('simulation') || t.includes('numerical') || t.includes('scientific') || t.includes('physics')) return 'PHYS';
       if (t.includes('ta agent') || t.includes('katex') || t.includes('manim') || t.includes('quarto') || t.includes('pipeline')) return 'PED';
       if (t.includes('cesium') || t.includes('geospatial')) return 'ECDO';
@@ -1089,7 +1111,7 @@ const PROJECT_DISTRICTS = [
   { name: 'Thermofluidic Finance',   domains: ['TF','DSL'],         color: '#50c878' },
   { name: 'Eisenhower Task Manager', domains: ['ai_shared'],        color: '#7a8a9a' },
   { name: 'Propendulum',             nodes: ['PHYS-013','PHYS-016','DSL-008','PHYS-030','PHYS-027'], color: '#ff8866' },
-  { name: 'ECDO Watch',              domains: ['ECDO','ARCH'],      color: '#e07050' },
+  { name: 'ECDO Watch',              domains: ['ECDO'],             color: '#e07050' },
   { name: 'PSCPR',                   domains: ['PHIL','PED'],       color: '#6ea8fe' },
   { name: 'Inferential Dynamics',    domains: ['DSL','PHIL','PHYS'],color: '#e0a050' },
   { name: 'Agent Pipeline IDE',      domains: ['ai_shared','PED'],  color: '#00d4aa' },
@@ -1338,6 +1360,8 @@ function computeRadialPositions(nodes, links, width, height) {
 
   // Map ALL nodes to knowledge domains for sector placement
   function getRadialDomain(n) {
+    // Explicit per-claim sector pinning takes precedence over all heuristics
+    if (CLAIM_SECTOR_OVERRIDES[n.id]) return CLAIM_SECTOR_OVERRIDES[n.id];
     // FP nodes: use data-driven domain assignment
     if (n.type === 'fp') return fpDomainMap.get(n.id) || 'EPI';
     // HSK nodes: skills go in the domain of the PRACTICE, not the subject matter
@@ -1351,7 +1375,7 @@ function computeRadialPositions(nodes, links, width, height) {
       // RES skills → EPI
       if (n.skillDomain === 'RES') return 'EPI';
       // ENG skills → DSL
-      if (n.skillDomain === 'ENG') return 'DSL';
+      if (n.skillDomain === 'ENG') return 'ENG';
       // BIZ: product strategy → TF, agent orchestration → EPI
       if (n.skillDomain === 'BIZ') {
         if (t.includes('agent') || t.includes('orchestrat')) return 'ai_shared';
@@ -1379,6 +1403,8 @@ function computeRadialPositions(nodes, links, width, height) {
       // CE → map each skill to the domain it actually serves
       if (n.owner === 'CE') {
         const t = (n.title || '').toLowerCase();
+        // Engineering: control/embedded/firmware/hardware/mechanical (checked first — more specific)
+        if (t.includes('control') || t.includes('embedded') || t.includes('firmware') || t.includes('hardware') || t.includes('mechanical')) return 'ENG';
         // Physics: simulation, numerical methods, scientific viz/docs
         if (t.includes('simulation') || t.includes('numerical') || t.includes('scientific') || t.includes('physics')) return 'PHYS';
         // Pedagogy: TA pipeline support, KaTeX math, Manim animations, Quarto docs
@@ -2559,10 +2585,10 @@ function buildToolbar() {
 function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
   const allDomains = [
-    ['foundation','Foundation'], ['PHIL','Philosophy'], ['PHYS','Physics'],
-    ['DSL','Applied Mathematics'], ['TF','Economics & Finance'],
-    ['PED','Education'], ['ai_shared','Computer Science'],
-    ['ARCH','Archaeoastronomy'], ['ECDO','Geophysics']
+    ['foundation','Foundation'], ['PHIL','Philosophy & Epistemology'], ['PHYS','Physics'],
+    ['DSL','Mathematics'], ['TF','Economics & Finance'],
+    ['PED','Education & Pedagogy'], ['ai_shared','Computer Science'],
+    ['ENG','Engineering'], ['ECDO','Earth & Space Science']
   ];
 
   let html = '';
