@@ -324,12 +324,17 @@
         // Render quest-cards
         questGrid.innerHTML = visible.map(p => {
           const status = p.status || 'completed';
-          const type = p.type || 'discourse';
+          const type = p.type || 'study';
+          // Render type as "Type · Subtype" when a subtype is defined
+          // (Studies have Essay/Treatise/Investigation; Simulators and
+          // Applications are homogeneous enough to not need sub-labels).
+          const typeText = (TYPE_LABEL[type] || type)
+            + (p.subtype ? ' · ' + p.subtype : '');
           return '<a class="quest-card" data-status="' + esc(status) + '" data-type="' + esc(type) + '" href="' + esc(p.link) + '">' +
             '<div class="quest-card__body">' +
               '<div class="quest-card__meta">' +
                 '<span class="quest-status quest-status--' + esc(status) + '">' + esc(STATUS_LABEL[status] || status) + '</span>' +
-                '<span class="quest-type">' + esc(TYPE_LABEL[type] || type) + '</span>' +
+                '<span class="quest-type">' + esc(typeText) + '</span>' +
                 '<span class="quest-card__date">' + esc(p.published || '') + '</span>' +
               '</div>' +
               '<h3 class="quest-card__title">' + esc(p.title) + '</h3>' +
