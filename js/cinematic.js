@@ -300,7 +300,7 @@
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
     const STATUS_LABEL = { active: 'Active', completed: 'Completed', inactive: 'On Hold' };
-    const TYPE_LABEL = { instrument: 'Instrument', treatise: 'Treatise', discourse: 'Discourse' };
+    const TYPE_LABEL = { simulator: 'Simulator', application: 'Application', study: 'Study' };
 
     fetch('projects.json')
       .then(r => r.json())
