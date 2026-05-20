@@ -223,6 +223,36 @@
     });
   }
 
+  // ─── Page-hero title fit-to-bounds ───
+  // Long titles ("Fundamental Principles — On Analogies (continued)",
+  // "Gravitational Wave Detector", etc.) wrap to 2-3 lines at the base
+  // clamp() font-size. Shrink the title until it either fits on one
+  // line OR hits a sensible readability floor.
+  (function fitPageHeroTitle() {
+    const title = document.querySelector('.page-hero__title');
+    if (!title) return;
+    function fit() {
+      // Strip any inline font-size so the base CSS clamp() applies first
+      title.style.fontSize = '';
+      const baseFs = parseFloat(getComputedStyle(title).fontSize);
+      const lineHeight = parseFloat(getComputedStyle(title).lineHeight) || baseFs * 1.2;
+      const oneLineHeight = lineHeight * 1.4; // tolerance for descenders
+      // Already fits — nothing to do
+      if (title.offsetHeight <= oneLineHeight) return;
+      // Floor at roughly 60% of base — below that the title gets unreadable
+      const floorFs = Math.max(baseFs * 0.55, 18);
+      let fs = baseFs;
+      let safety = 80;
+      while (title.offsetHeight > oneLineHeight && fs > floorFs && safety-- > 0) {
+        fs -= 1;
+        title.style.fontSize = fs + 'px';
+      }
+    }
+    fit();
+    window.addEventListener('resize', fit);
+    if (document.fonts) document.fonts.ready.then(fit);
+  })();
+
   // ─── Filter logic — shared by Campaign Log (quest cards, status×type)
   //     and Lore Fragments (tag) ───
   const filterPills = document.querySelectorAll('.filter-pill');
