@@ -890,7 +890,7 @@
 const COLORS = {
   foundation:'#d0d8e8', PHIL:'#b8a0d8', EPI:'#b8a0d8', ECDO:'#e07050', TF:'#50c878',
   DSL:'#c084fc', PED:'#fbbf24', ARCH:'#e07050', PHYS:'#60b8e0', tes:'#607080', quotes:'#a08850', unknown:'#555',
-  ai_shared:'#7a8a9a', human_skills:'#e8a040', ENG:'#4a90c2',
+  ai_shared:'#7a8a9a', human_skills:'#e8a040', ENG:'#4a90c2', BIO:'#84c061',
   CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
 };
 // Canonical fields of study. Aliases: EPI (Epistemology) → PHIL (Philosophy & Epistemology);
@@ -900,7 +900,7 @@ const SECTOR_OF = c => (c === 'EPI' ? 'PHIL' : (c === 'ARCH' ? 'ECDO' : c));
 const DOMAIN_NAMES = {
   foundation:'Foundation', PHIL:'Philosophy & Epistemology', EPI:'Philosophy & Epistemology',
   ECDO:'Earth & Space Science', ARCH:'Earth & Space Science',
-  TF:'Economics & Finance', DSL:'Mathematics', PED:'Education & Pedagogy', PHYS:'Physics', ENG:'Engineering',
+  TF:'Social Sciences & Economics', DSL:'Mathematics', PED:'Education & Pedagogy', PHYS:'Physics', ENG:'Engineering', BIO:'Life Sciences & Biology',
   tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
   ai_shared:'Computer Science', human_skills:'Human Skills',
   CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
@@ -932,16 +932,16 @@ const PROFICIENCY_OP = { Expert:1, Competent:0.75, Learning:0.5 };
 // Genealogical order: Philosophy (root) → core fields → fringe research → back
 const DOMAIN_ANGLES = {
   foundation: null, // tier 0 FPs spread by data-driven domain assignment
-  // 8 canonical fields of study, clockwise from root (Philosophy & Epistemology).
-  // Engineering takes the slot freed by merging Archaeoastronomy into Earth & Space Science.
-  PHIL: 0,        // Philosophy & Epistemology (incl. Epistemology & Methodology)
-  PHYS: 45,       // Physics
-  DSL: 90,        // Mathematics
-  TF: 135,        // Economics & Finance
-  PED: 180,       // Education & Pedagogy
-  ai_shared: 225, // Computer Science
-  ENG: 270,       // Engineering
-  ECDO: 315       // Earth & Space Science (incl. Geophysics + Archaeoastronomy)
+  // 9 canonical fields of study, clockwise from root (Philosophy & Epistemology).
+  PHIL: 0,         // Philosophy & Epistemology
+  PHYS: 40,        // Physics
+  DSL: 80,         // Mathematics
+  TF: 120,         // Social Sciences & Economics
+  PED: 160,        // Education & Pedagogy
+  ai_shared: 200,  // Computer Science
+  ENG: 240,        // Engineering
+  ECDO: 280,       // Earth & Space Science (incl. Geophysics + Archaeoastronomy)
+  BIO: 320         // Life Sciences & Biology (backdrop — populates as bio content is authored)
 };
 
 // Force layout cluster positions — derived from the locked radial sector angles
@@ -2586,9 +2586,9 @@ function buildFilterPanel() {
   const fp = document.getElementById('filter-panel');
   const allDomains = [
     ['foundation','Foundation'], ['PHIL','Philosophy & Epistemology'], ['PHYS','Physics'],
-    ['DSL','Mathematics'], ['TF','Economics & Finance'],
+    ['DSL','Mathematics'], ['TF','Social Sciences & Economics'],
     ['PED','Education & Pedagogy'], ['ai_shared','Computer Science'],
-    ['ENG','Engineering'], ['ECDO','Earth & Space Science']
+    ['ENG','Engineering'], ['ECDO','Earth & Space Science'], ['BIO','Life Sciences & Biology']
   ];
 
   let html = '';
