@@ -518,7 +518,7 @@ export default function RefrigeratorTipSimulator() {
     <>
       {/* Full-bleed 3D stage — fills the viewport behind the floating cards */}
       <div className="rtc-stage">
-        <Canvas camera={{ position: [0.6, 0.5, 0.9], fov: 45 }} gl={{ alpha: true }} shadows>
+        <Canvas camera={{ position: [0.75, 0.95, 0.85], fov: 45 }} gl={{ alpha: true }} shadows>
           <Lights />
           <Refrigerator />
           <DoorAndShelf stateRef={stateRef} paramsRef={paramsRef} />
