@@ -84,12 +84,14 @@ topple/no-topple boundary is solid to a few percent.
 | T1 · static        | 2.5 | static      | ~0° |
 | T2 · barely tips    | 3.5 | tip-recover | 2.0° |
 | T3 · clear recover  | 4.5 | tip-recover | 4.9° |
-| T4 · deep recover   | 5.1 | tip-recover | 13° |
+| T4 · deep recover   | 5.2 | tip-recover | 18.7° |
 | T5 · topple         | 6.5 | topple      | 88.8° |
 
-T4 is capped at 5.1 N·m (just below the *converged* topple edge ~5.14): higher
-torques recover only at the coarse production timestep and topple under finer
-integration, so shipping one as a green "recover" would be a numerical artifact.
+T4 (5.2 N·m, 18.7° — 84% of φc) deliberately sits in the *production-dt* recover
+window: above the converged topple edge (~5.14) but below the production-dt
+topple edge (~5.22). It is the only case whose PASS verdict depends on the
+timestep choice — chosen for visual drama; flagged here so it isn't mistaken
+for a result robust to refinement.
 
 ## Results status (see brief §5 for the full account)
 

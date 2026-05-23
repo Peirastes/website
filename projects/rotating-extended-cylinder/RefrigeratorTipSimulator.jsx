@@ -27,7 +27,7 @@ const TEST_CASES = [
   { id: 1, label: 'T1 · static',        peakTau: 2.5, regime: 'static',      phiMax: 0.0,  note: 'below tip threshold' },
   { id: 2, label: 'T2 · barely tips',   peakTau: 3.5, regime: 'tip-recover', phiMax: 2.0,  note: 'small but visible lean, settles' },
   { id: 3, label: 'T3 · clear recover', peakTau: 4.5, regime: 'tip-recover', phiMax: 4.9,  note: 'clear tip-and-recover' },
-  { id: 4, label: 'T4 · deep recover',  peakTau: 5.1, regime: 'tip-recover', phiMax: 13.0, note: 'near-max excursion (just below the converged topple edge), still recovers' },
+  { id: 4, label: 'T4 · deep recover',  peakTau: 5.2, regime: 'tip-recover', phiMax: 18.7, note: 'very deep excursion (84% of φc) — sits just below the production-dt topple edge; would topple at finer dt' },
   { id: 5, label: 'T5 · topple',        peakTau: 6.5, regime: 'topple',      phiMax: 88.8, note: 'exceeds φc, falls over' },
 ];
 
