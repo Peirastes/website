@@ -11,6 +11,7 @@ import {
   quatRotate,
   classifyOutcome,
 } from "./physicsCore.mjs";
+import basinData from "./basin.json";
 
 // Default parameter set (the §3.4 reference geometry: 350 g can, 3.3 cm
 // radius, 16 cm height, 30 cm from hinge, μ=0.5, 80 ms pulse, 0.15 door).
@@ -400,6 +401,110 @@ function PhasePortrait({ stateRef, params }) {
   return <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />;
 }
 
+// Basin diagram — renders the precomputed 2-D (peak τ, pulse_width) regime
+// map at default geometry, with the five documented test cases overlaid as
+// labeled dots and the current operating point as a live cyan crosshair.
+function BasinDiagram({ paramsRef }) {
+  const canvasRef = useRef();
+  useEffect(() => {
+    let raf;
+    const draw = () => {
+      const c = canvasRef.current;
+      if (!c) { raf = requestAnimationFrame(draw); return; }
+      const dpr = window.devicePixelRatio || 1;
+      const W = c.clientWidth, H = c.clientHeight;
+      if (c.width !== W * dpr) { c.width = W * dpr; c.height = H * dpr; }
+      const ctx = c.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      const { NT, NP, TAU_MIN, TAU_MAX, PW_MIN, PW_MAX, code } = basinData;
+
+      // Plot area with margin for axes
+      const padL = 26, padR = 8, padT = 4, padB = 16;
+      const gW = W - padL - padR;
+      const gH = H - padT - padB;
+      const cellW = gW / NT;
+      const cellH = gH / NP;
+
+      // Cell colors per regime — palette matches regimeColors but tuned for fill
+      const fillFor = ch => {
+        switch (ch) {
+          case 's': return 'rgba(82, 82, 91, 0.35)';     // static  — neutral gray
+          case 'l': return 'rgba(251, 191, 36, 0.50)';   // slide   — amber
+          case 't': return 'rgba(52, 211, 153, 0.55)';   // recover — green
+          case 'o': return 'rgba(248, 113, 113, 0.50)';  // topple  — red
+          default:  return 'rgba(0,0,0,0)';
+        }
+      };
+
+      // Draw cells. Row index j is pulse_width row; j=0 = PW_MIN (short pulse).
+      // We want short pulse at BOTTOM, long at top: flip vertical when drawing.
+      for (let j = 0; j < NP; j++) {
+        for (let i = 0; i < NT; i++) {
+          ctx.fillStyle = fillFor(code[j * NT + i]);
+          const x = padL + i * cellW;
+          const y = padT + (NP - 1 - j) * cellH;
+          ctx.fillRect(x, y, cellW + 0.5, cellH + 0.5);  // overlap to hide hairlines
+        }
+      }
+
+      // (tau N·m, pulse s) → screen pixel
+      const toPx = (tau, pulse) => {
+        const fx = (tau - TAU_MIN) / (TAU_MAX - TAU_MIN);
+        const fy = (pulse - PW_MIN) / (PW_MAX - PW_MIN);
+        return [padL + fx * gW, padT + (1 - fy) * gH];
+      };
+
+      // Test-case dots — labeled T1–T5 at default pulse
+      TEST_CASES.forEach(tc => {
+        const [px, py] = toPx(tc.peakTau, DEFAULTS.pulseWidth);
+        ctx.fillStyle = '#0a0e16';
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255, 174, 32, 0.95)';
+        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(220, 220, 220, 0.7)';
+        ctx.font = "8px 'Share Tech Mono', monospace";
+        ctx.fillText('T' + tc.id, px + 5, py - 4);
+      });
+
+      // Current operating point — cyan crosshair, follows the sliders
+      const p = paramsRef.current;
+      const [opx, opy] = toPx(p.peakTau, p.pulseWidth);
+      ctx.strokeStyle = '#7dd6ff';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(opx - 7, opy); ctx.lineTo(opx + 7, opy);
+      ctx.moveTo(opx, opy - 7); ctx.lineTo(opx, opy + 7);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(opx, opy, 4, 0, Math.PI * 2); ctx.stroke();
+
+      // Axes — thin frame
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.10)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(padL, padT, gW, gH);
+
+      // Axis tick labels
+      ctx.fillStyle = 'rgba(125, 214, 255, 0.55)';
+      ctx.font = "8px 'Share Tech Mono', monospace";
+      ctx.fillText(TAU_MIN.toFixed(1), padL - 4, padT + gH + 10);
+      ctx.fillText(TAU_MAX.toFixed(1), padL + gW - 12, padT + gH + 10);
+      ctx.fillText('τ', padL + gW / 2 - 3, padT + gH + 10);
+      ctx.save();
+      ctx.translate(8, padT + gH);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText((PW_MIN * 1000).toFixed(0) + 'ms', 0, 8);
+      ctx.fillText((PW_MAX * 1000).toFixed(0) + 'ms', gH - 30, 8);
+      ctx.restore();
+
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [paramsRef]);
+  return <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />;
+}
+
 // ---------------------------------------------------------------------
 // Main exported component
 // ---------------------------------------------------------------------
@@ -644,6 +749,13 @@ export default function RefrigeratorTipSimulator() {
         </div>
       </div>
 
+      {/* basin diagram (data surface: glass-graph) */}
+      <div className="rtc-graph-block">
+        <div className="rtc-graph__label">Basin · (peak τ, pulse) <span className="sub">· default geometry</span></div>
+        <div className="glass-graph" style={{ height: 152 }}>
+          <BasinDiagram paramsRef={paramsRef} />
+        </div>
+      </div>
       {/* phase portrait (data surface: glass-graph) */}
       <div className="rtc-graph-block">
         <div className="rtc-graph__label">Phase Portrait · (φ, φ̇)</div>
