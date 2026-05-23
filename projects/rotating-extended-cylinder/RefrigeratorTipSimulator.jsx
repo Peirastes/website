@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import {
@@ -298,6 +298,22 @@ function S1Slider({ value, min, max, step = 0, onChange, onUserEdit }) {
   );
 }
 
+// Live camera + orbit-target tracker — writes current xyz into the supplied
+// refs every frame so the outer component can display them in the Readout.
+function CameraTracker({ camRef, tgtRef }) {
+  useFrame(({ camera, controls }) => {
+    camRef.current[0] = camera.position.x;
+    camRef.current[1] = camera.position.y;
+    camRef.current[2] = camera.position.z;
+    if (controls && controls.target) {
+      tgtRef.current[0] = controls.target.x;
+      tgtRef.current[1] = controls.target.y;
+      tgtRef.current[2] = controls.target.z;
+    }
+  });
+  return null;
+}
+
 function Lights() {
   return (
     <>
@@ -404,6 +420,9 @@ export default function RefrigeratorTipSimulator() {
   const [, setTick] = useState(0);
   const [activeCase, setActiveCase] = useState(null);   // loaded test-case id
   const [lastResult, setLastResult] = useState(null);   // {regime, phiMaxDeg} of last completed run
+  // Live camera + orbit-target readout (for picking a default view)
+  const camRef = useRef([0.375, 0.65, 0.425]);
+  const tgtRef = useRef([0, 0.5, 0]);
 
   useEffect(() => {
     paramsRef.current = { m, r, h, x0, mu, peakTau, pulseWidth, iDoor, doorDamping };
@@ -530,7 +549,10 @@ export default function RefrigeratorTipSimulator() {
               of rotation is the default view centre and orbit pivot. */}
           <OrbitControls target={[0, 0.5, 0]} enablePan={true}
             screenSpacePanning={true} panSpeed={0.6}
-            minDistance={0.4} maxDistance={2.5} />
+            minDistance={0.4} maxDistance={2.5}
+            makeDefault
+            onChange={() => setTick(t => t + 1)} />
+          <CameraTracker camRef={camRef} tgtRef={tgtRef} />
         </Canvas>
       </div>
 
@@ -611,6 +633,8 @@ export default function RefrigeratorTipSimulator() {
           <dt>φc</dt><dd>{(phiC * 180 / Math.PI).toFixed(2)}°</dd>
           <dt className="thr">tip thr</dt><dd className="thr">{tipThresh.toFixed(2)} m/s²</dd>
           <dt className="thr">slip thr</dt><dd className="thr">{slipThresh.toFixed(2)} m/s²</dd>
+          <dt className="thr">cam xyz</dt><dd className="thr">{camRef.current.map(v => v.toFixed(3)).join(', ')}</dd>
+          <dt className="thr">tgt xyz</dt><dd className="thr">{tgtRef.current.map(v => v.toFixed(3)).join(', ')}</dd>
         </dl>
         <div className="rtc-regime">
           <span className="ctrl-led">
