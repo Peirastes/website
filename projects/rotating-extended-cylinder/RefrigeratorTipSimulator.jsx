@@ -421,8 +421,8 @@ export default function RefrigeratorTipSimulator() {
   const [activeCase, setActiveCase] = useState(null);   // loaded test-case id
   const [lastResult, setLastResult] = useState(null);   // {regime, phiMaxDeg} of last completed run
   // Live camera + orbit-target readout (for picking a default view)
-  const camRef = useRef([0.375, 0.65, 0.425]);
-  const tgtRef = useRef([0, 0.5, 0]);
+  const camRef = useRef([0.931, 0.663, 0.939]);
+  const tgtRef = useRef([0.111, 0.150, 0.023]);
 
   useEffect(() => {
     paramsRef.current = { m, r, h, x0, mu, peakTau, pulseWidth, iDoor, doorDamping };
@@ -537,7 +537,7 @@ export default function RefrigeratorTipSimulator() {
     <>
       {/* Full-bleed 3D stage — fills the viewport behind the floating cards */}
       <div className="rtc-stage">
-        <Canvas camera={{ position: [0.375, 0.65, 0.425], fov: 45 }} gl={{ alpha: true }} shadows>
+        <Canvas camera={{ position: [0.931, 0.663, 0.939], fov: 45 }} gl={{ alpha: true }} shadows>
           <Lights />
           <Refrigerator />
           <DoorAndShelf stateRef={stateRef} paramsRef={paramsRef} />
@@ -547,7 +547,7 @@ export default function RefrigeratorTipSimulator() {
           {/* Left-drag = orbit. Right-drag = pan the lab frame. Scroll = zoom.
               Target = the hinge axis at door mid-height, so the door's centre
               of rotation is the default view centre and orbit pivot. */}
-          <OrbitControls target={[0, 0.5, 0]} enablePan={true}
+          <OrbitControls target={[0.111, 0.150, 0.023]} enablePan={true}
             screenSpacePanning={true} panSpeed={0.6}
             minDistance={0.4} maxDistance={2.5}
             makeDefault
