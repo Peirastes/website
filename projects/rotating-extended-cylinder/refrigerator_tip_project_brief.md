@@ -170,14 +170,20 @@ A polished version of the simulator belongs on peirastes.com as part of the exis
 
 **Status — deployed.** The app is live at **https://peirastes.com/rotating-extended-cylinder/** (built dist at root, projects.json `project37`, deployed 2026-05-22). The deployment carries the full canonical v3.5 cinematic chrome (verbatim from `Website/artemis-ii-v3-5/index.html`) with floating glass `inst-panel` cards over a full-bleed 3D canvas, the documented test cases (T1–T5) with regime-vs-φmax PASS/FAIL verdicts via the shared `classifyOutcome`, the lab-frame top-centre trace, the state-owned phase portrait on a `glass-graph` data surface, and Acrylic HUD instrument controls (a minimal-tactile slider variant diverged from the catalogue's locked S1, and the `.ctrl-led`/`.led-dot` regime pill).
 
-**Remaining pedagogical deployment items**, in approximate order of visible impact:
+**Pedagogical deployment items — done since the initial deploy:**
 
-1. **Responsive / mobile layout.** Cards are fixed 300 px columns; phones and small tablets won't render correctly. A class teacher demo on an iPad would be the most likely first complaint.
-2. **In-UI basin diagram.** The 2-D `(τ_peak, pulse_width)` basin map (`sweep.mjs` output) is the project's headline scientific result; it currently lives only in the terminal. Surfacing it as a small panel — e.g., a thumbnail in the Readout card that opens a glass-graph modal — would let students see *where the test cases sit in input space* rather than just running individual trajectories.
-3. **Real screenshot thumbnail.** Currently a placeholder SVG (one of ~14 site placeholders). A clean capture of the running scene (3D view + chrome + a test case mid-run) would land better on the projects page and OG previews.
-4. **Wire the Info chrome button.** Both `btnInfo` and `btnSettings` are disabled stubs; the canonical chrome reserves Info for an "about this sim" modal. A glass-modal with one paragraph and a link to the brief would close the visual debt without scope creep.
-5. **"Hand force × distance × duration" input mode** (§6). Students reading "peak τ = 4.5 N·m" don't know what that *feels* like; a toggle to "I push the door at distance D with force F for duration T" computes the same torque profile in intuitive units.
-6. **Exposition of the regime boundaries** at undergraduate level, and a **homework set** asking students to predict the boundary for a given can and check against the simulation. CD/TA-hat deliverables; per the N1 caveat, student-facing copy should treat tilt **qualitatively** (whether it topples is solid; how deep it leans is model-soft).
+- **Responsive / mobile layout** (2026-05-22). One `@media (max-width: 768px)` block + an extra-narrow `(max-width: 420px)` block stack the cards vertically below a 55-vh-tall stage, tighten the chrome row, and hide the corner ticks and crew line that would otherwise overlap. Desktop layout untouched.
+- **In-UI basin diagram** (2026-05-23). The 2-D `(τ_peak, pulse_width)` regime map (504 cells precomputed at default geometry, bundled as `basin.json`) is rendered as a `glass-graph` data surface in the right column between the Readout and the Phase Portrait. Cells are colored by regime (gray static / green tip-recover / red topple); the five test cases T1–T5 are overlaid as labeled amber dots at the default 80 ms pulse; the current operating point `(peakTau, pulseWidth)` is a live cyan crosshair that follows the sliders. The cells reflect default geometry — operating-point tracking is live, but cell colors don't recompute when the user changes `(m, r, h, μ, I_door)`. Live recompute via Web Worker is the natural next iteration if needed.
+- **Camera defaults** picked by the user via a live `cam xyz` / `tgt xyz` readout in the Readout card (the readout itself is retained for now, flagged for removal later).
+
+**Pedagogical deployment items still remaining**, in approximate order of visible impact:
+
+1. **Real screenshot thumbnail.** Currently a placeholder SVG (one of ~14 site placeholders). A clean capture of the running scene (3D view + chrome + a test case mid-run) would land better on the projects page and OG previews.
+2. **Wire the Info chrome button.** Both `btnInfo` and `btnSettings` are disabled stubs; the canonical chrome reserves Info for an "about this sim" modal. A glass-modal with one paragraph and a link to the brief would close the visual debt without scope creep.
+3. **"Hand force × distance × duration" input mode** (§6). Students reading "peak τ = 4.5 N·m" don't know what that *feels* like; a toggle to "I push the door at distance D with force F for duration T" computes the same torque profile in intuitive units.
+4. **Exposition of the regime boundaries** at undergraduate level, and a **homework set** asking students to predict the boundary for a given can and check against the simulation. CD/TA-hat deliverables; per the N1 caveat, student-facing copy should treat tilt **qualitatively** (whether it topples is solid; how deep it leans is model-soft).
+5. **Live basin recompute** (Web Worker) so the basin cells follow the geometry sliders, not just the operating point. Pre-baked-at-default was the faster ship; live recompute would close the small honesty gap when users perturb the geometry.
+6. **Remove the `cam xyz` / `tgt xyz` debug rows** from the Readout card now that the default view is locked in (kept temporarily by the user's request).
 
 ### 4.3 Connection to *On Dynamical Systems*
 

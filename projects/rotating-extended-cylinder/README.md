@@ -129,19 +129,32 @@ trace, the phase portrait on a glass-graph surface, and Acrylic HUD
 instruments (the slider is a minimal-tactile variant diverged from catalogue
 S1 — candidate for promotion as S2).
 
+## Done since the initial deploy
+
+- **Responsive / mobile layout** (2026-05-22) — `@media (max-width: 768px)`
+  switches to a stacked-scroll layout (55 vh stage + cards flowing below);
+  `(max-width: 420px)` drops the title sub-row for one-line chrome. Desktop
+  untouched.
+- **In-UI basin diagram** (2026-05-23) — the 2-D `(peak τ, pulse_width)`
+  regime map (precomputed at default geometry, `basin.json`) renders as a
+  `glass-graph` between Readout and Phase Portrait. Live cyan crosshair
+  follows the sliders; T1–T5 dots overlaid at the default pulse so you can
+  read off where the documented cases sit in input space.
+
 ## Remaining deployment items (brief §4.2)
 
 Ordered by visible impact:
 
-1. **Responsive / mobile layout** — fixed 300 px columns; iPad/phone will break.
-2. **In-UI basin diagram** — surface the `sweep.mjs` result as a panel; the
-   project's headline finding currently lives only in the terminal.
-3. **Real thumbnail** — placeholder SVG → screenshot of the running scene.
-4. **Info chrome button** — wire to an "about this sim" glass modal (currently
+1. **Real thumbnail** — placeholder SVG → screenshot of the running scene.
+2. **Info chrome button** — wire to an "about this sim" glass modal (currently
    a disabled stub).
-5. **"Hand force × distance × duration" input mode** — students don't intuit
+3. **"Hand force × distance × duration" input mode** — students don't intuit
    "peak τ = 4.5 N·m" the way they intuit a push at arm's length.
-6. **Undergraduate exposition + homework set** — CD/TA-hat deliverables.
+4. **Undergraduate exposition + homework set** — CD/TA-hat deliverables.
+5. **Live basin recompute** (Web Worker) — make the basin cells follow the
+   geometry sliders, not just the operating point.
+6. **Remove `cam xyz` / `tgt xyz` debug rows** from the Readout — kept
+   temporarily; safe to strip whenever.
 
 ## Outstanding science gaps (brief §5)
 
