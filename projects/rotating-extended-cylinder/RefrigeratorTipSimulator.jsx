@@ -525,7 +525,9 @@ export default function RefrigeratorTipSimulator() {
           {/* Lab-frame top trace at Canvas root (not in the rotating door group) */}
           <TopTrace stateRef={stateRef} />
           <gridHelper args={[2, 20, '#1f2733', '#141a22']} position={[0, -0.001, 0]} />
-          <OrbitControls target={[0.3, 0.15, 0]} enablePan={false}
+          {/* Left-drag = orbit. Right-drag = pan the lab frame. Scroll = zoom. */}
+          <OrbitControls target={[0.3, 0.15, 0]} enablePan={true}
+            screenSpacePanning={true} panSpeed={0.6}
             minDistance={0.4} maxDistance={2.5} />
         </Canvas>
       </div>
