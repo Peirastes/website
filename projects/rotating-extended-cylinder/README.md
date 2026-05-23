@@ -120,10 +120,37 @@ for a result robust to refinement.
 - Use `dt ≥ 1/4000` for figures that report excursion depth or the §4.1 scaling;
   the live view's `1/2000` is fine for topple/no-topple.
 
-## Roadmap to deployment (brief §4.2)
+## Status — deployed
 
-Instrument-tier styling · in-UI basin diagram · responsive layout · site wrapper
-+ `projects.json` entry + thumbnail · undergraduate exposition + homework ·
-"hand force × distance × duration" input mode. The contact-model upgrade
-(Lagrange-multiplier; brief §6) is the prerequisite for trusting the
-excursion-depth / scaling work and would remove the seed/hysteresis contrivance.
+Live at **https://peirastes.com/rotating-extended-cylinder/** (built dist at the
+site root; `projects.json` `project37`). The deployed build carries the
+canonical v3.5 cinematic chrome, the documented test cases, the lab-frame
+trace, the phase portrait on a glass-graph surface, and Acrylic HUD
+instruments (the slider is a minimal-tactile variant diverged from catalogue
+S1 — candidate for promotion as S2).
+
+## Remaining deployment items (brief §4.2)
+
+Ordered by visible impact:
+
+1. **Responsive / mobile layout** — fixed 300 px columns; iPad/phone will break.
+2. **In-UI basin diagram** — surface the `sweep.mjs` result as a panel; the
+   project's headline finding currently lives only in the terminal.
+3. **Real thumbnail** — placeholder SVG → screenshot of the running scene.
+4. **Info chrome button** — wire to an "about this sim" glass modal (currently
+   a disabled stub).
+5. **"Hand force × distance × duration" input mode** — students don't intuit
+   "peak τ = 4.5 N·m" the way they intuit a push at arm's length.
+6. **Undergraduate exposition + homework set** — CD/TA-hat deliverables.
+
+## Outstanding science gaps (brief §5)
+
+- **N3 (rim wobble convergence)** — untested. The sign-fix made this finally
+  meaningful to test; not yet done.
+- **N2 initial-condition perturbations** — geometry/friction axis cleared the
+  null; off-centre placement, shelf tilt, and CM asymmetry remain.
+- **§4.1 quantitative scaling test** — gated on the φ_max softness (N1 caveat);
+  truly trusting trajectory shape needs the contact-model upgrade.
+- **Contact-model upgrade (Lagrange-multiplier; brief §6)** — would remove the
+  load-bearing seed/hysteresis handoff at flat→tip and is the prerequisite for
+  trusting the excursion-depth work and the §4.1 scaling.
