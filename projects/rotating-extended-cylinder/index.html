@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Tip-Recover — Peirastes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- React app (full-bleed 3D stage + floating glass cards) mounts here -->
+    <div id="root"></div>
+
+    <!-- Film grain finish -->
+    <div class="cin-grain" aria-hidden="true"></div>
+
+    <!-- Cinematic chrome (verbatim v3.5 vocabulary) ─────────────── -->
+    <!-- Left flank — wordmark + version stacked, left-justified -->
+    <div class="cin-flank cin-flank--left">
+      <a class="cin-wordmark" href="https://peirastes.com/" title="Back to Peirastes">PEIRASTES</a>
+      <span class="cin-version">v0.1</span>
+    </div>
+
+    <!-- Title — floats centered between left and right flanks -->
+    <div class="cin-title" aria-label="Tip-Recover — Refrigerator-Door Rigid-Body Dynamics">
+      <div class="cin-title__name">TIP<span>-RECOVER</span></div>
+      <div class="cin-title__sub">Refrigerator-Door Rigid-Body Dynamics</div>
+      <div class="cin-title__crew">Static &bull; Slide &bull; Tip-Recover &bull; Topple</div>
+    </div>
+
+    <!-- Right flank — action button row -->
+    <div class="cin-flank cin-flank--right">
+      <div class="cin-action-row">
+        <button class="cin-action cin-action--disabled" id="btnInfo" title="Info (coming soon)" aria-label="Info" disabled>
+          <span class="cin-action__glyph">&#9432;</span>
+        </button>
+        <button class="cin-action cin-action--disabled" id="btnSettings" title="Settings (coming soon)" aria-label="Settings" disabled>
+          <span class="cin-action__glyph">&#9881;</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Corner cartographic ticks -->
+    <div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+    <div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+    <div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+    <div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+    <script type="module" src="/main.jsx"></script>
+
+    <!-- Center the cin-title at the visual midpoint between the flank
+         boxes (verbatim from the canonical reference). -->
+    <script>
+      (function () {
+        const leftFlank  = document.querySelector('.cin-flank--left');
+        const rightFlank = document.querySelector('.cin-flank--right');
+        const title      = document.querySelector('.cin-title');
+        if (leftFlank && rightFlank && title) {
+          const centerTitle = () => {
+            const lRect = leftFlank.getBoundingClientRect();
+            const rRect = rightFlank.getBoundingClientRect();
+            if (lRect.width === 0 || rRect.width === 0) return;
+            title.style.left = ((lRect.right + rRect.left) / 2) + 'px';
+          };
+          centerTitle();
+          window.addEventListener('resize', centerTitle);
+          new ResizeObserver(centerTitle).observe(rightFlank);
+          new ResizeObserver(centerTitle).observe(leftFlank);
+          if (document.fonts) document.fonts.ready.then(centerTitle);
+        }
+      })();
+    </script>
+  </body>
+</html>
