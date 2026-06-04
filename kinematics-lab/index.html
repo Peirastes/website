@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kinematics Lab — Peirastes</title>
+<meta name="description" content="Interactive kinematics simulator for PSE-I — 1D constant-acceleration motion with live x(t), v(t), a(t) plots. Vectors, projectile motion, and uncertainty envelopes coming in subsequent phases.">
+<meta property="og:title" content="Kinematics Lab — Peirastes">
+<meta property="og:description" content="Explore 1D and 2D motion under constant acceleration. PSE-I Core 1 companion lab.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://peirastes.com/kinematics-lab/">
+<meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0d10">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════════════════
+   KINEMATICS LAB — PSE-I Core 1 (Chapters 1–4)
+   Phase 1: physics-core + 1D Motion module.
+
+   Outer chrome: byte-equivalent to Artemis II v3.5 (canonical Peirastes v2
+   cinematic instrument template) per `feedback_v3_5_retrofit_topology.md`.
+
+   Inner working surface: Calm Mechanical palette from PSE-I figures
+   (psei_figures.py StyleConfig). Two-palette pattern documented in
+   Kinematics Lab SPEC.md §6 — universal Peirastes outer + PSE-I-specific
+   inner. First lab where the inner palette is PSE-I-flavored.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ─── TOKENS ─────────────────────────────────────────────────────────────── */
+:root {
+  /* Cinematic OUTER chrome — universal Peirastes v2 identity */
+  --bg-void: #06080c;
+  --bg-base: #0a0e16;
+  --fg: #e8e8e8;
+  --fg-2: #c8c8c8;
+  --fg-3: #8a8a8a;
+
+  --gold:        #ffae20;
+  --gold-soft:   rgba(255, 174, 32, 0.72);
+  --gold-faint:  rgba(255, 174, 32, 0.28);
+  --gold-glow:   rgba(255, 174, 32, 0.45);
+  --cyan:        #7dd6ff;
+  --cyan-soft:   rgba(125, 214, 255, 0.65);
+  --cyan-faint:  rgba(125, 214, 255, 0.22);
+  --cyan-glow:   rgba(125, 214, 255, 0.30);
+
+  --glass-bg:        rgba(10, 14, 22, 0.42);
+  --glass-bg-deep:   rgba(8, 12, 18, 0.55);
+  --glass-bg-modal:  rgba(10, 14, 22, 0.88);
+  --glass-border:    rgba(255, 255, 255, 0.10);
+  --glass-blur:      blur(22px) saturate(1.4);
+  --glass-shadow:    0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* Calm Mechanical INNER palette — PSE-I figure conventions
+     (from psei_figures.StyleConfig). Monotonic luminance ladder so all
+     channels remain distinguishable in B&W reproduction. */
+  --calm-ink:   #2B2B2B;
+  --calm-steel: #3F6280;   /* primary trace, vectors, key points */
+  --calm-slate: #5E707C;   /* secondary lines, dimensions */
+  --calm-mist:  #A8B3BC;   /* fills, envelopes, ambient shading */
+  --calm-amber: #B8853A;   /* warm emphasis — sparing */
+  --calm-paper: #F8F4EC;   /* very-light fills */
+
+  /* In-instrument data surface uses near-black voids with subtle Calm Mechanical
+     tints — the figures themselves stay light-on-dark for legibility against
+     the cinematic backdrop. */
+  --void-deep:  #050810;
+  --void-mid:   #0a0d18;
+  --void-edge:  rgba(125, 214, 255, 0.12);
+
+  /* Plot trace colors — shift the Calm Mechanical hues slightly brighter for
+     dark-background legibility (the canonical print palette assumes paper). */
+  --trace-x: #6e9bc0;   /* steel brightened — position */
+  --trace-v: #b8c8d2;   /* slate brightened — velocity */
+  --trace-a: #d4a865;   /* amber brightened — acceleration */
+  --trace-grid: rgba(168, 179, 188, 0.10);   /* mist faded — grid lines */
+  --trace-axis: rgba(232, 232, 232, 0.32);
+  --trace-axis-label: rgba(232, 232, 232, 0.65);
+  --trace-playhead: var(--cyan);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: var(--bg-void);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cinematic banner backdrop — fills viewport behind everything */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background-image: url('../../images/PeirastesBanner.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.55) brightness(0.32) contrast(1.05);
+  opacity: 0.85;
+}
+
+/* Atmospheric depth — vignette + gradient over banner */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(6, 8, 12, 0.65) 95%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 30%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* Subtle film grain finish */
+.cin-grain {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+/* ═══ CINEMATIC OUTER CHROME — canonical v3.5 vocabulary ═══════════════════
+   Wordmark + flanks + title + ticks + hints. Copied byte-equivalent from
+   artemis-ii-v3-5/index.html per topology rule (every font/size/inset
+   matters). Only the title__name + title__sub + version content differ. */
+
+.cin-flank {
+  position: fixed;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: cin-fade-in 700ms ease 250ms forwards;
+}
+.cin-flank--left {
+  left: max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  align-items: flex-start;
+}
+.cin-flank--right {
+  right: max(1.6rem, env(safe-area-inset-right, 0px) + 0.6rem);
+  align-items: flex-end;
+  animation-delay: 400ms;
+}
+
+.cin-wordmark {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--gold-soft);
+  text-decoration: none;
+  text-shadow: 0 0 8px var(--gold-glow);
+  transition: color 200ms, text-shadow 200ms;
+  line-height: 1;
+}
+.cin-wordmark:hover {
+  color: var(--gold);
+  text-shadow: 0 0 14px var(--gold-glow);
+}
+
+.cin-version {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 500;
+  color: rgba(125, 214, 255, 0.55);
+  letter-spacing: 0.20em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.cin-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.cin-action {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.62);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.cin-action__glyph { display: inline-block; line-height: 1; }
+.cin-action:hover {
+  color: var(--cyan);
+  background: linear-gradient(180deg,
+    rgba(125, 214, 255, 0.08) 0%,
+    rgba(8, 12, 18, 0.85) 100%);
+  border-color: rgba(125, 214, 255, 0.30);
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 8px var(--cyan-glow);
+}
+.cin-action--disabled,
+.cin-action[disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+  color: rgba(180, 180, 180, 0.5);
+  border-color: rgba(255, 255, 255, 0.06);
+  border-left-color: transparent;
+}
+.cin-action--disabled:hover,
+.cin-action[disabled]:hover {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: rgba(180, 180, 180, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.cin-title {
+  position: fixed;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in-centered 700ms ease 350ms forwards;
+}
+@keyframes cin-fade-in-centered {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+.cin-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.cin-title__name span { color: var(--gold); }
+.cin-title__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--cyan-soft);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.cin-title__crew {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 400;
+  color: rgba(220, 220, 220, 0.55);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.cin-tick {
+  position: fixed;
+  width: 16px; height: 16px;
+  z-index: 99;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 600ms forwards;
+}
+.cin-tick::before, .cin-tick::after {
+  content: '';
+  position: absolute;
+  background: rgba(125, 214, 255, 0.45);
+}
+.cin-tick--tl { top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem); left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem); }
+.cin-tick--tl::before { top: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--tl::after  { top: 0; left: 0; width: 1px; height: 12px; }
+.cin-tick--tr { top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem); right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem); }
+.cin-tick--tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--tr::after  { top: 0; right: 0; width: 1px; height: 12px; }
+.cin-tick--bl { bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem); left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem); }
+.cin-tick--bl::before { bottom: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--bl::after  { bottom: 0; left: 0; width: 1px; height: 12px; }
+.cin-tick--br { bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem); right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem); }
+.cin-tick--br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--br::after  { bottom: 0; right: 0; width: 1px; height: 12px; }
+
+.cin-hints {
+  position: fixed;
+  bottom: max(1.6rem, env(safe-area-inset-bottom, 0px) + 0.6rem);
+  left:   max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.10em;
+  color: rgba(180, 180, 180, 0.45);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 750ms forwards;
+}
+.cin-hints kbd {
+  font-family: inherit;
+  background: rgba(125, 214, 255, 0.06);
+  border: 1px solid var(--cyan-faint);
+  border-radius: 2px;
+  padding: 1px 5px;
+  margin-right: 0.4rem;
+  color: var(--cyan);
+  font-size: 0.58rem;
+}
+
+@keyframes cin-fade-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ APP LAYOUT — lab-as-void (per Optics Lab / Smoke Sim pattern) ═══════
+   Display area is a deep-space backdrop occupying the full work area;
+   control panel floats on top as a self-contained acrylic glass HUD.
+   Module tabs sit at top-center below the chrome row. */
+
+.app {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 5.5rem 1fr;
+  animation: cin-app-fade 1100ms ease 200ms backwards;
+}
+@keyframes cin-app-fade {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Module tabs strip — bottom of the cinematic chrome row, top of the work area */
+.tabs {
+  position: fixed;
+  top: 4.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  box-shadow: var(--glass-shadow);
+  opacity: 0;
+  animation: cin-fade-in 700ms ease 500ms forwards;
+}
+.tab {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.6) 0%,
+    rgba(8, 12, 18, 0.7) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.55);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tab:hover {
+  color: var(--cyan);
+  border-color: rgba(125, 214, 255, 0.25);
+}
+.tab.on {
+  color: var(--gold);
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.10) 0%,
+    rgba(8, 12, 18, 0.85) 100%);
+  border-left-color: var(--gold);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 174, 32, 0.15),
+    0 0 8px var(--gold-glow);
+}
+.tab[disabled] {
+  cursor: not-allowed;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Work area — deep-space backdrop hosting the module surfaces */
+.work-area {
+  position: relative;
+  grid-row: 2;
+  margin: 1rem 1.6rem 4rem 1.6rem;
+  border-radius: 6px;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(20, 30, 48, 0.45), var(--void-deep) 70%, var(--void-mid));
+  border: 1px solid var(--void-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 16px 40px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+/* Module surface — one per module; only the active one is displayed */
+.module { display: none; position: absolute; inset: 0; }
+.module.on { display: block; }
+
+/* ═══ CONTROL PANEL — floating acrylic HUD ═════════════════════════════════
+   Sits in the upper-left of the work-area as a free-floating glass card.
+   Per Optics Lab "lab-as-void" pattern: controls float over the void,
+   display surfaces fill it. */
+
+.controls {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 280px;
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
+  z-index: 10;
+  padding: 1rem 1.1rem;
+  background: var(--glass-bg-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  box-shadow: var(--glass-shadow);
+  font-family: 'Inter', sans-serif;
+}
+.controls__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--gold-glow);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ctrl-group { margin-bottom: 14px; }
+.ctrl-group:last-child { margin-bottom: 0; }
+.ctrl-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.72);
+}
+.ctrl-label__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--cyan);
+  text-transform: none;
+}
+
+/* Range slider — minimal cinematic styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(125, 214, 255, 0.10);
+  border-radius: 2px;
+  outline: none;
+  border: 1px solid rgba(125, 214, 255, 0.18);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px; height: 14px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--gold-glow);
+  transition: transform 0.12s, box-shadow 0.15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* Buttons row (presets, play/pause/reset) */
+.btn-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.btn {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.62);
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 5px 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.btn:hover {
+  color: var(--cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+.btn.primary {
+  border-left-color: var(--gold);
+  color: var(--gold-soft);
+}
+.btn.primary:hover {
+  color: var(--gold);
+  border-color: var(--gold-faint);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+.btn.preset {
+  font-size: 9.5px;
+  padding: 4px 8px;
+}
+
+/* ═══ DISPLAY AREA — three stacked plots ═══════════════════════════════════ */
+
+.plot-stage {
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: 318px;
+  right: 1rem;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 0.6rem;
+}
+.plot-box {
+  position: relative;
+  border-radius: 4px;
+  background: rgba(8, 12, 18, 0.45);
+  border: 1px solid rgba(168, 179, 188, 0.12);
+  overflow: hidden;
+}
+.plot-box__label {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  z-index: 2;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  pointer-events: none;
+  user-select: none;
+}
+.plot-box__readout {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 2;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--cyan);
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 0 6px var(--cyan-glow);
+}
+.plot-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ═══ READOUT / EQUATION STRIP at the bottom of the work area ═════════════ */
+
+.eq-strip {
+  position: absolute;
+  bottom: 1rem;
+  left: 318px;
+  right: 1rem;
+  z-index: 9;
+  display: none;       /* shown when equation overlay toggle is on */
+  padding: 8px 12px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  font-size: 12px;
+  color: rgba(220, 220, 220, 0.72);
+}
+.eq-strip.on { display: block; }
+.eq-strip .katex { font-size: 13px; }
+
+/* ═══ MODULE 2: VECTORS — full-canvas + floating readouts ═════════════════
+   2D vector visualization. Single canvas fills the work area (minus the
+   floating controls panel on the left), with three readout cards stacked
+   in the top-right corner. Square-aspect coordinate system centered at
+   origin. Calm Mechanical palette throughout: A and B in steel-bright,
+   resultant in amber, components in slate, projections in mist-dashed. */
+
+.vec-stage {
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: 318px;
+  right: 1rem;
+}
+.vec-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  background: rgba(8, 12, 18, 0.45);
+  border: 1px solid rgba(168, 179, 188, 0.12);
+}
+
+.vec-readouts {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+.vec-readout {
+  min-width: 168px;
+  padding: 6px 10px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 3px;
+  border-left: 2px solid transparent;
+}
+.vec-readout--a { border-left-color: #6e9bc0; }
+.vec-readout--b { border-left-color: #b8c8d2; }
+.vec-readout--r { border-left-color: #d4a865; }
+.vec-readout__label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.vec-readout--a .vec-readout__label { color: #6e9bc0; }
+.vec-readout--b .vec-readout__label { color: #b8c8d2; }
+.vec-readout--r .vec-readout__label { color: #d4a865; }
+.vec-readout__line {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: rgba(232, 232, 232, 0.82);
+  line-height: 1.4;
+}
+
+/* ═══ PROJECTILE STAGE (Module 3) ═════════════════════════════════════════
+   Mirrors .vec-stage but with two-card readouts: "Particle Now" (amber,
+   tracks live state) and "Trajectory Invariants" (steel, computed once
+   per parameter set).
+   ════════════════════════════════════════════════════════════════════════ */
+
+.proj-stage {
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: 318px;
+  right: 1rem;
+}
+.proj-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  background: rgba(8, 12, 18, 0.45);
+  border: 1px solid rgba(168, 179, 188, 0.12);
+}
+.proj-readouts {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+.proj-readout {
+  min-width: 200px;
+  padding: 6px 10px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 3px;
+  border-left: 2px solid transparent;
+}
+.proj-readout--now { border-left-color: #d4a865; }   /* amber — live particle state */
+.proj-readout--inv { border-left-color: #6e9bc0; }   /* steel — trajectory invariants */
+.proj-readout__label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.proj-readout--now .proj-readout__label { color: #d4a865; }
+.proj-readout--inv .proj-readout__label { color: #6e9bc0; }
+.proj-readout__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: rgba(232, 232, 232, 0.82);
+  line-height: 1.45;
+}
+.proj-readout__row > span:first-child { color: rgba(232, 232, 232, 0.52); }
+
+/* ═══ TIMELINE / PLAYBACK STRIP ═══════════════════════════════════════════ */
+
+.playback-strip {
+  position: fixed;
+  bottom: max(1.6rem, env(safe-area-inset-bottom, 0px) + 0.6rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  background: var(--glass-bg-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  box-shadow: var(--glass-shadow);
+  opacity: 0;
+  animation: cin-fade-in 700ms ease 700ms forwards;
+}
+.playback-btn {
+  width: 28px; height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.72);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.playback-btn:hover {
+  color: var(--cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+.playback-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  min-width: 70px;
+  text-align: center;
+  text-shadow: 0 0 6px var(--gold-glow);
+}
+.playback-scrub {
+  position: relative;
+  width: 240px;
+  height: 4px;
+  background: rgba(125, 214, 255, 0.08);
+  border-radius: 2px;
+  border: 1px solid rgba(125, 214, 255, 0.18);
+  cursor: pointer;
+}
+.playback-scrub__fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: linear-gradient(90deg, rgba(255, 174, 32, 0.35), var(--gold));
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* ═══ RESPONSIVE — tablet + phone ═════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .controls { width: 240px; padding: 0.85rem 0.95rem; }
+  .plot-stage { left: 270px; }
+  .eq-strip { left: 270px; }
+  .cin-wordmark { font-size: 0.72rem; letter-spacing: 0.24em; }
+  .cin-title__name { font-size: 16px; letter-spacing: 0.28em; }
+  .cin-title__sub, .cin-title__crew { font-size: 8.5px; }
+  .cin-action { font-size: 12px; padding: 3px 8px; }
+}
+
+@media (max-width: 768px) {
+  .cin-flank--right, .cin-hints, .cin-tick--bl, .cin-tick--br { display: none; }
+  .cin-title__crew { display: none; }
+  .cin-title__name { font-size: 13px; letter-spacing: 0.22em; }
+  .cin-title__sub { font-size: 8px; }
+  .tabs { top: 3.4rem; padding: 0.25rem; }
+  .tab { font-size: 10px; padding: 4px 9px; letter-spacing: 0.06em; }
+  .work-area { margin: 0.6rem 0.6rem 4rem 0.6rem; }
+  .controls {
+    position: static;
+    width: 100%;
+    max-height: 35%;
+    margin-bottom: 0.6rem;
+    border-radius: 4px;
+  }
+  .plot-stage { position: static; left: 0; right: 0; height: 60%; }
+  .eq-strip { display: none !important; }
+  .playback-scrub { width: 140px; }
+}
+
+@media (max-width: 480px) {
+  .cin-title { display: none; }
+  .cin-flank, .cin-hints, .cin-title, .cin-tick {
+    display: none;       /* phone: drop chrome entirely; embed-style */
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after, .cin-grain,
+  .app, .cin-flank, .cin-title, .cin-tick, .cin-hints,
+  .tabs, .playback-strip {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .cin-flank, .cin-title, .cin-tick, .cin-hints {
+    transform: none !important;
+  }
+  .cin-title { transform: translateX(-50%) !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="cin-grain" aria-hidden="true"></div>
+
+<!-- Left flank — wordmark + version stacked, left-justified -->
+<div class="cin-flank cin-flank--left">
+  <a class="cin-wordmark" href="https://peirastes.com/" title="Back to Peirastes">PEIRASTES</a>
+  <span class="cin-version">v0.1</span>
+</div>
+
+<!-- Title — floats centered between left and right flanks -->
+<div class="cin-title" aria-label="Kinematics Lab — Motion in 1D and 2D">
+  <div class="cin-title__name">KINEMATICS<span>·LAB</span></div>
+  <div class="cin-title__sub">Motion in 1D and 2D · PSE-I Core 1</div>
+  <div class="cin-title__crew">1D Motion · Vectors · Projectile · Envelope</div>
+</div>
+
+<!-- Right flank — action button row -->
+<div class="cin-flank cin-flank--right">
+  <div class="cin-action-row">
+    <button class="cin-action cin-action--disabled" id="btnInfo" title="Info (coming soon)" aria-label="Info" disabled>
+      <span class="cin-action__glyph">&#9432;</span>
+    </button>
+    <button class="cin-action cin-action--disabled" id="btnSettings" title="Settings (coming soon)" aria-label="Settings" disabled>
+      <span class="cin-action__glyph">&#9881;</span>
+    </button>
+  </div>
+</div>
+
+<!-- Corner cartographic ticks -->
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+<!-- Hint glyphs -->
+<div class="cin-hints" aria-hidden="true">
+  <span><kbd>Space</kbd> Play / Pause</span>
+  <span><kbd>R</kbd> Reset</span>
+  <span><kbd>E</kbd> Equation overlay</span>
+</div>
+
+<!-- Module tabs -->
+<nav class="tabs" role="tablist" aria-label="Module selector">
+  <button class="tab on" data-module="m1d" role="tab" aria-selected="true">Kinematics 1D</button>
+  <button class="tab" data-module="mvec" role="tab" aria-selected="false">Vectors</button>
+  <button class="tab" data-module="mproj" role="tab" aria-selected="false">Projectile</button>
+  <button class="tab" data-module="menv" role="tab" disabled title="Phase 4">Envelope</button>
+</nav>
+
+<!-- App body -->
+<div class="app">
+  <div></div>     <!-- top spacer (chrome row) -->
+
+  <div class="work-area">
+
+    <!-- ═══ MODULE 1: 1D Motion ═══════════════════════════════════════════ -->
+    <section class="module on" id="m1d" aria-label="One-dimensional kinematics">
+
+      <!-- Control panel -->
+      <aside class="controls" aria-label="Kinematics controls">
+        <div class="controls__title">1D Motion · Constant a</div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>x<sub>0</sub> · Initial position</span>
+            <span class="ctrl-label__value"><span id="v-x0">0.0</span> m</span>
+          </div>
+          <input type="range" id="x0" min="-10" max="10" step="0.1" value="0">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>v<sub>0</sub> · Initial velocity</span>
+            <span class="ctrl-label__value"><span id="v-v0">0.0</span> m/s</span>
+          </div>
+          <input type="range" id="v0" min="-20" max="20" step="0.1" value="0">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>a · Acceleration</span>
+            <span class="ctrl-label__value"><span id="v-a">0.0</span> m/s²</span>
+          </div>
+          <input type="range" id="a" min="-20" max="20" step="0.1" value="0">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>t<sub>max</sub> · Sim duration</span>
+            <span class="ctrl-label__value"><span id="v-tmax">5.0</span> s</span>
+          </div>
+          <input type="range" id="tmax" min="0.1" max="10" step="0.1" value="5">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Presets</span></div>
+          <div class="btn-row">
+            <button class="btn preset" data-preset="free-fall">Free-Fall</button>
+            <button class="btn preset" data-preset="sprinter">Sprinter</button>
+            <button class="btn preset" data-preset="thrown">Thrown Up</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Display</span></div>
+          <div class="btn-row">
+            <button class="btn" id="btn-equations">Equations</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Plot stage: three stacked plots, x(t) / v(t) / a(t) -->
+      <div class="plot-stage">
+        <div class="plot-box">
+          <div class="plot-box__label">x(t) · Position</div>
+          <div class="plot-box__readout"><span id="r-x">0.000</span> m</div>
+          <canvas class="plot-canvas" id="plot-x"></canvas>
+        </div>
+        <div class="plot-box">
+          <div class="plot-box__label">v(t) · Velocity</div>
+          <div class="plot-box__readout"><span id="r-v">0.000</span> m/s</div>
+          <canvas class="plot-canvas" id="plot-v"></canvas>
+        </div>
+        <div class="plot-box">
+          <div class="plot-box__label">a(t) · Acceleration</div>
+          <div class="plot-box__readout"><span id="r-a">0.000</span> m/s²</div>
+          <canvas class="plot-canvas" id="plot-a"></canvas>
+        </div>
+      </div>
+
+      <!-- Equation strip (toggleable) -->
+      <div class="eq-strip" id="eq-strip" aria-hidden="true">
+        <div id="eq-content"></div>
+      </div>
+
+    </section>
+
+    <!-- ═══ MODULE 2: Vectors ═══════════════════════════════════════════════ -->
+    <section class="module" id="mvec" aria-label="Two-dimensional vectors">
+
+      <!-- Control panel -->
+      <aside class="controls" aria-label="Vector controls">
+        <div class="controls__title">Vectors · 2D Addition</div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>A · Magnitude</span>
+            <span class="ctrl-label__value"><span id="va-mag-disp">5.0</span></span>
+          </div>
+          <input type="range" id="va-mag" min="0" max="10" step="0.1" value="5">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>A · Angle</span>
+            <span class="ctrl-label__value"><span id="va-ang-disp">30</span>°</span>
+          </div>
+          <input type="range" id="va-ang" min="0" max="360" step="1" value="30">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>B · Magnitude</span>
+            <span class="ctrl-label__value"><span id="vb-mag-disp">4.0</span></span>
+          </div>
+          <input type="range" id="vb-mag" min="0" max="10" step="0.1" value="4">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>B · Angle</span>
+            <span class="ctrl-label__value"><span id="vb-ang-disp">120</span>°</span>
+          </div>
+          <input type="range" id="vb-ang" min="0" max="360" step="1" value="120">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Mode</span></div>
+          <div class="btn-row">
+            <button class="btn primary" id="vec-mode-add" data-vec-mode="add">A + B</button>
+            <button class="btn"         id="vec-mode-sub" data-vec-mode="sub">A − B</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Method</span></div>
+          <div class="btn-row">
+            <button class="btn primary" id="vec-method-tail" data-vec-method="tail" title="Triangle method — chain the operand from A's tip">Head-to-Tail</button>
+            <button class="btn"         id="vec-method-head" data-vec-method="head" title="Parallelogram (add) / tip-to-tip (subtract) — both from origin">Head-to-Head</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Presets</span></div>
+          <div class="btn-row">
+            <button class="btn preset" data-vec-preset="3-4-5">3–4–5</button>
+            <button class="btn preset" data-vec-preset="parallel">Parallel</button>
+            <button class="btn preset" data-vec-preset="perp">Perpendicular</button>
+            <button class="btn preset" data-vec-preset="opposite">Opposing</button>
+            <button class="btn preset" data-vec-preset="displacement">Displacement</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Display</span></div>
+          <div class="btn-row">
+            <button class="btn primary" id="vec-toggle-comp">Components</button>
+            <button class="btn primary" id="vec-toggle-proj">Projections</button>
+            <button class="btn primary" id="vec-toggle-r">Resultant</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Display stage: single 2D canvas with floating readout cards -->
+      <div class="vec-stage">
+        <canvas class="vec-canvas" id="plot-vec"></canvas>
+        <div class="vec-readouts">
+          <div class="vec-readout vec-readout--a">
+            <div class="vec-readout__label">A</div>
+            <div class="vec-readout__line">(<span id="va-x">4.33</span>, <span id="va-y">2.50</span>)</div>
+            <div class="vec-readout__line"><span id="va-mag-r">5.00</span> ∠ <span id="va-ang-r">30.0</span>°</div>
+          </div>
+          <div class="vec-readout vec-readout--b">
+            <div class="vec-readout__label">B</div>
+            <div class="vec-readout__line">(<span id="vb-x">-2.00</span>, <span id="vb-y">3.46</span>)</div>
+            <div class="vec-readout__line"><span id="vb-mag-r">4.00</span> ∠ <span id="vb-ang-r">120.0</span>°</div>
+          </div>
+          <div class="vec-readout vec-readout--r">
+            <div class="vec-readout__label" id="vr-label">R = A + B</div>
+            <div class="vec-readout__line">(<span id="vr-x">2.33</span>, <span id="vr-y">5.96</span>)</div>
+            <div class="vec-readout__line"><span id="vr-mag-r">6.40</span> ∠ <span id="vr-ang-r">68.6</span>°</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══ MODULE 3: Projectile ════════════════════════════════════════════ -->
+    <section class="module" id="mproj" aria-label="Projectile motion">
+
+      <!-- Control panel -->
+      <aside class="controls" aria-label="Projectile controls">
+        <div class="controls__title">Projectile · Ballistic Arc</div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>v₀ · Launch Speed</span>
+            <span class="ctrl-label__value"><span id="proj-v0-disp">30.0</span> m/s</span>
+          </div>
+          <input type="range" id="proj-v0" min="1" max="50" step="0.5" value="30">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>θ₀ · Launch Angle</span>
+            <span class="ctrl-label__value"><span id="proj-theta-disp">45</span>°</span>
+          </div>
+          <input type="range" id="proj-theta" min="0" max="90" step="0.5" value="45">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label">
+            <span>y₀ · Launch Height</span>
+            <span class="ctrl-label__value"><span id="proj-y0-disp">0.0</span> m</span>
+          </div>
+          <input type="range" id="proj-y0" min="0" max="30" step="0.5" value="0">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Presets</span></div>
+          <div class="btn-row">
+            <button class="btn preset" data-proj-preset="cannon">Cannon · 45°</button>
+            <button class="btn preset" data-proj-preset="steep">Steep · 75°</button>
+            <button class="btn preset" data-proj-preset="flat">Flat · 15°</button>
+            <button class="btn preset" data-proj-preset="drop">Drop · y₀=15</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label" style="margin-bottom:6px;"><span>Overlays</span></div>
+          <div class="btn-row">
+            <button class="btn primary" id="proj-toggle-v">Velocity v⃗</button>
+            <button class="btn"         id="proj-toggle-a">Accel g⃗</button>
+            <button class="btn"         id="proj-toggle-comp">Components</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Display stage: single 2D canvas with two floating readout cards -->
+      <div class="proj-stage">
+        <canvas class="proj-canvas" id="plot-proj"></canvas>
+        <div class="proj-readouts">
+          <div class="proj-readout proj-readout--now">
+            <div class="proj-readout__label">Particle · t = <span id="proj-t-val">0.00</span> s</div>
+            <div class="proj-readout__row"><span>x, y</span><span>(<span id="proj-x-val">0.00</span>, <span id="proj-y-val">0.00</span>)&nbsp;m</span></div>
+            <div class="proj-readout__row"><span>v<sub>x</sub>, v<sub>y</sub></span><span>(<span id="proj-vx-val">21.21</span>, <span id="proj-vy-val">21.21</span>)&nbsp;m/s</span></div>
+            <div class="proj-readout__row"><span>|v|</span><span><span id="proj-vmag-val">30.00</span> m/s ∠ <span id="proj-vang-val">45.0</span>°</span></div>
+          </div>
+          <div class="proj-readout proj-readout--inv">
+            <div class="proj-readout__label">Trajectory · Invariants</div>
+            <div class="proj-readout__row"><span>Range&nbsp;R</span><span><span id="proj-range-val">91.74</span>&nbsp;m</span></div>
+            <div class="proj-readout__row"><span>Max height&nbsp;H</span><span><span id="proj-hmax-val">22.94</span>&nbsp;m</span></div>
+            <div class="proj-readout__row"><span>Time of flight</span><span><span id="proj-tf-val">4.32</span>&nbsp;s</span></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Future modules (Envelope) — placeholders only -->
+
+  </div>
+
+  <!-- Playback strip — sits at viewport bottom, centered -->
+  <div class="playback-strip">
+    <button class="playback-btn" id="btn-play" title="Play / Pause">▶</button>
+    <button class="playback-btn" id="btn-reset" title="Reset">⟲</button>
+    <div class="playback-time"><span id="pb-time">0.00</span> s</div>
+    <div class="playback-scrub" id="scrub">
+      <div class="playback-scrub__fill" id="scrub-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ Scripts ════════════════════════════════════════════════════════════ -->
+
+<script src="./physics-core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ─── Title centering (canonical v3.5 chrome behavior) ────────────────── */
+  const leftFlank  = document.querySelector('.cin-flank--left');
+  const rightFlank = document.querySelector('.cin-flank--right');
+  const title      = document.querySelector('.cin-title');
+  if (leftFlank && rightFlank && title) {
+    const centerTitle = () => {
+      const lRect = leftFlank.getBoundingClientRect();
+      const rRect = rightFlank.getBoundingClientRect();
+      if (lRect.width === 0 || rRect.width === 0) return;
+      title.style.left = ((lRect.right + rRect.left) / 2) + 'px';
+    };
+    centerTitle();
+    window.addEventListener('resize', centerTitle);
+    new ResizeObserver(centerTitle).observe(rightFlank);
+    new ResizeObserver(centerTitle).observe(leftFlank);
+    if (document.fonts) document.fonts.ready.then(centerTitle);
+  }
+
+  /* ─── State ───────────────────────────────────────────────────────────── */
+
+  const state = {
+    params: { x0: 0, v0: 0, a: 0, tMax: 5 },
+    t: 0,
+    playing: false,
+    lastFrameMs: 0,
+    trajectory: [],
+    bounds: { x: [-1, 1], v: [-1, 1], a: [-1, 1] },
+    equationsVisible: false
+  };
+
+  /* ─── DOM refs ────────────────────────────────────────────────────────── */
+
+  const $ = (sel) => document.querySelector(sel);
+  const sliders = {
+    x0:   $('#x0'),
+    v0:   $('#v0'),
+    a:    $('#a'),
+    tmax: $('#tmax')
+  };
+  const valueDisplays = {
+    x0:   $('#v-x0'),
+    v0:   $('#v-v0'),
+    a:    $('#v-a'),
+    tmax: $('#v-tmax')
+  };
+  const readouts = {
+    x: $('#r-x'),
+    v: $('#r-v'),
+    a: $('#r-a')
+  };
+  const canvases = {
+    x: $('#plot-x'),
+    v: $('#plot-v'),
+    a: $('#plot-a')
+  };
+  const ctx = {
+    x: canvases.x.getContext('2d'),
+    v: canvases.v.getContext('2d'),
+    a: canvases.a.getContext('2d')
+  };
+  const btnPlay   = $('#btn-play');
+  const btnReset  = $('#btn-reset');
+  const btnEqns   = $('#btn-equations');
+  const scrub     = $('#scrub');
+  const scrubFill = $('#scrub-fill');
+  const pbTime    = $('#pb-time');
+  const eqStrip   = $('#eq-strip');
+  const eqContent = $('#eq-content');
+
+  /* ─── HiDPI canvas sizing ─────────────────────────────────────────────── */
+
+  function resizeCanvas (canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    const c = canvas.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
+  }
+  function resizeAll () {
+    Object.values(canvases).forEach(resizeCanvas);
+    drawAll();
+  }
+  window.addEventListener('resize', resizeAll);
+
+  /* ─── Trajectory + bounds computation ─────────────────────────────────── */
+
+  function recomputeTrajectory () {
+    const { x0, v0, a, tMax } = state.params;
+    state.trajectory = PhysicsCore.kinematics1DTrajectory({
+      x0, v0, a, tMax, nSamples: 240
+    });
+
+    // Update display bounds from the trajectory (with a 10% margin)
+    const xs = state.trajectory.map(p => p.x);
+    const vs = state.trajectory.map(p => p.v);
+    const as = state.trajectory.map(p => p.a);
+    state.bounds.x = padRange(Math.min(...xs), Math.max(...xs));
+    state.bounds.v = padRange(Math.min(...vs), Math.max(...vs));
+    state.bounds.a = padRange(Math.min(...as), Math.max(...as));
+  }
+  function padRange (lo, hi) {
+    if (lo === hi) {
+      // single value — invent a small symmetric window
+      const m = Math.max(Math.abs(lo) * 0.2, 1);
+      return [lo - m, hi + m];
+    }
+    const m = (hi - lo) * 0.1;
+    return [lo - m, hi + m];
+  }
+
+  /* ─── Plot rendering ──────────────────────────────────────────────────── */
+
+  function drawTrace (canvas, key, color) {
+    const c = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    if (w === 0 || h === 0) return;
+
+    c.clearRect(0, 0, w, h);
+
+    // Plot region — margins for axes
+    const padL = 36, padR = 12, padT = 22, padB = 18;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+
+    const [lo, hi] = state.bounds[key];
+    const tMax = state.params.tMax;
+
+    // Grid + axes
+    drawGrid(c, padL, padT, plotW, plotH, tMax, lo, hi);
+
+    // Zero line (if zero is in range)
+    if (lo < 0 && hi > 0) {
+      c.strokeStyle = 'rgba(232, 232, 232, 0.18)';
+      c.lineWidth = 1;
+      c.setLineDash([3, 4]);
+      c.beginPath();
+      const yZero = padT + plotH * (1 - (0 - lo) / (hi - lo));
+      c.moveTo(padL, yZero);
+      c.lineTo(padL + plotW, yZero);
+      c.stroke();
+      c.setLineDash([]);
+    }
+
+    // Trace
+    const traj = state.trajectory;
+    if (traj.length > 1) {
+      c.strokeStyle = color;
+      c.lineWidth = 1.8;
+      c.beginPath();
+      for (let i = 0; i < traj.length; i++) {
+        const px = padL + plotW * (traj[i].t / tMax);
+        const py = padT + plotH * (1 - (traj[i][key] - lo) / (hi - lo));
+        if (i === 0) c.moveTo(px, py);
+        else c.lineTo(px, py);
+      }
+      c.stroke();
+    }
+
+    // Playhead (vertical line at current t)
+    const tFrac = Math.min(1, Math.max(0, state.t / tMax));
+    const xHead = padL + plotW * tFrac;
+    c.strokeStyle = 'var(--trace-playhead)';  // cyan via direct color
+    c.strokeStyle = '#7dd6ff';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(xHead, padT);
+    c.lineTo(xHead, padT + plotH);
+    c.stroke();
+
+    // Current-value dot
+    const sample = sampleAt(state.t)[key];
+    const yDot = padT + plotH * (1 - (sample - lo) / (hi - lo));
+    c.fillStyle = '#ffae20';   // amber emphasis at current time
+    c.beginPath();
+    c.arc(xHead, yDot, 3.5, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  function drawGrid (c, padL, padT, plotW, plotH, tMax, valLo, valHi) {
+    c.strokeStyle = 'rgba(168, 179, 188, 0.10)';
+    c.lineWidth = 1;
+    c.fillStyle = 'rgba(232, 232, 232, 0.45)';
+    c.font = '9px Share Tech Mono, monospace';
+    c.textAlign = 'right';
+    c.textBaseline = 'middle';
+
+    // Vertical gridlines (time)
+    const tStep = niceStep(tMax, 5);
+    c.beginPath();
+    for (let t = 0; t <= tMax + 1e-9; t += tStep) {
+      const px = padL + plotW * (t / tMax);
+      c.moveTo(px, padT);
+      c.lineTo(px, padT + plotH);
+    }
+    c.stroke();
+
+    // Horizontal gridlines (value)
+    const valRange = valHi - valLo;
+    const vStep = niceStep(valRange, 4);
+    const vStart = Math.ceil(valLo / vStep) * vStep;
+    c.beginPath();
+    for (let v = vStart; v <= valHi + 1e-9; v += vStep) {
+      const py = padT + plotH * (1 - (v - valLo) / valRange);
+      c.moveTo(padL, py);
+      c.lineTo(padL + plotW, py);
+    }
+    c.stroke();
+
+    // Y-axis labels
+    for (let v = vStart; v <= valHi + 1e-9; v += vStep) {
+      const py = padT + plotH * (1 - (v - valLo) / valRange);
+      c.fillText(formatVal(v), padL - 4, py);
+    }
+
+    // X-axis labels (bottom)
+    c.textAlign = 'center';
+    c.textBaseline = 'top';
+    for (let t = 0; t <= tMax + 1e-9; t += tStep) {
+      const px = padL + plotW * (t / tMax);
+      c.fillText(t.toFixed(t < 1 ? 2 : 1), px, padT + plotH + 2);
+    }
+
+    // Axes
+    c.strokeStyle = 'rgba(232, 232, 232, 0.32)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(padL, padT);
+    c.lineTo(padL, padT + plotH);
+    c.lineTo(padL + plotW, padT + plotH);
+    c.stroke();
+  }
+
+  function niceStep (range, target) {
+    if (range <= 0) return 1;
+    const rough = range / target;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm = rough / mag;
+    let step;
+    if (norm < 1.5)      step = 1;
+    else if (norm < 3.5) step = 2;
+    else if (norm < 7.5) step = 5;
+    else                 step = 10;
+    return step * mag;
+  }
+
+  function formatVal (v) {
+    if (Math.abs(v) >= 100) return v.toFixed(0);
+    if (Math.abs(v) >= 10)  return v.toFixed(1);
+    return v.toFixed(2);
+  }
+
+  function sampleAt (t) {
+    const { x0, v0, a } = state.params;
+    return PhysicsCore.kinematics1D({ x0, v0, a, t });
+  }
+
+  function drawAll () {
+    drawTrace(canvases.x, 'x', '#6e9bc0');
+    drawTrace(canvases.v, 'v', '#b8c8d2');
+    drawTrace(canvases.a, 'a', '#d4a865');
+    updateReadouts();
+    updateScrub();
+  }
+
+  /* ─── Readouts ────────────────────────────────────────────────────────── */
+
+  function updateReadouts () {
+    const s = sampleAt(state.t);
+    readouts.x.textContent = formatReadout(s.x);
+    readouts.v.textContent = formatReadout(s.v);
+    readouts.a.textContent = formatReadout(s.a);
+    pbTime.textContent = state.t.toFixed(2);
+  }
+  function formatReadout (v) {
+    const abs = Math.abs(v);
+    if (abs >= 100) return v.toFixed(2);
+    if (abs >= 10)  return v.toFixed(3);
+    return v.toFixed(3);
+  }
+
+  function updateScrub () {
+    const frac = state.params.tMax > 0
+      ? Math.min(100, Math.max(0, (state.t / state.params.tMax) * 100))
+      : 0;
+    scrubFill.style.width = frac + '%';
+  }
+
+  /* ─── Equation overlay ───────────────────────────────────────────────── */
+
+  function renderEquations () {
+    if (!window.katex) return;
+    const { x0, v0, a } = state.params;
+    const fmt = (n) => Number(n.toFixed(2)).toString();
+    const eqs = [
+      `x(t) = ${fmt(x0)} + ${fmt(v0)}\\,t + \\tfrac{1}{2}\\,(${fmt(a)})\\,t^2`,
+      `v(t) = ${fmt(v0)} + (${fmt(a)})\\,t`,
+      `a(t) = ${fmt(a)}`
+    ].join('\\quad\\quad ');
+    try {
+      eqContent.innerHTML = '';
+      katex.render(eqs, eqContent, { displayMode: false, throwOnError: false });
+    } catch (e) {
+      eqContent.textContent = '(KaTeX render failed: ' + e.message + ')';
+    }
+  }
+
+  /* ─── Input handlers ─────────────────────────────────────────────────── */
+
+  function syncFromSliders () {
+    state.params.x0   = parseFloat(sliders.x0.value);
+    state.params.v0   = parseFloat(sliders.v0.value);
+    state.params.a    = parseFloat(sliders.a.value);
+    state.params.tMax = parseFloat(sliders.tmax.value);
+
+    valueDisplays.x0.textContent   = state.params.x0.toFixed(1);
+    valueDisplays.v0.textContent   = state.params.v0.toFixed(1);
+    valueDisplays.a.textContent    = state.params.a.toFixed(1);
+    valueDisplays.tmax.textContent = state.params.tMax.toFixed(1);
+
+    // Clamp t to new tMax if needed
+    if (state.t > state.params.tMax) state.t = state.params.tMax;
+
+    recomputeTrajectory();
+    drawAll();
+    if (state.equationsVisible) renderEquations();
+  }
+
+  Object.values(sliders).forEach(sl => {
+    sl.addEventListener('input', syncFromSliders);
+  });
+
+  /* ─── Presets ─────────────────────────────────────────────────────────── */
+
+  const PRESETS = {
+    'free-fall': { x0: 10, v0: 0,   a: -9.81, tMax: 2 },
+    'sprinter':  { x0: 0,  v0: 0,   a: 4,     tMax: 5 },
+    'thrown':    { x0: 0,  v0: 10,  a: -9.81, tMax: 2.5 }
+  };
+
+  document.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = PRESETS[btn.dataset.preset];
+      if (!p) return;
+      sliders.x0.value   = p.x0;
+      sliders.v0.value   = p.v0;
+      sliders.a.value    = p.a;
+      sliders.tmax.value = p.tMax;
+      syncFromSliders();
+      state.t = 0;
+      drawAll();
+    });
+  });
+
+  /* ─── Playback ────────────────────────────────────────────────────────── */
+
+  function setPlaying (yes) {
+    state.playing = yes;
+    btnPlay.textContent = yes ? '⏸' : '▶';
+    btnPlay.title = yes ? 'Pause' : 'Play';
+    if (yes) {
+      state.lastFrameMs = performance.now();
+      requestAnimationFrame(tick);
+    }
+  }
+
+  function tick (now) {
+    if (!state.playing) return;
+    const dtMs = now - state.lastFrameMs;
+    state.lastFrameMs = now;
+    // Simulation time advances at 1× real time (1 s sim per 1 s wall)
+    state.t += dtMs / 1000;
+    if (state.t >= state.params.tMax) {
+      state.t = state.params.tMax;
+      setPlaying(false);
+    }
+    drawAll();
+    if (state.playing) requestAnimationFrame(tick);
+  }
+
+  // The playback strip is shared between 1D Motion and Projectile. Each
+  // handler dispatches on `activeModule`. (activeModule is hoisted by JS
+  // `let` semantics — declared further down — but the value is read at
+  // click time, so this works without a forward declaration.)
+  btnPlay.addEventListener('click', () => {
+    if (activeModule === 'mproj') {
+      if (projState.t >= projState.tFlight) projState.t = 0;
+      projSetPlaying(!projState.playing);
+    } else {
+      if (state.t >= state.params.tMax) state.t = 0;
+      setPlaying(!state.playing);
+    }
+  });
+  btnReset.addEventListener('click', () => {
+    if (activeModule === 'mproj') {
+      projSetPlaying(false);
+      projState.t = 0;
+      projDraw();
+    } else {
+      setPlaying(false);
+      state.t = 0;
+      drawAll();
+    }
+  });
+
+  // Scrub bar
+  let scrubbing = false;
+  function scrubFrom (clientX) {
+    const rect = scrub.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    if (activeModule === 'mproj') {
+      projState.t = frac * projState.tFlight;
+      projDraw();
+    } else {
+      state.t = frac * state.params.tMax;
+      drawAll();
+    }
+  }
+  scrub.addEventListener('mousedown', (e) => {
+    scrubbing = true;
+    if (activeModule === 'mproj') projSetPlaying(false); else setPlaying(false);
+    scrubFrom(e.clientX);
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (scrubbing) scrubFrom(e.clientX);
+  });
+  window.addEventListener('mouseup', () => { scrubbing = false; });
+  // Touch
+  scrub.addEventListener('touchstart', (e) => {
+    scrubbing = true;
+    if (activeModule === 'mproj') projSetPlaying(false); else setPlaying(false);
+    scrubFrom(e.touches[0].clientX);
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchmove', (e) => {
+    if (scrubbing) {
+      scrubFrom(e.touches[0].clientX);
+      e.preventDefault();
+    }
+  }, { passive: false });
+  window.addEventListener('touchend', () => { scrubbing = false; });
+
+  /* ─── Equation toggle ────────────────────────────────────────────────── */
+
+  btnEqns.addEventListener('click', () => {
+    state.equationsVisible = !state.equationsVisible;
+    eqStrip.classList.toggle('on', state.equationsVisible);
+    btnEqns.classList.toggle('primary', state.equationsVisible);
+    if (state.equationsVisible) renderEquations();
+  });
+
+  /* ─── Keyboard shortcuts ─────────────────────────────────────────────── */
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === ' ') { e.preventDefault(); btnPlay.click(); }
+    else if (e.key === 'r' || e.key === 'R') btnReset.click();
+    else if (e.key === 'e' || e.key === 'E') btnEqns.click();
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════
+     MODULE 2 — VECTORS (2D addition)
+     ══════════════════════════════════════════════════════════════════════ */
+
+  const vecState = {
+    mode:   'add',          // 'add' | 'sub'   — A+B or A−B
+    method: 'tail',         // 'tail' | 'head' — head-to-tail (triangle) vs
+                            //                    head-to-head (parallelogram for
+                            //                    add, tip-to-tip for sub)
+    a: { magnitude: 5,  angleDeg: 30  },
+    b: { magnitude: 4,  angleDeg: 120 },
+    showComponents: true,
+    showProjections: true,
+    showResultant:   true
+  };
+
+  const vec = {
+    canvas: $('#plot-vec'),
+    sliders: {
+      aMag: $('#va-mag'),  aAng: $('#va-ang'),
+      bMag: $('#vb-mag'),  bAng: $('#vb-ang')
+    },
+    displays: {
+      aMag: $('#va-mag-disp'),  aAng: $('#va-ang-disp'),
+      bMag: $('#vb-mag-disp'),  bAng: $('#vb-ang-disp')
+    },
+    readouts: {
+      aX: $('#va-x'),    aY: $('#va-y'),    aMag: $('#va-mag-r'), aAng: $('#va-ang-r'),
+      bX: $('#vb-x'),    bY: $('#vb-y'),    bMag: $('#vb-mag-r'), bAng: $('#vb-ang-r'),
+      rX: $('#vr-x'),    rY: $('#vr-y'),    rMag: $('#vr-mag-r'), rAng: $('#vr-ang-r'),
+      rLabel: $('#vr-label')
+    },
+    toggleBtns: {
+      comp: $('#vec-toggle-comp'),
+      proj: $('#vec-toggle-proj'),
+      res:  $('#vec-toggle-r')
+    },
+    modeBtns: {
+      add: $('#vec-mode-add'),
+      sub: $('#vec-mode-sub')
+    },
+    methodBtns: {
+      tail: $('#vec-method-tail'),
+      head: $('#vec-method-head')
+    }
+  };
+
+  const VEC_COLORS = {
+    A:     '#6e9bc0',   // steel-bright — primary vector A
+    B:     '#b8c8d2',   // slate-bright — primary vector B
+    R:     '#d4a865',   // amber-bright — resultant (R = A + B)
+    comp:  'rgba(168, 179, 188, 0.55)',   // slate-mist mid-opacity — component lines
+    proj:  'rgba(168, 179, 188, 0.40)',   // mist faded — dashed projections
+    grid:  'rgba(168, 179, 188, 0.07)',
+    axis:  'rgba(232, 232, 232, 0.30)',
+    label: 'rgba(232, 232, 232, 0.50)'
+  };
+
+  function vecSync () {
+    vecState.a.magnitude = parseFloat(vec.sliders.aMag.value);
+    vecState.a.angleDeg  = parseFloat(vec.sliders.aAng.value);
+    vecState.b.magnitude = parseFloat(vec.sliders.bMag.value);
+    vecState.b.angleDeg  = parseFloat(vec.sliders.bAng.value);
+
+    vec.displays.aMag.textContent = vecState.a.magnitude.toFixed(1);
+    vec.displays.aAng.textContent = vecState.a.angleDeg.toFixed(0);
+    vec.displays.bMag.textContent = vecState.b.magnitude.toFixed(1);
+    vec.displays.bAng.textContent = vecState.b.angleDeg.toFixed(0);
+
+    vecUpdateReadouts();
+    vecDraw();
+  }
+
+  function vecUpdateReadouts () {
+    const A = PhysicsCore.vectorFromPolar(vecState.a.magnitude, vecState.a.angleDeg);
+    const B = PhysicsCore.vectorFromPolar(vecState.b.magnitude, vecState.b.angleDeg);
+    const R = (vecState.mode === 'sub')
+      ? PhysicsCore.vectorSubtract(A, B)
+      : PhysicsCore.vectorAdd(A, B);
+    vec.readouts.aX.textContent   = A.x.toFixed(2);
+    vec.readouts.aY.textContent   = A.y.toFixed(2);
+    vec.readouts.aMag.textContent = A.magnitude.toFixed(2);
+    vec.readouts.aAng.textContent = A.angleDeg.toFixed(1);
+    vec.readouts.bX.textContent   = B.x.toFixed(2);
+    vec.readouts.bY.textContent   = B.y.toFixed(2);
+    vec.readouts.bMag.textContent = B.magnitude.toFixed(2);
+    vec.readouts.bAng.textContent = B.angleDeg.toFixed(1);
+    vec.readouts.rX.textContent   = R.x.toFixed(2);
+    vec.readouts.rY.textContent   = R.y.toFixed(2);
+    vec.readouts.rMag.textContent = R.magnitude.toFixed(2);
+    vec.readouts.rAng.textContent = R.angleDeg.toFixed(1);
+    vec.readouts.rLabel.textContent =
+      (vecState.mode === 'sub') ? 'R = A − B' : 'R = A + B';
+  }
+
+  function vecDraw () {
+    const c = vec.canvas.getContext('2d');
+    const rect = vec.canvas.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    if (w === 0 || h === 0) return;
+
+    c.clearRect(0, 0, w, h);
+
+    // World coords: origin at canvas center, ±12 units fits a max-10 vector
+    // comfortably with margin for component lines and labels.
+    const cx = w / 2, cy = h / 2;
+    const scale = Math.min(w, h) / 26;  // 26 world units across the smaller dim
+    const X = (worldX) => cx + worldX * scale;
+    const Y = (worldY) => cy - worldY * scale;   // flip y (canvas y is down)
+
+    // Grid
+    c.strokeStyle = VEC_COLORS.grid;
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let i = -12; i <= 12; i++) {
+      // vertical
+      c.moveTo(X(i), Y(-12));
+      c.lineTo(X(i), Y(12));
+      // horizontal
+      c.moveTo(X(-12), Y(i));
+      c.lineTo(X(12),  Y(i));
+    }
+    c.stroke();
+
+    // Axes
+    c.strokeStyle = VEC_COLORS.axis;
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(X(-12), Y(0)); c.lineTo(X(12), Y(0));
+    c.moveTo(X(0), Y(-12)); c.lineTo(X(0), Y(12));
+    c.stroke();
+
+    // Axis labels
+    c.fillStyle = VEC_COLORS.label;
+    c.font = '10px Share Tech Mono, monospace';
+    c.textAlign = 'left';   c.textBaseline = 'middle';
+    c.fillText('+x', X(11.6), Y(0.55));
+    c.textAlign = 'center'; c.textBaseline = 'bottom';
+    c.fillText('+y', X(0.55), Y(11.6));
+
+    // Tick marks every 2 units
+    c.fillStyle = VEC_COLORS.label;
+    c.font = '9px Share Tech Mono, monospace';
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    for (let i = -10; i <= 10; i += 2) {
+      if (i === 0) continue;
+      c.fillText(i.toString(), X(i), Y(0) + 4);
+    }
+    c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (let i = -10; i <= 10; i += 2) {
+      if (i === 0) continue;
+      c.fillText(i.toString(), X(0) - 4, Y(i));
+    }
+
+    // Compute vectors in world coords
+    const A = PhysicsCore.vectorFromPolar(vecState.a.magnitude, vecState.a.angleDeg);
+    const B = PhysicsCore.vectorFromPolar(vecState.b.magnitude, vecState.b.angleDeg);
+    const isSub = (vecState.mode === 'sub');
+    const negB  = PhysicsCore.vectorNegate(B);
+    const opVec = isSub ? negB : B;          // the vector that gets added head-to-tail
+    const R = isSub ? PhysicsCore.vectorSubtract(A, B) : PhysicsCore.vectorAdd(A, B);
+
+    // Components — thin solid horizontal+vertical from origin to (Ax,0)→(Ax,Ay)
+    if (vecState.showComponents) {
+      c.strokeStyle = VEC_COLORS.comp;
+      c.lineWidth = 1;
+      // A components
+      c.beginPath();
+      c.moveTo(X(0), Y(0));   c.lineTo(X(A.x), Y(0));
+      c.moveTo(X(A.x), Y(0)); c.lineTo(X(A.x), Y(A.y));
+      c.stroke();
+      // B components
+      c.beginPath();
+      c.moveTo(X(0), Y(0));   c.lineTo(X(B.x), Y(0));
+      c.moveTo(X(B.x), Y(0)); c.lineTo(X(B.x), Y(B.y));
+      c.stroke();
+    }
+
+    // Projections — dashed lines dropping from vector tips to axes
+    if (vecState.showProjections) {
+      c.strokeStyle = VEC_COLORS.proj;
+      c.lineWidth = 1;
+      c.setLineDash([3, 4]);
+      c.beginPath();
+      // A
+      c.moveTo(X(A.x), Y(A.y)); c.lineTo(X(A.x), Y(0));
+      c.moveTo(X(A.x), Y(A.y)); c.lineTo(X(0),   Y(A.y));
+      // B
+      c.moveTo(X(B.x), Y(B.y)); c.lineTo(X(B.x), Y(0));
+      c.moveTo(X(B.x), Y(B.y)); c.lineTo(X(0),   Y(B.y));
+      c.stroke();
+      c.setLineDash([]);
+    }
+
+    // Vectors — bold from origin
+    drawArrow(c, X(0), Y(0), X(A.x), Y(A.y), VEC_COLORS.A, 'A');
+    drawArrow(c, X(0), Y(0), X(B.x), Y(B.y), VEC_COLORS.B, 'B');
+
+    // Subtraction in head-to-tail mode — show −B from origin as a faded
+    // dashed arrow. This is the "A + (−B)" framing students need to see
+    // before the head-to-tail shift makes sense. Hidden in head-to-head
+    // SUB mode where the tip-to-tip arrow is the visualization.
+    if (isSub && vecState.method === 'tail') {
+      c.globalAlpha = 0.55;
+      c.setLineDash([5, 4]);
+      drawArrow(c, X(0), Y(0), X(negB.x), Y(negB.y), VEC_COLORS.B, '−B', 1.5);
+      c.setLineDash([]);
+      c.globalAlpha = 1.0;
+    }
+
+    // Resultant — branches on method.
+    //   Head-to-tail: dashed operand from A's tip → R from origin
+    //   Head-to-head:
+    //     • Add: parallelogram completion (dashed A from B's tip + dashed B
+    //            from A's tip) → R is the diagonal from origin
+    //     • Sub: tip-to-tip — R goes FROM B's tip TO A's tip directly
+    //            (the displacement Δr interpretation)
+    if (vecState.showResultant) {
+      c.strokeStyle = VEC_COLORS.B;
+      c.lineWidth = 1.5;
+
+      if (vecState.method === 'tail') {
+        // Head-to-tail: dashed operand from A's tip
+        c.globalAlpha = 0.4;
+        c.setLineDash([5, 3]);
+        c.beginPath();
+        c.moveTo(X(A.x), Y(A.y));
+        c.lineTo(X(A.x + opVec.x), Y(A.y + opVec.y));
+        c.stroke();
+        c.setLineDash([]);
+        c.globalAlpha = 1.0;
+        drawArrow(c, X(0), Y(0), X(R.x), Y(R.y), VEC_COLORS.R, 'R', 2.4);
+
+      } else if (!isSub) {
+        // Head-to-head ADD: parallelogram completion — dashed A from B's tip,
+        // dashed B from A's tip. Both meet at (A+B). R is the diagonal.
+        c.globalAlpha = 0.4;
+        c.setLineDash([5, 3]);
+        c.beginPath();
+        // dashed B from A's tip → (A+B)
+        c.moveTo(X(A.x), Y(A.y));
+        c.lineTo(X(A.x + B.x), Y(A.y + B.y));
+        // dashed A from B's tip → (A+B)
+        c.moveTo(X(B.x), Y(B.y));
+        c.lineTo(X(A.x + B.x), Y(A.y + B.y));
+        c.stroke();
+        c.setLineDash([]);
+        c.globalAlpha = 1.0;
+        drawArrow(c, X(0), Y(0), X(R.x), Y(R.y), VEC_COLORS.R, 'R', 2.4);
+
+      } else {
+        // Head-to-head SUB: tip-to-tip. R goes FROM B's tip TO A's tip.
+        // This visualizes Δr = A − B directly (the displacement
+        // interpretation: the arrow from r_i to r_f).
+        drawArrow(c, X(B.x), Y(B.y), X(A.x), Y(A.y), VEC_COLORS.R, 'R', 2.4);
+      }
+    }
+  }
+
+  function drawArrow (c, x0, y0, x1, y1, color, label, lineWidth = 2.0) {
+    const dx = x1 - x0, dy = y1 - y0;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    // Stem
+    c.strokeStyle = color;
+    c.lineWidth = lineWidth;
+    c.beginPath();
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+    c.stroke();
+    // Arrow head
+    const headLen = 11;
+    const headW   = 7;
+    const ux = dx / len, uy = dy / len;
+    const px = -uy, py = ux;   // perpendicular
+    const baseX = x1 - ux * headLen;
+    const baseY = y1 - uy * headLen;
+    c.fillStyle = color;
+    c.beginPath();
+    c.moveTo(x1, y1);
+    c.lineTo(baseX + px * headW, baseY + py * headW);
+    c.lineTo(baseX - px * headW, baseY - py * headW);
+    c.closePath();
+    c.fill();
+    // Label, offset perpendicular from the midpoint
+    if (label) {
+      const mx = x0 + dx * 0.55;
+      const my = y0 + dy * 0.55;
+      const off = 14;
+      c.fillStyle = color;
+      c.font = 'bold 12px Orbitron, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(label, mx + px * off, my + py * off);
+    }
+  }
+
+  // Slider listeners
+  Object.values(vec.sliders).forEach(sl => sl.addEventListener('input', vecSync));
+
+  // Toggle buttons
+  function setToggle (btn, on) {
+    btn.classList.toggle('primary', on);
+  }
+  vec.toggleBtns.comp.addEventListener('click', () => {
+    vecState.showComponents = !vecState.showComponents;
+    setToggle(vec.toggleBtns.comp, vecState.showComponents);
+    vecDraw();
+  });
+  vec.toggleBtns.proj.addEventListener('click', () => {
+    vecState.showProjections = !vecState.showProjections;
+    setToggle(vec.toggleBtns.proj, vecState.showProjections);
+    vecDraw();
+  });
+  vec.toggleBtns.res.addEventListener('click', () => {
+    vecState.showResultant = !vecState.showResultant;
+    setToggle(vec.toggleBtns.res, vecState.showResultant);
+    vecDraw();
+  });
+
+  // Mode toggle (Add / Subtract)
+  function setMode (mode) {
+    vecState.mode = mode;
+    vec.modeBtns.add.classList.toggle('primary', mode === 'add');
+    vec.modeBtns.sub.classList.toggle('primary', mode === 'sub');
+    vecUpdateReadouts();
+    vecDraw();
+  }
+  vec.modeBtns.add.addEventListener('click', () => setMode('add'));
+  vec.modeBtns.sub.addEventListener('click', () => setMode('sub'));
+
+  // Method toggle (Head-to-Tail / Head-to-Head)
+  function setMethod (method) {
+    vecState.method = method;
+    vec.methodBtns.tail.classList.toggle('primary', method === 'tail');
+    vec.methodBtns.head.classList.toggle('primary', method === 'head');
+    vecDraw();
+  }
+  vec.methodBtns.tail.addEventListener('click', () => setMethod('tail'));
+  vec.methodBtns.head.addEventListener('click', () => setMethod('head'));
+
+  // Presets — most are addition-flavored; Displacement is the canonical
+  // subtraction example (Δr = r_f − r_i for a particle that moves from
+  // (8, 2) to (3, 6), so r_f = 6.71 ∠ 63.4°, r_i = 8.25 ∠ 14.0°).
+  // Each preset sets both mode AND method so any prior state is replaced
+  // cleanly (no "stuck on head-to-head after switching from Displacement").
+  const VEC_PRESETS = {
+    '3-4-5':        { aMag: 3,    aAng: 0,    bMag: 4,    bAng: 90,   mode: 'add', method: 'tail' },
+    'parallel':     { aMag: 5,    aAng: 45,   bMag: 5,    bAng: 45,   mode: 'add', method: 'tail' },
+    'perp':         { aMag: 5,    aAng: 0,    bMag: 5,    bAng: 90,   mode: 'add', method: 'tail' },
+    'opposite':     { aMag: 5,    aAng: 0,    bMag: 5,    bAng: 180,  mode: 'add', method: 'tail' },
+    // Displacement: A = r_f at (3, 6), B = r_i at (8, 2). Δr = A − B = (−5, 4),
+    // magnitude √41 ≈ 6.40 ∠ 141.3°. Defaults to head-to-head + subtract so
+    // the tip-to-tip arrow visualizes Δr directly as the path from r_i to r_f.
+    'displacement': { aMag: 6.71, aAng: 63.4, bMag: 8.25, bAng: 14.0, mode: 'sub', method: 'head' }
+  };
+  document.querySelectorAll('[data-vec-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = VEC_PRESETS[btn.dataset.vecPreset];
+      if (!p) return;
+      vec.sliders.aMag.value = p.aMag;
+      vec.sliders.aAng.value = p.aAng;
+      vec.sliders.bMag.value = p.bMag;
+      vec.sliders.bAng.value = p.bAng;
+      if (p.mode)   setMode(p.mode);
+      if (p.method) setMethod(p.method);
+      vecSync();
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════
+     MODULE 3: PROJECTILE
+     ══════════════════════════════════════════════════════════════════════
+     Single 2D canvas, x-y world coordinates with uniform scale (so the
+     trajectory parabola is geometrically faithful — a 45° launch really
+     leaves the gun at 45°). Closed-form physics via physics-core.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  const projState = {
+    params:   { v0: 30, theta0Deg: 45, y0: 0, g: PhysicsCore.G_EARTH },
+    t:        0,
+    playing:  false,
+    lastFrameMs: 0,
+    trajectory: [],    // sampled points {t, x, y, vx, vy}
+    tFlight:    0,
+    range:      0,
+    maxHeight:  0,
+    vMax:       0,     // max |v| over the trajectory (for vector scaling)
+    bounds: { xMin: 0, xMax: 0, yMin: 0, yMax: 0, scale: 1, offsetX: 0, offsetY: 0 },
+    show: {
+      velVec:     true,
+      accVec:     false,
+      components: false
+    }
+  };
+
+  const proj = {
+    canvas: document.getElementById('plot-proj'),
+    sliders: {
+      v0:    document.getElementById('proj-v0'),
+      theta: document.getElementById('proj-theta'),
+      y0:    document.getElementById('proj-y0')
+    },
+    displays: {
+      v0:    document.getElementById('proj-v0-disp'),
+      theta: document.getElementById('proj-theta-disp'),
+      y0:    document.getElementById('proj-y0-disp')
+    },
+    readouts: {
+      t:     document.getElementById('proj-t-val'),
+      x:     document.getElementById('proj-x-val'),
+      y:     document.getElementById('proj-y-val'),
+      vx:    document.getElementById('proj-vx-val'),
+      vy:    document.getElementById('proj-vy-val'),
+      vmag:  document.getElementById('proj-vmag-val'),
+      vang:  document.getElementById('proj-vang-val'),
+      range: document.getElementById('proj-range-val'),
+      hmax:  document.getElementById('proj-hmax-val'),
+      tf:    document.getElementById('proj-tf-val')
+    },
+    toggles: {
+      v:    document.getElementById('proj-toggle-v'),
+      a:    document.getElementById('proj-toggle-a'),
+      comp: document.getElementById('proj-toggle-comp')
+    }
+  };
+
+  // Calm-Mechanical-adjacent palette — same family as VEC_COLORS so the lab
+  // reads as one instrument across modules.
+  const PROJ_COLORS = {
+    traj:    '#6e9bc0',                        // STEEL — trajectory curve
+    trajGlow:'rgba(110, 155, 192, 0.16)',      // STEEL halo behind the curve
+    now:     '#d4a865',                        // AMBER — particle dot + velocity
+    nowSoft: 'rgba(212, 168, 101, 0.32)',      // AMBER faded — range tick, max-H line
+    accel:   '#b8c8d2',                        // SLATE — g vector
+    comp:    'rgba(184, 200, 210, 0.65)',      // SLATE-mid — component arrows
+    ground:  'rgba(232, 232, 232, 0.55)',
+    grid:    'rgba(168, 179, 188, 0.07)',
+    axis:    'rgba(232, 232, 232, 0.30)',
+    label:   'rgba(232, 232, 232, 0.50)'
+  };
+
+  function projCompute () {
+    const { v0, theta0Deg, y0, g } = projState.params;
+    projState.tFlight   = PhysicsCore.projectileTimeOfFlight(v0, theta0Deg, g, y0);
+    projState.range     = PhysicsCore.projectileRange(v0, theta0Deg, g, y0);
+    projState.maxHeight = PhysicsCore.projectileMaxHeight(v0, theta0Deg, g, y0);
+    projState.trajectory = PhysicsCore.projectileTrajectory({ v0, theta0Deg, y0, g, nSamples: 240 });
+    // vMax = launch speed (which is also the max |v| for any flight that
+    // returns to ground level, since KE is conserved and |v| at landing
+    // matches launch). For y0 > 0 it's actually the landing speed.
+    let vmx = 0;
+    for (const p of projState.trajectory) {
+      const s = Math.hypot(p.vx, p.vy);
+      if (s > vmx) vmx = s;
+    }
+    projState.vMax = vmx || v0 || 1;
+  }
+
+  function projComputeBounds () {
+    const W = projState.canvas.clientWidth;
+    const H = projState.canvas.clientHeight;
+    const padL = 48, padR = 22, padT = 22, padB = 44;
+    const innerW = Math.max(50, W - padL - padR);
+    const innerH = Math.max(50, H - padT - padB);
+
+    const xMin = 0;
+    const xMax = Math.max(projState.range * 1.10, 5);
+    const yMin = -2;                                  // breathing room below ground
+    const yMax = Math.max(projState.maxHeight * 1.18, projState.params.y0 * 1.18, 5);
+
+    // Uniform scale — geometry faithful
+    const scaleX = innerW / (xMax - xMin);
+    const scaleY = innerH / (yMax - yMin);
+    const scale  = Math.min(scaleX, scaleY);
+
+    const usedW = (xMax - xMin) * scale;
+    const usedH = (yMax - yMin) * scale;
+    // Anchor x to left margin (so launch is at left); center y in the unused space
+    const offsetX = padL;
+    const offsetY = padT + (innerH - usedH) / 2;
+
+    projState.bounds = { xMin, xMax, yMin, yMax, scale, offsetX, offsetY, usedW, usedH, padL, padR, padT, padB, innerH };
+  }
+
+  function projX (wx) {
+    const b = projState.bounds;
+    return b.offsetX + (wx - b.xMin) * b.scale;
+  }
+  function projY (wy) {
+    const b = projState.bounds;
+    return b.offsetY + b.usedH - (wy - b.yMin) * b.scale;
+  }
+
+  function projDraw () {
+    if (!projState.canvas) return;
+    const c = projState.canvas.getContext('2d');
+    const rect = projState.canvas.getBoundingClientRect();
+    c.clearRect(0, 0, rect.width, rect.height);
+
+    projComputeBounds();
+    const b = projState.bounds;
+
+    // ── Grid (1-m intervals if range < 20m, else round) ──────────────────
+    const xRange = b.xMax - b.xMin;
+    const yRange = b.yMax - b.yMin;
+    const niceStep = (range) => {
+      const target = range / 8;          // ~8 grid lines across
+      const mag = Math.pow(10, Math.floor(Math.log10(target)));
+      const norm = target / mag;
+      const step = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
+      return step * mag;
+    };
+    const dx = niceStep(xRange);
+    const dy = niceStep(yRange);
+
+    c.strokeStyle = PROJ_COLORS.grid;
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let x = Math.ceil(b.xMin / dx) * dx; x <= b.xMax; x += dx) {
+      const px = projX(x);
+      c.moveTo(px, projY(b.yMin));
+      c.lineTo(px, projY(b.yMax));
+    }
+    for (let y = Math.ceil(b.yMin / dy) * dy; y <= b.yMax; y += dy) {
+      const py = projY(y);
+      c.moveTo(projX(b.xMin), py);
+      c.lineTo(projX(b.xMax), py);
+    }
+    c.stroke();
+
+    // ── Ground line at y = 0 ─────────────────────────────────────────────
+    c.strokeStyle = PROJ_COLORS.ground;
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.moveTo(projX(b.xMin), projY(0));
+    c.lineTo(projX(b.xMax), projY(0));
+    c.stroke();
+
+    // ── Tick labels (axes) ───────────────────────────────────────────────
+    c.fillStyle = PROJ_COLORS.label;
+    c.font = '10px "Share Tech Mono", monospace';
+    c.textAlign = 'center';
+    c.textBaseline = 'top';
+    for (let x = Math.ceil(b.xMin / dx) * dx; x <= b.xMax; x += dx) {
+      if (Math.abs(x) < 1e-6) continue;
+      c.fillText(x.toFixed(dx < 1 ? 1 : 0) + 'm', projX(x), projY(0) + 6);
+    }
+    c.textAlign = 'right';
+    c.textBaseline = 'middle';
+    for (let y = Math.ceil(b.yMin / dy) * dy; y <= b.yMax; y += dy) {
+      if (Math.abs(y) < 1e-6 || y < 0) continue;
+      c.fillText(y.toFixed(dy < 1 ? 1 : 0) + 'm', projX(0) - 6, projY(y));
+    }
+    // Axis tags
+    c.fillStyle = PROJ_COLORS.axis;
+    c.textAlign = 'left'; c.textBaseline = 'bottom';
+    c.font = 'bold 10px Orbitron, sans-serif';
+    c.fillText('x', projX(b.xMax) - 14, projY(0) - 4);
+    c.textAlign = 'right'; c.textBaseline = 'top';
+    c.fillText('y', projX(0) + 14, projY(b.yMax) + 4);
+
+    // ── Max-height marker (dashed horizontal) ────────────────────────────
+    if (projState.maxHeight > 0.01) {
+      c.strokeStyle = PROJ_COLORS.nowSoft;
+      c.lineWidth = 1;
+      c.setLineDash([4, 4]);
+      c.beginPath();
+      c.moveTo(projX(b.xMin), projY(projState.maxHeight));
+      c.lineTo(projX(b.xMax), projY(projState.maxHeight));
+      c.stroke();
+      c.setLineDash([]);
+      // H label
+      c.fillStyle = PROJ_COLORS.now;
+      c.font = '10px "Share Tech Mono", monospace';
+      c.textAlign = 'right';
+      c.textBaseline = 'bottom';
+      c.fillText('H = ' + projState.maxHeight.toFixed(2) + ' m', projX(b.xMax) - 4, projY(projState.maxHeight) - 3);
+    }
+
+    // ── Range marker on the ground line ──────────────────────────────────
+    if (projState.range > 0.01) {
+      c.strokeStyle = PROJ_COLORS.now;
+      c.lineWidth = 1.8;
+      c.beginPath();
+      c.moveTo(projX(projState.range), projY(0) - 7);
+      c.lineTo(projX(projState.range), projY(0) + 7);
+      c.stroke();
+      // R label
+      c.fillStyle = PROJ_COLORS.now;
+      c.font = '10px "Share Tech Mono", monospace';
+      c.textAlign = 'center';
+      c.textBaseline = 'top';
+      c.fillText('R = ' + projState.range.toFixed(2) + ' m', projX(projState.range), projY(0) + 10);
+    }
+
+    // ── Trajectory curve — STEEL bold ────────────────────────────────────
+    if (projState.trajectory.length > 1) {
+      // Soft halo first
+      c.strokeStyle = PROJ_COLORS.trajGlow;
+      c.lineWidth = 4.5;
+      c.beginPath();
+      c.moveTo(projX(projState.trajectory[0].x), projY(projState.trajectory[0].y));
+      for (let i = 1; i < projState.trajectory.length; i++) {
+        c.lineTo(projX(projState.trajectory[i].x), projY(projState.trajectory[i].y));
+      }
+      c.stroke();
+      // Crisp line
+      c.strokeStyle = PROJ_COLORS.traj;
+      c.lineWidth = 2.2;
+      c.beginPath();
+      c.moveTo(projX(projState.trajectory[0].x), projY(projState.trajectory[0].y));
+      for (let i = 1; i < projState.trajectory.length; i++) {
+        c.lineTo(projX(projState.trajectory[i].x), projY(projState.trajectory[i].y));
+      }
+      c.stroke();
+    }
+
+    // ── Current particle position + overlays ─────────────────────────────
+    const tClamp = Math.max(0, Math.min(projState.t, projState.tFlight));
+    const here = PhysicsCore.projectileAt({
+      v0: projState.params.v0, theta0Deg: projState.params.theta0Deg,
+      y0: projState.params.y0,  g: projState.params.g,  t: tClamp
+    });
+    const px = projX(here.x), py = projY(here.y);
+
+    // Pixel scale for velocity arrows: max |v| = ~70px
+    const vScalePx = 70 / Math.max(projState.vMax, 0.1);
+
+    // Components (drawn behind so the full v vector lays on top)
+    if (projState.show.components) {
+      // vx — horizontal arrow from current position
+      const vxEnd = px + here.vx * vScalePx;
+      projDrawArrow(c, px, py, vxEnd, py, PROJ_COLORS.comp, 'vₓ', 1.5);
+      // vy — vertical arrow. Canvas y is inverted, so subtract for upward.
+      const vyEnd = py - here.vy * vScalePx;
+      projDrawArrow(c, px, py, px, vyEnd, PROJ_COLORS.comp, 'vᵧ', 1.5);
+    }
+
+    // Acceleration g — always downward, fixed pixel length (~50 px)
+    if (projState.show.accVec) {
+      const gLen = 50;
+      projDrawArrow(c, px, py, px, py + gLen, PROJ_COLORS.accel, 'g⃗', 1.6);
+    }
+
+    // Velocity vector
+    if (projState.show.velVec) {
+      const vEndX = px + here.vx * vScalePx;
+      const vEndY = py - here.vy * vScalePx;
+      projDrawArrow(c, px, py, vEndX, vEndY, PROJ_COLORS.now, 'v⃗', 2.2);
+    }
+
+    // Particle dot — drawn last so it sits on top
+    c.fillStyle = PROJ_COLORS.now;
+    c.beginPath();
+    c.arc(px, py, 5.5, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = 'rgba(8, 12, 18, 0.9)';
+    c.lineWidth = 1.2;
+    c.stroke();
+
+    // Update live readouts
+    proj.readouts.t.textContent    = tClamp.toFixed(2);
+    proj.readouts.x.textContent    = here.x.toFixed(2);
+    proj.readouts.y.textContent    = here.y.toFixed(2);
+    proj.readouts.vx.textContent   = here.vx.toFixed(2);
+    proj.readouts.vy.textContent   = here.vy.toFixed(2);
+    const vmag = Math.hypot(here.vx, here.vy);
+    proj.readouts.vmag.textContent = vmag.toFixed(2);
+    proj.readouts.vang.textContent = (Math.atan2(here.vy, here.vx) * 180 / Math.PI).toFixed(1);
+
+    // Playback strip mirrors projectile time when active
+    if (activeModule === 'mproj') {
+      pbTime.textContent = tClamp.toFixed(2);
+      const frac = projState.tFlight > 0
+        ? Math.min(100, Math.max(0, (tClamp / projState.tFlight) * 100))
+        : 0;
+      scrubFill.style.width = frac + '%';
+    }
+  }
+
+  /**
+   * Arrow drawer scoped to the projectile canvas — same geometry as the
+   * Vectors module's `drawArrow` but the label positioning is tweaked so
+   * horizontal vx arrows don't collide with the vertical vy arrows when
+   * components are decomposed.
+   */
+  function projDrawArrow (c, x0, y0, x1, y1, color, label, lineWidth = 2.0) {
+    const dx = x1 - x0, dy = y1 - y0;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    c.strokeStyle = color;
+    c.lineWidth = lineWidth;
+    c.beginPath();
+    c.moveTo(x0, y0); c.lineTo(x1, y1);
+    c.stroke();
+    const headLen = 10;
+    const headW   = 6.5;
+    const ux = dx / len, uy = dy / len;
+    const px = -uy, py = ux;
+    const baseX = x1 - ux * headLen;
+    const baseY = y1 - uy * headLen;
+    c.fillStyle = color;
+    c.beginPath();
+    c.moveTo(x1, y1);
+    c.lineTo(baseX + px * headW, baseY + py * headW);
+    c.lineTo(baseX - px * headW, baseY - py * headW);
+    c.closePath();
+    c.fill();
+    if (label) {
+      c.fillStyle = color;
+      c.font = 'bold 11px Orbitron, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      // Place the label past the head, offset perpendicular
+      const lx = x1 + ux * 10 + px * 8;
+      const ly = y1 + uy * 10 + py * 8;
+      c.fillText(label, lx, ly);
+    }
+  }
+
+  function projSync () {
+    projState.params.v0        = parseFloat(proj.sliders.v0.value);
+    projState.params.theta0Deg = parseFloat(proj.sliders.theta.value);
+    projState.params.y0        = parseFloat(proj.sliders.y0.value);
+    proj.displays.v0.textContent    = projState.params.v0.toFixed(1);
+    proj.displays.theta.textContent = projState.params.theta0Deg.toFixed(0);
+    proj.displays.y0.textContent    = projState.params.y0.toFixed(1);
+    projCompute();
+    // If current time exceeds the new flight duration, clip it
+    if (projState.t > projState.tFlight) projState.t = projState.tFlight;
+    // Invariant readouts
+    proj.readouts.range.textContent = projState.range.toFixed(2);
+    proj.readouts.hmax.textContent  = projState.maxHeight.toFixed(2);
+    proj.readouts.tf.textContent    = projState.tFlight.toFixed(2);
+    projDraw();
+  }
+
+  // Slider listeners
+  Object.values(proj.sliders).forEach(sl => sl.addEventListener('input', projSync));
+
+  // Overlay toggles
+  proj.toggles.v.addEventListener('click', () => {
+    projState.show.velVec = !projState.show.velVec;
+    proj.toggles.v.classList.toggle('primary', projState.show.velVec);
+    projDraw();
+  });
+  proj.toggles.a.addEventListener('click', () => {
+    projState.show.accVec = !projState.show.accVec;
+    proj.toggles.a.classList.toggle('primary', projState.show.accVec);
+    projDraw();
+  });
+  proj.toggles.comp.addEventListener('click', () => {
+    projState.show.components = !projState.show.components;
+    proj.toggles.comp.classList.toggle('primary', projState.show.components);
+    projDraw();
+  });
+
+  // Presets — covers the four canonical launch regimes:
+  //   45° (max range), 75° (steep / time-aloft), 15° (flat / fast x),
+  //   0° from height (bridges to "projectile from a tower" problems).
+  const PROJ_PRESETS = {
+    cannon: { v0: 30, theta: 45, y0: 0  },
+    steep:  { v0: 25, theta: 75, y0: 0  },
+    flat:   { v0: 25, theta: 15, y0: 0  },
+    drop:   { v0: 20, theta: 0,  y0: 15 }
+  };
+  document.querySelectorAll('[data-proj-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = PROJ_PRESETS[btn.dataset.projPreset];
+      if (!p) return;
+      proj.sliders.v0.value    = p.v0;
+      proj.sliders.theta.value = p.theta;
+      proj.sliders.y0.value    = p.y0;
+      projState.t = 0;
+      projSync();
+    });
+  });
+
+  // Animation
+  function projSetPlaying (yes) {
+    projState.playing = yes;
+    if (activeModule === 'mproj') {
+      btnPlay.textContent = yes ? '⏸' : '▶';
+      btnPlay.title = yes ? 'Pause' : 'Play';
+    }
+    if (yes) {
+      projState.lastFrameMs = performance.now();
+      requestAnimationFrame(projTick);
+    }
+  }
+  function projTick (now) {
+    if (!projState.playing) return;
+    const dtMs = now - projState.lastFrameMs;
+    projState.lastFrameMs = now;
+    projState.t += dtMs / 1000;   // 1× real time
+    if (projState.t >= projState.tFlight) {
+      projState.t = projState.tFlight;
+      projSetPlaying(false);
+    }
+    projDraw();
+    if (projState.playing) requestAnimationFrame(projTick);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     MODULE SWITCHER
+     ══════════════════════════════════════════════════════════════════════ */
+
+  let activeModule = 'm1d';
+  const playbackStrip = document.querySelector('.playback-strip');
+
+  function activateModule (id) {
+    if (id === activeModule) return;
+
+    // Pause time-based playback when leaving its module
+    if (activeModule === 'm1d')   setPlaying(false);
+    if (activeModule === 'mproj') projSetPlaying(false);
+
+    activeModule = id;
+    document.querySelectorAll('.module').forEach(m => {
+      m.classList.toggle('on', m.id === id);
+    });
+    document.querySelectorAll('.tab').forEach(t => {
+      const on = t.dataset.module === id;
+      t.classList.toggle('on', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+
+    // Playback strip is visible for 1D Motion and Projectile (both time-based)
+    if (playbackStrip) {
+      playbackStrip.style.display = (id === 'm1d' || id === 'mproj') ? '' : 'none';
+    }
+
+    // Sync the strip's play button label to the incoming module's state
+    if (id === 'm1d') {
+      btnPlay.textContent = state.playing ? '⏸' : '▶';
+    } else if (id === 'mproj') {
+      btnPlay.textContent = projState.playing ? '⏸' : '▶';
+    }
+
+    // Resize the newly active module's canvas(es) — they may have been 0×0 while hidden
+    requestAnimationFrame(() => {
+      if (id === 'm1d') {
+        Object.values(canvases).forEach(resizeCanvas);
+        drawAll();
+      } else if (id === 'mvec') {
+        resizeCanvas(vec.canvas);
+        vecDraw();
+      } else if (id === 'mproj') {
+        resizeCanvas(proj.canvas);
+        projDraw();
+      }
+    });
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    if (tab.disabled) return;
+    tab.addEventListener('click', () => activateModule(tab.dataset.module));
+  });
+
+  // Patch resizeAll to also resize the Vectors + Projectile canvases
+  const _resizeAllOrig = resizeAll;
+  resizeAll = function () {
+    _resizeAllOrig();
+    if (vec.canvas)  resizeCanvas(vec.canvas);
+    if (proj.canvas) resizeCanvas(proj.canvas);
+    if (activeModule === 'mvec')  vecDraw();
+    if (activeModule === 'mproj') projDraw();
+  };
+  window.removeEventListener('resize', _resizeAllOrig);
+  window.addEventListener('resize', resizeAll);
+
+  /* ─── Init ────────────────────────────────────────────────────────────── */
+
+  // First sizing pass once layout has settled
+  requestAnimationFrame(() => {
+    resizeAll();
+    syncFromSliders();
+    vecSync();
+    projSync();
+    // Kick off with the free-fall preset so the lab opens with motion visible
+    document.querySelector('[data-preset="free-fall"]').click();
+  });
+
+})();
+</script>
+
+</body>
+</html>
