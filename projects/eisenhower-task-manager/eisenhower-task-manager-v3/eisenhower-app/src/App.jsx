@@ -663,39 +663,39 @@ const EisenhowerTaskManager = () => {
 
       {/* === CONTROL PANEL LAYOUT: readouts → screens → controls === */}
 
-      {/* Top: LED Readout Strip */}
-      <div className="etm-readout-strip" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1 sm:py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 sm:gap-6">
-              {[
-                { label: 'Q1', cls: 'etm-readout__value--red', led: 'etm-led--red', val: stats.byQuadrant['do-first'] },
-                { label: 'Q2', cls: 'etm-readout__value--cyan', led: 'etm-led--cyan', val: stats.byQuadrant['schedule'] },
-                { label: 'Q3', cls: 'etm-readout__value--amber', led: 'etm-led--amber', val: stats.byQuadrant['delegate'] },
-                { label: 'Q4', cls: 'etm-readout__value--muted', led: 'etm-led--muted', val: stats.byQuadrant['eliminate'] },
-              ].map(r => (
-                <div key={r.label} className="etm-readout" style={{ padding: '4px 8px' }}>
-                  <div className="etm-readout__label"><span className={`etm-led ${r.led}`} /> {r.label}</div>
-                  <div className={`etm-readout__value ${r.cls}`} style={{ fontSize: '18px' }}>{r.val}</div>
-                </div>
-              ))}
+      {/* PHASE 3: Cinematic readout bar — acrylic glass, bare colored
+          numbers for Q1-Q4 (no text labels — LED + color encodes
+          identity), text labels preserved on Overdue/Today (temporal
+          state, not quadrant identity), Mk-III nameplate at right.
+          Q1='do-first', Q2='schedule', Q3='delegate', Q4='eliminate'. */}
+      <div className="readout-bar" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="readout-group">
+          {[
+            { qid: 'q1', valKey: 'do-first'   },
+            { qid: 'q2', valKey: 'schedule'   },
+            { qid: 'q3', valKey: 'delegate'   },
+            { qid: 'q4', valKey: 'eliminate'  },
+          ].map(r => (
+            <div key={r.qid} className="readout-cell readout-cell--quad">
+              <span className={`cin-led cin-led--${r.qid}`} />
+              <div className={`readout-cell__value readout-cell__value--${r.qid}`}>{stats.byQuadrant[r.valKey] ?? 0}</div>
             </div>
-            <div className="flex items-center gap-3 sm:gap-4">
-              {stats.overdue.length > 0 && (
-                <div className="etm-readout" style={{ padding: '4px 8px' }}>
-                  <div className="etm-readout__label"><span className="etm-led etm-led--red etm-led--pulse" /> Overdue</div>
-                  <div className="etm-readout__value etm-readout__value--red" style={{ fontSize: '18px' }}>{stats.overdue.length}</div>
-                </div>
-              )}
-              {stats.dueToday.length > 0 && (
-                <div className="etm-readout" style={{ padding: '4px 8px' }}>
-                  <div className="etm-readout__label"><span className="etm-led etm-led--amber etm-led--pulse" /> Today</div>
-                  <div className="etm-readout__value etm-readout__value--amber" style={{ fontSize: '18px' }}>{stats.dueToday.length}</div>
-                </div>
-              )}
-              <div className="hidden sm:block etm-nameplate">Peirastes Mk-II</div>
+          ))}
+        </div>
+        <div className="readout-group">
+          {stats.overdue.length > 0 && (
+            <div className="readout-cell">
+              <div className="readout-cell__label"><span className="cin-led cin-led--crit cin-led--pulse" /> Overdue</div>
+              <div className="readout-cell__value readout-cell__value--crit">{stats.overdue.length}</div>
             </div>
-          </div>
+          )}
+          {stats.dueToday.length > 0 && (
+            <div className="readout-cell">
+              <div className="readout-cell__label"><span className="cin-led cin-led--warn cin-led--pulse" /> Today</div>
+              <div className="readout-cell__value readout-cell__value--warn">{stats.dueToday.length}</div>
+            </div>
+          )}
+          <div className="hidden sm:block cin-nameplate">Peirastes Mk-III</div>
         </div>
       </div>
 
@@ -1055,7 +1055,11 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
       textColor: 'text-[#ff6675]',
       tabColor: '#ff3344',
       ledClass: 'etm-led--red',
-      label: 'Q1 — URGENT / NECESSARY'
+      label: 'Q1 — URGENT / NECESSARY',
+      // PHASE 3: Cinematic quad-panel mapping (used by desktop matrix view)
+      qid: 'q1',
+      designation: 'Q1 · Critical',
+      cinSub: 'Urgent · Necessary'
     },
     {
       id: 'schedule',
@@ -1067,7 +1071,10 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
       textColor: 'text-[#6ea8fe]',
       tabColor: '#00ccdd',
       ledClass: 'etm-led--cyan',
-      label: 'Q2 — NOT URGENT / NECESSARY'
+      label: 'Q2 — NOT URGENT / NECESSARY',
+      qid: 'q2',
+      designation: 'Q2 · Strategic',
+      cinSub: 'Not Urgent · Necessary'
     },
     {
       id: 'delegate',
@@ -1079,7 +1086,10 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
       textColor: 'text-[#fbbf24]',
       tabColor: '#ff8822',
       ledClass: 'etm-led--amber',
-      label: 'Q3 — URGENT / NOT NECESSARY'
+      label: 'Q3 — URGENT / NOT NECESSARY',
+      qid: 'q3',
+      designation: 'Q3 · Delegate',
+      cinSub: 'Urgent · Not Necessary'
     },
     {
       id: 'eliminate',
@@ -1091,7 +1101,10 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
       textColor: 'text-[#8899aa]',
       tabColor: '#506070',
       ledClass: 'etm-led--muted',
-      label: 'Q4 — NOT URGENT / NOT NECESSARY'
+      label: 'Q4 — NOT URGENT / NOT NECESSARY',
+      qid: 'q4',
+      designation: 'Q4 · Eliminate',
+      cinSub: 'Not Urgent · Not Necessary'
     }
   ];
 
@@ -1173,63 +1186,108 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
         })}
       </div>
 
-      {/* Desktop: 2x2 CRT monitor array */}
-      <div className="hidden md:grid grid-cols-2 gap-2 flex-1 min-h-0" style={{ gridTemplateRows: '1fr 1fr' }}>
-        {quadrants.map((quadrant) => {
-          const quadrantTasks = sortTasks(activeTasks.filter(t => getQuadrant(t) === quadrant.id));
-          return (
-            <div key={quadrant.id} className={`etm-monitor ${quadrant.monitorClass}`}>
-              <div className="etm-monitor__hood">
-                <div className="etm-tex-metal" />
-              </div>
-              <div className="etm-monitor__bezel">
-                <div className="etm-tex-metal" />
-                <div className="etm-tex-grain" />
-                <div className="etm-monitor__label">{quadrant.label}</div>
-                <div className="etm-monitor__rivet" style={{ top: 5, left: 5 }} />
-                <div className="etm-monitor__rivet" style={{ top: 5, right: 5 }} />
-                <div className="etm-monitor__rivet" style={{ bottom: 5, left: 5 }} />
-                <div className="etm-monitor__rivet" style={{ bottom: 5, right: 5 }} />
-
-                <div className="etm-monitor__well">
-                  <div className={`etm-monitor__glass ${quadrant.screenClass}`}>
-                    <div className="etm-monitor__status">
-                      <div className="etm-monitor__designation">
-                        <span className={`etm-led ${quadrant.ledClass}`} style={{ width: 6, height: 6 }} />
-                        {quadrant.title}
-                      </div>
-                      <div className="etm-monitor__count">{quadrantTasks.length}</div>
-                    </div>
-                    <div className="etm-monitor__content">
-                      {quadrantTasks.length === 0 ? (
-                        <div className="etm-monitor__empty">NO TASKS</div>
-                      ) : (
-                        <div className="etm-monitor__tasks space-y-1">
-                          {quadrantTasks.map((task) => (
-                            <TaskCard
-                              key={task.id}
-                              task={task}
-                              calculatePriority={calculatePriority}
-                              toggleComplete={toggleComplete}
-                              onEdit={() => {
-                                setEditingTask(task);
-                                setShowForm(true);
-                              }}
-                              onDelete={deleteTask}
-                              calculateTaskScore={calculateTaskScore}
-                              isExpanded={expandedTask === task.id}
-                              onToggleExpand={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+      {/* PHASE 3: Desktop matrix — acrylic-glass quad-panels in the
+          cinematic .cin-workspace. Replaces the v2 CRT monitor array
+          (hood/bezel/rivets/well/glass/scanlines). Per-panel chromatic
+          edge + hue wash matches the demo. Task rows are now MatrixTask
+          (click-to-edit) instead of expand/collapse TaskCard. */}
+      <div className="hidden md:flex cin-workspace">
+        <div className="cin-matrix-grid">
+          {quadrants.map((quadrant) => {
+            const quadrantTasks = sortTasks(activeTasks.filter(t => getQuadrant(t) === quadrant.id));
+            const qid = quadrant.qid;   // 'q1' | 'q2' | 'q3' | 'q4'
+            return (
+              <div key={quadrant.id} className={`quad-panel quad-panel--${qid}`}>
+                <div className="quad-panel__head">
+                  <div className="quad-panel__designation">
+                    <span className={`cin-led cin-led--${qid}`} /> {quadrant.designation}
                   </div>
+                  <div className="quad-panel__sub">{quadrant.cinSub}</div>
+                  <div className="quad-panel__count">{quadrantTasks.length}</div>
                 </div>
+                {quadrantTasks.length === 0 ? (
+                  <div className="quad-panel__empty">— No tasks —</div>
+                ) : (
+                  <div className="cin-task-list">
+                    {quadrantTasks.map((task) => (
+                      <MatrixTask
+                        key={task.id}
+                        task={task}
+                        qid={qid}
+                        calculatePriority={calculatePriority}
+                        toggleComplete={toggleComplete}
+                        onClick={() => {
+                          setEditingTask(task);
+                          setShowForm(true);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * PHASE 3: MatrixTask — cinematic task row for the desktop matrix view.
+ * Click the row → open edit modal (replaces v2's expand/collapse UI).
+ * Checkbox toggles completion without bubbling. Hover translates the row
+ * 2px right + brightens the border (same interaction vocabulary as the
+ * demo's task rows).
+ */
+const MatrixTask = ({ task, qid, calculatePriority, toggleComplete, onClick }) => {
+  const priority = calculatePriority(task);
+  const isOverdue = priority < 0;
+  const isToday   = priority === 0;
+  const isDone    = task.percentComplete === 100;
+
+  let dueText, badgeClass;
+  if (isOverdue) {
+    dueText = `${Math.abs(priority)}d over`;
+    badgeClass = 'cin-task__badge--overdue';
+  } else if (isToday) {
+    dueText = 'Today';
+    badgeClass = 'cin-task__badge--today';
+  } else if (priority === 1) {
+    dueText = 'Tomorrow';
+    badgeClass = 'cin-task__badge--soon';
+  } else if (priority <= 3) {
+    dueText = `${priority}d`;
+    badgeClass = 'cin-task__badge--soon';
+  } else {
+    dueText = `${priority}d`;
+    badgeClass = 'cin-task__badge--later';
+  }
+
+  const rowClass =
+    `cin-task cin-task--${qid}` +
+    (isOverdue ? ' cin-task--overdue' : '') +
+    (isToday   ? ' cin-task--today'   : '') +
+    (isDone    ? ' cin-task--done'    : '');
+
+  return (
+    <div className={rowClass} onClick={onClick}>
+      <input
+        type="checkbox"
+        className="cin-task__check"
+        checked={isDone}
+        onChange={(e) => { e.stopPropagation(); toggleComplete(task.id); }}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={isDone ? 'Mark incomplete' : 'Mark complete'}
+      />
+      <div className="cin-task__name" title={task.task}>{task.task}</div>
+      <div className={`cin-task__badge ${badgeClass}`}>{dueText}</div>
+      <div className="cin-task__meta-row">
+        {task.subcategory && <span className="cin-task__tag">{task.subcategory}</span>}
+        <span>R{task.rank}</span>
+        {task.percentComplete > 0 && task.percentComplete < 100 && (
+          <span style={{ color: 'var(--cin-cyan-soft)' }}>{task.percentComplete}%</span>
+        )}
       </div>
     </div>
   );
