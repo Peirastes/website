@@ -4,9 +4,6 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement,
 import { Bar, Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
-// PHASE 2: PINModal replaced by BootOverlay (cinematic register).
-// PINModal kept on disk as legacy reference until Phase 5 cleanup.
-// import { PINModal } from './components/PINModal';
 import { BootOverlay } from './components/BootOverlay';
 import { CinematicChrome } from './components/CinematicChrome';
 
@@ -635,27 +632,12 @@ const EisenhowerTaskManager = () => {
         version="v3.0"
       />
 
+      {/* PHASE 5 cleanup: removed the etm-reveal-start / etm-reveal-animate
+          keyframes (retired in Phase 2 when the cinematic scan-line became
+          the new entrance ceremony). Only the priority-badge utility is
+          kept since it's referenced by some legacy components still on
+          disk (e.g. TaskCard's mobile fallback in MatrixView). */}
       <style>{`
-        .etm-reveal-start {
-          opacity: 0;
-          transform: translateY(100vh);
-        }
-        .etm-reveal-animate {
-          animation: etmReveal 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-          border-top: 3px solid #0c1014;
-          box-shadow: 0 -6px 24px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
-        }
-        .etm-reveal-animate::before {
-          content: '';
-          position: fixed;
-          top: 0; left: 0; right: 0;
-          height: 6px;
-          z-index: 9999;
-          background: repeating-linear-gradient(90deg, #ffaa33 0px, #ffaa33 12px, #1e2428 12px, #1e2428 24px);
-          opacity: 0.5;
-          animation: etmHazardFade 1.2s ease-out forwards;
-        }
-
         .priority-badge {
           font-family: 'JetBrains Mono', monospace;
           font-size: 0.75rem;
@@ -812,16 +794,40 @@ const EisenhowerTaskManager = () => {
         </div>
       </div>
 
-      {/* Backup reminder — now a small overlay toast */}
+      {/* PHASE 5: Backup reminder toast — cinematic acrylic glass.
+          Floats bottom-right above the action bar. Amber left edge
+          signals the warning state without shouting. */}
       {showBackupReminder && (
-        <div className="fixed bottom-16 right-4 z-40 etm-panel p-3 max-w-xs" style={{ borderLeft: '3px solid #ff8822' }}>
-          <div className="flex items-center gap-2 text-xs text-[#fbbf24]">
-            <Shield size={14} />
-            <span>Backup: {getDaysSinceExport()}d since last export</span>
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(1.6rem + 50px)',
+          right: '1.6rem',
+          zIndex: 60,
+          padding: '10px 12px',
+          maxWidth: '260px',
+          background: 'var(--glass-bg-deep)',
+          backdropFilter: 'var(--glass-blur)',
+          WebkitBackdropFilter: 'var(--glass-blur)',
+          border: '1px solid var(--glass-border)',
+          borderLeft: '2px solid var(--cin-gold)',
+          borderRadius: '4px',
+          boxShadow: 'var(--glass-shadow)'
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '7px',
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '0.62rem',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--cin-gold)',
+            textShadow: '0 0 6px var(--cin-gold-glow)'
+          }}>
+            <Shield size={12} /> Backup · {getDaysSinceExport()}d since last export
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <button onClick={exportData} className="etm-pushbutton text-[#50c878]" style={{ padding: '3px 8px', fontSize: '10px' }}>Export</button>
-            <button onClick={() => setShowBackupReminder(false)} className="etm-pushbutton" style={{ padding: '3px 6px', fontSize: '10px' }}>Dismiss</button>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+            <button className="cin-btn cin-btn--primary" style={{ padding: '3px 10px', fontSize: '10px' }} onClick={exportData}>Export</button>
+            <button className="cin-btn cin-btn--secondary" style={{ padding: '3px 10px', fontSize: '10px' }} onClick={() => setShowBackupReminder(false)}>Dismiss</button>
           </div>
         </div>
       )}
@@ -868,93 +874,119 @@ const CompletionModal = ({ task, onConfirm, onCancel }) => {
     onConfirm(task.id, qualityRating, easeRating);
   };
 
-  const RatingLEDs = ({ value, onChange, label, litClass }) => {
-    const labels = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
-    return (
-      <div className="space-y-2">
-        <label className="block text-sm font-semibold text-[#8899aa]">{label}</label>
-        <div className="etm-led-rating">
-          {[1, 2, 3, 4, 5].map((dot) => (
-            <button
-              key={dot}
-              type="button"
-              onClick={() => onChange(dot)}
-              className={`etm-led-rating__dot ${value >= dot ? `etm-led-rating__dot--lit ${litClass}` : ''}`}
-            />
-          ))}
-        </div>
-        <div className="text-xs text-[#506070] font-data">
-          {value === null ? 'Click to rate' : labels[value]}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="etm-modal-backdrop p-4">
-      <div className="etm-modal rounded-xl max-w-lg w-full">
-        <div className="etm-chassis px-6 py-4 flex items-center justify-between rounded-t-xl" style={{ borderBottom: '2px solid #0c1014' }}>
-          <div className="flex items-center gap-3">
-            <span className="etm-led etm-led--green" style={{ width: 10, height: 10 }} />
-            <h2 className="text-xl font-bold text-[#c8d0e0] tracking-wider uppercase">Complete Task</h2>
-          </div>
-          <button
-            onClick={onCancel}
-            className="text-[#8899aa] hover:text-[#c8d0e0] transition-colors"
-          >
-            <X size={20} />
+    /* PHASE 5: cinematic completion modal — acrylic glass, Orbitron
+       title, cinematic rating dots (green for quality, amber for ease). */
+    <div className="cin-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="cin-modal">
+        <div className="cin-modal__head">
+          <div className="cin-modal__title">Complete Task</div>
+          <button className="cin-modal__close" onClick={onCancel} aria-label="Close">
+            <X size={16} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div className="etm-panel--recessed p-4">
-            <h3 className="font-label text-[#506070] mb-2">Task</h3>
-            <p className="text-[#c8d0e0] font-medium">{task.task}</p>
-            {task.subcategory && (
-              <p className="text-sm text-[#506070] mt-1">{task.subcategory}</p>
-            )}
-          </div>
+        <div className="cin-modal__body">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          <div className="space-y-6">
-            <RatingLEDs
-              value={qualityRating}
-              onChange={setQualityRating}
-              label="How well did you complete this task?"
-              litClass="green"
-            />
+            {/* Task summary */}
+            <div className="cin-field">
+              <label className="cin-field__label">Task</label>
+              <div style={{
+                padding: '10px 12px',
+                background: 'rgba(8, 12, 18, 0.38)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '3px'
+              }}>
+                <div style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '13px',
+                  color: 'rgba(232, 232, 232, 0.92)',
+                  fontWeight: 500
+                }}>{task.task}</div>
+                {task.subcategory && (
+                  <div style={{
+                    marginTop: '3px',
+                    fontFamily: 'Share Tech Mono, monospace',
+                    fontSize: '10px',
+                    letterSpacing: '0.06em',
+                    color: 'rgba(180, 180, 180, 0.55)'
+                  }}>{task.subcategory}</div>
+                )}
+              </div>
+            </div>
 
-            <RatingLEDs
-              value={easeRating}
-              onChange={setEaseRating}
-              label="How easy/difficult was this task?"
-              litClass="amber"
-            />
-          </div>
+            {/* Quality rating (green) */}
+            <div className="cin-rating-row">
+              <div className="cin-rating-row__label">How well did you complete this task?</div>
+              <div className="cin-rating-dots">
+                {[1,2,3,4,5].map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={'cin-rating-dot' + (qualityRating !== null && qualityRating >= d ? ' cin-rating-dot--lit-green' : '')}
+                    onClick={() => setQualityRating(d)}
+                    aria-label={`Rate quality ${d} of 5`}
+                  />
+                ))}
+              </div>
+              <div className="cin-rating-row__caption">
+                {qualityRating === null ? 'Click to rate' : ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][qualityRating]}
+              </div>
+            </div>
 
-          <div className="etm-panel--recessed p-4">
-            <p className="text-sm text-[#8899aa]">
-              <strong className="text-[#c8d0e0]">Quality:</strong> Your satisfaction with the result<br/>
-              <strong className="text-[#c8d0e0]">Ease:</strong> How smooth the process was (5 = very easy, 1 = very difficult)
-            </p>
-          </div>
+            {/* Ease rating (amber) */}
+            <div className="cin-rating-row">
+              <div className="cin-rating-row__label">How easy/difficult was this task?</div>
+              <div className="cin-rating-dots">
+                {[1,2,3,4,5].map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    className={'cin-rating-dot' + (easeRating !== null && easeRating >= d ? ' cin-rating-dot--lit-amber' : '')}
+                    onClick={() => setEaseRating(d)}
+                    aria-label={`Rate ease ${d} of 5`}
+                  />
+                ))}
+              </div>
+              <div className="cin-rating-row__caption">
+                {easeRating === null ? 'Click to rate' : ['', 'Very Difficult', 'Difficult', 'Moderate', 'Easy', 'Very Easy'][easeRating]}
+              </div>
+            </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2a3048]">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="etm-pushbutton px-6 py-2.5"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={qualityRating === null || easeRating === null}
-              className="etm-pushbutton etm-pushbutton--accent px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <CheckCircle size={18} />
-              Mark as Complete
-            </button>
+            {/* Help text */}
+            <div className="cin-field__hint" style={{
+              padding: '8px 10px',
+              background: 'rgba(8, 12, 18, 0.32)',
+              border: '1px solid rgba(255,255,255,0.04)',
+              borderRadius: '3px',
+              fontSize: '10px',
+              letterSpacing: '0.04em',
+              color: 'rgba(180,180,180,0.65)',
+              lineHeight: 1.5
+            }}>
+              <strong style={{ color: 'rgba(232,232,232,0.92)' }}>Quality:</strong> Your satisfaction with the result.<br/>
+              <strong style={{ color: 'rgba(232,232,232,0.92)' }}>Ease:</strong> How smooth the process was (5 = very easy · 1 = very difficult).
+            </div>
+
           </div>
+        </div>
+
+        <div className="cin-modal__footer">
+          <button type="button" className="cin-btn cin-btn--secondary" onClick={onCancel}>Cancel</button>
+          <button
+            type="button"
+            className="cin-btn cin-btn--primary"
+            onClick={handleConfirm}
+            disabled={qualityRating === null || easeRating === null}
+            style={{
+              opacity: (qualityRating === null || easeRating === null) ? 0.5 : 1,
+              cursor: (qualityRating === null || easeRating === null) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <CheckCircle size={14} />
+            Mark Complete
+          </button>
         </div>
       </div>
     </div>
@@ -1379,59 +1411,9 @@ const TaskCard = ({ task, calculatePriority, toggleComplete, onEdit, onDelete, c
 };
 
 /**
- * PHASE 4: CinematicViewPanel — acrylic-glass drop-in replacement
- * for MonitorShell. Used by List / Gantt / Calendar / Analytics.
- * Title + count appear on the left, optional toolbar on the right,
- * children fill the scrollable body. The 4-stop quadrant-rainbow top
- * edge is the canonical "all-quadrant view" signature from the demo.
+ * Map v2 quadrant ids -> cinematic qid (q1..q4)
+ * Used by ListView, CalendarView, GanttView, MatrixTask, etc.
  */
-const CinematicViewPanel = ({ title, count, sub, toolbar, children }) => (
-  <div className="cin-view-panel">
-    <div className="cin-view-panel__head">
-      <div className="cin-view-panel__title">
-        {title}
-        {count != null && <span className="cin-view-panel__count">{count}</span>}
-        {sub && <span className="cin-view-panel__sub">{sub}</span>}
-      </div>
-      {toolbar && <div className="cin-view-panel__toolbar">{toolbar}</div>}
-    </div>
-    <div className="cin-view-panel__body">{children}</div>
-  </div>
-);
-
-// Reusable single-monitor shell — v2 CRT housing. Kept for any legacy
-// callers (none currently); Phase 4 retired its production use in favor
-// of CinematicViewPanel above. Safe to delete in Phase 5 cleanup.
-const MonitorShell = ({ title, label, ledClass, screenClass, monitorClass, toolbar, children }) => (
-  <div className={`etm-monitor ${monitorClass} h-full`}>
-    <div className="etm-monitor__hood"><div className="etm-tex-metal" /></div>
-    <div className="etm-monitor__bezel">
-      <div className="etm-tex-metal" />
-      <div className="etm-tex-grain" />
-      <div className="etm-monitor__label">{label}</div>
-      <div className="etm-monitor__rivet" style={{ top: 5, left: 5 }} />
-      <div className="etm-monitor__rivet" style={{ top: 5, right: 5 }} />
-      <div className="etm-monitor__rivet" style={{ bottom: 5, left: 5 }} />
-      <div className="etm-monitor__rivet" style={{ bottom: 5, right: 5 }} />
-      <div className="etm-monitor__well">
-        <div className={`etm-monitor__glass ${screenClass}`}>
-          <div className="etm-monitor__status">
-            <div className="etm-monitor__designation">
-              <span className={`etm-led ${ledClass}`} style={{ width: 6, height: 6 }} />
-              {title}
-            </div>
-            {toolbar && <div className="flex items-center gap-1.5">{toolbar}</div>}
-          </div>
-          <div className="etm-monitor__content">
-            {children}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// Map v2 quadrant ids -> cinematic qid (q1..q4)
 const QID_BY_QUAD = {
   'do-first': 'q1', 'schedule': 'q2', 'delegate': 'q3', 'eliminate': 'q4'
 };
@@ -1650,263 +1632,215 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
   const subcategoryOptions = settings.subcategories[formData.domain] || [];
 
   return (
-    <div className="etm-modal-backdrop p-0 sm:p-4">
-      <div className="etm-modal rounded-none sm:rounded-xl max-w-2xl w-full max-h-[100vh] sm:max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 etm-chassis px-6 py-4 flex items-center justify-between sm:rounded-t-xl" style={{ borderBottom: '2px solid #0c1014' }}>
-          <h2 className="text-xl font-bold text-[#c8d0e0] tracking-wider uppercase">
-            {task ? 'Edit Task' : 'New Task'}
-          </h2>
-          <button
-            onClick={onCancel}
-            className="text-[#8899aa] hover:text-[#c8d0e0] transition-colors"
-          >
-            <X size={20} />
+    /* PHASE 5: cinematic acrylic-glass modal — Orbitron title, cyan
+       form inputs with cyan-glow focus, gold-check checkboxes,
+       cyan-chevron dropdowns, amber primary action button. */
+    <div className="cin-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
+      <form className="cin-modal" onSubmit={handleSubmit}>
+        <div className="cin-modal__head">
+          <div className="cin-modal__title">{task ? 'Edit Task' : 'New Task'}</div>
+          <button type="button" className="cin-modal__close" onClick={onCancel} aria-label="Close">
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Task Name */}
-          <div>
-            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-              Task Name *
-            </label>
-            <input
-              type="text"
-              value={formData.task}
-              onChange={(e) => setFormData({ ...formData, task: e.target.value })}
-              className="etm-input"
-              placeholder="Enter task description"
-              required
-            />
-          </div>
+        <div className="cin-modal__body">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-          {/* Urgency and Necessity */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="etm-panel--recessed p-4">
-              <label className="flex items-center gap-3 cursor-pointer">
+            {/* Task name */}
+            <div className="cin-field">
+              <label className="cin-field__label">Task name *</label>
+              <input
+                type="text"
+                className="cin-input"
+                value={formData.task}
+                onChange={(e) => setFormData({ ...formData, task: e.target.value })}
+                placeholder="Enter task description"
+                required
+                autoFocus
+              />
+            </div>
+
+            {/* Urgent + Necessary check tiles */}
+            <div className="cin-form-grid cin-form-grid--2">
+              <label className={'cin-check-tile' + (formData.isUrgent ? ' cin-check-tile--checked' : '')}>
                 <input
                   type="checkbox"
                   checked={formData.isUrgent}
                   onChange={(e) => setFormData({ ...formData, isUrgent: e.target.checked })}
-                  className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-2 focus:ring-[#e86030]"
                 />
-                <div>
-                  <div className="font-semibold text-[#c8d0e0]">Urgent</div>
-                  <div className="text-xs text-[#506070]">Time-sensitive</div>
+                <div className="cin-check-tile__main">
+                  <div className="cin-check-tile__name">Urgent</div>
+                  <div className="cin-check-tile__sub">Time-sensitive</div>
                 </div>
               </label>
-            </div>
-            <div className="etm-panel--recessed p-4">
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className={'cin-check-tile' + (formData.isNecessary ? ' cin-check-tile--checked' : '')}>
                 <input
                   type="checkbox"
                   checked={formData.isNecessary}
                   onChange={(e) => setFormData({ ...formData, isNecessary: e.target.checked })}
-                  className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-2 focus:ring-[#e86030]"
                 />
-                <div>
-                  <div className="font-semibold text-[#c8d0e0]">Necessary</div>
-                  <div className="text-xs text-[#506070]">Important/Critical</div>
+                <div className="cin-check-tile__main">
+                  <div className="cin-check-tile__name">Necessary</div>
+                  <div className="cin-check-tile__sub">Important / Critical</div>
                 </div>
               </label>
             </div>
-          </div>
 
-          {/* Domain, Scope, and Subcategory */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-                Domain
-              </label>
-              <select
-                value={formData.domain}
-                onChange={(e) => setFormData({ ...formData, domain: e.target.value, subcategory: '' })}
-                className="etm-input"
-              >
-                {(settings.domains || []).map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+            {/* Domain / Scope / Subcategory */}
+            <div className="cin-form-grid cin-form-grid--3">
+              <div className="cin-field">
+                <label className="cin-field__label">Domain</label>
+                <select
+                  className="cin-select"
+                  value={formData.domain}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value, subcategory: '' })}
+                >
+                  {(settings.domains || []).map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div className="cin-field">
+                <label className="cin-field__label">Scope</label>
+                <select
+                  className="cin-select"
+                  value={formData.scope}
+                  onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
+                >
+                  {(settings.scopes || []).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="cin-field">
+                <label className="cin-field__label">Subcategory</label>
+                <select
+                  className="cin-select"
+                  value={formData.subcategory}
+                  onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                >
+                  <option value="">Select…</option>
+                  {subcategoryOptions.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-                Scope
-              </label>
-              <select
-                value={formData.scope}
-                onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
-                className="etm-input"
-              >
-                {(settings.scopes || []).map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-                Subcategory
-              </label>
-              <select
-                value={formData.subcategory}
-                onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                className="etm-input"
-              >
-                <option value="">Select...</option>
-                {subcategoryOptions.map(sub => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          {/* Dates and Rank */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-                Assigned Date
-              </label>
-              <input
-                type="date"
-                value={formData.assignedDate}
-                onChange={(e) => setFormData({ ...formData, assignedDate: e.target.value })}
-                className="etm-input"
-              />
+            {/* Assigned / Due / Rank */}
+            <div className="cin-form-grid cin-form-grid--3">
+              <div className="cin-field">
+                <label className="cin-field__label">Assigned</label>
+                <input
+                  type="date"
+                  className="cin-input"
+                  value={formData.assignedDate}
+                  onChange={(e) => setFormData({ ...formData, assignedDate: e.target.value })}
+                />
+              </div>
+              <div className="cin-field">
+                <label className="cin-field__label">Due *</label>
+                <input
+                  type="date"
+                  className="cin-input"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="cin-field">
+                <label className="cin-field__label">Rank</label>
+                <select
+                  className="cin-select"
+                  value={formData.rank}
+                  onChange={(e) => setFormData({ ...formData, rank: parseInt(e.target.value) })}
+                >
+                  <option value={1}>1 — Highest</option>
+                  <option value={2}>2 — Medium</option>
+                  <option value={3}>3 — Lower</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-                Due Date *
-              </label>
-              <input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="etm-input"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-                Rank (1-3)
-              </label>
-              <select
-                value={formData.rank}
-                onChange={(e) => setFormData({ ...formData, rank: parseInt(e.target.value) })}
-                className="etm-input"
-              >
-                <option value={1}>1 - Highest</option>
-                <option value={2}>2 - Medium</option>
-                <option value={3}>3 - Lower</option>
-              </select>
-            </div>
-          </div>
 
-          {/* Time Estimate */}
-          <div>
-            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-              Time Estimate (Optional)
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
+            {/* Time Estimate */}
+            <div className="cin-field">
+              <label className="cin-field__label">Time Estimate (optional)</label>
+              <div className="cin-form-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
                 <input
                   type="number"
                   min="0"
                   step="0.5"
+                  className="cin-input"
                   value={formData.timeEstimateValue || ''}
                   onChange={(e) => setFormData({
                     ...formData,
                     timeEstimateValue: e.target.value ? parseFloat(e.target.value) : null
                   })}
-                  className="etm-input"
-                  placeholder="e.g., 5, 2.5"
+                  placeholder="e.g., 5  ·  2.5"
                 />
-              </div>
-              <div>
                 <select
+                  className="cin-select"
                   value={formData.timeEstimateUnit}
                   onChange={(e) => setFormData({ ...formData, timeEstimateUnit: e.target.value })}
-                  className="etm-input"
                 >
                   <option value="hours">Hours</option>
                   <option value="days">Days</option>
                 </select>
               </div>
+              <div className="cin-field__hint">
+                5-minute rule: if a task takes &lt; 5 min, just do it now.
+              </div>
             </div>
-            <p className="text-xs text-[#506070] mt-2 italic">
-              5-Minute Rule: If a task takes less than 5 minutes, just do it now instead of scheduling it.
-            </p>
-          </div>
 
-          {/* Progress */}
-          <div>
-            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-              Progress: {formData.percentComplete}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="10"
-              value={formData.percentComplete}
-              onChange={(e) => setFormData({ ...formData, percentComplete: parseInt(e.target.value) })}
-              className="w-full h-2 bg-[#1a1e2c] rounded-lg appearance-none cursor-pointer"
-              style={{ accentColor: '#e86030' }}
-            />
-          </div>
+            {/* Progress */}
+            <div className="cin-field">
+              <label className="cin-field__label">Progress · {formData.percentComplete}%</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="10"
+                value={formData.percentComplete}
+                onChange={(e) => setFormData({ ...formData, percentComplete: parseInt(e.target.value) })}
+                style={{ width: '100%', accentColor: 'var(--cin-gold)' }}
+              />
+            </div>
 
-          {/* Recurring Pattern */}
-          <div className="bg-[#0a0e12] border-2 border-[#2a3048] rounded-lg p-4">
-            <label className="block text-sm font-semibold text-[#8899aa] mb-3">
-              Recurrence Pattern
-            </label>
-            <select
-              value={formData.recurringPattern || 'once'}
-              onChange={(e) => setFormData({
-                ...formData,
-                recurringPattern: e.target.value,
-                isRecurring: e.target.value !== 'once'
-              })}
-              className="etm-input"
-            >
-              <option value="once">Once (one-time task)</option>
-              <option value="daily">Daily (every day)</option>
-              <option value="weekly">Weekly (every week)</option>
-              <option value="monthly">Monthly (every month)</option>
-              <option value="yearly">Yearly (annually)</option>
-            </select>
-          </div>
+            {/* Recurrence */}
+            <div className="cin-field">
+              <label className="cin-field__label">Recurrence</label>
+              <select
+                className="cin-select"
+                value={formData.recurringPattern || 'once'}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  recurringPattern: e.target.value,
+                  isRecurring: e.target.value !== 'once'
+                })}
+              >
+                <option value="once">Once (one-time)</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
-              Notes
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="etm-input resize-none"
-              rows="3"
-              placeholder="Additional details..."
-            />
-          </div>
+            {/* Notes */}
+            <div className="cin-field">
+              <label className="cin-field__label">Notes</label>
+              <textarea
+                className="cin-textarea"
+                rows="3"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional details…"
+              />
+            </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2a3048]">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="etm-pushbutton px-6 py-2.5"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="etm-pushbutton etm-pushbutton--accent px-6 py-2.5"
-            >
-              {task ? 'Update Task' : 'Create Task'}
-            </button>
           </div>
-        </form>
-      </div>
+        </div>
+
+        <div className="cin-modal__footer">
+          <button type="button" className="cin-btn cin-btn--secondary" onClick={onCancel}>Cancel</button>
+          <button type="submit" className="cin-btn cin-btn--primary">{task ? 'Update Task' : 'Create Task'}</button>
+        </div>
+      </form>
     </div>
   );
 };

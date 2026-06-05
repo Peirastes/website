@@ -1774,3 +1774,375 @@ body.app-locked .cin-action-bar {
   .cin-add-task span:not(.cin-add-task__glyph) { display: none; }
   .cin-add-task { padding: 3px 9px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 5 — Cinematic modal + form input vocabulary
+   ───────────────────────────────────────────────────────────────
+   Replaces v2's etm-chassis modal headers, etm-input form fields,
+   etm-pushbutton action buttons. Used by TaskForm + CompletionModal.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(6, 8, 12, 0.62);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+  animation: cin-modal-fade-in 240ms ease;
+}
+@keyframes cin-modal-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.cin-modal {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+  position: relative;
+  overflow: hidden;
+  animation: cin-modal-slide-up 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.cin-modal::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+@keyframes cin-modal-slide-up {
+  0%   { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.cin-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.cin-modal__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--cin-gold-glow);
+}
+.cin-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.55);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cin-modal__close:hover {
+  color: var(--cin-cyan);
+  background: rgba(125, 214, 255, 0.06);
+  border-color: rgba(125, 214, 255, 0.22);
+}
+
+.cin-modal__body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.cin-modal__body::-webkit-scrollbar { width: 5px; }
+.cin-modal__body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+
+.cin-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 12px 18px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+/* ─── Form layout helpers ────────────────────────────────────── */
+.cin-form-grid {
+  display: grid;
+  gap: 12px 14px;
+}
+.cin-form-grid--2 { grid-template-columns: 1fr 1fr; }
+.cin-form-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 600px) {
+  .cin-form-grid--2,
+  .cin-form-grid--3 { grid-template-columns: 1fr; }
+}
+
+.cin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.cin-field__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.cin-field__hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.40);
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────── */
+.cin-input,
+.cin-textarea,
+.cin-select {
+  width: 100%;
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: rgba(232, 232, 232, 0.92);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  transition: all 160ms ease;
+}
+.cin-input:focus,
+.cin-textarea:focus,
+.cin-select:focus {
+  outline: none;
+  border-color: rgba(125, 214, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(125, 214, 255, 0.20), 0 0 10px var(--cin-cyan-glow);
+}
+.cin-input::placeholder { color: rgba(180, 180, 180, 0.35); }
+.cin-textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-family: 'Inter', sans-serif;
+}
+.cin-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 24px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7'><path d='M1 1l5 5 5-5' stroke='%237dd6ff' stroke-width='1.4' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 9px;
+}
+.cin-select option { background: #0a0e16; color: #e8e8e8; }
+
+/* Date inputs — webkit-specific calendar indicator color */
+.cin-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6) sepia(0.3) hue-rotate(180deg) saturate(2);
+  cursor: pointer;
+  opacity: 0.7;
+}
+.cin-input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+
+/* Number-style inputs — hide the spin buttons (cleaner) */
+.cin-input[type="number"]::-webkit-inner-spin-button,
+.cin-input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* ─── Checkbox box (urgent/necessary etc.) ──────────────────── */
+.cin-check-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 10px 12px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cin-check-tile:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.cin-check-tile--checked {
+  background: rgba(255, 174, 32, 0.06);
+  border-color: rgba(255, 174, 32, 0.35);
+  box-shadow: 0 0 10px rgba(255, 174, 32, 0.15);
+}
+.cin-check-tile input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 2px;
+  background: rgba(8, 12, 18, 0.55);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 160ms ease;
+  position: relative;
+}
+.cin-check-tile input[type="checkbox"]:hover { border-color: var(--cin-cyan); }
+.cin-check-tile input[type="checkbox"]:checked {
+  background: var(--cin-gold);
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.cin-check-tile input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: rgba(8, 12, 18, 0.95);
+  font-weight: 700;
+  line-height: 1;
+}
+.cin-check-tile__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cin-check-tile__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(232, 232, 232, 0.92);
+}
+.cin-check-tile__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
+
+/* ─── Buttons (modal footer) ─────────────────────────────────── */
+.cin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  border: 1px solid transparent;
+}
+.cin-btn--secondary {
+  background: rgba(8, 12, 18, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(220, 220, 220, 0.70);
+}
+.cin-btn--secondary:hover {
+  color: var(--cin-cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: rgba(125, 214, 255, 0.06);
+}
+.cin-btn--primary {
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.32) 0%,
+    rgba(255, 124, 16, 0.32) 100%);
+  border-color: rgba(255, 174, 32, 0.55);
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 14px rgba(255, 174, 32, 0.18);
+}
+.cin-btn--primary:hover {
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.45) 0%,
+    rgba(255, 124, 16, 0.45) 100%);
+  border-color: rgba(255, 174, 32, 0.80);
+  color: #fff;
+}
+.cin-btn--danger {
+  background: rgba(255, 51, 68, 0.10);
+  border-color: rgba(255, 51, 68, 0.35);
+  color: var(--crit);
+  text-shadow: 0 0 6px var(--crit-glow);
+}
+.cin-btn--danger:hover {
+  background: rgba(255, 51, 68, 0.20);
+  border-color: rgba(255, 51, 68, 0.60);
+}
+
+/* ─── LED rating (Completion modal — 1..5 dots) ─────────────── */
+.cin-rating-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.cin-rating-row__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.cin-rating-dots {
+  display: inline-flex;
+  gap: 8px;
+}
+.cin-rating-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 12, 18, 0.55);
+  cursor: pointer;
+  transition: all 160ms ease;
+  padding: 0;
+}
+.cin-rating-dot:hover { border-color: var(--cin-cyan); box-shadow: 0 0 6px var(--cin-cyan-glow); }
+.cin-rating-dot--lit-green {
+  background: #50c878;
+  border-color: #50c878;
+  box-shadow: 0 0 8px rgba(80, 200, 120, 0.45);
+}
+.cin-rating-dot--lit-amber {
+  background: var(--cin-gold);
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 8px var(--cin-gold-glow);
+}
+.cin-rating-row__caption {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
