@@ -4,7 +4,11 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement,
 import { Bar, Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
-import { PINModal } from './components/PINModal';
+// PHASE 2: PINModal replaced by BootOverlay (cinematic register).
+// PINModal kept on disk as legacy reference until Phase 5 cleanup.
+// import { PINModal } from './components/PINModal';
+import { BootOverlay } from './components/BootOverlay';
+import { CinematicChrome } from './components/CinematicChrome';
 
 const API_BASE = '/api';
 
@@ -536,11 +540,15 @@ const EisenhowerTaskManager = () => {
 
   // Show PIN modal if not unlocked (must be before loading check)
   if (!isUnlocked) {
-    return <PINModal onUnlock={() => {
-      setJustUnlocked(true);
+    // PHASE 2: cinematic BootOverlay. PIN '2401' validated inside the
+    // overlay; onUnlock fires after the scan-line sweep completes.
+    // We pre-set justUnlocked + appRevealed so the v2 etm-reveal-animate
+    // (hazard-stripe slide-up) does NOT re-trigger after the cinematic
+    // boot ceremony — one entrance moment is enough.
+    return <BootOverlay onUnlock={() => {
       setIsUnlocked(true);
-      // Trigger reveal after vault doors are mostly open (doors take 1.6s)
-      setTimeout(() => setAppRevealed(true), 1200);
+      setJustUnlocked(true);
+      setAppRevealed(true);
     }} />;
   }
 
@@ -585,20 +593,45 @@ const EisenhowerTaskManager = () => {
   }
 
   return (
-    <div className={`h-screen flex flex-col text-[#c8d0e0] overflow-hidden ${justUnlocked && !appRevealed ? 'etm-reveal-start' : ''} ${justUnlocked && appRevealed ? 'etm-reveal-animate' : ''}`} style={{
+    // PHASE 2: etm-reveal-start / etm-reveal-animate conditionals removed.
+    // The cinematic BootOverlay scan-line is the new entrance ceremony;
+    // firing the v2 slide-up + hazard-stripe afterwards was redundant.
+    // The keyframes definitions in the inline <style> below are now inert
+    // (kept for one cycle in case we want to restore them); they'll be
+    // cleaned up in a future polish pass.
+    <div className="h-screen flex flex-col text-[#c8d0e0] overflow-hidden" style={{
       fontFamily: "'Space Grotesk', system-ui, sans-serif",
       // PHASE 1 (Cinematic foundation): was a solid radial-gradient bg
       // (#1a2024 → #0a0e12 → #040608). Removed so the cinematic banner
       // backdrop (body::before in index.css) shows through the gaps
       // between the etm-* chrome. v2 components keep their own
       // backgrounds and render normally on top of the new atmosphere.
-      background: 'transparent'
+      background: 'transparent',
+      // PHASE 2: clear the cinematic chrome row (fixed-positioned at
+      // top:1.2rem-1.6rem with ~3rem of content height). Pushes the
+      // etm-readout-strip + monitor grid + chassis footer down so they
+      // don't render UNDER the chrome flanks and title. Chassis footer
+      // stays at viewport bottom because padding-top doesn't reduce
+      // the root's own height (still h-screen = 100vh).
+      paddingTop: '5rem'
     }}>
       {/* PHASE 1: SVG film-grain layer — see `.cin-grain` in index.css.
           position: fixed escapes this stacking context; mix-blend-mode:
           overlay textures the cinematic atmosphere visible through any
           transparent area in the v2 chrome. */}
       <div className="cin-grain" aria-hidden="true" />
+
+      {/* PHASE 2: cinematic chrome row (PEIRASTES wordmark / instrument
+          title / action buttons / corner ticks). Fixed-positioned at the
+          top of the viewport so it overlays the etm-readout-strip beneath.
+          The etm-readout-strip needs ~4.5rem of breathing room from the
+          viewport top to clear the chrome — handled by the wrapper below. */}
+      <CinematicChrome
+        title="Eisenhower Task Manager"
+        sub="Operations — Task Prioritization Console"
+        crew="Critical · Strategic · Delegate · Eliminate"
+        version="v3.0"
+      />
 
       <style>{`
         .etm-reveal-start {
