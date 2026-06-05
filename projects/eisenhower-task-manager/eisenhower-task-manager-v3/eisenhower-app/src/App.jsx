@@ -715,56 +715,35 @@ const EisenhowerTaskManager = () => {
             calculateTaskScore={calculateTaskScore}
           />
         ) : view === 'list' ? (
-          /* PHASE 4: cinematic acrylic-glass shell, replaces v2 CRT housing */
-          <CinematicViewPanel
-            title="All Tasks"
-            count={tasks.filter(t => t.percentComplete < 100).length}
-            sub="cross-quadrant view"
-          >
-            <ListView
-              tasks={tasks} filters={filters} setFilters={setFilters}
-              sortBy={sortBy} setSortBy={setSortBy} getQuadrant={getQuadrant}
-              calculatePriority={calculatePriority} toggleComplete={toggleComplete}
-              setEditingTask={setEditingTask} setShowForm={setShowForm}
-              deleteTask={deleteTask} calculateTaskScore={calculateTaskScore}
-              settings={settings}
-            />
-          </CinematicViewPanel>
+          /* PHASE 4b: each view renders its own .cin-view-panel internally
+             with a custom header (filters, month nav, etc. inline). */
+          <ListView
+            tasks={tasks} filters={filters} setFilters={setFilters}
+            sortBy={sortBy} setSortBy={setSortBy} getQuadrant={getQuadrant}
+            calculatePriority={calculatePriority} toggleComplete={toggleComplete}
+            setEditingTask={setEditingTask} setShowForm={setShowForm}
+            deleteTask={deleteTask} calculateTaskScore={calculateTaskScore}
+            settings={settings}
+          />
         ) : view === 'gantt' ? (
-          <CinematicViewPanel
-            title="Schedule · Timeline"
-            sub="task scheduling window"
-          >
-            <GanttView
-              tasks={tasks} getQuadrant={getQuadrant}
-              calculatePriority={calculatePriority} toggleComplete={toggleComplete}
-              setEditingTask={setEditingTask} setShowForm={setShowForm}
-              deleteTask={deleteTask} settings={settings}
-            />
-          </CinematicViewPanel>
+          <GanttView
+            tasks={tasks} getQuadrant={getQuadrant}
+            calculatePriority={calculatePriority} toggleComplete={toggleComplete}
+            setEditingTask={setEditingTask} setShowForm={setShowForm}
+            deleteTask={deleteTask} settings={settings}
+          />
         ) : view === 'calendar' ? (
-          <CinematicViewPanel
-            title="Calendar"
-            sub="monthly task schedule"
-          >
-            <CalendarView
-              tasks={tasks} filters={filters} setFilters={setFilters}
-              getQuadrant={getQuadrant} calculatePriority={calculatePriority}
-              toggleComplete={toggleComplete} setEditingTask={setEditingTask}
-              setShowForm={setShowForm} deleteTask={deleteTask}
-              setDefaultDueDate={setDefaultDueDate} settings={settings}
-            />
-          </CinematicViewPanel>
+          <CalendarView
+            tasks={tasks} filters={filters} setFilters={setFilters}
+            getQuadrant={getQuadrant} calculatePriority={calculatePriority}
+            toggleComplete={toggleComplete} setEditingTask={setEditingTask}
+            setShowForm={setShowForm} deleteTask={deleteTask}
+            setDefaultDueDate={setDefaultDueDate} settings={settings}
+          />
         ) : (
-          <CinematicViewPanel
-            title="Performance · Metrics"
-            count={tasks.length}
-            sub="historical data"
-          >
-            <AnalyticsView
-              tasks={tasks} calculateTaskScore={calculateTaskScore}
-            />
-          </CinematicViewPanel>
+          <AnalyticsView
+            tasks={tasks} calculateTaskScore={calculateTaskScore}
+          />
         )}
       </main>
 
@@ -1457,7 +1436,19 @@ const MonitorShell = ({ title, label, ledClass, screenClass, monitorClass, toolb
   </div>
 );
 
-const ListView =({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings }) => {
+// Map v2 quadrant ids -> cinematic qid (q1..q4)
+const QID_BY_QUAD = {
+  'do-first': 'q1', 'schedule': 'q2', 'delegate': 'q3', 'eliminate': 'q4'
+};
+
+/**
+ * PHASE 4b: ListView (cinematic). Acrylic-glass full-workspace panel
+ * with 4-stop quadrant-rainbow top edge. 5 filter dropdowns + sort in
+ * the header. Each task row: colored quadrant stripe + name + project
+ * pill + due badge + priority + progress bar. Click row to edit;
+ * delete moved into the edit modal (no inline buttons).
+ */
+const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings }) => {
   const filteredTasks = tasks.filter(task => {
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
@@ -1500,263 +1491,134 @@ const ListView =({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, c
     return colors[pattern] || 'bg-[#1a1e2c] text-[#8899aa]';
   };
 
+  // Format due display (returns text + cinematic class modifier)
+  const dueDisplay = (task) => {
+    const priority = calculatePriority(task);
+    if (!task.dueDate) return { text: '—', cls: '' };
+    if (priority < 0)   return { text: `${Math.abs(priority)}d over`, cls: 'list-row__due--overdue' };
+    if (priority === 0) return { text: 'Today',                       cls: 'list-row__due--today' };
+    if (priority === 1) return { text: 'Tomorrow',                    cls: '' };
+    return { text: `${priority}d`, cls: '' };
+  };
+
   return (
-    <div className="p-2 space-y-2" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
-      {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-[rgba(255,255,255,0.04)]">
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="etm-input text-sm sm:text-base"
-        >
-          <option value="active">Active Tasks</option>
-          <option value="completed">Completed</option>
-          <option value="all">All Tasks</option>
-        </select>
-
-        <select
-          value={filters.quadrant}
-          onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
-          className="etm-input text-sm sm:text-base"
-        >
-          <option value="all">All Quadrants</option>
-          <option value="do-first">Do First</option>
-          <option value="schedule">Schedule</option>
-          <option value="delegate">Delegate</option>
-          <option value="eliminate">Eliminate</option>
-        </select>
-
-        <select
-          value={filters.domain}
-          onChange={(e) => setFilters({ ...filters, domain: e.target.value })}
-          className="etm-input text-sm sm:text-base"
-        >
-          <option value="all">All Domains</option>
-          {(settings.domains || []).map(d => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-
-        <select
-          value={filters.scope}
-          onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
-          className="etm-input text-sm sm:text-base"
-        >
-          <option value="all">All Scopes</option>
-          {(settings.scopes || []).map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-
-        <select
-          value={filters.recurrence}
-          onChange={(e) => setFilters({ ...filters, recurrence: e.target.value })}
-          className="etm-input text-sm sm:text-base"
-        >
-          <option value="all">All Recurrence</option>
-          <option value="once">Once</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
-
-        <div className="col-span-2 sm:ml-auto flex items-center gap-2">
-          <span className="text-sm text-[#506070] font-medium">Sort by:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="etm-input text-sm sm:text-base"
-          >
-            <option value="priority">Priority</option>
-            <option value="dueDate">Due Date</option>
-            <option value="domain">Domain</option>
-            <option value="recurrence">Recurrence</option>
-          </select>
+    <div className="cin-view-panel">
+      <div className="cin-view-panel__head">
+        <div className="cin-view-panel__title">
+          All Tasks
+          <span className="cin-view-panel__count">{sortedTasks.length}</span>
+          <span className="cin-view-panel__sub">cross-quadrant view</span>
+        </div>
+        <div className="cin-view-panel__toolbar">
+          <div className="cin-filter">
+            <label className="cin-filter__label">Status</label>
+            <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Quadrant</label>
+            <select value={filters.quadrant} onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}>
+              <option value="all">All</option>
+              <option value="do-first">Q1 · Critical</option>
+              <option value="schedule">Q2 · Strategic</option>
+              <option value="delegate">Q3 · Delegate</option>
+              <option value="eliminate">Q4 · Eliminate</option>
+            </select>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Domain</label>
+            <select value={filters.domain} onChange={(e) => setFilters({ ...filters, domain: e.target.value })}>
+              <option value="all">All</option>
+              {(settings.domains || []).map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Scope</label>
+            <select value={filters.scope} onChange={(e) => setFilters({ ...filters, scope: e.target.value })}>
+              <option value="all">All</option>
+              {(settings.scopes || []).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Recur</label>
+            <select value={filters.recurrence} onChange={(e) => setFilters({ ...filters, recurrence: e.target.value })}>
+              <option value="all">All</option>
+              <option value="once">Once</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Sort</label>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="priority">Priority</option>
+              <option value="dueDate">Due Date</option>
+              <option value="domain">Domain</option>
+              <option value="recurrence">Recurrence</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Card View */}
-      <div className="sm:hidden space-y-3">
-        {sortedTasks.map((task) => {
-          const priority = calculatePriority(task);
-          const isOverdue = priority < 0;
-          const quadrant = getQuadrant(task);
-          return (
-            <div key={task.id} className={`etm-panel p-4 ${task.percentComplete === 100 ? 'opacity-60' : ''}`}>
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={task.percentComplete === 100}
-                  onChange={() => toggleComplete(task.id)}
-                  className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-[#e86030] mt-0.5"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className={`font-semibold text-sm ${task.percentComplete === 100 ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
-                    {task.task}
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                      quadrant === 'do-first' ? 'bg-[#ff334420] text-[#ff6675]'
-                      : quadrant === 'schedule' ? 'bg-[#00ccdd20] text-[#6ea8fe]'
-                      : quadrant === 'delegate' ? 'bg-[#ff882220] text-[#fbbf24]'
-                      : 'bg-[#1a1e2c] text-[#8899aa]'
-                    }`}>{quadrantLabels[quadrant]}</span>
-                    <span className="text-xs text-[#506070]">{task.domain}</span>
-                    {task.dueDate && (
-                      <span className={`text-xs font-mono ${isOverdue ? 'text-[#ff6675] font-semibold' : 'text-[#506070]'}`}>
-                        {isOverdue ? `${Math.abs(priority)}d overdue` : priority === 0 ? 'Today' : `${priority}d`}
-                      </span>
-                    )}
-                  </div>
-                  {task.percentComplete > 0 && task.percentComplete < 100 && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="etm-progress flex-1">
-                        <div className="etm-progress__fill" style={{ width: `${task.percentComplete}%` }} />
-                      </div>
-                      <span className="text-xs text-[#506070]">{task.percentComplete}%</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button onClick={() => { setEditingTask(task); setShowForm(true); }} className="p-1.5 text-[#506070] hover:text-[#e86030] rounded">
-                    <Edit2 size={14} />
-                  </button>
-                  <button onClick={() => deleteTask(task.id)} className="p-1.5 text-[#506070] hover:text-[#ff6675] rounded">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {sortedTasks.length === 0 && (
-          <div className="text-center py-12 text-[#506070]">No tasks found matching your filters</div>
-        )}
-      </div>
-
-      {/* Tasks Table */}
-      <div className="hidden sm:block etm-panel overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-[#0a0e12] border-b border-[#2a3048]">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider w-12"></th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Task</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Quadrant</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Category</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Recurrence</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Due Date</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Priority</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Progress</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Score</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider w-24">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1a1e2c]">
-            {sortedTasks.map((task) => {
+      <div className="cin-view-panel__body">
+        <div className="list-table">
+          <div className="list-row list-row--header">
+            <div></div>
+            <div>Task · Project</div>
+            <div>Due</div>
+            <div className="list-row__h-priority">Rank</div>
+            <div>Progress</div>
+          </div>
+          {sortedTasks.length === 0 ? (
+            <div className="list-empty">— No tasks match the current filter —</div>
+          ) : (
+            sortedTasks.map((task) => {
+              const qid = QID_BY_QUAD[getQuadrant(task)] || 'q4';
               const priority = calculatePriority(task);
               const isOverdue = priority < 0;
-              const recurrencePattern = task.recurringPattern || 'once';
-
+              const isToday   = priority === 0;
+              const isDone    = task.percentComplete === 100;
+              const due = dueDisplay(task);
+              const rowClass = 'list-row list-row--' + qid
+                + (isOverdue ? ' list-row--overdue' : '')
+                + (isToday   ? ' list-row--today'   : '')
+                + (isDone    ? ' list-row--done'    : '');
               return (
-                <tr key={task.id} className={`hover:bg-[#2e3438] transition-colors ${task.percentComplete === 100 ? 'opacity-60' : ''}`}>
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={task.percentComplete === 100}
-                      onChange={() => toggleComplete(task.id)}
-                      className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-2 focus:ring-[#e86030] cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className={`font-semibold ${task.percentComplete === 100 ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
-                      {task.task}
-                    </div>
-                    <div className="text-xs text-[#506070] mt-1">{task.subcategory}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded font-medium ${
-                      getQuadrant(task) === 'do-first'
-                        ? 'bg-[#ff334420] text-[#ff6675]'
-                        : getQuadrant(task) === 'schedule'
-                        ? 'bg-[#00ccdd20] text-[#6ea8fe]'
-                        : getQuadrant(task) === 'delegate'
-                        ? 'bg-[#ff882220] text-[#fbbf24]'
-                        : 'bg-[#1a1e2c] text-[#8899aa]'
-                    }`}>
-                      {quadrantLabels[getQuadrant(task)]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#8899aa]">{task.domain}</td>
-                  <td className="px-4 py-3">
-                    <span className={`etm-badge uppercase ${getRecurrenceColor(recurrencePattern)}`}>
-                      {recurrencePattern}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#8899aa]">
-                    {new Date(task.dueDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`priority-badge px-2 py-1 rounded ${
-                      isOverdue
-                        ? 'bg-[#ff334420] text-[#ff6675]'
-                        : priority === 0
-                        ? 'bg-[#ff882220] text-[#fbbf24]'
-                        : priority <= 3
-                        ? 'bg-[#fbbf2420] text-[#fbbf24]'
-                        : 'bg-[#33ff6620] text-[#50c878]'
-                    }`}>
-                      {isOverdue ? `${Math.abs(priority)}d overdue` : priority === 0 ? 'Today' : `${priority}d`}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="etm-progress flex-1 max-w-[80px]">
-                        <div
-                          className={`etm-progress__fill ${task.percentComplete === 100 ? 'etm-progress__fill--complete' : ''}`}
-                          style={{ width: `${task.percentComplete}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-[#506070] font-medium w-8">{task.percentComplete}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <TaskScoreBar score={calculateTaskScore(task)} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingTask(task);
-                          setShowForm(true);
-                        }}
-                        className="p-1.5 text-[#506070] hover:text-[#e86030] hover:bg-[#e8603015] rounded transition-colors"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="p-1.5 text-[#506070] hover:text-[#ff6675] hover:bg-[#ff334415] rounded transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <div
+                  key={task.id}
+                  className={rowClass}
+                  onClick={() => { setEditingTask(task); setShowForm(true); }}
+                >
+                  <div className="list-row__stripe"></div>
+                  <div className="list-row__main">
+                    <div className="list-row__name" title={task.task}>{task.task}</div>
+                    {(task.subcategory || task.domain) && (
+                      <span className="list-row__project">{task.subcategory || task.domain}</span>
+                    )}
+                  </div>
+                  <div className={`list-row__due ${due.cls}`}>{due.text}</div>
+                  <div className="list-row__priority">{task.rank ? `R${task.rank}` : '—'}</div>
+                  <div className="list-row__bar">
+                    <div className="list-row__bar-fill" style={{ width: `${task.percentComplete || 0}%` }} />
+                  </div>
+                </div>
               );
-            })}
-          </tbody>
-        </table>
-
-        {sortedTasks.length === 0 && (
-          <div className="text-center py-12 text-[#506070]">
-            No tasks found matching your filters
-          </div>
-        )}
+            })
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
+// Old ListView body (mobile cards, table view, recurrence color helper)
+// retired in Phase 4b — the cinematic version above handles both desktop
+// and mobile via responsive CSS.
 
 const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
   const [formData, setFormData] = useState(
@@ -2055,850 +1917,426 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
 };
 
 // ─── Analytics View ───────────────────────────────────────────────
+/**
+ * PHASE 4b: AnalyticsView (cinematic). 4 scorecard tiles + 2 horizontal
+ * bar charts (Quadrant Load + Domain Distribution) + 30-day completion
+ * velocity SVG. v2's chart.js charts are retired in favor of the demo's
+ * simpler inline-SVG area chart — the v2 version had more depth but
+ * didn't match the cinematic vocabulary.
+ */
 const AnalyticsView = ({ tasks, calculateTaskScore }) => {
-  const completed = tasks.filter(t => t.percentComplete === 100 && t.completedDate);
-  const withRatings = completed.filter(t => t.qualityRating != null && t.easeRating != null);
-  const withDates = completed.filter(t => t.assignedDate && t.dueDate && t.completedDate && t.assignedDate !== t.dueDate);
+  // ── Stats ──
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.percentComplete === 100).length;
+  const overdue = tasks.filter(t => {
+    if (t.percentComplete === 100) return false;
+    if (!t.dueDate) return false;
+    const d = new Date(t.dueDate); d.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0,0,0,0);
+    return d < today;
+  }).length;
+  const activeForPri = tasks.filter(t => t.percentComplete < 100);
+  const avgRank = activeForPri.length === 0
+    ? 0
+    : activeForPri.reduce((s, t) => s + (t.rank || 5), 0) / activeForPri.length;
 
-  if (completed.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-[#506070]">
-        <TrendingUp size={48} strokeWidth={1.5} />
-        <p className="mt-4 text-lg font-medium">No completed tasks yet</p>
-        <p className="text-sm">Complete some tasks to see analytics here.</p>
-      </div>
-    );
+  // ── Quadrant breakdown ──
+  const getQ = (t) => {
+    const u = !!t.isUrgent, n = !!t.isNecessary;
+    if (u && n)  return 'do-first';
+    if (!u && n) return 'schedule';
+    if (u && !n) return 'delegate';
+    return 'eliminate';
+  };
+  const quadCounts = { 'do-first': 0, 'schedule': 0, 'delegate': 0, 'eliminate': 0 };
+  tasks.filter(t => t.percentComplete < 100).forEach(t => { quadCounts[getQ(t)]++; });
+  const quadMax = Math.max(...Object.values(quadCounts), 1);
+
+  // ── Domain breakdown ──
+  const domainCounts = {};
+  tasks.filter(t => t.percentComplete < 100).forEach(t => {
+    const d = t.domain || 'Other';
+    domainCounts[d] = (domainCounts[d] || 0) + 1;
+  });
+  const domainMax = Math.max(...Object.values(domainCounts), 1);
+
+  // ── Velocity (30-day rolling completions from task.completedDate) ──
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const velocity = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400000);
+    velocity.push({ date: d, count: 0 });
   }
-
-  // --- Summary stats ---
-  const avgQuality = withRatings.length > 0
-    ? (withRatings.reduce((s, t) => s + t.qualityRating, 0) / withRatings.length)
-    : null;
-  const avgEase = withRatings.length > 0
-    ? (withRatings.reduce((s, t) => s + t.easeRating, 0) / withRatings.length)
-    : null;
-
-  const scores = withDates.map(t => calculateTaskScore(t)).filter(s => s !== null);
-  const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-
-  const durationErrors = withDates.map(t => {
-    const due = new Date(t.dueDate).getTime();
-    const done = new Date(t.completedDate).getTime();
-    return (done - due) / (1000 * 60 * 60 * 24);
+  tasks.forEach(t => {
+    if (!t.completedDate) return;
+    const cd = new Date(t.completedDate); cd.setHours(0, 0, 0, 0);
+    const offset = Math.round((today - cd) / 86400000);
+    if (offset >= 0 && offset <= 29) {
+      velocity[29 - offset].count++;
+    }
   });
-  const sortedErrors = [...durationErrors].sort((a, b) => a - b);
-  const medianError = sortedErrors.length > 0
-    ? sortedErrors[Math.floor(sortedErrors.length / 2)]
-    : null;
+  const completed30d = velocity.reduce((s, d) => s + d.count, 0);
 
-  // --- Score distribution data ---
-  const qualityCounts = [0, 0, 0, 0, 0];
-  const easeCounts = [0, 0, 0, 0, 0];
-  withRatings.forEach(t => {
-    qualityCounts[t.qualityRating - 1]++;
-    easeCounts[t.easeRating - 1]++;
-  });
-
-  const scoreDistData = {
-    labels: ['1', '2', '3', '4', '5'],
-    datasets: [
-      {
-        label: 'Quality',
-        data: qualityCounts,
-        backgroundColor: 'rgba(80, 200, 120, 0.6)',
-        borderColor: '#50c878',
-        borderWidth: 1,
-      },
-      {
-        label: 'Ease',
-        data: easeCounts,
-        backgroundColor: 'rgba(0, 204, 221, 0.6)',
-        borderColor: '#00ccdd',
-        borderWidth: 1,
-      },
-    ],
+  const Q_LABELS = {
+    'do-first':  'Q1 · Critical',
+    'schedule':  'Q2 · Strategic',
+    'delegate':  'Q3 · Delegate',
+    'eliminate': 'Q4 · Eliminate'
   };
-
-  const scoreDistOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'top' },
-      title: { display: true, text: 'Score Distribution', font: { size: 14 } },
-    },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 } },
-      x: { title: { display: true, text: 'Rating' } },
-    },
-  };
-
-  // --- Duration accuracy data ---
-  const recentWithDates = [...withDates]
-    .sort((a, b) => new Date(a.completedDate) - new Date(b.completedDate))
-    .slice(-20);
-
-  const durationData = {
-    labels: recentWithDates.map(t => t.task.length > 20 ? t.task.slice(0, 20) + '...' : t.task),
-    datasets: [
-      {
-        label: 'Planned (days)',
-        data: recentWithDates.map(t => {
-          const assigned = new Date(t.assignedDate).getTime();
-          const due = new Date(t.dueDate).getTime();
-          return Math.round((due - assigned) / (1000 * 60 * 60 * 24));
-        }),
-        backgroundColor: 'rgba(0, 204, 221, 0.5)',
-        borderColor: '#00ccdd',
-        borderWidth: 1,
-      },
-      {
-        label: 'Actual (days)',
-        data: recentWithDates.map(t => {
-          const assigned = new Date(t.assignedDate).getTime();
-          const done = new Date(t.completedDate).getTime();
-          return Math.round((done - assigned) / (1000 * 60 * 60 * 24));
-        }),
-        backgroundColor: recentWithDates.map(t => {
-          const due = new Date(t.dueDate).getTime();
-          const done = new Date(t.completedDate).getTime();
-          return done <= due ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)';
-        }),
-        borderColor: recentWithDates.map(t => {
-          const due = new Date(t.dueDate).getTime();
-          const done = new Date(t.completedDate).getTime();
-          return done <= due ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)';
-        }),
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const durationOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'top' },
-      title: { display: true, text: 'Duration: Planned vs Actual (recent 20)', font: { size: 14 } },
-    },
-    scales: {
-      y: { beginAtZero: true, title: { display: true, text: 'Days' } },
-      x: { ticks: { maxRotation: 45, minRotation: 45 } },
-    },
-  };
-
-  // --- Trends data ---
-  const chronological = [...withRatings]
-    .filter(t => t.completedDate)
-    .sort((a, b) => new Date(a.completedDate) - new Date(b.completedDate));
-
-  const rollingAvg = (arr, windowSize) => {
-    return arr.map((_, i) => {
-      const start = Math.max(0, i - windowSize + 1);
-      const window = arr.slice(start, i + 1);
-      return window.reduce((a, b) => a + b, 0) / window.length;
-    });
-  };
-
-  const trendLabels = chronological.map(t => {
-    const d = new Date(t.completedDate);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  });
-  const qualityValues = chronological.map(t => t.qualityRating);
-  const easeValues = chronological.map(t => t.easeRating);
-  const scoreValues = chronological.map(t => {
-    const s = calculateTaskScore(t);
-    return s !== null ? Math.round(s * 5 * 100) / 100 : null;
-  });
-
-  const windowSize = Math.min(5, chronological.length);
-
-  const trendData = {
-    labels: trendLabels,
-    datasets: [
-      {
-        label: 'Quality (rolling avg)',
-        data: rollingAvg(qualityValues, windowSize),
-        borderColor: '#50c878',
-        backgroundColor: 'rgba(80, 200, 120, 0.1)',
-        tension: 0.3,
-        fill: false,
-      },
-      {
-        label: 'Ease (rolling avg)',
-        data: rollingAvg(easeValues, windowSize),
-        borderColor: '#00ccdd',
-        backgroundColor: 'rgba(0, 204, 221, 0.1)',
-        tension: 0.3,
-        fill: false,
-      },
-      {
-        label: 'Task Score (scaled 0-5)',
-        data: rollingAvg(scoreValues.map(v => v ?? 0), windowSize),
-        borderColor: '#e86030',
-        backgroundColor: 'rgba(232, 96, 48, 0.1)',
-        tension: 0.3,
-        fill: false,
-        borderDash: [5, 5],
-      },
-    ],
-  };
-
-  const trendOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'top' },
-      title: { display: true, text: 'Trends Over Time (rolling average)', font: { size: 14 } },
-    },
-    scales: {
-      y: { min: 0, max: 5, title: { display: true, text: 'Rating / Score' } },
-    },
-  };
-
-  const statCards = [
-    { label: 'Completed', value: completed.length, color: 'text-[#e86030]' },
-    { label: 'Avg Quality', value: avgQuality !== null ? avgQuality.toFixed(1) : '—', color: 'text-[#50c878]' },
-    { label: 'Avg Ease', value: avgEase !== null ? avgEase.toFixed(1) : '—', color: 'text-[#00ccdd]' },
-    { label: 'Avg Score', value: avgScore !== null ? avgScore.toFixed(2) : '—', color: 'text-[#e86030]' },
-    { label: 'Deadline Error', value: medianError !== null ? `${medianError > 0 ? '+' : ''}${medianError.toFixed(1)}d` : '—', color: medianError !== null && medianError > 0 ? 'text-[#ff3344]' : 'text-[#50c878]' },
-  ];
 
   return (
-    <div className="p-2 space-y-3" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
-      {/* Summary cards */}
-      <div className="grid grid-cols-5 gap-2">
-        {statCards.map((card) => (
-          <div key={card.label} className="text-center p-2 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
-            <p style={{ fontSize: '8px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#506070' }}>{card.label}</p>
-            <p className={`text-lg font-bold mt-0.5 font-data ${card.color}`}>{card.value}</p>
-          </div>
-        ))}
+    <div className="cin-view-panel">
+      <div className="cin-view-panel__head">
+        <div className="cin-view-panel__title">
+          Performance · Metrics
+          <span className="cin-view-panel__count">{total}</span>
+          <span className="cin-view-panel__sub">historical data</span>
+        </div>
       </div>
 
-      {/* Score distribution */}
-      {withRatings.length > 0 && (
-        <div className="p-3 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
-          <Bar data={scoreDistData} options={scoreDistOptions} />
+      <div className="cin-view-panel__body analytics-body">
+        {/* Scorecards */}
+        <div className="score-tiles">
+          <div className="score-tile score-tile--total">
+            <div className="score-tile__label">Total Tasks</div>
+            <div className="score-tile__value">{total}</div>
+            <div className="score-tile__sub">All quadrants</div>
+          </div>
+          <div className="score-tile score-tile--complete">
+            <div className="score-tile__label">Completed</div>
+            <div className="score-tile__value">{completed}</div>
+            <div className="score-tile__sub">{completed30d} closed last 30 days</div>
+          </div>
+          <div className="score-tile score-tile--overdue">
+            <div className="score-tile__label"><span className="cin-led cin-led--crit cin-led--pulse" /> Overdue</div>
+            <div className="score-tile__value">{overdue}</div>
+            <div className="score-tile__sub">Active · needs triage</div>
+          </div>
+          <div className="score-tile score-tile--priority">
+            <div className="score-tile__label">Avg Rank</div>
+            <div className="score-tile__value">{avgRank.toFixed(1)}</div>
+            <div className="score-tile__sub">Lower = higher priority</div>
+          </div>
         </div>
-      )}
 
-      {/* Duration accuracy */}
-      {recentWithDates.length > 0 && (
-        <div className="p-3 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
-          <Bar data={durationData} options={durationOptions} />
+        {/* Two side-by-side bar charts */}
+        <div className="chart-row">
+          <div className="chart-card">
+            <div className="chart-card__title">
+              Quadrant Load
+              <span className="chart-card__title-sub">active tasks per quadrant</span>
+            </div>
+            <div className="hbar-rows">
+              {['do-first','schedule','delegate','eliminate'].map(q => {
+                const qid = QID_BY_QUAD[q];
+                return (
+                  <div className="hbar-row" key={q}>
+                    <div className="hbar-row__label">{Q_LABELS[q]}</div>
+                    <div className="hbar-row__track">
+                      <div className={`hbar-row__fill hbar-row__fill--${qid}`} style={{ width: `${(quadCounts[q] / quadMax) * 100}%` }} />
+                    </div>
+                    <div className="hbar-row__value">{quadCounts[q]}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="chart-card">
+            <div className="chart-card__title">
+              Domain Distribution
+              <span className="chart-card__title-sub">active tasks per domain</span>
+            </div>
+            <div className="hbar-rows">
+              {Object.entries(domainCounts).sort((a,b) => b[1] - a[1]).map(([dom, count]) => (
+                <div className="hbar-row" key={dom}>
+                  <div className="hbar-row__label">{dom}</div>
+                  <div className="hbar-row__track">
+                    <div className="hbar-row__fill hbar-row__fill--neutral" style={{ width: `${(count / domainMax) * 100}%` }} />
+                  </div>
+                  <div className="hbar-row__value">{count}</div>
+                </div>
+              ))}
+              {Object.keys(domainCounts).length === 0 && (
+                <div className="list-empty">— No active tasks —</div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Trends */}
-      {chronological.length >= 3 && (
-        <div className="p-3 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
-          <Line data={trendData} options={trendOptions} />
+        {/* Velocity chart */}
+        <div className="chart-card chart-card--wide">
+          <div className="chart-card__title">
+            Completion Velocity
+            <span className="chart-card__title-sub">tasks completed · 30-day window</span>
+          </div>
+          <VelocityChart data={velocity} />
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, settings }) => {
-  const [filters, setFilters] = useState({
-    quadrant: 'all',
-    domain: 'all',
-    scope: 'all',
-    status: 'active'
-  });
-  const [groupBy, setGroupBy] = useState('quadrant');
-  const [timelineScale, setTimelineScale] = useState(30); // pixels per day
-  const [tooltip, setTooltip] = useState(null);
-  const [activeContextMenu, setActiveContextMenu] = useState(null);
-  const [showHistory, setShowHistory] = useState(false);
+/**
+ * PHASE 4b: Inline-SVG smooth-area chart for the velocity widget.
+ * Catmull-Rom -> cubic bezier path, amber area gradient fill,
+ * today line + today dot. Auto-sizes to its container; re-renders
+ * on data change via React. (No resize observer here; the
+ * cin-view-panel body is responsive so the SVG just inherits.)
+ */
+const VelocityChart = ({ data }) => {
+  const containerRef = React.useRef(null);
+  const [dims, setDims] = React.useState({ w: 600, h: 160 });
 
-  // Timeline calculation functions
-  const calculateTaskTimeline = (task) => {
-    const dueDate = new Date(task.dueDate);
-
-    if (!task.timeEstimateValue) {
-      return {
-        start: dueDate,
-        end: dueDate,
-        isMilestone: true,
-        duration: 0
-      };
-    }
-
-    let estimateDays;
-    if (task.timeEstimateUnit === 'hours') {
-      estimateDays = task.timeEstimateValue / 8;
-    } else {
-      estimateDays = task.timeEstimateValue;
-    }
-
-    const startDate = new Date(dueDate);
-    startDate.setDate(startDate.getDate() - estimateDays);
-
-    return {
-      start: startDate,
-      end: dueDate,
-      isMilestone: false,
-      duration: estimateDays
-    };
-  };
-
-  // Determine which zoom level matches current scale
-  const getNearestZoomLevel = () => {
-    if (timelineScale >= 120) return 'daily';
-    if (timelineScale >= 40) return 'weekly';
-    if (timelineScale >= 12) return 'monthly';
-    if (timelineScale >= 2.5) return 'quarterly';
-    return 'yearly';
-  };
-
-  // Handle mouse wheel zoom (Alt+scroll)
-  const handleChartWheel = (e) => {
-    if (!e.altKey) return;
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.85 : 1.15; // scroll down = zoom out
-    const newScale = timelineScale * delta;
-    setTimelineScale(Math.max(1, Math.min(300, newScale)));
-  };
-
-  const getVisibleDateRange = () => {
-    let minDate = showHistory ? null : new Date();
-    let maxDate = new Date();
-
-    // Set default range based on current zoom level
-    const defaultDays = (() => {
-      const level = getNearestZoomLevel();
-      const ranges = { daily: 3, weekly: 28, monthly: 84, quarterly: 365, yearly: 730 };
-      return ranges[level] || 90;
-    })();
-    maxDate.setDate(maxDate.getDate() + defaultDays);
-
-    tasks.forEach(task => {
-      if (task.dueDate) {
-        const dueDate = new Date(task.dueDate);
-        const timeline = calculateTaskTimeline(task);
-
-        if (showHistory) {
-          // Include historical dates: use assignedDate if available
-          const startDate = task.assignedDate ? new Date(task.assignedDate) : timeline.start;
-          if (!minDate || startDate < minDate) minDate = startDate;
-        } else {
-          // Only adjust minDate if tasks start before today
-          const today = new Date();
-          if (timeline.start < today && timeline.start < minDate) {
-            minDate = timeline.start;
-          }
-        }
-
-        if (dueDate > maxDate) maxDate = dueDate;
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const update = () => {
+      if (containerRef.current) {
+        setDims({
+          w: containerRef.current.clientWidth || 600,
+          h: containerRef.current.clientHeight || 160
+        });
       }
-    });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
-    // Ensure minDate is set (fallback to today if no tasks)
-    if (!minDate) minDate = new Date();
+  const { w: W, h: H } = dims;
+  const PAD_L = 26, PAD_R = 16, PAD_T = 12, PAD_B = 20;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+  const n = data.length;
+  const maxCount = Math.max(...data.map(d => d.count), 1);
 
-    minDate.setDate(minDate.getDate() - 2);
-    maxDate.setDate(maxDate.getDate() + 2);
+  const x = (i) => PAD_L + (i / Math.max(n - 1, 1)) * plotW;
+  const y = (v) => PAD_T + plotH - (v / maxCount) * plotH;
 
-    return { minDate, maxDate };
-  };
+  const pts = data.map((d, i) => ({ x: x(i), y: y(d.count) }));
 
-  const filteredTasks = tasks.filter(task => {
-    if (!task.dueDate) return false;
-    if (filters.status === 'active' && task.percentComplete === 100) return false;
-    if (filters.status === 'completed' && task.percentComplete < 100) return false;
-    if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
-    if (filters.domain !== 'all' && task.domain !== filters.domain) return false;
-    if (filters.scope !== 'all' && task.scope !== filters.scope) return false;
-    return true;
-  });
-
-  const groupedTasks = () => {
-    if (groupBy === 'quadrant') {
-      return {
-        'do-first': filteredTasks.filter(t => getQuadrant(t) === 'do-first'),
-        'schedule': filteredTasks.filter(t => getQuadrant(t) === 'schedule'),
-        'delegate': filteredTasks.filter(t => getQuadrant(t) === 'delegate'),
-        'eliminate': filteredTasks.filter(t => getQuadrant(t) === 'eliminate')
-      };
-    } else if (groupBy === 'scope') {
-      const grouped = {};
-      filteredTasks.forEach(task => {
-        const s = task.scope || 'Professional';
-        if (!grouped[s]) grouped[s] = [];
-        grouped[s].push(task);
-      });
-      return grouped;
-    } else {
-      const grouped = {};
-      filteredTasks.forEach(task => {
-        const d = task.domain || 'Teaching';
-        if (!grouped[d]) grouped[d] = [];
-        grouped[d].push(task);
-      });
-      return grouped;
+  // Catmull-Rom -> cubic bezier
+  let linePath = '';
+  if (pts.length > 0) {
+    linePath = 'M ' + pts[0].x + ' ' + pts[0].y;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2] || p2;
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      linePath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
     }
-  };
+  }
+  const areaPath = pts.length === 0 ? '' :
+    linePath
+    + ` L ${pts[pts.length - 1].x} ${PAD_T + plotH}`
+    + ` L ${pts[0].x} ${PAD_T + plotH} Z`;
 
-  const { minDate, maxDate } = getVisibleDateRange();
-  const dateRange = maxDate.getTime() - minDate.getTime();
-  const oneDay = 24 * 60 * 60 * 1000;
-  const totalDays = Math.ceil(dateRange / oneDay);
-
-  const dateToX = (date) => {
-    const dayOffset = Math.floor((date.getTime() - minDate.getTime()) / oneDay);
-    return (dayOffset / totalDays) * 100;
-  };
-
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const getQuadrantColor = (quadrant) => {
-    const colors = {
-      'do-first': '#ef4444',
-      'schedule': '#3b82f6',
-      'delegate': '#f59e0b',
-      'eliminate': '#9ca3af'
-    };
-    return colors[quadrant] || '#6b7280';
-  };
-
-  const getQuadrantBg = (quadrant) => {
-    const colors = {
-      'do-first': 'bg-[#ff334408]',
-      'schedule': 'bg-[#00ccdd08]',
-      'delegate': 'bg-[#ff882208]',
-      'eliminate': 'bg-[#1a1e2c]'
-    };
-    return colors[quadrant] || 'bg-[#1a1e2c]';
-  };
-
-  // Get gridline and label frequencies based on timeline scale
-  const getGridlineFrequency = () => {
-    if (timelineScale >= 120) {
-      return { gridline: 1, label: 1 }; // Daily
-    } else if (timelineScale >= 40) {
-      return { gridline: 7, label: 7 }; // Weekly
-    } else if (timelineScale >= 12) {
-      return { gridline: 30, label: 30 }; // Monthly
-    } else if (timelineScale >= 2.5) {
-      return { gridline: 90, label: 90 }; // Quarterly
-    } else {
-      return { gridline: 365, label: 365 }; // Yearly
-    }
-  };
-
-  // Button handler - set predefined scale for zoom level
-  const handleZoomButtonClick = (level) => {
-    const scales = {
-      daily: 150,
-      weekly: 40,
-      monthly: 12,
-      quarterly: 3,
-      yearly: 1
-    };
-    setTimelineScale(scales[level]);
-  };
-
-  const grouped = groupedTasks();
-  const lanes = Object.keys(grouped).filter(key => grouped[key].length > 0);
+  const xLabels = [
+    { i: 0,        text: '30d ago' },
+    { i: 15,       text: '15d ago' },
+    { i: 22,       text: '7d ago'  },
+    { i: 26,       text: '3d ago'  },
+    { i: n - 1,    text: 'TODAY', today: true }
+  ];
+  const ySteps = [
+    { v: maxCount, label: maxCount },
+    { v: Math.round(maxCount / 2), label: Math.round(maxCount / 2) },
+    { v: 0, label: 0 }
+  ];
 
   return (
-    <div className="p-2 space-y-2" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
-      {/* Header Controls */}
-      <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-[rgba(255,255,255,0.04)]">
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="etm-input text-sm"
-          >
-            <option value="active">Active Tasks</option>
-            <option value="completed">Completed</option>
-            <option value="all">All Tasks</option>
-          </select>
+    <div className="velocity-chart" ref={containerRef}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="rgba(255, 174, 32, 0.38)" />
+            <stop offset="100%" stopColor="rgba(255, 174, 32, 0.02)" />
+          </linearGradient>
+        </defs>
+        {ySteps.map((s, i) => (
+          <g key={i}>
+            <line className="velocity-chart__gridline" x1={PAD_L} y1={y(s.v)} x2={W - PAD_R} y2={y(s.v)} />
+            <text className="velocity-chart__axis-label" x={PAD_L - 6} y={y(s.v) + 3} textAnchor="end">{s.label}</text>
+          </g>
+        ))}
+        {n > 0 && (
+          <>
+            <line className="velocity-chart__today-line" x1={x(n - 1)} y1={PAD_T} x2={x(n - 1)} y2={PAD_T + plotH} />
+            <path className="velocity-chart__area" d={areaPath} />
+            <path className="velocity-chart__line" d={linePath} />
+            <circle className="velocity-chart__point" cx={x(n - 1)} cy={y(data[n - 1].count)} r="3" />
+          </>
+        )}
+        {xLabels.map((l, i) => (
+          <text
+            key={i}
+            className={`velocity-chart__axis-label ${l.today ? 'velocity-chart__axis-label--today' : ''}`}
+            x={x(l.i)} y={H - 4} textAnchor="middle"
+          >{l.text}</text>
+        ))}
+      </svg>
+    </div>
+  );
+};
 
-          <select
-            value={filters.quadrant}
-            onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
-            className="etm-input text-sm"
-          >
-            <option value="all">All Quadrants</option>
-            <option value="do-first">Do First</option>
-            <option value="schedule">Schedule</option>
-            <option value="delegate">Delegate</option>
-            <option value="eliminate">Eliminate</option>
-          </select>
+/**
+ * PHASE 4b: GanttView (cinematic). 21-day timeline window centered on
+ * today. Each task with a dueDate appears as a horizontal bar:
+ *   - Upcoming: bar runs from today to dueDate (length = time left)
+ *   - Overdue: bar runs from dueDate to today, RED (how late)
+ *   - Same-day: 1-day pill at the today column
+ * Today line in amber, weekends faded, click bar OR label to edit.
+ * Filter by quadrant. v2's GanttView had richer interactions (zoom,
+ * multi-week, etc.); simplified to match the demo prototype.
+ */
+const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, settings }) => {
+  const [filterQuad, setFilterQuad] = useState('all');
+  const bodyRef = React.useRef(null);
+  const [trackGeom, setTrackGeom] = React.useState({ left: 0, width: 0 });
 
-          <select
-            value={filters.domain}
-            onChange={(e) => setFilters({ ...filters, domain: e.target.value })}
-            className="etm-input text-sm"
-          >
-            <option value="all">All Domains</option>
-            {(settings.domains || []).map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
+  const WINDOW_BACK = 3;
+  const WINDOW_FWD  = 17;
+  const WINDOW_TOTAL = WINDOW_BACK + 1 + WINDOW_FWD;   // 21
 
-          <select
-            value={filters.scope}
-            onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
-            className="etm-input text-sm"
-          >
-            <option value="all">All Scopes</option>
-            {(settings.scopes || []).map(s => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dayOffset = (d) => {
+    const dd = new Date(d); dd.setHours(0,0,0,0);
+    return Math.round((dd - today) / 86400000);
+  };
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#506070] font-medium">Group by:</span>
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-              className="etm-input text-sm"
-            >
-              <option value="quadrant">Quadrant</option>
-              <option value="domain">Domain</option>
-              <option value="scope">Scope</option>
+  const visible = tasks.filter(t => {
+    if (t.percentComplete === 100) return false;
+    if (!t.dueDate) return false;
+    if (filterQuad !== 'all' && getQuadrant(t) !== filterQuad) return false;
+    const off = dayOffset(t.dueDate);
+    return off >= -WINDOW_BACK && off <= WINDOW_FWD;
+  }).sort((a, b) => dayOffset(a.dueDate) - dayOffset(b.dueDate));
+
+  React.useEffect(() => {
+    if (!bodyRef.current) return;
+    const update = () => {
+      const track = bodyRef.current?.querySelector('.gantt-row__track');
+      if (track) {
+        const r = track.getBoundingClientRect();
+        const body = bodyRef.current.getBoundingClientRect();
+        setTrackGeom({ left: r.left - body.left, width: r.width });
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(bodyRef.current);
+    return () => ro.disconnect();
+  }, [visible.length]);
+
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const axisDays = [];
+  for (let i = -WINDOW_BACK; i <= WINDOW_FWD; i++) {
+    const d = new Date(today.getTime() + i * 86400000);
+    const dow = d.getDay();
+    let text;
+    if (i === 0)          text = 'TODAY';
+    else if (i % 3 === 0) text = `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
+    else                  text = `${d.getDate()}`;
+    axisDays.push({ i, text, isToday: i === 0, isWeekend: dow === 0 || dow === 6 });
+  }
+
+  return (
+    <div className="cin-view-panel">
+      <div className="cin-view-panel__head">
+        <div className="cin-view-panel__title">
+          Schedule · Timeline
+          <span className="cin-view-panel__count">{visible.length}</span>
+          <span className="cin-view-panel__sub">21-day window</span>
+        </div>
+        <div className="cin-view-panel__toolbar">
+          <div className="cin-filter">
+            <label className="cin-filter__label">Quadrant</label>
+            <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}>
+              <option value="all">All</option>
+              <option value="do-first">Q1 · Critical</option>
+              <option value="schedule">Q2 · Strategic</option>
+              <option value="delegate">Q3 · Delegate</option>
+              <option value="eliminate">Q4 · Eliminate</option>
             </select>
           </div>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#506070] font-medium">Timeline:</span>
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={`etm-pushbutton text-sm ${showHistory ? 'etm-pushbutton--accent' : ''}`}
-              title={showHistory ? 'Showing all historical data' : 'Showing from today forward'}
-            >
-              {showHistory ? 'History ON' : 'Today Forward'}
-            </button>
-          </div>
+      <div className="gantt-narrow-notice">
+        Gantt requires a wider viewport — rotate or use the List view
+      </div>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-[#506070] font-medium">Zoom:</span>
-            <div className="flex gap-1 etm-panel--recessed p-1 overflow-x-auto">
-              {['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].map(level => (
-                <button
-                  key={level}
-                  onClick={() => handleZoomButtonClick(level)}
-                  className={`etm-pushbutton text-xs whitespace-nowrap ${
-                    getNearestZoomLevel() === level ? 'etm-pushbutton--active' : ''
-                  }`}
-                  style={{ padding: '4px 8px' }}
-                  title="Click to set, or use Alt+Scroll to zoom"
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                </button>
+      <div className="cin-view-panel__body">
+        <div className="gantt-timeline">
+          <div className="gantt-axis">
+            <div className="gantt-axis__spacer" />
+            <div className="gantt-axis__days">
+              {axisDays.map(d => (
+                <div
+                  key={d.i}
+                  className={'gantt-axis__day'
+                    + (d.isToday   ? ' gantt-axis__day--today'   : '')
+                    + (d.isWeekend ? ' gantt-axis__day--weekend' : '')}
+                >{d.text}</div>
               ))}
             </div>
           </div>
-          <div className="ml-auto text-[#506070]" style={{ fontSize: '9px' }}>
-            {filteredTasks.length}/{tasks.filter(t => t.dueDate).length} tasks
-          </div>
-        </div>
 
-      {/* Gantt Chart */}
-      {filteredTasks.length === 0 ? (
-        <div className="etm-panel p-12 text-center">
-          <div className="text-[#506070] font-medium">No tasks found matching your filters</div>
-        </div>
-      ) : (
-        <div className="etm-panel overflow-hidden" onWheel={handleChartWheel}>
-          <div className="overflow-x-auto">
-            {/* Timeline Header */}
-            <div className="flex">
-              <div className="w-48 border-r border-[#2a3048] bg-[#0a0e12] px-4 py-3 font-semibold text-sm text-[#8899aa] flex-shrink-0">
-                Task
+          <div className="gantt-body" ref={bodyRef}>
+            {visible.length === 0 && (
+              <div className="list-empty" style={{ gridColumn: '1 / 3' }}>
+                — No scheduled tasks in this window —
               </div>
-              <div className="border-b border-[#2a3048] bg-[#0a0e12] px-2 py-2 flex relative" style={{ minWidth: `${totalDays * timelineScale}px` }}>
-                {/* Weekend shading */}
-                {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
-                  const date = new Date(minDate);
-                  date.setDate(date.getDate() + i);
-                  const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-                  return isWeekend ? (
-                    <div
-                      key={`weekend-${i}`}
-                      className="absolute bg-[#2a3048] opacity-20 h-full"
-                      style={{
-                        left: `${dateToX(date)}%`,
-                        width: `${dateToX(new Date(date.getTime() + oneDay)) - dateToX(date)}%`
-                      }}
-                    />
-                  ) : null;
-                })}
-
-                {/* Vertical gridlines at date ticks */}
-                {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
-                  const date = new Date(minDate);
-                  date.setDate(date.getDate() + i);
-                  const x = dateToX(date);
-                  const freq = getGridlineFrequency();
-
-                  return i % freq.gridline === 0 ? (
-                    <div
-                      key={`gridline-${i}`}
-                      className="absolute w-px bg-[#506070] h-full opacity-40"
-                      style={{
-                        left: `${x}%`
-                      }}
-                    />
-                  ) : null;
-                })}
-
-                {/* Date labels */}
-                {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
-                  const date = new Date(minDate);
-                  date.setDate(date.getDate() + i);
-                  const x = dateToX(date);
-                  const freq = getGridlineFrequency();
-
-                  return i % freq.label === 0 ? (
-                    <div
-                      key={i}
-                      className="absolute text-xs text-[#506070] font-semibold"
-                      style={{
-                        left: `${x}%`,
-                        top: '4px'
-                      }}
-                    >
-                      {formatDate(date)}
-                    </div>
-                  ) : null;
-                })}
-
-                {/* Today line - prominent indicator */}
-                <div
-                  className="absolute w-1 bg-red-500 h-full opacity-80 shadow-lg"
-                  style={{
-                    left: `${dateToX(new Date())}%`,
-                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Swim Lanes */}
-            {lanes.map((lane) => {
-              const laneLabel = groupBy === 'quadrant'
-                ? { 'do-first': 'Do First', 'schedule': 'Schedule', 'delegate': 'Delegate', 'eliminate': 'Eliminate' }[lane]
-                : lane;
-
+            )}
+            {visible.map(t => {
+              const dueOff = dayOffset(t.dueDate);
+              const isOverdue = dueOff < 0;
+              const isDone = t.percentComplete === 100;
+              const startOff = isOverdue ? dueOff : 0;
+              const endOff   = isOverdue ? 0 : dueOff;
+              const leftPct  = ((startOff + WINDOW_BACK) / WINDOW_TOTAL) * 100;
+              const widthPct = Math.max(((endOff - startOff + 1) / WINDOW_TOTAL) * 100, 100 / WINDOW_TOTAL);
+              const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+              const barClass = 'gantt-bar gantt-bar--' + (isOverdue ? 'overdue' : qid)
+                + (isDone ? ' gantt-bar--done' : '');
+              const dueDateText = new Date(t.dueDate).toLocaleDateString();
               return (
-                <div key={lane}>
-                  {/* Lane Header */}
-                  <div className={`flex ${getQuadrantBg(groupBy === 'quadrant' ? lane : 'schedule')} border-b border-[#2a3048]`}>
-                    <div className="w-48 border-r border-[#2a3048] px-4 py-3 flex-shrink-0">
-                      <div className="font-semibold text-sm text-[#c8d0e0]">
-                        {laneLabel}
-                      </div>
-                      <div className="text-xs text-[#506070]">
-                        {grouped[lane].length} task{grouped[lane].length !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    <div style={{ minWidth: `${totalDays * timelineScale}px` }}></div>
+                <React.Fragment key={t.id}>
+                  <div
+                    className="gantt-row__label"
+                    onClick={() => { setEditingTask(t); setShowForm(true); }}
+                  >
+                    <div className="gantt-row__label-name" title={t.task}>{t.task}</div>
+                    <div className="gantt-row__label-meta">{(t.subcategory || t.domain) + ' · ' + dueDateText}</div>
                   </div>
-
-                  {/* Tasks in lane */}
-                  {grouped[lane].map((task) => {
-                    const timeline = calculateTaskTimeline(task);
-                    const startX = dateToX(timeline.start);
-                    const endX = dateToX(timeline.end);
-                    const width = endX - startX;
-                    const isCompleted = task.percentComplete === 100;
-                    const quadrant = getQuadrant(task);
-
-                    return (
-                      <div key={task.id} className="flex border-b border-[#1a1e2c] hover:bg-[#2e3438] transition-colors relative">
-                        {/* Task name - clickable to open context menu */}
-                        <div
-                          className="w-48 border-r border-[#2a3048] px-4 py-3 flex-shrink-0 cursor-pointer hover:bg-[#2e3438] transition-colors"
-                          onClick={() => setActiveContextMenu(activeContextMenu === task.id ? null : task.id)}
-                        >
-                          <div className={`text-sm font-medium ${isCompleted ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
-                            {task.task}
-                          </div>
-                          <div className="text-xs text-[#506070] mt-1">
-                            {task.subcategory}
-                          </div>
-                        </div>
-
-                        {/* Timeline bar */}
-                        <div className="relative py-3 px-2" style={{ minWidth: `${totalDays * timelineScale}px` }}>
-                          {/* Gridlines and today indicator for task row */}
-                          {Array.from({ length: Math.min(totalDays, 1095) }).map((_, i) => {
-                            const date = new Date(minDate);
-                            date.setDate(date.getDate() + i);
-                            const x = dateToX(date);
-                            const freq = getGridlineFrequency();
-
-                            return i % freq.gridline === 0 ? (
-                              <div
-                                key={`gridline-task-${i}`}
-                                className="absolute w-px bg-[#506070] h-full opacity-30 z-0"
-                                style={{
-                                  left: `${x}%`
-                                }}
-                              />
-                            ) : null;
-                          })}
-
-                          {/* Today line for task row */}
-                          <div
-                            className="absolute w-1 h-full bg-red-500 opacity-70 z-10"
-                            style={{
-                              left: `${dateToX(new Date())}%`,
-                              boxShadow: '0 0 4px rgba(239, 68, 68, 0.3)'
-                            }}
-                          />
-
-                          {timeline.isMilestone ? (
-                            // Diamond for milestone
-                            <div
-                              className="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 w-4 h-4 rounded-full z-20"
-                              style={{
-                                left: `${endX}%`,
-                                backgroundColor: getQuadrantColor(quadrant),
-                                opacity: isCompleted ? 0.5 : 1
-                              }}
-                              onMouseEnter={() => setTooltip({ task, timeline })}
-                              onMouseLeave={() => setTooltip(null)}
-                            />
-                          ) : (
-                            // Bar
-                            <div
-                              className={`absolute h-8 rounded cursor-pointer transition-opacity z-20 ${isCompleted ? 'opacity-50' : 'opacity-90 hover:opacity-100'}`}
-                              style={{
-                                left: `${startX}%`,
-                                width: `${Math.max(width, 2)}%`,
-                                backgroundColor: getQuadrantColor(quadrant),
-                                minWidth: '40px'
-                              }}
-                              onClick={() => {
-                                setEditingTask(task);
-                                setShowForm(true);
-                              }}
-                              onMouseEnter={() => setTooltip({ task, timeline })}
-                              onMouseLeave={() => setTooltip(null)}
-                            >
-                              {width > 8 && (
-                                <div className="flex items-center gap-1 px-2 h-full text-xs text-white font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                                  <span>{task.task}</span>
-                                  {task.timeEstimateValue && (
-                                    <span className="bg-black/20 px-1 rounded text-xs">
-                                      {task.timeEstimateValue}{task.timeEstimateUnit === 'hours' ? 'h' : 'd'}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Tooltip */}
-                          {tooltip && tooltip.task.id === task.id && (
-                            <div className="absolute bg-slate-900 text-white p-3 rounded-lg shadow-lg text-xs whitespace-nowrap z-50 top-12 left-0 pointer-events-none">
-                              <div className="font-semibold">{task.task}</div>
-                              <div className="text-slate-300">Due: {formatDate(timeline.end)}</div>
-                              {task.timeEstimateValue && (
-                                <div className="text-slate-300">
-                                  Est: {task.timeEstimateValue} {task.timeEstimateUnit}
-                                </div>
-                              )}
-                              <div className="text-slate-300">Rank: {task.rank}</div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Context Menu - appears when task is clicked */}
-                        {activeContextMenu === task.id && (
-                          <>
-                            {/* Backdrop to close menu on click outside */}
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setActiveContextMenu(null)}
-                            />
-
-                            {/* Context Menu */}
-                            <div className="fixed etm-panel shadow-xl z-50" style={{
-                              top: '50%',
-                              left: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              minWidth: 'max-content'
-                            }}>
-                              <button
-                                onClick={() => {
-                                  toggleComplete(task.id);
-                                  setActiveContextMenu(null);
-                                }}
-                                className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${
-                                  isCompleted
-                                    ? 'text-[#50c878] hover:bg-[#33ff6610]'
-                                    : 'text-[#8899aa] hover:bg-[#2e3438]'
-                                }`}
-                              >
-                                <CheckCircle size={16} />
-                                <span>{isCompleted ? 'Mark incomplete' : 'Mark complete'}</span>
-                              </button>
-                              <div className="border-t border-[#2a3048]" />
-                              <button
-                                onClick={() => {
-                                  setEditingTask(task);
-                                  setShowForm(true);
-                                  setActiveContextMenu(null);
-                                }}
-                                className="w-full px-4 py-2 text-sm text-left text-[#8899aa] hover:bg-[#2e3438] transition-colors flex items-center gap-2"
-                              >
-                                <Edit2 size={16} />
-                                <span>Edit</span>
-                              </button>
-                              <div className="border-t border-[#2a3048]" />
-                              <button
-                                onClick={() => {
-                                  deleteTask(task.id);
-                                  setActiveContextMenu(null);
-                                }}
-                                className="w-full px-4 py-2 text-sm text-left text-[#ff6675] hover:bg-[#ff334415] transition-colors flex items-center gap-2"
-                              >
-                                <Trash2 size={16} />
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                  <div className="gantt-row__track">
+                    <div
+                      className={barClass}
+                      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                      onClick={() => { setEditingTask(t); setShowForm(true); }}
+                    >
+                      {t.rank ? `R${t.rank}` : ''}
+                    </div>
+                  </div>
+                </React.Fragment>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="etm-panel p-4">
-        <div className="text-sm font-semibold text-[#c8d0e0] mb-3">Legend</div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Do First', color: '#ff3344' },
-            { label: 'Schedule', color: '#00ccdd' },
-            { label: 'Delegate', color: '#ff8822' },
-            { label: 'Eliminate', color: '#506070' }
-          ].map(item => (
-            <div key={item.label} className="flex items-center gap-2">
+            {visible.length > 0 && trackGeom.width > 0 && (
               <div
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: item.color }}
+                className="gantt-today-line"
+                style={{
+                  left: `${trackGeom.left + (WINDOW_BACK / WINDOW_TOTAL) * trackGeom.width}px`,
+                  top: 0,
+                  bottom: 0
+                }}
               />
-              <span className="text-sm text-[#8899aa]">{item.label}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 text-xs text-[#506070]">
-          <div>Bar width represents time estimate (due date - estimate = start date)</div>
-          <div>Diamond indicates task without time estimate (milestone)</div>
-          <div>Red line shows today's date</div>
-          <div>Gray shading indicates weekends</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -2907,262 +2345,118 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
 const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, setDefaultDueDate, settings }) => {
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [expandedDay, setExpandedDay] = useState(null);
 
-  const generateMonthGrid = (year, month) => {
-    const firstDay = new Date(year, month, 1);
-    const startDay = new Date(firstDay);
-    startDay.setDate(startDay.getDate() - firstDay.getDay());
-    const days = [];
-    for (let i = 0; i < 42; i++) {
-      const d = new Date(startDay);
-      d.setDate(d.getDate() + i);
-      days.push(d);
-    }
-    return days;
-  };
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
 
-  const toDateStr = (d) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const viewYear  = calendarDate.getFullYear();
+  const viewMonth = calendarDate.getMonth();
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  const gridStart    = new Date(firstOfMonth);
+  gridStart.setDate(1 - firstOfMonth.getDay());
 
-  const filteredTasks = tasks.filter(task => {
-    if (filters.status === 'active' && task.percentComplete === 100) return false;
-    if (filters.status === 'completed' && task.percentComplete < 100) return false;
-    if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
-    if (filters.domain !== 'all' && task.domain !== filters.domain) return false;
-    if (filters.scope !== 'all' && task.scope !== filters.scope) return false;
-    return true;
+  // Bucket tasks by ISO date for fast lookup, applying quadrant filter
+  const tasksByDate = {};
+  tasks.forEach(t => {
+    if (!t.dueDate) return;
+    if (filters.quadrant !== 'all' && getQuadrant(t) !== filters.quadrant) return;
+    if (t.percentComplete === 100) return;   // skip completed
+    const d = new Date(t.dueDate);
+    if (isNaN(d)) return;
+    const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    (tasksByDate[key] = tasksByDate[key] || []).push(t);
   });
 
-  const datedTasks = filteredTasks.filter(t => t.dueDate);
-  const undatedCount = filteredTasks.filter(t => !t.dueDate).length;
-
-  const tasksByDate = new Map();
-  datedTasks.forEach(task => {
-    const key = task.dueDate;
-    if (!tasksByDate.has(key)) tasksByDate.set(key, []);
-    tasksByDate.get(key).push(task);
-  });
-
-  const year = calendarDate.getFullYear();
-  const month = calendarDate.getMonth();
-  const days = generateMonthGrid(year, month);
-  const todayStr = toDateStr(new Date());
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-  const prevMonth = () => setCalendarDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCalendarDate(new Date(year, month + 1, 1));
-  const goToday = () => setCalendarDate(new Date());
-
-  const quadrantColors = {
-    'do-first': { border: 'border-l-[#ff3344]', bg: 'bg-[#ff334410]', text: 'text-[#ff6675]', dot: 'bg-[#ff3344]' },
-    'schedule': { border: 'border-l-[#00ccdd]', bg: 'bg-[#00ccdd10]', text: 'text-[#6ea8fe]', dot: 'bg-[#00ccdd]' },
-    'delegate': { border: 'border-l-[#ff8822]', bg: 'bg-[#ff882210]', text: 'text-[#fbbf24]', dot: 'bg-[#ff8822]' },
-    'eliminate': { border: 'border-l-[#506070]', bg: 'bg-[#1a1e2c]', text: 'text-[#8899aa]', dot: 'bg-[#506070]' }
-  };
-
-  const handleDayClick = (dateStr) => {
-    setDefaultDueDate(dateStr);
-    setEditingTask(null);
-    setShowForm(true);
-  };
-
-  const MAX_VISIBLE = 3;
+  const SHOW_MAX = 3;
 
   return (
-    <div className="p-2 space-y-2" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[rgba(255,255,255,0.04)]">
-        <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="p-1 rounded hover:bg-[#2e3438] transition-colors">
-            <ChevronLeft size={14} className="text-[#8899aa]" />
-          </button>
-          <h2 className="text-sm font-bold text-[#c8d0e0] min-w-[140px] text-center">
-            {monthNames[month]} {year}
-          </h2>
-          <button onClick={nextMonth} className="p-1 rounded hover:bg-[#2e3438] transition-colors">
-            <ChevronRight size={14} className="text-[#8899aa]" />
-          </button>
-          <button onClick={goToday} className="etm-pushbutton ml-1" style={{ padding: '2px 6px', fontSize: '9px' }}>
-            Today
-          </button>
+    <div className="cin-view-panel">
+      <div className="cin-view-panel__head">
+        <div className="cal-monthnav">
+          <button
+            className="cin-mini-btn"
+            onClick={() => setCalendarDate(new Date(viewYear, viewMonth - 1, 1))}
+            aria-label="Previous month"
+          >&#8249;</button>
+          <div className="cal-monthnav__title">{MONTH_NAMES[viewMonth]} {viewYear}</div>
+          <button
+            className="cin-mini-btn"
+            onClick={() => setCalendarDate(new Date(viewYear, viewMonth + 1, 1))}
+            aria-label="Next month"
+          >&#8250;</button>
         </div>
-        {undatedCount > 0 && (
-          <div className="text-[#506070]" style={{ fontSize: '9px' }}>
-            {undatedCount} undated
+        <div className="cin-view-panel__toolbar">
+          <div className="cin-filter">
+            <label className="cin-filter__label">Quadrant</label>
+            <select value={filters.quadrant} onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}>
+              <option value="all">All</option>
+              <option value="do-first">Q1 · Critical</option>
+              <option value="schedule">Q2 · Strategic</option>
+              <option value="delegate">Q3 · Delegate</option>
+              <option value="eliminate">Q4 · Eliminate</option>
+            </select>
           </div>
-        )}
-        {/* Inline filters */}
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="etm-input"
-        >
-          <option value="active">Active Tasks</option>
-          <option value="completed">Completed</option>
-          <option value="all">All Tasks</option>
-        </select>
-        <select
-          value={filters.quadrant}
-          onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
-          className="etm-input"
-        >
-          <option value="all">All Quadrants</option>
-          <option value="do-first">Do First</option>
-          <option value="schedule">Schedule</option>
-          <option value="delegate">Delegate</option>
-          <option value="eliminate">Eliminate</option>
-        </select>
-        <select
-          value={filters.domain}
-          onChange={(e) => setFilters({ ...filters, domain: e.target.value })}
-          className="etm-input"
-        >
-          <option value="all">All Domains</option>
-          {(settings.domains || []).map(d => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        <select
-          value={filters.scope}
-          onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
-          className="etm-input"
-        >
-          <option value="all">All Scopes</option>
-          {(settings.scopes || []).map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+          <button className="cin-mini-btn" onClick={() => setCalendarDate(new Date())}>Today</button>
+        </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="etm-panel overflow-hidden">
-        {/* Day-of-week header */}
-        <div className="grid grid-cols-7 border-b border-[#2a3048] bg-[#0a0e12]">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="px-2 py-2.5 text-center text-xs font-semibold text-[#506070] uppercase tracking-wider">
-              {day}
-            </div>
-          ))}
-        </div>
+      <div className="cal-weekday-header">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
 
-        {/* Day cells - 6 rows */}
-        <div className="grid grid-cols-7">
-          {days.map((day, idx) => {
-            const dateStr = toDateStr(day);
-            const isCurrentMonth = day.getMonth() === month;
-            const isToday = dateStr === todayStr;
-            const dayTasks = tasksByDate.get(dateStr) || [];
-            const isExpanded = expandedDay === dateStr;
-            const visibleTasks = isExpanded ? dayTasks : dayTasks.slice(0, MAX_VISIBLE);
-            const hiddenCount = dayTasks.length - MAX_VISIBLE;
+      <div className="cal-grid">
+        {Array.from({ length: 42 }).map((_, i) => {
+          const cellDate = new Date(gridStart.getTime() + i * 86400000);
+          const isToday = cellDate.getTime() === today.getTime();
+          const isOtherMonth = cellDate.getMonth() !== viewMonth;
+          const dow = cellDate.getDay();
+          const key = cellDate.getFullYear() + '-' + (cellDate.getMonth() + 1) + '-' + cellDate.getDate();
+          const cellTasks = tasksByDate[key] || [];
 
-            return (
-              <div
-                key={idx}
-                className={`min-h-[110px] border-b border-r border-[#1a1e2c] p-1.5 transition-colors ${
-                  isCurrentMonth ? 'bg-[#1e2428]' : 'bg-[#0a0e12]/50'
-                } ${isToday ? 'bg-[#e8603010] ring-1 ring-inset ring-[#e86030]' : ''}`}
-                onClick={(e) => {
-                  if (e.target === e.currentTarget || e.target.closest('[data-day-bg]')) {
-                    handleDayClick(dateStr);
+          const cellClass = 'cal-cell'
+            + (isToday ? ' cal-cell--today' : '')
+            + (isOtherMonth ? ' cal-cell--other-month' : '')
+            + ((dow === 0 || dow === 6) ? ' cal-cell--weekend' : '');
+
+          return (
+            <div
+              key={i}
+              className={cellClass}
+              onClick={(e) => {
+                // Click on the cell (not on a pill) -> create new task on that date
+                if (e.target === e.currentTarget || e.target.classList.contains('cal-cell__date')
+                    || e.target.classList.contains('cal-cell__tasks')) {
+                  if (setDefaultDueDate) {
+                    const iso = cellDate.toISOString().split('T')[0];
+                    setDefaultDueDate(iso);
                   }
-                }}
-              >
-                {/* Day number */}
-                <div className="flex items-center justify-between mb-1" data-day-bg>
-                  <span className={`text-sm font-medium leading-none ${
-                    isToday ? 'bg-[#e86030] text-white w-6 h-6 rounded-full flex items-center justify-center' :
-                    isCurrentMonth ? 'text-[#c8d0e0]' : 'text-[#506070]'
-                  }`}>
-                    {day.getDate()}
-                  </span>
-                </div>
-
-                {/* Task pills */}
-                <div className="space-y-0.5">
-                  {visibleTasks.map(task => {
-                    const quadrant = getQuadrant(task);
-                    const colors = quadrantColors[quadrant] || quadrantColors['eliminate'];
-                    const isOverdue = calculatePriority(task) < 0 && task.percentComplete < 100;
-                    const isCompleted = task.percentComplete === 100;
-                    const isRecurring = task.recurringPattern && task.recurringPattern !== 'once';
-
-                    return (
-                      <div
-                        key={task.id}
-                        className={`group flex items-center gap-1 px-1.5 py-0.5 rounded text-xs cursor-pointer border-l-2 ${colors.border} ${colors.bg} hover:brightness-95 transition-all ${isCompleted ? 'opacity-60' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingTask(task);
-                          setShowForm(true);
-                        }}
-                        title={`${task.task} — ${quadrant}`}
-                      >
-                        <span className={`truncate flex-1 ${isOverdue ? 'text-[#ff6675] font-semibold' : colors.text} ${isCompleted ? 'line-through' : ''}`}>
-                          {task.task}
-                        </span>
-                        {isRecurring && <Repeat size={10} className={colors.text} />}
-                      </div>
-                    );
-                  })}
-                  {!isExpanded && hiddenCount > 0 && (
-                    <button
-                      className="text-xs text-[#e86030] font-medium hover:text-[#ff7040] pl-1.5"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedDay(dateStr);
-                      }}
+                  setShowForm(true);
+                }
+              }}
+            >
+              <div className="cal-cell__date">{cellDate.getDate()}</div>
+              <div className="cal-cell__tasks">
+                {cellTasks.slice(0, SHOW_MAX).map(t => {
+                  const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+                  return (
+                    <div
+                      key={t.id}
+                      className={`cal-task-pill cal-task-pill--${qid}`}
+                      title={t.task + (t.subcategory ? ` (${t.subcategory})` : '')}
+                      onClick={(e) => { e.stopPropagation(); setEditingTask(t); setShowForm(true); }}
                     >
-                      +{hiddenCount} more
-                    </button>
-                  )}
-                  {isExpanded && dayTasks.length > MAX_VISIBLE && (
-                    <button
-                      className="text-xs text-[#506070] font-medium hover:text-[#8899aa] pl-1.5"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedDay(null);
-                      }}
-                    >
-                      show less
-                    </button>
-                  )}
-                </div>
+                      {t.task}
+                    </div>
+                  );
+                })}
+                {cellTasks.length > SHOW_MAX && (
+                  <div className="cal-task-pill__overflow">+ {cellTasks.length - SHOW_MAX} more</div>
+                )}
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="etm-panel p-4">
-        <div className="flex flex-wrap items-center gap-4 text-sm">
-          {[
-            { label: 'Do First', color: 'bg-[#ff3344]' },
-            { label: 'Schedule', color: 'bg-[#00ccdd]' },
-            { label: 'Delegate', color: 'bg-[#ff8822]' },
-            { label: 'Eliminate', color: 'bg-[#506070]' }
-          ].map(item => (
-            <div key={item.label} className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded ${item.color}`} />
-              <span className="text-[#8899aa]">{item.label}</span>
             </div>
-          ))}
-          <div className="flex items-center gap-1.5 ml-2">
-            <span className="text-[#ff6675] font-semibold text-xs">Overdue</span>
-            <span className="text-[#506070]">= red text</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Repeat size={12} className="text-[#506070]" />
-            <span className="text-[#8899aa]">= recurring</span>
-          </div>
-          <div className="text-[#506070] ml-auto text-xs">Click empty space to add a task on that date</div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
