@@ -540,8 +540,9 @@ const EisenhowerTaskManager = () => {
 
   // Show PIN modal if not unlocked (must be before loading check)
   if (!isUnlocked) {
-    // PHASE 2: cinematic BootOverlay. PIN '2401' validated inside the
-    // overlay; onUnlock fires after the scan-line sweep completes.
+    // PHASE 2: cinematic BootOverlay. PIN validated inside the overlay
+    // (constant in BootOverlay.jsx); onUnlock fires after the scan-line
+    // sweep completes.
     // We pre-set justUnlocked + appRevealed so the v2 etm-reveal-animate
     // (hazard-stripe slide-up) does NOT re-trigger after the cinematic
     // boot ceremony — one entrance moment is enough.

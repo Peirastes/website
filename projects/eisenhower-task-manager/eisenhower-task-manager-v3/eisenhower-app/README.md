@@ -38,7 +38,7 @@ Requires the desktop machine to be running. The auto-start task handles boot; sl
 - **Gantt Chart** — Timeline visualization with zoom levels (daily to yearly), grouping by quadrant or category.
 - **Analytics** — Completion stats, score distributions, duration accuracy, rolling trend lines.
 - **Calendar** — Monthly grid with task pills, click-to-add on empty dates.
-- **PIN Protection** — CRT terminal boot sequence with vault door animation. Session-based (courtesy, not security). Default PIN: `2401`.
+- **PIN Protection** — Cinematic boot ceremony with acrylic-glass keypad. Session-based (courtesy, not security; Tailscale is the real gate). PIN value is in `src/components/BootOverlay.jsx` — change the `CORRECT_PIN` constant and rebuild.
 - **Completion Verification** — LED-style quality/ease ratings on task completion.
 - **Planning/Execution Score** — `(Due Date - Completed Date) / (Due Date - Assigned Date)`.
 - **Recurrence** — Once, Daily, Weekly, Monthly, Yearly.

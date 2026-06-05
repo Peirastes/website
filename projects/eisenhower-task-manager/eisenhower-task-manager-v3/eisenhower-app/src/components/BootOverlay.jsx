@@ -3,8 +3,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 /**
  * BootOverlay — cinematic PIN unlock gate (Phase 2)
  *
- * Replaces v2's PINModal. Same PIN validation (PIN '2401', 5 attempts max,
- * sessionStorage flag), restyled into the Peirastes Cinematic Tier:
+ * Replaces v2's PINModal. Same PIN-validation pattern (4 digits,
+ * 5 attempts max, sessionStorage 'eisenhower-unlocked' flag),
+ * restyled into the Peirastes Cinematic Tier:
  *   - Acrylic-glass keypad with cyan hover / amber press
  *   - 4 PIN dots that fill amber as digits are entered
  *   - On wrong PIN: shake animation, red dots, error message
@@ -27,7 +28,7 @@ export const BootOverlay = ({ onUnlock }) => {
   const [hidden, setHidden] = useState(false);
   const [sweep, setSweep] = useState(false);
 
-  const CORRECT_PIN = '2401';
+  const CORRECT_PIN = '1337';
   const MAX_ATTEMPTS = 5;
   const locked = attempts >= MAX_ATTEMPTS;
 

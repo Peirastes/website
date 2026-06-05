@@ -11,7 +11,7 @@ export const PINModal = ({ onUnlock }) => {
   const [bootPhase, setBootPhase] = useState(0);
   const [showInput, setShowInput] = useState(false);
 
-  const CORRECT_PIN = '2401';
+  const CORRECT_PIN = '1337';
   const MAX_ATTEMPTS = 5;
   const [unlocking, setUnlocking] = useState(false);
 
