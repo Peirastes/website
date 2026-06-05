@@ -715,9 +715,11 @@ const EisenhowerTaskManager = () => {
             calculateTaskScore={calculateTaskScore}
           />
         ) : view === 'list' ? (
-          <MonitorShell
-            title="LIST VIEW" label="TASK LIST — ALL QUADRANTS"
-            ledClass="etm-led--cyan" screenClass="etm-monitor__glass--schedule" monitorClass="etm-monitor--schedule"
+          /* PHASE 4: cinematic acrylic-glass shell, replaces v2 CRT housing */
+          <CinematicViewPanel
+            title="All Tasks"
+            count={tasks.filter(t => t.percentComplete < 100).length}
+            sub="cross-quadrant view"
           >
             <ListView
               tasks={tasks} filters={filters} setFilters={setFilters}
@@ -727,11 +729,11 @@ const EisenhowerTaskManager = () => {
               deleteTask={deleteTask} calculateTaskScore={calculateTaskScore}
               settings={settings}
             />
-          </MonitorShell>
+          </CinematicViewPanel>
         ) : view === 'gantt' ? (
-          <MonitorShell
-            title="GANTT CHART" label="TIMELINE — TASK SCHEDULING"
-            ledClass="etm-led--amber" screenClass="etm-monitor__glass--delegate" monitorClass="etm-monitor--delegate"
+          <CinematicViewPanel
+            title="Schedule · Timeline"
+            sub="task scheduling window"
           >
             <GanttView
               tasks={tasks} getQuadrant={getQuadrant}
@@ -739,11 +741,11 @@ const EisenhowerTaskManager = () => {
               setEditingTask={setEditingTask} setShowForm={setShowForm}
               deleteTask={deleteTask} settings={settings}
             />
-          </MonitorShell>
+          </CinematicViewPanel>
         ) : view === 'calendar' ? (
-          <MonitorShell
-            title="CALENDAR" label="MONTHLY — TASK SCHEDULE"
-            ledClass="etm-led--green" screenClass="etm-monitor__glass--schedule" monitorClass="etm-monitor--schedule"
+          <CinematicViewPanel
+            title="Calendar"
+            sub="monthly task schedule"
           >
             <CalendarView
               tasks={tasks} filters={filters} setFilters={setFilters}
@@ -752,16 +754,17 @@ const EisenhowerTaskManager = () => {
               setShowForm={setShowForm} deleteTask={deleteTask}
               setDefaultDueDate={setDefaultDueDate} settings={settings}
             />
-          </MonitorShell>
+          </CinematicViewPanel>
         ) : (
-          <MonitorShell
-            title="ANALYTICS" label="PERFORMANCE — HISTORICAL DATA"
-            ledClass="etm-led--green" screenClass="etm-monitor__glass--schedule" monitorClass="etm-monitor--schedule"
+          <CinematicViewPanel
+            title="Performance · Metrics"
+            count={tasks.length}
+            sub="historical data"
           >
             <AnalyticsView
               tasks={tasks} calculateTaskScore={calculateTaskScore}
             />
-          </MonitorShell>
+          </CinematicViewPanel>
         )}
       </main>
 
@@ -1401,7 +1404,30 @@ const TaskCard = ({ task, calculatePriority, toggleComplete, onEdit, onDelete, c
   );
 };
 
-// Reusable single-monitor shell for non-matrix views
+/**
+ * PHASE 4: CinematicViewPanel — acrylic-glass drop-in replacement
+ * for MonitorShell. Used by List / Gantt / Calendar / Analytics.
+ * Title + count appear on the left, optional toolbar on the right,
+ * children fill the scrollable body. The 4-stop quadrant-rainbow top
+ * edge is the canonical "all-quadrant view" signature from the demo.
+ */
+const CinematicViewPanel = ({ title, count, sub, toolbar, children }) => (
+  <div className="cin-view-panel">
+    <div className="cin-view-panel__head">
+      <div className="cin-view-panel__title">
+        {title}
+        {count != null && <span className="cin-view-panel__count">{count}</span>}
+        {sub && <span className="cin-view-panel__sub">{sub}</span>}
+      </div>
+      {toolbar && <div className="cin-view-panel__toolbar">{toolbar}</div>}
+    </div>
+    <div className="cin-view-panel__body">{children}</div>
+  </div>
+);
+
+// Reusable single-monitor shell — v2 CRT housing. Kept for any legacy
+// callers (none currently); Phase 4 retired its production use in favor
+// of CinematicViewPanel above. Safe to delete in Phase 5 cleanup.
 const MonitorShell = ({ title, label, ledClass, screenClass, monitorClass, toolbar, children }) => (
   <div className={`etm-monitor ${monitorClass} h-full`}>
     <div className="etm-monitor__hood"><div className="etm-tex-metal" /></div>

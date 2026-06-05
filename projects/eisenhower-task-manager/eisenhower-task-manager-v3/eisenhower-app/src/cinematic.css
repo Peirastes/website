@@ -835,3 +835,108 @@ body.app-locked .cin-hints {
   .readout-cell__value { font-size: 0.9rem; }
   .cin-nameplate { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 4 — CinematicViewPanel (drop-in for MonitorShell)
+   ───────────────────────────────────────────────────────────────
+   Acrylic-glass full-workspace card for List / Gantt / Calendar /
+   Analytics views. Replaces v2's etm-monitor CRT housing with the
+   demo's panel topology — 4-stop quadrant-rainbow top edge (the
+   canonical "all-quadrant view" signature), Orbitron gold title +
+   optional count, optional toolbar on the right, scrollable body
+   inside. The view components' INTERNAL elements (TaskCard rows,
+   filter dropdowns, charts) keep their existing v2 styling for
+   now — Phase 4 swaps the shell; inner-content polish per view
+   lands as follow-up refactors if any feel off vs the prototype.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-view-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 14px 18px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.cin-view-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+
+.cin-view-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.cin-view-panel__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.cin-view-panel__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.65);
+  letter-spacing: 0.05em;
+  text-shadow: none;
+}
+.cin-view-panel__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.40);
+  margin-left: 0.6rem;
+}
+
+.cin-view-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cin-view-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  padding-right: 4px;
+}
+.cin-view-panel__body::-webkit-scrollbar { width: 5px; }
+.cin-view-panel__body::-webkit-scrollbar-track { background: transparent; }
+.cin-view-panel__body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+.cin-view-panel__body::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+
+@media (max-width: 767px) {
+  .cin-view-panel { padding: 10px 12px 12px; }
+  .cin-view-panel__title { font-size: 10px; }
+}
