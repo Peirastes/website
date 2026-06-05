@@ -608,13 +608,14 @@ const EisenhowerTaskManager = () => {
       // between the etm-* chrome. v2 components keep their own
       // backgrounds and render normally on top of the new atmosphere.
       background: 'transparent',
-      // PHASE 2: clear the cinematic chrome row (fixed-positioned at
-      // top:1.2rem-1.6rem with ~3rem of content height). Pushes the
-      // etm-readout-strip + monitor grid + chassis footer down so they
-      // don't render UNDER the chrome flanks and title. Chassis footer
-      // stays at viewport bottom because padding-top doesn't reduce
-      // the root's own height (still h-screen = 100vh).
-      paddingTop: '5rem'
+      // PHASE 2: clear the cinematic chrome row at the top (5rem).
+      // PHASE 4 finale: clear the cinematic action bar at the bottom
+      // (3.6rem — action-bar height ~28px + bottom inset 1.6rem +
+      // breathing room). Both are fixed-positioned floating glass,
+      // so the workspace flex column needs padding on both sides to
+      // not render under them.
+      paddingTop: '5rem',
+      paddingBottom: '3.6rem'
     }}>
       {/* PHASE 1: SVG film-grain layer — see `.cin-grain` in index.css.
           position: fixed escapes this stacking context; mix-blend-mode:
@@ -747,75 +748,69 @@ const EisenhowerTaskManager = () => {
         )}
       </main>
 
-      {/* Bottom: Control Bar — chassis with view selector, actions, stats */}
-      <footer className="etm-chassis" style={{ borderTop: '2px solid #0c1014', borderBottom: 'none' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          <div className="flex items-center justify-between gap-2">
-            {/* Left: title + stats */}
-            <div className="flex items-center gap-3 sm:gap-5">
-              <h1 className="text-sm sm:text-base font-bold tracking-wider uppercase hidden sm:block" style={{
-                color: '#e86030',
-                textShadow: '0 0 8px rgba(232,96,48,.3)'
-              }}>
-                ETM
-              </h1>
-              <div className="text-xs text-[#506070] font-data">
-                <span className="text-[#8899aa]">{stats.active.length}</span> active ·
-                <span className="text-[#8899aa] ml-1">{stats.completed.length}</span> done
-              </div>
-            </div>
-
-            {/* Center: view selector */}
-            <div className="flex gap-1 rounded p-0.5 etm-panel--recessed">
-              {[
-                { key: 'matrix', icon: LayoutGrid, label: 'Matrix' },
-                { key: 'list', icon: List, label: 'List' },
-                { key: 'gantt', icon: BarChart3, label: 'Gantt' },
-                { key: 'analytics', icon: TrendingUp, label: 'Analytics' },
-                { key: 'calendar', icon: Calendar, label: 'Calendar' },
-              ].map(({ key, icon: Icon, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setView(key)}
-                  className={`etm-pushbutton ${view === key ? 'etm-pushbutton--active' : ''}`}
-                  style={{ padding: '4px 8px', fontSize: '11px' }}
-                >
-                  <Icon size={13} />
-                  <span className="hidden lg:inline">{label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Right: actions */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <button onClick={exportData} className="etm-pushbutton text-[#50c878]" style={{ padding: '4px 8px', fontSize: '11px' }}>
-                <Download size={13} /> <span className="hidden sm:inline">Export</span>
-              </button>
-              <label className="etm-pushbutton cursor-pointer" style={{ padding: '4px 8px', fontSize: '11px' }}>
-                <Upload size={13} /> <span className="hidden sm:inline">Import</span>
-                <input type="file" accept=".json" onChange={importData} className="hidden" />
-              </label>
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="etm-pushbutton"
-                style={{ padding: '5px' }}
-                title="Refresh"
-              >
-                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
-              </button>
-              <button
-                onClick={() => { setEditingTask(null); setShowForm(true); }}
-                className="etm-pushbutton etm-pushbutton--accent uppercase tracking-wider font-bold"
-                style={{ padding: '4px 10px', fontSize: '11px' }}
-              >
-                <Plus size={14} strokeWidth={2.5} />
-                <span className="hidden sm:inline">Add</span>
-              </button>
-            </div>
-          </div>
+      {/* PHASE 4 finale: cinematic action bar (replaces v2 chassis footer).
+          Centered floating glass strip at the bottom. View tabs in the
+          middle, Add Task amber button, utility cluster (Export / Import
+          / Refresh) on the right. The v2 footer's stats block (active /
+          done counts) is dropped here — the same numbers are already
+          implicit in the top readout bar's Q1-Q4 counts. */}
+      <div className="cin-action-bar">
+        <div className="cin-view-tabs" role="tablist">
+          {[
+            { key: 'matrix',    icon: LayoutGrid,  label: 'Matrix' },
+            { key: 'list',      icon: List,        label: 'List' },
+            { key: 'gantt',     icon: BarChart3,   label: 'Gantt' },
+            { key: 'calendar',  icon: Calendar,    label: 'Calendar' },
+            { key: 'analytics', icon: TrendingUp,  label: 'Analytics' }
+          ].map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              className={`cin-view-tab ${view === key ? 'on' : ''}`}
+              onClick={() => setView(key)}
+              role="tab"
+              aria-selected={view === key}
+            >
+              <span className="cin-view-tab__glyph"><Icon size={13} /></span>
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
-      </footer>
+
+        <div className="cin-action-bar__divider" />
+
+        <button
+          className="cin-add-task"
+          onClick={() => { setEditingTask(null); setShowForm(true); }}
+          title="Add new task"
+        >
+          <span className="cin-add-task__glyph"><Plus size={14} strokeWidth={2.5} /></span>
+          <span>Add Task</span>
+        </button>
+
+        <div className="cin-action-bar__divider" />
+
+        <div className="cin-utility-cluster">
+          <button
+            className="cin-utility-btn"
+            onClick={exportData}
+            title="Export data"
+            aria-label="Export"
+          ><Download size={13} /></button>
+          <label className="cin-utility-btn" title="Import data" style={{ cursor: 'pointer' }}>
+            <Upload size={13} />
+            <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
+          </label>
+          <button
+            className="cin-utility-btn"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw size={13} className={isRefreshing ? 'cin-utility-btn--spin' : ''} />
+          </button>
+        </div>
+      </div>
 
       {/* Backup reminder — now a small overlay toast */}
       {showBackupReminder && (
