@@ -1,0 +1,3553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ETM — Cinematic Demo · Peirastes</title>
+<meta name="description" content="Visual prototype: Eisenhower Task Manager reimagined inside the Peirastes Cinematic Tier. Mock data, no backend. Compare against the running ETM v2.">
+<meta name="theme-color" content="#06080c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   ETM CINEMATIC DEMO — Hybrid Atrium
+   ───────────────────────────────────────────────────────────────
+   Visual prototype only. Mock data, no React, no backend. The
+   running ETM v2 (sibling dir) is untouched.
+
+   Architecture decision (per Style Guide §2.0):
+     OUTER  → Cinematic Tier (banner + grain + chrome row + ticks)
+     INNER  → Floating .inst-panel topology containing a 2×2
+              Eisenhower grid as acrylic-glass sub-panels.
+
+   Chrome row classes (.cin-*) copied byte-equivalent from
+   artemis-ii-v3-5/index.html per CD memory: "chrome must be a
+   verbatim copy". Every font, size, and inset matters.
+
+   Quadrant phosphor semantic colors (red Q1 / cyan Q2 / amber Q3
+   / muted Q4) are preserved but de-CRT'd: they become subtle hue
+   washes on acrylic-glass surfaces instead of phosphor tints
+   behind scanlines.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Base tones — match artemis-ii-v3-5 reference */
+  --bg-void: #06080c;
+  --bg-base: #0a0e16;
+  --fg:    #e8e8e8;
+  --fg-2:  #c8c8c8;
+  --fg-3:  #8a8a8a;
+
+  /* Cinematic palette — instrument-tier hot amber + cyan */
+  --gold:        #ffae20;
+  --gold-soft:   rgba(255, 174, 32, 0.72);
+  --gold-faint:  rgba(255, 174, 32, 0.28);
+  --gold-glow:   rgba(255, 174, 32, 0.45);
+  --cyan:        #7dd6ff;
+  --cyan-soft:   rgba(125, 214, 255, 0.65);
+  --cyan-faint:  rgba(125, 214, 255, 0.22);
+  --cyan-glow:   rgba(125, 214, 255, 0.30);
+
+  /* Acrylic glass surface tokens */
+  --glass-bg:        rgba(10, 14, 22, 0.42);
+  --glass-bg-deep:   rgba(8, 12, 18, 0.55);
+  --glass-bg-modal:  rgba(10, 14, 22, 0.88);
+  --glass-border:    rgba(255, 255, 255, 0.10);
+  --glass-blur:      blur(22px) saturate(1.4);
+  --glass-shadow:    0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* Quadrant semantic encoding — kept from current ETM but adapted.
+     Saturation drops: phosphor red on dark glass needs to be hot;
+     red on acrylic glass needs to whisper, not shout. */
+  --q1-hue:    #ff5566;   /* Critical — was red */
+  --q2-hue:    #7dd6ff;   /* Strategic — was cyan */
+  --q3-hue:    #ffb060;   /* Delegate — was amber */
+  --q4-hue:    #8090a4;   /* Eliminate — was muted */
+  --q1-glow:   rgba(255, 85, 102, 0.35);
+  --q2-glow:   rgba(125, 214, 255, 0.30);
+  --q3-glow:   rgba(255, 176, 96, 0.35);
+  --q4-glow:   rgba(128, 144, 164, 0.22);
+  --q1-soft:   rgba(255, 85, 102, 0.10);
+  --q2-soft:   rgba(125, 214, 255, 0.08);
+  --q3-soft:   rgba(255, 176, 96, 0.10);
+  --q4-soft:   rgba(128, 144, 164, 0.06);
+
+  /* Semantic — overdue/today still need to read hot */
+  --warn:       #ff8822;
+  --warn-glow:  rgba(255, 136, 34, 0.45);
+  --crit:       #ff3344;
+  --crit-glow:  rgba(255, 51, 68, 0.45);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Scope the background to body only — `html, body { background }` would
+   paint html's bg in the root stacking context above z-index:-2 fixed
+   pseudo-elements, hiding the banner. KB Explorer uses just `body`,
+   so we do too. */
+body {
+  background: var(--bg-void);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── BANNER BACKDROP ────────────────────────────────────────────
+   Matched to KB Explorer's exact treatment: cool-graded cinematic
+   banner with a -10deg hue rotation for the bridge-of-the-ship feel.
+   Path: 3 levels up from this file → Website/images/. */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background-image: url('../../../images/PeirastesBanner.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.45) brightness(0.28) contrast(1.05) hue-rotate(-10deg);
+  opacity: 0.82;
+  animation: kenBurns 60s ease-in-out infinite alternate;
+}
+@keyframes kenBurns {
+  0%   { transform: scale(1.00) translate(0, 0); }
+  100% { transform: scale(1.06) translate(-1.2%, -0.8%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}
+
+/* Atmospheric depth — vignette + slight top/bottom gradients
+   (KB Explorer values: stronger radial darken-to-edges, heavier
+   top + bottom black gradient to anchor the workspace). */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(6, 9, 18, 0.72) 95%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 30%, rgba(0, 0, 0, 0.58) 100%);
+}
+
+/* Subtle film grain */
+.cin-grain {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CINEMATIC CHROME ROW — back to byte-equivalent canonical structure
+   (each element independently fixed-positioned), with one tuning:
+   the .cin-title gets a slightly higher `top` than the flanks so
+   its 3-line block's visual CENTER aligns with the wordmark's
+   visual center, rather than its TOP line aligning with the
+   wordmark's TOP. Title computed shift = 0.4rem (≈ (title_height -
+   wordmark_block_height) / 2).
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-flank {
+  position: fixed;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: cin-fade-in 700ms ease 250ms forwards;
+}
+.cin-flank--left {
+  left: max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  align-items: flex-start;
+}
+.cin-flank--right {
+  right: max(1.6rem, env(safe-area-inset-right, 0px) + 0.6rem);
+  align-items: flex-end;
+  animation-delay: 400ms;
+}
+
+.cin-wordmark {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--gold-soft);
+  text-decoration: none;
+  text-shadow: 0 0 8px var(--gold-glow);
+  transition: color 200ms, text-shadow 200ms;
+  line-height: 1;
+}
+.cin-wordmark:hover {
+  color: var(--gold);
+  text-shadow: 0 0 14px var(--gold-glow);
+}
+
+.cin-version {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 500;
+  color: rgba(125, 214, 255, 0.55);
+  letter-spacing: 0.20em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.cin-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.cin-action {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.62);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.cin-action__glyph { display: inline-block; line-height: 1; }
+.cin-action:hover {
+  color: var(--cyan);
+  background: linear-gradient(180deg,
+    rgba(125, 214, 255, 0.08) 0%,
+    rgba(8, 12, 18, 0.85) 100%);
+  border-color: rgba(125, 214, 255, 0.30);
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 8px var(--cyan-glow);
+}
+.cin-action--disabled,
+.cin-action[disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+  color: rgba(180, 180, 180, 0.5);
+  border-color: rgba(255, 255, 255, 0.06);
+  border-left-color: transparent;
+}
+.cin-action--disabled:hover,
+.cin-action[disabled]:hover {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: rgba(180, 180, 180, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Instrument title — floats centered between flanks. The `top` value
+   sits ~0.4rem ABOVE the flank top inset so the 3-line block's visual
+   center lines up with the wordmark's visual center, not its first
+   line baseline-aligning with the wordmark (the latter is what canon
+   does, and what makes the title visually "hang low" below the flanks).
+   Result: title center ≈ wordmark center ≈ 2.5rem from viewport top.
+   Title's first line sits in the corner-tick zone vertically but
+   doesn't horizontally intersect them (ticks are at viewport corners,
+   title is centered). */
+.cin-title {
+  position: fixed;
+  top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.2rem);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in-centered 700ms ease 350ms forwards;
+}
+@keyframes cin-fade-in-centered {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+.cin-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.cin-title__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--cyan-soft);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.cin-title__crew {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 400;
+  color: rgba(220, 220, 220, 0.55);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Corner cartographic ticks — frame the work area */
+.cin-tick {
+  position: fixed;
+  width: 16px; height: 16px;
+  z-index: 99;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 600ms forwards;
+}
+.cin-tick::before, .cin-tick::after {
+  content: '';
+  position: absolute;
+  background: rgba(125, 214, 255, 0.45);
+}
+.cin-tick--tl {
+  top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);
+  left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem);
+}
+.cin-tick--tl::before { top: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--tl::after  { top: 0; left: 0; width: 1px; height: 12px; }
+.cin-tick--tr {
+  top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);
+  right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem);
+}
+.cin-tick--tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--tr::after  { top: 0; right: 0; width: 1px; height: 12px; }
+.cin-tick--bl {
+  bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem);
+  left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem);
+}
+.cin-tick--bl::before { bottom: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--bl::after  { bottom: 0; left: 0; width: 1px; height: 12px; }
+.cin-tick--br {
+  bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem);
+  right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem);
+}
+.cin-tick--br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--br::after  { bottom: 0; right: 0; width: 1px; height: 12px; }
+
+/* Hint glyphs bottom-left — keyboard hints for quick affordance discovery */
+.cin-hints {
+  position: fixed;
+  bottom: max(1.6rem, env(safe-area-inset-bottom, 0px) + 0.6rem);
+  left:   max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.10em;
+  color: rgba(180, 180, 180, 0.45);
+  text-transform: uppercase;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 750ms forwards;
+}
+.cin-hints__row { display: flex; align-items: center; gap: 0.5rem; }
+.cin-hints__key {
+  border: 1px solid rgba(180, 180, 180, 0.30);
+  padding: 1px 5px;
+  border-radius: 2px;
+  color: rgba(220, 220, 220, 0.70);
+  letter-spacing: 0.04em;
+}
+
+@keyframes cin-fade-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   READOUT STRIP — Console-tier vital signs, recomposed on glass
+   ───────────────────────────────────────────────────────────────
+   Sits below the chrome row at a fixed top inset that clears the
+   .cin-title baseline. Quadrant counts + overdue/today indicators
+   + Mk-II nameplate. Acrylic glass treatment so the banner
+   shows through subtly.
+   ═══════════════════════════════════════════════════════════════ */
+
+.readout-bar {
+  position: fixed;
+  top: 5.0rem;
+  left: 1.6rem;
+  right: 1.6rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--glass-bg-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  box-shadow: var(--glass-shadow);
+  opacity: 0;
+  animation: cin-fade-in 700ms ease 500ms forwards;
+}
+.readout-group {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+.readout-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+/* Quadrant cells — bare colored numbers with just the LED pip. No text
+   label needed: the number's color encodes the quadrant identity. */
+.readout-cell--quad {
+  gap: 0.32rem;
+}
+.readout-cell__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.readout-cell__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1;
+}
+.readout-cell__value--q1   { color: var(--q1-hue); text-shadow: 0 0 10px var(--q1-glow); }
+.readout-cell__value--q2   { color: var(--q2-hue); text-shadow: 0 0 10px var(--q2-glow); }
+.readout-cell__value--q3   { color: var(--q3-hue); text-shadow: 0 0 10px var(--q3-glow); }
+.readout-cell__value--q4   { color: var(--q4-hue); text-shadow: 0 0 8px  var(--q4-glow); }
+.readout-cell__value--crit { color: var(--crit);   text-shadow: 0 0 10px var(--crit-glow); }
+.readout-cell__value--warn { color: var(--warn);   text-shadow: 0 0 10px var(--warn-glow); }
+.readout-cell__value--muted{ color: rgba(220, 220, 220, 0.55); }
+
+/* LED dot — small glowing pip beside each readout label */
+.led {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.led--q1   { background: var(--q1-hue); box-shadow: 0 0 6px var(--q1-glow); }
+.led--q2   { background: var(--q2-hue); box-shadow: 0 0 6px var(--q2-glow); }
+.led--q3   { background: var(--q3-hue); box-shadow: 0 0 6px var(--q3-glow); }
+.led--q4   { background: var(--q4-hue); box-shadow: 0 0 5px var(--q4-glow); }
+.led--crit { background: var(--crit);   box-shadow: 0 0 6px var(--crit-glow); }
+.led--warn { background: var(--warn);   box-shadow: 0 0 6px var(--warn-glow); }
+.led--pulse { animation: ledPulse 2s ease-in-out infinite; }
+@keyframes ledPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* Mk-II nameplate — letterpressed device serial,
+   preserved from current ETM as instrument-level signage */
+.nameplate {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.55));
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03);
+  border: 1px solid rgba(0,0,0,0.20);
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: rgba(180, 180, 180, 0.55);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 -1px 1px rgba(0,0,0,0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WORKSPACE — the floating .inst-panel topology
+   ───────────────────────────────────────────────────────────────
+   Single big panel inset from edges. Matrix view = 2×2 grid of
+   acrylic-glass sub-panels inside. The cinema atmosphere shows
+   through the gaps between sub-panels — that's the load-bearing
+   visual difference from current ETM.
+   ═══════════════════════════════════════════════════════════════ */
+
+.workspace {
+  position: fixed;
+  top: 8.0rem;          /* clears chrome + readout bar */
+  bottom: 5.0rem;       /* clears footer action bar */
+  left: 1.6rem;
+  right: 1.6rem;
+  z-index: 5;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 650ms forwards;
+}
+
+/* View pane wrapper — each view (matrix / list / gantt / calendar /
+   analytics) lives in its own .view-pane. Only the active one renders. */
+.view-pane {
+  display: none;
+  height: 100%;
+}
+.view-pane.on { display: block; }
+.view-pane--matrix.on { display: grid; grid-template-rows: 1fr; }   /* let matrix-grid fill */
+
+.matrix-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1.0rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIST VIEW — single full-workspace acrylic-glass panel containing
+   a header (title + filters) and a scrollable table of all tasks.
+   Proves the acrylic-glass treatment scales beyond the 2×2 matrix.
+   ═══════════════════════════════════════════════════════════════ */
+
+.list-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 16px 18px 14px;
+  position: relative;
+  overflow: hidden;
+}
+/* Top chromatic edge — gradient across all four quadrant hues,
+   signifying this is the cross-quadrant universal view. */
+.list-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+
+.list-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+.list-panel__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--gold-glow);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.list-panel__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.65);
+  letter-spacing: 0.05em;
+  text-shadow: none;
+}
+
+.list-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+.list-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.list-filter__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.50);
+}
+.list-filter select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.85);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 24px 3px 9px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7'><path d='M1 1l5 5 5-5' stroke='%237dd6ff' stroke-width='1.4' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 9px;
+}
+.list-filter select:hover, .list-filter select:focus {
+  outline: none;
+  border-color: rgba(125, 214, 255, 0.30);
+  color: var(--cyan);
+}
+.list-filter select option {
+  background: #0a0e16;
+  color: #e8e8e8;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Scrollable table area */
+.list-table {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  padding-right: 4px;
+}
+.list-table::-webkit-scrollbar { width: 5px; }
+.list-table::-webkit-scrollbar-track { background: transparent; }
+.list-table::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+.list-table::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+
+/* Individual rows */
+.list-row {
+  display: grid;
+  grid-template-columns: 4px 1fr 140px 70px 90px;
+  gap: 14px;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  background: rgba(8, 12, 18, 0.38);
+  transition: all 160ms ease;
+  margin-bottom: 6px;
+  cursor: default;
+}
+.list-row:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+  transform: translateX(2px);
+}
+
+/* Header row — column labels, not interactive */
+.list-row--header {
+  background: transparent;
+  border: none;
+  padding: 0 12px 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.42);
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 0;
+  cursor: default;
+}
+.list-row--header:hover {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transform: none;
+}
+.list-row__h-priority { text-align: right; }
+
+/* Status modifiers */
+.list-row--overdue { border-color: rgba(255, 51, 68, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 51, 68, 0.08); }
+.list-row--today   { border-color: rgba(255, 136, 34, 0.24); }
+.list-row--done    { opacity: 0.45; }
+.list-row--done .list-row__name { text-decoration: line-through; }
+
+/* Quadrant color stripe (left edge of row) */
+.list-row__stripe {
+  height: 28px;
+  border-radius: 2px;
+  align-self: stretch;
+  margin: -2px 0;
+}
+.list-row--q1 .list-row__stripe { background: var(--q1-hue); box-shadow: 0 0 8px var(--q1-glow); }
+.list-row--q2 .list-row__stripe { background: var(--q2-hue); box-shadow: 0 0 8px var(--q2-glow); }
+.list-row--q3 .list-row__stripe { background: var(--q3-hue); box-shadow: 0 0 8px var(--q3-glow); }
+.list-row--q4 .list-row__stripe { background: var(--q4-hue); box-shadow: 0 0 6px var(--q4-glow); }
+
+/* Task name + project tag stack */
+.list-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.list-row__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.92);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-row__project {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.list-row__due {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.65);
+}
+.list-row__due--overdue { color: var(--crit); text-shadow: 0 0 6px var(--crit-glow); font-weight: 600; }
+.list-row__due--today   { color: var(--warn); text-shadow: 0 0 6px var(--warn-glow); font-weight: 600; }
+
+.list-row__priority {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+.list-row--q1 .list-row__priority { color: var(--q1-hue); }
+.list-row--q2 .list-row__priority { color: var(--q2-hue); }
+.list-row--q3 .list-row__priority { color: var(--q3-hue); }
+.list-row--q4 .list-row__priority { color: var(--q4-hue); }
+
+.list-row__bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.list-row__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 300ms ease;
+}
+.list-row--q1 .list-row__bar-fill { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.list-row--q2 .list-row__bar-fill { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.list-row--q3 .list-row__bar-fill { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.list-row--q4 .list-row__bar-fill { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+
+.list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.30);
+}
+
+/* Narrow screens — collapse the priority + progress columns */
+@media (max-width: 767px) {
+  .list-row {
+    grid-template-columns: 4px 1fr auto;
+    gap: 10px;
+  }
+  .list-row__due, .list-row__priority, .list-row__bar { display: none; }
+  .list-row__main { grid-column: 2; }
+  .list-row--header { display: none; }
+  .list-controls { gap: 0.5rem; }
+  .list-filter__label { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GANTT VIEW — horizontal timeline.
+   Window: TODAY−3 → TODAY+17 (21 days). Task bars span from start
+   to due date (start defaults to today for upcoming, to due date
+   for overdue). Today line marked with an amber vertical rule.
+   ═══════════════════════════════════════════════════════════════ */
+
+.gantt-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 16px 18px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.gantt-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+.gantt-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+.gantt-panel__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--gold-glow);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.gantt-panel__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.65);
+  letter-spacing: 0.05em;
+  text-shadow: none;
+}
+
+/* Timeline scaffold — left label column + right track column.
+   The grid template stays constant; both header and body use it. */
+.gantt-timeline {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.gantt-axis {
+  position: relative;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  grid-column: 1 / 3;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+}
+.gantt-axis__spacer { /* aligns with task-name column */ }
+.gantt-axis__days {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(21, 1fr);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(220, 220, 220, 0.45);
+}
+.gantt-axis__day {
+  text-align: center;
+  padding: 0 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-axis__day--today {
+  color: var(--gold);
+  text-shadow: 0 0 6px var(--gold-glow);
+  font-weight: 600;
+}
+.gantt-axis__day--weekend { color: rgba(220, 220, 220, 0.25); }
+
+/* Body */
+.gantt-body {
+  position: relative;
+  grid-column: 1 / 3;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 12px;
+  align-content: start;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  padding-right: 4px;
+}
+.gantt-body::-webkit-scrollbar { width: 5px; }
+.gantt-body::-webkit-scrollbar-track { background: transparent; }
+.gantt-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+
+/* Each row has two cells: a label and a track */
+.gantt-row {
+  display: contents;       /* sub-cells participate in parent grid directly */
+}
+.gantt-row__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px 0 0 3px;
+  border-right: none;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+.gantt-row__label-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.90);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-row__label-meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
+
+.gantt-row__track {
+  position: relative;
+  background: rgba(8, 12, 18, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 0 3px 3px 0;
+  border-left: none;
+  margin-bottom: 6px;
+  height: 36px;
+  /* Background 7-day grid via repeating gradient — gives a subtle weekly rhythm */
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(100% / 21 - 1px),
+    rgba(255, 255, 255, 0.03) calc(100% / 21 - 1px),
+    rgba(255, 255, 255, 0.03) calc(100% / 21)
+  );
+}
+
+/* The actual bar — positioned absolutely within the track */
+.gantt-bar {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  overflow: hidden;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(8, 12, 18, 0.95);
+  transition: filter 160ms ease;
+}
+.gantt-bar:hover { filter: brightness(1.18); }
+.gantt-bar--q1 { background: var(--q1-hue); box-shadow: 0 0 10px var(--q1-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--q2 { background: var(--q2-hue); box-shadow: 0 0 10px var(--q2-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--q3 { background: var(--q3-hue); box-shadow: 0 0 10px var(--q3-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--q4 { background: var(--q4-hue); box-shadow: 0 0 6px var(--q4-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--overdue {
+  background: var(--crit);
+  box-shadow: 0 0 14px var(--crit-glow), inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.gantt-bar--done   { opacity: 0.4; }
+
+/* Today line — vertical rule through the body at the today column */
+.gantt-today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold-glow);
+  pointer-events: none;
+  z-index: 2;
+}
+.gantt-today-label {
+  position: absolute;
+  top: -16px;
+  transform: translateX(-50%);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 0 0 6px var(--gold-glow);
+  white-space: nowrap;
+}
+
+@media (max-width: 1023px) {
+  .gantt-timeline { grid-template-columns: 160px 1fr; }
+  .gantt-axis     { grid-template-columns: 160px 1fr; }
+  .gantt-body     { grid-template-columns: 160px 1fr; }
+}
+@media (max-width: 767px) {
+  /* On narrow screens, just hide the gantt — too dense to be useful */
+  .gantt-panel__head + .gantt-timeline { display: none; }
+  .gantt-panel__head::after {
+    content: 'Gantt requires a wider viewport — rotate or use List view';
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 24px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(180, 180, 180, 0.5);
+    text-align: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CALENDAR VIEW — monthly grid with task pills per cell.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cal-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 16px 18px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.cal-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+.cal-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+.cal-monthnav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cal-monthnav__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--gold-glow);
+  min-width: 180px;
+  text-align: center;
+}
+.cal-monthnav__btn {
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.65);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 2px 9px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cal-monthnav__btn:hover {
+  color: var(--cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: rgba(125, 214, 255, 0.08);
+}
+
+/* 7-column grid for week */
+.cal-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.40);
+}
+.cal-weekday-header > div {
+  text-align: center;
+  padding: 4px 0;
+}
+
+.cal-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.cal-cell {
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 5px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  overflow: hidden;
+  transition: all 160ms ease;
+}
+.cal-cell:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.cal-cell--other-month { opacity: 0.32; }
+.cal-cell--today {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px var(--gold-glow), inset 0 0 0 1px var(--gold-faint);
+  background: linear-gradient(135deg, rgba(255, 174, 32, 0.08), rgba(8, 12, 18, 0.38) 70%);
+}
+.cal-cell--weekend { background: rgba(8, 12, 18, 0.28); }
+.cal-cell__date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.65);
+  letter-spacing: 0.04em;
+  text-align: right;
+  line-height: 1;
+}
+.cal-cell--today .cal-cell__date {
+  color: var(--gold);
+  font-weight: 700;
+  text-shadow: 0 0 6px var(--gold-glow);
+}
+.cal-cell__tasks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  min-height: 0;
+}
+.cal-task-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid transparent;
+  cursor: default;
+  transition: background 160ms ease;
+}
+.cal-task-pill:hover { background: rgba(255, 255, 255, 0.06); }
+.cal-task-pill--q1 { border-left-color: var(--q1-hue); background: rgba(255, 85, 102, 0.10); }
+.cal-task-pill--q2 { border-left-color: var(--q2-hue); background: rgba(125, 214, 255, 0.10); }
+.cal-task-pill--q3 { border-left-color: var(--q3-hue); background: rgba(255, 176, 96, 0.10); }
+.cal-task-pill--q4 { border-left-color: var(--q4-hue); background: rgba(128, 144, 164, 0.08); }
+.cal-task-pill__overflow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: rgba(220, 220, 220, 0.40);
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .cal-task-pill { font-size: 8px; padding: 1px 3px; }
+  .cal-cell { padding: 3px 4px; }
+  .cal-monthnav__title { min-width: 120px; font-size: 10px; }
+  .cal-weekday-header { font-size: 0.52rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANALYTICS VIEW — performance metrics + breakdown charts
+   ───────────────────────────────────────────────────────────────
+   Layout: scorecards row, then 2-col grid (quadrant + domain
+   distributions), then a full-width 30-day completion velocity
+   area chart. All sub-panels live inside the main acrylic-glass
+   .analytics-panel (no nested glass).
+   ═══════════════════════════════════════════════════════════════ */
+
+.analytics-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 16px 18px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.analytics-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+.analytics-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.analytics-panel__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--gold-glow);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.analytics-panel__sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(220, 220, 220, 0.55);
+}
+
+/* Scrollable body so charts can extend beyond the viewport */
+.analytics-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  padding-right: 4px;
+}
+.analytics-body::-webkit-scrollbar { width: 5px; }
+.analytics-body::-webkit-scrollbar-track { background: transparent; }
+.analytics-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+
+/* ── Scorecards row ──────────────────────────────────────────── */
+.score-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.score-tile {
+  padding: 10px 14px 12px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  border-left: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.score-tile--total    { border-left-color: rgba(220, 220, 220, 0.55); }
+.score-tile--complete { border-left-color: var(--status-positive); }
+.score-tile--overdue  { border-left-color: var(--crit); }
+.score-tile--priority { border-left-color: var(--gold); }
+
+.score-tile__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.score-tile__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+}
+.score-tile--total    .score-tile__value { color: rgba(232, 232, 232, 0.92); }
+.score-tile--complete .score-tile__value { color: var(--status-positive); text-shadow: 0 0 10px rgba(80, 200, 120, 0.30); }
+.score-tile--overdue  .score-tile__value { color: var(--crit);             text-shadow: 0 0 10px var(--crit-glow); }
+.score-tile--priority .score-tile__value { color: var(--gold);             text-shadow: 0 0 10px var(--gold-glow); }
+.score-tile__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.45);
+}
+
+/* ── Chart sub-cards (no nested glass, just border + breathing) ── */
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.chart-card {
+  background: rgba(8, 12, 18, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 180px;
+}
+.chart-card--wide { grid-column: 1 / -1; }
+
+.chart-card__title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.chart-card__title-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(180, 180, 180, 0.40);
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* ── Horizontal bar chart ────────────────────────────────────── */
+.hbar-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.hbar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 36px;
+  align-items: center;
+  gap: 10px;
+}
+.hbar-row__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(220, 220, 220, 0.80);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hbar-row__track {
+  position: relative;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.hbar-row__fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  border-radius: 2px;
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hbar-row__fill--q1 { background: linear-gradient(90deg, var(--q1-hue), rgba(255, 85, 102, 0.55)); box-shadow: 0 0 8px var(--q1-glow); }
+.hbar-row__fill--q2 { background: linear-gradient(90deg, var(--q2-hue), rgba(125, 214, 255, 0.55)); box-shadow: 0 0 8px var(--q2-glow); }
+.hbar-row__fill--q3 { background: linear-gradient(90deg, var(--q3-hue), rgba(255, 176, 96, 0.55)); box-shadow: 0 0 8px var(--q3-glow); }
+.hbar-row__fill--q4 { background: linear-gradient(90deg, var(--q4-hue), rgba(128, 144, 164, 0.55)); box-shadow: 0 0 6px var(--q4-glow); }
+.hbar-row__fill--neutral { background: linear-gradient(90deg, var(--cyan), rgba(125, 214, 255, 0.45)); box-shadow: 0 0 8px var(--cyan-glow); }
+.hbar-row__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(220, 220, 220, 0.75);
+  text-align: right;
+}
+
+/* ── Velocity chart (SVG) ────────────────────────────────────── */
+.velocity-chart {
+  flex: 1;
+  min-height: 140px;
+  position: relative;
+}
+.velocity-chart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+.velocity-chart__axis-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  fill: rgba(180, 180, 180, 0.45);
+  text-transform: uppercase;
+}
+.velocity-chart__axis-label--today {
+  fill: var(--gold);
+  font-weight: 700;
+}
+.velocity-chart__gridline {
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 1;
+}
+.velocity-chart__area {
+  fill: url(#velocityGradient);
+  opacity: 0.85;
+}
+.velocity-chart__line {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px var(--gold-glow));
+}
+.velocity-chart__today-line {
+  stroke: var(--gold);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  opacity: 0.5;
+}
+.velocity-chart__point {
+  fill: var(--gold);
+  filter: drop-shadow(0 0 4px var(--gold-glow));
+}
+
+@media (max-width: 1023px) {
+  .score-tiles { grid-template-columns: repeat(2, 1fr); }
+  .chart-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+  .score-tile__value { font-size: 22px; }
+  .hbar-row { grid-template-columns: 80px 1fr 30px; gap: 8px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOT-UP CEREMONY — PIN unlock + cinematic reveal
+   ───────────────────────────────────────────────────────────────
+   On load, body has `.app-locked`. All entrance-animated elements
+   (chrome, readout, workspace, action bar) get `animation: none`
+   and `opacity: 0` — suppressed while the boot overlay is up.
+   Atmosphere (banner + grain + corner ticks) stays visible behind
+   the overlay. PIN entry triggers unlock, which:
+     1. amber-glow flash on the keypad
+     2. boot overlay fades out (400ms)
+     3. amber scan-line sweeps top→bottom across the viewport (700ms)
+     4. .app-locked class is removed → entrance animations now fire
+        fresh on chrome / readout / workspace / action-bar
+   The result reads as a "system activating" ceremony in the
+   cinematic register — the v2 hazard-stripe boot moment, restyled.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Suppress entrance animations + hide all primary chrome while locked */
+body.app-locked .cin-flank,
+body.app-locked .cin-title,
+body.app-locked .readout-bar,
+body.app-locked .workspace,
+body.app-locked .action-bar,
+body.app-locked .cin-hints {
+  animation: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  background: rgba(6, 8, 12, 0.62);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  transition: opacity 400ms ease, backdrop-filter 400ms ease;
+}
+.boot-overlay.hide {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  pointer-events: none;
+}
+.boot-overlay.gone { display: none; }
+
+.boot-title {
+  text-align: center;
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 300ms forwards;
+}
+.boot-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  margin-bottom: 6px;
+}
+.boot-title__status {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--cyan-soft);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.boot-title__status::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan-glow);
+  animation: bootStatusPulse 1.8s ease-in-out infinite;
+}
+@keyframes bootStatusPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* PIN display — 4 dots */
+.pin-display {
+  display: flex;
+  gap: 14px;
+  padding: 12px 20px;
+  background: rgba(8, 12, 18, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 500ms forwards;
+}
+.pin-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: rgba(8, 12, 18, 0.7);
+  border: 1px solid rgba(125, 214, 255, 0.30);
+  transition: all 180ms ease;
+}
+.pin-dot--filled {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+.pin-display.shake {
+  animation: pinShake 360ms ease;
+}
+@keyframes pinShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-8px); }
+  40%      { transform: translateX(7px); }
+  60%      { transform: translateX(-5px); }
+  80%      { transform: translateX(3px); }
+}
+.pin-display.shake .pin-dot {
+  background: var(--crit);
+  border-color: var(--crit);
+  box-shadow: 0 0 10px var(--crit-glow);
+}
+
+/* PIN keypad — 3×4 grid */
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 70px);
+  grid-template-rows:    repeat(4, 56px);
+  gap: 8px;
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 700ms forwards;
+}
+.pin-key {
+  background: rgba(8, 12, 18, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  color: rgba(232, 232, 232, 0.85);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 140ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.pin-key:hover {
+  color: var(--cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: rgba(125, 214, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.15),
+    0 0 10px var(--cyan-glow);
+}
+.pin-key:active, .pin-key.press {
+  color: var(--gold);
+  border-color: rgba(255, 174, 32, 0.40);
+  background: rgba(255, 174, 32, 0.08);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    0 0 12px var(--gold-glow);
+  text-shadow: 0 0 6px var(--gold-glow);
+}
+.pin-key--util {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.pin-key--empty { visibility: hidden; }
+
+.pin-keypad.flash {
+  animation: pinUnlock 300ms ease;
+}
+@keyframes pinUnlock {
+  0%   { filter: brightness(1); }
+  40%  { filter: brightness(1.8); }
+  100% { filter: brightness(1); }
+}
+
+.boot-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.45);
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 900ms forwards;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+@keyframes bootFadeIn {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Scan-line sweep on unlock — the cinematic counterpart of v2's
+   hazard-stripe boot signal. Thin amber rule sweeps top → bottom. */
+.boot-scanline {
+  position: fixed;
+  left: 0; right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--gold);
+  box-shadow: 0 0 12px var(--gold-glow), 0 0 24px var(--gold-glow), 0 4px 28px rgba(255, 174, 32, 0.25);
+  z-index: 250;
+  pointer-events: none;
+  opacity: 0;
+}
+.boot-scanline.sweep {
+  /* 1500ms matches the time it takes for the chrome cascade (flanks →
+     title → readout → workspace → action bar) to fully materialize
+     behind the line, so the sweep visually "reveals" each layer in
+     time with its entrance animation. */
+  animation: bootScan 1500ms cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+@keyframes bootScan {
+  0%   { top: 0;       opacity: 0; }
+  15%  { opacity: 0.90; }
+  85%  { opacity: 0.40; }
+  100% { top: 100vh;   opacity: 0; }
+}
+
+@media (max-width: 767px) {
+  .pin-keypad {
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows:    repeat(4, 46px);
+    gap: 6px;
+  }
+  .pin-key { font-size: 18px; }
+  .pin-key--util { font-size: 9.5px; }
+  .boot-title__name { font-size: 13px; }
+  .boot-title__status { font-size: 8.5px; }
+}
+
+.quad-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 14px 16px 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Per-quadrant chromatic edge — left-border accent in the quadrant's hue.
+   This is the load-bearing replacement for ETM's phosphor-tinted CRT glass.
+   v3.5 retrofit rule: chromatic edges reserved for data-display surfaces
+   ONLY. These panels are data-display surfaces (lists of tasks), so the
+   chromatic edge is canonical here. */
+.quad-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 6px 0 0 6px;
+  pointer-events: none;
+}
+.quad-panel--q1::before { background: linear-gradient(180deg, var(--q1-hue) 0%, transparent 100%); box-shadow: 0 0 12px var(--q1-glow); }
+.quad-panel--q2::before { background: linear-gradient(180deg, var(--q2-hue) 0%, transparent 100%); box-shadow: 0 0 12px var(--q2-glow); }
+.quad-panel--q3::before { background: linear-gradient(180deg, var(--q3-hue) 0%, transparent 100%); box-shadow: 0 0 12px var(--q3-glow); }
+.quad-panel--q4::before { background: linear-gradient(180deg, var(--q4-hue) 0%, transparent 100%); box-shadow: 0 0 8px  var(--q4-glow); }
+
+/* Faint quadrant hue wash on the panel background (the soft phosphor
+   echo, very subtle — the glass should mostly be neutral) */
+.quad-panel--q1 { background-image: linear-gradient(135deg, var(--q1-soft) 0%, transparent 60%); }
+.quad-panel--q2 { background-image: linear-gradient(135deg, var(--q2-soft) 0%, transparent 60%); }
+.quad-panel--q3 { background-image: linear-gradient(135deg, var(--q3-soft) 0%, transparent 60%); }
+.quad-panel--q4 { background-image: linear-gradient(135deg, var(--q4-soft) 0%, transparent 60%); }
+
+/* Quadrant header */
+.quad-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.quad-panel__designation {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quad-panel--q1 .quad-panel__designation { color: var(--q1-hue); text-shadow: 0 0 8px var(--q1-glow); }
+.quad-panel--q2 .quad-panel__designation { color: var(--q2-hue); text-shadow: 0 0 8px var(--q2-glow); }
+.quad-panel--q3 .quad-panel__designation { color: var(--q3-hue); text-shadow: 0 0 8px var(--q3-glow); }
+.quad-panel--q4 .quad-panel__designation { color: var(--q4-hue); text-shadow: 0 0 6px var(--q4-glow); }
+
+.quad-panel__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.40);
+}
+.quad-panel__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+}
+.quad-panel--q1 .quad-panel__count { color: var(--q1-hue); }
+.quad-panel--q2 .quad-panel__count { color: var(--q2-hue); }
+.quad-panel--q3 .quad-panel__count { color: var(--q3-hue); }
+.quad-panel--q4 .quad-panel__count { color: var(--q4-hue); }
+
+/* Task list inside each quadrant */
+.task-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.task-list::-webkit-scrollbar { width: 5px; }
+.task-list::-webkit-scrollbar-track { background: transparent; }
+.task-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+.task-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+
+/* Individual task row — minimal, acrylic-feel, hover-elevates */
+.task {
+  position: relative;
+  padding: 7px 9px 7px 10px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  transition: all 160ms ease;
+  cursor: default;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+}
+.task:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+  transform: translateX(2px);
+}
+.task--overdue { border-color: rgba(255, 51, 68, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 51, 68, 0.08); }
+.task--today   { border-color: rgba(255, 136, 34, 0.24); }
+.task--done    { opacity: 0.45; }
+.task--done .task__name { text-decoration: line-through; }
+
+.task__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.92);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  grid-column: 1 / 2;
+}
+.task__meta {
+  grid-column: 1 / 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
+.task__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.62);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.task__due { font-weight: 600; }
+.task__due--overdue { color: var(--crit); text-shadow: 0 0 6px var(--crit-glow); }
+.task__due--today   { color: var(--warn); text-shadow: 0 0 6px var(--warn-glow); }
+
+/* Right-side cluster: priority badge + progress bar */
+.task__right {
+  grid-row: 1 / 3;
+  grid-column: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 64px;
+}
+.task__priority {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.task--q1 .task__priority { color: var(--q1-hue); }
+.task--q2 .task__priority { color: var(--q2-hue); }
+.task--q3 .task__priority { color: var(--q3-hue); }
+.task--q4 .task__priority { color: var(--q4-hue); }
+
+.task__bar {
+  width: 60px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.task__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 300ms ease;
+}
+.task--q1 .task__bar-fill { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.task--q2 .task__bar-fill { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.task--q3 .task__bar-fill { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.task--q4 .task__bar-fill { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+
+/* Empty-state inside an empty quadrant */
+.quad-panel__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.30);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER — view selector + Add Task primary action
+   ───────────────────────────────────────────────────────────────
+   Floating glass strip at the bottom. The metallic-pushbutton
+   chassis from current ETM is the strongest single piece of the
+   v2 design — but Cole chose the Hybrid Atrium scope, which
+   means the workspace becomes cinema-atmosphere, and the footer
+   needs to match (acrylic glass, not metal). If this loss bites,
+   the surgical "Cinematic Wrap" option in the analysis brings
+   the pushbutton footer back.
+   ═══════════════════════════════════════════════════════════════ */
+
+.action-bar {
+  position: fixed;
+  bottom: 1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 0.28rem 1.4rem;       /* slim + long: tight vertical, generous horizontal */
+  background: var(--glass-bg-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;            /* slightly tighter radius reads more strip-like */
+  box-shadow: var(--glass-shadow);
+  opacity: 0;
+  /* Use the centered fade keyframe — preserves translateX(-50%) through
+     the animation. The plain cin-fade-in writes a translateY(0) at the
+     100% frame which wipes out the centering offset, leaving the bar's
+     left edge at viewport center. */
+  animation: action-bar-fade-in 800ms ease 700ms forwards;
+}
+@keyframes action-bar-fade-in {
+  0%   { opacity: 0; transform: translate(-50%, 8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+.view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;                   /* more space between tabs */
+}
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;                  /* icon-to-label spacing */
+  white-space: nowrap;           /* keep icon + label on one line */
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.55);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 3px 13px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.view-tab:hover {
+  color: var(--cyan);
+  background: rgba(125, 214, 255, 0.06);
+}
+.view-tab.on {
+  color: var(--gold);
+  background: rgba(255, 174, 32, 0.10);
+  border-color: rgba(255, 174, 32, 0.22);
+  text-shadow: 0 0 8px var(--gold-glow);
+}
+.view-tab__glyph {
+  display: inline-flex;          /* uniform vertical alignment with the label */
+  align-items: center;
+  line-height: 1;
+  opacity: 0.65;
+}
+
+.action-bar__divider {
+  width: 1px;
+  height: 16px;                  /* match new slimmer bar height */
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.add-task {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;           /* keep "Add Task" on one line */
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.32) 0%,
+    rgba(255, 124, 16, 0.32) 100%);
+  border: 1px solid rgba(255, 174, 32, 0.55);
+  color: var(--gold);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 3px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  text-shadow: 0 0 6px var(--gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 14px rgba(255, 174, 32, 0.18);
+}
+.add-task:hover {
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.45) 0%,
+    rgba(255, 124, 16, 0.45) 100%);
+  border-color: rgba(255, 174, 32, 0.80);
+  color: #fff;
+  text-shadow: 0 0 10px var(--gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 22px rgba(255, 174, 32, 0.32);
+}
+.add-task__glyph {
+  font-size: 16px;
+  line-height: 0.8;
+  font-weight: 300;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLACEHOLDER MODAL — for the secondary views and Add Task
+   ───────────────────────────────────────────────────────────────
+   The demo only implements the Matrix view fully. Other views
+   open a placeholder modal noting "not implemented in demo." This
+   is intentional: the visual question Cole is evaluating is the
+   Matrix view as the canonical case. List/Gantt/Calendar/Analytics
+   would all inherit the same acrylic-glass treatment.
+   ═══════════════════════════════════════════════════════════════ */
+
+.modal-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop.on { display: flex; }
+
+.modal {
+  width: min(440px, calc(100vw - 3rem));
+  padding: 24px 28px 22px;
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
+}
+.modal__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--gold-glow);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.modal__body {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(220, 220, 220, 0.78);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.modal__body strong { color: #fff; font-weight: 600; }
+.modal__close {
+  background: linear-gradient(180deg, rgba(20, 26, 36, 0.82), rgba(8, 12, 18, 0.90));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(220, 220, 220, 0.78);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.modal__close:hover {
+  color: var(--cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: linear-gradient(180deg, rgba(125, 214, 255, 0.08), rgba(8, 12, 18, 0.85));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   At lg → md, the 2×2 grid collapses to a single column. The
+   matrix view becomes a vertical stack of four quadrants.
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1023px) {
+  .readout-bar { top: 4.4rem; padding: 0.4rem 0.8rem; flex-wrap: wrap; gap: 0.5rem; }
+  .readout-group { gap: 0.7rem; }
+  .readout-cell__label { font-size: 0.55rem; }
+  .readout-cell__value { font-size: 0.9rem; }
+  .workspace { top: 7.2rem; bottom: 4.4rem; }
+  .matrix-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0.7rem;
+  }
+}
+@media (max-width: 767px) {
+  .cin-flank { gap: 0.2rem; }
+  .cin-wordmark { font-size: 0.7rem; }
+  .cin-title__name { font-size: 14px; }
+  .cin-title__sub { font-size: 8px; }
+  .cin-title__crew { display: none; }
+  .readout-bar {
+    top: 4.0rem;
+    left: 0.9rem;
+    right: 0.9rem;
+    padding: 0.35rem 0.7rem;
+  }
+  .readout-group { gap: 0.45rem; flex-wrap: wrap; }
+  .nameplate { display: none; }
+  .workspace { top: 7.0rem; bottom: 4.4rem; left: 0.9rem; right: 0.9rem; }
+  .matrix-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 0.6rem;
+  }
+  .action-bar { padding: 0.4rem 0.5rem; gap: 0.6rem; bottom: 1.0rem; }
+  .view-tab { padding: 4px 8px; font-size: 10px; }
+  .cin-hints { display: none; }
+}
+</style>
+</head>
+
+<body class="app-locked">
+
+<!-- Atmospheric layer (visible during lock + after) -->
+<div class="cin-grain" aria-hidden="true"></div>
+
+<!-- ═══ BOOT OVERLAY ═══════════════════════════════════════════════
+     PIN unlock gate. Covers the whole viewport while body has
+     .app-locked. After 4 digits entered (any 4 digits — demo doesn't
+     validate), triggers unlock(): fade overlay, sweep scan-line,
+     remove app-locked → workspace entrance animations fire fresh.
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="boot-overlay" id="bootOverlay" aria-label="Authorization required">
+  <div class="boot-title">
+    <div class="boot-title__name">Eisenhower Task Manager</div>
+    <div class="boot-title__status">Awaiting Authorization</div>
+  </div>
+
+  <div class="pin-display" id="pinDisplay" aria-label="PIN entry — 4 digits">
+    <div class="pin-dot" data-pos="0"></div>
+    <div class="pin-dot" data-pos="1"></div>
+    <div class="pin-dot" data-pos="2"></div>
+    <div class="pin-dot" data-pos="3"></div>
+  </div>
+
+  <div class="pin-keypad" id="pinKeypad">
+    <button class="pin-key" data-key="1">1</button>
+    <button class="pin-key" data-key="2">2</button>
+    <button class="pin-key" data-key="3">3</button>
+    <button class="pin-key" data-key="4">4</button>
+    <button class="pin-key" data-key="5">5</button>
+    <button class="pin-key" data-key="6">6</button>
+    <button class="pin-key" data-key="7">7</button>
+    <button class="pin-key" data-key="8">8</button>
+    <button class="pin-key" data-key="9">9</button>
+    <button class="pin-key pin-key--util" data-key="del">Del</button>
+    <button class="pin-key" data-key="0">0</button>
+    <button class="pin-key pin-key--util" data-key="clr">Clr</button>
+  </div>
+
+  <div class="boot-hint">
+    Demo &middot; Enter any 4 digits to proceed<br>
+    Keyboard input accepted &middot; Esc to clear
+  </div>
+</div>
+
+<!-- Scan-line, fires once during unlock sequence -->
+<div class="boot-scanline" id="bootScanline" aria-hidden="true"></div>
+
+<!-- ═══ CINEMATIC CHROME ROW ═══════════════════════════════════════ -->
+<div class="cin-flank cin-flank--left">
+  <a class="cin-wordmark" href="https://peirastes.com/" title="Back to Peirastes">PEIRASTES</a>
+  <span class="cin-version">v0.1 · demo</span>
+</div>
+
+<div class="cin-title" aria-label="Eisenhower Task Manager — Operations">
+  <div class="cin-title__name">Eisenhower <span>Task Manager</span></div>
+  <div class="cin-title__sub">Operations &mdash; Task Prioritization Console</div>
+  <div class="cin-title__crew">Critical &bull; Strategic &bull; Delegate &bull; Eliminate</div>
+</div>
+
+<div class="cin-flank cin-flank--right">
+  <div class="cin-action-row">
+    <button class="cin-action" id="btnInfo" title="About this demo" aria-label="About">
+      <span class="cin-action__glyph">&#9432;</span>
+    </button>
+    <button class="cin-action cin-action--disabled" title="Settings (not in demo)" aria-label="Settings" disabled>
+      <span class="cin-action__glyph">&#9881;</span>
+    </button>
+  </div>
+</div>
+
+<!-- Corner ticks -->
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+<!-- Keyboard hints (bottom-left) -->
+<div class="cin-hints" aria-hidden="true">
+  <div class="cin-hints__row"><span class="cin-hints__key">N</span> New task</div>
+  <div class="cin-hints__row"><span class="cin-hints__key">/</span> Filter</div>
+</div>
+
+<!-- ═══ READOUT STRIP ═══════════════════════════════════════════════ -->
+<div class="readout-bar">
+  <div class="readout-group">
+    <div class="readout-cell readout-cell--quad">
+      <span class="led led--q1"></span>
+      <div class="readout-cell__value readout-cell__value--q1" id="rdQ1">3</div>
+    </div>
+    <div class="readout-cell readout-cell--quad">
+      <span class="led led--q2"></span>
+      <div class="readout-cell__value readout-cell__value--q2" id="rdQ2">4</div>
+    </div>
+    <div class="readout-cell readout-cell--quad">
+      <span class="led led--q3"></span>
+      <div class="readout-cell__value readout-cell__value--q3" id="rdQ3">2</div>
+    </div>
+    <div class="readout-cell readout-cell--quad">
+      <span class="led led--q4"></span>
+      <div class="readout-cell__value readout-cell__value--q4" id="rdQ4">1</div>
+    </div>
+  </div>
+  <div class="readout-group">
+    <div class="readout-cell" id="rdOverdueWrap">
+      <div class="readout-cell__label"><span class="led led--crit led--pulse"></span> Overdue</div>
+      <div class="readout-cell__value readout-cell__value--crit" id="rdOverdue">1</div>
+    </div>
+    <div class="readout-cell" id="rdTodayWrap">
+      <div class="readout-cell__label"><span class="led led--warn led--pulse"></span> Today</div>
+      <div class="readout-cell__value readout-cell__value--warn" id="rdToday">2</div>
+    </div>
+    <div class="nameplate">Peirastes Mk-III</div>
+  </div>
+</div>
+
+<!-- ═══ WORKSPACE: MULTIPLE VIEW PANES ════════════════════════════ -->
+<div class="workspace">
+
+  <!-- Matrix view (default) -->
+  <div class="view-pane view-pane--matrix on" id="paneMatrix">
+  <div class="matrix-grid">
+
+    <!-- Q1: DO FIRST -->
+    <div class="quad-panel quad-panel--q1">
+      <div class="quad-panel__head">
+        <div class="quad-panel__designation">
+          <span class="led led--q1"></span> Q1 &middot; Critical
+        </div>
+        <div class="quad-panel__sub">Urgent &middot; Necessary</div>
+        <div class="quad-panel__count" id="countQ1">3</div>
+      </div>
+      <div class="task-list" id="listQ1"></div>
+    </div>
+
+    <!-- Q2: SCHEDULE -->
+    <div class="quad-panel quad-panel--q2">
+      <div class="quad-panel__head">
+        <div class="quad-panel__designation">
+          <span class="led led--q2"></span> Q2 &middot; Strategic
+        </div>
+        <div class="quad-panel__sub">Not Urgent &middot; Necessary</div>
+        <div class="quad-panel__count" id="countQ2">4</div>
+      </div>
+      <div class="task-list" id="listQ2"></div>
+    </div>
+
+    <!-- Q3: DELEGATE -->
+    <div class="quad-panel quad-panel--q3">
+      <div class="quad-panel__head">
+        <div class="quad-panel__designation">
+          <span class="led led--q3"></span> Q3 &middot; Delegate
+        </div>
+        <div class="quad-panel__sub">Urgent &middot; Not Necessary</div>
+        <div class="quad-panel__count" id="countQ3">2</div>
+      </div>
+      <div class="task-list" id="listQ3"></div>
+    </div>
+
+    <!-- Q4: ELIMINATE -->
+    <div class="quad-panel quad-panel--q4">
+      <div class="quad-panel__head">
+        <div class="quad-panel__designation">
+          <span class="led led--q4"></span> Q4 &middot; Eliminate
+        </div>
+        <div class="quad-panel__sub">Not Urgent &middot; Not Necessary</div>
+        <div class="quad-panel__count" id="countQ4">1</div>
+      </div>
+      <div class="task-list" id="listQ4"></div>
+    </div>
+
+  </div>
+  </div><!-- /paneMatrix -->
+
+  <!-- List view — single full-workspace acrylic-glass panel with all tasks -->
+  <div class="view-pane view-pane--list" id="paneList">
+    <div class="list-panel">
+      <div class="list-panel__head">
+        <div class="list-panel__title">
+          All Tasks
+          <span class="list-panel__count" id="listCount">10</span>
+        </div>
+        <div class="list-controls">
+          <div class="list-filter">
+            <label class="list-filter__label" for="filterQuad">Quadrant</label>
+            <select id="filterQuad">
+              <option value="all">All</option>
+              <option value="q1">Q1 · Critical</option>
+              <option value="q2">Q2 · Strategic</option>
+              <option value="q3">Q3 · Delegate</option>
+              <option value="q4">Q4 · Eliminate</option>
+            </select>
+          </div>
+          <div class="list-filter">
+            <label class="list-filter__label" for="filterStatus">Status</label>
+            <select id="filterStatus">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="overdue">Overdue</option>
+              <option value="today">Due Today</option>
+              <option value="upcoming">Upcoming</option>
+            </select>
+          </div>
+          <div class="list-filter">
+            <label class="list-filter__label" for="sortBy">Sort</label>
+            <select id="sortBy">
+              <option value="priority">Priority</option>
+              <option value="due">Due Date</option>
+              <option value="quad">Quadrant</option>
+              <option value="project">Project</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-table" id="listTable">
+        <div class="list-row list-row--header">
+          <div></div>
+          <div>Task &middot; Project</div>
+          <div>Due</div>
+          <div class="list-row__h-priority">Priority</div>
+          <div>Progress</div>
+        </div>
+        <!-- task rows rendered into here by JS -->
+      </div>
+    </div>
+  </div><!-- /paneList -->
+
+  <!-- Gantt view — 21-day timeline window -->
+  <div class="view-pane view-pane--gantt" id="paneGantt">
+    <div class="gantt-panel">
+      <div class="gantt-panel__head">
+        <div class="gantt-panel__title">
+          Schedule &middot; Timeline
+          <span class="gantt-panel__count" id="ganttCount">9</span>
+        </div>
+        <div class="list-controls">
+          <div class="list-filter">
+            <label class="list-filter__label" for="ganttFilterQuad">Quadrant</label>
+            <select id="ganttFilterQuad">
+              <option value="all">All</option>
+              <option value="q1">Q1 · Critical</option>
+              <option value="q2">Q2 · Strategic</option>
+              <option value="q3">Q3 · Delegate</option>
+              <option value="q4">Q4 · Eliminate</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="gantt-timeline">
+        <div class="gantt-axis">
+          <div class="gantt-axis__spacer"></div>
+          <div class="gantt-axis__days" id="ganttAxisDays"></div>
+        </div>
+        <div class="gantt-body" id="ganttBody"></div>
+      </div>
+    </div>
+  </div><!-- /paneGantt -->
+
+  <!-- Calendar view — monthly grid with task pills -->
+  <div class="view-pane view-pane--calendar" id="paneCalendar">
+    <div class="cal-panel">
+      <div class="cal-panel__head">
+        <div class="cal-monthnav">
+          <button class="cal-monthnav__btn" id="calPrev" aria-label="Previous month">&#8249;</button>
+          <div class="cal-monthnav__title" id="calMonthTitle">June 2026</div>
+          <button class="cal-monthnav__btn" id="calNext" aria-label="Next month">&#8250;</button>
+        </div>
+        <div class="list-controls">
+          <div class="list-filter">
+            <label class="list-filter__label" for="calFilterQuad">Quadrant</label>
+            <select id="calFilterQuad">
+              <option value="all">All</option>
+              <option value="q1">Q1 · Critical</option>
+              <option value="q2">Q2 · Strategic</option>
+              <option value="q3">Q3 · Delegate</option>
+              <option value="q4">Q4 · Eliminate</option>
+            </select>
+          </div>
+          <button class="cal-monthnav__btn" id="calToday">Today</button>
+        </div>
+      </div>
+
+      <div class="cal-weekday-header">
+        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+      </div>
+
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div><!-- /paneCalendar -->
+
+  <!-- Analytics view — performance metrics + breakdown charts -->
+  <div class="view-pane view-pane--analytics" id="paneAnalytics">
+    <div class="analytics-panel">
+      <div class="analytics-panel__head">
+        <div class="analytics-panel__title">
+          Performance &middot; Metrics
+        </div>
+        <div class="analytics-panel__sub" id="analyticsSub">10 tasks tracked</div>
+      </div>
+
+      <div class="analytics-body">
+
+        <!-- Scorecards row -->
+        <div class="score-tiles">
+          <div class="score-tile score-tile--total">
+            <div class="score-tile__label">Total Tasks</div>
+            <div class="score-tile__value" id="scTotal">10</div>
+            <div class="score-tile__sub">All quadrants</div>
+          </div>
+          <div class="score-tile score-tile--complete">
+            <div class="score-tile__label">Completion Rate</div>
+            <div class="score-tile__value" id="scComplete">12%</div>
+            <div class="score-tile__sub"><span id="scCompleteSub">last 30 days</span></div>
+          </div>
+          <div class="score-tile score-tile--overdue">
+            <div class="score-tile__label"><span class="led led--crit led--pulse"></span> Overdue</div>
+            <div class="score-tile__value" id="scOverdue">1</div>
+            <div class="score-tile__sub">Active &middot; needs triage</div>
+          </div>
+          <div class="score-tile score-tile--priority">
+            <div class="score-tile__label">Avg Priority</div>
+            <div class="score-tile__value" id="scPriority">6.3</div>
+            <div class="score-tile__sub">Weighted by quadrant</div>
+          </div>
+        </div>
+
+        <!-- Two side-by-side bar charts -->
+        <div class="chart-row">
+          <div class="chart-card">
+            <div class="chart-card__title">
+              Quadrant Load
+              <span class="chart-card__title-sub">tasks per quadrant</span>
+            </div>
+            <div class="hbar-rows" id="quadLoadRows"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card__title">
+              Domain Distribution
+              <span class="chart-card__title-sub">teaching / projects / personal</span>
+            </div>
+            <div class="hbar-rows" id="domainRows"></div>
+          </div>
+        </div>
+
+        <!-- Full-width velocity chart -->
+        <div class="chart-card chart-card--wide">
+          <div class="chart-card__title">
+            Completion Velocity
+            <span class="chart-card__title-sub">tasks completed &middot; 30-day window</span>
+          </div>
+          <div class="velocity-chart" id="velocityChart"></div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /paneAnalytics -->
+
+</div>
+
+<!-- ═══ FOOTER: VIEW SELECTOR + ADD TASK ════════════════════════════ -->
+<div class="action-bar">
+  <div class="view-tabs" role="tablist">
+    <button class="view-tab on"  data-view="matrix"    role="tab" aria-selected="true">
+      <span class="view-tab__glyph">&#9638;</span>Matrix
+    </button>
+    <button class="view-tab"     data-view="list"      role="tab" aria-selected="false">
+      <span class="view-tab__glyph">&equiv;</span>List
+    </button>
+    <button class="view-tab"     data-view="gantt"     role="tab" aria-selected="false">
+      <span class="view-tab__glyph">&#9707;</span>Gantt
+    </button>
+    <button class="view-tab"     data-view="calendar"  role="tab" aria-selected="false">
+      <span class="view-tab__glyph">&#x1F4C5;</span>Calendar
+    </button>
+    <button class="view-tab"     data-view="analytics" role="tab" aria-selected="false">
+      <span class="view-tab__glyph">&#9650;</span>Analytics
+    </button>
+  </div>
+  <div class="action-bar__divider"></div>
+  <button class="add-task" id="btnAdd">
+    <span class="add-task__glyph">+</span>Add Task
+  </button>
+</div>
+
+<!-- ═══ PLACEHOLDER MODAL ═══════════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal__title" id="modalTitle">Modal</div>
+    <div class="modal__body" id="modalBody">…</div>
+    <button class="modal__close" id="modalClose">Close</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ETM CINEMATIC DEMO — Mock data + render
+   ───────────────────────────────────────────────────────────────
+   Pure visual prototype. No backend, no persistence. Data is a
+   hand-picked sample drawn from Cole's actual subcategories
+   (Teaching · Projects · Personal — see App.jsx:46) so the demo
+   feels real to him.
+   ═══════════════════════════════════════════════════════════════ */
+
+(function () {
+  'use strict';
+
+  // ─── Mock task set ───────────────────────────────────────────────
+  // 10 tasks: 3 Q1 (one overdue, one today), 4 Q2 (one today),
+  // 2 Q3, 1 Q4. Realistic ETM project mix.
+  const TASKS = [
+    // ── Q1 Critical (urgent + necessary) ────────────────────────
+    {
+      id: 't1', q: 'q1', name: 'Grade HW3 — Dynamics §13.1–§13.4',
+      project: 'Dynamics', due: 'overdue', priority: 9.2, progress: 0.40,
+      meta: ['Teaching', 'Due 2d ago']
+    },
+    {
+      id: 't2', q: 'q1', name: 'PSEII Exam 2 final pass — answer key',
+      project: 'PSEII', due: 'today', priority: 9.0, progress: 0.85,
+      meta: ['Teaching', 'Due today 11:59pm']
+    },
+    {
+      id: 't3', q: 'q1', name: 'ETM cinematic demo — review with Cole',
+      project: 'ETM', due: 'tomorrow', priority: 8.4, progress: 0.20,
+      meta: ['Projects', 'Due tomorrow']
+    },
+
+    // ── Q2 Strategic (not urgent + necessary) ───────────────────
+    {
+      id: 't4', q: 'q2', name: 'Forces Lab — physics-core port (Ch 5–6)',
+      project: 'PSEI Labs', due: '2026-06-15', priority: 7.1, progress: 0.05,
+      meta: ['Teaching', 'Due Jun 15']
+    },
+    {
+      id: 't5', q: 'q2', name: 'Pedagogy book — Ch 3 PSCPR demonstration',
+      project: 'Book', due: '2026-07-12', priority: 6.8, progress: 0.30,
+      meta: ['Projects', 'Due Jul 12']
+    },
+    {
+      id: 't6', q: 'q2', name: 'Bond Graph Engine — graph-validation step',
+      project: 'BGE', due: '2026-06-20', priority: 6.5, progress: 0.55,
+      meta: ['Projects', 'Due Jun 20']
+    },
+    {
+      id: 't7', q: 'q2', name: 'Annual fitness check — schedule physical',
+      project: 'Health', due: 'today', priority: 5.9, progress: 0.00,
+      meta: ['Personal', 'Due today']
+    },
+
+    // ── Q3 Delegate (urgent + not necessary) ────────────────────
+    {
+      id: 't8', q: 'q3', name: 'Reply to vendor quote — 3D printer filament',
+      project: 'Lab Supplies', due: 'tomorrow', priority: 4.6, progress: 0.00,
+      meta: ['Personal', 'Due tomorrow']
+    },
+    {
+      id: 't9', q: 'q3', name: 'Forward conference flyer to FSAE chapter',
+      project: 'FSAE', due: 'this week', priority: 4.2, progress: 0.00,
+      meta: ['Teaching', 'Due Fri']
+    },
+
+    // ── Q4 Eliminate (not urgent + not necessary) ───────────────
+    {
+      id: 't10', q: 'q4', name: 'Sort through old equipment catalogues',
+      project: 'Office', due: '—', priority: 1.8, progress: 0.00,
+      meta: ['Personal', 'No deadline']
+    }
+  ];
+
+  // ─── Render ──────────────────────────────────────────────────────
+  function render () {
+    const counts = { q1: 0, q2: 0, q3: 0, q4: 0 };
+    let overdue = 0, today = 0;
+
+    ['q1','q2','q3','q4'].forEach(q => {
+      const host = document.getElementById('list' + q.toUpperCase());
+      host.innerHTML = '';
+      const subset = TASKS.filter(t => t.q === q);
+      counts[q] = subset.length;
+
+      if (subset.length === 0) {
+        const e = document.createElement('div');
+        e.className = 'quad-panel__empty';
+        e.textContent = '— No tasks —';
+        host.parentElement.replaceChild(e, host);
+        return;
+      }
+
+      subset
+        .sort((a, b) => b.priority - a.priority)
+        .forEach(t => {
+          if (t.due === 'overdue') overdue++;
+          if (t.due === 'today')   today++;
+
+          const row = document.createElement('div');
+          row.className = 'task task--' + t.q
+            + (t.due === 'overdue' ? ' task--overdue' : '')
+            + (t.due === 'today'   ? ' task--today'   : '');
+          row.innerHTML = `
+            <div class="task__name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</div>
+            <div class="task__right">
+              <div class="task__priority">${t.priority.toFixed(1)}</div>
+              <div class="task__bar"><div class="task__bar-fill" style="width:${Math.round(t.progress * 100)}%"></div></div>
+            </div>
+            <div class="task__meta">
+              <span class="task__tag">${escapeHtml(t.project)}</span>
+              <span class="task__due${t.due === 'overdue' ? ' task__due--overdue' : (t.due === 'today' ? ' task__due--today' : '')}">${escapeHtml(t.meta[1])}</span>
+            </div>
+          `;
+          host.appendChild(row);
+        });
+    });
+
+    // Update readouts
+    document.getElementById('rdQ1').textContent = counts.q1;
+    document.getElementById('rdQ2').textContent = counts.q2;
+    document.getElementById('rdQ3').textContent = counts.q3;
+    document.getElementById('rdQ4').textContent = counts.q4;
+    document.getElementById('countQ1').textContent = counts.q1;
+    document.getElementById('countQ2').textContent = counts.q2;
+    document.getElementById('countQ3').textContent = counts.q3;
+    document.getElementById('countQ4').textContent = counts.q4;
+    document.getElementById('rdOverdue').textContent = overdue;
+    document.getElementById('rdToday').textContent = today;
+    document.getElementById('rdOverdueWrap').style.display = overdue ? '' : 'none';
+    document.getElementById('rdTodayWrap').style.display   = today   ? '' : 'none';
+  }
+
+  function escapeHtml (s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+  }
+
+  // ─── Modal helpers ───────────────────────────────────────────────
+  const modal = document.getElementById('modalBackdrop');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody  = document.getElementById('modalBody');
+
+  function showModal (title, html) {
+    modalTitle.textContent = title;
+    modalBody.innerHTML = html;
+    modal.classList.add('on');
+  }
+  function hideModal () { modal.classList.remove('on'); }
+
+  document.getElementById('modalClose').addEventListener('click', hideModal);
+  modal.addEventListener('click', e => { if (e.target === modal) hideModal(); });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') hideModal(); });
+
+  // ─── Action wiring ──────────────────────────────────────────────
+  document.getElementById('btnInfo').addEventListener('click', () => {
+    showModal('About this demo', `
+      <p>You're looking at a <strong>visual prototype</strong> of the Eisenhower
+      Task Manager reimagined inside the Peirastes Cinematic Tier
+      (Hybrid Atrium variant). Mock data; no backend.</p>
+      <p>The <strong>running ETM v2</strong> (your Tailscale-hosted React app)
+      is untouched. This file lives in a sibling directory and shares
+      nothing with it — delete the folder and the production ETM is
+      unaffected.</p>
+      <p style="margin-top:10px"><strong>What's new vs. v2:</strong> Cinematic banner backdrop,
+      grain + vignette atmosphere, chrome row with PEIRASTES wordmark
+      and Orbitron title, corner ticks, floating acrylic-glass quadrant
+      panels with chromatic edge accents, view-selector as glass tabs.</p>
+      <p style="margin-top:10px"><strong>What's gone:</strong> CRT housing (hood/bezel/rivets/scanlines),
+      metallic-pushbutton footer chassis, phosphor-tinted glass.
+      Per-quadrant semantic color encoding is preserved, just toned
+      down for acrylic-glass surfaces.</p>
+    `);
+  });
+
+  document.getElementById('btnAdd').addEventListener('click', () => {
+    showModal('Add Task', `
+      <p>The Add Task form is not implemented in this visual prototype —
+      the goal here is to evaluate the <strong>aesthetic</strong>, not the
+      data flow.</p>
+      <p>If the visual direction lands, the form modal would retain the
+      same acrylic-glass treatment as this modal: blurred backdrop,
+      Orbitron title, chromatic divider beneath the title, action
+      button family matching <code>.cin-action</code>.</p>
+    `);
+  });
+
+  // ─── List view — render with current filter/sort ─────────────────
+  // Only Matrix and List are implemented in the demo. Gantt/Calendar/
+  // Analytics still open the placeholder modal; if any of those land
+  // as a priority, they'd follow the same view-pane pattern.
+  const listState = {
+    filterQuad:   'all',
+    filterStatus: 'all',
+    sortBy:       'priority'
+  };
+
+  // Convert the symbolic due strings used in TASKS into numeric days-from-now
+  // so we can sort by date. (Mock data uses 'overdue'/'today'/'tomorrow'/
+  // 'this week'/'—' for symbolic dates and ISO strings for explicit ones.)
+  function dueOrderKey (t) {
+    if (t.due === 'overdue')   return -2;
+    if (t.due === 'today')     return  0;
+    if (t.due === 'tomorrow')  return  1;
+    if (t.due === 'this week') return  4;
+    if (t.due === '—')         return  9999;
+    // ISO date — compute days from now
+    const d = new Date(t.due);
+    if (isNaN(d)) return 9999;
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.round((d - today) / (24 * 60 * 60 * 1000));
+  }
+
+  function renderList () {
+    const table = document.getElementById('listTable');
+    if (!table) return;
+
+    // Filter
+    let rows = TASKS.slice();
+    if (listState.filterQuad !== 'all') {
+      rows = rows.filter(t => t.q === listState.filterQuad);
+    }
+    if (listState.filterStatus === 'active') {
+      rows = rows.filter(t => t.progress < 1);
+    } else if (listState.filterStatus === 'overdue') {
+      rows = rows.filter(t => t.due === 'overdue');
+    } else if (listState.filterStatus === 'today') {
+      rows = rows.filter(t => t.due === 'today');
+    } else if (listState.filterStatus === 'upcoming') {
+      rows = rows.filter(t => t.due !== 'overdue' && t.due !== 'today' && t.due !== '—');
+    }
+
+    // Sort
+    const sorters = {
+      priority: (a, b) => b.priority - a.priority,
+      due:      (a, b) => dueOrderKey(a) - dueOrderKey(b),
+      quad:     (a, b) => a.q.localeCompare(b.q) || b.priority - a.priority,
+      project:  (a, b) => a.project.localeCompare(b.project) || b.priority - a.priority,
+      name:     (a, b) => a.name.localeCompare(b.name)
+    };
+    rows.sort(sorters[listState.sortBy] || sorters.priority);
+
+    // Update count
+    document.getElementById('listCount').textContent = rows.length;
+
+    // Remove existing data rows (keep the header row at index 0)
+    const existing = table.querySelectorAll('.list-row:not(.list-row--header)');
+    existing.forEach(r => r.remove());
+
+    // Render
+    if (rows.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'list-empty';
+      empty.textContent = '— No tasks match the current filter —';
+      table.appendChild(empty);
+      return;
+    }
+    // Remove any previous .list-empty
+    const prevEmpty = table.querySelector('.list-empty');
+    if (prevEmpty) prevEmpty.remove();
+
+    rows.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'list-row list-row--' + t.q
+        + (t.due === 'overdue' ? ' list-row--overdue' : '')
+        + (t.due === 'today'   ? ' list-row--today'   : '')
+        + (t.progress >= 1     ? ' list-row--done'    : '');
+      row.innerHTML = `
+        <div class="list-row__stripe"></div>
+        <div class="list-row__main">
+          <div class="list-row__name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</div>
+          <span class="list-row__project">${escapeHtml(t.project)}</span>
+        </div>
+        <div class="list-row__due${t.due === 'overdue' ? ' list-row__due--overdue' : (t.due === 'today' ? ' list-row__due--today' : '')}">${escapeHtml(t.meta[1])}</div>
+        <div class="list-row__priority">${t.priority.toFixed(1)}</div>
+        <div class="list-row__bar"><div class="list-row__bar-fill" style="width:${Math.round(t.progress * 100)}%"></div></div>
+      `;
+      table.appendChild(row);
+    });
+  }
+
+  // Wire filter/sort dropdowns
+  document.getElementById('filterQuad').addEventListener('change', e => {
+    listState.filterQuad = e.target.value;
+    renderList();
+  });
+  document.getElementById('filterStatus').addEventListener('change', e => {
+    listState.filterStatus = e.target.value;
+    renderList();
+  });
+  document.getElementById('sortBy').addEventListener('change', e => {
+    listState.sortBy = e.target.value;
+    renderList();
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // GANTT VIEW — 21-day window (today−3 to today+17). Each task with
+  // a date becomes a bar; bar spans [start, end] where start defaults
+  // to today (or to the due date for overdue tasks, with bar then
+  // ending at today). Today line marked with amber vertical rule.
+  // ═══════════════════════════════════════════════════════════════
+
+  const GANTT_WINDOW = { back: 3, fwd: 17 };   // total 21 days
+  const GANTT_TOTAL = GANTT_WINDOW.back + 1 + GANTT_WINDOW.fwd;
+
+  const ganttState = { filterQuad: 'all' };
+
+  // Map a Date object to its day-offset relative to today (0 = today)
+  function dayOffsetFromToday (date) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = new Date(date); d.setHours(0, 0, 0, 0);
+    return Math.round((d - today) / 86400000);
+  }
+
+  // Resolve a task's symbolic or ISO due to a concrete Date
+  function getTaskDate (t) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (t.due === 'overdue')   return new Date(today.getTime() - 2 * 86400000);
+    if (t.due === 'today')     return today;
+    if (t.due === 'tomorrow')  return new Date(today.getTime() + 86400000);
+    if (t.due === 'this week') return new Date(today.getTime() + 2 * 86400000);
+    if (t.due === '—')         return null;
+    const d = new Date(t.due);
+    return isNaN(d) ? null : d;
+  }
+
+  function renderGanttAxis () {
+    const host = document.getElementById('ganttAxisDays');
+    if (!host) return;
+    host.innerHTML = '';
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    for (let i = -GANTT_WINDOW.back; i <= GANTT_WINDOW.fwd; i++) {
+      const d = new Date(today.getTime() + i * 86400000);
+      const dow = d.getDay();
+      const cell = document.createElement('div');
+      cell.className = 'gantt-axis__day'
+        + (i === 0 ? ' gantt-axis__day--today' : '')
+        + (dow === 0 || dow === 6 ? ' gantt-axis__day--weekend' : '');
+      // Show abbreviated date every ~3 days for readability
+      if (i === 0)             cell.textContent = 'TODAY';
+      else if (i % 3 === 0)    cell.textContent = months[d.getMonth()] + ' ' + d.getDate();
+      else                     cell.textContent = d.getDate();
+      host.appendChild(cell);
+    }
+  }
+
+  function renderGantt () {
+    renderGanttAxis();
+    const body = document.getElementById('ganttBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    // Filter to dated tasks within the window
+    const rows = TASKS.filter(t => {
+      if (ganttState.filterQuad !== 'all' && t.q !== ganttState.filterQuad) return false;
+      const d = getTaskDate(t);
+      if (!d) return false;
+      const off = dayOffsetFromToday(d);
+      return off >= -GANTT_WINDOW.back && off <= GANTT_WINDOW.fwd;
+    });
+    // Sort by due date ascending so overdue is at the top
+    rows.sort((a, b) => dayOffsetFromToday(getTaskDate(a)) - dayOffsetFromToday(getTaskDate(b)));
+
+    document.getElementById('ganttCount').textContent = rows.length;
+
+    if (rows.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'list-empty';
+      empty.style.gridColumn = '1 / 3';
+      empty.textContent = '— No scheduled tasks in this window —';
+      body.appendChild(empty);
+      return;
+    }
+
+    rows.forEach(t => {
+      const dueOff = dayOffsetFromToday(getTaskDate(t));
+      const isOverdue = dueOff < 0;
+      // Bar spans from start to end:
+      //   - Overdue: start = due date, end = today (shows how late)
+      //   - Today or future: start = today, end = due date
+      //   - Same-day (today): bar is a 1-day pill at today
+      const startOff = isOverdue ? dueOff : 0;
+      const endOff   = isOverdue ? 0 : dueOff;
+      // Convert to % of track width (left-aligned to track)
+      const leftPct  = ((startOff + GANTT_WINDOW.back) / GANTT_TOTAL) * 100;
+      const widthPct = Math.max(((endOff - startOff + 1) / GANTT_TOTAL) * 100, 100 / GANTT_TOTAL);
+
+      // Label cell
+      const label = document.createElement('div');
+      label.className = 'gantt-row__label';
+      label.innerHTML = `
+        <div class="gantt-row__label-name" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</div>
+        <div class="gantt-row__label-meta">${escapeHtml(t.project)} &middot; ${escapeHtml(t.meta[1])}</div>
+      `;
+      body.appendChild(label);
+
+      // Track cell
+      const track = document.createElement('div');
+      track.className = 'gantt-row__track';
+      const bar = document.createElement('div');
+      bar.className = 'gantt-bar gantt-bar--' + (isOverdue ? 'overdue' : t.q)
+        + (t.progress >= 1 ? ' gantt-bar--done' : '');
+      bar.style.left  = leftPct + '%';
+      bar.style.width = widthPct + '%';
+      bar.textContent = t.priority.toFixed(1);
+      track.appendChild(bar);
+      body.appendChild(track);
+    });
+
+    // Today line — position at today's day-column center within the track
+    // The line lives in the LAST track-row's parent (the body grid). We'll
+    // overlay it by appending a single absolutely-positioned line that
+    // spans the body's height inside the second column.
+    const line = document.createElement('div');
+    line.className = 'gantt-today-line';
+    line.style.left = `calc(220px + 12px + ${(GANTT_WINDOW.back / GANTT_TOTAL) * 100}% * (1 - (220px + 12px) / 100%))`;
+    // The above calc is fragile because of mixed units. Cleaner: use a wrapper
+    // child that spans only the track column. We'll re-derive via JS measure
+    // after layout.
+    body.appendChild(line);
+
+    // Once the body has laid out, measure the first track cell's left edge
+    // and width and pin the today-line to it.
+    requestAnimationFrame(() => {
+      const firstTrack = body.querySelector('.gantt-row__track');
+      if (!firstTrack) return;
+      const bodyRect  = body.getBoundingClientRect();
+      const trackRect = firstTrack.getBoundingClientRect();
+      const trackLeftRel = trackRect.left - bodyRect.left;
+      const trackWidth   = trackRect.width;
+      const todayLeft    = trackLeftRel + (GANTT_WINDOW.back / GANTT_TOTAL) * trackWidth;
+      line.style.left = todayLeft + 'px';
+      line.style.top  = '0';
+      line.style.bottom = '0';
+    });
+  }
+
+  document.getElementById('ganttFilterQuad').addEventListener('change', e => {
+    ganttState.filterQuad = e.target.value;
+    renderGantt();
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // CALENDAR VIEW — 7×6 monthly grid with task pills per cell.
+  // viewedMonth defaults to today's month; prev/next buttons shift it.
+  // ═══════════════════════════════════════════════════════════════
+
+  const calState = {
+    viewedMonth: (() => { const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); return d; })(),
+    filterQuad: 'all'
+  };
+
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+
+  function renderCalendar () {
+    const grid  = document.getElementById('calGrid');
+    const title = document.getElementById('calMonthTitle');
+    if (!grid || !title) return;
+
+    const vm = calState.viewedMonth;
+    title.textContent = MONTH_NAMES[vm.getMonth()] + ' ' + vm.getFullYear();
+
+    // Build the 6×7 = 42-cell grid. Grid starts on the Sunday on/before the 1st.
+    const firstOfMonth = new Date(vm.getFullYear(), vm.getMonth(), 1);
+    const gridStart = new Date(firstOfMonth);
+    gridStart.setDate(1 - firstOfMonth.getDay());   // back up to Sunday
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    // Pre-bucket tasks by ISO date for fast lookup
+    const tasksByDate = {};
+    TASKS.forEach(t => {
+      if (calState.filterQuad !== 'all' && t.q !== calState.filterQuad) return;
+      const d = getTaskDate(t);
+      if (!d) return;
+      const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+      (tasksByDate[key] = tasksByDate[key] || []).push(t);
+    });
+
+    grid.innerHTML = '';
+    for (let i = 0; i < 42; i++) {
+      const cellDate = new Date(gridStart.getTime() + i * 86400000);
+      const isToday = cellDate.getTime() === today.getTime();
+      const isOtherMonth = cellDate.getMonth() !== vm.getMonth();
+      const dow = cellDate.getDay();
+
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell'
+        + (isToday ? ' cal-cell--today' : '')
+        + (isOtherMonth ? ' cal-cell--other-month' : '')
+        + ((dow === 0 || dow === 6) ? ' cal-cell--weekend' : '');
+
+      const dateEl = document.createElement('div');
+      dateEl.className = 'cal-cell__date';
+      dateEl.textContent = cellDate.getDate();
+      cell.appendChild(dateEl);
+
+      const tasksEl = document.createElement('div');
+      tasksEl.className = 'cal-cell__tasks';
+      const key = cellDate.getFullYear() + '-' + (cellDate.getMonth() + 1) + '-' + cellDate.getDate();
+      const cellTasks = tasksByDate[key] || [];
+      // Show up to 3 pills, then "+N more" if overflow
+      const SHOW_MAX = 3;
+      cellTasks.slice(0, SHOW_MAX).forEach(t => {
+        const pill = document.createElement('div');
+        pill.className = 'cal-task-pill cal-task-pill--' + t.q;
+        pill.textContent = t.name;
+        pill.title = t.name + ' (' + t.project + ')';
+        tasksEl.appendChild(pill);
+      });
+      if (cellTasks.length > SHOW_MAX) {
+        const more = document.createElement('div');
+        more.className = 'cal-task-pill__overflow';
+        more.textContent = '+ ' + (cellTasks.length - SHOW_MAX) + ' more';
+        tasksEl.appendChild(more);
+      }
+      cell.appendChild(tasksEl);
+
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById('calPrev').addEventListener('click', () => {
+    calState.viewedMonth.setMonth(calState.viewedMonth.getMonth() - 1);
+    renderCalendar();
+  });
+  document.getElementById('calNext').addEventListener('click', () => {
+    calState.viewedMonth.setMonth(calState.viewedMonth.getMonth() + 1);
+    renderCalendar();
+  });
+  document.getElementById('calToday').addEventListener('click', () => {
+    const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0);
+    calState.viewedMonth = d;
+    renderCalendar();
+  });
+  document.getElementById('calFilterQuad').addEventListener('change', e => {
+    calState.filterQuad = e.target.value;
+    renderCalendar();
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // ANALYTICS VIEW — performance scorecards + breakdown charts +
+  // 30-day completion velocity (mock historical data, deterministic
+  // so the demo reads the same on every load).
+  // ═══════════════════════════════════════════════════════════════
+
+  // 30-day mock completion history — weekdays busier than weekends,
+  // some deterministic noise so it doesn't look perfectly periodic.
+  const ANALYTICS_VELOCITY = (() => {
+    const out = [];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 86400000);
+      const dow = d.getDay();
+      const base = (dow === 0 || dow === 6) ? 0.6 : 2.4;   // weekend dip
+      const noise = Math.sin(i * 1.7) * 0.7 + Math.cos(i * 2.4) * 0.55;
+      const count = Math.max(0, Math.round(base + noise * 1.3));
+      out.push({ date: d, count });
+    }
+    return out;
+  })();
+
+  function renderAnalytics () {
+    // ── Compute stats ──
+    const total = TASKS.length;
+    const completed = TASKS.filter(t => t.progress >= 1).length;
+    const overdue   = TASKS.filter(t => t.due === 'overdue').length;
+    const avgPri    = TASKS.reduce((s, t) => s + t.priority, 0) / total;
+
+    // 30-day completion count is a rough mock proxy for completion rate.
+    // Display "% of total tasks closed in last 30 days" — a friendly number
+    // that's high when work flows fast. Here: sum velocity ÷ total × 100.
+    const velSum = ANALYTICS_VELOCITY.reduce((s, d) => s + d.count, 0);
+    const completionRate = Math.round((velSum / Math.max(total, 1)) * 100 / 10);  // tempered scale
+
+    document.getElementById('scTotal').textContent    = total;
+    document.getElementById('scComplete').textContent = completionRate + '%';
+    document.getElementById('scOverdue').textContent  = overdue;
+    document.getElementById('scPriority').textContent = avgPri.toFixed(1);
+    document.getElementById('analyticsSub').textContent = total + ' tasks tracked';
+    document.getElementById('scCompleteSub').textContent = velSum + ' closed · last 30 days';
+
+    // ── Quadrant Load (bar chart) ──
+    const quadCounts = { q1: 0, q2: 0, q3: 0, q4: 0 };
+    TASKS.forEach(t => { quadCounts[t.q]++; });
+    const quadMax = Math.max(...Object.values(quadCounts), 1);
+    const quadLabels = {
+      q1: 'Q1 · Critical', q2: 'Q2 · Strategic',
+      q3: 'Q3 · Delegate', q4: 'Q4 · Eliminate'
+    };
+    const quadHost = document.getElementById('quadLoadRows');
+    quadHost.innerHTML = '';
+    ['q1','q2','q3','q4'].forEach(q => {
+      const row = document.createElement('div');
+      row.className = 'hbar-row';
+      row.innerHTML = `
+        <div class="hbar-row__label">${quadLabels[q]}</div>
+        <div class="hbar-row__track">
+          <div class="hbar-row__fill hbar-row__fill--${q}" style="width:${(quadCounts[q] / quadMax) * 100}%"></div>
+        </div>
+        <div class="hbar-row__value">${quadCounts[q]}</div>
+      `;
+      quadHost.appendChild(row);
+    });
+
+    // ── Domain Distribution (bar chart) ──
+    const domainCounts = {};
+    TASKS.forEach(t => {
+      const dom = t.meta[0];
+      domainCounts[dom] = (domainCounts[dom] || 0) + 1;
+    });
+    const domainMax = Math.max(...Object.values(domainCounts), 1);
+    const domainHost = document.getElementById('domainRows');
+    domainHost.innerHTML = '';
+    Object.entries(domainCounts)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([dom, count]) => {
+        const row = document.createElement('div');
+        row.className = 'hbar-row';
+        row.innerHTML = `
+          <div class="hbar-row__label">${escapeHtml(dom)}</div>
+          <div class="hbar-row__track">
+            <div class="hbar-row__fill hbar-row__fill--neutral" style="width:${(count / domainMax) * 100}%"></div>
+          </div>
+          <div class="hbar-row__value">${count}</div>
+        `;
+        domainHost.appendChild(row);
+      });
+
+    // ── Velocity Chart (inline SVG area + line) ──
+    renderVelocityChart();
+  }
+
+  function renderVelocityChart () {
+    const host = document.getElementById('velocityChart');
+    if (!host) return;
+
+    const W = host.clientWidth;
+    const H = host.clientHeight;
+    if (W === 0 || H === 0) {
+      // Layout not ready yet — defer until after frame
+      requestAnimationFrame(renderVelocityChart);
+      return;
+    }
+    const PAD_L = 26, PAD_R = 16, PAD_T = 12, PAD_B = 20;
+    const plotW = W - PAD_L - PAD_R;
+    const plotH = H - PAD_T - PAD_B;
+
+    const data = ANALYTICS_VELOCITY;
+    const maxCount = Math.max(...data.map(d => d.count), 1);
+    const n = data.length;
+
+    // X position: evenly spaced across plotW
+    const x = i => PAD_L + (i / (n - 1)) * plotW;
+    // Y position: 0 at bottom, maxCount at top
+    const y = v => PAD_T + plotH - (v / maxCount) * plotH;
+
+    // Build smooth path using cardinal-spline approximation via simple
+    // Catmull-Rom → bezier (tension 0.5 = "Hobby curves" close to smooth)
+    function smoothPath (pts) {
+      if (pts.length < 2) return '';
+      let d = 'M ' + pts[0].x + ' ' + pts[0].y;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] || pts[i];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[i + 2] || p2;
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+      }
+      return d;
+    }
+
+    const pts = data.map((d, i) => ({ x: x(i), y: y(d.count) }));
+    const linePath = smoothPath(pts);
+    // Close the path to form an area
+    const areaPath = linePath
+      + ` L ${pts[pts.length - 1].x} ${PAD_T + plotH}`
+      + ` L ${pts[0].x} ${PAD_T + plotH} Z`;
+
+    // X axis labels — show day-30, day-15, day-7, day-3, TODAY
+    const labels = [
+      { i: 0,  text: '30d ago' },
+      { i: 15, text: '15d ago' },
+      { i: 22, text: '7d ago' },
+      { i: 26, text: '3d ago' },
+      { i: 29, text: 'TODAY', isToday: true }
+    ];
+
+    // Y axis gridlines — 3 horizontal lines (max, max/2, 0)
+    const ySteps = [
+      { v: maxCount,         label: maxCount },
+      { v: Math.round(maxCount / 2), label: Math.round(maxCount / 2) },
+      { v: 0,                label: 0 }
+    ];
+
+    // Build SVG
+    let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="${'rgba(255, 174, 32, 0.38)'}" />
+          <stop offset="100%" stop-color="${'rgba(255, 174, 32, 0.02)'}" />
+        </linearGradient>
+      </defs>`;
+
+    // Y gridlines + labels
+    ySteps.forEach(s => {
+      const yy = y(s.v);
+      svg += `<line class="velocity-chart__gridline" x1="${PAD_L}" y1="${yy}" x2="${W - PAD_R}" y2="${yy}" />`;
+      svg += `<text class="velocity-chart__axis-label" x="${PAD_L - 6}" y="${yy + 3}" text-anchor="end">${s.label}</text>`;
+    });
+
+    // Today vertical dashed line (at the last data point)
+    svg += `<line class="velocity-chart__today-line" x1="${x(n - 1)}" y1="${PAD_T}" x2="${x(n - 1)}" y2="${PAD_T + plotH}" />`;
+
+    // Area + line
+    svg += `<path class="velocity-chart__area" d="${areaPath}" />`;
+    svg += `<path class="velocity-chart__line" d="${linePath}" />`;
+
+    // Today point marker
+    svg += `<circle class="velocity-chart__point" cx="${x(n - 1)}" cy="${y(data[n - 1].count)}" r="3" />`;
+
+    // X axis labels
+    labels.forEach(l => {
+      svg += `<text class="velocity-chart__axis-label${l.isToday ? ' velocity-chart__axis-label--today' : ''}" x="${x(l.i)}" y="${H - 4}" text-anchor="middle">${l.text}</text>`;
+    });
+
+    svg += `</svg>`;
+    host.innerHTML = svg;
+  }
+
+  // Re-render velocity chart on resize so it stays crisp
+  window.addEventListener('resize', () => {
+    if (document.getElementById('paneAnalytics')?.classList.contains('on')) {
+      renderVelocityChart();
+    }
+  });
+
+  // ─── View tabs — Matrix + List + Gantt + Calendar + Analytics all real
+  const VIEW_PANES = {
+    matrix:    'paneMatrix',
+    list:      'paneList',
+    gantt:     'paneGantt',
+    calendar:  'paneCalendar',
+    analytics: 'paneAnalytics'
+  };
+
+  document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const v = tab.dataset.view;
+      const targetPane = VIEW_PANES[v];
+
+      if (targetPane) {
+        // Real view switch
+        document.querySelectorAll('.view-tab').forEach(t => {
+          const on = t === tab;
+          t.classList.toggle('on', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.view-pane').forEach(p => {
+          p.classList.toggle('on', p.id === targetPane);
+        });
+        // Render the destination view's content fresh
+        if (v === 'list')      renderList();
+        if (v === 'gantt')     renderGantt();
+        if (v === 'calendar')  renderCalendar();
+        if (v === 'analytics') renderAnalytics();
+      } else {
+        // Placeholder modal — and snap tab state back to whatever's active
+        showModal(
+          v.charAt(0).toUpperCase() + v.slice(1) + ' view',
+          `<p>The <strong>${v}</strong> view is not yet implemented in this demo.</p>
+           <p>It will inherit the same single-panel acrylic-glass treatment as
+           the List view (now live). Each view-pane lives inside the workspace
+           and swaps in via the same JS view-switching logic — adding one is
+           ~150 lines of HTML/CSS/JS now that the pattern is established.</p>`
+        );
+        // Snap visual selection back to whichever view-pane is currently `.on`
+        const activePane = document.querySelector('.view-pane.on');
+        const activeView = activePane
+          ? Object.keys(VIEW_PANES).find(k => VIEW_PANES[k] === activePane.id)
+          : 'matrix';
+        setTimeout(() => {
+          document.querySelectorAll('.view-tab').forEach(t => {
+            const on = t.dataset.view === activeView;
+            t.classList.toggle('on', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+        }, 220);
+      }
+    });
+  });
+
+  // Keyboard shortcut: N triggers Add Task
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault();
+      document.getElementById('btnAdd').click();
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // BOOT-UP CEREMONY — PIN entry + unlock sequence
+  // ═══════════════════════════════════════════════════════════════
+
+  const bootOverlay  = document.getElementById('bootOverlay');
+  const bootScanline = document.getElementById('bootScanline');
+  const pinDisplay   = document.getElementById('pinDisplay');
+  const pinDots      = pinDisplay.querySelectorAll('.pin-dot');
+  const pinKeypad    = document.getElementById('pinKeypad');
+  const bootState    = { entry: '', unlocked: false, animating: false };
+
+  function pinSetDigit (idx, filled) {
+    pinDots[idx].classList.toggle('pin-dot--filled', filled);
+  }
+  function pinRedraw () {
+    pinDots.forEach((d, i) => pinSetDigit(i, i < bootState.entry.length));
+  }
+  function pinClear () {
+    bootState.entry = '';
+    pinRedraw();
+  }
+  function pinAddDigit (d) {
+    if (bootState.unlocked || bootState.animating) return;
+    if (bootState.entry.length >= 4) return;
+    bootState.entry += d;
+    pinRedraw();
+    if (bootState.entry.length === 4) {
+      // Brief settle delay so the last dot reads as "entered" before unlock
+      setTimeout(unlock, 220);
+    }
+  }
+  function pinDel () {
+    if (bootState.unlocked || bootState.animating) return;
+    if (bootState.entry.length === 0) return;
+    bootState.entry = bootState.entry.slice(0, -1);
+    pinRedraw();
+  }
+
+  // Keypad clicks
+  pinKeypad.querySelectorAll('.pin-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.key;
+      if      (k === 'del') pinDel();
+      else if (k === 'clr') pinClear();
+      else                  pinAddDigit(k);
+    });
+  });
+
+  // Hardware keyboard
+  window.addEventListener('keydown', e => {
+    if (bootState.unlocked) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key >= '0' && e.key <= '9') {
+      pressKey(e.key);
+      pinAddDigit(e.key);
+    } else if (e.key === 'Backspace') {
+      pressKey('del');
+      pinDel();
+    } else if (e.key === 'Escape') {
+      pressKey('clr');
+      pinClear();
+    }
+  });
+  function pressKey (k) {
+    // Visual feedback on the matching keypad button when hardware key used
+    const btn = pinKeypad.querySelector(`[data-key="${k}"]`);
+    if (!btn) return;
+    btn.classList.add('press');
+    setTimeout(() => btn.classList.remove('press'), 140);
+  }
+
+  function unlock () {
+    if (bootState.unlocked || bootState.animating) return;
+    bootState.animating = true;
+
+    // 1. Flash the keypad (300ms)
+    pinKeypad.classList.add('flash');
+
+    // 2. After flash, fade out the boot overlay AND sweep the scan-line
+    setTimeout(() => {
+      bootOverlay.classList.add('hide');
+      bootScanline.classList.add('sweep');
+      // The scan-line sweeps across as the workspace materializes —
+      // remove .app-locked just after the overlay starts fading so the
+      // entrance animations fire while the curtain is half-lifted.
+      setTimeout(() => {
+        document.body.classList.remove('app-locked');
+      }, 120);
+    }, 320);
+
+    // 3. Once everything has settled (scan-line completes at ~1820ms
+    //    from unlock call), mark unlocked + hide overlay div.
+    setTimeout(() => {
+      bootOverlay.classList.add('gone');
+      bootState.unlocked = true;
+      bootState.animating = false;
+    }, 2000);
+  }
+
+  // Trigger init render of Matrix view (also covers re-renders on view switch)
+  render();
+})();
+</script>
+</body>
+</html>
