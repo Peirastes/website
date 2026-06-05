@@ -587,8 +587,19 @@ const EisenhowerTaskManager = () => {
   return (
     <div className={`h-screen flex flex-col text-[#c8d0e0] overflow-hidden ${justUnlocked && !appRevealed ? 'etm-reveal-start' : ''} ${justUnlocked && appRevealed ? 'etm-reveal-animate' : ''}`} style={{
       fontFamily: "'Space Grotesk', system-ui, sans-serif",
-      background: 'radial-gradient(ellipse at 50% 30%, #1a2024, #0a0e12 60%, #040608)'
+      // PHASE 1 (Cinematic foundation): was a solid radial-gradient bg
+      // (#1a2024 → #0a0e12 → #040608). Removed so the cinematic banner
+      // backdrop (body::before in index.css) shows through the gaps
+      // between the etm-* chrome. v2 components keep their own
+      // backgrounds and render normally on top of the new atmosphere.
+      background: 'transparent'
     }}>
+      {/* PHASE 1: SVG film-grain layer — see `.cin-grain` in index.css.
+          position: fixed escapes this stacking context; mix-blend-mode:
+          overlay textures the cinematic atmosphere visible through any
+          transparent area in the v2 chrome. */}
+      <div className="cin-grain" aria-hidden="true" />
+
       <style>{`
         .etm-reveal-start {
           opacity: 0;
