@@ -683,7 +683,14 @@ const EisenhowerTaskManager = () => {
       </div>
 
       {/* Middle: Main Content — fills viewport between readouts and control bar */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 flex-1 min-h-0 w-full h-full">
+      {/* PHASE 5 polish: removed `max-w-7xl mx-auto px-* py-2` from <main>.
+          Those Tailwind classes constrained the workspace to 1280px wide,
+          centered, with extra horizontal padding — so on wide screens the
+          Q-panels were narrower than the readout bar + action bar (which
+          use 1.6rem viewport margins). Letting <main> fill the flex
+          column means the workspace's own `margin: 0 1.6rem` is the only
+          horizontal inset, matching both bars exactly. */}
+      <main className="flex-1 min-h-0 w-full h-full">
         {view === 'matrix' ? (
           <MatrixView
             tasks={tasks}
