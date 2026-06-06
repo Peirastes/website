@@ -605,16 +605,16 @@ const EisenhowerTaskManager = () => {
       // between the etm-* chrome. v2 components keep their own
       // backgrounds and render normally on top of the new atmosphere.
       background: 'transparent',
-      // PHASE 2: cleared the cinematic chrome row at the top (was 5rem).
-      // PHASE 4 finale: cleared the cinematic action bar at the bottom
-      // (3.6rem — action-bar height ~28px + bottom inset 1.6rem +
-      // breathing room).
-      // PHASE 5 polish: readout bar is now also fixed-positioned (top:5rem)
-      // so paddingTop needs to clear chrome AND the readout bar too —
-      // chrome (~3rem from top) + readout bar at top:5rem (height ~40px) +
-      // 0.6rem breathing = ~8rem. The readout bar's `top: 5rem` is the
-      // clearance for chrome; main content needs to start below readout.
-      paddingTop: '8rem',
+      // PHASE 2: cleared the cinematic chrome row at the top.
+      // PHASE 4 finale: cleared the cinematic action bar at the bottom.
+      // PHASE 5 polish: readout bar is fixed-positioned (top:5rem) so
+      // paddingTop needs to clear chrome AND the readout bar. Readout bar
+      // bottom is at ~7.2rem (top:5rem + ~2.2rem rendered height with
+      // padding + border). paddingTop is set to JUST clear it (no extra
+      // breathing) so the workspace's margin-top alone controls the
+      // visible gap. The workspace then uses `margin-top: 0.9rem` to
+      // match the inter-Q cin-matrix-grid gap exactly. See cinematic.css.
+      paddingTop: '7.2rem',
       paddingBottom: '3.6rem'
     }}>
       {/* PHASE 1: SVG film-grain layer — see `.cin-grain` in index.css.

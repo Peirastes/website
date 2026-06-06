@@ -615,7 +615,12 @@ body.app-locked .cin-hints {
      flex-column-stretch reason as .readout-bar — see comment there. */
   width: min(80rem, calc(100vw - 3.2rem));
   align-self: center;
-  margin-top: 0.8rem;
+  /* Matches the .cin-matrix-grid gap below — so the visible buffer
+     between the readout bar and Q1/Q2 is the same as the gap between
+     Q1-Q3 and Q2-Q4 (Cole's request). The root paddingTop in App.jsx
+     is sized to JUST clear the readout bar so margin-top alone
+     controls this buffer. */
+  margin-top: 0.9rem;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -846,7 +851,10 @@ body.app-locked .cin-hints {
      at 1023px). Cole flagged this as the bars "snapping" to a larger
      size. Now all viewport sizes use the same `min(80rem, calc(100vw -
      3.2rem))` so the bars only ever match-or-shrink monotonically. */
-  .cin-workspace { margin-top: 0.6rem; }
+  /* At this breakpoint .cin-matrix-grid gap is 0.7rem (see below),
+     so workspace margin-top matches that for the same readout-to-Q
+     visual buffer pattern. */
+  .cin-workspace { margin-top: 0.7rem; }
   .cin-matrix-grid { gap: 0.7rem; }
 }
 @media (max-width: 767px) {
@@ -871,6 +879,12 @@ body.app-locked .cin-hints {
     display: flex;
     gap: 0.4rem;
     padding: 0 0.2rem;
+    /* Visible buffer below the readout bar — mirrors the workspace's
+       margin-top pattern at desktop (Cole's "buffer same as inter-Q gap"
+       principle, applied to mobile). At mobile the readout bar is
+       slightly shorter so this lands at ~1rem visible gap, close to
+       the <1024px desktop's 0.7rem buffer. */
+    margin-top: 0.7rem;
     margin-bottom: 0.6rem;
     /* Same horizontal-span pattern as the other four bars — without
        this, the mobile matrix went full viewport width while the
