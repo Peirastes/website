@@ -616,11 +616,13 @@ body.app-locked .cin-hints {
   width: min(80rem, calc(100vw - 3.2rem));
   align-self: center;
   /* Matches the .cin-matrix-grid gap below — so the visible buffer
-     between the readout bar and Q1/Q2 is the same as the gap between
-     Q1-Q3 and Q2-Q4 (Cole's request). The root paddingTop in App.jsx
-     is sized to JUST clear the readout bar so margin-top alone
-     controls this buffer. */
+     between the readout bar and Q1/Q2 (margin-top) AND the buffer
+     between Q3/Q4 and the action bar (margin-bottom) both equal the
+     inter-Q gap. The root paddingTop/paddingBottom in App.jsx are
+     sized to JUST clear the fixed bars so these margins alone control
+     the visible buffers. */
   margin-top: 0.9rem;
+  margin-bottom: 0.9rem;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -852,9 +854,9 @@ body.app-locked .cin-hints {
      size. Now all viewport sizes use the same `min(80rem, calc(100vw -
      3.2rem))` so the bars only ever match-or-shrink monotonically. */
   /* At this breakpoint .cin-matrix-grid gap is 0.7rem (see below),
-     so workspace margin-top matches that for the same readout-to-Q
-     visual buffer pattern. */
-  .cin-workspace { margin-top: 0.7rem; }
+     so workspace margin-top/margin-bottom match that for the same
+     readout-to-Q1/Q2 and Q3/Q4-to-action visual buffers. */
+  .cin-workspace { margin-top: 0.7rem; margin-bottom: 0.7rem; }
   .cin-matrix-grid { gap: 0.7rem; }
 }
 @media (max-width: 767px) {
@@ -901,6 +903,10 @@ body.app-locked .cin-hints {
     min-height: 0;
     width: min(80rem, calc(100vw - 3.2rem));
     align-self: center;
+    /* Visible buffer above the action bar — mirrors the workspace's
+       margin-bottom on desktop. Same value as the <1024px gap (0.7rem)
+       so mobile reads consistently. */
+    margin-bottom: 0.7rem;
   }
 }
 .cin-mobile-tab {
