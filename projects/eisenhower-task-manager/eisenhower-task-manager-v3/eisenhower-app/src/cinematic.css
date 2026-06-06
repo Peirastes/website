@@ -485,9 +485,14 @@ body.app-locked .cin-hints {
   /* Shared horizontal-span pattern: never wider than 80rem (the v2
      max-w-7xl that bounded the workspace), centered, with a minimum
      1.6rem inset from viewport edges. Matches .cin-workspace and
-     .cin-action-bar exactly. */
+     .cin-action-bar exactly.
+     align-self: center is critical here — the parent root div is a
+     flex column with default align-items: stretch, which would
+     otherwise stretch this item across the full cross axis despite
+     the explicit width. align-self center opts out and centers
+     horizontally in one stroke. */
   width: min(80rem, calc(100% - 3.2rem));
-  margin: 0 auto;
+  align-self: center;
   padding: 0.5rem 1rem;
   background: var(--glass-bg-deep);
   backdrop-filter: var(--glass-blur);
@@ -605,9 +610,11 @@ body.app-locked .cin-hints {
 .cin-workspace {
   flex: 1;
   min-height: 0;
-  /* Shared horizontal-span pattern — see .readout-bar comment. */
+  /* Shared horizontal-span pattern + align-self: center for the same
+     flex-column-stretch reason as .readout-bar — see comment there. */
   width: min(80rem, calc(100% - 3.2rem));
-  margin: 0.8rem auto 0;
+  align-self: center;
+  margin-top: 0.8rem;
   padding: 0;
   display: flex;
   flex-direction: column;
