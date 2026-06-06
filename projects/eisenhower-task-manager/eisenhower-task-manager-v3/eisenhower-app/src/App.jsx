@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp, RefreshCw } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp, RefreshCw, Compass } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 
@@ -11,6 +11,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { ShortcutHelp } from './components/ShortcutHelp';
 import { UndoToast } from './components/UndoToast';
 import { InfoModal } from './components/InfoModal';
+import { TaskDetailsModal } from './components/TaskDetailsModal';
 
 const API_BASE = '/api';
 
@@ -835,6 +836,12 @@ const EisenhowerTaskManager = () => {
             setShowForm={setShowForm} deleteTask={deleteTask}
             setDefaultDueDate={setDefaultDueDate} settings={settings}
           />
+        ) : view === 'bridge' ? (
+          <BridgeView
+            tasks={tasks} getQuadrant={getQuadrant}
+            setEditingTask={setEditingTask} setShowForm={setShowForm}
+            settings={settings}
+          />
         ) : (
           <AnalyticsView
             tasks={tasks} calculateTaskScore={calculateTaskScore}
@@ -856,6 +863,7 @@ const EisenhowerTaskManager = () => {
             { key: 'list',      icon: List,        label: 'List' },
             { key: 'gantt',     icon: BarChart3,   label: 'Gantt' },
             { key: 'calendar',  icon: Calendar,    label: 'Calendar' },
+            { key: 'bridge',    icon: Compass,     label: 'Bridge' },
             { key: 'analytics', icon: TrendingUp,  label: 'Analytics' }
           ].map(({ key, icon: Icon, label }) => (
             <button
@@ -1551,8 +1559,24 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
 // and mobile via responsive CSS.
 
 const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
-  const [formData, setFormData] = useState(
-    task || {
+  /* Stored task.dueDate is either "YYYY-MM-DD" (no time) or
+     "YYYY-MM-DDTHH:MM" (with time). The form edits these as two inputs;
+     re-joined on submit. splitDueDate handles both shapes safely. */
+  const splitDueDate = (raw) => {
+    if (typeof raw !== 'string' || !raw) return { date: '', time: '' };
+    if (raw.includes('T')) {
+      const [d, t] = raw.split('T');
+      return { date: d, time: (t || '').slice(0, 5) };
+    }
+    return { date: raw, time: '' };
+  };
+  const [formData, setFormData] = useState(() => {
+    if (task) {
+      const { date, time } = splitDueDate(task.dueDate);
+      return { ...task, dueDate: date, dueTime: time };
+    }
+    const { date, time } = splitDueDate(defaultDueDate);
+    return {
       task: '',
       domain: 'Teaching',
       scope: 'Professional',
@@ -1561,7 +1585,8 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
       isNecessary: false,
       rank: 2,
       assignedDate: new Date().toISOString().split('T')[0],
-      dueDate: defaultDueDate || '',
+      dueDate: date,
+      dueTime: time,
       percentComplete: 0,
       isRecurring: false,
       recurringPattern: 'once',
@@ -1570,8 +1595,8 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
       easeRating: null,
       timeEstimateValue: null,
       timeEstimateUnit: 'hours'
-    }
-  );
+    };
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1579,7 +1604,13 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
       alert('Please fill in task name and due date');
       return;
     }
-    onSave(formData);
+    /* Re-join date + time into the stored form. Empty time = date-only
+       string (backward compatible with all existing tasks + other views). */
+    const mergedDueDate = formData.dueTime
+      ? `${formData.dueDate}T${formData.dueTime}`
+      : formData.dueDate;
+    const { dueTime, ...rest } = formData;
+    onSave({ ...rest, dueDate: mergedDueDate });
   };
 
   const subcategoryOptions = settings.subcategories[formData.domain] || [];
@@ -1688,13 +1719,22 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
               </div>
               <div className="cin-field">
                 <label className="cin-field__label">Due *</label>
-                <input
-                  type="date"
-                  className="cin-input"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  required
-                />
+                <div className="cin-form-grid" style={{ gridTemplateColumns: '1.4fr 1fr', gap: '6px' }}>
+                  <input
+                    type="date"
+                    className="cin-input"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    required
+                  />
+                  <input
+                    type="time"
+                    className="cin-input"
+                    value={formData.dueTime || ''}
+                    onChange={(e) => setFormData({ ...formData, dueTime: e.target.value })}
+                    title="Optional time of day"
+                  />
+                </div>
               </div>
               <div className="cin-field">
                 <label className="cin-field__label">Rank</label>
@@ -2078,12 +2118,24 @@ const VelocityChart = ({ data }) => {
  */
 const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, settings }) => {
   const [filterQuad, setFilterQuad] = useState('all');
-  const bodyRef = React.useRef(null);
-  const [trackGeom, setTrackGeom] = React.useState({ left: 0, width: 0 });
+  const scrollRef = React.useRef(null);
 
-  const WINDOW_BACK = 3;
-  const WINDOW_FWD  = 17;
-  const WINDOW_TOTAL = WINDOW_BACK + 1 + WINDOW_FWD;   // 21
+  /* Tape-gauge timeline. Pixel-laid-out 7-month tape with NO browser
+     scrollbar — the user click-and-drags anywhere on the tape to scrub
+     forward/back through time. Plain wheel zooms (anchored on the cursor
+     day so the point under the cursor stays under the cursor); Shift+wheel
+     scrolls vertically through the task list. Label column sticks to the
+     left during scrub; axis sticks to the top during vertical scroll. */
+  const WINDOW_BACK  = 30;
+  const WINDOW_FWD   = 180;
+  const WINDOW_TOTAL = WINDOW_BACK + 1 + WINDOW_FWD;   // 211 days
+  const LABEL_WIDTH  = 220;
+  const PX_PER_DAY_MIN = 6;
+  const PX_PER_DAY_MAX = 80;
+  const [pxPerDay, setPxPerDay] = useState(24);
+  const TAPE_PX         = WINDOW_TOTAL * pxPerDay;
+  const TODAY_OFFSET_PX = WINDOW_BACK * pxPerDay;
+  const showMondayLabels = pxPerDay >= 14;   // collapse to month-firsts only when dense
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const dayOffset = (d) => {
@@ -2099,32 +2151,121 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     return off >= -WINDOW_BACK && off <= WINDOW_FWD;
   }).sort((a, b) => dayOffset(a.dueDate) - dayOffset(b.dueDate));
 
-  React.useEffect(() => {
-    if (!bodyRef.current) return;
-    const update = () => {
-      const track = bodyRef.current?.querySelector('.gantt-row__track');
-      if (track) {
-        const r = track.getBoundingClientRect();
-        const body = bodyRef.current.getBoundingClientRect();
-        setTrackGeom({ left: r.left - body.left, width: r.width });
-      }
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(bodyRef.current);
-    return () => ro.disconnect();
-  }, [visible.length]);
+  const scrollToToday = React.useCallback((smooth = true) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const todayLeft = LABEL_WIDTH + TODAY_OFFSET_PX;
+    const target = Math.max(0, todayLeft - el.clientWidth * 0.25);
+    if (smooth) el.scrollTo({ left: target, behavior: 'smooth' });
+    else        el.scrollLeft = target;
+  }, [LABEL_WIDTH, TODAY_OFFSET_PX]);
 
-  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  /* Anchor on today on initial mount only. Depending on scrollToToday here
+     would re-fire after every wheel zoom (its useCallback identity changes
+     with pxPerDay), which would override the cursor-anchored zoom correction
+     below with a snap back to today. */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => { scrollToToday(false); }, []);
+
+  /* Wheel zoom. React's onWheel is passive — to call preventDefault and
+     keep the page from scrolling we attach via addEventListener with
+     { passive: false }. Anchor: the day under the cursor must stay under
+     the cursor across the zoom. We capture the anchor here, commit the
+     new pxPerDay via setState, then a useLayoutEffect on [pxPerDay] reads
+     the anchor and corrects scrollLeft before the browser paints. */
+  const zoomAnchorRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handler = (e) => {
+      // Shift+wheel routes through to vertical scroll (task list).
+      if (e.shiftKey) return;
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const cursorXInViewport = e.clientX - rect.left;
+      const cursorXInTape = cursorXInViewport + el.scrollLeft - LABEL_WIDTH;
+      const cursorDay = cursorXInTape / pxPerDay;
+      const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+      const next = Math.max(PX_PER_DAY_MIN, Math.min(PX_PER_DAY_MAX, pxPerDay * factor));
+      if (next === pxPerDay) return;          // at clamp boundary
+      zoomAnchorRef.current = { cursorDay, cursorXInViewport };
+      setPxPerDay(next);
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, [pxPerDay, LABEL_WIDTH]);
+
+  // Cursor-anchored zoom correction. Runs synchronously after pxPerDay
+  // commits, before the browser paints — so the zoom feels "around the
+  // cursor" with no visible jump.
+  React.useLayoutEffect(() => {
+    const anchor = zoomAnchorRef.current;
+    if (!anchor || !scrollRef.current) return;
+    zoomAnchorRef.current = null;
+    const el = scrollRef.current;
+    const newCursorXInTape = anchor.cursorDay * pxPerDay;
+    el.scrollLeft = Math.max(0, newCursorXInTape + LABEL_WIDTH - anchor.cursorXInViewport);
+  }, [pxPerDay, LABEL_WIDTH]);
+
+  /* Click-and-drag scrub. Pointer capture so the cursor can leave the tape
+     and the drag still tracks. justDragged ref + click-capture handler
+     suppresses the synthetic click that follows a drag — otherwise releasing
+     after a slide-onto-a-bar would open the task editor. */
+  const dragState  = React.useRef({ active: false, startX: 0, startScroll: 0, moved: false });
+  const justDragged = React.useRef(false);
+
+  const onPointerDown = (e) => {
+    if (!scrollRef.current) return;
+    if (e.button !== undefined && e.button !== 0) return;   // left button only
+    dragState.current = {
+      active: true,
+      startX: e.clientX,
+      startScroll: scrollRef.current.scrollLeft,
+      moved: false
+    };
+    scrollRef.current.style.cursor = 'grabbing';
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onPointerMove = (e) => {
+    const s = dragState.current;
+    if (!s.active || !scrollRef.current) return;
+    const dx = e.clientX - s.startX;
+    if (Math.abs(dx) > 4) s.moved = true;
+    scrollRef.current.scrollLeft = s.startScroll - dx;
+  };
+  const onPointerUp = (e) => {
+    const s = dragState.current;
+    if (!s.active) return;
+    justDragged.current = s.moved;
+    dragState.current.active = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = '';
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+    // Clear the suppress flag after the trailing click (if any) has fired.
+    setTimeout(() => { justDragged.current = false; }, 0);
+  };
+  const onClickCapture = (e) => {
+    if (justDragged.current) { e.stopPropagation(); e.preventDefault(); }
+  };
+
+  const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const axisDays = [];
   for (let i = -WINDOW_BACK; i <= WINDOW_FWD; i++) {
     const d = new Date(today.getTime() + i * 86400000);
     const dow = d.getDay();
-    let text;
-    if (i === 0)          text = 'TODAY';
-    else if (i % 3 === 0) text = `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
-    else                  text = `${d.getDate()}`;
-    axisDays.push({ i, text, isToday: i === 0, isWeekend: dow === 0 || dow === 6 });
+    const isMonthStart = d.getDate() === 1;
+    const isToday = i === 0;
+    /* Clean minimal demarcation: TODAY chip, month abbreviation on the 1st,
+       bare day-number on every Monday. All other days carry a tick only
+       (drawn by the per-day axis gradient). Weekends get a subtle wash. */
+    let majorText = null;
+    if (isToday)                              majorText = 'TODAY';
+    else if (isMonthStart)                    majorText = MONTH_ABBR[d.getMonth()];
+    else if (dow === 1 && showMondayLabels)   majorText = String(d.getDate());
+    axisDays.push({ i, majorText, isToday, isWeekend: dow === 0 || dow === 6, isMonthStart });
   }
 
   return (
@@ -2133,9 +2274,15 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
         <div className="cin-view-panel__title">
           Schedule · Timeline
           <span className="cin-view-panel__count">{visible.length}</span>
-          <span className="cin-view-panel__sub">21-day window</span>
+          <span className="cin-view-panel__sub">drag to scrub · wheel to zoom · {WINDOW_BACK}d ← today → {WINDOW_FWD}d</span>
         </div>
         <div className="cin-view-panel__toolbar">
+          <button
+            type="button"
+            className="cin-btn cin-btn--secondary"
+            onClick={() => scrollToToday(true)}
+            title="Recenter on today"
+          >Today</button>
           <div className="cin-filter">
             <label className="cin-filter__label">Quadrant</label>
             <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}>
@@ -2153,36 +2300,56 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
         Gantt requires a wider viewport — rotate or use the List view
       </div>
 
-      <div className="cin-view-panel__body">
-        <div className="gantt-timeline">
-          <div className="gantt-axis">
-            <div className="gantt-axis__spacer" />
-            <div className="gantt-axis__days">
+      <div className="cin-view-panel__body" style={{ overflow: 'hidden', padding: 0 }}>
+        <div
+          className="gantt-tape"
+          ref={scrollRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          onClickCapture={onClickCapture}
+        >
+          <div
+            className="gantt-tape__inner"
+            style={{
+              '--tape-px':  `${TAPE_PX}px`,
+              '--day-px':   `${pxPerDay}px`,
+              '--label-px': `${LABEL_WIDTH}px`
+            }}
+          >
+            {/* Axis row */}
+            <div className="gantt-axis-tape__spacer" />
+            <div className="gantt-axis-tape__days">
               {axisDays.map(d => (
                 <div
                   key={d.i}
-                  className={'gantt-axis__day'
-                    + (d.isToday   ? ' gantt-axis__day--today'   : '')
-                    + (d.isWeekend ? ' gantt-axis__day--weekend' : '')}
-                >{d.text}</div>
+                  className={'gantt-axis-tape__day'
+                    + (d.isToday      ? ' is-today'       : '')
+                    + (d.isWeekend    ? ' is-weekend'     : '')
+                    + (d.isMonthStart ? ' is-month-start' : '')}
+                >
+                  {d.majorText && (
+                    <span className="gantt-axis-tape__tick-label">{d.majorText}</span>
+                  )}
+                </div>
               ))}
             </div>
-          </div>
 
-          <div className="gantt-body" ref={bodyRef}>
+            {/* Empty state — spans both columns */}
             {visible.length === 0 && (
-              <div className="list-empty" style={{ gridColumn: '1 / 3' }}>
-                — No scheduled tasks in this window —
-              </div>
+              <div className="gantt-tape__empty">— No scheduled tasks in this window —</div>
             )}
+
+            {/* Task rows */}
             {visible.map(t => {
               const dueOff = dayOffset(t.dueDate);
               const isOverdue = dueOff < 0;
               const isDone = t.percentComplete === 100;
               const startOff = isOverdue ? dueOff : 0;
               const endOff   = isOverdue ? 0 : dueOff;
-              const leftPct  = ((startOff + WINDOW_BACK) / WINDOW_TOTAL) * 100;
-              const widthPct = Math.max(((endOff - startOff + 1) / WINDOW_TOTAL) * 100, 100 / WINDOW_TOTAL);
+              const leftPx  = (startOff + WINDOW_BACK) * pxPerDay;
+              const widthPx = Math.max((endOff - startOff + 1) * pxPerDay, pxPerDay);
               const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
               const barClass = 'gantt-bar gantt-bar--' + (isOverdue ? 'overdue' : qid)
                 + (isDone ? ' gantt-bar--done' : '');
@@ -2190,16 +2357,16 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
               return (
                 <React.Fragment key={t.id}>
                   <div
-                    className="gantt-row__label"
+                    className="gantt-row-tape__label"
                     onClick={() => { setEditingTask(t); setShowForm(true); }}
                   >
                     <div className="gantt-row__label-name" title={t.task}>{t.task}</div>
                     <div className="gantt-row__label-meta">{(t.subcategory || t.domain) + ' · ' + dueDateText}</div>
                   </div>
-                  <div className="gantt-row__track">
+                  <div className="gantt-row-tape__track">
                     <div
                       className={barClass}
-                      style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                      style={{ left: `${leftPx}px`, width: `${widthPx}px` }}
                       onClick={() => { setEditingTask(t); setShowForm(true); }}
                     >
                       {t.rank ? `R${t.rank}` : ''}
@@ -2208,20 +2375,906 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                 </React.Fragment>
               );
             })}
-            {visible.length > 0 && trackGeom.width > 0 && (
-              <div
-                className="gantt-today-line"
-                style={{
-                  left: `${trackGeom.left + (WINDOW_BACK / WINDOW_TOTAL) * trackGeom.width}px`,
-                  top: 0,
-                  bottom: 0
-                }}
-              />
-            )}
+
+            {/* Today line — full-height vertical accent inside the grid;
+                positioned in absolute pixels so it scrolls with content. */}
+            <div
+              className="gantt-today-line-tape"
+              style={{ left: `calc(var(--label-px) + ${TODAY_OFFSET_PX}px)` }}
+            />
           </div>
         </div>
       </div>
     </div>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   BRIDGE VIEW — Horizon (forward perspective) + Radar (top-down PPI)
+   ═══════════════════════════════════════════════════════════════
+   Bridge-of-the-ship metaphor. Tasks approach the present as time
+   advances. Two visualizations of the same data:
+     • Horizon: lanes converge toward a vanishing point at the
+       horizon; tasks ride them inward, perspective-scaled.
+     • Radar:  concentric range rings + sectored pie; ship at
+       center, tasks at polar coords (r=time, θ=domain sector).
+   Lanes = settings.domains. Tasks with unknown / missing domain
+   are placed in a fallback "OTHER" lane so nothing is dropped. */
+
+/* Adaptive horizon-distance formatters. Horizon distance is stored as
+   fractional days throughout, so anything sub-day reads in hours and
+   anything day-or-above reads in days. Long form for milestone arc
+   labels (caps), short form for the subtitle status line. */
+const formatHorizonLong = (days) => {
+  if (days < 1) {
+    const h = Math.max(1, Math.round(days * 24));
+    return h === 1 ? '1 HOUR' : `${h} HOURS`;
+  }
+  const d = Math.round(days);
+  return d === 1 ? '1 DAY' : `${d} DAYS`;
+};
+const formatHorizonShort = (days) => {
+  if (days < 1) return `${Math.max(1, Math.round(days * 24))}h`;
+  return `${Math.round(days)}d`;
+};
+
+/* Absolute date/time label for the left side of each range arc. Anchors
+   the user to real calendar time while panning. Sub-day granularity prints
+   wall-clock time ("14:30"); day-or-coarser prints abbreviated month+day
+   ("JUN 13"), with year suffix when the reference crosses into a future
+   calendar year ("DEC 25 '27"). */
+const BRIDGE_MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const formatAbsolute = (refMs, granularityDays) => {
+  const d = new Date(refMs);
+  if (granularityDays < 1) {
+    const h = d.getHours();
+    const m = d.getMinutes();
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+  const month = BRIDGE_MONTH_ABBR[d.getMonth()];
+  const day = d.getDate();
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return sameYear
+    ? `${month} ${day}`
+    : `${month} ${day} '${String(d.getFullYear()).slice(-2)}`;
+};
+
+/* Relative-from-ship label for the right side of each calendar-anchored
+   grid arc. Auto-collapses to the most readable unit. Mirrors the suffix
+   convention but without AHEAD/AGO since position vs. ship is implied
+   visually (above ship = future, below = past). */
+const formatRelative = (effOff) => {
+  if (Math.abs(effOff) < 1/48) return 'NOW';
+  const sign = effOff < 0 ? '-' : '';
+  const abs = Math.abs(effOff);
+  if (abs < 1)   return `${sign}${Math.round(abs * 24)}H`;
+  if (abs < 14)  return `${sign}${Math.round(abs)}D`;
+  if (abs < 60)  return `${sign}${Math.round(abs / 7)}W`;
+  if (abs < 365) return `${sign}${Math.round(abs / 30)}MO`;
+  return `${sign}${Math.round(abs / 365)}Y`;
+};
+
+/* Ship label adapts to the drag-pan anchor. < 30 min off real-now reads
+   as TODAY; otherwise compact mission-ops-style "12H AHEAD" / "3D AGO". */
+const formatAnchor = (anchor) => {
+  if (Math.abs(anchor) < 1/48) return 'TODAY';
+  const abs = Math.abs(anchor);
+  const suffix = anchor > 0 ? 'AHEAD' : 'AGO';
+  if (abs < 1)   return `${Math.round(abs * 24)}H ${suffix}`;
+  if (abs < 14)  return `${Math.round(abs)}D ${suffix}`;
+  if (abs < 60)  return `${Math.round(abs / 7)}W ${suffix}`;
+  if (abs < 365) return `${Math.round(abs / 30)}MO ${suffix}`;
+  return `${Math.round(abs / 365)}Y ${suffix}`;
+};
+
+const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings }) => {
+  const [mode, setMode] = useState('horizon');
+  const [filterQuad, setFilterQuad] = useState('all');
+  /* Horizon distance is wheel-zoomable. State lives here so it survives
+     Horizon ↔ Radar toggles. */
+  const [horizonDays, setHorizonDays] = useState(90);
+  /* Time anchor for Horizon's drag-to-pan. Fractional days from real-now.
+     viewAnchor = 0 means the ship sits at "now" (default). Positive =
+     ship has sailed forward in time; negative = panned to the past.
+     Only applied in Horizon mode. */
+  const [viewAnchor, setViewAnchor] = useState(0);
+
+  const RADAR_DAYS   = 180;
+  const maxDays = mode === 'horizon' ? horizonDays : RADAR_DAYS;
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  /* Fractional days, so the Horizon can resolve below 1d into hours.
+     Date-only strings ("YYYY-MM-DD") are parsed as local midnight to
+     avoid the UTC-midnight drift that would otherwise put a "due today"
+     task at ~-0.2d in negative-UTC timezones. */
+  const dayOffset = (d) => {
+    let dd;
+    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      const [y, m, day] = d.split('-').map(Number);
+      dd = new Date(y, m - 1, day);
+    } else {
+      dd = new Date(d);
+    }
+    return (dd.getTime() - today.getTime()) / 86400000;
+  };
+
+  /* Default lanes — Teaching first-left, Personal first-right. Order
+     determines lateral position via the alternating-outward sector
+     packer in HorizonScene: lanes[0] = first-left, lanes[1] = first-
+     right, lanes[2] = second-left, lanes[3] = second-right, etc. */
+  const baseDomains = (settings?.domains && settings.domains.length > 0)
+    ? settings.domains
+    : ['Teaching', 'Personal'];
+  const lanes = baseDomains;
+  const laneOf = (t) => {
+    const idx = baseDomains.indexOf(t.domain);
+    return idx === -1 ? 0 : idx;
+  };
+
+  const visible = tasks.filter(t => {
+    if (t.percentComplete === 100) return false;
+    if (!t.dueDate) return false;
+    if (filterQuad !== 'all' && getQuadrant(t) !== filterQuad) return false;
+    /* In Horizon mode, the visible window is anchored to viewAnchor —
+       so panning forward in time keeps the [-7d, +horizon] window
+       relative to the new ship position. */
+    let off = dayOffset(t.dueDate);
+    if (mode === 'horizon') off -= viewAnchor;
+    return off >= -7 && off <= maxDays;
+  });
+
+  /* Click a pip → show a lightweight details popup first. The "Edit"
+     button inside the popup hands off to the existing edit form. */
+  const [selectedTask, setSelectedTask] = useState(null);
+  const onPick = (t) => setSelectedTask(t);
+  const handleEditFromDetails = (t) => { setEditingTask(t); setShowForm(true); };
+
+  return (
+    <div className="cin-view-panel">
+      <div className="cin-view-panel__head">
+        <div className="cin-view-panel__title">
+          Bridge · Navigation
+          <span className="cin-view-panel__count">{visible.length}</span>
+          <span className="cin-view-panel__sub">
+            {mode === 'horizon'
+              ? `forward perspective · ${formatHorizonShort(maxDays)} horizon · drag to pan · wheel to zoom`
+              : `top-down radar · ${maxDays}d range · click a target to edit`}
+          </span>
+        </div>
+        <div className="cin-view-panel__toolbar">
+          {mode === 'horizon' && Math.abs(viewAnchor) >= 1/48 && (
+            <button
+              type="button"
+              className="cin-btn cin-btn--secondary"
+              onClick={() => setViewAnchor(0)}
+              title="Recenter on now"
+            >Recenter</button>
+          )}
+          <div className="cin-mode-toggle" role="group" aria-label="Bridge mode">
+            <button
+              type="button"
+              className={`cin-mode-toggle__btn ${mode === 'horizon' ? 'is-active' : ''}`}
+              onClick={() => setMode('horizon')}
+              aria-pressed={mode === 'horizon'}
+            >Horizon</button>
+            <button
+              type="button"
+              className={`cin-mode-toggle__btn ${mode === 'radar' ? 'is-active' : ''}`}
+              onClick={() => setMode('radar')}
+              aria-pressed={mode === 'radar'}
+            >Radar</button>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Quadrant</label>
+            <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}>
+              <option value="all">All</option>
+              <option value="do-first">Q1 · Critical</option>
+              <option value="schedule">Q2 · Strategic</option>
+              <option value="delegate">Q3 · Delegate</option>
+              <option value="eliminate">Q4 · Eliminate</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex' }}>
+        {mode === 'horizon' ? (
+          <HorizonScene
+            tasks={visible} lanes={lanes} laneOf={laneOf}
+            dayOffset={dayOffset} maxDays={horizonDays}
+            setMaxDays={setHorizonDays}
+            viewAnchor={viewAnchor} setViewAnchor={setViewAnchor}
+            getQuadrant={getQuadrant} onPick={onPick}
+          />
+        ) : (
+          <RadarScene
+            tasks={visible} lanes={lanes} laneOf={laneOf}
+            dayOffset={dayOffset} maxDays={RADAR_DAYS}
+            getQuadrant={getQuadrant} onPick={onPick}
+          />
+        )}
+      </div>
+
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          getQuadrant={getQuadrant}
+          onEdit={handleEditFromDetails}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick }) => {
+  const W = 1000, H = 600;
+  const N = lanes.length;
+  const svgRef = React.useRef(null);
+
+  /* True 3D sphere projection — latitude/longitude grid model.
+     The ship sits on the equator at longitude 0; sphere center at world
+     origin; rotation axis is the world Y axis. Ship sails east (toward
+     +Z). A camera at altitude H_CAM directly above the ship
+     ((R+H_CAM, 0, 0)) is pitched down by BETA to look across the
+     visible surface.
+
+     Lanes are LATITUDE lines (small circles parallel to the equator at
+     constant world Y) — they DON'T converge at the ship, they run
+     roughly parallel near the ship and curve away from each other
+     toward the limb.
+
+     Arcs are LONGITUDE lines (great-circle meridians at constant
+     longitude east of ship) — each represents a calendar date; they
+     run N-S across the visible surface, tilted by their distance east
+     of the ship.
+
+     The yellow horizon line is the actual limb of the sphere — the
+     circle where the line-of-sight is tangent to the sphere. */
+  /* WIREFRAME GLOBE — Google-Earth-style.
+
+     Camera sits at altitude H_CAM directly above the sphere's "ship"
+     point and stares straight at the sphere's centre. There is NO
+     forward tilt. The limb (horizon) therefore projects to a perfect
+     geometric circle centred in the chart, and the sphere reads as a
+     proper globe rather than a tilted ground plane.
+
+     World axes:  +X = radial-out at ship (toward camera)
+                  +Y = "east" on the globe   (time axis)
+                  +Z = "north" on the globe  (lane axis)
+
+     The ship sits at the sub-camera point (lat=0, lon=0). Spinning the
+     globe (drag-to-pan) changes viewAnchor, which shifts task longitudes
+     and slides them across the visible cap. */
+  const R = 100;
+  const ALT_MIN = R * 0.15;                                  // ~ surface skim
+  const ALT_MAX = R * 20;                                    // ~ deep space
+  /* Default camera view — Picture6 framing, pulled back a tad so the
+     globe's edges sit inside the chart with a small buffer.
+     - cameraAlt = R      ⇒  α_limb = π/3 (60°), LIMB_R_PX ≈ 462.
+                              Side buffer (CX − LIMB_R_PX) ≈ 38 px.
+     - panY = 240         ⇒  ship at y ≈ 540 (bottom-centre, as before).
+                              Top buffer (CY − LIMB_R_PX) ≈ 78 px.
+     - panX = 0           ⇒  ship horizontally centred. */
+  const [cameraAlt, setCameraAlt] = React.useState(R);
+  const [panX, setPanX] = React.useState(0);
+  const [panY, setPanY] = React.useState(240);
+  const H_CAM = cameraAlt;
+  const ALPHA_LIMB = Math.acos(R / (R + H_CAM));             // visible cap angular radius
+  const COS_LIMB = Math.cos(ALPHA_LIMB);
+  const SCALE = 800;
+  /* Each lane occupies one 15° latitude band (one wireframe sector).
+     Lanes fill the inner sectors first and step outward alternately
+     left↔right, so:
+       lane 0 → −7.5°  (first sector LEFT of equator, [−15°, 0°])
+       lane 1 → +7.5°  (first sector RIGHT, [0°, +15°])
+       lane 2 → −22.5° (second sector LEFT, [−30°, −15°])
+       lane 3 → +22.5° (second sector RIGHT)
+       … and so on.
+     This keeps named lanes near the equator instead of pushing them
+     to the visible pole, and aligns each lane's sector to a wireframe
+     band — labels always sit at the band's centre. */
+  const SECTOR_WIDTH = Math.PI / 12;            // 15°
+
+  /* Alternating-outward sector packing — see SECTOR_WIDTH comment. */
+  const laneLat = (i) => {
+    const sign = (i % 2 === 0) ? -1 : +1;
+    const ring = Math.floor(i / 2);                          // 0, 1, 2, …
+    return sign * (ring + 0.5) * SECTOR_WIDTH;
+  };
+
+  /* Project a 3D world point to viewBox coords. Camera at
+     (R + H_CAM, 0, 0), looking straight toward sphere centre:
+        forward = (−1, 0, 0)
+        right   = ( 0, 1, 0)   → screen-x = +east = forward in time
+        up      = ( 0, 0, 1)   → screen-y = +north = up the lanes
+     Forward depth is (R + H_CAM) − Px; on the visible hemisphere this
+     is always positive, so visibility is decided by the great-circle
+     cap test (cos lat · cos lon ≥ cos α_limb), not by depth sign. */
+  const CX = W / 2 + panX, CY = H / 2 + panY;
+  const project = (Px, Py, Pz) => {
+    const f = (R + H_CAM) - Px;
+    if (f < 0.05) return null;
+    return {
+      x: CX + (Py / f) * SCALE,
+      y: CY - (Pz / f) * SCALE
+    };
+  };
+  const projectLatLon = (lat, lon) => {
+    const cL = Math.cos(lat);
+    return project(R * cL * Math.cos(lon), R * Math.sin(lat), R * cL * Math.sin(lon));
+  };
+  const isVisible = (lat, lon) => Math.cos(lat) * Math.cos(lon) >= COS_LIMB - 1e-6;
+
+  /* Map (day, lane index) to a viewBox point.
+     Day → longitude: maxDays corresponds to ALPHA_LIMB (eastward limb
+     at the equator). */
+  const dayToLon = (d) => (d / maxDays) * ALPHA_LIMB;
+
+  /* Each lane occupies its own 15° latitude band, centred on laneLat(i).
+     This is independent of the other lanes' positions — each lane gets
+     a clean sector aligned with the wireframe graticule. */
+  const laneSectors = lanes.map((_, i) => {
+    const c = laneLat(i);
+    return [c - SECTOR_WIDTH / 2, c + SECTOR_WIDTH / 2];
+  });
+
+  /* Stable per-task hash for jittering inside a sector. djb2-style. */
+  const hashId = (s) => {
+    let h = 5381;
+    const str = String(s);
+    for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    return h;
+  };
+
+  const dayLaneToXY = (d, laneIdx, taskId) => {
+    const lon = Math.max(-ALPHA_LIMB, Math.min(ALPHA_LIMB, dayToLon(d)));
+    const [lo, hi] = laneSectors[laneIdx] || [-ALPHA_LIMB, ALPHA_LIMB];
+    const c = (lo + hi) / 2;
+    const halfW = (hi - lo) / 2;
+    /* Jitter ∈ [−0.5, +0.5]; scale to 60 % of the sector half-width so
+       tasks always stay clear of the sector boundaries. */
+    const norm = (hashId(taskId) % 1000) / 1000 - 0.5;
+    const lat = c + norm * halfW * 1.2;
+    if (!isVisible(lat, lon)) return null;
+    return projectLatLon(lat, lon);
+  };
+
+  /* Visibility helpers — a point (lat, lon) is visible if its great-circle
+     distance from the ship is ≤ ALPHA_LIMB:
+        cos(lat) · cos(lon) ≥ cos(ALPHA_LIMB)
+     so the max longitude at given latitude is acos(cos α_limb / cos lat)
+     and similarly for the max latitude at given longitude. */
+  const lonMaxAtLat = (lat) => {
+    const r = Math.cos(ALPHA_LIMB) / Math.cos(lat);
+    return r > 1 ? 0 : Math.acos(r);
+  };
+  const latMaxAtLon = (lon) => {
+    const r = Math.cos(ALPHA_LIMB) / Math.cos(lon);
+    return r > 1 ? 0 : Math.acos(r);
+  };
+
+  /* Build a polyline path from an array of {x,y} samples. */
+  const polyPath = (pts) => {
+    if (!pts || pts.length < 2) return '';
+    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+    for (let i = 1; i < pts.length; i++) d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    return d;
+  };
+
+  /* Wheel zoom — adjusts maxDays (the time → angular-distance scale). */
+  const HORIZON_MIN = 1 / 24;
+  const HORIZON_MAX = 365;
+  React.useEffect(() => {
+    const el = svgRef.current;
+    if (!el || !setMaxDays) return;
+    const handler = (e) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1 / 1.18 : 1.18;
+      const next = Math.max(HORIZON_MIN, Math.min(HORIZON_MAX, maxDays * factor));
+      if (Math.abs(next - maxDays) < 1e-9) return;
+      setMaxDays(next);
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, [maxDays, setMaxDays]);
+
+  /* Three drag modes:
+     - LEFT-click    = SPIN (VERTICAL drag → viewAnchor along time axis).
+                       Drag DOWN advances the ship forward in time; drag
+                       UP rolls back. This matches the projection — in
+                       our setup screen-up = +east (future), so dragging
+                       DOWN pulls future toward the ship at the centre.
+     - MIDDLE-click  = ALTITUDE (vertical drag → camera distance from
+                       globe). Drag UP flies the drone closer.
+                       Multiplicative scaling for constant-feel rate.
+     - RIGHT-click   = PAN (translate the globe within the chart, 1:1
+                       with cursor — same as Google Earth/Maya pan).
+                       This is screen-space offset, not a sphere rotation. */
+  const dragState  = React.useRef({ active: false, mode: null, startX: 0, startY: 0, startAnchor: 0, startAlt: 0, startPanX: 0, startPanY: 0, moved: false });
+  const justDragged = React.useRef(false);
+  const onPointerDown = (e) => {
+    if (e.button === 1) {
+      // Middle-click (wheel button): altitude
+      dragState.current = { active: true, mode: 'alt', startY: e.clientY, startAlt: cameraAlt, moved: false };
+      if (svgRef.current) svgRef.current.style.cursor = 'ns-resize';
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+      e.preventDefault();
+      return;
+    }
+    if (e.button === 2) {
+      // Right-click: pan
+      dragState.current = { active: true, mode: 'pan', startX: e.clientX, startY: e.clientY, startPanX: panX, startPanY: panY, moved: false };
+      if (svgRef.current) svgRef.current.style.cursor = 'move';
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+      e.preventDefault();
+      return;
+    }
+    if (e.button !== undefined && e.button !== 0) return;
+    if (!setViewAnchor) return;
+    dragState.current = { active: true, mode: 'time', startY: e.clientY, startAnchor: viewAnchor, moved: false };
+    if (svgRef.current) svgRef.current.style.cursor = 'grabbing';
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onPointerMove = (e) => {
+    const s = dragState.current;
+    if (!s.active || !svgRef.current) return;
+    if (s.mode === 'alt') {
+      const dy = e.clientY - s.startY;
+      if (Math.abs(dy) > 4) s.moved = true;
+      const containerH = svgRef.current.clientHeight || 600;
+      /* Drag UP → dy negative → factor < 1 → altitude shrinks (closer).
+         Slope tuned so one full container-height drag is ~e^1.6 ≈ 5× change. */
+      const factor = Math.exp(dy / Math.max(containerH, 1) * 1.6);
+      const newAlt = Math.max(ALT_MIN, Math.min(ALT_MAX, s.startAlt * factor));
+      setCameraAlt(newAlt);
+      return;
+    }
+    if (s.mode === 'pan') {
+      const dx = e.clientX - s.startX;
+      const dy = e.clientY - s.startY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) s.moved = true;
+      /* Convert screen-pixel delta → viewBox-unit delta so the globe
+         tracks the cursor 1:1 even when the chart is resized. */
+      const rect = svgRef.current.getBoundingClientRect();
+      const sx = W / Math.max(rect.width,  1);
+      const sy = H / Math.max(rect.height, 1);
+      setPanX(s.startPanX + dx * sx);
+      setPanY(s.startPanY + dy * sy);
+      return;
+    }
+    const dy = e.clientY - s.startY;
+    if (Math.abs(dy) > 4) s.moved = true;
+    const containerH = svgRef.current.clientHeight || 600;
+    const daysPerPx = (2 * maxDays) / Math.max(containerH, 1);
+    setViewAnchor(s.startAnchor + dy * daysPerPx);
+  };
+  const onPointerUp = (e) => {
+    const s = dragState.current;
+    if (!s.active) return;
+    justDragged.current = s.moved;
+    dragState.current.active = false;
+    if (svgRef.current) svgRef.current.style.cursor = '';
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+    setTimeout(() => { justDragged.current = false; }, 0);
+  };
+  const onContextMenu = (e) => e.preventDefault();
+  const onClickCapture = (e) => {
+    if (justDragged.current) { e.stopPropagation(); e.preventDefault(); }
+  };
+
+  /* Calendar-anchored grid arcs (meridians at constant longitude), drawn
+     in two tiers: MINOR ticks for fine scale and MAJOR ticks for the
+     labelled anchor lines. Tiers are chosen by zoom level. */
+  /* Roughly 2× label density vs. the original tier system. Minor spacing
+     unchanged (so the faint background tick grid stays the same), but
+     the major anchor — the one that earns date/time labels — drops to
+     half (or as close to half as a clean calendar interval allows). */
+  const { minor: minorSpacing, major: majorSpacing } = (() => {
+    if (maxDays > 60)    return { minor: 7,           major: 14           }; // wk / 2wk
+    if (maxDays > 14)    return { minor: 1,           major: 3            }; // d / 3d
+    if (maxDays > 2)     return { minor: 6 / 24,      major: 12 / 24      }; // 6 h / 12 h
+    if (maxDays > 0.5)   return { minor: 1 / 24,      major: 3  / 24      }; // 1 h / 3 h
+    if (maxDays > 0.083) return { minor: 15/(24*60),  major: 30/(24*60)   }; // 15 min / 30 min
+    return                       { minor: 5/(24*60),  major: 10/(24*60)   }; //  5 min / 10 min
+  })();
+  const gridSpacing = majorSpacing; // formatAbsolute granularity = major tier
+  /* Span both BACKWARD and FORWARD from viewAnchor — globe is a full
+     hemisphere centred on the ship, not a forward-only horizon. */
+  const firstAbs = Math.ceil((viewAnchor - maxDays) / minorSpacing) * minorSpacing;
+  const lastAbs  = Math.floor((viewAnchor + maxDays) / minorSpacing) * minorSpacing;
+  const gridArcs = [];
+  for (let absDays = firstAbs; absDays <= lastAbs + 1e-9; absDays += minorSpacing) {
+    const effOff = absDays - viewAnchor;
+    if (Math.abs(effOff) > maxDays * 1.001) continue;
+    const ratio = absDays / majorSpacing;
+    const isMajor = Math.abs(ratio - Math.round(ratio)) < 1e-6;
+    gridArcs.push({ absDays, effOff, isMajor });
+  }
+
+  /* LIMB — projects to a TRUE GEOMETRIC CIRCLE because the camera is
+     looking straight at the sphere's centre. All limb points share the
+     same depth f = (R + H_CAM) − R cos α_limb, so the projection of the
+     limb circle (radius R sin α_limb in 3D) is a circle of radius
+     LIMB_R_PX centred at the chart centre. */
+  const LIMB_F_PX = (R + H_CAM) - R * Math.cos(ALPHA_LIMB);
+  const LIMB_R_PX = (R * Math.sin(ALPHA_LIMB) / LIMB_F_PX) * SCALE;
+
+  /* Sample a generic lat/lon curve and clip to the visibility cap. Used
+     for both wireframe parallels (constant lat, varying lon) and
+     wireframe meridians (constant lon, varying lat), plus the
+     ETM-specific lane rails and date arcs. */
+  const sampleCurve = (genPoint, samples = 80) => {
+    const pts = [];
+    for (let i = 0; i <= samples; i++) {
+      const t = i / samples;
+      const { lat, lon } = genPoint(t);
+      if (!isVisible(lat, lon)) continue;
+      const P = projectLatLon(lat, lon);
+      if (P) pts.push(P);
+    }
+    return pts;
+  };
+
+  /* Parallel: constant lat, lon ∈ [−lonMax, +lonMax]. */
+  const parallelPts = (lat) => {
+    const lonMax = lonMaxAtLat(lat);
+    if (lonMax < 0.001) return [];
+    return sampleCurve(t => ({ lat, lon: -lonMax + 2 * lonMax * t }), 90);
+  };
+
+  /* Meridian: constant lon, lat ∈ [−latMax, +latMax]. */
+  const meridianPts = (lon) => {
+    const latMax = latMaxAtLon(lon);
+    if (latMax < 0.001) return [];
+    return sampleCurve(t => ({ lat: -latMax + 2 * latMax * t, lon }), 90);
+  };
+
+  /* Static wireframe grid — canonical 15° graticule. We walk OUTWARD
+     from the equator/prime-meridian in 15° increments so the lines
+     always land on 0°, ±15°, ±30°, ±45°, … regardless of α_limb. The
+     equator (0°) and prime meridian are skipped here — they get a
+     brighter axis style further down. */
+  const GRID_STEP = 15 * Math.PI / 180;
+  const wireframeLats = [];
+  for (let k = 1; k * GRID_STEP <= ALPHA_LIMB + 1e-6; k++) {
+    wireframeLats.push( k * GRID_STEP);
+    wireframeLats.push(-k * GRID_STEP);
+  }
+  const wireframeLons = [];
+  for (let k = 1; k * GRID_STEP <= ALPHA_LIMB + 1e-6; k++) {
+    wireframeLons.push( k * GRID_STEP);
+    wireframeLons.push(-k * GRID_STEP);
+  }
+  /* Effective offset for tasks (real days-until-due minus pan anchor). */
+  const effOffset = (t) => dayOffset(t.dueDate) - viewAnchor;
+  const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+  const sortedTasks = [...tasks].sort((a, b) => effOffset(b) - effOffset(a));
+
+  /* Ship at (lat=0, lon=0). */
+  const shipXY = projectLatLon(0, 0);
+
+  return (
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${W} ${H}`}
+      className="bridge-scene bridge-scene--horizon"
+      preserveAspectRatio="xMidYMid meet"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onContextMenu={onContextMenu}
+      onClickCapture={onClickCapture}
+    >
+      <defs>
+        <radialGradient id="bridge-globe" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(40, 60, 95, 0.20)" />
+          <stop offset="80%"  stopColor="rgba(20, 30, 50, 0.10)" />
+          <stop offset="100%" stopColor="rgba(10, 18, 28, 0.00)" />
+        </radialGradient>
+        <clipPath id="bridge-globe-clip">
+          <circle cx={CX} cy={CY} r={LIMB_R_PX} />
+        </clipPath>
+      </defs>
+
+      {/* Faint globe-body wash inside the limb. */}
+      <circle cx={CX} cy={CY} r={LIMB_R_PX} fill="url(#bridge-globe)" />
+
+      <g clipPath="url(#bridge-globe-clip)">
+        {/* Parallels (constant latitude) — every 15°, INCLUDING the
+            equator. All latitudes share the lane-rail style because they
+            all represent task lanes. */}
+        {wireframeLats.map((lat) => {
+          const pts = parallelPts(lat);
+          if (pts.length < 2) return null;
+          return <path key={`wp${lat.toFixed(4)}`} d={polyPath(pts)} fill="none" className="bridge-lane-rail" />;
+        })}
+        {(() => {
+          const eq = parallelPts(0);
+          return eq.length >= 2
+            ? <path d={polyPath(eq)} fill="none" className="bridge-lane-rail" />
+            : null;
+        })()}
+        {/* Meridians (constant longitude) — every 15°, plus prime
+            meridian as a brighter axis line. */}
+        {wireframeLons.map((lon) => {
+          const pts = meridianPts(lon);
+          if (pts.length < 2) return null;
+          return <path key={`wm${lon.toFixed(4)}`} d={polyPath(pts)} fill="none" className="bridge-wire" />;
+        })}
+        {(() => {
+          const pm = meridianPts(0);
+          return pm.length >= 2
+            ? <path d={polyPath(pm)} fill="none" className="bridge-wire bridge-wire--axis" />
+            : null;
+        })()}
+
+        {/* Calendar-anchored meridian PATHS — date marks; spin with
+            viewAnchor. Labels are rendered AFTER this clipped block so
+            they can sit on the limb without being clipped. */}
+        {gridArcs.map(({ absDays, effOff, isMajor }) => {
+          const lon = dayToLon(effOff);
+          if (Math.abs(lon) > ALPHA_LIMB) return null;
+          const pts = meridianPts(lon);
+          if (pts.length < 2) return null;
+          const arcCls = isMajor ? 'bridge-range-arc' : 'bridge-range-arc bridge-range-arc--minor';
+          return <path key={absDays.toFixed(4)} d={polyPath(pts)} fill="none" className={arcCls} />;
+        })}
+
+        {/* Lane labels — horizontally centred on the projection of each
+            lane's centre latitude on the prime meridian, then shifted
+            DOWN by LABEL_OFFSET so they sit clear of any task pips
+            riding the central horizontal line. */}
+        {(() => {
+          const LABEL_OFFSET = 22;     // px below the meridian
+          return lanes.map((laneName, i) => {
+            const lat = laneLat(i);
+            const pt = projectLatLon(lat, 0);
+            if (!pt) return null;
+            return (
+              <text key={laneName}
+                    x={pt.x} y={pt.y + LABEL_OFFSET}
+                    textAnchor="middle"
+                    className="bridge-lane-label">{laneName.toUpperCase()}</text>
+            );
+          });
+        })()}
+      </g>
+
+      {/* Limb — TRUE GEOMETRIC CIRCLE, drawn over the clipped contents. */}
+      <circle cx={CX} cy={CY} r={LIMB_R_PX} fill="none" className="bridge-horizon" />
+
+      {/* Date-arc labels — OUTSIDE the clipPath so they can sit on or
+          past the limb. Each major meridian gets two labels:
+            - DATE  (absolute) at the south endpoint, extending leftward
+            - TIME  (relative offset) at the north endpoint, extending rightward
+          South/north are determined by leftmost/rightmost projected
+          sample of the meridian — in this projection that's directly the
+          lateral endpoints of the arc on the limb. */}
+      {gridArcs.filter(g => g.isMajor).map(({ absDays, effOff }) => {
+        const lon = dayToLon(effOff);
+        if (Math.abs(lon) > ALPHA_LIMB) return null;
+        const pts = meridianPts(lon);
+        if (pts.length < 2) return null;
+        let leftPt = pts[0], rightPt = pts[0];
+        for (const p of pts) {
+          if (p.x < leftPt.x) leftPt = p;
+          if (p.x > rightPt.x) rightPt = p;
+        }
+        const refMs = todayMs + absDays * 86400000;
+        const absText = formatAbsolute(refMs, gridSpacing);
+        const relText = formatRelative(effOff);
+        return (
+          <g key={`lbl${absDays.toFixed(4)}`}>
+            <text x={leftPt.x - 6}  y={leftPt.y  + 3}
+                  textAnchor="end"
+                  className="bridge-range-label bridge-range-label--abs">{absText}</text>
+            <text x={rightPt.x + 6} y={rightPt.y + 3}
+                  textAnchor="start"
+                  className="bridge-range-label">{relText}</text>
+          </g>
+        );
+      })}
+
+      {/* Task pips — both past (negative effOff) and future tasks visible.
+          - Colour : ETM quadrant (existing bridge-pip--q{1..4} classes).
+          - Size   : log-scaled to the task's effort estimate in hours.
+                    A faint distance attenuation is also applied so far
+                    tasks read as slightly recessed. */}
+      {sortedTasks.map(t => {
+        const d_eff = effOffset(t);
+        if (Math.abs(d_eff) / maxDays > 1.0) return null;
+        const xy = dayLaneToXY(d_eff, laneOf(t), t.id);
+        if (!xy) return null;
+        const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+        const tNorm = Math.abs(d_eff) / maxDays;
+        /* Effort → hours. days/weeks normalised against an 8 h workday
+           and 40 h workweek; unknown estimates default to a small pip. */
+        const unit = t.timeEstimateUnit || 'hours';
+        const val  = Number(t.timeEstimateValue) || 0;
+        const hours = val <= 0 ? 0 : (
+          unit === 'minutes' ? val / 60 :
+          unit === 'days'    ? val * 8 :
+          unit === 'weeks'   ? val * 40 :
+          val                                                 // hours
+        );
+        /* log₂(h) maps   0.5 h → −1   1 h → 0   8 h → 3   40 h → 5.3.
+           Linear remap to a scale window of [0.5, 1.6]. */
+        const sizeScale = hours <= 0
+          ? 0.65
+          : Math.max(0.45, Math.min(1.6, 0.65 + Math.log2(Math.max(0.25, hours)) * 0.18));
+        /* Gentle distance attenuation: 1.0 at ship, 0.8 at limb. */
+        const distScale = Math.max(0.8, 1 - tNorm * 0.2);
+        const scale = sizeScale * distScale;
+        const showLabel = scale > 0.7;
+        const labelText = t.task.length > 22 ? t.task.slice(0, 20) + '…' : t.task;
+        return (
+          <g key={t.id}
+             className={`bridge-pip bridge-pip--${qid}`}
+             onPointerDown={(e) => e.stopPropagation()}
+             onClick={(e) => { e.stopPropagation(); onPick(t); }}
+             style={{ cursor: 'pointer' }}>
+            {/* Radar-ping ring — staggered so pips don't all blip in sync. */}
+            <circle cx={xy.x} cy={xy.y} r={11 * scale}
+                    className="bridge-pip__blip"
+                    style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
+            <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
+            <circle cx={xy.x} cy={xy.y} r={5  * scale} className="bridge-pip__core" />
+            {showLabel && (
+              <text x={xy.x + 13 * scale} y={xy.y + 4}
+                    className="bridge-pip__label"
+                    style={{ fontSize: `${10 * scale}px` }}>{labelText}</text>
+            )}
+            <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
+          </g>
+        );
+      })}
+
+      {/* Ship marker — sub-camera point sits at chart centre. */}
+      <g transform={`translate(${CX}, ${CY})`}>
+        <circle r={6} className="bridge-ship-core" />
+        <circle r={11} fill="none" className="bridge-ship-ring" />
+        <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">
+          {formatAnchor(viewAnchor)}
+        </text>
+        {Math.abs(viewAnchor) >= 1/48 && (
+          <text x={0} y={42} textAnchor="middle" className="bridge-ship-date">
+            {formatAbsolute(todayMs + viewAnchor * 86400000, Math.abs(viewAnchor))}
+          </text>
+        )}
+      </g>
+
+      {/* HUD frame */}
+      <rect x={0.5} y={0.5} width={W - 1} height={H - 1} className="bridge-frame" />
+    </svg>
+  );
+};
+
+const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadrant, onPick }) => {
+  const SIZE = 700;
+  const CX = SIZE / 2, CY = SIZE / 2;
+  const MAX_R = 295;
+
+  /* Polar→cartesian with 12 o'clock as 0 radians (compass convention). */
+  const polar = (r, theta) => ({
+    x: CX + r * Math.cos(theta - Math.PI / 2),
+    y: CY + r * Math.sin(theta - Math.PI / 2)
+  });
+
+  const rings = [
+    { d: 7,  label: '1w'  },
+    { d: 30, label: '1m'  },
+    { d: 90, label: '3m'  },
+    { d: maxDays, label: `${Math.round(maxDays/30)}m` }
+  ];
+
+  const N = lanes.length;
+  const sectorAngle = (2 * Math.PI) / N;
+
+  /* Deterministic jitter inside a sector so multiple tasks in the same lane
+     don't render on top of each other. djb2-style hash on the task id. */
+  const hash = (s) => {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return h;
+  };
+  const jitter = (id) => ((hash(String(id)) % 1000) / 1000 - 0.5) * 0.7;
+
+  // Compass markers
+  const compass = ['N','E','S','W'];
+
+  return (
+    <svg
+      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      className="bridge-scene bridge-scene--radar"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <defs>
+        <radialGradient id="radar-glow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%"   stopColor="rgba(125, 214, 255, 0.08)" />
+          <stop offset="60%"  stopColor="rgba(125, 214, 255, 0.02)" />
+          <stop offset="100%" stopColor="transparent" />
+        </radialGradient>
+      </defs>
+
+      <circle cx={CX} cy={CY} r={MAX_R + 30} fill="url(#radar-glow)" />
+
+      {/* Sector dividers */}
+      {lanes.map((laneName, i) => {
+        const aEdge = i * sectorAngle;
+        const pEdge = polar(MAX_R, aEdge);
+        const pLabel = polar(MAX_R + 24, aEdge + sectorAngle / 2);
+        return (
+          <g key={laneName}>
+            <line x1={CX} y1={CY} x2={pEdge.x} y2={pEdge.y}
+                  className="bridge-sector-divider" />
+            <text x={pLabel.x} y={pLabel.y + 4}
+                  textAnchor="middle"
+                  className="bridge-lane-label">
+              {laneName.toUpperCase()}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* Range rings */}
+      {rings.map(({ d, label }) => {
+        const r = (d / maxDays) * MAX_R;
+        return (
+          <g key={d}>
+            <circle cx={CX} cy={CY} r={r} className="bridge-range-ring" />
+            <text x={CX + 5} y={CY - r + 3} className="bridge-range-label">{label}</text>
+          </g>
+        );
+      })}
+
+      {/* Outer rim */}
+      <circle cx={CX} cy={CY} r={MAX_R} className="bridge-radar-rim" />
+
+      {/* Compass markers (N/E/S/W) */}
+      {compass.map((label, i) => {
+        const a = (i * Math.PI) / 2;   // 0, π/2, π, 3π/2 from north
+        const p = polar(MAX_R + 14, a);
+        return (
+          <text key={label} x={p.x} y={p.y + 3} textAnchor="middle"
+                className="bridge-compass-label">{label}</text>
+        );
+      })}
+
+      {/* Task pips */}
+      {tasks.map(t => {
+        const li = laneOf(t);
+        const d = Math.max(0, dayOffset(t.dueDate));
+        const r = (d / maxDays) * MAX_R;
+        const angle = li * sectorAngle + sectorAngle / 2 + jitter(t.id) * (sectorAngle * 0.35);
+        const { x, y } = polar(r, angle);
+        const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+        return (
+          <g key={t.id}
+             className={`bridge-pip bridge-pip--${qid}`}
+             onPointerDown={(e) => e.stopPropagation()}
+             onClick={(e) => { e.stopPropagation(); onPick(t); }}
+             style={{ cursor: 'pointer' }}>
+            <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
+            <circle cx={x} cy={y} r={4} className="bridge-pip__core" />
+            <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
+          </g>
+        );
+      })}
+
+      {/* Ship at center */}
+      <circle cx={CX} cy={CY} r={7} className="bridge-ship-core" />
+      <circle cx={CX} cy={CY} r={14} className="bridge-ship-ring" />
+      <text x={CX} y={CY + 30} textAnchor="middle" className="bridge-ship-label">TODAY</text>
+
+      {/* Outer HUD frame */}
+      <rect x={0.5} y={0.5} width={SIZE-1} height={SIZE-1} className="bridge-frame" />
+    </svg>
   );
 };
 
@@ -2238,6 +3291,16 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
   const gridStart    = new Date(firstOfMonth);
   gridStart.setDate(1 - firstOfMonth.getDay());
 
+  /* Pull "HH:MM" off a dueDate string if it has a time component. Returns
+     null for date-only tasks so display + sort can branch on presence. */
+  const taskTime = (t) => {
+    if (typeof t.dueDate === 'string' && t.dueDate.includes('T')) {
+      const piece = t.dueDate.split('T')[1] || '';
+      return piece.slice(0, 5) || null;     // "HH:MM"
+    }
+    return null;
+  };
+
   // Bucket tasks by ISO date for fast lookup, applying quadrant filter
   const tasksByDate = {};
   tasks.forEach(t => {
@@ -2248,6 +3311,16 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
     if (isNaN(d)) return;
     const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
     (tasksByDate[key] = tasksByDate[key] || []).push(t);
+  });
+  // Sort each day's bucket: timed tasks ascending by time, then untimed.
+  Object.values(tasksByDate).forEach(bucket => {
+    bucket.sort((a, b) => {
+      const ta = taskTime(a), tb = taskTime(b);
+      if (ta && !tb) return -1;
+      if (!ta && tb) return 1;
+      if (ta && tb)  return ta.localeCompare(tb);
+      return 0;
+    });
   });
 
   const SHOW_MAX = 3;
@@ -2321,13 +3394,17 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
               <div className="cal-cell__tasks">
                 {cellTasks.slice(0, SHOW_MAX).map(t => {
                   const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+                  const tt = taskTime(t);
+                  const tooltip = (tt ? `${tt} · ` : '') + t.task
+                    + (t.subcategory ? ` (${t.subcategory})` : '');
                   return (
                     <div
                       key={t.id}
                       className={`cal-task-pill cal-task-pill--${qid}`}
-                      title={t.task + (t.subcategory ? ` (${t.subcategory})` : '')}
+                      title={tooltip}
                       onClick={(e) => { e.stopPropagation(); setEditingTask(t); setShowForm(true); }}
                     >
+                      {tt && <span className="cal-task-pill__time">{tt}</span>}
                       {t.task}
                     </div>
                   );

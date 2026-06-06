@@ -1455,6 +1455,13 @@ body.app-locked .cin-hints {
 .cal-task-pill--q2 { border-left-color: var(--q2-hue); background: rgba(125, 214, 255, 0.10); }
 .cal-task-pill--q3 { border-left-color: var(--q3-hue); background: rgba(255, 176, 96, 0.10); }
 .cal-task-pill--q4 { border-left-color: var(--q4-hue); background: rgba(128, 144, 164, 0.08); }
+.cal-task-pill__time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  color: var(--cin-cyan-soft);
+  margin-right: 4px;
+}
 .cal-task-pill__overflow {
   font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
@@ -1473,72 +1480,156 @@ body.app-locked .cin-hints {
    GANTT view — 21-day timeline window
    ═══════════════════════════════════════════════════════════════ */
 
-.gantt-timeline {
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 12px;
+/* ─── Tape-gauge timeline ────────────────────────────────────────
+   No browser scrollbar — the user click-and-drags anywhere on the
+   tape to scrub. Native scroll under the hood (scrollLeft set in
+   JS by the React component on pointermove); horizontal scrollbar
+   hidden in CSS. Vertical scrollbar also hidden — tasks list is
+   typically short enough; mouse-wheel still scrolls vertically.
+   Label column sticks to the left during scrub; axis row sticks
+   to the top during vertical wheel. */
+.gantt-tape {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;        /* let touch scroll vertically; horizontal handled by drag */
+  background: rgba(8, 12, 18, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/legacy Edge */
 }
-.gantt-axis {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding-bottom: 6px;
-  margin-bottom: 8px;
-  grid-column: 1 / 3;
+.gantt-tape::-webkit-scrollbar { display: none; }    /* Chromium/Safari */
+
+.gantt-tape__inner {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 12px;
+  grid-template-columns: var(--label-px) var(--tape-px);
+  grid-auto-rows: min-content;
+  position: relative;
+  min-width: max-content;
 }
-.gantt-axis__spacer { /* aligns with task-name column */ }
-.gantt-axis__days {
-  display: grid;
-  grid-template-columns: repeat(21, 1fr);
+
+/* Axis row — top-left spacer + a flex strip of per-day cells.
+   Clean minimal demarcation: every-day micro-tick + sparse text labels. */
+.gantt-axis-tape__spacer {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  height: 30px;
+  background: var(--glass-bg-deep);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.gantt-axis-tape__days {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 30px;
+  background: var(--glass-bg-deep);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  display: flex;
+  align-items: flex-end;
+}
+.gantt-axis-tape__day {
+  width: var(--day-px);
+  height: 100%;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
   font-family: 'Share Tech Mono', monospace;
   font-size: 9px;
   letter-spacing: 0.06em;
   color: rgba(220, 220, 220, 0.45);
 }
-.gantt-axis__day {
-  text-align: center;
-  padding: 0 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Per-day micro-tick at the bottom edge of the axis — sits to the right
+   of each day cell to mark the day-boundary. Major-tick on the 1st of
+   the month + on TODAY (taller, brighter). */
+.gantt-axis-tape__day::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.10);
 }
-.gantt-axis__day--today { color: var(--cin-gold); text-shadow: 0 0 6px var(--cin-gold-glow); font-weight: 600; }
-.gantt-axis__day--weekend { color: rgba(220, 220, 220, 0.25); }
-
-.gantt-body {
-  position: relative;
-  grid-column: 1 / 3;
-  display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 12px;
-  align-content: start;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-  padding-right: 4px;
+.gantt-axis-tape__day.is-month-start::after,
+.gantt-axis-tape__day.is-today::after {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.22);
 }
-.gantt-body::-webkit-scrollbar { width: 5px; }
-.gantt-body::-webkit-scrollbar-track { background: transparent; }
-.gantt-body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+.gantt-axis-tape__day.is-weekend {
+  background: rgba(255, 255, 255, 0.018);
+}
+.gantt-axis-tape__day.is-month-start .gantt-axis-tape__tick-label {
+  color: var(--cin-cyan-soft);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+.gantt-axis-tape__day.is-today .gantt-axis-tape__tick-label {
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.gantt-axis-tape__tick-label { white-space: nowrap; }
 
-.gantt-row__label {
+/* Task rows. Clean track — no per-day gridlines (those live on the axis). */
+.gantt-row-tape__label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  background: rgba(8, 12, 18, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 3px 0 0 3px;
-  border-right: none;
-  margin-bottom: 6px;
+  background: var(--glass-bg-deep);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   min-width: 0;
   cursor: pointer;
   transition: background 160ms ease;
 }
-.gantt-row__label:hover { background: rgba(20, 28, 38, 0.55); }
+.gantt-row-tape__label:hover { background: rgba(20, 28, 38, 0.55); }
+
+.gantt-row-tape__track {
+  position: relative;
+  height: 44px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.gantt-today-line-tape {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--cin-gold);
+  box-shadow: 0 0 10px var(--cin-gold-glow);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gantt-tape__empty {
+  grid-column: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(180, 180, 180, 0.35);
+}
+
 .gantt-row__label-name {
   font-family: 'Inter', sans-serif;
   font-size: 11px;
@@ -1555,22 +1646,6 @@ body.app-locked .cin-hints {
   color: rgba(180, 180, 180, 0.55);
 }
 
-.gantt-row__track {
-  position: relative;
-  background: rgba(8, 12, 18, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 0 3px 3px 0;
-  border-left: none;
-  margin-bottom: 6px;
-  height: 36px;
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent 0,
-    transparent calc(100% / 21 - 1px),
-    rgba(255, 255, 255, 0.03) calc(100% / 21 - 1px),
-    rgba(255, 255, 255, 0.03) calc(100% / 21)
-  );
-}
 .gantt-bar {
   position: absolute;
   top: 6px;
@@ -1596,23 +1671,13 @@ body.app-locked .cin-hints {
 .gantt-bar--overdue { background: var(--crit); box-shadow: 0 0 14px var(--crit-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
 .gantt-bar--done    { opacity: 0.4; }
 
-.gantt-today-line {
-  position: absolute;
-  top: 0; bottom: 0;
-  width: 2px;
-  background: var(--cin-gold);
-  box-shadow: 0 0 8px var(--cin-gold-glow);
-  pointer-events: none;
-  z-index: 2;
-}
-
 @media (max-width: 1023px) {
-  .gantt-timeline { grid-template-columns: 160px 1fr; }
-  .gantt-axis     { grid-template-columns: 160px 1fr; }
-  .gantt-body     { grid-template-columns: 160px 1fr; }
+  /* Narrower label column on mid-screens. Tape day-width unchanged so the
+     visible time-span scales by viewport rather than by label size. */
+  .gantt-tape__inner { grid-template-columns: 160px var(--tape-px); }
 }
 @media (max-width: 767px) {
-  .gantt-timeline { display: none; }
+  .gantt-tape { display: none; }
   .gantt-narrow-notice {
     padding: 24px;
     border: 1px dashed rgba(255, 255, 255, 0.12);
@@ -2836,3 +2901,285 @@ body.app-locked .cin-action-bar {
   color: var(--cin-gold);
   text-shadow: 0 0 8px var(--cin-gold-glow);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BRIDGE VIEW — Horizon (forward perspective) + Radar (PPI top-down)
+   ═══════════════════════════════════════════════════════════════ */
+.bridge-scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+  flex: 1;
+  min-height: 0;
+}
+.bridge-scene--horizon {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Shared HUD frame around either scene */
+.bridge-frame {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.14);
+  stroke-width: 1;
+}
+
+/* ─── Horizon scene ───────────────────────────────────────────── */
+.bridge-horizon {
+  fill: none;
+  stroke: var(--cin-gold);
+  stroke-width: 1.2;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 6px var(--cin-gold-glow));
+}
+/* Background wireframe — uniform 15° lat/lon graticule. */
+.bridge-wire {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.16);
+  stroke-width: 0.5;
+}
+.bridge-wire--axis {
+  stroke: rgba(125, 214, 255, 0.35);
+  stroke-width: 0.7;
+}
+.bridge-range-arc {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.55);
+  stroke-width: 0.9;
+  stroke-dasharray: 5 3;
+}
+.bridge-range-arc--minor {
+  stroke: rgba(125, 214, 255, 0.18);
+  stroke-width: 0.4;
+  stroke-dasharray: 1 4;
+}
+.bridge-lane-rail {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.45);
+  stroke-width: 0.8;
+}
+.bridge-ship {
+  fill: var(--cin-gold);
+  filter: drop-shadow(0 0 7px var(--cin-gold-glow));
+}
+
+/* ─── Radar scene ─────────────────────────────────────────────── */
+.bridge-range-ring {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.22);
+  stroke-width: 0.6;
+  stroke-dasharray: 3 5;
+}
+.bridge-radar-rim {
+  fill: none;
+  stroke: var(--cin-gold);
+  stroke-width: 1;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 5px var(--cin-gold-glow));
+}
+.bridge-sector-divider {
+  stroke: rgba(125, 214, 255, 0.10);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 4;
+}
+.bridge-ship-core {
+  fill: var(--cin-gold);
+  filter: drop-shadow(0 0 8px var(--cin-gold-glow));
+}
+.bridge-ship-ring {
+  fill: none;
+  stroke: var(--cin-gold);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.bridge-compass-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  fill: var(--cin-gold);
+  text-shadow: 0 0 4px var(--cin-gold-glow);
+}
+
+/* ─── Shared labels ───────────────────────────────────────────── */
+.bridge-range-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  fill: rgba(125, 214, 255, 0.50);
+}
+/* Absolute calendar/clock labels (left side of horizon arcs). Tinted
+   gold to read as the real-time anchor versus the cyan relative axis. */
+.bridge-range-label--abs {
+  fill: rgba(255, 174, 32, 0.55);
+}
+/* Ship sublabel — small calendar/clock readout under the relative
+   anchor label, shown only when panned off real-now. */
+.bridge-ship-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.10em;
+  fill: rgba(255, 174, 32, 0.55);
+}
+.bridge-lane-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  fill: rgba(125, 214, 255, 0.65);
+}
+.bridge-pip__label {
+  font-family: 'Inter', sans-serif;
+  fill: rgba(220, 230, 240, 0.72);
+  pointer-events: none;   /* don't catch clicks meant for the pip */
+}
+.bridge-ship-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.20em;
+  fill: var(--cin-gold);
+  text-shadow: 0 0 4px var(--cin-gold-glow);
+}
+
+/* ─── Task pips (quadrant-hued reticle dots) ─────────────────── */
+.bridge-pip__core { stroke: none; transition: transform 120ms ease; }
+.bridge-pip__ring {
+  fill: none;
+  stroke-width: 1;
+  opacity: 0.55;
+  transition: opacity 120ms ease;
+}
+/* --q{n}-hue tokens are defined as hex colors, not bare HSL hue numbers,
+   so we use them directly instead of wrapping in hsl(). */
+.bridge-pip--q1 .bridge-pip__core { fill: var(--q1-hue); }
+.bridge-pip--q1 .bridge-pip__ring { stroke: var(--q1-hue); filter: drop-shadow(0 0 4px var(--q1-glow)); }
+.bridge-pip--q1 .bridge-pip__blip { stroke: var(--q1-hue); }
+.bridge-pip--q2 .bridge-pip__core { fill: var(--q2-hue); }
+.bridge-pip--q2 .bridge-pip__ring { stroke: var(--q2-hue); filter: drop-shadow(0 0 4px var(--q2-glow)); }
+.bridge-pip--q2 .bridge-pip__blip { stroke: var(--q2-hue); }
+.bridge-pip--q3 .bridge-pip__core { fill: var(--q3-hue); }
+.bridge-pip--q3 .bridge-pip__ring { stroke: var(--q3-hue); filter: drop-shadow(0 0 4px var(--q3-glow)); }
+.bridge-pip--q3 .bridge-pip__blip { stroke: var(--q3-hue); }
+.bridge-pip--q4 .bridge-pip__core { fill: var(--q4-hue); }
+.bridge-pip--q4 .bridge-pip__ring { stroke: var(--q4-hue); filter: drop-shadow(0 0 3px var(--q4-glow)); }
+.bridge-pip--q4 .bridge-pip__blip { stroke: var(--q4-hue); }
+
+/* Radar-blip pulse — the outer ring scales out and fades over and over,
+   while the core/ring stay stable. transform-box: fill-box pins the
+   scale to the circle's own bounding box centre. */
+@keyframes bridge-pip-blip {
+  0%   { transform: scale(1);    opacity: 0.32; }
+  80%  { opacity: 0;             }
+  100% { transform: scale(1.9);  opacity: 0;    }
+}
+.bridge-pip__blip {
+  fill: none;
+  stroke-width: 0.6;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bridge-pip-blip 3.4s infinite ease-out;
+  pointer-events: none;
+}
+
+/* ─── Task Details popup (clicked pip) ────────────────────────── */
+.cin-task-details__badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.cin-task-details__badge--q1 { color: var(--q1-hue); text-shadow: 0 0 6px var(--q1-glow); }
+.cin-task-details__badge--q2 { color: var(--q2-hue); text-shadow: 0 0 6px var(--q2-glow); }
+.cin-task-details__badge--q3 { color: var(--q3-hue); text-shadow: 0 0 6px var(--q3-glow); }
+.cin-task-details__badge--q4 { color: var(--q4-hue); text-shadow: 0 0 4px var(--q4-glow); }
+
+.cin-task-details__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(240, 244, 252, 0.92);
+  margin-bottom: 12px;
+  line-height: 1.35;
+}
+
+.cin-task-details__notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: rgba(125, 214, 255, 0.04);
+  border-left: 2px solid rgba(125, 214, 255, 0.35);
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(220, 228, 240, 0.78);
+}
+.cin-task-details__notes-icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: rgba(125, 214, 255, 0.7);
+}
+
+.cin-task-details__grid {
+  display: grid;
+  gap: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+}
+.cin-task-details__row {
+  display: grid;
+  grid-template-columns: 16px 70px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.cin-task-details__icon {
+  color: rgba(125, 214, 255, 0.6);
+  justify-self: center;
+}
+.cin-task-details__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.cin-task-details__value {
+  color: rgba(240, 244, 252, 0.92);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cin-task-details__bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  max-width: 180px;
+}
+.cin-task-details__bar-fill {
+  height: 100%;
+  transition: width 220ms ease;
+}
+.cin-task-details__bar-fill--q1 { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.cin-task-details__bar-fill--q2 { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.cin-task-details__bar-fill--q3 { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.cin-task-details__bar-fill--q4 { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+.cin-task-details__bar-text {
+  font-size: 0.72rem;
+  color: rgba(220, 228, 240, 0.7);
+  min-width: 36px;
+  text-align: right;
+}
+
+.bridge-pip:hover .bridge-pip__ring { opacity: 1; stroke-width: 1.5; }
+.bridge-pip:hover .bridge-pip__core { transform-box: fill-box; transform-origin: center; transform: scale(1.25); }
