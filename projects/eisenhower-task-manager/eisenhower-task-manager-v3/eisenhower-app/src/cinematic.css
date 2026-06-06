@@ -478,21 +478,22 @@ body.app-locked .cin-hints {
    ═══════════════════════════════════════════════════════════════ */
 
 .readout-bar {
+  /* Same positioning pattern as .cin-action-bar — guarantees identical
+     width behavior. Was previously in flex flow with width + align-self
+     center, but the flex-column-stretch + explicit-cross-size case was
+     rendering inconsistently across browsers, making the bar appear
+     wider than the action bar. Fixed positioning sidesteps the flex
+     edge cases entirely. */
+  position: fixed;
+  top: 5rem;       /* clears the chrome row at top:1.2-1.6rem + content */
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(80rem, calc(100% - 3.2rem));
+  z-index: 40;     /* below chrome (100) + boot overlay (200), above workspace */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  /* Shared horizontal-span pattern: never wider than 80rem (the v2
-     max-w-7xl that bounded the workspace), centered, with a minimum
-     1.6rem inset from viewport edges. Matches .cin-workspace and
-     .cin-action-bar exactly.
-     align-self: center is critical here — the parent root div is a
-     flex column with default align-items: stretch, which would
-     otherwise stretch this item across the full cross axis despite
-     the explicit width. align-self center opts out and centers
-     horizontally in one stroke. */
-  width: min(80rem, calc(100% - 3.2rem));
-  align-self: center;
   padding: 0.5rem 1rem;
   background: var(--glass-bg-deep);
   backdrop-filter: var(--glass-blur);
@@ -940,6 +941,13 @@ body.app-locked .cin-hints {
 
 .cin-view-panel {
   height: 100%;
+  /* Shared horizontal-span pattern matching .readout-bar / .cin-workspace
+     / .cin-action-bar — bounded at 80rem (v2 max-w-7xl), centered, with
+     a 1.6rem viewport-edge inset minimum. <main> is block-level so a
+     classical `margin: 0 auto` centers cleanly here (no flex item
+     concerns). */
+  width: min(80rem, calc(100% - 3.2rem));
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;

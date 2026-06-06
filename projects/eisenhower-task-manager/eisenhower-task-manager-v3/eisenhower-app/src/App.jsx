@@ -605,13 +605,16 @@ const EisenhowerTaskManager = () => {
       // between the etm-* chrome. v2 components keep their own
       // backgrounds and render normally on top of the new atmosphere.
       background: 'transparent',
-      // PHASE 2: clear the cinematic chrome row at the top (5rem).
-      // PHASE 4 finale: clear the cinematic action bar at the bottom
+      // PHASE 2: cleared the cinematic chrome row at the top (was 5rem).
+      // PHASE 4 finale: cleared the cinematic action bar at the bottom
       // (3.6rem — action-bar height ~28px + bottom inset 1.6rem +
-      // breathing room). Both are fixed-positioned floating glass,
-      // so the workspace flex column needs padding on both sides to
-      // not render under them.
-      paddingTop: '5rem',
+      // breathing room).
+      // PHASE 5 polish: readout bar is now also fixed-positioned (top:5rem)
+      // so paddingTop needs to clear chrome AND the readout bar too —
+      // chrome (~3rem from top) + readout bar at top:5rem (height ~40px) +
+      // 0.6rem breathing = ~8rem. The readout bar's `top: 5rem` is the
+      // clearance for chrome; main content needs to start below readout.
+      paddingTop: '8rem',
       paddingBottom: '3.6rem'
     }}>
       {/* PHASE 1: SVG film-grain layer — see `.cin-grain` in index.css.
