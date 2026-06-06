@@ -632,18 +632,11 @@ const EisenhowerTaskManager = () => {
         version="v3.0"
       />
 
-      {/* PHASE 5 cleanup: removed the etm-reveal-start / etm-reveal-animate
-          keyframes (retired in Phase 2 when the cinematic scan-line became
-          the new entrance ceremony). Only the priority-badge utility is
-          kept since it's referenced by some legacy components still on
-          disk (e.g. TaskCard's mobile fallback in MatrixView). */}
-      <style>{`
-        .priority-badge {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-      `}</style>
+      {/* PHASE 5 cleanup: removed etm-reveal-* keyframes (retired in
+          Phase 2 when the cinematic scan-line took over the entrance).
+          Phase 5 finale also removed TaskCard, so the .priority-badge
+          utility class is no longer used either — the inline <style>
+          tag is now empty and can be deleted entirely if desired. */}
 
       {/* === CONTROL PANEL LAYOUT: readouts → screens → controls === */}
 
@@ -993,65 +986,8 @@ const CompletionModal = ({ task, onConfirm, onCancel }) => {
   );
 };
 
-const TaskScoreBar = ({ score }) => {
-  if (score === null) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-[#506070]">-</span>
-      </div>
-    );
-  }
-
-  // Calculate percentage for bar width (normalize score to 0-100%)
-  // Score ranges from negative (late) to positive (early)
-  // We'll use 0 as neutral and show bars for range -1 to 1
-  const normalizedScore = Math.max(-1, Math.min(1, score));
-  const barPercentage = ((normalizedScore + 1) / 2) * 100;
-
-  // Determine color based on score
-  let barColor, bgColor;
-  if (score > 0) {
-    // Early completion - green gradient
-    const intensity = Math.min(score, 1);
-    const greenValue = Math.round(34 + (102 - 34) * intensity); // 22-66
-    const grayValue = Math.round(197 - (197 - 160) * intensity); // C5-A0
-    barColor = `rgb(${Math.round(16 + (34 - 16) * intensity)}, ${greenValue}, ${grayValue})`;
-    bgColor = 'bg-[#33ff6620]';
-  } else if (score < 0) {
-    // Late completion - red gradient
-    const intensity = Math.min(Math.abs(score), 1);
-    const redValue = Math.round(239 - (239 - 220) * intensity);
-    const greenValue = Math.round(68 - (68 - 38) * intensity);
-    const blueValue = Math.round(68 - (68 - 35) * intensity);
-    barColor = `rgb(${redValue}, ${greenValue}, ${blueValue})`;
-    bgColor = 'bg-[#ff334420]';
-  } else {
-    // Right on time - neutral
-    barColor = 'rgb(100, 116, 139)';
-    bgColor = 'bg-[#1a1e2c]';
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className={`flex-1 ${bgColor} rounded-full h-2 max-w-[80px]`}>
-        <div
-          className="h-2 rounded-full transition-all"
-          style={{
-            width: `${barPercentage}%`,
-            backgroundColor: barColor,
-          }}
-        />
-      </div>
-      <span className="text-xs font-medium text-[#8899aa] w-10 text-right">
-        {score.toFixed(2)}
-      </span>
-    </div>
-  );
-};
-
 const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore }) => {
   const [activeTab, setActiveTab] = useState('do-first');
-  const [expandedTask, setExpandedTask] = useState(null);
   const activeTasks = tasks.filter(t => t.percentComplete < 100);
 
   const quadrants = [
@@ -1126,71 +1062,56 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* Mobile tab bar */}
-      <div className="md:hidden flex border-b border-[#2a3048] mb-4 -mx-1">
+      {/* PHASE 5 finale — cinematic mobile matrix.
+          Tab bar with per-quadrant LED + count, active tab gets the
+          chromatic left edge + glow in its quadrant hue. Below it,
+          a single .quad-panel for the selected quadrant with the same
+          MatrixTask rows the desktop grid uses. */}
+      <div className="cin-mobile-tabs">
         {quadrants.map((q) => (
           <button
             key={q.id}
             onClick={() => setActiveTab(q.id)}
-            className={`flex-1 py-2.5 px-1 text-center transition-all relative ${
-              activeTab === q.id ? 'text-[#c8d0e0]' : 'text-[#506070]'
-            }`}
+            className={`cin-mobile-tab cin-mobile-tab--${q.qid}${activeTab === q.id ? ' on' : ''}`}
+            aria-pressed={activeTab === q.id}
           >
-            <div className="text-sm font-semibold">{q.shortTitle}</div>
-            <div className="text-xs font-mono mt-0.5" style={{ color: q.tabColor }}>{quadrantCounts[q.id]}</div>
-            {activeTab === q.id && (
-              <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full" style={{ backgroundColor: q.tabColor }} />
-            )}
+            <span className="cin-mobile-tab__label">{q.shortTitle}</span>
+            <span className="cin-mobile-tab__count">{quadrantCounts[q.id]}</span>
           </button>
         ))}
       </div>
 
-      {/* Mobile: single monitor */}
-      <div className="md:hidden">
+      <div className="cin-mobile-matrix">
         {quadrants.filter(q => q.id === activeTab).map((quadrant) => {
           const quadrantTasks = sortTasks(activeTasks.filter(t => getQuadrant(t) === quadrant.id));
           return (
-            <div key={quadrant.id} className={`etm-monitor ${quadrant.monitorClass}`}>
-              <div className="etm-monitor__hood"><div className="etm-tex-metal" /></div>
-              <div className="etm-monitor__bezel">
-                <div className="etm-tex-metal" />
-                <div className="etm-monitor__label">{quadrant.label}</div>
-                <div className="etm-monitor__well">
-                  <div className={`etm-monitor__glass ${quadrant.screenClass}`}>
-                    <div className="etm-monitor__status">
-                      <div className="etm-monitor__designation">
-                        <span className={`etm-led ${quadrant.ledClass}`} style={{ width: 6, height: 6 }} />
-                        {quadrant.title}
-                      </div>
-                      <div className="etm-monitor__count">{quadrantTasks.length}</div>
-                    </div>
-                    <div className="etm-monitor__content" style={{ maxHeight: '50vh' }}>
-                      {quadrantTasks.length === 0 ? (
-                        <div className="etm-monitor__empty">NO TASKS</div>
-                      ) : (
-                        <div className="etm-monitor__tasks space-y-1">
-                          {quadrantTasks.map((task) => (
-                            <TaskCard
-                              key={task.id}
-                              task={task}
-                              calculatePriority={calculatePriority}
-                              toggleComplete={toggleComplete}
-                              onEdit={() => {
-                                setEditingTask(task);
-                                setShowForm(true);
-                              }}
-                              onDelete={deleteTask}
-                              calculateTaskScore={calculateTaskScore}
-                              isExpanded={expandedTask === task.id}
-                              onToggleExpand={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            <div key={quadrant.id} className={`quad-panel quad-panel--${quadrant.qid}`} style={{ height: '100%' }}>
+              <div className="quad-panel__head">
+                <div className="quad-panel__designation">
+                  <span className={`cin-led cin-led--${quadrant.qid}`} /> {quadrant.designation}
                 </div>
+                <div className="quad-panel__sub">{quadrant.cinSub}</div>
+                <div className="quad-panel__count">{quadrantTasks.length}</div>
               </div>
+              {quadrantTasks.length === 0 ? (
+                <div className="quad-panel__empty">— No tasks —</div>
+              ) : (
+                <div className="cin-task-list">
+                  {quadrantTasks.map((task) => (
+                    <MatrixTask
+                      key={task.id}
+                      task={task}
+                      qid={quadrant.qid}
+                      calculatePriority={calculatePriority}
+                      toggleComplete={toggleComplete}
+                      onClick={() => {
+                        setEditingTask(task);
+                        setShowForm(true);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -1199,8 +1120,8 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
       {/* PHASE 3: Desktop matrix — acrylic-glass quad-panels in the
           cinematic .cin-workspace. Replaces the v2 CRT monitor array
           (hood/bezel/rivets/well/glass/scanlines). Per-panel chromatic
-          edge + hue wash matches the demo. Task rows are now MatrixTask
-          (click-to-edit) instead of expand/collapse TaskCard. */}
+          edge + hue wash matches the demo. Task rows are MatrixTask
+          (click-to-edit). */}
       <div className="hidden md:flex cin-workspace">
         <div className="cin-matrix-grid">
           {quadrants.map((quadrant) => {
@@ -1303,117 +1224,6 @@ const MatrixTask = ({ task, qid, calculatePriority, toggleComplete, onClick }) =
   );
 };
 
-const TaskCard = ({ task, calculatePriority, toggleComplete, onEdit, onDelete, calculateTaskScore, isExpanded, onToggleExpand }) => {
-  const priority = calculatePriority(task);
-  const isOverdue = priority < 0;
-  const dueDate = new Date(task.dueDate);
-  const taskScore = calculateTaskScore(task);
-
-  const getRecurrenceColor = (pattern) => {
-    const colors = {
-      once: 'bg-[#1a1e2c] text-[#8899aa]',
-      daily: 'bg-[#764ba220] text-[#b794f4]',
-      weekly: 'bg-[#667eea20] text-[#818cf8]',
-      monthly: 'bg-[#00ccdd20] text-[#6ea8fe]',
-      yearly: 'bg-[#33ff6620] text-[#50c878]'
-    };
-    return colors[pattern] || 'bg-[#1a1e2c] text-[#8899aa]';
-  };
-
-  return (
-    <div
-      className={`etm-card ${isOverdue ? 'etm-card--overdue' : ''} ${task.percentComplete === 100 ? 'etm-card--completed' : ''}`}
-      style={{
-        padding: '6px 8px',
-        background: isExpanded ? 'rgba(255,255,255,0.03)' : undefined,
-        borderColor: isExpanded ? 'rgba(232,96,48,0.25)' : undefined
-      }}
-    >
-      {/* Collapsed row — always visible */}
-      <div
-        className="flex items-center justify-between gap-2 cursor-pointer"
-        onClick={onToggleExpand}
-      >
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <input
-            type="checkbox"
-            checked={task.percentComplete === 100}
-            onChange={(e) => { e.stopPropagation(); toggleComplete(task.id); }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-3.5 h-3.5 rounded border-[#2a3048] text-[#e86030] focus:ring-1 focus:ring-[#e86030] cursor-pointer flex-shrink-0"
-          />
-          <span className={`text-xs font-medium truncate ${task.percentComplete === 100 ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
-            {task.task}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="etm-badge bg-[#1a1e2c] text-[#8899aa]" style={{ fontSize: '9px', padding: '1px 4px' }}>
-            R{task.rank}
-          </span>
-          <span className={`etm-badge ${
-            isOverdue
-              ? 'bg-[#ff334420] text-[#ff6675]'
-              : priority === 0
-              ? 'bg-[#ff882220] text-[#fbbf24]'
-              : priority <= 3
-              ? 'bg-[#fbbf2420] text-[#fbbf24]'
-              : 'bg-[#33ff6620] text-[#50c878]'
-          }`} style={{ fontSize: '9px', padding: '1px 4px' }}>
-            {isOverdue ? `${Math.abs(priority)}d over` : priority === 0 ? 'Today' : `${priority}d`}
-          </span>
-        </div>
-      </div>
-
-      {/* Expanded detail panel */}
-      {isExpanded && (
-        <div className="mt-1.5 pt-1.5 border-t border-[rgba(255,255,255,0.04)]" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px', color: '#8899aa' }}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span>{task.domain}{task.subcategory ? ` / ${task.subcategory}` : ''}</span>
-            <span className="text-[#506070]">{task.scope}</span>
-            <span className={`uppercase ${getRecurrenceColor(task.recurringPattern || 'once')}`} style={{ fontSize: '9px', padding: '0 4px', borderRadius: '2px' }}>
-              {task.recurringPattern || 'once'}
-            </span>
-            <span style={{ color: '#506070' }}>Due: {dueDate.toLocaleDateString()}</span>
-            {task.percentComplete > 0 && task.percentComplete < 100 && (
-              <span style={{ color: '#6ea8fe' }}>{task.percentComplete}%</span>
-            )}
-            {task.timeEstimateValue && (
-              <span style={{ color: '#506070' }}>Est: {task.timeEstimateValue}{task.timeEstimateUnit === 'hours' ? 'h' : 'd'}</span>
-            )}
-          </div>
-          {task.notes && (
-            <div className="mt-1" style={{ color: '#506070', fontSize: '9px' }}>{task.notes}</div>
-          )}
-          {taskScore !== null && (
-            <div className="mt-1">
-              <span style={{ color: '#506070', fontSize: '9px' }}>Score: </span>
-              <TaskScoreBar score={taskScore} />
-            </div>
-          )}
-          <div className="flex items-center gap-2 mt-1.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="etm-pushbutton" style={{ padding: '2px 6px', fontSize: '9px' }}
-            >
-              <Edit2 size={10} /> Edit
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-              className="etm-pushbutton text-[#ff6675]" style={{ padding: '2px 6px', fontSize: '9px' }}
-            >
-              <Trash2 size={10} /> Delete
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * Map v2 quadrant ids -> cinematic qid (q1..q4)
- * Used by ListView, CalendarView, GanttView, MatrixTask, etc.
- */
 const QID_BY_QUAD = {
   'do-first': 'q1', 'schedule': 'q2', 'delegate': 'q3', 'eliminate': 'q4'
 };
