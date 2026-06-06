@@ -6,6 +6,11 @@ import { Bar, Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 import { BootOverlay } from './components/BootOverlay';
 import { CinematicChrome } from './components/CinematicChrome';
+import { SearchPalette } from './components/SearchPalette';
+import { SettingsModal } from './components/SettingsModal';
+import { ShortcutHelp } from './components/ShortcutHelp';
+import { UndoToast } from './components/UndoToast';
+import { InfoModal } from './components/InfoModal';
 
 const API_BASE = '/api';
 
@@ -46,7 +51,8 @@ const EisenhowerTaskManager = () => {
       'Teaching': ['PSEII', 'Dynamics', 'Statics', 'Intro to Engineering', 'TE Lab'],
       'Projects': ['Optics Lab', 'ETM', 'Bond Graph Engine', 'Agent World', 'Website', 'Collision Lab', 'Capacitor Lab', 'Smoke Sim', 'Artemis II', 'ODS Paper', 'DSL', 'KB Explorer', 'Pipeline IDE'],
       'Personal': ['Car', 'Home', 'Health', 'Finance']
-    }
+    },
+    listMode: 'simple'
   });
   const [backupMetadata, setBackupMetadata] = useState({
     lastExport: null,
@@ -60,6 +66,13 @@ const EisenhowerTaskManager = () => {
   const [showBackupReminder, setShowBackupReminder] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completingTask, setCompletingTask] = useState(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  /* Undo-on-delete buffer. Holds { task, index } for ~5s after a delete;
+     clicking the toast or hitting Undo restores the task at its prior index. */
+  const [deletedTask, setDeletedTask] = useState(null);
   const [filters, setFilters] = useState({
     quadrant: 'all',
     domain: 'all',
@@ -278,6 +291,43 @@ const EisenhowerTaskManager = () => {
     }
   }, [isUnlocked]);
 
+  // Global keyboard shortcuts (only after unlock). Skipped when focus is
+  // inside an editable field so typing "N" in a task title still works.
+  useEffect(() => {
+    if (!isUnlocked) return;
+    const isEditable = (el) => {
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    };
+    const handler = (e) => {
+      // Ctrl+K / Cmd+K — toggle search palette (fires even from inputs).
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setShowSearch(s => !s);
+        return;
+      }
+      // Plain single-key shortcuts: skip if user is typing in a field.
+      if (isEditable(e.target)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // Skip N when any modal/overlay is already open — avoids stacking.
+      const anyOverlay = showForm || showSettings || showShortcuts
+                      || showSearch || showCompletionModal || showInfo;
+      if (e.key === 'n' || e.key === 'N') {
+        if (anyOverlay) return;
+        e.preventDefault();
+        setEditingTask(null);
+        setShowForm(true);
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcuts(s => !s);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isUnlocked, showForm, showSettings, showShortcuts, showSearch, showCompletionModal, showInfo]);
+
   // Save tasks to server when they change
   useEffect(() => {
     if (!isLoading && !serverOffline) {
@@ -414,11 +464,34 @@ const EisenhowerTaskManager = () => {
     setEditingTask(null);
   };
 
+  /* Delete is reversible: instead of a blocking confirm, the task lands in
+     deletedTask for ~5s with a fixed-position undo toast. Deleting a second
+     task replaces the first (the prior delete becomes permanent). */
   const deleteTask = (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      setTasks(tasks.filter(t => t.id !== taskId));
-    }
+    const idx = tasks.findIndex(t => t.id === taskId);
+    if (idx === -1) return;
+    const removed = tasks[idx];
+    setTasks(tasks.filter(t => t.id !== taskId));
+    setDeletedTask({ task: removed, index: idx });
   };
+
+  const undoDelete = () => {
+    if (!deletedTask) return;
+    setTasks(prev => {
+      const next = prev.slice();
+      const safeIdx = Math.min(deletedTask.index, next.length);
+      next.splice(safeIdx, 0, deletedTask.task);
+      return next;
+    });
+    setDeletedTask(null);
+  };
+
+  // Auto-dismiss the undo toast after 5 seconds.
+  useEffect(() => {
+    if (!deletedTask) return;
+    const tid = setTimeout(() => setDeletedTask(null), 5000);
+    return () => clearTimeout(tid);
+  }, [deletedTask]);
 
   const toggleComplete = (taskId) => {
     const task = tasks.find(t => t.id === taskId);
@@ -552,24 +625,40 @@ const EisenhowerTaskManager = () => {
 
   if (serverOffline) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{
-        background: 'radial-gradient(ellipse at 50% 40%, #1a2024, #0a0e12 65%, #040608)',
-        fontFamily: "'Courier New', monospace"
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'transparent',
+        fontFamily: "'Inter', system-ui, sans-serif"
       }}>
-        <div className="text-center space-y-4">
-          <div className="etm-led etm-led--red etm-led--pulse mx-auto" style={{ width: 12, height: 12 }} />
-          <div className="text-sm font-bold uppercase tracking-widest" style={{
-            color: '#ff3344',
-            textShadow: '0 0 10px rgba(255,51,68,.3)'
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
+          <span className="cin-led cin-led--crit cin-led--pulse" style={{ width: 12, height: 12 }} />
+          <div style={{
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '14px',
+            fontWeight: 700,
+            color: 'var(--crit)',
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            textShadow: '0 0 10px var(--crit-glow)'
           }}>Server Offline</div>
-          <div style={{ color: '#506070', fontSize: '12px', maxWidth: '280px' }}>
+          <div style={{
+            color: 'rgba(180, 180, 180, 0.65)',
+            fontSize: '11px',
+            maxWidth: '280px',
+            lineHeight: 1.5,
+            fontFamily: "'Inter', sans-serif"
+          }}>
             ETM server is not reachable. Ensure the server is running and you are connected to Tailscale.
           </div>
           <button
+            className="cin-btn cin-btn--secondary"
             onClick={() => { setServerOffline(false); setIsLoading(true); loadData(); }}
-            className="etm-pushbutton text-sm mt-4"
+            style={{ marginTop: '6px' }}
           >
-            <RefreshCw size={14} /> Retry
+            <RefreshCw size={13} /> Retry
           </button>
         </div>
       </div>
@@ -578,14 +667,23 @@ const EisenhowerTaskManager = () => {
 
   if (isLoading && !justUnlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{
-        background: 'radial-gradient(ellipse at 50% 40%, #1a2024, #0a0e12 65%, #040608)',
-        fontFamily: "'Courier New', monospace"
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'transparent',
+        fontFamily: "'Inter', system-ui, sans-serif"
       }}>
-        <div className="text-sm font-bold uppercase tracking-widest" style={{
-          color: '#ffaa33',
-          textShadow: '0 0 10px rgba(255,170,51,.3)'
-        }}>Initializing...</div>
+        <div style={{
+          fontFamily: "'Orbitron', sans-serif",
+          fontSize: '13px',
+          fontWeight: 700,
+          color: 'var(--cin-gold)',
+          letterSpacing: '0.30em',
+          textTransform: 'uppercase',
+          textShadow: '0 0 10px var(--cin-gold-glow)'
+        }}>Initializing</div>
       </div>
     );
   }
@@ -598,7 +696,7 @@ const EisenhowerTaskManager = () => {
     // (kept for one cycle in case we want to restore them); they'll be
     // cleaned up in a future polish pass.
     <div className="h-screen flex flex-col text-[#c8d0e0] overflow-hidden" style={{
-      fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      fontFamily: "'Inter', system-ui, sans-serif",
       // PHASE 1 (Cinematic foundation): was a solid radial-gradient bg
       // (#1a2024 → #0a0e12 → #040608). Removed so the cinematic banner
       // backdrop (body::before in index.css) shows through the gaps
@@ -633,6 +731,8 @@ const EisenhowerTaskManager = () => {
         sub="Operations — Task Prioritization Console"
         crew="Critical · Strategic · Delegate · Eliminate"
         version="v3.0"
+        onInfo={() => setShowInfo(true)}
+        onSettings={() => setShowSettings(true)}
       />
 
       {/* PHASE 5 cleanup: removed etm-reveal-* keyframes (retired in
@@ -694,6 +794,9 @@ const EisenhowerTaskManager = () => {
           column means the workspace's own `margin: 0 1.6rem` is the only
           horizontal inset, matching both bars exactly. */}
       <main className="flex-1 min-h-0 w-full h-full">
+        {/* key={view} forces remount on view swap so the fade keyframe
+            on .cin-view-swap fires each time. */}
+        <div className="cin-view-swap" key={view}>
         {view === 'matrix' ? (
           <MatrixView
             tasks={tasks}
@@ -715,7 +818,7 @@ const EisenhowerTaskManager = () => {
             calculatePriority={calculatePriority} toggleComplete={toggleComplete}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
             deleteTask={deleteTask} calculateTaskScore={calculateTaskScore}
-            settings={settings}
+            settings={settings} setSettings={setSettings}
           />
         ) : view === 'gantt' ? (
           <GanttView
@@ -737,6 +840,7 @@ const EisenhowerTaskManager = () => {
             tasks={tasks} calculateTaskScore={calculateTaskScore}
           />
         )}
+        </div>
       </main>
 
       {/* PHASE 4 finale: cinematic action bar (replaces v2 chassis footer).
@@ -839,6 +943,49 @@ const EisenhowerTaskManager = () => {
             <button className="cin-btn cin-btn--secondary" style={{ padding: '3px 10px', fontSize: '10px' }} onClick={() => setShowBackupReminder(false)}>Dismiss</button>
           </div>
         </div>
+      )}
+
+      {/* Info / About modal (Info glyph button) */}
+      {showInfo && (
+        <InfoModal
+          version="v3.0"
+          backupMetadata={backupMetadata}
+          onShowShortcuts={() => setShowShortcuts(true)}
+          onClose={() => setShowInfo(false)}
+        />
+      )}
+
+      {/* Settings modal (cog button) */}
+      {showSettings && (
+        <SettingsModal
+          settings={settings}
+          setSettings={setSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {/* Keyboard shortcut help (?) */}
+      {showShortcuts && (
+        <ShortcutHelp onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {/* Undo-on-delete toast */}
+      {deletedTask && (
+        <UndoToast task={deletedTask.task} onUndo={undoDelete} />
+      )}
+
+      {/* Ctrl+K search palette */}
+      {showSearch && (
+        <SearchPalette
+          tasks={tasks}
+          getQuadrant={getQuadrant}
+          onClose={() => setShowSearch(false)}
+          onSelectTask={(t) => {
+            setShowSearch(false);
+            setEditingTask(t);
+            setShowForm(true);
+          }}
+        />
       )}
 
       {/* Task Form Modal */}
@@ -1006,68 +1153,17 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
   const [activeTab, setActiveTab] = useState('do-first');
   const activeTasks = tasks.filter(t => t.percentComplete < 100);
 
+  /* PHASE 5+ sweep: dropped legacy v2 properties from the quadrants
+     array (screenClass / monitorClass / textColor / tabColor / ledClass
+     / label / subtitle) — none had callers after the matrix view was
+     ported to MatrixTask + .quad-panel + .cin-led. Kept the cinematic
+     props (qid / designation / cinSub) plus title / shortTitle which
+     the mobile tab bar reads. */
   const quadrants = [
-    {
-      id: 'do-first',
-      title: 'DO FIRST',
-      shortTitle: 'Do First',
-      subtitle: 'Urgent & Necessary',
-      screenClass: 'etm-monitor__glass--do-first',
-      monitorClass: 'etm-monitor--do-first',
-      textColor: 'text-[#ff6675]',
-      tabColor: '#ff3344',
-      ledClass: 'etm-led--red',
-      label: 'Q1 — URGENT / NECESSARY',
-      // PHASE 3: Cinematic quad-panel mapping (used by desktop matrix view)
-      qid: 'q1',
-      designation: 'Q1 · Critical',
-      cinSub: 'Urgent · Necessary'
-    },
-    {
-      id: 'schedule',
-      title: 'SCHEDULE',
-      shortTitle: 'Schedule',
-      subtitle: 'Necessary, Not Urgent',
-      screenClass: 'etm-monitor__glass--schedule',
-      monitorClass: 'etm-monitor--schedule',
-      textColor: 'text-[#6ea8fe]',
-      tabColor: '#00ccdd',
-      ledClass: 'etm-led--cyan',
-      label: 'Q2 — NOT URGENT / NECESSARY',
-      qid: 'q2',
-      designation: 'Q2 · Strategic',
-      cinSub: 'Not Urgent · Necessary'
-    },
-    {
-      id: 'delegate',
-      title: 'DELEGATE',
-      shortTitle: 'Delegate',
-      subtitle: 'Urgent, Not Necessary',
-      screenClass: 'etm-monitor__glass--delegate',
-      monitorClass: 'etm-monitor--delegate',
-      textColor: 'text-[#fbbf24]',
-      tabColor: '#ff8822',
-      ledClass: 'etm-led--amber',
-      label: 'Q3 — URGENT / NOT NECESSARY',
-      qid: 'q3',
-      designation: 'Q3 · Delegate',
-      cinSub: 'Urgent · Not Necessary'
-    },
-    {
-      id: 'eliminate',
-      title: 'ELIMINATE',
-      shortTitle: 'Eliminate',
-      subtitle: 'Neither Urgent Nor Necessary',
-      screenClass: 'etm-monitor__glass--eliminate',
-      monitorClass: 'etm-monitor--eliminate',
-      textColor: 'text-[#8899aa]',
-      tabColor: '#506070',
-      ledClass: 'etm-led--muted',
-      label: 'Q4 — NOT URGENT / NOT NECESSARY',
-      qid: 'q4',
-      designation: 'Q4 · Eliminate',
-      cinSub: 'Not Urgent · Not Necessary'
-    }
+    { id: 'do-first',  title: 'DO FIRST',  shortTitle: 'Do First',  qid: 'q1', designation: 'Q1 · Critical',  cinSub: 'Urgent · Necessary' },
+    { id: 'schedule',  title: 'SCHEDULE',  shortTitle: 'Schedule',  qid: 'q2', designation: 'Q2 · Strategic', cinSub: 'Not Urgent · Necessary' },
+    { id: 'delegate',  title: 'DELEGATE',  shortTitle: 'Delegate',  qid: 'q3', designation: 'Q3 · Delegate',  cinSub: 'Urgent · Not Necessary' },
+    { id: 'eliminate', title: 'ELIMINATE', shortTitle: 'Eliminate', qid: 'q4', designation: 'Q4 · Eliminate', cinSub: 'Not Urgent · Not Necessary' }
   ];
 
   // Count tasks per quadrant for tab badges
@@ -1251,7 +1347,9 @@ const QID_BY_QUAD = {
  * pill + due badge + priority + progress bar. Click row to edit;
  * delete moved into the edit modal (no inline buttons).
  */
-const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings }) => {
+const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings, setSettings }) => {
+  const listMode = settings?.listMode === 'advanced' ? 'advanced' : 'simple';
+  const setListMode = (mode) => setSettings(s => ({ ...s, listMode: mode }));
   const filteredTasks = tasks.filter(task => {
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
@@ -1313,6 +1411,20 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
           <span className="cin-view-panel__sub">cross-quadrant view</span>
         </div>
         <div className="cin-view-panel__toolbar">
+          <div className="cin-mode-toggle" role="group" aria-label="List density">
+            <button
+              type="button"
+              className={`cin-mode-toggle__btn ${listMode === 'simple' ? 'is-active' : ''}`}
+              onClick={() => setListMode('simple')}
+              aria-pressed={listMode === 'simple'}
+            >Simple</button>
+            <button
+              type="button"
+              className={`cin-mode-toggle__btn ${listMode === 'advanced' ? 'is-active' : ''}`}
+              onClick={() => setListMode('advanced')}
+              aria-pressed={listMode === 'advanced'}
+            >Advanced</button>
+          </div>
           <div className="cin-filter">
             <label className="cin-filter__label">Status</label>
             <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
@@ -1369,10 +1481,13 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
       </div>
 
       <div className="cin-view-panel__body">
-        <div className="list-table">
+        <div className={`list-table list-table--${listMode}`}>
           <div className="list-row list-row--header">
             <div></div>
             <div>Task · Project</div>
+            {listMode === 'advanced' && <div>Domain</div>}
+            {listMode === 'advanced' && <div>Scope</div>}
+            {listMode === 'advanced' && <div>Recur</div>}
             <div>Due</div>
             <div className="list-row__h-priority">Rank</div>
             <div>Progress</div>
@@ -1391,6 +1506,9 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
                 + (isOverdue ? ' list-row--overdue' : '')
                 + (isToday   ? ' list-row--today'   : '')
                 + (isDone    ? ' list-row--done'    : '');
+              const recur = task.recurringPattern && task.recurringPattern !== 'once'
+                ? task.recurringPattern
+                : '—';
               return (
                 <div
                   key={task.id}
@@ -1404,6 +1522,15 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
                       <span className="list-row__project">{task.subcategory || task.domain}</span>
                     )}
                   </div>
+                  {listMode === 'advanced' && (
+                    <div className="list-row__meta">{task.domain || '—'}</div>
+                  )}
+                  {listMode === 'advanced' && (
+                    <div className="list-row__meta">{task.scope || '—'}</div>
+                  )}
+                  {listMode === 'advanced' && (
+                    <div className="list-row__meta">{recur}</div>
+                  )}
                   <div className={`list-row__due ${due.cls}`}>{due.text}</div>
                   <div className="list-row__priority">{task.rank ? `R${task.rank}` : '—'}</div>
                   <div className="list-row__bar">

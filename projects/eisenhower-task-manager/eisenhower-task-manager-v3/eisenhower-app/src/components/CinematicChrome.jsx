@@ -8,7 +8,8 @@ import React from 'react';
  *                 + version label below
  *   - Center: instrument title (Orbitron, gold) + subtitle (Inter, cyan)
  *             + optional crew line (Inter, dim)
- *   - Right flank: action button row (Info + Settings glyphs)
+ *   - Right flank: action button row (Info + Settings glyphs — each renders
+ *     only when its handler prop is provided; no placeholder disabled cogs)
  *   - Four cartographic L-bracket ticks at viewport corners
  *
  * Title gets top:1.2rem (vs flanks at 1.6rem) so the 3-line block's
@@ -20,7 +21,7 @@ import React from 'react';
  *   crew        — third line under the title (hidden on narrow screens)
  *   version     — text below the wordmark (e.g., "v3.0")
  *   onInfo      — handler for the Info button (renders only if provided)
- *   onSettings  — handler for the Settings button
+ *   onSettings  — handler for the Settings button (renders only if provided)
  */
 export const CinematicChrome = ({
   title    = 'Eisenhower Task Manager',
@@ -74,21 +75,12 @@ export const CinematicChrome = ({
               <span className="cin-action__glyph">&#9432;</span>
             </button>
           )}
-          {onSettings ? (
+          {onSettings && (
             <button
               className="cin-action"
               onClick={onSettings}
               title="Settings"
               aria-label="Settings"
-            >
-              <span className="cin-action__glyph">&#9881;</span>
-            </button>
-          ) : (
-            <button
-              className="cin-action cin-action--disabled"
-              title="Settings (not wired)"
-              aria-label="Settings"
-              disabled
             >
               <span className="cin-action__glyph">&#9881;</span>
             </button>
