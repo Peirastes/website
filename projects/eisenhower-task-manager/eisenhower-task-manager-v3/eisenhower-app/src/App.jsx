@@ -644,8 +644,14 @@ const EisenhowerTaskManager = () => {
           numbers for Q1-Q4 (no text labels — LED + color encodes
           identity), text labels preserved on Overdue/Today (temporal
           state, not quadrant identity), Mk-III nameplate at right.
-          Q1='do-first', Q2='schedule', Q3='delegate', Q4='eliminate'. */}
-      <div className="readout-bar" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+          Q1='do-first', Q2='schedule', Q3='delegate', Q4='eliminate'.
+          NOTE: the `env(safe-area-inset-top)` inline paddingTop was
+          removed here — it was a leftover from when this strip sat at
+          the very top of the viewport. With the chrome row above, the
+          notch is already cleared by .cin-flank's top inset; keeping it
+          here was overriding the symmetric 0.5rem CSS padding and
+          pushing the cell content to the top of the bar on desktop. */}
+      <div className="readout-bar">
         <div className="readout-group">
           {[
             { qid: 'q1', valKey: 'do-first'   },
