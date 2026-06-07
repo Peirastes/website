@@ -12,6 +12,15 @@ import { ShortcutHelp } from './components/ShortcutHelp';
 import { UndoToast } from './components/UndoToast';
 import { InfoModal } from './components/InfoModal';
 import { TaskDetailsModal } from './components/TaskDetailsModal';
+import { QID_BY_QUAD } from './lib/quadrant';
+import {
+  splitDueDate,
+  formatHorizonLong,
+  formatHorizonShort,
+  formatAbsolute,
+  formatRelative,
+  formatAnchor,
+} from './lib/dateFormat';
 
 const API_BASE = '/api';
 
@@ -1346,10 +1355,6 @@ const MatrixTask = ({ task, qid, calculatePriority, toggleComplete, onClick }) =
   );
 };
 
-const QID_BY_QUAD = {
-  'do-first': 'q1', 'schedule': 'q2', 'delegate': 'q3', 'eliminate': 'q4'
-};
-
 /**
  * PHASE 4b: ListView (cinematic). Acrylic-glass full-workspace panel
  * with 4-stop quadrant-rainbow top edge. 5 filter dropdowns + sort in
@@ -1572,17 +1577,8 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
 // and mobile via responsive CSS.
 
 const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
-  /* Stored task.dueDate is either "YYYY-MM-DD" (no time) or
-     "YYYY-MM-DDTHH:MM" (with time). The form edits these as two inputs;
-     re-joined on submit. splitDueDate handles both shapes safely. */
-  const splitDueDate = (raw) => {
-    if (typeof raw !== 'string' || !raw) return { date: '', time: '' };
-    if (raw.includes('T')) {
-      const [d, t] = raw.split('T');
-      return { date: d, time: (t || '').slice(0, 5) };
-    }
-    return { date: raw, time: '' };
-  };
+  /* splitDueDate handles both "YYYY-MM-DD" and legacy
+     "YYYY-MM-DDTHH:MM" shapes — see lib/dateFormat.js. */
   const [formData, setFormData] = useState(() => {
     if (task) {
       /* Prefer explicit dueTime; fall back to splitting a legacy
@@ -2432,71 +2428,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
    Lanes = settings.domains. Tasks with unknown / missing domain
    are placed in a fallback "OTHER" lane so nothing is dropped. */
 
-/* Adaptive horizon-distance formatters. Horizon distance is stored as
-   fractional days throughout, so anything sub-day reads in hours and
-   anything day-or-above reads in days. Long form for milestone arc
-   labels (caps), short form for the subtitle status line. */
-const formatHorizonLong = (days) => {
-  if (days < 1) {
-    const h = Math.max(1, Math.round(days * 24));
-    return h === 1 ? '1 HOUR' : `${h} HOURS`;
-  }
-  const d = Math.round(days);
-  return d === 1 ? '1 DAY' : `${d} DAYS`;
-};
-const formatHorizonShort = (days) => {
-  if (days < 1) return `${Math.max(1, Math.round(days * 24))}h`;
-  return `${Math.round(days)}d`;
-};
-
-/* Absolute date/time label for the left side of each range arc. Anchors
-   the user to real calendar time while panning. Sub-day granularity prints
-   wall-clock time ("14:30"); day-or-coarser prints abbreviated month+day
-   ("JUN 13"), with year suffix when the reference crosses into a future
-   calendar year ("DEC 25 '27"). */
-const BRIDGE_MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-const formatAbsolute = (refMs, granularityDays) => {
-  const d = new Date(refMs);
-  if (granularityDays < 1) {
-    const h = d.getHours();
-    const m = d.getMinutes();
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-  }
-  const month = BRIDGE_MONTH_ABBR[d.getMonth()];
-  const day = d.getDate();
-  const sameYear = d.getFullYear() === new Date().getFullYear();
-  return sameYear
-    ? `${month} ${day}`
-    : `${month} ${day} '${String(d.getFullYear()).slice(-2)}`;
-};
-
-/* Relative-from-ship label for the right side of each calendar-anchored
-   grid arc. Auto-collapses to the most readable unit. Mirrors the suffix
-   convention but without AHEAD/AGO since position vs. ship is implied
-   visually (above ship = future, below = past). */
-const formatRelative = (effOff) => {
-  if (Math.abs(effOff) < 1/48) return 'NOW';
-  const sign = effOff < 0 ? '-' : '';
-  const abs = Math.abs(effOff);
-  if (abs < 1)   return `${sign}${Math.round(abs * 24)}H`;
-  if (abs < 14)  return `${sign}${Math.round(abs)}D`;
-  if (abs < 60)  return `${sign}${Math.round(abs / 7)}W`;
-  if (abs < 365) return `${sign}${Math.round(abs / 30)}MO`;
-  return `${sign}${Math.round(abs / 365)}Y`;
-};
-
-/* Ship label adapts to the drag-pan anchor. < 30 min off real-now reads
-   as TODAY; otherwise compact mission-ops-style "12H AHEAD" / "3D AGO". */
-const formatAnchor = (anchor) => {
-  if (Math.abs(anchor) < 1/48) return 'TODAY';
-  const abs = Math.abs(anchor);
-  const suffix = anchor > 0 ? 'AHEAD' : 'AGO';
-  if (abs < 1)   return `${Math.round(abs * 24)}H ${suffix}`;
-  if (abs < 14)  return `${Math.round(abs)}D ${suffix}`;
-  if (abs < 60)  return `${Math.round(abs / 7)}W ${suffix}`;
-  if (abs < 365) return `${Math.round(abs / 30)}MO ${suffix}`;
-  return `${Math.round(abs / 365)}Y ${suffix}`;
-};
+/* Horizon-distance + date/time formatters live in lib/dateFormat.js. */
 
 const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings }) => {
   const [mode, setMode] = useState('horizon');
