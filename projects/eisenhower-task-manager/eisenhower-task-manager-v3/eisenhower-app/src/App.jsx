@@ -12,6 +12,9 @@ import { ShortcutHelp } from './components/ShortcutHelp';
 import { UndoToast } from './components/UndoToast';
 import { InfoModal } from './components/InfoModal';
 import { TaskDetailsModal } from './components/TaskDetailsModal';
+import { CompletionModal } from './components/CompletionModal';
+import { MatrixTask } from './components/MatrixTask';
+import { VelocityChart } from './components/VelocityChart';
 import { QID_BY_QUAD } from './lib/quadrant';
 import {
   splitDueDate,
@@ -1035,136 +1038,7 @@ const EisenhowerTaskManager = () => {
   );
 };
 
-const CompletionModal = ({ task, onConfirm, onCancel }) => {
-  const [qualityRating, setQualityRating] = useState(null);
-  const [easeRating, setEaseRating] = useState(null);
-
-  const handleConfirm = () => {
-    if (qualityRating === null || easeRating === null) {
-      alert('Please rate both quality and ease before confirming completion.');
-      return;
-    }
-    onConfirm(task.id, qualityRating, easeRating);
-  };
-
-  return (
-    /* PHASE 5: cinematic completion modal — acrylic glass, Orbitron
-       title, cinematic rating dots (green for quality, amber for ease). */
-    <div className="cin-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="cin-modal">
-        <div className="cin-modal__head">
-          <div className="cin-modal__title">Complete Task</div>
-          <button className="cin-modal__close" onClick={onCancel} aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="cin-modal__body">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-            {/* Task summary */}
-            <div className="cin-field">
-              <label className="cin-field__label">Task</label>
-              <div style={{
-                padding: '10px 12px',
-                background: 'rgba(8, 12, 18, 0.38)',
-                border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: '3px'
-              }}>
-                <div style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
-                  color: 'rgba(232, 232, 232, 0.92)',
-                  fontWeight: 500
-                }}>{task.task}</div>
-                {task.subcategory && (
-                  <div style={{
-                    marginTop: '3px',
-                    fontFamily: 'Share Tech Mono, monospace',
-                    fontSize: '10px',
-                    letterSpacing: '0.06em',
-                    color: 'rgba(180, 180, 180, 0.55)'
-                  }}>{task.subcategory}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Quality rating (green) */}
-            <div className="cin-rating-row">
-              <div className="cin-rating-row__label">How well did you complete this task?</div>
-              <div className="cin-rating-dots">
-                {[1,2,3,4,5].map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    className={'cin-rating-dot' + (qualityRating !== null && qualityRating >= d ? ' cin-rating-dot--lit-green' : '')}
-                    onClick={() => setQualityRating(d)}
-                    aria-label={`Rate quality ${d} of 5`}
-                  />
-                ))}
-              </div>
-              <div className="cin-rating-row__caption">
-                {qualityRating === null ? 'Click to rate' : ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][qualityRating]}
-              </div>
-            </div>
-
-            {/* Ease rating (amber) */}
-            <div className="cin-rating-row">
-              <div className="cin-rating-row__label">How easy/difficult was this task?</div>
-              <div className="cin-rating-dots">
-                {[1,2,3,4,5].map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    className={'cin-rating-dot' + (easeRating !== null && easeRating >= d ? ' cin-rating-dot--lit-amber' : '')}
-                    onClick={() => setEaseRating(d)}
-                    aria-label={`Rate ease ${d} of 5`}
-                  />
-                ))}
-              </div>
-              <div className="cin-rating-row__caption">
-                {easeRating === null ? 'Click to rate' : ['', 'Very Difficult', 'Difficult', 'Moderate', 'Easy', 'Very Easy'][easeRating]}
-              </div>
-            </div>
-
-            {/* Help text */}
-            <div className="cin-field__hint" style={{
-              padding: '8px 10px',
-              background: 'rgba(8, 12, 18, 0.32)',
-              border: '1px solid rgba(255,255,255,0.04)',
-              borderRadius: '3px',
-              fontSize: '10px',
-              letterSpacing: '0.04em',
-              color: 'rgba(180,180,180,0.65)',
-              lineHeight: 1.5
-            }}>
-              <strong style={{ color: 'rgba(232,232,232,0.92)' }}>Quality:</strong> Your satisfaction with the result.<br/>
-              <strong style={{ color: 'rgba(232,232,232,0.92)' }}>Ease:</strong> How smooth the process was (5 = very easy · 1 = very difficult).
-            </div>
-
-          </div>
-        </div>
-
-        <div className="cin-modal__footer">
-          <button type="button" className="cin-btn cin-btn--secondary" onClick={onCancel}>Cancel</button>
-          <button
-            type="button"
-            className="cin-btn cin-btn--primary"
-            onClick={handleConfirm}
-            disabled={qualityRating === null || easeRating === null}
-            style={{
-              opacity: (qualityRating === null || easeRating === null) ? 0.5 : 1,
-              cursor: (qualityRating === null || easeRating === null) ? 'not-allowed' : 'pointer'
-            }}
-          >
-            <CheckCircle size={14} />
-            Mark Complete
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+/* CompletionModal lives in src/components/CompletionModal.jsx. */
 
 const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore }) => {
   const [activeTab, setActiveTab] = useState('do-first');
@@ -1295,65 +1169,7 @@ const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleCo
   );
 };
 
-/**
- * PHASE 3: MatrixTask — cinematic task row for the desktop matrix view.
- * Click the row → open edit modal (replaces v2's expand/collapse UI).
- * Checkbox toggles completion without bubbling. Hover translates the row
- * 2px right + brightens the border (same interaction vocabulary as the
- * demo's task rows).
- */
-const MatrixTask = ({ task, qid, calculatePriority, toggleComplete, onClick }) => {
-  const priority = calculatePriority(task);
-  const isOverdue = priority < 0;
-  const isToday   = priority === 0;
-  const isDone    = task.percentComplete === 100;
-
-  let dueText, badgeClass;
-  if (isOverdue) {
-    dueText = `${Math.abs(priority)}d over`;
-    badgeClass = 'cin-task__badge--overdue';
-  } else if (isToday) {
-    dueText = 'Today';
-    badgeClass = 'cin-task__badge--today';
-  } else if (priority === 1) {
-    dueText = 'Tomorrow';
-    badgeClass = 'cin-task__badge--soon';
-  } else if (priority <= 3) {
-    dueText = `${priority}d`;
-    badgeClass = 'cin-task__badge--soon';
-  } else {
-    dueText = `${priority}d`;
-    badgeClass = 'cin-task__badge--later';
-  }
-
-  const rowClass =
-    `cin-task cin-task--${qid}` +
-    (isOverdue ? ' cin-task--overdue' : '') +
-    (isToday   ? ' cin-task--today'   : '') +
-    (isDone    ? ' cin-task--done'    : '');
-
-  return (
-    <div className={rowClass} onClick={onClick}>
-      <input
-        type="checkbox"
-        className="cin-task__check"
-        checked={isDone}
-        onChange={(e) => { e.stopPropagation(); toggleComplete(task.id); }}
-        onClick={(e) => e.stopPropagation()}
-        aria-label={isDone ? 'Mark incomplete' : 'Mark complete'}
-      />
-      <div className="cin-task__name" title={task.task}>{task.task}</div>
-      <div className={`cin-task__badge ${badgeClass}`}>{dueText}</div>
-      <div className="cin-task__meta-row">
-        {task.subcategory && <span className="cin-task__tag">{task.subcategory}</span>}
-        <span>R{task.rank}</span>
-        {task.percentComplete > 0 && task.percentComplete < 100 && (
-          <span style={{ color: 'var(--cin-cyan-soft)' }}>{task.percentComplete}%</span>
-        )}
-      </div>
-    </div>
-  );
-};
+/* MatrixTask lives in src/components/MatrixTask.jsx. */
 
 /**
  * PHASE 4b: ListView (cinematic). Acrylic-glass full-workspace panel
@@ -2024,113 +1840,7 @@ const AnalyticsView = ({ tasks: allTasks, calculateTaskScore }) => {
   );
 };
 
-/**
- * PHASE 4b: Inline-SVG smooth-area chart for the velocity widget.
- * Catmull-Rom -> cubic bezier path, amber area gradient fill,
- * today line + today dot. Auto-sizes to its container; re-renders
- * on data change via React. (No resize observer here; the
- * cin-view-panel body is responsive so the SVG just inherits.)
- */
-const VelocityChart = ({ data }) => {
-  const containerRef = React.useRef(null);
-  const [dims, setDims] = React.useState({ w: 600, h: 160 });
-
-  React.useEffect(() => {
-    if (!containerRef.current) return;
-    const update = () => {
-      if (containerRef.current) {
-        setDims({
-          w: containerRef.current.clientWidth || 600,
-          h: containerRef.current.clientHeight || 160
-        });
-      }
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  const { w: W, h: H } = dims;
-  const PAD_L = 26, PAD_R = 16, PAD_T = 12, PAD_B = 20;
-  const plotW = W - PAD_L - PAD_R;
-  const plotH = H - PAD_T - PAD_B;
-  const n = data.length;
-  const maxCount = Math.max(...data.map(d => d.count), 1);
-
-  const x = (i) => PAD_L + (i / Math.max(n - 1, 1)) * plotW;
-  const y = (v) => PAD_T + plotH - (v / maxCount) * plotH;
-
-  const pts = data.map((d, i) => ({ x: x(i), y: y(d.count) }));
-
-  // Catmull-Rom -> cubic bezier
-  let linePath = '';
-  if (pts.length > 0) {
-    linePath = 'M ' + pts[0].x + ' ' + pts[0].y;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[i + 2] || p2;
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
-      linePath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
-    }
-  }
-  const areaPath = pts.length === 0 ? '' :
-    linePath
-    + ` L ${pts[pts.length - 1].x} ${PAD_T + plotH}`
-    + ` L ${pts[0].x} ${PAD_T + plotH} Z`;
-
-  const xLabels = [
-    { i: 0,        text: '30d ago' },
-    { i: 15,       text: '15d ago' },
-    { i: 22,       text: '7d ago'  },
-    { i: 26,       text: '3d ago'  },
-    { i: n - 1,    text: 'TODAY', today: true }
-  ];
-  const ySteps = [
-    { v: maxCount, label: maxCount },
-    { v: Math.round(maxCount / 2), label: Math.round(maxCount / 2) },
-    { v: 0, label: 0 }
-  ];
-
-  return (
-    <div className="velocity-chart" ref={containerRef}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="rgba(255, 174, 32, 0.38)" />
-            <stop offset="100%" stopColor="rgba(255, 174, 32, 0.02)" />
-          </linearGradient>
-        </defs>
-        {ySteps.map((s, i) => (
-          <g key={i}>
-            <line className="velocity-chart__gridline" x1={PAD_L} y1={y(s.v)} x2={W - PAD_R} y2={y(s.v)} />
-            <text className="velocity-chart__axis-label" x={PAD_L - 6} y={y(s.v) + 3} textAnchor="end">{s.label}</text>
-          </g>
-        ))}
-        {n > 0 && (
-          <>
-            <line className="velocity-chart__today-line" x1={x(n - 1)} y1={PAD_T} x2={x(n - 1)} y2={PAD_T + plotH} />
-            <path className="velocity-chart__area" d={areaPath} />
-            <path className="velocity-chart__line" d={linePath} />
-            <circle className="velocity-chart__point" cx={x(n - 1)} cy={y(data[n - 1].count)} r="3" />
-          </>
-        )}
-        {xLabels.map((l, i) => (
-          <text
-            key={i}
-            className={`velocity-chart__axis-label ${l.today ? 'velocity-chart__axis-label--today' : ''}`}
-            x={x(l.i)} y={H - 4} textAnchor="middle"
-          >{l.text}</text>
-        ))}
-      </svg>
-    </div>
-  );
-};
+/* VelocityChart lives in src/components/VelocityChart.jsx. */
 
 /**
  * PHASE 4b: GanttView (cinematic). 21-day timeline window centered on
