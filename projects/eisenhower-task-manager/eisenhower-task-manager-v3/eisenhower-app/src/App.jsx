@@ -1159,7 +1159,9 @@ const CompletionModal = ({ task, onConfirm, onCancel }) => {
 
 const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore }) => {
   const [activeTab, setActiveTab] = useState('do-first');
-  const activeTasks = tasks.filter(t => t.percentComplete < 100);
+  /* Filter events out — they belong on the Bridge + Calendar, not in
+     the Matrix prioritisation grid. */
+  const activeTasks = tasks.filter(t => t.percentComplete < 100 && !t.isEvent);
 
   /* PHASE 5+ sweep: dropped legacy v2 properties from the quadrants
      array (screenClass / monitorClass / textColor / tabColor / ledClass
@@ -1358,7 +1360,12 @@ const QID_BY_QUAD = {
 const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings, setSettings }) => {
   const listMode = settings?.listMode === 'advanced' ? 'advanced' : 'simple';
   const setListMode = (mode) => setSettings(s => ({ ...s, listMode: mode }));
+  /* Events are hidden by default — toggleable via the "Show events" chip
+     so the list focuses on tracked tasks while keeping bills/meetings
+     visible when triaging. */
+  const showEvents = filters.showEvents === true;
   const filteredTasks = tasks.filter(task => {
+    if (!showEvents && task.isEvent) return false;
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
     if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
@@ -1476,6 +1483,12 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
               <option value="yearly">Yearly</option>
             </select>
           </div>
+          <button
+            type="button"
+            className={`cin-mini-btn ${filters.showEvents ? 'is-on' : ''}`}
+            onClick={() => setFilters({ ...filters, showEvents: !filters.showEvents })}
+            title={filters.showEvents ? 'Hide calendar events from the list' : 'Show calendar events alongside tasks'}
+          >{filters.showEvents ? '✓ Events' : '+ Events'}</button>
           <div className="cin-filter">
             <label className="cin-filter__label">Sort</label>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -1812,6 +1825,22 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
               </select>
             </div>
 
+            {/* Event toggle — events show on Bridge + Calendar only,
+                excluded from Matrix / List / Gantt / Analytics. */}
+            <div className="cin-check-tile" style={{ cursor: 'pointer' }}
+                 onClick={() => setFormData({ ...formData, isEvent: !formData.isEvent })}>
+              <input
+                type="checkbox"
+                checked={!!formData.isEvent}
+                onChange={(e) => setFormData({ ...formData, isEvent: e.target.checked })}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div>
+                <div className="cin-check-tile__label">Calendar event</div>
+                <div className="cin-check-tile__sub">Show on Bridge + Calendar only, not in Matrix / List / Gantt</div>
+              </div>
+            </div>
+
             {/* Notes */}
             <div className="cin-field">
               <label className="cin-field__label">Notes</label>
@@ -1844,7 +1873,10 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
  * simpler inline-SVG area chart — the v2 version had more depth but
  * didn't match the cinematic vocabulary.
  */
-const AnalyticsView = ({ tasks, calculateTaskScore }) => {
+const AnalyticsView = ({ tasks: allTasks, calculateTaskScore }) => {
+  /* Drop events from analytics — they're calendar items, not tracked
+     work, and would skew quadrant + completion stats. */
+  const tasks = allTasks.filter(t => !t.isEvent);
   // ── Stats ──
   const total = tasks.length;
   const completed = tasks.filter(t => t.percentComplete === 100).length;
@@ -2142,6 +2174,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   };
 
   const visible = tasks.filter(t => {
+    if (t.isEvent) return false;            // events don't belong on the Gantt
     if (t.percentComplete === 100) return false;
     if (!t.dueDate) return false;
     if (filterQuad !== 'all' && getQuadrant(t) !== filterQuad) return false;
