@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Edit2, Calendar, Clock, Tag, Activity, FileText } from 'lucide-react';
+import { X, Edit2, Calendar, Clock, Tag, Activity, FileText, Star } from 'lucide-react';
 
 const QUAD_META = {
   'do-first':  { label: 'CRITICAL',  qid: 'q1' },
@@ -31,7 +31,7 @@ const formatEffort = (task) => {
   return `${v} ${u}`;
 };
 
-export const TaskDetailsModal = ({ task, getQuadrant, onEdit, onClose }) => {
+export const TaskDetailsModal = ({ task, getQuadrant, onEdit, onToggleTrack, onClose }) => {
   if (!task) return null;
   const quad = QUAD_META[getQuadrant(task)] || QUAD_META.eliminate;
   const pct = Number(task.percentComplete) || 0;
@@ -97,6 +97,16 @@ export const TaskDetailsModal = ({ task, getQuadrant, onEdit, onClose }) => {
 
         <div className="cin-modal__footer">
           <button className="cin-btn cin-btn--secondary" onClick={onClose}>Close</button>
+          {onToggleTrack && (
+            <button
+              className={`cin-btn cin-btn--secondary cin-task-details__track ${task.tracked ? 'is-tracked' : ''}`}
+              onClick={() => onToggleTrack(task)}
+              title={task.tracked ? 'Untrack this task' : 'Track this task (shown when label mode = Tracked only)'}
+            >
+              <Star size={13} fill={task.tracked ? 'currentColor' : 'none'} />
+              {task.tracked ? 'Tracked' : 'Track'}
+            </button>
+          )}
           <button
             className="cin-btn"
             onClick={() => { onEdit(task); onClose(); }}

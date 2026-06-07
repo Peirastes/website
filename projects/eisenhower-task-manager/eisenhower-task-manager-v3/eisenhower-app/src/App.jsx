@@ -2468,6 +2468,19 @@ const formatAnchor = (anchor) => {
 const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings }) => {
   const [mode, setMode] = useState('horizon');
   const [filterQuad, setFilterQuad] = useState('all');
+  /* Title-label visibility on the Bridge.
+       all        — every task pip labelled
+       incomplete — only LIVE tasks labelled (completed pips bare)
+       tracked    — only tasks with tracked:true labelled
+       none       — no labels at all
+     Persisted to localStorage so the choice survives reloads. */
+  const [labelMode, setLabelMode] = useState(() => {
+    try { return localStorage.getItem('bridge-label-mode') || 'all'; }
+    catch { return 'all'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('bridge-label-mode', labelMode); } catch {}
+  }, [labelMode]);
   /* Horizon distance is wheel-zoomable. State lives here so it survives
      Horizon ↔ Radar toggles. */
   const [horizonDays, setHorizonDays] = useState(90);
@@ -2532,6 +2545,29 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
   const onPick = (t) => setSelectedTask(t);
   const handleEditFromDetails = (t) => { setEditingTask(t); setShowForm(true); };
 
+  /* Toggle the task's `tracked` flag via PATCH. Used by the details
+     modal so the user can curate the "tracked" label-mode subset. */
+  const [trackedVersion, setTrackedVersion] = useState(0); // forces re-render of selectedTask
+  const handleToggleTrack = async (t) => {
+    const next = !t.tracked;
+    try {
+      const res = await fetch(`/api/tasks/${t.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracked: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+      /* Mutate in place so the visible list reflects it immediately
+         without waiting for the parent to refetch. */
+      t.tracked = updated.tracked;
+      setSelectedTask({ ...t });
+      setTrackedVersion(v => v + 1);
+    } catch (e) {
+      console.error('toggleTrack failed:', e);
+    }
+  };
+
   return (
     <div className="cin-view-panel">
       <div className="cin-view-panel__head">
@@ -2577,6 +2613,17 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
               <option value="eliminate">Q4 · Eliminate</option>
             </select>
           </div>
+          {mode === 'horizon' && (
+            <div className="cin-filter">
+              <label className="cin-filter__label">Labels</label>
+              <select value={labelMode} onChange={(e) => setLabelMode(e.target.value)}>
+                <option value="all">All</option>
+                <option value="incomplete">Incomplete</option>
+                <option value="tracked">Tracked only</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2588,6 +2635,7 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
             setMaxDays={setHorizonDays}
             viewAnchor={viewAnchor} setViewAnchor={setViewAnchor}
             getQuadrant={getQuadrant} onPick={onPick}
+            labelMode={labelMode}
           />
         ) : (
           <RadarScene
@@ -2603,6 +2651,7 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
           task={selectedTask}
           getQuadrant={getQuadrant}
           onEdit={handleEditFromDetails}
+          onToggleTrack={handleToggleTrack}
           onClose={() => setSelectedTask(null)}
         />
       )}
@@ -2610,7 +2659,7 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
   );
 };
 
-const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick }) => {
+const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all' }) => {
   const W = 1000, H = 600;
   const N = lanes.length;
   const svgRef = React.useRef(null);
@@ -3101,6 +3150,39 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
           return <path key={absDays.toFixed(4)} d={polyPath(pts)} fill="none" className={arcCls} />;
         })}
 
+        {/* NIGHT-SIDE wash + TODAY meridian. The night region is the
+            past half of the visible cap — bounded by the TODAY
+            meridian on the future side, and by the past arc of the
+            limb on the other. We compute the arc's large-flag from
+            the angular distance between the meridian's two limb
+            endpoints, so the wash correctly covers the past slice
+            whether it's a half-disk (viewAnchor = 0) or a near-full
+            disk (when today has panned far into the past direction). */}
+        {(() => {
+          const todayLon = dayToLon(-viewAnchor);
+          if (Math.abs(todayLon) >= ALPHA_LIMB - 1e-6) return null;
+          const meridPts = meridianPts(todayLon);
+          if (meridPts.length < 2) return null;
+          const south = meridPts[0];
+          const north = meridPts[meridPts.length - 1];
+          /* CW angular distance from north to south around limb centre. */
+          const sA = Math.atan2(south.y - CY, south.x - CX);
+          const nA = Math.atan2(north.y - CY, north.x - CX);
+          const cwLen = ((sA - nA) + 2 * Math.PI) % (2 * Math.PI);
+          const largeArc = cwLen > Math.PI ? 1 : 0;
+          let nightD = `M ${south.x.toFixed(2)} ${south.y.toFixed(2)}`;
+          for (let i = 1; i < meridPts.length; i++) {
+            nightD += ` L ${meridPts[i].x.toFixed(2)} ${meridPts[i].y.toFixed(2)}`;
+          }
+          nightD += ` A ${LIMB_R_PX.toFixed(2)} ${LIMB_R_PX.toFixed(2)} 0 ${largeArc} 1 ${south.x.toFixed(2)} ${south.y.toFixed(2)} Z`;
+          return (
+            <>
+              <path d={nightD} className="bridge-nightside" />
+              <path d={polyPath(meridPts)} fill="none" className="bridge-range-arc bridge-range-arc--today" />
+            </>
+          );
+        })()}
+
         {/* Lane labels — horizontally centred on the projection of each
             lane's centre latitude on the prime meridian, then shifted
             DOWN by LABEL_OFFSET so they sit clear of any task pips
@@ -3155,6 +3237,27 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
           </g>
         );
       })}
+
+      {/* TODAY label — gold "NOW" at both ends of the today meridian. */}
+      {(() => {
+        const todayLon = dayToLon(-viewAnchor);
+        if (Math.abs(todayLon) > ALPHA_LIMB) return null;
+        const pts = meridianPts(todayLon);
+        if (pts.length < 2) return null;
+        let leftPt = pts[0], rightPt = pts[0];
+        for (const p of pts) {
+          if (p.x < leftPt.x) leftPt = p;
+          if (p.x > rightPt.x) rightPt = p;
+        }
+        return (
+          <g>
+            <text x={leftPt.x - 6}  y={leftPt.y + 3}  textAnchor="end"
+                  className="bridge-range-label bridge-range-label--today">NOW</text>
+            <text x={rightPt.x + 6} y={rightPt.y + 3} textAnchor="start"
+                  className="bridge-range-label bridge-range-label--today">NOW</text>
+          </g>
+        );
+      })()}
 
       {/* Dependency arcs — great-circle paths from each prerequisite to
           its dependent. Drawn BEFORE pips so pips sit on top. */}
@@ -3214,7 +3317,13 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
         /* Gentle distance attenuation: 1.0 at ship, 0.8 at limb. */
         const distScale = Math.max(0.8, 1 - tNorm * 0.2);
         const scale = sizeScale * distScale;
-        const showLabel = scale > 0.7;
+        const sizeShowsLabel = scale > 0.7;
+        const modeShowsLabel =
+            labelMode === 'none'       ? false
+          : labelMode === 'incomplete' ? !isDone
+          : labelMode === 'tracked'    ? !!t.tracked
+          :                              true; // 'all'
+        const showLabel = sizeShowsLabel && modeShowsLabel;
         const labelText = t.task.length > 22 ? t.task.slice(0, 20) + '…' : t.task;
         return (
           <g key={t.id}
