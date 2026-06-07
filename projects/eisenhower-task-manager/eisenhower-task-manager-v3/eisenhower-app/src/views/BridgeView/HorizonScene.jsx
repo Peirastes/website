@@ -5,6 +5,16 @@ import {
   formatAnchor,
 } from '../../lib/dateFormat';
 import { QID_BY_QUAD } from '../../lib/quadrant';
+import {
+  R,
+  hashId,
+  polyPath,
+  HORIZON_TIERS,
+  SECTOR_WIDTH,
+  laneLat,
+  makeProjection,
+} from './projection';
+import { useHorizonZoom } from './useHorizonZoom';
 
 /**
  * HorizonScene — wireframe-globe rendering of the Bridge "horizon"
@@ -14,11 +24,10 @@ import { QID_BY_QUAD } from '../../lib/quadrant';
  * along the time axis. Lanes are 15° latitude bands packed
  * alternating-outward from the equator.
  *
- * NOTE — this file is still large (~700 lines). Step 7b in the
- * refactor punchlist will further split it into projection.js,
- * curves.js, useCameraDrag.js, useHorizonZoom.js, NightSide.jsx,
- * DateArcs.jsx, Wireframe.jsx, and TaskPip.jsx. For now this is
- * the single-file move that gets it out of App.jsx.
+ * Pure math + constants live in projection.js (R, hashId, polyPath,
+ * HORIZON_TIERS, SECTOR_WIDTH, laneLat, makeProjection). The wheel-
+ * zoom breakpoint snap is useHorizonZoom. Camera state + drag
+ * handlers still live inline here.
  */
 export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all' }) => {
   const W = 1000, H = 600;
@@ -59,7 +68,6 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      The ship sits at the sub-camera point (lat=0, lon=0). Spinning the
      globe (drag-to-pan) changes viewAnchor, which shifts task longitudes
      and slides them across the visible cap. */
-  const R = 100;
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
   /* Default camera view — Picture6 framing, pulled back a tad so the
@@ -73,51 +81,23 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
   const [panX, setPanX] = React.useState(0);
   const [panY, setPanY] = React.useState(240);
   const H_CAM = cameraAlt;
-  const ALPHA_LIMB = Math.acos(R / (R + H_CAM));             // visible cap angular radius
-  const COS_LIMB = Math.cos(ALPHA_LIMB);
   const SCALE = 800;
-  /* Each lane occupies one 15° latitude band (one wireframe sector).
-     Lanes fill the inner sectors first and step outward alternately
-     left↔right, so:
-       lane 0 → −7.5°  (first sector LEFT of equator, [−15°, 0°])
-       lane 1 → +7.5°  (first sector RIGHT, [0°, +15°])
-       lane 2 → −22.5° (second sector LEFT, [−30°, −15°])
-       lane 3 → +22.5° (second sector RIGHT)
-       … and so on.
-     This keeps named lanes near the equator instead of pushing them
-     to the visible pole, and aligns each lane's sector to a wireframe
-     band — labels always sit at the band's centre. */
-  const SECTOR_WIDTH = Math.PI / 12;            // 15°
 
-  /* Alternating-outward sector packing — see SECTOR_WIDTH comment. */
-  const laneLat = (i) => {
-    const sign = (i % 2 === 0) ? -1 : +1;
-    const ring = Math.floor(i / 2);                          // 0, 1, 2, …
-    return sign * (ring + 0.5) * SECTOR_WIDTH;
-  };
-
-  /* Project a 3D world point to viewBox coords. Camera at
-     (R + H_CAM, 0, 0), looking straight toward sphere centre:
-        forward = (−1, 0, 0)
-        right   = ( 0, 1, 0)   → screen-x = +east = forward in time
-        up      = ( 0, 0, 1)   → screen-y = +north = up the lanes
-     Forward depth is (R + H_CAM) − Px; on the visible hemisphere this
-     is always positive, so visibility is decided by the great-circle
-     cap test (cos lat · cos lon ≥ cos α_limb), not by depth sign. */
+  /* Camera-bound projection helpers from projection.js. The factory
+     closes over (H_CAM, SCALE, CX, CY) and returns project,
+     projectLatLon, isVisible, lonMaxAtLat, latMaxAtLon, greatCircleArc,
+     plus the derived ALPHA_LIMB + COS_LIMB. */
   const CX = W / 2 + panX, CY = H / 2 + panY;
-  const project = (Px, Py, Pz) => {
-    const f = (R + H_CAM) - Px;
-    if (f < 0.05) return null;
-    return {
-      x: CX + (Py / f) * SCALE,
-      y: CY - (Pz / f) * SCALE
-    };
-  };
-  const projectLatLon = (lat, lon) => {
-    const cL = Math.cos(lat);
-    return project(R * cL * Math.cos(lon), R * Math.sin(lat), R * cL * Math.sin(lon));
-  };
-  const isVisible = (lat, lon) => Math.cos(lat) * Math.cos(lon) >= COS_LIMB - 1e-6;
+  const {
+    ALPHA_LIMB,
+    COS_LIMB,
+    project,
+    projectLatLon,
+    isVisible,
+    lonMaxAtLat,
+    latMaxAtLon,
+    greatCircleArc,
+  } = makeProjection({ H_CAM, SCALE, CX, CY });
 
   /* Map (day, lane index) to a viewBox point.
      Day → longitude: maxDays corresponds to ALPHA_LIMB (eastward limb
@@ -131,14 +111,6 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
     const c = laneLat(i);
     return [c - SECTOR_WIDTH / 2, c + SECTOR_WIDTH / 2];
   });
-
-  /* Stable per-task hash for jittering inside a sector. djb2-style. */
-  const hashId = (s) => {
-    let h = 5381;
-    const str = String(s);
-    for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
-    return h;
-  };
 
   /* The (lat, lon) a task occupies. Shared between pip projection and
      dependency-arc rendering so the arc endpoints land on the same
@@ -158,111 +130,8 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
     return projectLatLon(lat, lon);
   };
 
-  /* Great-circle arc between two (lat, lon) points on the unit sphere,
-     sampled via slerp in 3D Cartesian and projected. Returns the visible
-     portion of the arc as a polyline; clips at the limb if either end
-     leaves the visible cap. */
-  const GC_SAMPLES = 32;
-  const greatCircleArc = (latA, lonA, latB, lonB) => {
-    const Pa = [
-      R * Math.cos(latA) * Math.cos(lonA),
-      R * Math.sin(latA),
-      R * Math.cos(latA) * Math.sin(lonA),
-    ];
-    const Pb = [
-      R * Math.cos(latB) * Math.cos(lonB),
-      R * Math.sin(latB),
-      R * Math.cos(latB) * Math.sin(lonB),
-    ];
-    const dot = (Pa[0]*Pb[0] + Pa[1]*Pb[1] + Pa[2]*Pb[2]) / (R * R);
-    const omega = Math.acos(Math.max(-1, Math.min(1, dot)));
-    if (omega < 1e-5) return [];
-    const sinO = Math.sin(omega);
-    const pts = [];
-    for (let i = 0; i <= GC_SAMPLES; i++) {
-      const t = i / GC_SAMPLES;
-      const wA = Math.sin((1 - t) * omega) / sinO;
-      const wB = Math.sin(t * omega) / sinO;
-      const Px = wA * Pa[0] + wB * Pb[0];
-      const Py = wA * Pa[1] + wB * Pb[1];
-      const Pz = wA * Pa[2] + wB * Pb[2];
-      /* Visibility cap: a point on the sphere faces the camera when its
-         X-component (radial-out) > R · cos α_limb. */
-      if (Px < R * COS_LIMB) continue;
-      const p = project(Px, Py, Pz);
-      if (p) pts.push(p);
-    }
-    return pts;
-  };
-
-  /* Visibility helpers — a point (lat, lon) is visible if its great-circle
-     distance from the ship is ≤ ALPHA_LIMB:
-        cos(lat) · cos(lon) ≥ cos(ALPHA_LIMB)
-     so the max longitude at given latitude is acos(cos α_limb / cos lat)
-     and similarly for the max latitude at given longitude. */
-  const lonMaxAtLat = (lat) => {
-    const r = Math.cos(ALPHA_LIMB) / Math.cos(lat);
-    return r > 1 ? 0 : Math.acos(r);
-  };
-  const latMaxAtLon = (lon) => {
-    const r = Math.cos(ALPHA_LIMB) / Math.cos(lon);
-    return r > 1 ? 0 : Math.acos(r);
-  };
-
-  /* Build a polyline path from an array of {x,y} samples. */
-  const polyPath = (pts) => {
-    if (!pts || pts.length < 2) return '';
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 1; i < pts.length; i++) d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
-    return d;
-  };
-
-  /* Wheel zoom — snaps maxDays to a CURATED BREAKPOINT TABLE of
-     natural calendar units. Each breakpoint also dictates its own
-     minor/major line spacing, so every zoom level uses clean
-     intervals (min / hr / day / week / month) — no awkward "12h
-     between days" or 7.5-min ticks. */
-  const _D = 1, _HR = 1/24, _MIN = 1/(24*60);
-  const HORIZON_TIERS = [
-    // horizon target | minor tick | major (labelled) tick
-    { horizon: 15*_MIN, minor: _MIN,    major: 5*_MIN  },
-    { horizon: 30*_MIN, minor: 5*_MIN,  major: 15*_MIN },
-    { horizon: _HR,     minor: 5*_MIN,  major: 15*_MIN },
-    { horizon: 3*_HR,   minor: 15*_MIN, major: _HR     },
-    { horizon: 6*_HR,   minor: 30*_MIN, major: _HR     },
-    { horizon: 12*_HR,  minor: _HR,     major: 3*_HR   },
-    { horizon: _D,      minor: 3*_HR,   major: 6*_HR   },
-    { horizon: 2*_D,    minor: 6*_HR,   major: 12*_HR  },
-    { horizon: 3*_D,    minor: 6*_HR,   major: _D      },
-    { horizon: 7*_D,    minor: 12*_HR,  major: _D      },
-    { horizon: 14*_D,   minor: _D,      major: 7*_D    },  // ← 14-day sweet spot
-    { horizon: 30*_D,   minor: _D,      major: 7*_D    },
-    { horizon: 90*_D,   minor: 7*_D,    major: 14*_D   },
-    { horizon: 180*_D,  minor: 14*_D,   major: 30*_D   },
-    { horizon: 365*_D,  minor: 30*_D,   major: 90*_D   },
-  ];
-  const HORIZON_BREAKPOINTS = HORIZON_TIERS.map(t => t.horizon);
-  React.useEffect(() => {
-    const el = svgRef.current;
-    if (!el || !setMaxDays) return;
-    const handler = (e) => {
-      e.preventDefault();
-      let next;
-      if (e.deltaY > 0) {
-        // Zoom OUT — smallest breakpoint strictly greater than current.
-        next = HORIZON_BREAKPOINTS.find(bp => bp > maxDays + 1e-9)
-            ?? HORIZON_BREAKPOINTS[HORIZON_BREAKPOINTS.length - 1];
-      } else {
-        // Zoom IN — largest breakpoint strictly less than current.
-        next = [...HORIZON_BREAKPOINTS].reverse().find(bp => bp < maxDays - 1e-9)
-            ?? HORIZON_BREAKPOINTS[0];
-      }
-      if (Math.abs(next - maxDays) < 1e-9) return;
-      setMaxDays(next);
-    };
-    el.addEventListener('wheel', handler, { passive: false });
-    return () => el.removeEventListener('wheel', handler);
-  }, [maxDays, setMaxDays]);
+  /* Wheel zoom — snaps maxDays to HORIZON_BREAKPOINTS (see projection.js). */
+  useHorizonZoom(svgRef, maxDays, setMaxDays);
 
   /* Three drag modes:
      - LEFT-click    = SPIN (VERTICAL drag → viewAnchor along time axis).
