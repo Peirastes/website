@@ -8,13 +8,20 @@ const QUAD_META = {
   'eliminate': { label: 'ELIMINATE', qid: 'q4' },
 };
 
-const formatDue = (d) => {
+const formatDue = (d, t) => {
   if (!d) return 'No date';
   const dd = (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d))
     ? (() => { const [y, m, day] = d.split('-').map(Number); return new Date(y, m - 1, day); })()
     : new Date(d);
   if (Number.isNaN(dd.getTime())) return 'No date';
-  return dd.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const datePart = dd.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  if (typeof t === 'string' && /^\d{1,2}:\d{2}/.test(t)) {
+    const [hh, mm] = t.split(':').map(Number);
+    const tDate = new Date(2000, 0, 1, hh, mm);
+    const timePart = tDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return `${datePart} · ${timePart}`;
+  }
+  return datePart;
 };
 
 const formatEffort = (task) => {
@@ -60,7 +67,7 @@ export const TaskDetailsModal = ({ task, getQuadrant, onEdit, onClose }) => {
             <div className="cin-task-details__row">
               <Calendar size={13} className="cin-task-details__icon" />
               <span className="cin-task-details__label">Due</span>
-              <span className="cin-task-details__value">{formatDue(task.dueDate)}</span>
+              <span className="cin-task-details__value">{formatDue(task.dueDate, task.dueTime)}</span>
             </div>
             <div className="cin-task-details__row">
               <Tag size={13} className="cin-task-details__icon" />

@@ -1572,8 +1572,10 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
   };
   const [formData, setFormData] = useState(() => {
     if (task) {
+      /* Prefer explicit dueTime; fall back to splitting a legacy
+         "YYYY-MM-DDTHH:MM" dueDate for back-compat. */
       const { date, time } = splitDueDate(task.dueDate);
-      return { ...task, dueDate: date, dueTime: time };
+      return { ...task, dueDate: date, dueTime: task.dueTime ?? time };
     }
     const { date, time } = splitDueDate(defaultDueDate);
     return {
@@ -1604,13 +1606,9 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
       alert('Please fill in task name and due date');
       return;
     }
-    /* Re-join date + time into the stored form. Empty time = date-only
-       string (backward compatible with all existing tasks + other views). */
-    const mergedDueDate = formData.dueTime
-      ? `${formData.dueDate}T${formData.dueTime}`
-      : formData.dueDate;
-    const { dueTime, ...rest } = formData;
-    onSave({ ...rest, dueDate: mergedDueDate });
+    /* dueDate stays date-only ("YYYY-MM-DD"); dueTime is its own
+       optional "HH:MM" string. They're persisted as separate fields. */
+    onSave({ ...formData, dueTime: formData.dueTime || '' });
   };
 
   const subcategoryOptions = settings.subcategories[formData.domain] || [];
@@ -2147,9 +2145,9 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     if (t.percentComplete === 100) return false;
     if (!t.dueDate) return false;
     if (filterQuad !== 'all' && getQuadrant(t) !== filterQuad) return false;
-    const off = dayOffset(t.dueDate);
+    const off = dayOffset(t.dueDate, t.dueTime);
     return off >= -WINDOW_BACK && off <= WINDOW_FWD;
-  }).sort((a, b) => dayOffset(a.dueDate) - dayOffset(b.dueDate));
+  }).sort((a, b) => dayOffset(a.dueDate, a.dueTime) - dayOffset(b.dueDate, b.dueTime));
 
   const scrollToToday = React.useCallback((smooth = true) => {
     const el = scrollRef.current;
@@ -2343,7 +2341,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
             {/* Task rows */}
             {visible.map(t => {
-              const dueOff = dayOffset(t.dueDate);
+              const dueOff = dayOffset(t.dueDate, t.dueTime);
               const isOverdue = dueOff < 0;
               const isDone = t.percentComplete === 100;
               const startOff = isOverdue ? dueOff : 0;
@@ -2484,17 +2482,20 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   /* Fractional days, so the Horizon can resolve below 1d into hours.
-     Date-only strings ("YYYY-MM-DD") are parsed as local midnight to
-     avoid the UTC-midnight drift that would otherwise put a "due today"
-     task at ~-0.2d in negative-UTC timezones. */
-  const dayOffset = (d) => {
-    let dd;
+     Date-only strings ("YYYY-MM-DD") parse as local midnight; if an
+     explicit dueTime ("HH:MM") is supplied, it's folded in to give a
+     fractional-day offset. Legacy "YYYY-MM-DDTHH:MM" strings still
+     parse correctly via the fallback. */
+  const dayOffset = (d, t) => {
     if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
       const [y, m, day] = d.split('-').map(Number);
-      dd = new Date(y, m - 1, day);
-    } else {
-      dd = new Date(d);
+      let h = 0, mi = 0;
+      if (typeof t === 'string' && /^\d{1,2}:\d{2}/.test(t)) {
+        [h, mi] = t.split(':').map(Number);
+      }
+      return (new Date(y, m - 1, day, h, mi).getTime() - today.getTime()) / 86400000;
     }
+    const dd = (typeof d === 'string') ? new Date(d) : d;
     return (dd.getTime() - today.getTime()) / 86400000;
   };
 
@@ -2520,7 +2521,7 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
     /* In Horizon mode, the visible window is anchored to viewAnchor —
        so panning forward in time keeps the [-7d, +horizon] window
        relative to the new ship position. */
-    let off = dayOffset(t.dueDate);
+    let off = dayOffset(t.dueDate, t.dueTime);
     if (mode === 'horizon') off -= viewAnchor;
     return off >= -7 && off <= maxDays;
   });
@@ -2806,16 +2807,46 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
     return d;
   };
 
-  /* Wheel zoom — adjusts maxDays (the time → angular-distance scale). */
-  const HORIZON_MIN = 1 / 24;
-  const HORIZON_MAX = 365;
+  /* Wheel zoom — snaps maxDays to a CURATED BREAKPOINT TABLE of
+     natural calendar units. Each breakpoint also dictates its own
+     minor/major line spacing, so every zoom level uses clean
+     intervals (min / hr / day / week / month) — no awkward "12h
+     between days" or 7.5-min ticks. */
+  const _D = 1, _HR = 1/24, _MIN = 1/(24*60);
+  const HORIZON_TIERS = [
+    // horizon target | minor tick | major (labelled) tick
+    { horizon: 15*_MIN, minor: _MIN,    major: 5*_MIN  },
+    { horizon: 30*_MIN, minor: 5*_MIN,  major: 15*_MIN },
+    { horizon: _HR,     minor: 5*_MIN,  major: 15*_MIN },
+    { horizon: 3*_HR,   minor: 15*_MIN, major: _HR     },
+    { horizon: 6*_HR,   minor: 30*_MIN, major: _HR     },
+    { horizon: 12*_HR,  minor: _HR,     major: 3*_HR   },
+    { horizon: _D,      minor: 3*_HR,   major: 6*_HR   },
+    { horizon: 2*_D,    minor: 6*_HR,   major: 12*_HR  },
+    { horizon: 3*_D,    minor: 6*_HR,   major: _D      },
+    { horizon: 7*_D,    minor: 12*_HR,  major: _D      },
+    { horizon: 14*_D,   minor: _D,      major: 7*_D    },  // ← 14-day sweet spot
+    { horizon: 30*_D,   minor: _D,      major: 7*_D    },
+    { horizon: 90*_D,   minor: 7*_D,    major: 14*_D   },
+    { horizon: 180*_D,  minor: 14*_D,   major: 30*_D   },
+    { horizon: 365*_D,  minor: 30*_D,   major: 90*_D   },
+  ];
+  const HORIZON_BREAKPOINTS = HORIZON_TIERS.map(t => t.horizon);
   React.useEffect(() => {
     const el = svgRef.current;
     if (!el || !setMaxDays) return;
     const handler = (e) => {
       e.preventDefault();
-      const factor = e.deltaY < 0 ? 1 / 1.18 : 1.18;
-      const next = Math.max(HORIZON_MIN, Math.min(HORIZON_MAX, maxDays * factor));
+      let next;
+      if (e.deltaY > 0) {
+        // Zoom OUT — smallest breakpoint strictly greater than current.
+        next = HORIZON_BREAKPOINTS.find(bp => bp > maxDays + 1e-9)
+            ?? HORIZON_BREAKPOINTS[HORIZON_BREAKPOINTS.length - 1];
+      } else {
+        // Zoom IN — largest breakpoint strictly less than current.
+        next = [...HORIZON_BREAKPOINTS].reverse().find(bp => bp < maxDays - 1e-9)
+            ?? HORIZON_BREAKPOINTS[0];
+      }
       if (Math.abs(next - maxDays) < 1e-9) return;
       setMaxDays(next);
     };
@@ -2911,40 +2942,31 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
     if (justDragged.current) { e.stopPropagation(); e.preventDefault(); }
   };
 
-  /* Calendar-anchored grid arcs (meridians at constant longitude), drawn
-     in two tiers: MINOR ticks for fine scale and MAJOR ticks for the
-     labelled anchor lines. Tiers are chosen by zoom level. */
-  /* Roughly 2× label density vs. the original tier system. Minor spacing
-     unchanged (so the faint background tick grid stays the same), but
-     the major anchor — the one that earns date/time labels — drops to
-     half (or as close to half as a clean calendar interval allows). */
-  const { minor: minorSpacing, major: majorSpacing } = (() => {
-    if (maxDays > 60)    return { minor: 7,           major: 14           }; // wk / 2wk
-    if (maxDays > 14)    return { minor: 1,           major: 3            }; // d / 3d
-    if (maxDays > 2)     return { minor: 6 / 24,      major: 12 / 24      }; // 6 h / 12 h
-    if (maxDays > 0.5)   return { minor: 1 / 24,      major: 3  / 24      }; // 1 h / 3 h
-    if (maxDays > 0.083) return { minor: 15/(24*60),  major: 30/(24*60)   }; // 15 min / 30 min
-    return                       { minor: 5/(24*60),  major: 10/(24*60)   }; //  5 min / 10 min
-  })();
-  const gridSpacing = majorSpacing; // formatAbsolute granularity = major tier
-  /* Span both BACKWARD and FORWARD from viewAnchor — globe is a full
-     hemisphere centred on the ship, not a forward-only horizon. */
-  const firstAbs = Math.ceil((viewAnchor - maxDays) / minorSpacing) * minorSpacing;
-  const lastAbs  = Math.floor((viewAnchor + maxDays) / minorSpacing) * minorSpacing;
+  /* Calendar-anchored grid arcs (meridians at constant longitude).
+     Spacing comes from HORIZON_TIERS (same table the wheel snap uses):
+     find the smallest tier whose `horizon` is ≥ current maxDays and
+     use its minor/major spacing. Each tier is hand-picked from natural
+     calendar units (min / hr / day / week / month). */
+  const _tier = HORIZON_TIERS.find(t => t.horizon >= maxDays - 1e-9)
+             ?? HORIZON_TIERS[HORIZON_TIERS.length - 1];
+  const minorSpacing     = _tier.minor;
+  const majorSpacing     = _tier.major;
+  const halfMinorSpacing = minorSpacing / 2;
+  const gridSpacing      = majorSpacing; // formatAbsolute granularity
+  /* Iterate at half-minor resolution. Each step lands on exactly one of
+     three tiers — major (labelled), minor, or half-minor — depending on
+     whether absDays divides cleanly into major / minor. */
+  const firstAbs = Math.ceil((viewAnchor - maxDays) / halfMinorSpacing) * halfMinorSpacing;
+  const lastAbs  = Math.floor((viewAnchor + maxDays) / halfMinorSpacing) * halfMinorSpacing;
   const gridArcs = [];
-  for (let absDays = firstAbs; absDays <= lastAbs + 1e-9; absDays += minorSpacing) {
+  for (let absDays = firstAbs; absDays <= lastAbs + 1e-9; absDays += halfMinorSpacing) {
     const effOff = absDays - viewAnchor;
     if (Math.abs(effOff) > maxDays * 1.001) continue;
-    const ratio = absDays / majorSpacing;
-    const isMajor = Math.abs(ratio - Math.round(ratio)) < 1e-6;
-    /* Halve the minor-line density — keep every other minor (by absolute
-       index, so the pattern is stable across viewAnchor changes). All
-       majors are always kept. */
-    if (!isMajor) {
-      const absIdx = Math.round(absDays / minorSpacing);
-      if ((absIdx % 2 + 2) % 2 !== 0) continue;
-    }
-    gridArcs.push({ absDays, effOff, isMajor });
+    const majRatio = absDays / majorSpacing;
+    const minRatio = absDays / minorSpacing;
+    const isMajor = Math.abs(majRatio - Math.round(majRatio)) < 1e-6;
+    const isMinor = Math.abs(minRatio - Math.round(minRatio)) < 1e-6;
+    gridArcs.push({ absDays, effOff, isMajor, isMinor });
   }
 
   /* LIMB — projects to a TRUE GEOMETRIC CIRCLE because the camera is
@@ -3002,7 +3024,7 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
     wireframeLons.push(-k * GRID_STEP);
   }
   /* Effective offset for tasks (real days-until-due minus pan anchor). */
-  const effOffset = (t) => dayOffset(t.dueDate) - viewAnchor;
+  const effOffset = (t) => dayOffset(t.dueDate, t.dueTime) - viewAnchor;
   const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
   const sortedTasks = [...tasks].sort((a, b) => effOffset(b) - effOffset(a));
 
@@ -3068,12 +3090,14 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
         {/* Calendar-anchored meridian PATHS — date marks; spin with
             viewAnchor. Labels are rendered AFTER this clipped block so
             they can sit on the limb without being clipped. */}
-        {gridArcs.map(({ absDays, effOff, isMajor }) => {
+        {gridArcs.map(({ absDays, effOff, isMajor, isMinor }) => {
           const lon = dayToLon(effOff);
           if (Math.abs(lon) > ALPHA_LIMB) return null;
           const pts = meridianPts(lon);
           if (pts.length < 2) return null;
-          const arcCls = isMajor ? 'bridge-range-arc' : 'bridge-range-arc bridge-range-arc--minor';
+          const arcCls = isMajor ? 'bridge-range-arc'
+            : isMinor              ? 'bridge-range-arc bridge-range-arc--minor'
+            :                        'bridge-range-arc bridge-range-arc--half-minor';
           return <path key={absDays.toFixed(4)} d={polyPath(pts)} fill="none" className={arcCls} />;
         })}
 
@@ -3333,7 +3357,7 @@ const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadrant, onP
       {/* Task pips */}
       {tasks.map(t => {
         const li = laneOf(t);
-        const d = Math.max(0, dayOffset(t.dueDate));
+        const d = Math.max(0, dayOffset(t.dueDate, t.dueTime));
         const r = (d / maxDays) * MAX_R;
         const angle = li * sectorAngle + sectorAngle / 2 + jitter(t.id) * (sectorAngle * 0.35);
         const { x, y } = polar(r, angle);
