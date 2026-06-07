@@ -15,6 +15,7 @@ import {
   makeProjection,
 } from './projection';
 import { useHorizonZoom } from './useHorizonZoom';
+import { useCameraDrag } from './useCameraDrag';
 
 /**
  * HorizonScene — wireframe-globe rendering of the Bridge "horizon"
@@ -70,18 +71,21 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      and slides them across the visible cap. */
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
-  /* Default camera view — Picture6 framing, pulled back a tad so the
-     globe's edges sit inside the chart with a small buffer.
-     - cameraAlt = R      ⇒  α_limb = π/3 (60°), LIMB_R_PX ≈ 462.
-                              Side buffer (CX − LIMB_R_PX) ≈ 38 px.
-     - panY = 240         ⇒  ship at y ≈ 540 (bottom-centre, as before).
-                              Top buffer (CY − LIMB_R_PX) ≈ 78 px.
-     - panX = 0           ⇒  ship horizontally centred. */
-  const [cameraAlt, setCameraAlt] = React.useState(R);
-  const [panX, setPanX] = React.useState(0);
-  const [panY, setPanY] = React.useState(240);
-  const H_CAM = cameraAlt;
   const SCALE = 800;
+  /* Camera state + drag handlers come from useCameraDrag. Defaults
+     (cameraAlt = R, panX = 0, panY = 240) reproduce the Picture6
+     framing — globe inscribed in chart with ~38 px side buffer + ship
+     anchored bottom-centre. */
+  const { cameraAlt, panX, panY, handlers: dragHandlers } = useCameraDrag({
+    svgRef,
+    init: { cameraAlt: R, panX: 0, panY: 240 },
+    bounds: { ALT_MIN, ALT_MAX },
+    viewBox: { W, H },
+    maxDays,
+    viewAnchor,
+    setViewAnchor,
+  });
+  const H_CAM = cameraAlt;
 
   /* Camera-bound projection helpers from projection.js. The factory
      closes over (H_CAM, SCALE, CX, CY) and returns project,
@@ -133,93 +137,8 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
   /* Wheel zoom — snaps maxDays to HORIZON_BREAKPOINTS (see projection.js). */
   useHorizonZoom(svgRef, maxDays, setMaxDays);
 
-  /* Three drag modes:
-     - LEFT-click    = SPIN (VERTICAL drag → viewAnchor along time axis).
-                       Drag DOWN advances the ship forward in time; drag
-                       UP rolls back. This matches the projection — in
-                       our setup screen-up = +east (future), so dragging
-                       DOWN pulls future toward the ship at the centre.
-     - MIDDLE-click  = ALTITUDE (vertical drag → camera distance from
-                       globe). Drag UP flies the drone closer.
-                       Multiplicative scaling for constant-feel rate.
-     - RIGHT-click   = PAN (translate the globe within the chart, 1:1
-                       with cursor — same as Google Earth/Maya pan).
-                       This is screen-space offset, not a sphere rotation. */
-  const dragState  = React.useRef({ active: false, mode: null, startX: 0, startY: 0, startAnchor: 0, startAlt: 0, startPanX: 0, startPanY: 0, moved: false });
-  const justDragged = React.useRef(false);
-  const onPointerDown = (e) => {
-    if (e.button === 1) {
-      // Middle-click (wheel button): altitude
-      dragState.current = { active: true, mode: 'alt', startY: e.clientY, startAlt: cameraAlt, moved: false };
-      if (svgRef.current) svgRef.current.style.cursor = 'ns-resize';
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-      e.preventDefault();
-      return;
-    }
-    if (e.button === 2) {
-      // Right-click: pan
-      dragState.current = { active: true, mode: 'pan', startX: e.clientX, startY: e.clientY, startPanX: panX, startPanY: panY, moved: false };
-      if (svgRef.current) svgRef.current.style.cursor = 'move';
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-      e.preventDefault();
-      return;
-    }
-    if (e.button !== undefined && e.button !== 0) return;
-    if (!setViewAnchor) return;
-    dragState.current = { active: true, mode: 'time', startY: e.clientY, startAnchor: viewAnchor, moved: false };
-    if (svgRef.current) svgRef.current.style.cursor = 'grabbing';
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
-  };
-  const onPointerMove = (e) => {
-    const s = dragState.current;
-    if (!s.active || !svgRef.current) return;
-    if (s.mode === 'alt') {
-      const dy = e.clientY - s.startY;
-      if (Math.abs(dy) > 4) s.moved = true;
-      const containerH = svgRef.current.clientHeight || 600;
-      /* Drag UP → dy negative → factor < 1 → altitude shrinks (closer).
-         Slope tuned so one full container-height drag is ~e^1.6 ≈ 5× change. */
-      const factor = Math.exp(dy / Math.max(containerH, 1) * 1.6);
-      const newAlt = Math.max(ALT_MIN, Math.min(ALT_MAX, s.startAlt * factor));
-      setCameraAlt(newAlt);
-      return;
-    }
-    if (s.mode === 'pan') {
-      const dx = e.clientX - s.startX;
-      const dy = e.clientY - s.startY;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) s.moved = true;
-      /* Convert screen-pixel delta → viewBox-unit delta so the globe
-         tracks the cursor 1:1 even when the chart is resized. */
-      const rect = svgRef.current.getBoundingClientRect();
-      const sx = W / Math.max(rect.width,  1);
-      const sy = H / Math.max(rect.height, 1);
-      setPanX(s.startPanX + dx * sx);
-      setPanY(s.startPanY + dy * sy);
-      return;
-    }
-    const dy = e.clientY - s.startY;
-    if (Math.abs(dy) > 4) s.moved = true;
-    const containerH = svgRef.current.clientHeight || 600;
-    const daysPerPx = (2 * maxDays) / Math.max(containerH, 1);
-    setViewAnchor(s.startAnchor + dy * daysPerPx);
-  };
-  const onPointerUp = (e) => {
-    const s = dragState.current;
-    if (!s.active) return;
-    justDragged.current = s.moved;
-    dragState.current.active = false;
-    if (svgRef.current) svgRef.current.style.cursor = '';
-    try {
-      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-    } catch {}
-    setTimeout(() => { justDragged.current = false; }, 0);
-  };
-  const onContextMenu = (e) => e.preventDefault();
-  const onClickCapture = (e) => {
-    if (justDragged.current) { e.stopPropagation(); e.preventDefault(); }
-  };
+  /* Drag handlers live in useCameraDrag (left/middle/right + the
+     drag-suppress capture). Spread `dragHandlers` onto the SVG. */
 
   /* Calendar-anchored grid arcs (meridians at constant longitude).
      Spacing comes from HORIZON_TIERS (same table the wheel snap uses):
@@ -316,12 +235,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
       viewBox={`0 0 ${W} ${H}`}
       className="bridge-scene bridge-scene--horizon"
       preserveAspectRatio="xMidYMid meet"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-      onContextMenu={onContextMenu}
-      onClickCapture={onClickCapture}
+      {...dragHandlers}
     >
       <defs>
         <radialGradient id="bridge-globe" cx="0.5" cy="0.5" r="0.5">
