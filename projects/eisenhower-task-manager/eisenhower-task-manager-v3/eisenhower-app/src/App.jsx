@@ -2512,7 +2512,9 @@ const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings 
   };
 
   const visible = tasks.filter(t => {
-    if (t.percentComplete === 100) return false;
+    /* Completed tasks remain visible on the Bridge — they render
+       without the ring/blip so the player sees "cleared targets"
+       drift past the ship after completion. */
     if (!t.dueDate) return false;
     if (filterQuad !== 'all' && getQuadrant(t) !== filterQuad) return false;
     /* In Horizon mode, the visible window is anchored to viewAnchor —
@@ -2727,17 +2729,59 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
     return h;
   };
 
-  const dayLaneToXY = (d, laneIdx, taskId) => {
+  /* The (lat, lon) a task occupies. Shared between pip projection and
+     dependency-arc rendering so the arc endpoints land on the same
+     jittered positions as the pips. */
+  const taskLatLon = (d, laneIdx, taskId) => {
     const lon = Math.max(-ALPHA_LIMB, Math.min(ALPHA_LIMB, dayToLon(d)));
     const [lo, hi] = laneSectors[laneIdx] || [-ALPHA_LIMB, ALPHA_LIMB];
     const c = (lo + hi) / 2;
     const halfW = (hi - lo) / 2;
-    /* Jitter ∈ [−0.5, +0.5]; scale to 60 % of the sector half-width so
-       tasks always stay clear of the sector boundaries. */
     const norm = (hashId(taskId) % 1000) / 1000 - 0.5;
     const lat = c + norm * halfW * 1.2;
+    return { lat, lon };
+  };
+  const dayLaneToXY = (d, laneIdx, taskId) => {
+    const { lat, lon } = taskLatLon(d, laneIdx, taskId);
     if (!isVisible(lat, lon)) return null;
     return projectLatLon(lat, lon);
+  };
+
+  /* Great-circle arc between two (lat, lon) points on the unit sphere,
+     sampled via slerp in 3D Cartesian and projected. Returns the visible
+     portion of the arc as a polyline; clips at the limb if either end
+     leaves the visible cap. */
+  const GC_SAMPLES = 32;
+  const greatCircleArc = (latA, lonA, latB, lonB) => {
+    const Pa = [
+      R * Math.cos(latA) * Math.cos(lonA),
+      R * Math.sin(latA),
+      R * Math.cos(latA) * Math.sin(lonA),
+    ];
+    const Pb = [
+      R * Math.cos(latB) * Math.cos(lonB),
+      R * Math.sin(latB),
+      R * Math.cos(latB) * Math.sin(lonB),
+    ];
+    const dot = (Pa[0]*Pb[0] + Pa[1]*Pb[1] + Pa[2]*Pb[2]) / (R * R);
+    const omega = Math.acos(Math.max(-1, Math.min(1, dot)));
+    if (omega < 1e-5) return [];
+    const sinO = Math.sin(omega);
+    const pts = [];
+    for (let i = 0; i <= GC_SAMPLES; i++) {
+      const t = i / GC_SAMPLES;
+      const wA = Math.sin((1 - t) * omega) / sinO;
+      const wB = Math.sin(t * omega) / sinO;
+      const Px = wA * Pa[0] + wB * Pb[0];
+      const Py = wA * Pa[1] + wB * Pb[1];
+      const Pz = wA * Pa[2] + wB * Pb[2];
+      /* Visibility cap: a point on the sphere faces the camera when its
+         X-component (radial-out) > R · cos α_limb. */
+      if (Px < R * COS_LIMB) continue;
+      const p = project(Px, Py, Pz);
+      if (p) pts.push(p);
+    }
+    return pts;
   };
 
   /* Visibility helpers — a point (lat, lon) is visible if its great-circle
@@ -2893,6 +2937,13 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
     if (Math.abs(effOff) > maxDays * 1.001) continue;
     const ratio = absDays / majorSpacing;
     const isMajor = Math.abs(ratio - Math.round(ratio)) < 1e-6;
+    /* Halve the minor-line density — keep every other minor (by absolute
+       index, so the pattern is stable across viewAnchor changes). All
+       majors are always kept. */
+    if (!isMajor) {
+      const absIdx = Math.round(absDays / minorSpacing);
+      if ((absIdx % 2 + 2) % 2 !== 0) continue;
+    }
     gridArcs.push({ absDays, effOff, isMajor });
   }
 
@@ -3081,6 +3132,33 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
         );
       })}
 
+      {/* Dependency arcs — great-circle paths from each prerequisite to
+          its dependent. Drawn BEFORE pips so pips sit on top. */}
+      {(() => {
+        const byId = new Map(tasks.map(t => [t.id, t]));
+        const arcs = [];
+        tasks.forEach(t => {
+          if (!Array.isArray(t.dependsOn) || t.dependsOn.length === 0) return;
+          const tEff = effOffset(t);
+          if (Math.abs(tEff) / maxDays > 1.0) return;
+          const target = taskLatLon(tEff, laneOf(t), t.id);
+          if (!isVisible(target.lat, target.lon)) return;
+          t.dependsOn.forEach(depId => {
+            const src = byId.get(depId);
+            if (!src) return;
+            const sEff = effOffset(src);
+            if (Math.abs(sEff) / maxDays > 1.0) return;
+            const source = taskLatLon(sEff, laneOf(src), src.id);
+            if (!isVisible(source.lat, source.lon)) return;
+            const pts = greatCircleArc(source.lat, source.lon, target.lat, target.lon);
+            if (pts.length >= 2) arcs.push({ key: `${depId}->${t.id}`, d: polyPath(pts) });
+          });
+        });
+        return arcs.map(a => (
+          <path key={a.key} d={a.d} fill="none" className="bridge-dep-arc" />
+        ));
+      })()}
+
       {/* Task pips — both past (negative effOff) and future tasks visible.
           - Colour : ETM quadrant (existing bridge-pip--q{1..4} classes).
           - Size   : log-scaled to the task's effort estimate in hours.
@@ -3092,6 +3170,7 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
         const xy = dayLaneToXY(d_eff, laneOf(t), t.id);
         if (!xy) return null;
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+        const isDone = (Number(t.percentComplete) || 0) >= 100;
         const tNorm = Math.abs(d_eff) / maxDays;
         /* Effort → hours. days/weeks normalised against an 8 h workday
            and 40 h workweek; unknown estimates default to a small pip. */
@@ -3115,15 +3194,20 @@ const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, vi
         const labelText = t.task.length > 22 ? t.task.slice(0, 20) + '…' : t.task;
         return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
-            {/* Radar-ping ring — staggered so pips don't all blip in sync. */}
-            <circle cx={xy.x} cy={xy.y} r={11 * scale}
-                    className="bridge-pip__blip"
-                    style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
-            <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
+            {/* Ring + blip only for LIVE targets — completed pips are
+                stripped down to the core. */}
+            {!isDone && (
+              <>
+                <circle cx={xy.x} cy={xy.y} r={11 * scale}
+                        className="bridge-pip__blip"
+                        style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
+                <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
+              </>
+            )}
             <circle cx={xy.x} cy={xy.y} r={5  * scale} className="bridge-pip__core" />
             {showLabel && (
               <text x={xy.x + 13 * scale} y={xy.y + 4}
@@ -3254,13 +3338,16 @@ const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadrant, onP
         const angle = li * sectorAngle + sectorAngle / 2 + jitter(t.id) * (sectorAngle * 0.35);
         const { x, y } = polar(r, angle);
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+        const isDone = (Number(t.percentComplete) || 0) >= 100;
         return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
-            <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
+            {!isDone && (
+              <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
+            )}
             <circle cx={x} cy={y} r={4} className="bridge-pip__core" />
             <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
           </g>
