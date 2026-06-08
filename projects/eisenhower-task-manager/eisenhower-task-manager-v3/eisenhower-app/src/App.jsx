@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp, RefreshCw, Compass } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
@@ -268,7 +268,13 @@ const EisenhowerTaskManager = () => {
   const loadData = async () => {
     try {
       const serverTasks = await apiFetch('/tasks');
-      setTasks(Array.isArray(serverTasks) ? serverTasks : []);
+      const arr = Array.isArray(serverTasks) ? serverTasks : [];
+      /* Soft-delete purge: drop tombstones older than the 24h grace
+         window on load. The next auto-save writes the purged array back,
+         so expired trash is permanently reclaimed without a separate job. */
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+      const purged = arr.filter(t => !t.deletedAt || new Date(t.deletedAt).getTime() > cutoff);
+      setTasks(purged);
       setServerOffline(false);
     } catch (e) {
       setServerOffline(true);
@@ -475,25 +481,33 @@ const EisenhowerTaskManager = () => {
     setEditingTask(null);
   };
 
-  /* Delete is reversible: instead of a blocking confirm, the task lands in
-     deletedTask for ~5s with a fixed-position undo toast. Deleting a second
-     task replaces the first (the prior delete becomes permanent). */
+  /* Soft delete: the task is NOT removed from the array — it gets a
+     `deletedAt` timestamp and is filtered out of every view via the
+     liveTasks chokepoint. This survives reloads (the tombstone is
+     persisted by the auto-save effect) and is reclaimed after a 24h
+     grace window by the purge in loadData. Two recovery paths:
+       • the 5s undo toast (immediate "oops")
+       • ListView's Trash status filter (recover any time within 24h) */
   const deleteTask = (taskId) => {
-    const idx = tasks.findIndex(t => t.id === taskId);
-    if (idx === -1) return;
-    const removed = tasks[idx];
-    setTasks(tasks.filter(t => t.id !== taskId));
-    setDeletedTask({ task: removed, index: idx });
+    const target = tasks.find(t => t.id === taskId);
+    if (!target || target.deletedAt) return;
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, deletedAt: new Date().toISOString() } : t));
+    setDeletedTask({ task: target, id: taskId });
+  };
+
+  /* Clear the tombstone, bringing the task back into the live set at its
+     original array position (the record never moved). */
+  const restoreTask = (taskId) => {
+    setTasks(prev => prev.map(t => {
+      if (t.id !== taskId) return t;
+      const { deletedAt, ...rest } = t;
+      return rest;
+    }));
   };
 
   const undoDelete = () => {
     if (!deletedTask) return;
-    setTasks(prev => {
-      const next = prev.slice();
-      const safeIdx = Math.min(deletedTask.index, next.length);
-      next.splice(safeIdx, 0, deletedTask.task);
-      return next;
-    });
+    restoreTask(deletedTask.id);
     setDeletedTask(null);
   };
 
@@ -588,9 +602,15 @@ const EisenhowerTaskManager = () => {
     }
   };
 
+  /* The live task set — everything NOT soft-deleted. This is what every
+     view, the stats, and search operate on. Raw `tasks` (tombstones
+     included) is reserved for persistence, undo, purge, and the ListView
+     Trash filter. */
+  const liveTasks = useMemo(() => tasks.filter(t => !t.deletedAt), [tasks]);
+
   const getStats = () => {
-    const active = tasks.filter(t => t.percentComplete < 100);
-    const completed = tasks.filter(t => t.percentComplete === 100);
+    const active = liveTasks.filter(t => t.percentComplete < 100);
+    const completed = liveTasks.filter(t => t.percentComplete === 100);
     const overdue = active.filter(t => calculatePriority(t) < 0);
     const dueToday = active.filter(t => calculatePriority(t) === 0);
     
@@ -602,11 +622,11 @@ const EisenhowerTaskManager = () => {
     };
 
     const byRecurrence = {
-      once: tasks.filter(t => t.recurringPattern === 'once').length,
-      daily: tasks.filter(t => t.recurringPattern === 'daily').length,
-      weekly: tasks.filter(t => t.recurringPattern === 'weekly').length,
-      monthly: tasks.filter(t => t.recurringPattern === 'monthly').length,
-      yearly: tasks.filter(t => t.recurringPattern === 'yearly').length
+      once: liveTasks.filter(t => t.recurringPattern === 'once').length,
+      daily: liveTasks.filter(t => t.recurringPattern === 'daily').length,
+      weekly: liveTasks.filter(t => t.recurringPattern === 'weekly').length,
+      monthly: liveTasks.filter(t => t.recurringPattern === 'monthly').length,
+      yearly: liveTasks.filter(t => t.recurringPattern === 'yearly').length
     };
 
     return { active, completed, overdue, dueToday, byQuadrant, byRecurrence };
@@ -810,7 +830,7 @@ const EisenhowerTaskManager = () => {
         <div className="cin-view-swap" key={view}>
         {view === 'matrix' ? (
           <MatrixView
-            tasks={tasks}
+            tasks={liveTasks}
             getQuadrant={getQuadrant}
             sortTasks={sortTasks}
             calculatePriority={calculatePriority}
@@ -828,19 +848,20 @@ const EisenhowerTaskManager = () => {
             sortBy={sortBy} setSortBy={setSortBy} getQuadrant={getQuadrant}
             calculatePriority={calculatePriority} toggleComplete={toggleComplete}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
-            deleteTask={deleteTask} calculateTaskScore={calculateTaskScore}
+            deleteTask={deleteTask} restoreTask={restoreTask}
+            calculateTaskScore={calculateTaskScore}
             settings={settings} setSettings={setSettings}
           />
         ) : view === 'gantt' ? (
           <GanttView
-            tasks={tasks} getQuadrant={getQuadrant}
+            tasks={liveTasks} getQuadrant={getQuadrant}
             calculatePriority={calculatePriority} toggleComplete={toggleComplete}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
             deleteTask={deleteTask} settings={settings}
           />
         ) : view === 'calendar' ? (
           <CalendarView
-            tasks={tasks} filters={filters} setFilters={setFilters}
+            tasks={liveTasks} filters={filters} setFilters={setFilters}
             getQuadrant={getQuadrant} calculatePriority={calculatePriority}
             toggleComplete={toggleComplete} setEditingTask={setEditingTask}
             setShowForm={setShowForm} deleteTask={deleteTask}
@@ -848,13 +869,13 @@ const EisenhowerTaskManager = () => {
           />
         ) : view === 'bridge' ? (
           <BridgeView
-            tasks={tasks} getQuadrant={getQuadrant}
+            tasks={liveTasks} getQuadrant={getQuadrant}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
             settings={settings}
           />
         ) : (
           <AnalyticsView
-            tasks={tasks} calculateTaskScore={calculateTaskScore}
+            tasks={liveTasks} calculateTaskScore={calculateTaskScore}
           />
         )}
         </div>
@@ -995,7 +1016,7 @@ const EisenhowerTaskManager = () => {
       {/* Ctrl+K search palette */}
       {showSearch && (
         <SearchPalette
-          tasks={tasks}
+          tasks={liveTasks}
           getQuadrant={getQuadrant}
           onClose={() => setShowSearch(false)}
           onSelectTask={(t) => {

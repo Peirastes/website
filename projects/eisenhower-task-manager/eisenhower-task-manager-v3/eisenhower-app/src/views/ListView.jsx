@@ -12,12 +12,17 @@ import { QID_BY_QUAD } from '../lib/quadrant';
  * "Events" chip so the list focuses on tracked tasks while keeping
  * bills/meetings visible when triaging.
  */
-export const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings, setSettings }) => {
+export const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, restoreTask, calculateTaskScore, settings, setSettings }) => {
   const listMode = settings?.listMode === 'advanced' ? 'advanced' : 'simple';
   const setListMode = (mode) => setSettings(s => ({ ...s, listMode: mode }));
 
   const showEvents = filters.showEvents === true;
+  const isTrash = filters.status === 'deleted';
   const filteredTasks = tasks.filter(task => {
+    /* Soft-deleted tasks are hidden everywhere EXCEPT the Trash filter,
+       which shows only them (for restore within the 24h grace window). */
+    if (isTrash) { if (!task.deletedAt) return false; }
+    else if (task.deletedAt) return false;
     if (!showEvents && task.isEvent) return false;
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
@@ -81,6 +86,7 @@ export const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQua
               <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="all">All</option>
+              <option value="deleted">Trash</option>
             </select>
           </div>
           <div className="cin-filter">
@@ -157,11 +163,13 @@ export const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQua
               const isOverdue = priority < 0;
               const isToday   = priority === 0;
               const isDone    = task.percentComplete === 100;
+              const isDeleted = !!task.deletedAt;
               const due = dueDisplay(task);
               const rowClass = 'list-row list-row--' + qid
                 + (isOverdue ? ' list-row--overdue' : '')
                 + (isToday   ? ' list-row--today'   : '')
-                + (isDone    ? ' list-row--done'    : '');
+                + (isDone    ? ' list-row--done'    : '')
+                + (isDeleted ? ' list-row--deleted' : '');
               const recur = task.recurringPattern && task.recurringPattern !== 'once'
                 ? task.recurringPattern
                 : '—';
@@ -169,7 +177,8 @@ export const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQua
                 <div
                   key={task.id}
                   className={rowClass}
-                  onClick={() => { setEditingTask(task); setShowForm(true); }}
+                  onClick={isDeleted ? undefined : () => { setEditingTask(task); setShowForm(true); }}
+                  style={isDeleted ? { cursor: 'default', opacity: 0.6 } : undefined}
                 >
                   <div className="list-row__stripe"></div>
                   <div className="list-row__main">
@@ -190,7 +199,16 @@ export const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQua
                   <div className={`list-row__due ${due.cls}`}>{due.text}</div>
                   <div className="list-row__priority">{task.rank ? `R${task.rank}` : '—'}</div>
                   <div className="list-row__bar">
-                    <div className="list-row__bar-fill" style={{ width: `${task.percentComplete || 0}%` }} />
+                    {isDeleted ? (
+                      <button
+                        type="button"
+                        className="cin-mini-btn"
+                        onClick={(e) => { e.stopPropagation(); restoreTask(task.id); }}
+                        title="Restore this task"
+                      >↩ Restore</button>
+                    ) : (
+                      <div className="list-row__bar-fill" style={{ width: `${task.percentComplete || 0}%` }} />
+                    )}
                   </div>
                 </div>
               );
