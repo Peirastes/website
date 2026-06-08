@@ -107,12 +107,18 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
         const { x, y } = polar(r, angle);
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
         const isDone = (Number(t.percentComplete) || 0) >= 100;
+        /* Overdue tasks clamp to r=0 (pile at the ship) — escalate them red
+           and give them a pulse so the centre cluster reads as "behind". */
+        const isOverdue = !isDone && dayOffset(t.dueDate, t.dueTime) < 0;
         return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
+            {isOverdue && (
+              <circle cx={x} cy={y} r={9} className="bridge-pip__blip" />
+            )}
             {!isDone && (
               <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
             )}

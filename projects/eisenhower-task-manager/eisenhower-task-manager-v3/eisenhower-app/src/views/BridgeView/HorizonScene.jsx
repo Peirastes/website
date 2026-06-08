@@ -442,6 +442,11 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         if (!xy) return null;
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
         const isDone = (Number(t.percentComplete) || 0) >= 100;
+        /* Overdue = past its real due moment (pan-independent) and not yet
+           complete. Escalated red over the night wash — the whole point of
+           a "what am I behind on" view is that these MUST stand out, not
+           recede into the darkened past hemisphere. */
+        const isOverdue = !isDone && dayOffset(t.dueDate, t.dueTime) < 0;
         const tNorm = Math.abs(d_eff) / maxDays;
         /* Effort → hours. days/weeks normalised against an 8 h workday
            and 40 h workweek; unknown estimates default to a small pip. */
@@ -471,7 +476,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         const labelText = t.task.length > 22 ? t.task.slice(0, 20) + '…' : t.task;
         return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>

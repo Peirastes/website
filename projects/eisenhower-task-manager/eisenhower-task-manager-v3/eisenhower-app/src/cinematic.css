@@ -3123,6 +3123,38 @@ body.app-locked .cin-action-bar {
   transform: scale(1.25);
 }
 
+/* Overdue + incomplete — the escalation the night wash must NOT bury.
+   Overrides the quadrant hue with the app-wide --crit red and swaps the
+   calm 3.4s radar pulse for a faster, larger one, so "what am I behind
+   on" reads at a glance even sitting on the darkened past hemisphere.
+   Higher specificity than the .bridge-pip--q{n} rules, so it wins the
+   colour cascade regardless of the task's quadrant. */
+.bridge-pip--overdue .bridge-pip__core {
+  fill: var(--crit);
+  filter: drop-shadow(0 0 6px var(--crit-glow));
+}
+.bridge-pip--overdue .bridge-pip__ring {
+  stroke: var(--crit);
+  stroke-width: 1.4;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 6px var(--crit-glow));
+}
+.bridge-pip--overdue .bridge-pip__blip {
+  stroke: var(--crit);
+  stroke-width: 1.1;
+  animation-name: bridge-pip-overdue;
+  animation-duration: 1.5s;
+}
+.bridge-pip--overdue .bridge-pip__label {
+  fill: rgba(255, 120, 130, 0.95);
+  font-weight: 600;
+}
+@keyframes bridge-pip-overdue {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  70%  { opacity: 0; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
 /* Dependency arc — great-circle line between a prerequisite and its
    dependent task. Direction shown by an animated dash flow that drifts
    FROM source TO target. */
