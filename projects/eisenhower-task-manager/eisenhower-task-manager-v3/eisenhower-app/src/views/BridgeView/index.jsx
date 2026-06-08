@@ -49,6 +49,23 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
      Only applied in Horizon mode. */
   const [viewAnchor, setViewAnchor] = useState(0);
 
+  /* Live day tick. `today` below is derived once per render, so without a
+     nudge the meridian + all day-offset math freeze at mount time — leave
+     the Bridge open across midnight and "NOW" never rolls. This polls every
+     60s but only forces a re-render when the calendar day actually changes
+     (the identity return bails React out the other 1439 minutes), so the
+     overhead is one re-render per midnight, not per minute. */
+  const [, setDayKey] = useState(() => new Date().toDateString());
+  useEffect(() => {
+    const id = setInterval(() => {
+      setDayKey(prev => {
+        const now = new Date().toDateString();
+        return prev === now ? prev : now;
+      });
+    }, 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const RADAR_DAYS   = 180;
   const maxDays = mode === 'horizon' ? horizonDays : RADAR_DAYS;
 
