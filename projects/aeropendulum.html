@@ -72,81 +72,86 @@
 
                 <!-- Main prose body -->
                 <p>
-                    Textbook control theory teaches linear, noise-free, friction-free systems. Real physical systems have sensor noise, actuator deadbands, nonlinear dynamics, and coupling between modes. The aeropendulum &mdash; a propeller-driven pendulum with real-time feedback control &mdash; is a testbed for investigating what control theories survive contact with reality.
+                    Textbook control theory teaches linear, noise-free, friction-free systems. Real physical systems have sensor noise, actuator deadbands, nonlinear dynamics, and a fundamentally limited actuator. The aeropendulum &mdash; a propeller on a ~1&nbsp;m arm with real-time feedback &mdash; is a testbed for what control theory survives contact with reality.
+                </p>
+                <p>
+                    The actuator is the crux: the propeller is <strong>push-only</strong> &mdash; it can shove the arm in one rotational direction but never pull. That single constraint shapes everything. It makes true critical damping impossible, biases every pumped swing, and means the binding limit is almost always thrust, not the controller.
                 </p>
 
-                <h3>Control Modes</h3>
+                <h3>A sim-to-real control platform</h3>
+                <p>
+                    The rig runs as a closed sim-to-real loop: the Arduino owns the fast real-time control loop and every safety limit, while a Python host wraps it with the slow outer loop &mdash; flashing firmware, streaming and logging telemetry, fitting a <strong>digital twin</strong>, optimizing controllers in simulation, then deploying and validating on the hardware. One validated twin (natural frequency, linear + quadratic aerodynamic drag, the motor thrust curve, and its spin-up lag) now reproduces the rig across its full envelope &mdash; free-decay ring-down, static hold, <em>and</em> large-amplitude pumping &mdash; so a new control idea can be designed and stress-tested in simulation before it ever touches the motor.
+                </p>
+
+                <h3>Three control modes &mdash; optimized</h3>
                 <table>
                     <thead>
-                        <tr>
-                            <th>Mode</th>
-                            <th>Strategy</th>
-                            <th>Description</th>
-                        </tr>
+                        <tr><th>Mode</th><th>Strategy</th><th>Result</th></tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><strong>Manual</strong></td>
-                            <td>Open-loop</td>
-                            <td>Button-driven throttle for direct motor control</td>
+                            <td><strong>Static hold</strong></td>
+                            <td>Feedforward + rate damping</td>
+                            <td>Holds a steady angle on a near-constant thrust. The robust law is feedforward + damping with <em>no</em> proportional term &mdash; proportional gain plus the deadband and actuator lag self-pumps into a limit cycle.</td>
                         </tr>
                         <tr>
-                            <td><strong>Static Hold</strong></td>
-                            <td>PID</td>
-                            <td>Closed-loop angle hold at a target setpoint (Kp, Ki, Kd)</td>
+                            <td><strong>Dynamic sweep</strong></td>
+                            <td>Phase-timed energy pump</td>
+                            <td>A push timed to the swing &mdash; led ~40&deg; early to beat the motor's spin-up lag &mdash; reaches <strong>57&deg;</strong>, up from ~35&deg; for the naive method, on the same hardware. Self-starting and amplitude-regulating.</td>
                         </tr>
                         <tr>
-                            <td><strong>Oscillation</strong></td>
-                            <td>Energy pumping</td>
-                            <td>Amplitude-regulated oscillation via energy injection and braking at the swing nadir</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Active Damping</strong></td>
-                            <td>Adaptive braking</td>
-                            <td>Amplitude-dependent gate widths with speed-normalized braking gain to bring the pendulum to rest</td>
+                            <td><strong>Active damping</strong></td>
+                            <td>Energy-armed velocity brake</td>
+                            <td>Arrests a 40&deg; drop in <strong>~5&nbsp;s</strong> &mdash; roughly <strong>9&times;</strong> faster than the passive ring-down &mdash; buzz-free, hanging at true zero. An instantaneous-energy arm gate stops a push-only brake from latching on near rest.</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <h3>System Architecture</h3>
+                <h3>Key result: timing, not thrust</h3>
+                <p>
+                    The headline finding is that the swing ceiling was never the motor &mdash; it was the <em>timing</em> of the push. The original method maxed near 40&deg;; phasing the same thrust to the favorable half of each swing, fired slightly early to compensate the propeller's spin-up lag, reached 57&deg; with no extra power. Pushed to their walls, all three objectives then converged on one honest conclusion: the controller is wrung out, and every remaining limit is the actuator &mdash; which points to a stronger or bidirectional motor as the one lever that moves all three at once.
+                </p>
+                <figure style="margin: 1.75rem 0; text-align: center;">
+                    <img src="../images/project_images/aeropendulum_before_after.png" alt="Before/after control-system response across the three modes: dynamic sweep 35 to 57 degrees, active damping 45 s to 5.2 s, static settle 4.8 to 2.4 s" style="max-width: 100%; height: auto; border-radius: 4px;" />
+                    <figcaption style="font-size: 0.9em; opacity: 0.78; margin-top: 0.6rem;">Control-system response, before vs after this development cycle &mdash; dynamic sweep 35&rarr;57&deg;, active damping a ~45&nbsp;s passive ring-down to a 5.2&nbsp;s active brake, static settle 4.8&rarr;2.4&nbsp;s.</figcaption>
+                </figure>
+
+                <h3>System architecture</h3>
 
                 <!-- Specs grid -->
                 <div class="specs-grid">
                     <div class="spec-card">
-                        <h4>Sensors</h4>
+                        <h4>Sensing &amp; estimation</h4>
                         <ul>
-                            <li>AS5600 magnetic encoder (12-bit, I2C) &mdash; absolute angular position</li>
-                            <li>MPU6050 IMU &mdash; angular velocity via gyroscope</li>
-                            <li>Circular-mean tare calibration</li>
-                            <li>Wrap-safe EMA angle filtering</li>
-                            <li>Gyro low-pass filtering</li>
+                            <li>AS5600 magnetic encoder (12-bit) &mdash; absolute angle</li>
+                            <li>MPU6050 IMU gyro &mdash; angular velocity</li>
+                            <li>Circular-mean tare, wrap-safe EMA angle filter</li>
+                            <li>Bias-correcting complementary velocity estimate</li>
                         </ul>
                     </div>
                     <div class="spec-card">
-                        <h4>Controller</h4>
+                        <h4>Control</h4>
                         <ul>
-                            <li>Anti-windup integral clamp</li>
-                            <li>PWM slew rate limiter</li>
-                            <li>Actuator deadband compensation</li>
-                            <li>Auto IMU reinit on sensor stall</li>
-                            <li>Real-time serial parameter tuning</li>
+                            <li>Static: feedforward + rate damping (no P term)</li>
+                            <li>Dynamic: phase-timed pump toward an amplitude target</li>
+                            <li>Damping: energy-armed velocity brake</li>
+                            <li>Energy-equivalent amplitude gating, anti-windup, slew limit</li>
                         </ul>
                     </div>
                     <div class="spec-card">
-                        <h4>Hardware</h4>
+                        <h4>Digital twin</h4>
                         <ul>
-                            <li>Propeller-driven pendulum arm</li>
-                            <li>Custom 3D-printed enclosure</li>
-                            <li>18+ CAD iterations (FreeCAD)</li>
-                            <li>60+ STL component files</li>
+                            <li>Validated across free-decay, static, and pumping</li>
+                            <li>&omega;&#8345;, linear + quadratic drag, motor curve + lag</li>
+                            <li>Held-out validation; sim-first controller design</li>
                         </ul>
                     </div>
                     <div class="spec-card">
-                        <h4>Firmware</h4>
+                        <h4>Platform</h4>
                         <ul>
-                            <li>21 versions (v0.1&ndash;v4.0)</li>
-                            <li>5 months of iterative development</li>
-                            <li>Arduino-based control loop</li>
+                            <li>Arduino fast loop + Python slow outer loop</li>
+                            <li>flash &rarr; log &rarr; fit &rarr; optimize &rarr; deploy &rarr; validate</li>
+                            <li>Custom 3D-printed enclosure (18+ CAD iterations)</li>
                         </ul>
                     </div>
                 </div>
