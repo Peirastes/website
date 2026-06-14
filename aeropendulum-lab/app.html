@@ -14,7 +14,7 @@
   --glass-bg:rgba(10,14,22,.42); --glass-bg-deep:rgba(8,12,18,.58);
   --glass-blur:blur(22px) saturate(1.4); --glass-border:rgba(255,255,255,.10);
   --glass-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
-  --bg-void:#06080c; --text-primary:#e8e8e8; --text-dim:rgba(220,220,220,.6);
+  --bg-void:#06080c; --text-primary:#e8e8e8; --text-dim:rgba(220,220,220,.6); --green:#40d870;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
@@ -63,10 +63,12 @@ canvas{display:block;width:100%;background:rgba(4,7,12,.6);border-radius:7px;bor
 .ro .v{font-family:'Share Tech Mono',monospace;font-size:1.18rem;color:var(--gold);text-shadow:0 0 10px var(--gold-glow)}
 .ro .k{color:var(--text-dim);font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;margin-top:2px}
 .modes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.cin-action{flex:1;min-width:70px;background:linear-gradient(180deg,rgba(20,26,36,.82),rgba(8,12,18,.90));border:1px solid rgba(255,255,255,.08);border-radius:3px;color:rgba(220,220,220,.62);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:9px 6px;cursor:pointer;transition:all .14s ease;letter-spacing:.06em;text-transform:uppercase}
+.cin-action{flex:1;min-width:64px;background:linear-gradient(180deg,rgba(20,26,36,.82),rgba(8,12,18,.90));border:1px solid rgba(255,255,255,.08);border-radius:3px;color:rgba(220,220,220,.62);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:9px 6px;cursor:pointer;transition:all .14s ease;letter-spacing:.06em;text-transform:uppercase}
 .cin-action:hover{color:var(--cyan);border-color:rgba(125,214,255,.30);box-shadow:0 0 8px var(--cyan-glow)}
 .cin-action.on{color:var(--gold);border-color:var(--gold-soft);box-shadow:0 0 10px var(--gold-glow);background:linear-gradient(180deg,rgba(255,174,32,.10),rgba(8,12,18,.88))}
-.desc{font-size:.85rem;color:var(--text-dim);min-height:3em;margin-bottom:8px;line-height:1.5}
+.vbtn.on{color:var(--cyan)!important;border-color:var(--cyan-soft)!important;box-shadow:0 0 8px var(--cyan-glow)!important;background:linear-gradient(180deg,rgba(125,214,255,.10),rgba(8,12,18,.88))!important}
+#concept{font-family:'Share Tech Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:var(--cyan-soft);text-transform:uppercase;margin-bottom:9px;border-left:2px solid var(--cyan-faint);padding-left:9px;min-height:1.1em}
+.desc{font-size:.85rem;color:var(--text-dim);min-height:4.4em;margin-bottom:8px;line-height:1.5}
 .desc b{color:var(--text-primary)}.desc i{color:var(--cyan-soft);font-style:normal}
 .ctl{margin:11px 0}
 .ctl label{display:flex;justify-content:space-between;color:var(--text-dim);font-size:.78rem;letter-spacing:.04em;margin-bottom:4px}
@@ -79,22 +81,21 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 </style>
 </head>
 <body>
-<!-- cinematic chrome -->
 <div class="cin-flank cin-flank--left">
   <a class="cin-wordmark" href="https://peirastes.com/">PEIRASTES</a>
   <span class="cin-version">Aeropendulum &middot; Digital Twin</span>
 </div>
 <div class="cin-title" aria-label="Aeropendulum Simulator">
   <div class="cin-title__name">AERO<span>PENDULUM</span></div>
-  <div class="cin-title__sub">Validated Twin &amp; Control Modes</div>
+  <div class="cin-title__sub">Harmonic Oscillators &amp; Control Systems</div>
 </div>
 <div class="cin-flank cin-flank--right">
-  <span class="cin-status"><span class="cin-status__dot"></span><span class="cin-status__label" id="statlabel">Running</span></span>
+  <span class="cin-status"><span class="cin-status__dot"></span><span class="cin-status__label">Running</span></span>
 </div>
 <div class="cin-tick cin-tick--tl"></div><div class="cin-tick cin-tick--tr"></div>
 <div class="cin-tick cin-tick--bl"></div><div class="cin-tick cin-tick--br"></div>
 <div class="cin-hints" aria-hidden="true">
-  <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> modes</div>
+  <div><kbd>1</kbd>&ndash;<kbd>5</kbd> modes</div>
   <div><kbd>Space</kbd> release</div>
   <div><kbd>R</kbd> reset</div>
 </div>
@@ -108,19 +109,26 @@ input[type=range]{width:100%;accent-color:var(--gold)}
         <div class="ro"><div class="v" id="r-angle">0.0</div><div class="k">angle &deg;</div></div>
         <div class="ro"><div class="v" id="r-omega">0</div><div class="k">&omega; &deg;/s</div></div>
         <div class="ro"><div class="v" id="r-pwm">0</div><div class="k">thrust pwm</div></div>
-        <div class="ro"><div class="v" id="r-mode">FREE</div><div class="k">mode</div></div>
+        <div class="ro"><div class="v" id="r-energy">0</div><div class="k">energy</div></div>
       </div>
-      <canvas id="plot" width="700" height="150" style="margin-top:12px"></canvas>
+      <div class="modes" style="margin:12px 0 0">
+        <button data-v="time" class="vbtn cin-action on" style="font-size:11px;padding:6px">Time</button>
+        <button data-v="phase" class="vbtn cin-action" style="font-size:11px;padding:6px">Phase&nbsp;space</button>
+        <button data-v="energy" class="vbtn cin-action" style="font-size:11px;padding:6px">Energy</button>
+      </div>
+      <canvas id="plot" width="700" height="160" style="margin-top:8px"></canvas>
     </div>
 
     <div class="glass">
-      <p class="panel-title">Control mode</p>
+      <p class="panel-title">Mode</p>
       <div class="modes">
         <button data-m="free" class="cin-action on">Free</button>
         <button data-m="static" class="cin-action">Static</button>
         <button data-m="dynamic" class="cin-action">Dynamic</button>
         <button data-m="dampen" class="cin-action">Dampen</button>
+        <button data-m="driven" class="cin-action">Driven</button>
       </div>
+      <div id="concept"></div>
       <div class="desc" id="desc"></div>
       <div id="controls"></div>
       <div class="row">
@@ -138,9 +146,9 @@ input[type=range]{width:100%;accent-color:var(--gold)}
       <p class="note">
         Physics is the rig's <b style="color:var(--gold)">validated twin</b>:
         <code>&alpha;&Prime; = &minus;&omega;&#8345;&sup2;sin&alpha; &minus; 2&zeta;&omega;&#8345;&alpha;&prime; &minus; c_d&middot;&alpha;&prime;|&alpha;&prime;| + &kappa;F(pwm)</code>,
-        with &omega;&#8345;=3.90, &zeta;=0.017, c_d=0.037, &kappa;F=0.00662&middot;max(0,PWM&minus;14.5),
-        and a 0.20&nbsp;s motor spin-up lag. The prop is <b>push-only</b> (thrust one direction) &mdash;
-        the constraint that makes critical damping impossible and timing the key to pumping.
+        with &omega;&#8345;=3.90 (T&asymp;1.6&nbsp;s), &zeta;=0.017, c_d=0.037, &kappa;F=0.00662&middot;max(0,PWM&minus;14.5),
+        and a 0.20&nbsp;s motor spin-up lag. The prop is <b>push-only</b> &mdash; the constraint
+        that makes critical damping impossible and timing the key to pumping.
       </p>
     </div>
   </div>
@@ -152,26 +160,39 @@ const D2R=Math.PI/180, R2D=180/Math.PI;
 const TWIN={wn:3.902, zeta:0.017, cd:0.037, gain:0.00662, pwm0:14.5, tau:0.20, angAlpha:0.15, gzAlpha:0.15, ctrlHz:150};
 const kappaF=p=>TWIN.gain*Math.max(0,p-TWIN.pwm0);
 const wrap180=d=>{while(d>180)d-=360;while(d<-180)d+=360;return d;};
-let S={a:0,w:0,kf:0,af:0,wf:0,pwm:0,t:0};
-function setAngle(deg){S.a=deg*D2R;S.w=0;S.kf=0;S.af=deg;S.wf=0;S.pwm=0;S.t=0;hist.length=0;}
+let S={a:0,w:0,kf:0,af:0,wf:0,pwm:0,t:0,zeta:TWIN.zeta,drive:0};
+const tHist=[],pHist=[],eHist=[];
+function clearHist(){tHist.length=0;pHist.length=0;eHist.length=0;}
+function setAngle(deg){S.a=deg*D2R;S.w=0;S.kf=0;S.af=deg;S.wf=0;S.pwm=0;S.t=0;S.drive=0;clearHist();}
+
 const C={
- free:{desc:"<b>Free swing.</b> No motor. The lightly-damped pendulum rings down &mdash; ~45&nbsp;s to settle from a big release. This is what the brake has to beat.",params:[],update(){return 0;}},
- static:{desc:"<b>Static hold.</b> Feedforward thrust (DUTY_BASE sets the angle) + rate damping, <i>no</i> proportional term. The weak motor can only hold a few degrees above hanging.",
+ free:{concept:"Demonstrates: free SHM · damping regimes · phase space",
+   desc:"<b>Free swing.</b> No motor &mdash; just the pendulum and its damping. Crank &zeta; to see <i>under / critical / over</i> damping. The real rig is fixed at &zeta;=0.017 (heavily underdamped) and, being push-only, can't reach critical &mdash; which is the whole reason for the control modes.",
+   params:[{id:"zeta",lab:"damping ratio &zeta;",min:0,max:1.2,val:0.017,step:0.005}],
+   reset(){},update(af,wf,P){S.zeta=P.zeta;return 0;}},
+ static:{concept:"Demonstrates: feedback regulation to a setpoint",
+   desc:"<b>Static hold.</b> Feedforward thrust (DUTY_BASE sets the angle) + rate damping, <i>no</i> proportional term. The weak motor can only hold a few degrees above hanging.",
    params:[{id:"base",lab:"DUTY_BASE",min:120,max:255,val:185,step:1},{id:"kd",lab:"Kd (rate damping)",min:0,max:12,val:6,step:0.5}],
-   reset(){this.pp=0;},update(af,wf,P){let u=P.base-P.kd*wf;u=Math.max(0,Math.min(255,u));let st=Math.max(-3,Math.min(3,u-this.pp));this.pp=Math.max(0,Math.min(255,this.pp+st));return this.pp;}},
- dynamic:{desc:"<b>Dynamic sweep &mdash; phase-timed pump.</b> Full thrust only during the favorable half-swing, led ~40&deg; early (center 130&deg;) to beat the spin-up lag. Climbs to the AMP target, up to the ~57&deg; ceiling.",
+   reset(){this.pp=0;},update(af,wf,P){S.zeta=TWIN.zeta;let u=P.base-P.kd*wf;u=Math.max(0,Math.min(255,u));let st=Math.max(-3,Math.min(3,u-this.pp));this.pp=Math.max(0,Math.min(255,this.pp+st));return this.pp;}},
+ dynamic:{concept:"Demonstrates: positive feedback · limit cycle · phase timing",
+   desc:"<b>Dynamic sweep &mdash; phase-timed pump.</b> Full thrust only during the favorable half-swing, led ~40&deg; early (center 130&deg;) to beat the spin-up lag. Climbs to the AMP target, up to the ~57&deg; ceiling. Watch the <b>limit cycle</b> in phase space.",
    params:[{id:"amp",lab:"AMP target &deg;",min:10,max:60,val:55,step:1}],reset(){},
-   update(af,wf,P){const aeq=Math.hypot(af,wf/TWIN.wn);if(aeq<6)return wf>0?255:0;const psi=Math.atan2(wf/TWIN.wn,af)*R2D,dp=wrap180(psi-130);return(aeq<P.amp&&Math.abs(dp)<=100)?255:0;}},
- dampen:{desc:"<b>Active damping &mdash; energy-armed velocity brake.</b> Push-only, so it only decelerates the descent (fires while &omega;&lt;0). An energy-amplitude arm gate stops it latching on near rest.",
+   update(af,wf,P){S.zeta=TWIN.zeta;const aeq=Math.hypot(af,wf/TWIN.wn);if(aeq<6)return wf>0?255:0;const psi=Math.atan2(wf/TWIN.wn,af)*R2D,dp=wrap180(psi-130);return(aeq<P.amp&&Math.abs(dp)<=100)?255:0;}},
+ dampen:{concept:"Demonstrates: velocity feedback · the push-only limit",
+   desc:"<b>Active damping &mdash; energy-armed velocity brake.</b> Push-only, so it only decelerates the descent (fires while &omega;&lt;0). An energy-amplitude arm gate stops it latching on near rest. In phase space the trajectory spirals to the origin.",
    params:[{id:"kd",lab:"brake Kd",min:20,max:200,val:110,step:5},{id:"dcut",lab:"DCUT &deg;/s",min:1,max:8,val:2.5,step:0.5}],reset(){},
-   update(af,wf,P){const aeq=Math.hypot(af,wf/TWIN.wn);const u=-P.kd*wf;return(Math.abs(wf)>=P.dcut&&aeq>=2.5&&u>0)?Math.min(255,u):0;}}
+   update(af,wf,P){S.zeta=TWIN.zeta;const aeq=Math.hypot(af,wf/TWIN.wn);const u=-P.kd*wf;return(Math.abs(wf)>=P.dcut&&aeq>=2.5&&u>0)?Math.min(255,u):0;}},
+ driven:{concept:"Demonstrates: resonance · the driven oscillator",
+   desc:"<b>Driven oscillator.</b> An <i>idealized bidirectional</i> sinusoidal torque (unlike the push-only rig). Sweep the drive frequency toward the natural frequency (~0.62 Hz) and watch the amplitude blow up at <b>resonance</b>. The real prop can't drive both ways &mdash; which is exactly why it must use the phase-timed pump instead.",
+   params:[{id:"freq",lab:"drive freq Hz",min:0.1,max:1.4,val:0.62,step:0.01},{id:"amp",lab:"drive strength",min:0.2,max:3,val:1.2,step:0.1}],reset(){},
+   update(af,wf,P){S.zeta=TWIN.zeta;S.drive=P.amp*Math.sin(2*Math.PI*P.freq*S.t);return 0;}}
 };
-let mode="free",params={};
+let mode="free",params={},view="time";
 function loadParams(){const m=C[mode];params={};(m.params||[]).forEach(p=>params[p.id]=p.val);if(m.reset)m.reset();}
-function deriv(a,w){return [w,-TWIN.wn*TWIN.wn*Math.sin(a)-2*TWIN.zeta*TWIN.wn*w-TWIN.cd*w*Math.abs(w)+S.kf];}
+function deriv(a,w){return [w,-TWIN.wn*TWIN.wn*Math.sin(a)-2*S.zeta*TWIN.wn*w-TWIN.cd*w*Math.abs(w)+S.kf+S.drive];}
 function controlStep(dt){
   S.af+=TWIN.angAlpha*(S.a*R2D-S.af);S.wf+=TWIN.gzAlpha*(S.w*R2D-S.wf);
-  S.pwm=C[mode].update(S.af,S.wf,params);
+  S.zeta=TWIN.zeta;S.drive=0;S.pwm=C[mode].update(S.af,S.wf,params);
   const lag=Math.min(1,dt/TWIN.tau);S.kf+=lag*(kappaF(S.pwm)-S.kf);
   const sub=6,h=dt/sub;
   for(let i=0;i<sub;i++){const[a1,w1]=deriv(S.a,S.w);const[a2,w2]=deriv(S.a+.5*h*a1,S.w+.5*h*w1);
@@ -179,11 +200,12 @@ function controlStep(dt){
     S.a+=h/6*(a1+2*a2+2*a3+a4);S.w+=h/6*(w1+2*w2+2*w3+w4);}
   S.t+=dt;
 }
-const view=document.getElementById('view'),vx=view.getContext('2d');
+function energy(){return 0.5*S.w*S.w+TWIN.wn*TWIN.wn*(1-Math.cos(S.a));}
+
+const view_c=document.getElementById('view'),vx=view_c.getContext('2d');
 const plot=document.getElementById('plot'),px=plot.getContext('2d');
-const hist=[];
 function drawPendulum(){
-  const W=view.width,H=view.height;vx.clearRect(0,0,W,H);
+  const W=view_c.width,H=view_c.height;vx.clearRect(0,0,W,H);
   const ox=W/2,oy=70,L=H-150;
   vx.strokeStyle='rgba(125,214,255,0.10)';vx.lineWidth=1;
   for(let g=-90;g<=90;g+=15){const x=ox+L*Math.sin(g*D2R),y=oy+L*Math.cos(g*D2R);
@@ -195,31 +217,52 @@ function drawPendulum(){
     vx.strokeStyle='#ffae20';vx.shadowColor='rgba(255,174,32,.7)';vx.shadowBlur=10;vx.lineWidth=3;
     vx.beginPath();vx.moveTo(tipx,tipy);vx.lineTo(tipx+tx*f,tipy+ty*f);vx.stroke();
     vx.fillStyle='#ffae20';vx.beginPath();vx.arc(tipx+tx*f,tipy+ty*f,4,0,7);vx.fill();vx.shadowBlur=0;}
+  if(mode==='driven'&&Math.abs(S.drive)>0.02){const f=Math.max(-1,Math.min(1,S.drive/3))*42,tx=Math.cos(ang),ty=-Math.sin(ang);
+    vx.strokeStyle='#40d870';vx.lineWidth=3;vx.beginPath();vx.moveTo(tipx,tipy);vx.lineTo(tipx+tx*f,tipy+ty*f);vx.stroke();}
   vx.fillStyle='#ffae20';vx.shadowColor='rgba(255,174,32,.6)';vx.shadowBlur=10;vx.beginPath();vx.arc(tipx,tipy,9,0,7);vx.fill();vx.shadowBlur=0;
   vx.fillStyle='rgba(220,220,220,.45)';vx.font='11px "Share Tech Mono",monospace';vx.textAlign='center';
   vx.fillText('HANGING (0°)',ox,oy+L+22);
 }
-function drawPlot(){
-  const W=plot.width,H=plot.height;px.fillStyle='rgba(4,7,12,.6)';px.fillRect(0,0,W,H);
+function bg(){const W=plot.width,H=plot.height;px.fillStyle='rgba(4,7,12,.6)';px.fillRect(0,0,W,H);}
+function tag(t){px.fillStyle='rgba(125,214,255,.6)';px.font='10px "Share Tech Mono",monospace';px.textAlign='left';px.fillText(t,8,14);}
+function drawTime(){const W=plot.width,H=plot.height;bg();
   px.strokeStyle='rgba(125,214,255,.10)';px.lineWidth=1;[.5,.25,.75].forEach(f=>{px.beginPath();px.moveTo(0,H*f);px.lineTo(W,H*f);px.stroke();});
   const M=70;px.strokeStyle='#ffae20';px.shadowColor='rgba(255,174,32,.5)';px.shadowBlur=6;px.lineWidth=1.5;px.beginPath();
-  for(let i=0;i<hist.length;i++){const x=W*i/Math.max(1,hist.length-1),y=H/2-hist[i]/M*(H/2);i?px.lineTo(x,y):px.moveTo(x,y);}px.stroke();px.shadowBlur=0;
-  px.fillStyle='rgba(125,214,255,.6)';px.font='10px "Share Tech Mono",monospace';px.textAlign='left';px.fillText('ANGLE vs TIME  (±'+M+'°)',8,14);
-}
+  for(let i=0;i<tHist.length;i++){const x=W*i/Math.max(1,tHist.length-1),y=H/2-tHist[i]/M*(H/2);i?px.lineTo(x,y):px.moveTo(x,y);}px.stroke();px.shadowBlur=0;
+  tag('ANGLE vs TIME  (±'+M+'°)');}
+function drawPhase(){const W=plot.width,H=plot.height;bg();
+  const Ma=70,Mw=320,cx=W/2,cy=H/2;
+  px.strokeStyle='rgba(125,214,255,.14)';px.lineWidth=1;px.beginPath();px.moveTo(cx,0);px.lineTo(cx,H);px.moveTo(0,cy);px.lineTo(W,cy);px.stroke();
+  for(let i=1;i<pHist.length;i++){const p0=pHist[i-1],p1=pHist[i];
+    const x0=cx+p0.a/Ma*(W/2),y0=cy-p0.w/Mw*(H/2),x1=cx+p1.a/Ma*(W/2),y1=cy-p1.w/Mw*(H/2);
+    px.strokeStyle='rgba(255,174,32,'+(0.12+0.88*i/pHist.length).toFixed(2)+')';px.lineWidth=1.4;px.beginPath();px.moveTo(x0,y0);px.lineTo(x1,y1);px.stroke();}
+  if(pHist.length){const p=pHist[pHist.length-1];px.fillStyle='#ffae20';px.beginPath();px.arc(cx+p.a/Ma*(W/2),cy-p.w/Mw*(H/2),3,0,7);px.fill();}
+  tag('PHASE SPACE  ω vs θ');}
+function drawEnergy(){const W=plot.width,H=plot.height;bg();
+  px.strokeStyle='rgba(125,214,255,.10)';px.lineWidth=1;[.5,.75].forEach(f=>{px.beginPath();px.moveTo(0,H*f);px.lineTo(W,H*f);px.stroke();});
+  const M=Math.max(8,Math.max.apply(null,eHist.concat([1]))*1.1);
+  px.strokeStyle='#40d870';px.shadowColor='rgba(64,216,112,.4)';px.shadowBlur=6;px.lineWidth=1.6;px.beginPath();
+  for(let i=0;i<eHist.length;i++){const x=W*i/Math.max(1,eHist.length-1),y=H-eHist[i]/M*H;i?px.lineTo(x,y):px.moveTo(x,y);}px.stroke();px.shadowBlur=0;
+  tag('TOTAL MECHANICAL ENERGY vs TIME');}
+function drawPlot(){if(view==='time')drawTime();else if(view==='phase')drawPhase();else drawEnergy();}
+
 let last=performance.now(),tScale=1;
 function loop(now){
   let real=Math.min(0.05,(now-last)/1000);last=now;
   let acc=real*tScale,dtC=1/TWIN.ctrlHz;
   while(acc>1e-6){const d=Math.min(dtC,acc);controlStep(d);acc-=d;}
-  hist.push(S.af);if(hist.length>320)hist.shift();
+  tHist.push(S.af);if(tHist.length>320)tHist.shift();
+  pHist.push({a:S.af,w:S.wf});if(pHist.length>220)pHist.shift();
+  eHist.push(energy());if(eHist.length>320)eHist.shift();
   document.getElementById('r-angle').textContent=S.af.toFixed(1);
   document.getElementById('r-omega').textContent=S.wf.toFixed(0);
   document.getElementById('r-pwm').textContent=Math.round(S.pwm);
-  document.getElementById('r-mode').textContent=mode.toUpperCase();
+  document.getElementById('r-energy').textContent=energy().toFixed(1);
   drawPendulum();drawPlot();requestAnimationFrame(loop);
 }
 function buildControls(){
   const host=document.getElementById('controls');host.innerHTML='';
+  document.getElementById('concept').innerHTML=C[mode].concept;
   document.getElementById('desc').innerHTML=C[mode].desc;
   (C[mode].params||[]).forEach(p=>{
     const d=document.createElement('div');d.className='ctl';
@@ -229,15 +272,16 @@ function buildControls(){
     d.appendChild(inp);host.appendChild(d);
   });
 }
-function selectMode(m){mode=m;document.querySelectorAll('.modes button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));loadParams();buildControls();}
-document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>selectMode(b.dataset.m));
+function selectMode(m){mode=m;document.querySelectorAll('.modes button[data-m]').forEach(x=>x.classList.toggle('on',x.dataset.m===m));loadParams();buildControls();}
+document.querySelectorAll('.modes button[data-m]').forEach(b=>b.onclick=()=>selectMode(b.dataset.m));
+document.querySelectorAll('.vbtn').forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll('.vbtn').forEach(x=>x.classList.toggle('on',x===b));});
 const kick=document.getElementById('kick');kick.oninput=()=>document.getElementById('kickv').textContent=kick.value;
 const ts=document.getElementById('ts');ts.oninput=()=>{tScale=parseFloat(ts.value);document.getElementById('tsv').textContent=tScale.toFixed(1);};
 document.getElementById('release').onclick=()=>setAngle(parseFloat(kick.value));
 document.getElementById('reset').onclick=()=>setAngle(0);
 document.addEventListener('keydown',e=>{
   if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;
-  const map={'1':'free','2':'static','3':'dynamic','4':'dampen'};
+  const map={'1':'free','2':'static','3':'dynamic','4':'dampen','5':'driven'};
   if(map[e.key]){selectMode(map[e.key]);}
   else if(e.key===' '){e.preventDefault();setAngle(parseFloat(kick.value));}
   else if(e.key==='r'||e.key==='R'){setAngle(0);}
