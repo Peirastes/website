@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aeropendulum Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#ffae20; --gold-soft:rgba(255,174,32,.72); --gold-faint:rgba(255,174,32,.28); --gold-glow:rgba(255,174,32,.45);
+  --cyan:#7dd6ff; --cyan-soft:rgba(125,214,255,.65); --cyan-faint:rgba(125,214,255,.22); --cyan-glow:rgba(125,214,255,.30);
+  --glass-bg:rgba(10,14,22,.42); --glass-bg-deep:rgba(8,12,18,.58);
+  --glass-blur:blur(22px) saturate(1.4); --glass-border:rgba(255,255,255,.10);
+  --glass-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+  --bg-void:#06080c; --text-primary:#e8e8e8; --text-dim:rgba(220,220,220,.6);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(ellipse at 50% -10%, #101b2b 0%, #080c13 55%, #06080c 100%);
+  color:var(--text-primary);font-family:'Inter',sans-serif;font-size:14px;overflow-x:hidden}
+
+/* ===== CINEMATIC CHROME (copied from /artemis-ii-v3-5/) ===== */
+.cin-flank{position:fixed;top:max(1.6rem,env(safe-area-inset-top,0px)+0.6rem);z-index:100;display:flex;flex-direction:column;gap:0.4rem;opacity:0;transform:translateY(-8px);animation:cin-fade-in 700ms ease 250ms forwards}
+.cin-flank--left{left:max(1.6rem,env(safe-area-inset-left,0px)+0.6rem);align-items:flex-start}
+.cin-flank--right{right:max(1.6rem,env(safe-area-inset-right,0px)+0.6rem);align-items:flex-end;animation-delay:400ms}
+.cin-wordmark{font-family:'Cinzel',serif;font-size:0.78rem;font-weight:600;letter-spacing:0.28em;color:var(--gold-soft);text-decoration:none;text-shadow:0 0 8px var(--gold-glow);transition:color 200ms,text-shadow 200ms;line-height:1}
+.cin-wordmark:hover{color:var(--gold);text-shadow:0 0 14px var(--gold-glow)}
+.cin-version{font-family:'Inter',sans-serif;font-size:0.56rem;font-weight:500;color:rgba(125,214,255,.55);letter-spacing:0.20em;white-space:nowrap;text-transform:uppercase}
+.cin-status{display:inline-flex;align-items:center;gap:0.4rem;padding:0.25rem 0.55rem 0.25rem 0.5rem;border-radius:12px;background:rgba(8,12,18,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.05)}
+.cin-status__dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--cyan);box-shadow:0 0 6px var(--cyan-glow),0 0 12px var(--cyan-glow);animation:cin-status-pulse 2.4s ease-in-out infinite}
+.cin-status__label{font-family:'Inter',sans-serif;font-size:0.56rem;font-weight:500;color:rgba(220,220,220,.78);letter-spacing:0.20em;text-transform:uppercase;white-space:nowrap}
+@keyframes cin-status-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.cin-title{position:fixed;top:max(1.6rem,env(safe-area-inset-top,0px)+0.6rem);left:50%;transform:translateX(-50%);text-align:center;z-index:100;pointer-events:none;opacity:0;animation:cin-fade-in-centered 700ms ease 350ms forwards}
+@keyframes cin-fade-in-centered{0%{opacity:0;transform:translate(-50%,-8px)}100%{opacity:1;transform:translate(-50%,0)}}
+.cin-title__name{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:0.24em;text-transform:uppercase;text-shadow:0 0 14px var(--gold-glow),0 0 32px rgba(255,174,32,.18);display:flex;justify-content:center;align-items:baseline;gap:4px;margin-bottom:4px;line-height:1}
+.cin-title__sub{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;color:var(--cyan-soft);letter-spacing:0.22em;text-transform:uppercase}
+.cin-tick{position:fixed;width:16px;height:16px;z-index:99;pointer-events:none;opacity:0;animation:cin-fade-in 800ms ease 600ms forwards}
+.cin-tick::before,.cin-tick::after{content:'';position:absolute;background:rgba(125,214,255,.45)}
+.cin-tick--tl{top:max(0.9rem,env(safe-area-inset-top,0px)+0.3rem);left:max(0.9rem,env(safe-area-inset-left,0px)+0.3rem)}
+.cin-tick--tl::before{top:0;left:0;width:12px;height:1px}.cin-tick--tl::after{top:0;left:0;width:1px;height:12px}
+.cin-tick--tr{top:max(0.9rem,env(safe-area-inset-top,0px)+0.3rem);right:max(0.9rem,env(safe-area-inset-right,0px)+0.3rem)}
+.cin-tick--tr::before{top:0;right:0;width:12px;height:1px}.cin-tick--tr::after{top:0;right:0;width:1px;height:12px}
+.cin-tick--bl{bottom:max(0.9rem,env(safe-area-inset-bottom,0px)+0.3rem);left:max(0.9rem,env(safe-area-inset-left,0px)+0.3rem)}
+.cin-tick--bl::before{bottom:0;left:0;width:12px;height:1px}.cin-tick--bl::after{bottom:0;left:0;width:1px;height:12px}
+.cin-tick--br{bottom:max(0.9rem,env(safe-area-inset-bottom,0px)+0.3rem);right:max(0.9rem,env(safe-area-inset-right,0px)+0.3rem)}
+.cin-tick--br::before{bottom:0;right:0;width:12px;height:1px}.cin-tick--br::after{bottom:0;right:0;width:1px;height:12px}
+@keyframes cin-fade-in{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+
+/* ===== instrument layout (glass) ===== */
+.wrap{max-width:1180px;margin:0 auto;padding:6.2rem 1.6rem 2rem}
+.stage{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+@media(max-width:860px){.stage{grid-template-columns:1fr}.wrap{padding-top:5.4rem}}
+.glass{background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:10px;box-shadow:var(--glass-shadow);padding:14px}
+.panel-title{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--cyan-soft);margin:0 0 10px;padding-bottom:7px;border-bottom:1px solid rgba(125,214,255,.12)}
+canvas{display:block;width:100%;background:rgba(4,7,12,.6);border-radius:7px;border:1px solid rgba(125,214,255,.08)}
+.readouts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.ro{background:rgba(4,7,12,.55);border:1px solid var(--glass-border);border-radius:7px;padding:7px 6px;text-align:center}
+.ro .v{font-family:'Share Tech Mono',monospace;font-size:1.18rem;color:var(--gold);text-shadow:0 0 10px var(--gold-glow)}
+.ro .k{color:var(--text-dim);font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;margin-top:2px}
+.modes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cin-action{flex:1;min-width:70px;background:linear-gradient(180deg,rgba(20,26,36,.82),rgba(8,12,18,.90));border:1px solid rgba(255,255,255,.08);border-radius:3px;color:rgba(220,220,220,.62);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:9px 6px;cursor:pointer;transition:all .14s ease;letter-spacing:.06em;text-transform:uppercase}
+.cin-action:hover{color:var(--cyan);border-color:rgba(125,214,255,.30);box-shadow:0 0 8px var(--cyan-glow)}
+.cin-action.on{color:var(--gold);border-color:var(--gold-soft);box-shadow:0 0 10px var(--gold-glow);background:linear-gradient(180deg,rgba(255,174,32,.10),rgba(8,12,18,.88))}
+.desc{font-size:.85rem;color:var(--text-dim);min-height:3em;margin-bottom:8px;line-height:1.5}
+.desc b{color:var(--text-primary)}.desc i{color:var(--cyan-soft);font-style:normal}
+.ctl{margin:11px 0}
+.ctl label{display:flex;justify-content:space-between;color:var(--text-dim);font-size:.78rem;letter-spacing:.04em;margin-bottom:4px}
+.ctl label .val{color:var(--gold);font-family:'Share Tech Mono',monospace}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.row{display:flex;gap:8px;margin-top:12px}
+.row .cin-action{text-transform:none;font-size:13px;padding:9px}
+.note{color:var(--text-dim);font-size:.76rem;line-height:1.55;margin-top:14px;border-top:1px dashed rgba(125,214,255,.14);padding-top:11px}
+.note code{font-family:'Share Tech Mono',monospace;color:var(--cyan-soft)}
+</style>
+</head>
+<body>
+<!-- cinematic chrome -->
+<div class="cin-flank cin-flank--left">
+  <a class="cin-wordmark" href="https://peirastes.com/">PEIRASTES</a>
+  <span class="cin-version">Aeropendulum &middot; Digital Twin</span>
+</div>
+<div class="cin-title" aria-label="Aeropendulum Simulator">
+  <div class="cin-title__name">AERO<span>PENDULUM</span></div>
+  <div class="cin-title__sub">Validated Twin &amp; Control Modes</div>
+</div>
+<div class="cin-flank cin-flank--right">
+  <span class="cin-status"><span class="cin-status__dot"></span><span class="cin-status__label" id="statlabel">Running</span></span>
+</div>
+<div class="cin-tick cin-tick--tl"></div><div class="cin-tick cin-tick--tr"></div>
+<div class="cin-tick cin-tick--bl"></div><div class="cin-tick cin-tick--br"></div>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="glass">
+      <p class="panel-title">Pendulum &mdash; live</p>
+      <canvas id="view" width="700" height="420"></canvas>
+      <div class="readouts">
+        <div class="ro"><div class="v" id="r-angle">0.0</div><div class="k">angle &deg;</div></div>
+        <div class="ro"><div class="v" id="r-omega">0</div><div class="k">&omega; &deg;/s</div></div>
+        <div class="ro"><div class="v" id="r-pwm">0</div><div class="k">thrust pwm</div></div>
+        <div class="ro"><div class="v" id="r-mode">FREE</div><div class="k">mode</div></div>
+      </div>
+      <canvas id="plot" width="700" height="150" style="margin-top:12px"></canvas>
+    </div>
+
+    <div class="glass">
+      <p class="panel-title">Control mode</p>
+      <div class="modes">
+        <button data-m="free" class="cin-action on">Free</button>
+        <button data-m="static" class="cin-action">Static</button>
+        <button data-m="dynamic" class="cin-action">Dynamic</button>
+        <button data-m="dampen" class="cin-action">Dampen</button>
+      </div>
+      <div class="desc" id="desc"></div>
+      <div id="controls"></div>
+      <div class="row">
+        <button class="cin-action" id="release">Release from angle</button>
+        <button class="cin-action" id="reset">Reset</button>
+      </div>
+      <div class="ctl" style="margin-top:12px">
+        <label>release / kick angle <span class="val"><span id="kickv">30</span>&deg;</span></label>
+        <input id="kick" type="range" min="0" max="90" value="30" step="1" />
+      </div>
+      <div class="ctl">
+        <label>time scale <span class="val"><span id="tsv">1.0</span>&times;</span></label>
+        <input id="ts" type="range" min="0.2" max="1" value="1" step="0.1" />
+      </div>
+      <p class="note">
+        Physics is the rig's <b style="color:var(--gold)">validated twin</b>:
+        <code>&alpha;&Prime; = &minus;&omega;&#8345;&sup2;sin&alpha; &minus; 2&zeta;&omega;&#8345;&alpha;&prime; &minus; c_d&middot;&alpha;&prime;|&alpha;&prime;| + &kappa;F(pwm)</code>,
+        with &omega;&#8345;=3.90, &zeta;=0.017, c_d=0.037, &kappa;F=0.00662&middot;max(0,PWM&minus;14.5),
+        and a 0.20&nbsp;s motor spin-up lag. The prop is <b>push-only</b> (thrust one direction) &mdash;
+        the constraint that makes critical damping impossible and timing the key to pumping.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const D2R=Math.PI/180, R2D=180/Math.PI;
+const TWIN={wn:3.902, zeta:0.017, cd:0.037, gain:0.00662, pwm0:14.5, tau:0.20, angAlpha:0.15, gzAlpha:0.15, ctrlHz:150};
+const kappaF=p=>TWIN.gain*Math.max(0,p-TWIN.pwm0);
+const wrap180=d=>{while(d>180)d-=360;while(d<-180)d+=360;return d;};
+let S={a:0,w:0,kf:0,af:0,wf:0,pwm:0,t:0};
+function setAngle(deg){S.a=deg*D2R;S.w=0;S.kf=0;S.af=deg;S.wf=0;S.pwm=0;S.t=0;hist.length=0;}
+const C={
+ free:{desc:"<b>Free swing.</b> No motor. The lightly-damped pendulum rings down &mdash; ~45&nbsp;s to settle from a big release. This is what the brake has to beat.",params:[],update(){return 0;}},
+ static:{desc:"<b>Static hold.</b> Feedforward thrust (DUTY_BASE sets the angle) + rate damping, <i>no</i> proportional term. The weak motor can only hold a few degrees above hanging.",
+   params:[{id:"base",lab:"DUTY_BASE",min:120,max:255,val:185,step:1},{id:"kd",lab:"Kd (rate damping)",min:0,max:12,val:6,step:0.5}],
+   reset(){this.pp=0;},update(af,wf,P){let u=P.base-P.kd*wf;u=Math.max(0,Math.min(255,u));let st=Math.max(-3,Math.min(3,u-this.pp));this.pp=Math.max(0,Math.min(255,this.pp+st));return this.pp;}},
+ dynamic:{desc:"<b>Dynamic sweep &mdash; phase-timed pump.</b> Full thrust only during the favorable half-swing, led ~40&deg; early (center 130&deg;) to beat the spin-up lag. Climbs to the AMP target, up to the ~57&deg; ceiling.",
+   params:[{id:"amp",lab:"AMP target &deg;",min:10,max:60,val:55,step:1}],reset(){},
+   update(af,wf,P){const aeq=Math.hypot(af,wf/TWIN.wn);if(aeq<6)return wf>0?255:0;const psi=Math.atan2(wf/TWIN.wn,af)*R2D,dp=wrap180(psi-130);return(aeq<P.amp&&Math.abs(dp)<=100)?255:0;}},
+ dampen:{desc:"<b>Active damping &mdash; energy-armed velocity brake.</b> Push-only, so it only decelerates the descent (fires while &omega;&lt;0). An energy-amplitude arm gate stops it latching on near rest.",
+   params:[{id:"kd",lab:"brake Kd",min:20,max:200,val:110,step:5},{id:"dcut",lab:"DCUT &deg;/s",min:1,max:8,val:2.5,step:0.5}],reset(){},
+   update(af,wf,P){const aeq=Math.hypot(af,wf/TWIN.wn);const u=-P.kd*wf;return(Math.abs(wf)>=P.dcut&&aeq>=2.5&&u>0)?Math.min(255,u):0;}}
+};
+let mode="free",params={};
+function loadParams(){const m=C[mode];params={};(m.params||[]).forEach(p=>params[p.id]=p.val);if(m.reset)m.reset();}
+function deriv(a,w){return [w,-TWIN.wn*TWIN.wn*Math.sin(a)-2*TWIN.zeta*TWIN.wn*w-TWIN.cd*w*Math.abs(w)+S.kf];}
+function controlStep(dt){
+  S.af+=TWIN.angAlpha*(S.a*R2D-S.af);S.wf+=TWIN.gzAlpha*(S.w*R2D-S.wf);
+  S.pwm=C[mode].update(S.af,S.wf,params);
+  const lag=Math.min(1,dt/TWIN.tau);S.kf+=lag*(kappaF(S.pwm)-S.kf);
+  const sub=6,h=dt/sub;
+  for(let i=0;i<sub;i++){const[a1,w1]=deriv(S.a,S.w);const[a2,w2]=deriv(S.a+.5*h*a1,S.w+.5*h*w1);
+    const[a3,w3]=deriv(S.a+.5*h*a2,S.w+.5*h*w2);const[a4,w4]=deriv(S.a+h*a3,S.w+h*w3);
+    S.a+=h/6*(a1+2*a2+2*a3+a4);S.w+=h/6*(w1+2*w2+2*w3+w4);}
+  S.t+=dt;
+}
+const view=document.getElementById('view'),vx=view.getContext('2d');
+const plot=document.getElementById('plot'),px=plot.getContext('2d');
+const hist=[];
+function drawPendulum(){
+  const W=view.width,H=view.height;vx.clearRect(0,0,W,H);
+  const ox=W/2,oy=70,L=H-150;
+  vx.strokeStyle='rgba(125,214,255,0.10)';vx.lineWidth=1;
+  for(let g=-90;g<=90;g+=15){const x=ox+L*Math.sin(g*D2R),y=oy+L*Math.cos(g*D2R);
+    vx.beginPath();vx.moveTo(ox,oy);vx.lineTo(x,y);vx.globalAlpha=g%45?.5:1;vx.stroke();vx.globalAlpha=1;}
+  const ang=S.a,tipx=ox+L*Math.sin(ang),tipy=oy+L*Math.cos(ang);
+  vx.strokeStyle='#e8eef6';vx.lineWidth=4;vx.beginPath();vx.moveTo(ox,oy);vx.lineTo(tipx,tipy);vx.stroke();
+  vx.fillStyle='#7dd6ff';vx.shadowColor='rgba(125,214,255,.6)';vx.shadowBlur=8;vx.beginPath();vx.arc(ox,oy,7,0,7);vx.fill();vx.shadowBlur=0;
+  if(S.pwm>1){const f=S.pwm/255*48,tx=Math.cos(ang),ty=-Math.sin(ang);
+    vx.strokeStyle='#ffae20';vx.shadowColor='rgba(255,174,32,.7)';vx.shadowBlur=10;vx.lineWidth=3;
+    vx.beginPath();vx.moveTo(tipx,tipy);vx.lineTo(tipx+tx*f,tipy+ty*f);vx.stroke();
+    vx.fillStyle='#ffae20';vx.beginPath();vx.arc(tipx+tx*f,tipy+ty*f,4,0,7);vx.fill();vx.shadowBlur=0;}
+  vx.fillStyle='#ffae20';vx.shadowColor='rgba(255,174,32,.6)';vx.shadowBlur=10;vx.beginPath();vx.arc(tipx,tipy,9,0,7);vx.fill();vx.shadowBlur=0;
+  vx.fillStyle='rgba(220,220,220,.45)';vx.font='11px "Share Tech Mono",monospace';vx.textAlign='center';
+  vx.fillText('HANGING (0°)',ox,oy+L+22);
+}
+function drawPlot(){
+  const W=plot.width,H=plot.height;px.fillStyle='rgba(4,7,12,.6)';px.fillRect(0,0,W,H);
+  px.strokeStyle='rgba(125,214,255,.10)';px.lineWidth=1;[.5,.25,.75].forEach(f=>{px.beginPath();px.moveTo(0,H*f);px.lineTo(W,H*f);px.stroke();});
+  const M=70;px.strokeStyle='#ffae20';px.shadowColor='rgba(255,174,32,.5)';px.shadowBlur=6;px.lineWidth=1.5;px.beginPath();
+  for(let i=0;i<hist.length;i++){const x=W*i/Math.max(1,hist.length-1),y=H/2-hist[i]/M*(H/2);i?px.lineTo(x,y):px.moveTo(x,y);}px.stroke();px.shadowBlur=0;
+  px.fillStyle='rgba(125,214,255,.6)';px.font='10px "Share Tech Mono",monospace';px.textAlign='left';px.fillText('ANGLE vs TIME  (±'+M+'°)',8,14);
+}
+let last=performance.now(),tScale=1;
+function loop(now){
+  let real=Math.min(0.05,(now-last)/1000);last=now;
+  let acc=real*tScale,dtC=1/TWIN.ctrlHz;
+  while(acc>1e-6){const d=Math.min(dtC,acc);controlStep(d);acc-=d;}
+  hist.push(S.af);if(hist.length>320)hist.shift();
+  document.getElementById('r-angle').textContent=S.af.toFixed(1);
+  document.getElementById('r-omega').textContent=S.wf.toFixed(0);
+  document.getElementById('r-pwm').textContent=Math.round(S.pwm);
+  document.getElementById('r-mode').textContent=mode.toUpperCase();
+  drawPendulum();drawPlot();requestAnimationFrame(loop);
+}
+function buildControls(){
+  const host=document.getElementById('controls');host.innerHTML='';
+  document.getElementById('desc').innerHTML=C[mode].desc;
+  (C[mode].params||[]).forEach(p=>{
+    const d=document.createElement('div');d.className='ctl';
+    d.innerHTML=`<label>${p.lab} <span class="val"><span id="v-${p.id}">${params[p.id]}</span></span></label>`;
+    const inp=document.createElement('input');inp.type='range';inp.min=p.min;inp.max=p.max;inp.step=p.step;inp.value=params[p.id];
+    inp.oninput=()=>{params[p.id]=parseFloat(inp.value);document.getElementById('v-'+p.id).textContent=inp.value;};
+    d.appendChild(inp);host.appendChild(d);
+  });
+}
+document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.modes button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');mode=b.dataset.m;loadParams();buildControls();
+});
+const kick=document.getElementById('kick');kick.oninput=()=>document.getElementById('kickv').textContent=kick.value;
+const ts=document.getElementById('ts');ts.oninput=()=>{tScale=parseFloat(ts.value);document.getElementById('tsv').textContent=tScale.toFixed(1);};
+document.getElementById('release').onclick=()=>setAngle(parseFloat(kick.value));
+document.getElementById('reset').onclick=()=>setAngle(0);
+loadParams();buildControls();setAngle(30);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
