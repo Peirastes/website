@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Control of an Aeropendulum - Peirastes</title>
-    <meta name="description" content="A propeller-driven pendulum testbed for investigating classical PID and energy-based control strategies on a nonlinear physical oscillator with real sensor noise, actuator latency, and friction.">
+    <meta name="description" content="A propeller-driven pendulum: a 2019 senior-design testbed redeveloped into a validated sim-to-real control platform, and now a teaching instrument for harmonic oscillators and control systems.">
     <meta property="og:title" content="Dynamic Control of an Aeropendulum - Peirastes">
-    <meta property="og:description" content="Feedback control systems research using a propeller-driven pendulum with dual-sensor fusion and four control modes.">
+    <meta property="og:description" content="From senior-design testbed to a validated digital twin, three control modes, and a teaching instrument. The headline finding: timing, not thrust.">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://peirastes.com/projects/aeropendulum.html">
     <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
@@ -46,7 +46,7 @@
         <header class="page-hero">
             <div class="page-hero__inner">
                 <h1 class="page-hero__title">Dynamic Control of an Aeropendulum</h1>
-                <p class="page-hero__subtitle">Feedback Control on a Nonlinear Pendulum Testbed</p>
+                <p class="page-hero__subtitle">A Nonlinear Pendulum Testbed for Feedback Control &mdash; and a Teaching Instrument</p>
                 <p class="page-hero__descriptor">Investigation</p>
             </div>
         </header>
@@ -56,38 +56,42 @@
 
                 <div class="meta-row">
                     <div class="meta-item">
-                        <span class="meta-item__label">Published</span>
-                        <span class="meta-item__value">Spring 2019</span>
+                        <span class="meta-item__label">Origin</span>
+                        <span class="meta-item__value">2019 &mdash; UCO Senior Design</span>
                     </div>
                     <div class="meta-item">
-                        <span class="meta-item__label">Venue</span>
-                        <span class="meta-item__value">UCO &mdash; ENGR Senior Design</span>
+                        <span class="meta-item__label">Redeveloped</span>
+                        <span class="meta-item__value">2026 &mdash; Sim-to-Real Platform</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item__label">Domain</span>
+                        <span class="meta-item__value">Control Systems &middot; Teaching</span>
                     </div>
                 </div>
                 <div class="content-body">
                 <!-- Driving question callout -->
                 <p class="driving-question">
-                    Can classical PID and energy-based control strategies effectively control a nonlinear physical oscillator with real sensor noise, actuator latency, and friction?
+                    Can classical PID and energy-based control strategies tame a nonlinear physical oscillator that has real sensor noise, actuator latency, friction &mdash; and a motor that can only push?
                 </p>
 
-                <!-- Main prose body -->
+                <!-- Origin / framing -->
                 <p>
-                    Textbook control theory teaches linear, noise-free, friction-free systems. Real physical systems have sensor noise, actuator deadbands, nonlinear dynamics, and a fundamentally limited actuator. The aeropendulum &mdash; a propeller on a ~1&nbsp;m arm with real-time feedback &mdash; is a testbed for what control theory survives contact with reality.
+                    This began in 2019 as a UCO senior-design project, then sat largely untouched until a 2026 redevelopment turned it into something more deliberate: a <strong>sim-to-real control platform</strong>. Textbook control theory teaches linear, noise-free, friction-free systems. Real ones have sensor noise, actuator deadbands, nonlinear dynamics, and a fundamentally limited actuator. The aeropendulum &mdash; a propeller on a ~1&nbsp;m arm with real-time feedback &mdash; is a testbed for what control theory survives contact with reality.
                 </p>
                 <p>
-                    The actuator is the crux: the propeller is <strong>push-only</strong> &mdash; it can shove the arm in one rotational direction but never pull. That single constraint shapes everything. It makes true critical damping impossible, biases every pumped swing, and means the binding limit is almost always thrust, not the controller.
+                    The actuator is the crux. The propeller is <strong>push-only</strong>: it can shove the arm in one rotational direction but never pull. That single constraint shapes everything &mdash; it makes true critical damping impossible, biases every pumped swing, and, as it turned out, sets the ceiling on every capability the rig has.
                 </p>
 
                 <h3>A sim-to-real control platform</h3>
                 <p>
-                    The rig runs as a closed sim-to-real loop: the Arduino owns the fast real-time control loop and every safety limit, while a Python host wraps it with the slow outer loop &mdash; flashing firmware, streaming and logging telemetry, fitting a <strong>digital twin</strong>, optimizing controllers in simulation, then deploying and validating on the hardware. One validated twin (natural frequency, linear + quadratic aerodynamic drag, the motor thrust curve, and its spin-up lag) now reproduces the rig across its full envelope &mdash; free-decay ring-down, static hold, <em>and</em> large-amplitude pumping &mdash; so a new control idea can be designed and stress-tested in simulation before it ever touches the motor.
+                    The rig runs as a closed loop between hardware and simulation. The Arduino owns the fast real-time control loop and every safety limit; a Python host wraps it with a slow outer loop &mdash; flashing firmware, streaming and logging telemetry, fitting a <strong>digital twin</strong>, optimizing controllers in simulation, then deploying and validating on the hardware. One validated twin (natural frequency, linear + quadratic aerodynamic drag, the motor's thrust curve and its spin-up lag) reproduces the rig across its full envelope &mdash; free-decay ring-down, static hold, <em>and</em> large-amplitude pumping &mdash; from a single parameter set. A new control idea can be designed and stress-tested in simulation before it ever touches the motor.
                 </p>
                 <p style="text-align:center;margin:1.6rem 0;">
                     <a href="../aeropendulum-lab/" style="display:inline-block;background:#0fb88f;color:#04130e;font-weight:700;padding:13px 24px;border-radius:6px;text-decoration:none;font-size:1.02rem;">&#9654;&nbsp; Launch the interactive simulator</a>
-                    <br /><span style="color:#7d8da0;font-size:.82rem;">runs the validated twin &amp; all three control modes, live in your browser</span>
+                    <br /><span style="color:#7d8da0;font-size:.82rem;">the validated twin &amp; every control mode, live in your browser</span>
                 </p>
 
-                <h3>Three control modes &mdash; optimized</h3>
+                <h3>Three control modes</h3>
                 <table>
                     <thead>
                         <tr><th>Mode</th><th>Strategy</th><th>Result</th></tr>
@@ -111,14 +115,27 @@
                     </tbody>
                 </table>
 
-                <h3>Key result: timing, not thrust</h3>
+                <h3>The headline finding: timing, not thrust</h3>
                 <p>
-                    The headline finding is that the swing ceiling was never the motor &mdash; it was the <em>timing</em> of the push. The original method maxed near 40&deg;; phasing the same thrust to the favorable half of each swing, fired slightly early to compensate the propeller's spin-up lag, reached 57&deg; with no extra power. Pushed to their walls, all three objectives then converged on one honest conclusion: the controller is wrung out, and every remaining limit is the actuator &mdash; which points to a stronger or bidirectional motor as the one lever that moves all three at once.
+                    The swing ceiling was never the motor &mdash; it was the <em>timing</em> of the push. The original method maxed near 40&deg;; phasing the same thrust to the favorable half of each swing, fired slightly early to compensate the propeller's spin-up lag, reached 57&deg; with no extra power. It is the kind of result that only shows up when you stop trusting intuition and start measuring: more force was available the whole time and it didn't matter &mdash; <em>when</em> the force arrived did.
                 </p>
                 <figure style="margin: 1.75rem 0; text-align: center;">
                     <img src="../images/project_images/aeropendulum_before_after.png" alt="Before/after control-system response across the three modes: dynamic sweep 35 to 57 degrees, active damping 45 s to 5.2 s, static settle 4.8 to 2.4 s" style="max-width: 100%; height: auto; border-radius: 4px;" />
-                    <figcaption style="font-size: 0.9em; opacity: 0.78; margin-top: 0.6rem;">Control-system response, before vs after this development cycle &mdash; dynamic sweep 35&rarr;57&deg;, active damping a ~45&nbsp;s passive ring-down to a 5.2&nbsp;s active brake, static settle 4.8&rarr;2.4&nbsp;s.</figcaption>
+                    <figcaption style="font-size: 0.9em; opacity: 0.78; margin-top: 0.6rem;">Control-system response before vs after the redevelopment &mdash; dynamic sweep 35&rarr;57&deg;, active damping a ~45&nbsp;s passive ring-down to a 5.2&nbsp;s active brake, static settle 4.8&rarr;2.4&nbsp;s.</figcaption>
                 </figure>
+
+                <h3>And the deeper finding: the motor is the wall</h3>
+                <p>
+                    Pushed to their limits, all three modes converged on one honest conclusion. The swing ceiling was the motor; so was the settling time and the arrest time. Every headline number is <strong>thrust-bound</strong> &mdash; the controllers sit at or near optimal, and the binding constraint is the push-only motor, not the software. That is a result in itself: the project didn't just build three working modes, it <em>proved where the ceiling lives</em>. The single lever that would raise all three at once is the actuator &mdash; a stronger or bidirectional motor &mdash; which is a hardware question, not a tuning one.
+                </p>
+
+                <h3>From testbed to teaching instrument</h3>
+                <p>
+                    With the controllers wrung out, the platform's most valuable future turned out to be pedagogical. A validated twin and three clean, legible control laws make the aeropendulum an unusually good demonstrator for two things at once: <strong>harmonic oscillators</strong> &mdash; free simple-harmonic motion, damping regimes, resonance, phase-space portraits, energy exchange &mdash; and <strong>control systems</strong> &mdash; feedback regulation, positive-feedback limit cycles, velocity-feedback dissipation, and the story of how one actuator constraint reshapes every strategy.
+                </p>
+                <p>
+                    Two artifacts carry that. The <a href="../aeropendulum-lab/">interactive simulator</a> runs the validated twin in the browser with a teaching layer &mdash; concept tags, time / phase-space / energy views, a resonance mode, adjustable damping, and a &ldquo;push-timing&rdquo; knob that makes <em>timing, not thrust</em> something you feel by hand. And the physical rig became a self-contained classroom demonstrator: its three potentiometers were repurposed from raw gain-tuning into <strong>model-bounded behaviour knobs</strong> &mdash; each pot drives one intuitive parameter, ranged by the digital twin so a student can shape the response without ever destabilising the hardware. The rig and the simulator now expose the same control surface; sweep the push-timing knob on either and the swing peaks at the same lead, within a degree or two. Twin, simulation, and hardware all agree.
+                </p>
 
                 <h3>System architecture</h3>
 
@@ -155,7 +172,7 @@
                         <ul>
                             <li>Arduino fast loop + Python slow outer loop</li>
                             <li>flash &rarr; log &rarr; fit &rarr; optimize &rarr; deploy &rarr; validate</li>
-                            <li>Custom 3D-printed enclosure (18+ CAD iterations)</li>
+                            <li>Standalone teaching firmware: model-bounded pot knobs</li>
                         </ul>
                     </div>
                 </div>
