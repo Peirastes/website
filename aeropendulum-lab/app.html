@@ -47,6 +47,9 @@ body{background:radial-gradient(ellipse at 50% -10%, #101b2b 0%, #080c13 55%, #0
 .cin-tick--br{bottom:max(0.9rem,env(safe-area-inset-bottom,0px)+0.3rem);right:max(0.9rem,env(safe-area-inset-right,0px)+0.3rem)}
 .cin-tick--br::before{bottom:0;right:0;width:12px;height:1px}.cin-tick--br::after{bottom:0;right:0;width:1px;height:12px}
 @keyframes cin-fade-in{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+.cin-hints{position:fixed;bottom:max(1.6rem,env(safe-area-inset-bottom,0px)+0.6rem);left:max(1.6rem,env(safe-area-inset-left,0px)+0.6rem);z-index:100;display:flex;flex-direction:column;gap:0.35rem;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.10em;color:rgba(180,180,180,.45);text-transform:uppercase;opacity:0;animation:cin-fade-in 800ms ease 750ms forwards}
+.cin-hints kbd{font-family:inherit;background:rgba(125,214,255,.06);border:1px solid var(--cyan-faint);border-radius:2px;padding:1px 5px;margin-right:0.4rem;color:var(--cyan);font-size:0.58rem}
+@media(max-width:860px){.cin-hints{display:none}}
 
 /* ===== instrument layout (glass) ===== */
 .wrap{max-width:1180px;margin:0 auto;padding:6.2rem 1.6rem 2rem}
@@ -90,6 +93,11 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 </div>
 <div class="cin-tick cin-tick--tl"></div><div class="cin-tick cin-tick--tr"></div>
 <div class="cin-tick cin-tick--bl"></div><div class="cin-tick cin-tick--br"></div>
+<div class="cin-hints" aria-hidden="true">
+  <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> modes</div>
+  <div><kbd>Space</kbd> release</div>
+  <div><kbd>R</kbd> reset</div>
+</div>
 
 <div class="wrap">
   <div class="stage">
@@ -221,14 +229,19 @@ function buildControls(){
     d.appendChild(inp);host.appendChild(d);
   });
 }
-document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.modes button').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');mode=b.dataset.m;loadParams();buildControls();
-});
+function selectMode(m){mode=m;document.querySelectorAll('.modes button').forEach(x=>x.classList.toggle('on',x.dataset.m===m));loadParams();buildControls();}
+document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>selectMode(b.dataset.m));
 const kick=document.getElementById('kick');kick.oninput=()=>document.getElementById('kickv').textContent=kick.value;
 const ts=document.getElementById('ts');ts.oninput=()=>{tScale=parseFloat(ts.value);document.getElementById('tsv').textContent=tScale.toFixed(1);};
 document.getElementById('release').onclick=()=>setAngle(parseFloat(kick.value));
 document.getElementById('reset').onclick=()=>setAngle(0);
+document.addEventListener('keydown',e=>{
+  if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  const map={'1':'free','2':'static','3':'dynamic','4':'dampen'};
+  if(map[e.key]){selectMode(map[e.key]);}
+  else if(e.key===' '){e.preventDefault();setAngle(parseFloat(kick.value));}
+  else if(e.key==='r'||e.key==='R'){setAngle(0);}
+});
 loadParams();buildControls();setAngle(30);
 requestAnimationFrame(loop);
 </script>
