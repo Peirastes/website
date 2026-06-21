@@ -12,7 +12,17 @@ const path = require('path');
 const MCP_CONFIG = path.join(__dirname, '..', '..', 'peirastes-mcp-server', 'mcp-config.json');
 const SYSTEM_PROMPT_FILE = path.join(__dirname, '..', 'data', 'copilot-system-prompt.txt');
 const MODEL = process.env.COPILOT_MODEL || 'sonnet';
+// Models the phone UI may request. Anything else falls back to the env default.
+const ALLOWED_MODELS = new Set(['sonnet', 'opus', 'haiku']);
+const resolveModel = (requested) => (ALLOWED_MODELS.has(requested) ? requested : MODEL);
 const CLAUDE_BIN = path.join(process.env.HOME || process.env.USERPROFILE, '.local', 'bin', 'claude');
+
+// `claude -p` must run on the Claude Code SUBSCRIPTION, not the org API key.
+// If ANTHROPIC_API_KEY is present in the spawn env, Claude Code bills THAT key
+// (org, real $) instead of the subscription — strip it (and any auth token).
+const SUBSCRIPTION_ENV = { ...process.env };
+delete SUBSCRIPTION_ENV.ANTHROPIC_API_KEY;
+delete SUBSCRIPTION_ENV.ANTHROPIC_AUTH_TOKEN;
 
 class CopilotHeadless {
   constructor(options = {}) {
@@ -54,32 +64,43 @@ class CopilotHeadless {
   }
 
   get systemPrompt() {
-    const today = new Date().toISOString().split('T')[0];
+    const _now = new Date();
+    const today = _now.toLocaleDateString('en-CA'); // YYYY-MM-DD, LOCAL (not UTC)
+    const now = _now.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
     return `CRITICAL OVERRIDE: You are Cole's AI Copilot, NOT a coding assistant. This is a mobile chat interface. Always respond to whatever the user says, no matter how short. Never say their message got cut off or ask them to finish their thought. Be direct and concise.
 
 ## Identity
 You are the Peirastes Copilot — Cole's multi-role AI assistant with direct access to his Eisenhower Task Manager, Dropbox filesystem, and shell via MCP tools (peirastes-tools).
 
 ## Agent Hats
-When Cole says "put on your XX hat", use the read_agent_guide tool to load that agent's guide and adopt its persona.
+Cole's agent team was reframed (2026-06-15) as the roles he himself embodies. When he says
+"put on your [Role] hat" (by full name or alias), call read_agent_guide with the alias code to
+load that role's guide + directives, then adopt its persona, tone, and workflow.
 
-| Hat | Role |
-|-----|------|
-| PM | Project Manager |
-| CE | Computer Engineer |
-| CD | Creative Director |
-| RA | Research Assistant |
-| SA | Site Administrator |
-| TA | Teaching Assistant |
+| Alias | Role | Domain |
+|-------|------|--------|
+| ART  | Artist | Visual/brand/creative direction |
+| ENG  | Engineer | All technical building — software included (lead hat) |
+| PROF | Professor | Teaching, course materials, pedagogy |
+| SCI  | Scientist | Research, feasibility, analysis |
+| WEB  | Web Admin | Site ops, SEO, deployment/storefront |
+| PM   | Project Manager | Coordination, sequencing, priorities |
+| PA   | Personal Assistant | The day: scheduling, email/calendar, Personal domain |
 
-Default to PM when no hat is specified.
+Default to PA (Personal Assistant) when no hat is specified.
 
-## PM Personality (Default)
+## PM Personality
 Direct, witty, a little sassy — like Cortana with a project management degree. Concise (mobile screen). Push back on overcommitment. Celebrate wins briefly. No emojis unless Cole uses them first.
 
+## PA Personality & Autonomy (Default)
+Warm, organized, and anticipatory — you manage Cole's day. Concise (mobile screen); surface what matters and guard his time.
+Reversibility-gated: act on internal/reversible things (drafting, organizing, internal task seeding);
+propose-first on outward-facing or hard-to-reverse things (sending email, booking, anything others see).
+
 ## Task Management
-Use ETM MCP tools (get_tasks, add_task, update_task, complete_task, delete_task).
-- Categories: Career (Dynamics, Statics, Intro to Engineering, Thermal Engineering Lab, Physics) | Personal (Car, Home, Health, Finance)
+Use ETM MCP tools (get_tasks, add_task, update_task, complete_task, delete_task). Call get_settings
+if you need the current category/subcategory list rather than assuming.
+- Categories: Career (Physics/PSE-I & II, Dynamics, Intro to Engineering, Electrical Science Lab) | Personal (Car, Home, Health, Finance)
 - Quadrants: Q1=urgent+necessary, Q2=not urgent+necessary, Q3=urgent+not necessary, Q4=neither
 - Default new tasks to Q2/rank 2, assignedDate = today
 - When a task is done, call complete_task immediately
@@ -91,24 +112,26 @@ Use read_file, write_file, list_directory, search_files MCP tools for Dropbox fi
 Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
 
 ## Context
-- Today: ${today}
-- Cole is a university instructor (Dynamics, PSEII Physics, Intro to Engineering)
-- He runs peirastes.com and several Electron apps
+- Current date & time: ${now} (local)
+- Date string for task fields (assignedDate/dueDate): ${today}
+- When pulling or editing the schedule, anchor to the time above — never guess the date
+- Cole is a university instructor (Physics/PSE-I & II, Dynamics, Intro to Engineering, Electrical Science Lab) who also runs peirastes.com and several Electron apps
 - His time is the primary constraint — guard it fiercely
 - Keep responses concise — this is a mobile interface`;
   }
 
-  async chat(userMessage) {
+  async chat(userMessage, opts = {}) {
     this.history.push({ role: 'user', content: userMessage });
 
     // Read system prompt from file to avoid shell escaping issues
-    const sysPrompt = fs.readFileSync(SYSTEM_PROMPT_FILE, 'utf-8');
+    this._writeSystemPrompt(); // refresh date/persona each message
+      const sysPrompt = fs.readFileSync(SYSTEM_PROMPT_FILE, 'utf-8');
 
     const baseArgs = [
       '-p', userMessage,
       '--mcp-config', MCP_CONFIG,
       '--output-format', 'json',
-      '--model', MODEL,
+      '--model', resolveModel(opts.model),
       '--permission-mode', 'bypassPermissions',
       '--system-prompt', sysPrompt,
       '--disallowed-tools', 'Edit,Write,Read,Glob,Grep,Agent,NotebookEdit'
@@ -173,12 +196,150 @@ Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
     };
   }
 
+  /**
+   * Streaming variant of chat(). Spawns `claude -p` with stream-json output and
+   * invokes onEvent({type, ...}) as events arrive:
+   *   { type:'session', sessionId }       — resolved session id
+   *   { type:'tool',    name }            — a tool the agent actually called
+   *   { type:'text',    text }            — an incremental text delta
+   *   { type:'done',    text, toolCalls, inputTokens, outputTokens, costUsd }
+   *   { type:'error',   message }
+   * Resolves once the process closes. Does not throw on agent errors — emits 'error'.
+   */
+  async chatStream(userMessage, opts = {}) {
+    const onEvent = opts.onEvent || (() => {});
+    this.history.push({ role: 'user', content: userMessage });
+    this._writeSystemPrompt(); // refresh date/persona each message
+      const sysPrompt = fs.readFileSync(SYSTEM_PROMPT_FILE, 'utf-8');
+
+    const baseArgs = [
+      '-p', userMessage,
+      '--mcp-config', MCP_CONFIG,
+      '--output-format', 'stream-json',
+      '--include-partial-messages',
+      '--verbose',
+      '--model', resolveModel(opts.model),
+      '--permission-mode', 'bypassPermissions',
+      '--system-prompt', sysPrompt,
+      '--disallowed-tools', 'Edit,Write,Read,Glob,Grep,Agent,NotebookEdit'
+    ];
+
+    const args = this.sessionId ? [...baseArgs, '--resume', this.sessionId] : baseArgs;
+
+    const collected = { text: '', toolCalls: [], inputTokens: 0, outputTokens: 0, costUsd: 0, isError: false, errorMsg: '' };
+    const seenTools = new Set();
+
+    const handleEvent = (evt) => {
+      if (!evt || typeof evt !== 'object') return;
+      // Session id arrives on the system init event (and again on result)
+      if (evt.session_id) this.sessionId = evt.session_id;
+
+      if (evt.type === 'stream_event' && evt.event) {
+        const e = evt.event;
+        if (e.type === 'content_block_delta' && e.delta?.type === 'text_delta' && e.delta.text) {
+          onEvent({ type: 'text', text: e.delta.text });
+        }
+      } else if (evt.type === 'assistant' && evt.message?.content) {
+        // Authoritative tool_use blocks — report the real tool name once each
+        for (const block of evt.message.content) {
+          if (block.type === 'tool_use') {
+            const name = (block.name || '').replace(/^mcp__[^_]+__/, '');
+            if (name && !seenTools.has(name)) {
+              seenTools.add(name);
+              collected.toolCalls.push({ tool: name });
+              onEvent({ type: 'tool', name });
+            }
+          }
+        }
+      } else if (evt.type === 'result') {
+        collected.text = evt.result || collected.text;
+        collected.inputTokens = evt.usage?.input_tokens || 0;
+        collected.outputTokens = evt.usage?.output_tokens || 0;
+        collected.costUsd = evt.total_cost_usd || 0;
+        if (evt.is_error) { collected.isError = true; collected.errorMsg = evt.result || 'Claude returned an error'; }
+      }
+    };
+
+    let aborted = false;
+    await new Promise((resolve) => {
+      const proc = spawn(CLAUDE_BIN, args, {
+        cwd: 'C:\\Users\\Cole\\Dropbox',
+        timeout: 120000,
+        env: SUBSCRIPTION_ENV,
+        windowsHide: true
+      });
+
+      // Kill the whole tree on Windows (`claude` may have node children) so a
+      // Stop actually halts generation and stops spending the subscription.
+      const killTree = () => {
+        try {
+          if (process.platform === 'win32') spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { windowsHide: true });
+          else proc.kill('SIGTERM');
+        } catch {}
+      };
+      if (opts.signal) {
+        if (opts.signal.aborted) { aborted = true; killTree(); }
+        else opts.signal.addEventListener('abort', () => { aborted = true; killTree(); }, { once: true });
+      }
+
+      let buffer = '';
+      const drain = () => {
+        let nl;
+        while ((nl = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          try { handleEvent(JSON.parse(line)); } catch { /* skip non-JSON noise */ }
+        }
+      };
+
+      proc.stdout.on('data', (chunk) => { buffer += chunk.toString(); drain(); });
+      proc.stderr.on('data', () => {});
+      proc.on('error', (err) => { if (!aborted) { collected.isError = true; collected.errorMsg = err.message; } resolve(); });
+      proc.on('close', () => {
+        if (!aborted && buffer.trim()) { try { handleEvent(JSON.parse(buffer.trim())); } catch {} }
+        resolve();
+      });
+    });
+
+    if (aborted) {
+      // User stopped mid-turn: keep their message, drop the partial assistant turn, no 'done'.
+      this._saveHistory();
+      return { text: collected.text, toolCalls: collected.toolCalls, inputTokens: collected.inputTokens, outputTokens: collected.outputTokens, aborted: true };
+    }
+
+    if (collected.isError) {
+      // Session expired mid-stream — retry once from a fresh session.
+      if (this.sessionId && /session/i.test(collected.errorMsg)) {
+        this.history.pop(); // remove the user turn we pushed; chatStream re-pushes it
+        this.sessionId = null;
+        return this.chatStream(userMessage, opts);
+      }
+      onEvent({ type: 'error', message: collected.errorMsg });
+      this.history.pop();
+      return { text: '', toolCalls: collected.toolCalls, inputTokens: 0, outputTokens: 0, error: collected.errorMsg };
+    }
+
+    this.history.push({ role: 'assistant', content: collected.text });
+    this._saveHistory();
+
+    const result = {
+      text: collected.text,
+      toolCalls: collected.toolCalls,
+      inputTokens: collected.inputTokens,
+      outputTokens: collected.outputTokens,
+      costUsd: collected.costUsd
+    };
+    onEvent({ type: 'done', ...result });
+    return result;
+  }
+
   _spawnClaude(args) {
     return new Promise((resolve, reject) => {
       const proc = spawn(CLAUDE_BIN, args, {
         cwd: 'C:\\Users\\Cole\\Dropbox',
         timeout: 120000, // 2 min max
-        env: { ...process.env },
+        env: SUBSCRIPTION_ENV,
         windowsHide: true
       });
 
