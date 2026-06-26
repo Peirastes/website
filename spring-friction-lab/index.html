@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spring–Friction Lab — Peirastes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+  :root{
+    --bg-void:#06080c; --bg-base:#0a0e16; --bg-panel:rgba(12,18,28,0.55);
+    --fg:#e8edf2; --fg-mid:rgba(232,237,242,0.62); --fg-dim:rgba(232,237,242,0.38);
+    --gold:#ffae20; --gold-soft:rgba(255,174,32,0.72); --gold-faint:rgba(255,174,32,0.22); --gold-glow:rgba(255,174,32,0.45);
+    --cyan:#7dd6ff; --cyan-soft:rgba(125,214,255,0.65); --cyan-faint:rgba(125,214,255,0.18); --cyan-glow:rgba(125,214,255,0.30);
+    --green:#33ff88; --green-faint:rgba(51,255,136,0.16);
+    --red:#ff4d5e; --red-faint:rgba(255,77,94,0.16);
+    --glass-border:rgba(255,255,255,0.09);
+    --steel:#6e9bc0; --slate:#b8c8d2; --mist:rgba(168,179,188,0.55);
+    --void-deep:#050810; --void-mid:#0a0d18; --void-edge:rgba(125,214,255,0.12);
+    --mono:'Share Tech Mono',monospace; --disp:'Cinzel',serif; --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg-void);
+    color:var(--fg); font-family:var(--body); -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  /* ═══ CINEMATIC OUTER SHELL — banner backdrop + atmosphere + grain ═══ */
+  body::before{
+    content:''; position:fixed; inset:0; z-index:-2;
+    background-image:url('../images/PeirastesBanner.jpg');
+    background-size:cover; background-position:center;
+    filter:saturate(0.55) brightness(0.32) contrast(1.05); opacity:0.85;
+  }
+  body::after{
+    content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(ellipse at 50% 45%, transparent 25%, rgba(6,8,12,0.65) 95%),
+      linear-gradient(180deg, rgba(0,0,0,0.35) 0%, transparent 30%, rgba(0,0,0,0.55) 100%);
+  }
+  .cin-grain{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.04;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+    mix-blend-mode:overlay;
+  }
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:6.4rem 20px 3.2rem;}
+
+  /* ═══ CINEMATIC OUTER CHROME — canonical v3.5 vocabulary ═══════════════════
+     Wordmark + flanks + title + ticks. Copied byte-equivalent from
+     kinematics-lab / artemis-ii-v3-5 per topology rule (every font/size/inset
+     matters). Only the title__name + title__sub + version content differ. */
+  .cin-flank{position:fixed; top:max(1.6rem, env(safe-area-inset-top,0px)+0.6rem); z-index:100; display:flex; flex-direction:column; gap:0.4rem; opacity:0; transform:translateY(-8px); animation:cin-fade-in 700ms ease 250ms forwards;}
+  .cin-flank--left{left:max(1.6rem, env(safe-area-inset-left,0px)+0.6rem); align-items:flex-start;}
+  .cin-flank--right{right:max(1.6rem, env(safe-area-inset-right,0px)+0.6rem); align-items:flex-end; animation-delay:400ms;}
+  .cin-wordmark{font-family:'Cinzel',serif; font-size:0.78rem; font-weight:600; letter-spacing:0.28em; color:var(--gold-soft); text-decoration:none; text-shadow:0 0 8px var(--gold-glow); transition:color 200ms, text-shadow 200ms; line-height:1;}
+  .cin-wordmark:hover{color:var(--gold); text-shadow:0 0 14px var(--gold-glow);}
+  .cin-version{font-family:'Inter',sans-serif; font-size:0.56rem; font-weight:500; color:rgba(125,214,255,0.55); letter-spacing:0.20em; white-space:nowrap; text-transform:uppercase;}
+  .cin-action-row{display:flex; align-items:center; gap:0.55rem;}
+  .cin-action{background:linear-gradient(180deg, rgba(20,26,36,0.82) 0%, rgba(8,12,18,0.90) 100%); border:1px solid rgba(255,255,255,0.08); border-left:2px solid transparent; border-radius:3px; color:rgba(220,220,220,0.62); font-family:'Inter',sans-serif; font-size:13px; font-weight:500; padding:4px 9px; cursor:pointer; transition:all 0.14s ease; letter-spacing:0.06em; text-transform:uppercase; display:inline-flex; align-items:center; justify-content:center; box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3); flex:0 0 auto; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); text-decoration:none; gap:0.4rem;}
+  .cin-action__glyph{display:inline-block; line-height:1;}
+  .cin-action:hover{color:var(--cyan); background:linear-gradient(180deg, rgba(125,214,255,0.08) 0%, rgba(8,12,18,0.85) 100%); border-color:rgba(125,214,255,0.30); box-shadow:inset 0 1px 0 rgba(125,214,255,0.15), 0 1px 2px rgba(0,0,0,0.3), 0 0 8px var(--cyan-glow);}
+  .cin-title{position:fixed; top:max(1.6rem, env(safe-area-inset-top,0px)+0.6rem); left:50%; transform:translateX(-50%); text-align:center; z-index:100; pointer-events:none; opacity:0; animation:cin-fade-in-centered 700ms ease 350ms forwards;}
+  @keyframes cin-fade-in-centered{0%{opacity:0; transform:translate(-50%,-8px);} 100%{opacity:1; transform:translate(-50%,0);}}
+  .cin-title__name{font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:var(--gold); letter-spacing:0.24em; text-transform:uppercase; text-shadow:0 0 14px var(--gold-glow), 0 0 32px rgba(255,174,32,0.18); display:flex; justify-content:center; align-items:baseline; gap:4px; margin-bottom:4px; line-height:1;}
+  .cin-title__name span{color:var(--gold);}
+  .cin-title__sub{font-family:'Inter',sans-serif; font-size:9px; font-weight:500; color:var(--cyan-soft); letter-spacing:0.22em; text-transform:uppercase; margin-bottom:2px;}
+  .cin-title__crew{font-family:'Inter',sans-serif; font-size:8.5px; font-weight:400; color:rgba(220,220,220,0.55); letter-spacing:0.18em; text-transform:uppercase;}
+  .cin-tick{position:fixed; width:16px; height:16px; z-index:99; pointer-events:none; opacity:0; animation:cin-fade-in 800ms ease 600ms forwards;}
+  .cin-tick::before, .cin-tick::after{content:''; position:absolute; background:rgba(125,214,255,0.45);}
+  .cin-tick--tl{top:max(0.9rem, env(safe-area-inset-top,0px)+0.3rem); left:max(0.9rem, env(safe-area-inset-left,0px)+0.3rem);}
+  .cin-tick--tl::before{top:0; left:0; width:12px; height:1px;} .cin-tick--tl::after{top:0; left:0; width:1px; height:12px;}
+  .cin-tick--tr{top:max(0.9rem, env(safe-area-inset-top,0px)+0.3rem); right:max(0.9rem, env(safe-area-inset-right,0px)+0.3rem);}
+  .cin-tick--tr::before{top:0; right:0; width:12px; height:1px;} .cin-tick--tr::after{top:0; right:0; width:1px; height:12px;}
+  .cin-tick--bl{bottom:max(0.9rem, env(safe-area-inset-bottom,0px)+0.3rem); left:max(0.9rem, env(safe-area-inset-left,0px)+0.3rem);}
+  .cin-tick--bl::before{bottom:0; left:0; width:12px; height:1px;} .cin-tick--bl::after{bottom:0; left:0; width:1px; height:12px;}
+  .cin-tick--br{bottom:max(0.9rem, env(safe-area-inset-bottom,0px)+0.3rem); right:max(0.9rem, env(safe-area-inset-right,0px)+0.3rem);}
+  .cin-tick--br::before{bottom:0; right:0; width:12px; height:1px;} .cin-tick--br::after{bottom:0; right:0; width:1px; height:12px;}
+  @keyframes cin-fade-in{0%{opacity:0; transform:translateY(-8px);} 100%{opacity:1; transform:translateY(0);}}
+  @media(max-width:760px){
+    .cin-flank--right, .cin-tick--bl, .cin-tick--br{display:none;}
+    .cin-title__crew{display:none;}
+    .cin-title__name{font-size:13px; letter-spacing:0.22em;}
+    .wrap{padding-top:5.2rem;}
+  }
+
+  /* ── header ── */
+  header{display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--glass-border); padding-bottom:14px; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
+  .brand{font-family:var(--mono); font-size:11px; letter-spacing:0.34em; text-transform:uppercase; color:var(--cyan-soft);}
+  .brand b{color:var(--gold); -webkit-text-stroke:0; }
+  h1{font-family:var(--disp); font-weight:700; font-size:25px; letter-spacing:0.01em; color:var(--fg);}
+  h1 .em{color:var(--gold);}
+  .sub{font-family:var(--mono); font-size:10.5px; letter-spacing:0.22em; text-transform:uppercase; color:var(--fg-dim); text-align:right;}
+
+  /* ── layout ── */
+  .grid{display:grid; grid-template-columns: 1fr 340px; gap:18px;}
+  @media(max-width:880px){.grid{grid-template-columns:1fr;}}
+  .panel{background:var(--bg-panel); border:1px solid var(--glass-border); border-radius:12px; backdrop-filter:blur(18px) saturate(1.3); box-shadow:0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);}
+
+  /* ── stage ── */
+  .stage{padding:14px;}
+  canvas#scene{display:block; width:100%; height:auto; border-radius:8px; background:linear-gradient(180deg,#080b12,#05070b); border:1px solid rgba(125,214,255,0.10);}
+  .verdict{margin-top:12px; padding:11px 14px; border-radius:8px; font-family:var(--mono); font-size:13px; letter-spacing:0.06em; display:flex; align-items:center; gap:12px; border:1px solid;}
+  .verdict .tag{font-weight:700; font-size:12px; letter-spacing:0.16em; text-transform:uppercase; padding:3px 9px; border-radius:4px;}
+  .verdict.go{background:var(--green-faint); border-color:rgba(51,255,136,0.4); color:#baffd6;}
+  .verdict.go .tag{background:var(--green); color:#06200f;}
+  .verdict.no{background:var(--red-faint); border-color:rgba(255,77,94,0.4); color:#ffc9cf;}
+  .verdict.no .tag{background:var(--red); color:#2a0007;}
+
+  /* ── side panel ── */
+  .side{padding:16px;}
+  .side h2{font-family:var(--mono); font-size:10px; letter-spacing:0.26em; text-transform:uppercase; color:var(--gold-soft); margin-bottom:12px; border-bottom:1px solid var(--gold-faint); padding-bottom:7px;}
+  .bars{display:flex; gap:18px; align-items:flex-end; height:130px; margin:6px 4px 4px;}
+  .bar{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:6px;}
+  .bar .fill{width:46px; border-radius:5px 5px 0 0; transition:height .25s ease; min-height:2px;}
+  .bar.spring .fill{background:linear-gradient(180deg,var(--cyan),rgba(125,214,255,0.4)); box-shadow:0 0 14px var(--cyan-faint);}
+  .bar.fric .fill{background:linear-gradient(180deg,var(--gold),rgba(255,174,32,0.4)); box-shadow:0 0 14px var(--gold-faint);}
+  .bar .val{font-family:var(--mono); font-size:12px; color:var(--fg);}
+  .bar .lbl{font-family:var(--mono); font-size:8.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--fg-dim); text-align:center; line-height:1.4;}
+  .readout{display:grid; grid-template-columns:1fr auto; gap:7px 10px; margin-top:14px; font-size:12.5px;}
+  .readout .k{color:var(--fg-mid); font-family:var(--body);}
+  .readout .v{font-family:var(--mono); color:var(--fg); text-align:right;}
+  .readout .v.bad{color:var(--red);}
+  .readout .v.good{color:var(--green);}
+  .eq{margin-top:14px; padding-top:12px; border-top:1px solid var(--glass-border); font-size:13px; color:var(--fg-mid); line-height:2.1;}
+
+  /* ── controls ── */
+  .controls{margin-top:18px; padding:16px;}
+  .controls h2{font-family:var(--mono); font-size:10px; letter-spacing:0.26em; text-transform:uppercase; color:var(--cyan-soft); margin-bottom:14px; border-bottom:1px solid var(--cyan-faint); padding-bottom:7px;}
+  .ctrl-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px 26px;}
+  .ctrl label{display:flex; justify-content:space-between; align-items:baseline; font-family:var(--mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--fg-mid); margin-bottom:6px;}
+  .ctrl label .cur{color:var(--cyan); font-size:13px;}
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:3px; background:rgba(255,255,255,0.12); outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan-glow,rgba(125,214,255,0.5)); cursor:pointer; border:2px solid #0a0e16;}
+  input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--cyan); cursor:pointer; border:2px solid #0a0e16;}
+  .btnrow{display:flex; gap:12px; margin-top:18px;}
+  button{font-family:var(--mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase; padding:11px 20px; border-radius:7px; border:1px solid; cursor:pointer; transition:all .15s;}
+  button.launch{background:var(--gold); color:#1a1205; border-color:var(--gold); font-weight:700;}
+  button.launch:hover{background:#ffc04a; box-shadow:0 0 20px var(--gold-faint);}
+  button.reset{background:transparent; color:var(--cyan-soft); border-color:var(--cyan-faint);}
+  button.reset:hover{border-color:var(--cyan); color:var(--cyan);}
+  .hint{font-family:var(--mono); font-size:10px; letter-spacing:0.04em; color:var(--fg-dim); margin-top:14px; line-height:1.7;}
+  .hint b{color:var(--gold-soft);}
+  footer{margin-top:26px; font-family:var(--mono); font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:var(--fg-dim); text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="cin-grain" aria-hidden="true"></div>
+
+<!-- Left flank — wordmark + version -->
+<div class="cin-flank cin-flank--left">
+  <a class="cin-wordmark" href="https://peirastes.com/" title="Back to Peirastes">PEIRASTES</a>
+  <span class="cin-version">v1 · PSE-I</span>
+</div>
+
+<!-- Title — floats centered between flanks -->
+<div class="cin-title" aria-label="Spring–Friction Lab — Can the spring launch the block?">
+  <div class="cin-title__name">SPRING<span>·FRICTION LAB</span></div>
+  <div class="cin-title__sub">Can the spring launch the block? · PSE-I Core 5</div>
+  <div class="cin-title__crew">Energy ledger · Break-free test · The meaning of a negative answer</div>
+</div>
+
+<!-- Right flank — back to projects -->
+<div class="cin-flank cin-flank--right">
+  <div class="cin-action-row">
+    <a class="cin-action" href="https://peirastes.com/all-projects.html" title="All projects" aria-label="All projects">
+      <span class="cin-action__glyph">&#9632;</span> Projects
+    </a>
+  </div>
+</div>
+
+<!-- Corner cartographic ticks -->
+<div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+<div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+<div class="wrap">
+
+  <div class="grid">
+    <!-- STAGE -->
+    <div class="panel stage">
+      <canvas id="scene" width="780" height="340"></canvas>
+      <div id="verdict" class="verdict no"><span class="tag">No launch</span><span id="verdictText">Set the parameters and press Launch.</span></div>
+    </div>
+
+    <!-- SIDE: energy + readouts -->
+    <div class="panel side">
+      <h2>Energy ledger (over Δx)</h2>
+      <div class="bars">
+        <div class="bar spring"><div class="fill" id="barSpring" style="height:30%"></div><div class="val" id="valSpring">1.0 J</div><div class="lbl">Spring PE<br>½kΔx²</div></div>
+        <div class="bar fric"><div class="fill" id="barFric" style="height:80%"></div><div class="val" id="valFric">2.9 J</div><div class="lbl">Friction toll<br>μₖmgΔx</div></div>
+      </div>
+      <div class="readout">
+        <div class="k">Spring's peak push&nbsp; kΔx</div><div class="v" id="rPush">20 N</div>
+        <div class="k">Max static friction&nbsp; μₛmg</div><div class="v" id="rStat">29 N</div>
+        <div class="k">Launch speed²&nbsp; v²</div><div class="v bad" id="rV2">−0.39 m²/s²</div>
+        <div class="k">Max speed&nbsp; v</div><div class="v" id="rVmax">—</div>
+        <div class="k">Coast distance&nbsp; d</div><div class="v" id="rD">—</div>
+      </div>
+      <div class="eq">
+        <div id="eqV2"></div>
+        <div id="eqD"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="panel controls">
+    <h2>Parameters</h2>
+    <div class="ctrl-grid">
+      <div class="ctrl"><label>Spring constant&nbsp;k <span class="cur"><span id="kVal">200</span> N/m</span></label><input type="range" id="k" min="50" max="3000" step="10" value="200"></div>
+      <div class="ctrl"><label>Compression&nbsp;Δx <span class="cur"><span id="dxVal">10</span> cm</span></label><input type="range" id="dx" min="2" max="25" step="0.5" value="10"></div>
+      <div class="ctrl"><label>Mass&nbsp;m <span class="cur"><span id="mVal">10</span> kg</span></label><input type="range" id="m" min="0.5" max="20" step="0.5" value="10"></div>
+      <div class="ctrl"><label>Kinetic friction&nbsp;μₖ <span class="cur"><span id="mukVal">0.30</span></span></label><input type="range" id="muk" min="0" max="0.6" step="0.01" value="0.30"></div>
+      <div class="ctrl"><label>Static friction&nbsp;μₛ <span class="cur"><span id="musVal">0.35</span></span></label><input type="range" id="mus" min="0" max="0.8" step="0.01" value="0.35"></div>
+    </div>
+    <div class="btnrow">
+      <button class="launch" id="launchBtn">▶ Launch</button>
+      <button class="reset" id="resetBtn">↺ Reset</button>
+    </div>
+    <div class="hint"><b>Try this:</b> the defaults (k=200, m=10) <b>can't launch</b> — the spring's push (20 N) loses to friction (≈29 N). Slide <b>k up</b> toward ~2000 and watch v² flip positive and the block fly. That negative v² wasn't an error — it was the physics saying "this never moves."</div>
+  </div>
+
+  <footer>Peirastes · Physical Science for Engineers · a teaching instrument</footer>
+</div>
+
+<script>
+const g = 9.81;
+const $ = id => document.getElementById(id);
+const cv = $('scene'), cx = cv.getContext('2d');
+
+// retina
+function fitCanvas(){
+  const ratio = window.devicePixelRatio||1;
+  const w = cv.clientWidth, h = w*340/780;
+  cv.width = w*ratio; cv.height = h*ratio; cv.style.height = h+'px';
+  cx.setTransform(ratio,0,0,ratio,0,0);
+  W = w; H = h;
+}
+let W=780,H=340;
+
+const P = {k:200, dx:0.10, m:10, muk:0.30, mus:0.35};
+let sim = null, anim = null, frame = 0;
+
+function readControls(){
+  P.k = +$('k').value; P.dx = +$('dx').value/100; P.m = +$('m').value;
+  P.muk = +$('muk').value; P.mus = Math.max(+$('mus').value, P.muk); // enforce mus>=muk
+  $('mus').value = P.mus.toFixed(2);
+  $('kVal').textContent = P.k; $('dxVal').textContent = (P.dx*100).toFixed(1);
+  $('mVal').textContent = P.m; $('mukVal').textContent = P.muk.toFixed(2); $('musVal').textContent = P.mus.toFixed(2);
+}
+
+// ── physics ──
+function simulate(){
+  const {k,dx,m,muk,mus}=P;
+  const springPE = 0.5*k*dx*dx;
+  const fricToll = muk*m*g*dx;          // friction work over the spring's throw
+  const peakPush = k*dx;                 // spring force at full compression (its max)
+  const fsMax    = mus*m*g;              // max static friction
+  const v2formula = (k/m)*dx*dx - 2*muk*g*dx;  // "speed² at natural length" (the lecture eqn)
+  const launches = peakPush > fsMax;     // break-free test (static)
+  let traj=[], vmax=0, sStop=0, d=0;
+  if(launches){
+    const fk = muk*m*g;
+    let s=0, v=0, t=0, dt=0.0003;
+    traj.push({s:0,v:0});
+    let guard=0;
+    while(guard++ < 200000){
+      const Fspring = (s<dx) ? k*(dx-s) : 0;
+      const a = (Fspring - fk)/m;        // friction opposes forward motion
+      v += a*dt; s += v*dt; t += dt;
+      if(v>vmax) vmax=v;
+      traj.push({s,v});
+      if(v<=0){ s = Math.max(s, dx*0); break; }
+      if(s>5) break;
+    }
+    sStop = s; d = Math.max(0, s - dx);
+  }
+  return {dx, springPE, fricToll, peakPush, fsMax, v2formula, launches, traj, vmax, sStop, d};
+}
+
+// ── drawing ──
+const M = {ground:0.86, blockW:0.07, blockH:0.10}; // fractions
+function px(meters, scale, x0){ return x0 + meters*scale; }
+
+function drawScene(progress){
+  cx.clearRect(0,0,W,H);
+  const groundY = H*M.ground;
+  const x0 = 70;                          // wall x
+  const dx = sim ? sim.dx : P.dx;
+  const Ln = Math.max(0.16, dx + 0.07);   // visual spring natural length (m)
+  const sStop = sim ? sim.sStop : 0;
+  // view scale: fit natural length + full slide + block + margin
+  const span = Math.max(Ln + sStop + 0.12, Ln + dx*1.6 + 0.12, 0.5);
+  const scale = (W - x0 - 70) / span;     // px per metre
+  const bw = Math.max(34, 0.085*scale), bh = 52;
+
+  // ground
+  cx.strokeStyle='rgba(184,200,210,0.5)'; cx.lineWidth=1.4;
+  cx.beginPath(); cx.moveTo(20,groundY); cx.lineTo(W-12,groundY); cx.stroke();
+  cx.strokeStyle='rgba(168,179,188,0.28)'; cx.lineWidth=1;
+  for(let gx=24; gx<W-12; gx+=16){ cx.beginPath(); cx.moveTo(gx,groundY); cx.lineTo(gx-9,groundY+11); cx.stroke(); }
+  // wall
+  cx.strokeStyle='rgba(184,200,210,0.55)'; cx.lineWidth=1.6;
+  cx.beginPath(); cx.moveTo(x0,groundY); cx.lineTo(x0,groundY-86); cx.stroke();
+  for(let wy=groundY-82; wy<groundY; wy+=12){ cx.beginPath(); cx.moveTo(x0,wy); cx.lineTo(x0-11,wy+9); cx.stroke(); }
+
+  // current block position s (metres)
+  let s = 0, v = 0;
+  if(sim && sim.launches && sim.traj.length){
+    const idx = Math.min(sim.traj.length-1, Math.floor(progress*(sim.traj.length-1)));
+    s = sim.traj[idx].s; v = sim.traj[idx].v;
+  }
+  // block-left face: compressed start at x0+(Ln-dx), natural-length pos at x0+Ln, then coasts
+  const blockX   = px(Ln - dx + s, scale, x0);
+  const compX    = px(Ln - dx,     scale, x0);   // fully-compressed start (Δx left of natural)
+  const naturalX = px(Ln,          scale, x0);   // spring's natural-length end
+
+  // spring (zigzag wall→block while in contact; relaxed at natural length after separation)
+  const springEnd = px(Ln - dx + Math.min(s, dx), scale, x0);
+  drawSpring(x0, springEnd, groundY-bh*0.5);
+
+  // natural-length reference line
+  cx.strokeStyle='rgba(125,214,255,0.30)'; cx.setLineDash([4,4]); cx.lineWidth=1;
+  cx.beginPath(); cx.moveTo(naturalX,groundY-bh-6); cx.lineTo(naturalX,groundY+22); cx.stroke(); cx.setLineDash([]);
+  // Δx bracket (compressed start → natural length)
+  dim(compX, naturalX, groundY+30, 'Δx', 'rgba(125,214,255,0.7)');
+  if(sim && sim.launches && sim.d>0){
+    dim(naturalX, px(Ln + sStop - dx, scale, x0), groundY+30, 'd = '+sim.d.toFixed(2)+' m', 'rgba(255,174,32,0.8)');
+  }
+
+  // block
+  cx.fillStyle = '#243446'; cx.strokeStyle='var(--steel)'; cx.lineWidth=2;
+  cx.strokeStyle='#7fb0d8';
+  roundRect(blockX, groundY-bh, bw, bh, 5); cx.fill(); cx.stroke();
+  cx.fillStyle='#cfe0ee'; cx.font='600 15px Inter'; cx.textAlign='center';
+  cx.fillText('m', blockX+bw/2, groundY-bh/2+5);
+  // velocity arrow
+  if(v>0.05){
+    const ax=blockX+bw+8, ay=groundY-bh/2;
+    cx.strokeStyle='#9fe0a8'; cx.fillStyle='#9fe0a8'; cx.lineWidth=2;
+    const al = Math.min(46, 10+v*9);
+    cx.beginPath(); cx.moveTo(ax,ay); cx.lineTo(ax+al,ay); cx.stroke();
+    cx.beginPath(); cx.moveTo(ax+al,ay); cx.lineTo(ax+al-7,ay-4); cx.lineTo(ax+al-7,ay+4); cx.fill();
+  }
+  // friction arrow on block (always, opposing intended motion)
+  cx.strokeStyle='rgba(255,77,94,0.85)'; cx.fillStyle='rgba(255,77,94,0.85)'; cx.lineWidth=2;
+  const fx=blockX+8, fy=groundY-7;
+  cx.beginPath(); cx.moveTo(fx+22,fy); cx.lineTo(fx,fy); cx.stroke();
+  cx.beginPath(); cx.moveTo(fx,fy); cx.lineTo(fx+6,fy-4); cx.lineTo(fx+6,fy+4); cx.fill();
+}
+
+function drawSpring(x1,x2,y){
+  const n=10, len=x2-x1; if(len<4){ cx.strokeStyle='var(--cyan)'; }
+  cx.strokeStyle='#7dd6ff'; cx.lineWidth=2; cx.beginPath();
+  cx.moveTo(x1,y);
+  for(let i=0;i<=2*n;i++){
+    const xx=x1+len*(i/(2*n)); const yy=y+(i%2===1?9:(i%2===0&&i!==0&&i!==2*n?-9:0));
+    cx.lineTo(xx,yy);
+  }
+  cx.lineTo(x2,y); cx.stroke();
+}
+function roundRect(x,y,w,h,r){ cx.beginPath(); cx.moveTo(x+r,y); cx.arcTo(x+w,y,x+w,y+h,r); cx.arcTo(x+w,y+h,x,y+h,r); cx.arcTo(x,y+h,x,y,r); cx.arcTo(x,y,x+w,y,r); cx.closePath(); }
+function dim(xa,xb,y,label,color){
+  cx.strokeStyle=color; cx.fillStyle=color; cx.lineWidth=1.2;
+  cx.beginPath(); cx.moveTo(xa,y); cx.lineTo(xb,y); cx.stroke();
+  [[xa,1],[xb,-1]].forEach(([xx,d])=>{cx.beginPath();cx.moveTo(xx,y);cx.lineTo(xx+7*d,y-4);cx.lineTo(xx+7*d,y+4);cx.fill();});
+  cx.font='11px "Share Tech Mono"'; cx.textAlign='center'; cx.fillText(label,(xa+xb)/2,y+15);
+}
+
+// ── update readouts + verdict ──
+function updateUI(){
+  sim = simulate();
+  const maxBar = Math.max(sim.springPE, sim.fricToll, 0.01);
+  $('barSpring').style.height = (sim.springPE/maxBar*100)+'%';
+  $('barFric').style.height   = (sim.fricToll/maxBar*100)+'%';
+  $('valSpring').textContent = sim.springPE.toFixed(1)+' J';
+  $('valFric').textContent   = sim.fricToll.toFixed(1)+' J';
+  $('rPush').textContent = sim.peakPush.toFixed(0)+' N';
+  $('rStat').textContent = sim.fsMax.toFixed(0)+' N';
+  const v2 = sim.v2formula;
+  $('rV2').textContent = (v2>=0?'+':'')+v2.toFixed(2)+' m²/s²';
+  $('rV2').className = 'v '+(v2>=0?'good':'bad');
+  $('rVmax').textContent = sim.launches ? sim.vmax.toFixed(2)+' m/s' : '—';
+  $('rD').textContent    = (sim.launches && sim.d>0) ? sim.d.toFixed(2)+' m' : '—';
+
+  const vd=$('verdict'), vt=$('verdictText');
+  if(sim.launches){
+    vd.className='verdict go'; vd.querySelector('.tag').textContent='Launches';
+    vt.textContent = `Spring push ${sim.peakPush.toFixed(0)} N beats friction ${sim.fsMax.toFixed(0)} N → flies, coasts ${sim.d.toFixed(2)} m.`;
+  } else {
+    vd.className='verdict no'; vd.querySelector('.tag').textContent='No launch';
+    vt.textContent = `Spring push ${sim.peakPush.toFixed(0)} N < friction ${sim.fsMax.toFixed(0)} N → it never moves. v² < 0 is the math saying so.`;
+  }
+  renderEq();
+  if(!anim) drawScene(sim.launches?0:0);
+}
+function renderEq(){
+  if(!window.katex) return;
+  try{
+    katex.render(`v^2=\\tfrac{k}{m}\\Delta x^2-2\\mu_k g\\,\\Delta x`, $('eqV2'), {throwOnError:false});
+    katex.render(`d=\\dfrac{v^2}{2\\mu_k g}`, $('eqD'), {throwOnError:false});
+  }catch(e){}
+}
+
+// ── animation ──
+function launch(){
+  updateUI();
+  if(anim){ cancelAnimationFrame(anim); anim=null; }
+  if(!sim.launches){ drawScene(0); pulse(false); return; }
+  pulse(true);
+  const dur = 1600; const t0 = performance.now();
+  (function step(now){
+    const p = Math.min(1,(now-t0)/dur);
+    drawScene(p);
+    if(p<1) anim=requestAnimationFrame(step); else anim=null;
+  })(t0);
+}
+function pulse(go){
+  const vd=$('verdict'); vd.style.transition='none'; vd.style.transform='scale(1.012)';
+  setTimeout(()=>{vd.style.transition='transform .3s'; vd.style.transform='scale(1)';},20);
+}
+function reset(){ if(anim){cancelAnimationFrame(anim);anim=null;} updateUI(); drawScene(0); }
+
+// ── wire up ──
+['k','dx','m','muk','mus'].forEach(id=> $(id).addEventListener('input', ()=>{ readControls(); updateUI(); }));
+$('launchBtn').addEventListener('click', launch);
+$('resetBtn').addEventListener('click', reset);
+window.addEventListener('resize', ()=>{ fitCanvas(); drawScene(sim?0:0); });
+window.addEventListener('load', ()=>{ setTimeout(renderEq,300); });
+
+fitCanvas(); readControls(); updateUI(); drawScene(0);
+</script>
+</body>
+</html>
