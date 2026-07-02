@@ -502,38 +502,50 @@ export default function ApopheniaFilter() {
 
     const sensitive = structA.acc !== null && structA.n >= 3 && structA.acc >= 0.6;
     const restrained = apophenia <= 10 || abstainRateNoise >= 0.4;
-    let quadrant, qName, qDesc;
+    const apo = `+${apophenia.toFixed(1)}`;
+    const structPct = structA.acc !== null ? `${(structA.acc * 100).toFixed(0)}%` : "—";
+    let quadrant, qName, qDesc, qNudge;
     if (structA.n < 3) {
       quadrant = "—";
       qName = "Unclassifiable";
       qDesc =
         "Too few committed calls on structured trajectories. The filter needs conviction to measure — abstention everywhere is calibrated, but it carries no discrimination signal.";
+      qNudge =
+        "The filter needs conviction to measure discrimination. Next session, make at least 3 committed calls on the structured trajectories — abstaining everywhere is perfectly calibrated, but it leaves nothing to grade.";
     } else if (sensitive && restrained) {
       quadrant = "A";
       qName = "Discriminator";
       qDesc =
         "Sensitive to embedded structure, restrained on martingales. This is the profile the instrument exists to find — and the one luck cannot sustain across repetition.";
+      qNudge =
+        "You're in the target quadrant — sensitive and restrained. The frontier now is durability: does this calibration survive at n=100? And there's headroom against the oracle ceilings on any tier you missed — the gap below each ceiling is recoverable signal still on the table.";
     } else if (!sensitive && restrained) {
       quadrant = "B";
       qName = "Calibrated, insensitive";
       qDesc =
         "You knew what you didn't know — conviction was withheld where nothing was recoverable — but the embedded mechanisms weren't recovered either. Honest, and trainable: the limiting factor is perception, not judgment.";
+      qNudge =
+        `The lever is perception, not discipline — you already keep conviction off the noise. But structured accuracy sat at ${structPct}, below the 60% line, so recoverable signal went unclaimed. Commit when a tell is actually present: slope for momentum, a stretched spike starting to fade for mean reversion, a persistent one-sided drift for a regime.`;
     } else if (sensitive && !restrained) {
       quadrant = "C";
       qName = "Undecidable";
       qDesc =
         "Hits on structure, but conviction was also spent on pure noise. Real perception contaminated by apophenia — or luck. This profile cannot be resolved at this sample size. Only repetition separates it.";
+      qNudge =
+        `The only thing between you and A (Discriminator) is restraint. You're already sensitive to structure, but your apophenia index is ${apo} conviction pts on noise (needs ≤10, or abstain on ≥40% of martingales). Hit NO EDGE on the drift-that-isn't and you move up to A — and your Brier likely drops with it, since those noise bets are the points you're bleeding.`;
     } else {
       quadrant = "D";
       qName = "Apophenic";
       qDesc =
         "Conviction everywhere, discrimination nowhere. Pattern perception is firing on martingales and missing real structure alike. This is the default human profile on financial charts.";
+      qNudge =
+        `Two levers. Restraint first: your apophenia index is ${apo} conviction pts on noise (needs ≤10) — abstain on the pure-noise trajectories. Then perception: structured accuracy was ${structPct}, so commit only where a real tell is visible. Right now conviction is spread everywhere and landing nowhere; narrowing it to the trials that actually carry signal fixes both axes at once.`;
     }
 
     return {
       noise, struct, meanBrier, structA, noiseA, apophenia, abstainRateNoise,
       curve, sentinelHit, sentinelAbstains, sentinelN: sentinels.length,
-      quadrant, qName, qDesc,
+      quadrant, qName, qDesc, qNudge,
     };
   }, [records]);
 
@@ -1036,6 +1048,35 @@ export default function ApopheniaFilter() {
                 conviction, or high abstention). The dot is you; the lit cell is
                 your classification.
               </div>
+              {report.qNudge && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "11px 13px",
+                    borderLeft: `2px solid ${C.brass}`,
+                    background: "rgba(255,174,32,0.06)",
+                    borderRadius: 6,
+                    fontSize: 12.5,
+                    lineHeight: 1.6,
+                    color: C.text,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'Orbitron', sans-serif",
+                      fontSize: 10,
+                      letterSpacing: "0.16em",
+                      color: C.brass,
+                      textTransform: "uppercase",
+                      display: "block",
+                      marginBottom: 5,
+                    }}
+                  >
+                    ▲ Level up
+                  </span>
+                  {report.qNudge}
+                </div>
+              )}
             </div>
 
             <div style={S.panel}>
