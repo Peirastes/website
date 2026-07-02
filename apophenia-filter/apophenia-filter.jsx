@@ -264,6 +264,73 @@ function TraceChart({ series, revealIdx, outcome }) {
   );
 }
 
+// ---------- quadrant compass (2x2) ----------
+// Axes reproduce the classifier's own thresholds so the marker always lands
+// in the labeled cell:  x = sensitivity (structAcc vs 0.60),
+// y = restraint (max of the two OR-arms: apophenia<=10 OR noiseAbstain>=0.4).
+function CompassGrid({ quadrant, structAcc, structN, apophenia, abstainRateNoise }) {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const gx = 52, gy = 18, gw = 232, gh = 232;
+  const cx = gx + gw / 2, cy = gy + gh / 2, pad = 28;
+  const unclass = structAcc === null || structN < 3;
+  const nSens = structAcc === null ? 0 : clamp((structAcc - 0.6) / 0.4, -1, 1);
+  const R = Math.max(
+    clamp((10 - apophenia) / 10, -1, 1),
+    clamp((abstainRateNoise - 0.4) / 0.4, -1, 1)
+  );
+  const mx = cx + nSens * (gw / 2 - pad);
+  const my = cy - R * (gh / 2 - pad);
+  const colorOf = { A: C.up, B: C.trace, C: C.brass, D: C.down };
+  const cells = [
+    { k: "B", name: "Calibrated", x: gx, y: gy, lx: gx + 20, anchor: "start" },
+    { k: "A", name: "Discriminator", x: cx, y: gy, lx: gx + gw - 20, anchor: "end" },
+    { k: "D", name: "Apophenic", x: gx, y: cy, lx: gx + 20, anchor: "start" },
+    { k: "C", name: "Undecidable", x: cx, y: cy, lx: gx + gw - 20, anchor: "end" },
+  ];
+  const letterY = (c) => (c.y === gy ? gy + 40 : gy + gh - 30);
+  const nameY = (c) => (c.y === gy ? gy + 54 : gy + gh - 16);
+  return (
+    <svg viewBox="0 0 320 278" style={{ width: "100%", maxWidth: 340, display: "block", margin: "4px auto 0" }}>
+      {cells.map((c) => {
+        const on = !unclass && quadrant === c.k;
+        const col = colorOf[c.k];
+        return (
+          <g key={c.k}>
+            <rect x={c.x} y={c.y} width={gw / 2} height={gh / 2}
+              fill={col} opacity={on ? 0.14 : 0.03}
+              stroke={on ? col : "none"} strokeWidth={on ? 1.5 : 0} />
+            <text x={c.lx} y={letterY(c)} textAnchor={c.anchor}
+              fontFamily="'Orbitron', sans-serif" fontWeight="700" fontSize="30"
+              fill={col} opacity={on ? 1 : 0.38}>{c.k}</text>
+            <text x={c.lx} y={nameY(c)} textAnchor={c.anchor}
+              fontFamily="'Inter', sans-serif" fontSize="9" letterSpacing="0.06em"
+              fill={col} opacity={on ? 0.9 : 0.32}>{c.name.toUpperCase()}</text>
+          </g>
+        );
+      })}
+      <rect x={gx} y={gy} width={gw} height={gh} fill="none" stroke={C.line} strokeWidth="1" rx="6" />
+      <line x1={cx} y1={gy} x2={cx} y2={gy + gh} stroke={C.line} strokeWidth="1" strokeDasharray="3 4" opacity="0.7" />
+      <line x1={gx} y1={cy} x2={gx + gw} y2={cy} stroke={C.line} strokeWidth="1" strokeDasharray="3 4" opacity="0.7" />
+      <text x={gx + gw / 4} y={gy + gh + 16} textAnchor="middle" fontFamily="'Share Tech Mono', monospace" fontSize="8.5" fill={C.dim} letterSpacing="0.1em">INSENSITIVE</text>
+      <text x={gx + 3 * gw / 4} y={gy + gh + 16} textAnchor="middle" fontFamily="'Share Tech Mono', monospace" fontSize="8.5" fill={C.dim} letterSpacing="0.1em">SENSITIVE →</text>
+      <text x={16} y={gy + gh / 4} textAnchor="middle" transform={`rotate(-90 16 ${gy + gh / 4})`} fontFamily="'Share Tech Mono', monospace" fontSize="8.5" fill={C.dim} letterSpacing="0.1em">RESTRAINED</text>
+      <text x={16} y={gy + 3 * gh / 4} textAnchor="middle" transform={`rotate(-90 16 ${gy + 3 * gh / 4})`} fontFamily="'Share Tech Mono', monospace" fontSize="8.5" fill={C.dim} letterSpacing="0.1em">UNRESTRAINED</text>
+      {unclass ? (
+        <>
+          <circle cx={cx} cy={cy} r="7" fill="none" stroke={C.dim} strokeWidth="1.5" strokeDasharray="2 3" />
+          <text x={cx} y={cy - 14} textAnchor="middle" fontFamily="'Share Tech Mono', monospace" fontSize="8" fill={C.dim}>TOO FEW CALLS</text>
+        </>
+      ) : (
+        <>
+          <circle cx={mx} cy={my} r="14" fill={colorOf[quadrant] || C.brass} opacity="0.22" />
+          <circle cx={mx} cy={my} r="6" fill={C.brass} stroke="#fff" strokeWidth="1.5" />
+          <text x={mx} y={my - 16} textAnchor="middle" fontFamily="'Share Tech Mono', monospace" fontSize="8.5" fill={C.text} letterSpacing="0.1em">YOU</text>
+        </>
+      )}
+    </svg>
+  );
+}
+
 // ---------- main ----------
 export default function ApopheniaFilter() {
   const [phase, setPhase] = useState("intro");
@@ -955,15 +1022,35 @@ export default function ApopheniaFilter() {
             </div>
 
             <div style={S.panel}>
+              <div style={{ ...S.eyebrow, marginBottom: 10 }}>The compass — where you landed</div>
+              <CompassGrid
+                quadrant={report.quadrant}
+                structAcc={report.structA.acc}
+                structN={report.structA.n}
+                apophenia={report.apophenia}
+                abstainRateNoise={report.abstainRateNoise}
+              />
+              <div style={{ fontSize: 11.5, color: C.dim, marginTop: 8, lineHeight: 1.5 }}>
+                Horizontal — sensitivity to real structure (accuracy on structured
+                trials, boundary 60%). Vertical — restraint on pure noise (low
+                conviction, or high abstention). The dot is you; the lit cell is
+                your classification.
+              </div>
+            </div>
+
+            <div style={S.panel}>
               <div style={{ ...S.eyebrow, marginBottom: 10 }}>Core metrics</div>
               <div style={S.dataRow}>
-                <span style={S.dim}>Mean Brier (yours)</span>
-                <span style={{ color: C.brass, fontWeight: 600 }}>
-                  {report.meanBrier.toFixed(3)}
+                <span style={S.dim}>
+                  Mean Brier (yours){" "}
+                  <span style={{ fontSize: 10.5, opacity: 0.7 }}>· lower is better</span>
+                </span>
+                <span style={{ color: report.meanBrier < 0.25 ? C.up : C.down, fontWeight: 600 }}>
+                  {report.meanBrier.toFixed(3)} {report.meanBrier < 0.25 ? "✓" : "✗"}
                 </span>
               </div>
               <div style={S.dataRow}>
-                <span style={S.dim}>Perpetual abstainer</span>
+                <span style={S.dim}>Perpetual abstainer <span style={{ fontSize: 10.5, opacity: 0.7 }}>· the bar to beat</span></span>
                 <span>0.250</span>
               </div>
               <div style={S.dataRow}>
@@ -1029,9 +1116,9 @@ export default function ApopheniaFilter() {
             <div style={S.panel}>
               <div style={{ ...S.eyebrow, marginBottom: 10 }}>Brier verdict</div>
               <p style={{ ...S.p, margin: 0 }}>
-                {report.meanBrier < 0.24
-                  ? "Your Brier beats the perpetual abstainer. Calibration is holding — now the question is whether it holds at n=100."
-                  : "The perpetual abstainer — who never predicts anything — scored 0.250. You did not beat it. Sit with that before the next session."}
+                {report.meanBrier < 0.25
+                  ? "Your Brier beats the perpetual abstainer (0.250) — lower is better, and you came in under it. Calibration is holding; the question is whether it holds at n=100."
+                  : "The perpetual abstainer — who never predicts anything — scored 0.250. Lower is better, and you came in above it, so you did not beat it. Sit with that before the next session."}
               </p>
             </div>
 
