@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Apophenia Filter — can you tell structure from noise?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       THE APOPHENIA FILTER — Cinematic Tier wrapper
+       Cinematic outer chrome (matches /smoke-sim/, /artemis-ii-v3-5/,
+       /optics-lab/) around the embedded React instrument, on a
+       scrolling reading surface with a methodology room below.
+       ═══════════════════════════════════════════════════════════════ */
+    :root {
+      --gold:       #ffae20;
+      --gold-soft:  rgba(255, 174, 32, 0.72);
+      --gold-faint: rgba(255, 174, 32, 0.28);
+      --gold-glow:  rgba(255, 174, 32, 0.45);
+      --cyan:       #7dd6ff;
+      --cyan-soft:  rgba(125, 214, 255, 0.65);
+      --cyan-faint: rgba(125, 214, 255, 0.22);
+      --cyan-glow:  rgba(125, 214, 255, 0.30);
+      --green:      #40d870;
+      --coral:      #ff7a6f;
+      --bg-void:    #06080c;
+      --text-primary: #e6ebf4;
+      --text-dim:   #8b97ab;
+      --glass-bg:     rgba(12, 18, 28, 0.60);
+      --glass-border: rgba(255, 255, 255, 0.09);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-weight: 400;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Cinema banner backdrop + vignette (fixed) */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: -2;
+      background-image: url('/images/PeirastesBanner.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: saturate(0.55) brightness(0.30) contrast(1.05);
+      opacity: 0.85;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 40%, transparent 22%, rgba(6, 8, 12, 0.72) 95%),
+        linear-gradient(180deg, rgba(0,0,0,0.40) 0%, transparent 28%, rgba(0,0,0,0.62) 100%);
+    }
+    .cin-grain {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none; opacity: 0.04;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+      mix-blend-mode: overlay;
+    }
+
+    /* ─── Cinematic chrome (flank-balanced) ───────────────────────── */
+    .cin-flank {
+      position: fixed;
+      top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+      z-index: 100;
+      display: flex; flex-direction: column; gap: 0.4rem;
+      opacity: 0; transform: translateY(-8px);
+      animation: cin-fade-in 700ms ease 250ms forwards;
+    }
+    .cin-flank--left {
+      left: max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+      align-items: flex-start;
+    }
+    .cin-flank--right {
+      right: max(1.6rem, env(safe-area-inset-right, 0px) + 0.6rem);
+      align-items: flex-end;
+      animation-delay: 400ms;
+    }
+    .cin-wordmark {
+      font-family: 'Cinzel', serif;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.28em;
+      color: var(--gold-soft); text-decoration: none;
+      text-shadow: 0 0 8px var(--gold-glow);
+      transition: color 200ms, text-shadow 200ms; line-height: 1;
+    }
+    .cin-wordmark:hover { color: var(--gold); text-shadow: 0 0 14px var(--gold-glow); }
+    .cin-version {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.56rem; font-weight: 500;
+      color: var(--cyan-soft); letter-spacing: 0.20em;
+      white-space: nowrap; text-transform: uppercase;
+    }
+    .cin-title {
+      position: fixed;
+      top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+      left: 50%; transform: translateX(-50%);
+      text-align: center; z-index: 100; pointer-events: none;
+      opacity: 0; animation: cin-fade-in-centered 700ms ease 350ms forwards;
+    }
+    .cin-title__name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--gold);
+      letter-spacing: 0.22em; text-transform: uppercase;
+      text-shadow: 0 0 14px var(--gold-glow), 0 0 32px rgba(255,174,32,0.18);
+      margin-bottom: 4px; line-height: 1;
+    }
+    .cin-title__sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 9px; font-weight: 500; color: var(--cyan-soft);
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .cin-action-row { display: flex; align-items: center; gap: 0.55rem; }
+    .cin-action {
+      background: linear-gradient(180deg, rgba(20,26,36,0.82) 0%, rgba(8,12,18,0.90) 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-left: 2px solid transparent;
+      border-radius: 3px;
+      color: rgba(220,225,235,0.68);
+      font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500;
+      padding: 6px 11px; cursor: pointer; transition: all 0.14s ease;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      text-decoration: none; display: inline-flex; align-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
+    .cin-action:hover {
+      color: var(--cyan);
+      background: linear-gradient(180deg, rgba(125,214,255,0.08) 0%, rgba(8,12,18,0.85) 100%);
+      border-color: rgba(125,214,255,0.30);
+      box-shadow: inset 0 1px 0 rgba(125,214,255,0.15), 0 1px 2px rgba(0,0,0,0.3), 0 0 8px var(--cyan-glow);
+    }
+    .cin-tick {
+      position: fixed; width: 16px; height: 16px; z-index: 99;
+      pointer-events: none; opacity: 0;
+      animation: cin-fade-in 800ms ease 600ms forwards;
+    }
+    .cin-tick::before, .cin-tick::after {
+      content: ''; position: absolute; background: rgba(125,214,255,0.45);
+    }
+    .cin-tick--tl { top: max(0.9rem, env(safe-area-inset-top,0px)+0.3rem); left: max(0.9rem, env(safe-area-inset-left,0px)+0.3rem); }
+    .cin-tick--tr { top: max(0.9rem, env(safe-area-inset-top,0px)+0.3rem); right: max(0.9rem, env(safe-area-inset-right,0px)+0.3rem); }
+    .cin-tick--bl { bottom: max(0.9rem, env(safe-area-inset-bottom,0px)+0.3rem); left: max(0.9rem, env(safe-area-inset-left,0px)+0.3rem); }
+    .cin-tick--br { bottom: max(0.9rem, env(safe-area-inset-bottom,0px)+0.3rem); right: max(0.9rem, env(safe-area-inset-right,0px)+0.3rem); }
+    .cin-tick--tl::before { top:0; left:0; width:12px; height:1px; } .cin-tick--tl::after { top:0; left:0; width:1px; height:12px; }
+    .cin-tick--tr::before { top:0; right:0; width:12px; height:1px; } .cin-tick--tr::after { top:0; right:0; width:1px; height:12px; }
+    .cin-tick--bl::before { bottom:0; left:0; width:12px; height:1px; } .cin-tick--bl::after { bottom:0; left:0; width:1px; height:12px; }
+    .cin-tick--br::before { bottom:0; right:0; width:12px; height:1px; } .cin-tick--br::after { bottom:0; right:0; width:1px; height:12px; }
+    .cin-hints {
+      position: fixed;
+      bottom: max(1.6rem, env(safe-area-inset-bottom,0px)+0.6rem);
+      left: max(1.6rem, env(safe-area-inset-left,0px)+0.6rem);
+      z-index: 100; display: flex; flex-direction: column; gap: 0.35rem;
+      font-family: 'Share Tech Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 0.10em; color: rgba(180,180,180,0.45);
+      text-transform: uppercase; opacity: 0;
+      animation: cin-fade-in 800ms ease 750ms forwards;
+    }
+    .cin-hints kbd {
+      font-family: inherit; background: rgba(125,214,255,0.06);
+      border: 1px solid var(--cyan-faint); border-radius: 2px;
+      padding: 1px 5px; margin-right: 0.4rem; color: var(--cyan); font-size: 0.58rem;
+    }
+    @keyframes cin-fade-in { 0% { opacity:0; transform: translateY(-8px);} 100% { opacity:1; transform: translateY(0);} }
+    @keyframes cin-fade-in-centered { 0% { opacity:0; transform: translate(-50%,-8px);} 100% { opacity:1; transform: translate(-50%,0);} }
+
+    /* ─── React instrument mount ──────────────────────────────────── */
+    #root { position: relative; z-index: 5; }
+
+    /* ─── Methodology room (below the instrument) ─────────────────── */
+    .method {
+      position: relative; z-index: 5;
+      max-width: 620px; margin: 0 auto; padding: 8px 14px 96px;
+    }
+    .method__rule {
+      display: flex; align-items: center; gap: 12px;
+      margin: 8px 0 26px; color: var(--cyan-soft);
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      letter-spacing: 0.28em; text-transform: uppercase;
+    }
+    .method__rule::before, .method__rule::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan-faint), transparent);
+    }
+    .method h2 {
+      font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase;
+      margin: 34px 0 12px; text-shadow: 0 0 10px var(--gold-glow);
+    }
+    .method h2:first-of-type { margin-top: 0; }
+    .method p { font-size: 14px; line-height: 1.7; color: #cfd6e2; margin-bottom: 12px; }
+    .method p b, .method li b { color: var(--text-primary); font-weight: 600; }
+    .method .cyan { color: var(--cyan); }
+    .method .gold { color: var(--gold); }
+    .method ul { list-style: none; margin: 4px 0 14px; }
+    .method li {
+      font-size: 13.5px; line-height: 1.6; color: #cfd6e2;
+      padding: 7px 0 7px 18px; position: relative;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .method li::before {
+      content: '▸'; position: absolute; left: 0; color: var(--gold); font-size: 11px;
+    }
+    .method__card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(14px) saturate(1.3);
+      -webkit-backdrop-filter: blur(14px) saturate(1.3);
+      border: 1px solid var(--glass-border); border-radius: 12px;
+      padding: 18px; margin-bottom: 16px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    table.ceil { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.ceil th, table.ceil td {
+      text-align: right; padding: 8px 6px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    table.ceil th:first-child, table.ceil td:first-child { text-align: left; }
+    table.ceil thead th {
+      font-family: 'Orbitron', sans-serif; font-size: 9.5px; font-weight: 700;
+      color: var(--cyan); letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    table.ceil tbody td { font-family: 'Share Tech Mono', monospace; color: #cfd6e2; }
+    table.ceil tbody td:first-child { font-family: 'Inter', sans-serif; color: var(--text-primary); }
+    table.ceil .sent { color: var(--gold); }
+    .method__note {
+      font-size: 12px; color: var(--text-dim); line-height: 1.6;
+      margin-top: 10px; font-style: italic;
+    }
+    .method__foot {
+      text-align: center; margin-top: 40px;
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      letter-spacing: 0.16em; color: var(--text-dim); text-transform: uppercase;
+    }
+    .method__foot a { color: var(--cyan-soft); text-decoration: none; }
+    .method__foot a:hover { color: var(--cyan); }
+
+    /* ─── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .cin-flank--right, .cin-hints { display: none; }
+      .cin-tick--bl, .cin-tick--br { display: none; }
+      .cin-flank--left { top: 0.6rem; left: 0.7rem; gap: 0.15rem; }
+      .cin-wordmark { font-size: 0.62rem; letter-spacing: 0.18em; }
+      .cin-version { font-size: 0.48rem; }
+      .cin-title { top: 0.55rem; }
+      .cin-title__name { font-size: 13px; letter-spacing: 0.16em; }
+      .cin-title__sub { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body::before, .cin-grain, .cin-flank, .cin-title, .cin-tick, .cin-hints {
+        animation: none !important; transition: none !important;
+      }
+      .cin-flank, .cin-tick, .cin-hints { opacity: 1 !important; transform: none !important; }
+      .cin-title { opacity: 1 !important; transform: translateX(-50%) !important; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cin-grain" aria-hidden="true"></div>
+
+  <div class="cin-flank cin-flank--left">
+    <a class="cin-wordmark" href="/" title="Back to Peirastes">PEIRASTES</a>
+    <span class="cin-version">Instrument 001 · v0.4</span>
+  </div>
+
+  <div class="cin-title" aria-label="The Apophenia Filter">
+    <div class="cin-title__name">The Apophenia Filter</div>
+    <div class="cin-title__sub">Structure &middot; Noise &middot; Calibration</div>
+  </div>
+
+  <div class="cin-flank cin-flank--right">
+    <div class="cin-action-row">
+      <a class="cin-action" href="#methodology">How it works &darr;</a>
+    </div>
+  </div>
+
+  <div class="cin-tick cin-tick--tl" aria-hidden="true"></div>
+  <div class="cin-tick cin-tick--tr" aria-hidden="true"></div>
+  <div class="cin-tick cin-tick--bl" aria-hidden="true"></div>
+  <div class="cin-tick cin-tick--br" aria-hidden="true"></div>
+
+  <div class="cin-hints" aria-hidden="true">
+    <span><kbd>Esc</kbd> Home</span>
+  </div>
+
+  <!-- The instrument -->
+  <div id="root"></div>
+
+  <!-- Methodology room -->
+  <section id="methodology" class="method">
+    <div class="method__rule">How it works</div>
+
+    <h2>Three observers</h2>
+    <p>
+      The same trajectory is <b>deterministic</b> to an observer who knows every
+      hidden force, <b>random</b> to one who knows none, and <b>probabilistic</b>
+      to one who knows some. This instrument measures the third observer —
+      the partially informed inference you actually run when you look at a moving
+      line and decide whether it means anything.
+    </p>
+
+    <h2>The lucky-forecaster problem</h2>
+    <p>
+      A track record of correct calls cannot separate skill from luck: enough
+      forecasters guessing means someone is right by chance, and survivorship
+      hides the ones who weren't. Only <span class="cyan">calibration</span> —
+      scored across many registered predictions — resolves it. That is why the
+      filter scores your <b>Brier</b>, not your win rate. A perpetual abstainer
+      scores 0.250; overconfident randomness scores worse.
+    </p>
+
+    <h2>The exam-as-filter mapping</h2>
+    <p>
+      Pure-noise trials are the "easy exam" — they isolate one variable,
+      <b>restraint</b>, because no call can beat 50% on a martingale.
+      <span class="gold">Sentinel</span> trials are the instrument's self-check:
+      a single person missing them reads as an attention or perception signal,
+      but if a whole population misses them, it indicts the instrument, not the
+      subjects. Abstaining is a legitimate, scored action — on a martingale it is
+      the <b>highest</b> behavior the filter can detect.
+    </p>
+
+    <h2>Ceilings, not perfection</h2>
+    <p>
+      Every mechanism &times; strength has an <b>oracle ceiling</b> — the accuracy
+      of an observer who knows the hidden state, measured by Monte Carlo
+      (N&nbsp;=&nbsp;30k), not assumed. Your score is read against the ceiling,
+      never against 100%. Some of every trajectory is genuinely unknowable.
+    </p>
+    <div class="method__card">
+      <table class="ceil">
+        <thead>
+          <tr><th>Mechanism</th><th>Subtle</th><th>Standard</th><th>Sentinel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Momentum (AR drift)</td><td>63%</td><td>73%</td><td class="sent">88%</td></tr>
+          <tr><td>Mean reversion (OU)</td><td>65%</td><td>73%</td><td class="sent">93%</td></tr>
+          <tr><td>Regime switching (HMM)</td><td>66%</td><td>77%</td><td class="sent">94%</td></tr>
+          <tr><td>Pure noise (martingale)</td><td>&mdash;</td><td>50%</td><td>&mdash;</td></tr>
+        </tbody>
+      </table>
+      <p class="method__note">
+        Momentum's ceiling saturates near 88% even with near-permanent drift — it
+        is intrinsically the hardest class. Not all sentinels are equal, and the
+        instrument says so.
+      </p>
+    </div>
+
+    <h2>The four quadrants</h2>
+    <ul>
+      <li><b class="gold">A · Discriminator</b> — sensitive to structure, restrained on noise. The profile the filter exists to find, and the one luck cannot sustain.</li>
+      <li><b>B · Calibrated, insensitive</b> — you withheld conviction where nothing was recoverable, but didn't recover the structure either. Honest, and trainable.</li>
+      <li><b>C · Undecidable</b> — hits on structure, but conviction spent on noise too. Real perception contaminated by apophenia — or luck. Only repetition resolves it.</li>
+      <li><b class="cyan">D · Apophenic</b> — conviction everywhere, discrimination nowhere. Pattern perception firing on martingales. The default human profile on financial charts.</li>
+    </ul>
+
+    <h2>Your data &amp; privacy</h2>
+    <p>
+      The filter stores a <b>pseudonymous</b> participant ID in your browser's
+      local storage — a random token, linked to no name, email, IP, or account.
+      An optional codename lets you connect sessions across devices; sessions stay
+      anonymous either way. Contributing a session to the research dataset is
+      strictly <b>opt-in</b> and post-hoc: it sends only what the JSON download
+      contains (your calls, confidence, response times, trial seeds, and the
+      instrument version), and the download is available whether or not you
+      contribute. Pilot/tester sessions are flagged and permanently excluded from
+      analysis. No third-party trackers, no cookies beyond the two local-storage
+      keys.
+    </p>
+
+    <div class="method__foot">
+      The inventor took the test first.<br>
+      <a href="/">&larr; Return to Peirastes</a>
+    </div>
+  </section>
+
+  <script type="module" src="/src/main.jsx"></script>
+  <script>
+    // Esc → Home (matches the cinematic Room convention)
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') window.location.href = '/';
+    });
+  </script>
+</body>
+</html>
