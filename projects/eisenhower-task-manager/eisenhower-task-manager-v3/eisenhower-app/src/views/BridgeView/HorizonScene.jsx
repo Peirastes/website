@@ -481,51 +481,80 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           - Size   : log-scaled to the task's effort estimate in hours.
                     A faint distance attenuation is also applied so far
                     tasks read as slightly recessed. */}
-      {sortedTasks.map(t => {
-        const d_eff = effOffset(t);
-        if (Math.abs(d_eff) / maxDays > 1.0) return null;
-        const xy = dayLaneToXY(d_eff, laneOf(t), t.id);
-        if (!xy) return null;
-        const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
-        const isEvent = isEventTask(t);
-        const isDone = (Number(t.percentComplete) || 0) >= 100;
-        const isOverdue = !isDone && dayOffset(t.dueDate, t.dueTime) < 0;
-        const tNorm = Math.abs(d_eff) / maxDays;
-        const unit = t.timeEstimateUnit || 'hours';
-        const val  = Number(t.timeEstimateValue) || 0;
-        const hours = val <= 0 ? 0 : (
-          unit === 'minutes' ? val / 60 :
-          unit === 'days'    ? val * 8 :
-          unit === 'weeks'   ? val * 40 : val);
-        const sizeScale = hours <= 0
-          ? 0.65
-          : Math.max(0.45, Math.min(1.6, 0.65 + Math.log2(Math.max(0.25, hours)) * 0.18));
-        const distScale = Math.max(0.8, 1 - tNorm * 0.2);
-        const scale = sizeScale * distScale;
-        const sizeShowsLabel = scale > 0.7;
-        const modeShowsLabel =
-            labelMode === 'none'       ? false
-          : labelMode === 'incomplete' ? !isDone
-          : labelMode === 'tracked'    ? !!t.tracked
-          :                              true; // 'all'
-        const showLabel = sizeShowsLabel && modeShowsLabel;
-        const labelText = t.task.length > 22 ? t.task.slice(0, 20) + '…' : t.task;
-        return (
+      {(() => {
+        // Phase 1 — render data for every on-globe task/event.
+        const items = [];
+        for (const t of sortedTasks) {
+          const d_eff = effOffset(t);
+          if (Math.abs(d_eff) / maxDays > 1.0) continue;
+          const xy = dayLaneToXY(d_eff, laneOf(t), t.id);
+          if (!xy) continue;
+          const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+          const isEvent = isEventTask(t);
+          const isDone = (Number(t.percentComplete) || 0) >= 100;
+          /* Overdue = past its real due moment and not yet complete — escalated
+             red so it can't recede into the darkened past hemisphere. */
+          const isOverdue = !isDone && dayOffset(t.dueDate, t.dueTime) < 0;
+          const tNorm = Math.abs(d_eff) / maxDays;
+          /* Effort → hours (days/weeks vs 8 h day / 40 h week); unknown → small. */
+          const unit = t.timeEstimateUnit || 'hours';
+          const val  = Number(t.timeEstimateValue) || 0;
+          const hours = val <= 0 ? 0 : (
+            unit === 'minutes' ? val / 60 :
+            unit === 'days'    ? val * 8 :
+            unit === 'weeks'   ? val * 40 : val);
+          const sizeScale = hours <= 0
+            ? 0.65
+            : Math.max(0.45, Math.min(1.6, 0.65 + Math.log2(Math.max(0.25, hours)) * 0.18));
+          const distScale = Math.max(0.8, 1 - tNorm * 0.2);   // 1.0 at ship → 0.8 at limb
+          const scale = sizeScale * distScale;
+          const modeShowsLabel =
+              labelMode === 'none'       ? false
+            : labelMode === 'incomplete' ? !isDone
+            : labelMode === 'tracked'    ? !!t.tracked
+            :                              true; // 'all'
+          const wantsLabel = scale > 0.7 && modeShowsLabel;
+          const labelText = t.task.length > 22 ? t.task.slice(0, 20) + '…' : t.task;
+          items.push({ t, d_eff, xy, qid, isEvent, isDone, isOverdue,
+                       scale, distScale, wantsLabel, labelText, showLabel: false });
+        }
+        // Phase 2 — greedy label de-collision. Priority (tracked > overdue >
+        // nearer-in-time) claims its box first; a candidate whose box overlaps
+        // an already-placed one is suppressed, so labels never pile up.
+        const prio = (it) =>
+          (it.t.tracked ? 100 : 0) + (it.isOverdue ? 50 : 0) - (Math.abs(it.d_eff) / maxDays) * 10;
+        const boxes = [];
+        for (const it of items.filter(i => i.wantsLabel).sort((a, b) => prio(b) - prio(a))) {
+          const fs = 10 * it.scale;
+          const w = Math.max(8, it.labelText.length * fs * 0.55), h = fs * 1.15;
+          const x1 = it.xy.x + 13 * it.scale, y1 = it.xy.y + 4 - h * 0.8;
+          const box = { x1, y1, x2: x1 + w, y2: y1 + h };
+          const hit = boxes.some(b => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2));
+          if (!hit) { it.showLabel = true; boxes.push(box); }
+        }
+        // Phase 3 — render.
+        return items.map(({ t, d_eff, xy, qid, isEvent, isDone, isOverdue,
+                            scale, distScale, showLabel, labelText }) => (
           <g key={t.id}
              className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
             {isEvent ? (
+              /* Calendar EVENT — a duration-length bar with a steady glow. */
               <EventBlock pts={eventBandPts(t, d_eff)}
                           thick={8 * distScale} className="bridge-event__block" />
             ) : (
               <>
+                {/* Ring on every live task; the blip PULSE only for tracked or
+                    overdue tasks, so the field stays calm. */}
                 {!isDone && (
                   <>
-                    <circle cx={xy.x} cy={xy.y} r={11 * scale}
-                            className="bridge-pip__blip"
-                            style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
+                    {(t.tracked || isOverdue) && (
+                      <circle cx={xy.x} cy={xy.y} r={11 * scale}
+                              className="bridge-pip__blip"
+                              style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
+                    )}
                     <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
                   </>
                 )}
@@ -539,8 +568,8 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
             )}
             <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
           </g>
-        );
-      })}
+        ));
+      })()}
 
       {/* Ship marker — sub-camera point sits at chart centre. */}
       <g transform={`translate(${CX}, ${CY})`}>

@@ -132,7 +132,7 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
               <EventBlock pts={eventPts} thick={7} className="bridge-event__block" />
             ) : (
               <>
-                {isOverdue && (
+                {!isDone && (t.tracked || isOverdue) && (
                   <circle cx={x} cy={y} r={9} className="bridge-pip__blip" />
                 )}
                 {!isDone && (
