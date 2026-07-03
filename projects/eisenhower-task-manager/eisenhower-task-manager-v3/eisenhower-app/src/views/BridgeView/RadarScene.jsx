@@ -1,5 +1,6 @@
 import React from 'react';
 import { QID_BY_QUAD } from '../../lib/quadrant';
+import { isEventTask, durationMin, EventBlock } from './PipShape';
 
 /**
  * RadarScene — top-down PPI rendering of tasks in polar coords.
@@ -106,6 +107,16 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
         const angle = li * sectorAngle + sectorAngle / 2 + jitter(t.id) * (sectorAngle * 0.35);
         const { x, y } = polar(r, angle);
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+        const isEvent = isEventTask(t);
+        /* EVENT bars extend radially from the event's start range to start +
+           duration — range IS time on the flat PPI, so the bar spans the real
+           event length. Straight line; no globe curvature to follow here. */
+        let eventPts = null;
+        if (isEvent) {
+          const rEnd = Math.max(r + 7, ((d + durationMin(t) / 1440) / maxDays) * MAX_R);
+          const pe = polar(rEnd, angle);
+          eventPts = [{ x, y }, { x: pe.x, y: pe.y }];
+        }
         const isDone = (Number(t.percentComplete) || 0) >= 100;
         /* Overdue tasks clamp to r=0 (pile at the ship) — escalate them red
            and give them a pulse so the centre cluster reads as "behind". */
@@ -116,13 +127,20 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
-            {isOverdue && (
-              <circle cx={x} cy={y} r={9} className="bridge-pip__blip" />
+            {isEvent ? (
+              /* Calendar EVENT — a duration-length bar with a steady glow. */
+              <EventBlock pts={eventPts} thick={7} className="bridge-event__block" />
+            ) : (
+              <>
+                {isOverdue && (
+                  <circle cx={x} cy={y} r={9} className="bridge-pip__blip" />
+                )}
+                {!isDone && (
+                  <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
+                )}
+                <circle cx={x} cy={y} r={4} className="bridge-pip__core" />
+              </>
             )}
-            {!isDone && (
-              <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
-            )}
-            <circle cx={x} cy={y} r={4} className="bridge-pip__core" />
             <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
           </g>
         );

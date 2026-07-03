@@ -16,6 +16,7 @@ import {
 } from './projection';
 import { useHorizonZoom } from './useHorizonZoom';
 import { useCameraDrag } from './useCameraDrag';
+import { isEventTask, durationMin, EventBlock } from './PipShape';
 
 /**
  * HorizonScene — wireframe-globe rendering of the Bridge "horizon"
@@ -82,6 +83,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
     bounds: { ALT_MIN, ALT_MAX },
     viewBox: { W, H },
     maxDays,
+    setMaxDays,
     viewAnchor,
     setViewAnchor,
   });
@@ -132,6 +134,38 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
     const { lat, lon } = taskLatLon(d, laneIdx, taskId);
     if (!isVisible(lat, lon)) return null;
     return projectLatLon(lat, lon);
+  };
+
+  /* Screen-space polyline for an EVENT band spanning the event's ACTUAL time
+     extent: start (its pip) → start + duration, sampled along the projected
+     time axis so it bends with the globe and clips at the limb. Time-accurate
+     at every zoom — a 3-hour block reaches three hours along the axis. A short
+     visibility floor keeps a brief event from vanishing when zoomed far out. */
+  const eventBandPts = (t, startD) => {
+    const lane = laneOf(t), id = t.id;
+    const p0 = dayLaneToXY(startD, lane, id);
+    if (!p0) return null;
+    const durDays = durationMin(t) / 1440;
+    const out = [p0]; let acc = 0, prev = p0, atLimb = false;
+    // Phase 1 — trace the real span, start → start + duration.
+    const N = 32;
+    for (let i = 1; i <= N; i++) {
+      const q = dayLaneToXY(startD + (durDays * i) / N, lane, id);
+      if (!q) { atLimb = true; break; }
+      acc += Math.hypot(q.x - prev.x, q.y - prev.y);
+      out.push(q); prev = q;
+    }
+    // Phase 2 — visibility floor if the whole span read sub-pixel (zoomed out).
+    const MIN_PX = 7, step = Math.max(0.01, maxDays * 0.004);
+    let d = startD + durDays, guard = 0;
+    while (!atLimb && acc < MIN_PX && guard++ < 200) {
+      d += step;
+      const q = dayLaneToXY(d, lane, id);
+      if (!q) break;
+      acc += Math.hypot(q.x - prev.x, q.y - prev.y);
+      out.push(q); prev = q;
+    }
+    return out.length >= 2 ? out : null;
   };
 
   /* Wheel zoom — snaps maxDays to HORIZON_BREAKPOINTS (see projection.js). */
@@ -441,6 +475,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         const xy = dayLaneToXY(d_eff, laneOf(t), t.id);
         if (!xy) return null;
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
+        const isEvent = isEventTask(t);
         const isDone = (Number(t.percentComplete) || 0) >= 100;
         /* Overdue = past its real due moment (pan-independent) and not yet
            complete. Escalated red over the night wash — the whole point of
@@ -480,17 +515,25 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
-            {/* Ring + blip only for LIVE targets — completed pips are
-                stripped down to the core. */}
-            {!isDone && (
+            {isEvent ? (
+              /* Calendar EVENT — a duration-length bar with a steady glow. */
+              <EventBlock pts={eventBandPts(t, d_eff)}
+                          thick={8 * distScale} className="bridge-event__block" />
+            ) : (
               <>
-                <circle cx={xy.x} cy={xy.y} r={11 * scale}
-                        className="bridge-pip__blip"
-                        style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
-                <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
+                {/* Ring + blip only for LIVE task targets — completed pips are
+                    stripped down to the core. */}
+                {!isDone && (
+                  <>
+                    <circle cx={xy.x} cy={xy.y} r={11 * scale}
+                            className="bridge-pip__blip"
+                            style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
+                    <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
+                  </>
+                )}
+                <circle cx={xy.x} cy={xy.y} r={5 * scale} className="bridge-pip__core" />
               </>
             )}
-            <circle cx={xy.x} cy={xy.y} r={5  * scale} className="bridge-pip__core" />
             {showLabel && (
               <text x={xy.x + 13 * scale} y={xy.y + 4}
                     className="bridge-pip__label"

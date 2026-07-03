@@ -487,7 +487,7 @@ body.app-locked .cin-hints {
   top: 5rem;       /* clears the chrome row at top:1.2-1.6rem + content */
   left: 50%;
   transform: translateX(-50%);
-  width: min(80rem, calc(100vw - 3.2rem));
+  width: min(80rem, calc(100vw - 1.6rem));
   z-index: 40;     /* below chrome (100) + boot overlay (200), above workspace */
   display: flex;
   align-items: center;
@@ -612,14 +612,13 @@ body.app-locked .cin-hints {
   min-height: 0;
   /* Shared horizontal-span pattern + align-self: center for the same
      flex-column-stretch reason as .readout-bar — see comment there. */
-  width: min(80rem, calc(100vw - 3.2rem));
+  width: min(80rem, calc(100vw - 1.6rem));
   align-self: center;
-  /* Matches the .cin-matrix-grid gap below — so the visible buffer
-     between the readout bar and Q1/Q2 (margin-top) AND the buffer
-     between Q3/Q4 and the action bar (margin-bottom) both equal the
-     inter-Q gap. The root paddingTop/paddingBottom in App.jsx are
-     sized to JUST clear the fixed bars so these margins alone control
-     the visible buffers. */
+  /* margin-top buffers Q1/Q2 below the chrome. margin-bottom buffers Q3/Q4
+     above the action bar at DESKTOP (≥1080px), where --etm-actionbar-clear is
+     the tight 3.4rem that only just clears the single-row bar. Below 1080px the
+     clearance is 5.25rem (already carries the buffer), so the mobile/tablet
+     overrides below drop this margin to match the scrolling .cin-view-panel views. */
   margin-top: 0.9rem;
   margin-bottom: 0.9rem;
   padding: 0;
@@ -852,10 +851,11 @@ body.app-locked .cin-hints {
      at 1023px). Cole flagged this as the bars "snapping" to a larger
      size. Now all viewport sizes use the same `min(80rem, calc(100vw -
      3.2rem))` so the bars only ever match-or-shrink monotonically. */
-  /* At this breakpoint .cin-matrix-grid gap is 0.7rem (see below),
-     so workspace margin-top/margin-bottom match that for the same
-     readout-to-Q1/Q2 and Q3/Q4-to-action visual buffers. */
-  .cin-workspace { margin-top: 0.7rem; margin-bottom: 0.7rem; }
+  /* At this breakpoint .cin-matrix-grid gap is 0.7rem (see below), so
+     margin-top matches that for the readout-to-Q1/Q2 buffer. NO margin-bottom:
+     <1080px --etm-actionbar-clear (5.25rem) already buffers the action bar, so
+     the grid fills to that edge like the scrolling .cin-view-panel views. */
+  .cin-workspace { margin-top: 0.7rem; margin-bottom: 0; }
   .cin-matrix-grid { gap: 0.7rem; }
 }
 @media (max-width: 767px) {
@@ -893,19 +893,20 @@ body.app-locked .cin-hints {
        the same snap-wider issue at the 768px breakpoint that the
        desktop fix solved. align-self: center for the flex-column
        parent (MatrixView's outer div). */
-    width: min(80rem, calc(100vw - 3.2rem));
+    width: min(80rem, calc(100vw - 1.6rem));
     align-self: center;
   }
   .cin-mobile-matrix {
     display: block;
     flex: 1;
     min-height: 0;
-    width: min(80rem, calc(100vw - 3.2rem));
+    width: min(80rem, calc(100vw - 1.6rem));
     align-self: center;
-    /* Visible buffer above the action bar — mirrors the workspace's
-       margin-bottom on desktop. Same value as the <1024px gap (0.7rem)
-       so mobile reads consistently. */
-    margin-bottom: 0.7rem;
+    /* No margin-bottom: --etm-actionbar-clear (5.25rem on mobile) already
+       buffers the action bar, so the single quadrant fills to that edge — the
+       same ~12px gap the scrolling .cin-view-panel views get. An extra margin
+       here double-buffered the matrix (Cole: "too much spacing on the grid"). */
+    margin-bottom: 0;
   }
 }
 .cin-mobile-tab {
@@ -979,7 +980,7 @@ body.app-locked .cin-hints {
      a 1.6rem viewport-edge inset minimum. <main> is block-level so a
      classical `margin: 0 auto` centers cleanly here (no flex item
      concerns). */
-  width: min(80rem, calc(100vw - 3.2rem));
+  width: min(80rem, calc(100vw - 1.6rem));
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -1874,36 +1875,62 @@ body.app-locked .cin-hints {
 
 .cin-action-bar {
   position: fixed;
-  bottom: 1.6rem;
-  /* Shared horizontal-span pattern: capped at 80rem, centered via
-     left:50% + translateX(-50%), with a 1.6rem viewport-edge inset
-     when below the cap. Matches .cin-workspace and .readout-bar. */
+  /* Lift above the home indicator (viewport-fit=cover) so it never overlaps content. */
+  bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
+  /* Compact floating panel — hugs its controls, centered. The CONTENT uses the
+     screen width; the dashboard stays small (no spread, no oversize). */
   left: 50%;
   transform: translateX(-50%);
-  width: min(80rem, calc(100vw - 3.2rem));
+  width: max-content;
+  max-width: calc(100vw - 1.6rem);
   z-index: 50;
+  /* Stacked zones (Views over Actions) on mobile; one row on desktop. */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.28rem 1.2rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
   background: var(--glass-bg-deep);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  border-radius: 4px;
+  border-radius: 6px;
   box-shadow: var(--glass-shadow);
   opacity: 0;
   animation: cin-action-bar-fade-in 800ms ease 700ms forwards;
+}
+
+/* Dashboard zones — Views (instruments) over Actions (console), each tight +
+   centered. No seam: the zones stack directly with minimal vertical padding. */
+.cin-dash-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1px 10px;
+}
+
+/* Content bottom-clearance: clears the compact 2-row panel (mobile) or single line
+   (desktop). The mobile bar's top sits ~4.5rem above the viewport bottom (56px tall
+   at bottom:1rem); 5.25rem leaves a small matrix-like gap so scrolling views (list,
+   gantt, calendar) don't slip their last rows under the panel. */
+:root { --etm-actionbar-clear: calc(5.25rem + env(safe-area-inset-bottom, 0px)); }
+
+/* Desktop ≥1080px: one row instead of the 2-row stack. */
+@media (min-width: 1080px) {
+  :root { --etm-actionbar-clear: 3.4rem; }
+  .cin-action-bar { flex-direction: row; align-items: center; gap: 0.9rem; padding: 0.28rem 1rem; }
 }
 body.app-locked .cin-action-bar {
   animation: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
+/* Opacity-only so it never overrides the bar's transform — which differs by
+   breakpoint (none full-width on mobile; translateX(-50%) centered on desktop). */
 @keyframes cin-action-bar-fade-in {
-  0%   { opacity: 0; transform: translate(-50%, 8px); }
-  100% { opacity: 1; transform: translate(-50%, 0); }
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .cin-view-tabs {
@@ -1946,6 +1973,13 @@ body.app-locked .cin-action-bar {
   opacity: 0.65;
 }
 .cin-view-tab.on .cin-view-tab__glyph { opacity: 1; }
+
+/* Below 1080px the labeled tabs would push the action bar past its frame —
+   collapse them to icons-only (the active tab + glyphs still read clearly). */
+@media (max-width: 1080px) {
+  .cin-view-tab > span:not(.cin-view-tab__glyph) { display: none; }
+  .cin-view-tab { padding: 5px 8px; gap: 0; }
+}
 
 .cin-action-bar__divider {
   width: 1px;
@@ -2021,8 +2055,8 @@ body.app-locked .cin-action-bar {
      just tightens internal padding/gap and drops the bar closer to
      the viewport bottom edge. */
   .cin-action-bar {
-    padding: 0.28rem 0.6rem;
-    gap: 0.5rem;
+    padding: 0.12rem 0.6rem;
+    gap: 0.08rem;
     bottom: 1rem;
   }
   .cin-view-tab { padding: 3px 8px; font-size: 10px; }
@@ -3155,6 +3189,20 @@ body.app-locked .cin-action-bar {
   100% { transform: scale(2.5); opacity: 0; }
 }
 
+/* ─── Calendar EVENT blocks — duration bars with a steady glow (no blip).
+   Events read as calendar time-blocks: length ∝ duration, a constant
+   quadrant-hued glow instead of the task blip's pulse. ─────────────────── */
+.bridge-event__block {
+  fill: none;
+  transition: stroke-width 120ms ease, opacity 120ms ease;
+}
+.bridge-pip--q1 .bridge-event__block { stroke: var(--q1-hue); filter: drop-shadow(0 0 6px var(--q1-glow)); }
+.bridge-pip--q2 .bridge-event__block { stroke: var(--q2-hue); filter: drop-shadow(0 0 6px var(--q2-glow)); }
+.bridge-pip--q3 .bridge-event__block { stroke: var(--q3-hue); filter: drop-shadow(0 0 6px var(--q3-glow)); }
+.bridge-pip--q4 .bridge-event__block { stroke: var(--q4-hue); filter: drop-shadow(0 0 5px var(--q4-glow)); }
+.bridge-pip--done .bridge-event__block { opacity: 0.4; filter: none; }
+.bridge-pip--overdue .bridge-event__block { stroke: var(--crit); filter: drop-shadow(0 0 7px var(--crit-glow)); }
+
 /* Dependency arc — great-circle line between a prerequisite and its
    dependent task. Direction shown by an animated dash flow that drifts
    FROM source TO target. */
@@ -3277,3 +3325,278 @@ body.app-locked .cin-action-bar {
 
 .bridge-pip:hover .bridge-pip__ring { opacity: 1; stroke-width: 1.5; }
 .bridge-pip:hover .bridge-pip__core { transform-box: fill-box; transform-origin: center; transform: scale(1.25); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Mobile-polish pass (CE, 2026-06-14)
+   ───────────────────────────────────────────────────────────────
+   Touch-device fixes:
+   (1) Lift every form control to 16px so iOS Safari doesn't auto-zoom
+       the viewport on focus (any input < 16px triggers the zoom).
+   (2) Grow tap-target HEIGHT toward the 44px guideline. Heights only —
+       the bottom action bar is horizontally dense (≈10 controls), so
+       widths stay compact to keep it on one row on narrow phones.
+   Scoped to `pointer: coarse` (true touch primary) so mouse desktops
+   keep their compact density, and iPad in landscape (> 767px, so a
+   width query would miss it) still gets the fixes.
+   ═══════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  /* (1) iOS zoom-on-focus guard */
+  .cin-input,
+  .cin-textarea,
+  .cin-select,
+  .cin-search-input { font-size: 16px; }
+
+  /* (2) tap targets */
+  .cin-input,
+  .cin-select { min-height: 40px; }
+  .cin-view-tab { min-height: 40px; }
+  .cin-add-task { min-height: 40px; }
+  .cin-utility-btn { width: 34px; height: 38px; }
+  .cin-mobile-tab { min-height: 44px; }      /* matrix quadrant tabs */
+}
+
+/* Phones: the centered instrument title (fixed, left:50%, wide Orbitron
+   tracking, no max-width) grows past the corner flanks and collides with
+   the PEIRASTES wordmark — it can't fit between the flanks at a readable
+   size on a ~390px screen. Hide it; the wordmark + the view-panel header
+   ("BRIDGE · NAVIGATION", etc.) already carry identity. The flank shrink
+   at ≤767px (font-size 14px) keeps it for tablets/large landscape. */
+@media (max-width: 600px) {
+  .cin-title { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROJECTS VIEW — first-class projects with rolled-up progress
+   ═══════════════════════════════════════════════════════════════
+   Card grid; each card = name + status pill + computed progress bar
+   + counts, expandable to its task list. Progress is derived live
+   from the task list (task.projectId), never stored. Surface vocab
+   matches the acrylic-glass view panels. */
+.proj-empty {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: rgba(220, 220, 220, 0.5);
+  text-align: center;
+  padding: 28px 12px;
+  line-height: 1.5;
+}
+.proj-empty-sm {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(220, 220, 220, 0.45);
+  padding: 8px 2px;
+  line-height: 1.45;
+}
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 12px;
+}
+.proj-card-r {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--cin-cyan);
+  border-radius: 7px;
+  padding: 12px 14px 13px;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.proj-card-r:hover { background: rgba(255, 255, 255, 0.045); }
+.proj-card-r__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+.proj-card-r__name {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(235, 235, 235, 0.95);
+  letter-spacing: 0.01em;
+}
+.proj-card-r__status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(220, 220, 220, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.proj-st-active   { color: var(--cin-cyan); border-color: rgba(120, 220, 255, 0.35); }
+.proj-st-done     { color: #79e08a; border-color: rgba(121, 224, 138, 0.40); }
+.proj-st-paused   { color: var(--cin-gold); border-color: var(--cin-gold-glow); }
+.proj-st-archived { color: rgba(180, 180, 180, 0.45); opacity: 0.8; }
+.proj-bar-r {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 10px 0 7px;
+}
+.proj-bar-r__fill {
+  height: 100%;
+  background: var(--cin-cyan);
+  border-radius: 3px;
+  transition: width 320ms ease;
+}
+.proj-card-r__meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(220, 220, 220, 0.55);
+  letter-spacing: 0.03em;
+}
+.proj-od { color: #ff6b6b; }
+.proj-card-r__detail {
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.proj-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(220, 220, 220, 0.72);
+  line-height: 1.45;
+}
+.proj-task-r {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 140ms ease;
+}
+.proj-task-r:hover { border-color: rgba(120, 220, 255, 0.32); }
+.proj-task-r__name {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(230, 230, 230, 0.9);
+}
+.proj-task-r__pct {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(220, 220, 220, 0.5);
+  white-space: nowrap;
+}
+.proj-card-r__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 3px;
+}
+.proj-card-r__actions button {
+  flex: 1;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.68);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.proj-card-r__actions button:hover { border-color: rgba(120, 220, 255, 0.35); color: rgba(235, 235, 235, 0.92); }
+.proj-card-r__actions .proj-danger { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.32); }
+.proj-card-r__actions .proj-danger:hover { border-color: rgba(255, 107, 107, 0.6); color: #ff8a8a; }
+
+/* toolbar — filter chips + sort */
+.proj-chips { display: inline-flex; gap: 4px; }
+.proj-chip {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(220, 220, 220, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.proj-chip:hover { color: rgba(235, 235, 235, 0.9); border-color: rgba(120, 220, 255, 0.3); }
+.proj-chip--on { color: #04121a; background: var(--cin-cyan); border-color: var(--cin-cyan); }
+.proj-sort {
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+  min-width: 78px;
+  width: auto;
+}
+.proj-track-pick {
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+  min-width: 92px;
+  max-width: 150px;
+  width: auto;
+  color: var(--cin-cyan);
+}
+
+/* type badge on a card */
+.proj-type {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(220, 220, 220, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+/* portfolio link in expanded detail */
+.proj-link {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--cin-cyan);
+  text-decoration: none;
+  letter-spacing: 0.03em;
+}
+.proj-link:hover { text-decoration: underline; }
+
+/* sub-area task groups within a project (e.g. Airframe / Test Rig / Gimbal) */
+.proj-task-group { display: flex; flex-direction: column; gap: 6px; }
+.proj-task-group + .proj-task-group { margin-top: 4px; }
+.proj-task-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--cin-gold);
+  opacity: 0.85;
+  margin: 2px 0;
+}
+.proj-task-group__head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.proj-task-group__count {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(220, 220, 220, 0.45);
+}
+
+/* manual-percent editor for task-less projects */
+.proj-manual { display: flex; flex-direction: column; gap: 6px; padding: 2px 0; }
+.proj-manual__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(220, 220, 220, 0.6);
+}
