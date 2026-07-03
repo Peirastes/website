@@ -35,9 +35,9 @@ const CONFIG = {
   API_KEY: "",             // Supabase anon key (insert-only via RLS)
 };
 
-const VERSION = "0.4.0";
+const VERSION = "0.4.1";
 const PARAMS_HASH =
-  "v0.4|mom(phi .82/.92/.99, sd.25, obs.7)|mr(k.04 s0 / k.12 s1.5 / k.12 s8 @VIS-4)|reg(mu.30 p.06 / .45 p.04 / .90 p.01)";
+  "v0.4.1|mom(phi .82/.92/.99, sd.25, obs.7)|mr(k.04 s0 / k.12 s1.5 / k.12 s8 @VIS-4)|reg(mu.30 p.06 / .45 p.04 / .90 p.01)|cls(sens=binom α.05 1sided vs p.5; restr=apo≤10 OR nAbst≥.4)";
 
 // Monte Carlo oracle ceilings (N=30k) for the parameters below.
 // Re-run the tuning harness and update these if params change.
@@ -104,6 +104,22 @@ function makeGauss(rng) {
   };
 }
 const newSeed = () => Math.floor(Math.random() * 4294967296);
+
+// ---------- sensitivity gate: one-sided exact binomial test vs p=0.5 ----------
+// nCk via multiplicative form (n <= 24 here, exact in double precision).
+function nCk(n, k) {
+  if (k < 0 || k > n) return 0;
+  k = Math.min(k, n - k);
+  let r = 1;
+  for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1);
+  return r;
+}
+// P(Binom(n, 0.5) >= x) — probability a coin-flipper matches or beats x/n correct.
+function binomTailP(x, n) {
+  let s = 0;
+  for (let k = x; k <= n; k++) s += nCk(n, k);
+  return s / Math.pow(2, n);
+}
 
 // ---------- participant identity ----------
 function loadIdentity() {
@@ -265,21 +281,16 @@ function TraceChart({ series, revealIdx, outcome }) {
 }
 
 // ---------- quadrant compass (2x2) ----------
-// Axes reproduce the classifier's own thresholds so the marker always lands
-// in the labeled cell:  x = sensitivity (structAcc vs 0.60),
-// y = restraint (max of the two OR-arms: apophenia<=10 OR noiseAbstain>=0.4).
-function CompassGrid({ quadrant, structAcc, structN, apophenia, abstainRateNoise }) {
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+// sensAxis / restrAxis are computed in the report (single source of truth) so
+// the marker's sign always matches the classifier: sensAxis>=0 <=> sensitive
+// (accuracy significantly > chance, one-sided binomial α=.05); restrAxis>=0
+// <=> restrained. That guarantees the dot lands in the labeled/lit cell.
+function CompassGrid({ quadrant, sensAxis, restrAxis }) {
   const gx = 52, gy = 18, gw = 232, gh = 232;
   const cx = gx + gw / 2, cy = gy + gh / 2, pad = 28;
-  const unclass = structAcc === null || structN < 3;
-  const nSens = structAcc === null ? 0 : clamp((structAcc - 0.6) / 0.4, -1, 1);
-  const R = Math.max(
-    clamp((10 - apophenia) / 10, -1, 1),
-    clamp((abstainRateNoise - 0.4) / 0.4, -1, 1)
-  );
-  const mx = cx + nSens * (gw / 2 - pad);
-  const my = cy - R * (gh / 2 - pad);
+  const unclass = quadrant === "—";
+  const mx = cx + sensAxis * (gw / 2 - pad);
+  const my = cy - restrAxis * (gh / 2 - pad);
   const colorOf = { A: C.up, B: C.trace, C: C.brass, D: C.down };
   const cells = [
     { k: "B", name: "Calibrated", x: gx, y: gy, lx: gx + 20, anchor: "start" },
@@ -500,10 +511,26 @@ export default function ApopheniaFilter() {
       : null;
     const sentinelAbstains = sentinels.filter((r) => r.dir === "abstain").length;
 
-    const sensitive = structA.acc !== null && structA.n >= 3 && structA.acc >= 0.6;
+    const structK = struct.filter((r) => r.correct === true).length;
+    const sensitive =
+      structA.acc !== null && structA.n >= 3 && binomTailP(structK, structA.n) < 0.05;
     const restrained = apophenia <= 10 || abstainRateNoise >= 0.4;
     const apo = `+${apophenia.toFixed(1)}`;
     const structPct = structA.acc !== null ? `${(structA.acc * 100).toFixed(0)}%` : "—";
+    // ---- compass axes (single source of truth so the marker matches the letter) ----
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    let sensAxis;
+    if (structA.acc === null) sensAxis = -1;
+    else {
+      const z = 2 * Math.sqrt(structA.n) * (structA.acc - 0.5); // normal approx to the test
+      sensAxis = clamp((z - 1.645) / 1.645, -1, 1);             // 0 at the α=.05 boundary
+      if (sensitive && sensAxis < 0.06) sensAxis = 0.06;        // sign must match the exact test
+      if (!sensitive && sensAxis > -0.06) sensAxis = -0.06;
+    }
+    const restrAxis = Math.max(
+      clamp((10 - apophenia) / 10, -1, 1),
+      clamp((abstainRateNoise - 0.4) / 0.4, -1, 1)
+    );
     let quadrant, qName, qDesc, qNudge;
     if (structA.n < 3) {
       quadrant = "—";
@@ -525,7 +552,7 @@ export default function ApopheniaFilter() {
       qDesc =
         "You knew what you didn't know — conviction was withheld where nothing was recoverable — but the embedded mechanisms weren't recovered either. Honest, and trainable: the limiting factor is perception, not judgment.";
       qNudge =
-        `The lever is perception, not discipline — you already keep conviction off the noise. But structured accuracy sat at ${structPct}, below the 60% line, so recoverable signal went unclaimed. Commit when a tell is actually present: slope for momentum, a stretched spike starting to fade for mean reversion, a persistent one-sided drift for a regime.`;
+        `The lever is perception, not discipline — you already keep conviction off the noise. But your structured accuracy (${structPct}, ${structK}/${structA.n} calls) isn't yet distinguishable from chance, so recoverable signal went unclaimed. Commit when a tell is actually present — slope for momentum, a stretched spike starting to fade for mean reversion, a persistent one-sided drift for a regime — and enough times to prove it wasn't luck.`;
     } else if (sensitive && !restrained) {
       quadrant = "C";
       qName = "Undecidable";
@@ -545,7 +572,7 @@ export default function ApopheniaFilter() {
     return {
       noise, struct, meanBrier, structA, noiseA, apophenia, abstainRateNoise,
       curve, sentinelHit, sentinelAbstains, sentinelN: sentinels.length,
-      quadrant, qName, qDesc, qNudge,
+      quadrant, qName, qDesc, qNudge, sensAxis, restrAxis, structK,
     };
   }, [records]);
 
@@ -804,11 +831,16 @@ export default function ApopheniaFilter() {
             </label>
             <div style={S.row}>
               <button style={S.btn(false)} onClick={() => chooseSession("quick")}>
-                QUICK · 12 TRIALS
+                QUICK · 12 · PRACTICE
               </button>
               <button style={S.btn(false)} onClick={() => chooseSession("full")}>
                 FULL LAB · 24 TRIALS
               </button>
+            </div>
+            <div style={{ fontSize: 11, color: C.dim, marginTop: 8, lineHeight: 1.5 }}>
+              Quick is for practice — too few structured trials to prove skill
+              above chance, so a confident verdict isn't possible. The Full Lab is
+              the real measurement.
             </div>
           </div>
         )}
@@ -1006,6 +1038,20 @@ export default function ApopheniaFilter() {
         {/* ---------------- REPORT ---------------- */}
         {phase === "report" && report && (
           <>
+            {sessionSize === "quick" && (
+              <div style={{ ...S.panel, borderColor: C.trace }}>
+                <div style={{ ...S.eyebrow, marginBottom: 8, color: C.trace, textShadow: "none" }}>
+                  Practice session
+                </div>
+                <p style={{ ...S.p, margin: 0 }}>
+                  The Quick deck has too few structured trials to separate skill
+                  from luck — a confident{" "}
+                  <span style={{ color: C.up }}>Discriminator</span> verdict is
+                  nearly impossible here by design. Treat this as a warm-up; run
+                  the <b>Full Lab</b> for a real read.
+                </p>
+              </div>
+            )}
             <div style={{ ...S.panel, borderColor: C.brass }}>
               <div style={{ ...S.eyebrow, marginBottom: 10 }}>Classification</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
@@ -1054,16 +1100,15 @@ export default function ApopheniaFilter() {
               <div style={{ ...S.eyebrow, marginBottom: 10 }}>The compass — where you landed</div>
               <CompassGrid
                 quadrant={report.quadrant}
-                structAcc={report.structA.acc}
-                structN={report.structA.n}
-                apophenia={report.apophenia}
-                abstainRateNoise={report.abstainRateNoise}
+                sensAxis={report.sensAxis}
+                restrAxis={report.restrAxis}
               />
               <div style={{ fontSize: 11.5, color: C.dim, marginTop: 8, lineHeight: 1.5 }}>
-                Horizontal — sensitivity to real structure (accuracy on structured
-                trials, boundary 60%). Vertical — restraint on pure noise (low
-                conviction, or high abstention). The dot is you; the lit cell is
-                your classification.
+                Horizontal — sensitivity to real structure: the boundary is
+                accuracy <i>significantly</i> above chance (one-sided binomial
+                test, α&nbsp;=&nbsp;0.05), so a lucky streak on a few calls doesn't
+                count. Vertical — restraint on pure noise (low conviction, or high
+                abstention). The dot is you; the lit cell is your classification.
               </div>
               {report.qNudge && (
                 <div
