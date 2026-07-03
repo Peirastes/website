@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import {
   formatAbsolute,
   formatRelative,
@@ -361,6 +361,18 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           );
         })()}
 
+        {/* Origin line — the stationary central meridian (lon 0 = the
+            sub-camera point). Always dead-centre, so it marks WHERE YOU'RE
+            LOOKING on the time axis; the today meridian slides through it as you
+            pan. The central meridian projects straight, so it's a flat vertical
+            axis. */}
+        {(() => {
+          const pts = meridianPts(0);
+          if (pts.length < 2) return null;
+          return <path d={polyPath(pts)} fill="none"
+                       className="bridge-range-arc bridge-range-arc--origin" />;
+        })()}
+
         {/* Lane labels — horizontally centred on the projection of each
             lane's centre latitude on the prime meridian, then shifted
             DOWN by LABEL_OFFSET so they sit clear of any task pips
@@ -477,28 +489,17 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
         const isEvent = isEventTask(t);
         const isDone = (Number(t.percentComplete) || 0) >= 100;
-        /* Overdue = past its real due moment (pan-independent) and not yet
-           complete. Escalated red over the night wash — the whole point of
-           a "what am I behind on" view is that these MUST stand out, not
-           recede into the darkened past hemisphere. */
         const isOverdue = !isDone && dayOffset(t.dueDate, t.dueTime) < 0;
         const tNorm = Math.abs(d_eff) / maxDays;
-        /* Effort → hours. days/weeks normalised against an 8 h workday
-           and 40 h workweek; unknown estimates default to a small pip. */
         const unit = t.timeEstimateUnit || 'hours';
         const val  = Number(t.timeEstimateValue) || 0;
         const hours = val <= 0 ? 0 : (
           unit === 'minutes' ? val / 60 :
           unit === 'days'    ? val * 8 :
-          unit === 'weeks'   ? val * 40 :
-          val                                                 // hours
-        );
-        /* log₂(h) maps   0.5 h → −1   1 h → 0   8 h → 3   40 h → 5.3.
-           Linear remap to a scale window of [0.5, 1.6]. */
+          unit === 'weeks'   ? val * 40 : val);
         const sizeScale = hours <= 0
           ? 0.65
           : Math.max(0.45, Math.min(1.6, 0.65 + Math.log2(Math.max(0.25, hours)) * 0.18));
-        /* Gentle distance attenuation: 1.0 at ship, 0.8 at limb. */
         const distScale = Math.max(0.8, 1 - tNorm * 0.2);
         const scale = sizeScale * distScale;
         const sizeShowsLabel = scale > 0.7;
@@ -516,13 +517,10 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer' }}>
             {isEvent ? (
-              /* Calendar EVENT — a duration-length bar with a steady glow. */
               <EventBlock pts={eventBandPts(t, d_eff)}
                           thick={8 * distScale} className="bridge-event__block" />
             ) : (
               <>
-                {/* Ring + blip only for LIVE task targets — completed pips are
-                    stripped down to the core. */}
                 {!isDone && (
                   <>
                     <circle cx={xy.x} cy={xy.y} r={11 * scale}
