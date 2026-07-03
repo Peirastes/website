@@ -33,6 +33,10 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  */
 export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all' }) => {
   const W = 1000, H = 600;
+  /* Touch / phone screens get larger pips, bars, and labels so the smaller
+     scaled-down globe stays legible and tappable. */
+  const uiScale = (typeof window !== 'undefined'
+    && window.matchMedia('(max-width: 767px)').matches) ? 1.7 : 1;
   const N = lanes.length;
   const svgRef = React.useRef(null);
 
@@ -525,9 +529,9 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           (it.t.tracked ? 100 : 0) + (it.isOverdue ? 50 : 0) - (Math.abs(it.d_eff) / maxDays) * 10;
         const boxes = [];
         for (const it of items.filter(i => i.wantsLabel).sort((a, b) => prio(b) - prio(a))) {
-          const fs = 10 * it.scale;
+          const fs = 10 * it.scale * uiScale;
           const w = Math.max(8, it.labelText.length * fs * 0.55), h = fs * 1.15;
-          const x1 = it.xy.x + 13 * it.scale, y1 = it.xy.y + 4 - h * 0.8;
+          const x1 = it.xy.x + 13 * it.scale * uiScale, y1 = it.xy.y + 4 - h * 0.8;
           const box = { x1, y1, x2: x1 + w, y2: y1 + h };
           const hit = boxes.some(b => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2));
           if (!hit) { it.showLabel = true; boxes.push(box); }
@@ -543,7 +547,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
             {isEvent ? (
               /* Calendar EVENT — a duration-length bar with a steady glow. */
               <EventBlock pts={eventBandPts(t, d_eff)}
-                          thick={8 * distScale} className="bridge-event__block" />
+                          thick={8 * distScale * uiScale} className="bridge-event__block" />
             ) : (
               <>
                 {/* Ring on every live task; the blip PULSE only for tracked or
@@ -551,20 +555,20 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
                 {!isDone && (
                   <>
                     {(t.tracked || isOverdue) && (
-                      <circle cx={xy.x} cy={xy.y} r={11 * scale}
+                      <circle cx={xy.x} cy={xy.y} r={11 * scale * uiScale}
                               className="bridge-pip__blip"
                               style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
                     )}
-                    <circle cx={xy.x} cy={xy.y} r={11 * scale} className="bridge-pip__ring" />
+                    <circle cx={xy.x} cy={xy.y} r={11 * scale * uiScale} className="bridge-pip__ring" />
                   </>
                 )}
-                <circle cx={xy.x} cy={xy.y} r={5 * scale} className="bridge-pip__core" />
+                <circle cx={xy.x} cy={xy.y} r={5 * scale * uiScale} className="bridge-pip__core" />
               </>
             )}
             {showLabel && (
-              <text x={xy.x + 13 * scale} y={xy.y + 4}
+              <text x={xy.x + 13 * scale * uiScale} y={xy.y + 4}
                     className="bridge-pip__label"
-                    style={{ fontSize: `${10 * scale}px` }}>{labelText}</text>
+                    style={{ fontSize: `${10 * scale * uiScale}px` }}>{labelText}</text>
             )}
             <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
           </g>
@@ -573,8 +577,8 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
 
       {/* Ship marker — sub-camera point sits at chart centre. */}
       <g transform={`translate(${CX}, ${CY})`}>
-        <circle r={6} className="bridge-ship-core" />
-        <circle r={11} fill="none" className="bridge-ship-ring" />
+        <circle r={6 * uiScale} className="bridge-ship-core" />
+        <circle r={11 * uiScale} fill="none" className="bridge-ship-ring" />
         <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">
           {formatAnchor(viewAnchor)}
         </text>

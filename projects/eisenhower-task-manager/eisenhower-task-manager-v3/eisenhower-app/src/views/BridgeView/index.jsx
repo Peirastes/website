@@ -42,7 +42,8 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
   }, [labelMode]);
   /* Horizon distance is wheel-zoomable. State lives here so it survives
      Horizon ↔ Radar toggles. */
-  const [horizonDays, setHorizonDays] = useState(90);
+  const [horizonDays, setHorizonDays] = useState(() =>
+    (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) ? 21 : 90);
   /* Time anchor for Horizon's drag-to-pan. Fractional days from real-now.
      viewAnchor = 0 means the ship sits at "now" (default). Positive =
      ship has sailed forward in time; negative = panned to the past.
@@ -152,7 +153,7 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
           <span className="cin-view-panel__count">{visible.length}</span>
           <span className="cin-view-panel__sub">
             {mode === 'horizon'
-              ? `forward perspective · ${formatHorizonShort(maxDays)} horizon · drag to pan · wheel to zoom`
+              ? `forward perspective · ${formatHorizonShort(maxDays)} horizon · drag to pan · pinch / wheel to zoom`
               : `top-down radar · ${maxDays}d range · click a target to edit`}
           </span>
         </div>

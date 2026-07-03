@@ -12,6 +12,9 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
   const SIZE = 700;
   const CX = SIZE / 2, CY = SIZE / 2;
   const MAX_R = 295;
+  /* Touch / phone screens get larger pips so the scaled-down PPI stays legible. */
+  const uiScale = (typeof window !== 'undefined'
+    && window.matchMedia('(max-width: 767px)').matches) ? 1.7 : 1;
 
   /* Polar→cartesian with 12 o'clock as 0 radians (compass convention). */
   const polar = (r, theta) => ({
@@ -129,16 +132,16 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
              style={{ cursor: 'pointer' }}>
             {isEvent ? (
               /* Calendar EVENT — a duration-length bar with a steady glow. */
-              <EventBlock pts={eventPts} thick={7} className="bridge-event__block" />
+              <EventBlock pts={eventPts} thick={7 * uiScale} className="bridge-event__block" />
             ) : (
               <>
                 {!isDone && (t.tracked || isOverdue) && (
-                  <circle cx={x} cy={y} r={9} className="bridge-pip__blip" />
+                  <circle cx={x} cy={y} r={9 * uiScale} className="bridge-pip__blip" />
                 )}
                 {!isDone && (
-                  <circle cx={x} cy={y} r={9} className="bridge-pip__ring" />
+                  <circle cx={x} cy={y} r={9 * uiScale} className="bridge-pip__ring" />
                 )}
-                <circle cx={x} cy={y} r={4} className="bridge-pip__core" />
+                <circle cx={x} cy={y} r={4 * uiScale} className="bridge-pip__core" />
               </>
             )}
             <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
