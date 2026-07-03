@@ -1031,6 +1031,23 @@ export default function ApopheniaFilter() {
                 </span>
               </div>
               <p style={{ ...S.p, marginBottom: 0 }}>{report.qDesc}</p>
+              {report.structA.n >= 3 && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 11.5,
+                    fontStyle: "italic",
+                    color: C.dim,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  One session, {report.structA.n} committed structured call
+                  {report.structA.n === 1 ? "" : "s"} — a small sample. Luck alone
+                  can land any quadrant at this size; only calibration across many
+                  sessions separates skill from luck. Read this as a single data
+                  point, not a verdict — which is, after all, the whole thesis.
+                </div>
+              )}
             </div>
 
             <div style={S.panel}>
