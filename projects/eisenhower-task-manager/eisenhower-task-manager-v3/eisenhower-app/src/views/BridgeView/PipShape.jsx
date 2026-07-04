@@ -2,13 +2,18 @@ import React from 'react';
 
 /* Bridge marker helpers, shared by the Horizon (globe) and Radar scenes.
    Tasks render as round dots (each scene draws its own circle + blip + ring).
-   Calendar EVENTS — fixed time-blocks with subcategory 'Schedule' (or an evt-
-   id) — render as duration-proportional bars via <EventBlock>: the longer the
-   event, the longer the rectangle, with a steady quadrant-hued glow and no
-   blip pulse. */
+   Calendar EVENTS render as duration-proportional bars via <EventBlock>: the
+   longer the event, the longer the rectangle, with a steady quadrant-hued glow
+   and no blip pulse.
+
+   ONE definition of "event" drives the whole app: the `isEvent` flag (set by
+   the task form's "Calendar event" toggle) is authoritative — the same flag
+   List / Matrix / Gantt / Analytics filter on — so a task marked as an event
+   both drops off the tasklist AND draws as a Bridge timebar. The legacy
+   subcategory 'Schedule' / 'evt-' id checks stay as back-compat fallbacks. */
 
 export const isEventTask = (t) =>
-  t.subcategory === 'Schedule' || String(t.id).startsWith('evt-');
+  t.isEvent === true || t.subcategory === 'Schedule' || String(t.id).startsWith('evt-');
 
 /* Event length in minutes, read from the time-estimate fields (events store
    their block length there). Defaults to 60 when unset. */

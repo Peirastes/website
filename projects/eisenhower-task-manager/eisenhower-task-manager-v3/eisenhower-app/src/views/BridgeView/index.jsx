@@ -3,6 +3,7 @@ import { TaskDetailsModal } from '../../components/TaskDetailsModal';
 import { AppDock } from '../../components/AppDock';
 import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
+import { isEventTask } from './PipShape';
 
 /**
  * ═════════════════════════════════════════════════════════════════
@@ -203,8 +204,11 @@ export const BridgeView = ({
     { key: 'delegate',  qid: 'q3', label: 'Delegate'  },
     { key: 'eliminate', qid: 'q4', label: 'Eliminate' },
   ];
+  /* The Sectors readout is a TASK list — calendar events (which expire rather
+     than get completed) are excluded here; they live on the globe as timebars
+     and on the Calendar, not in the quadrant to-do rollup. */
   const sectorTasks = (key) =>
-    visible.filter(t => isOpenTask(t) && getQuadrant(t) === key).sort(byDue);
+    visible.filter(t => isOpenTask(t) && !isEventTask(t) && getQuadrant(t) === key).sort(byDue);
 
   const projProgress = (p) => {
     const mine = tasks.filter(t => t.projectId === p.id && !t.deletedAt);
@@ -216,7 +220,7 @@ export const BridgeView = ({
     .filter(p => p.status !== 'done' && p.status !== 'archived')
     .map(p => ({
       id: p.id, name: p.name, pct: projProgress(p),
-      tasks: tasks.filter(t => t.projectId === p.id && isOpenTask(t)).sort(byDue),
+      tasks: tasks.filter(t => t.projectId === p.id && isOpenTask(t) && !isEventTask(t)).sort(byDue),
     }))
     /* Only projects with actionable work or real progress — skip the 0%,
        task-less portfolio entries so the panel stays a live worklist. */
@@ -228,7 +232,7 @@ export const BridgeView = ({
      < -7) — invisible on the globe, so pull them out into their own tray. */
   const lateLabel = (t) => `${Math.max(1, Math.floor(-dayOffset(t.dueDate, t.dueTime)))}d late`;
   const overdueBehind = tasks
-    .filter(t => t.dueDate && !t.completedDate && isOpenTask(t)
+    .filter(t => t.dueDate && !t.completedDate && isOpenTask(t) && !isEventTask(t)
               && dayOffset(t.dueDate, t.dueTime) < 0
               && (dayOffset(t.dueDate, t.dueTime) - viewAnchor) < -7)
     .sort(byDue);
