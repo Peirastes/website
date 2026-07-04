@@ -356,6 +356,7 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
                             onClick={() => pickProject(p.id)}
                             onPointerDown={(e) => e.stopPropagation()}>
                       <span className="bridge-hud__caret">{p.tasks.length ? (open ? '▾' : '▸') : '·'}</span>
+                      <span className="bridge-project__dot" />
                       <span className="bridge-project__name">{trunc(p.name, 22)}</span>
                       <span className="bridge-project__pct">{p.pct}%</span>
                     </button>
