@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { formatHorizonShort } from '../../lib/dateFormat';
 import { TaskDetailsModal } from '../../components/TaskDetailsModal';
 import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
@@ -232,34 +231,39 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
 
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
-      <div className="cin-view-panel__head">
-        <div className="cin-view-panel__title">
-          Bridge · Navigation
-          <span className="cin-view-panel__count">{visible.length}</span>
-          <span className="cin-view-panel__sub">
-            {mode === 'horizon'
-              ? `forward perspective · ${formatHorizonShort(maxDays)} horizon · drag to pan · pinch / wheel to zoom`
-              : `top-down radar · ${maxDays}d range · click a target to edit`}
-          </span>
-        </div>
-        <div className="cin-view-panel__toolbar">
+      <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
+        {/* Cartographic corner ticks framing the free-floating stage
+            (canonical Artemis/Tip-Recover chrome). */}
+        <span className="bridge-tick bridge-tick--tl" aria-hidden="true" />
+        <span className="bridge-tick bridge-tick--tr" aria-hidden="true" />
+        <span className="bridge-tick bridge-tick--bl" aria-hidden="true" />
+        <span className="bridge-tick bridge-tick--br" aria-hidden="true" />
+
+        {/* Console dock — bottom-centre floating glass control bar. Carries the
+            mode toggle + filters that used to sit in the header, so the app
+            masthead stays the one and only centred title. */}
+        <div className="bridge-console">
           <div className="cin-mode-toggle" role="group" aria-label="Bridge mode">
             <button
               type="button"
               className={`cin-mode-toggle__btn ${mode === 'horizon' ? 'is-active' : ''}`}
               onClick={() => setMode('horizon')}
+              onPointerDown={(e) => e.stopPropagation()}
               aria-pressed={mode === 'horizon'}
             >Horizon</button>
             <button
               type="button"
               className={`cin-mode-toggle__btn ${mode === 'radar' ? 'is-active' : ''}`}
               onClick={() => setMode('radar')}
+              onPointerDown={(e) => e.stopPropagation()}
               aria-pressed={mode === 'radar'}
             >Radar</button>
           </div>
+          <span className="bridge-console__sep" />
           <div className="cin-filter">
             <label className="cin-filter__label">Quadrant</label>
-            <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}>
+            <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}
+                    onPointerDown={(e) => e.stopPropagation()}>
               <option value="all">All</option>
               <option value="do-first">Q1 · Critical</option>
               <option value="schedule">Q2 · Strategic</option>
@@ -270,7 +274,8 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
           {mode === 'horizon' && (
             <div className="cin-filter">
               <label className="cin-filter__label">Labels</label>
-              <select value={labelMode} onChange={(e) => setLabelMode(e.target.value)}>
+              <select value={labelMode} onChange={(e) => setLabelMode(e.target.value)}
+                      onPointerDown={(e) => e.stopPropagation()}>
                 <option value="all">All</option>
                 <option value="incomplete">Incomplete</option>
                 <option value="tracked">Tracked only</option>
@@ -279,9 +284,6 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
             </div>
           )}
         </div>
-      </div>
-
-      <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
         {/* Recenter floats over the globe (out of the header flow) so its
             show/hide never reflows the toolbar and jostles the frame. */}
         {mode === 'horizon' && Math.abs(viewAnchor) >= 1/48 && (

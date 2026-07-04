@@ -77,7 +77,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      and slides them across the visible cap. */
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
-  const SCALE = isMobile ? 1040 : 800;   // bigger globe on phones — fills the frame, sides curve off
+  const SCALE = isMobile ? 1040 : 920;   // globe fills the free-space frame; sides bleed off-screen
   /* Camera state + drag handlers come from useCameraDrag. Defaults
      (cameraAlt = R, panX = 0, panY = 240) reproduce the Picture6
      framing — globe inscribed in chart with ~38 px side buffer + ship
@@ -595,9 +595,6 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           </text>
         )}
       </g>
-
-      {/* HUD frame */}
-      <rect x={0.5} y={0.5} width={W - 1} height={H - 1} className="bridge-frame" />
     </svg>
   );
 };

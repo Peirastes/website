@@ -156,8 +156,6 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
       <circle cx={CX} cy={CY} r={14} className="bridge-ship-ring" />
       <text x={CX} y={CY + 30} textAnchor="middle" className="bridge-ship-label">TODAY</text>
 
-      {/* Outer HUD frame */}
-      <rect x={0.5} y={0.5} width={SIZE-1} height={SIZE-1} className="bridge-frame" />
     </svg>
   );
 };
