@@ -158,14 +158,6 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
           </span>
         </div>
         <div className="cin-view-panel__toolbar">
-          {mode === 'horizon' && Math.abs(viewAnchor) >= 1/48 && (
-            <button
-              type="button"
-              className="cin-btn cin-btn--secondary"
-              onClick={() => setViewAnchor(0)}
-              title="Recenter on now"
-            >Recenter</button>
-          )}
           <div className="cin-mode-toggle" role="group" aria-label="Bridge mode">
             <button
               type="button"
@@ -204,7 +196,18 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
         </div>
       </div>
 
-      <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex' }}>
+      <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
+        {/* Recenter floats over the globe (out of the header flow) so its
+            show/hide never reflows the toolbar and jostles the frame. */}
+        {mode === 'horizon' && Math.abs(viewAnchor) >= 1/48 && (
+          <button
+            type="button"
+            className="cin-btn cin-btn--secondary bridge-recenter"
+            onClick={() => setViewAnchor(0)}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="Recenter on now"
+          >Recenter</button>
+        )}
         {mode === 'horizon' ? (
           <HorizonScene
             tasks={visible} lanes={lanes} laneOf={laneOf}
