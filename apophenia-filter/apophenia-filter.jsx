@@ -46,6 +46,36 @@ const CONFIG = {
   API_KEY: "kuZSP54EQvK-HdU0qkB2wzQ3",
 };
 
+// ---------- optional accounts (personal longitudinal history) ----------
+// Uses the Pi's same-origin auth + per-user storage. Accounts are OPTIONAL and
+// entirely SEPARATE from the anonymous research pool: signing in only lets a
+// person save and review THEIR OWN sessions (via /api/store/apophenia). It never
+// touches the anonymous /api/contrib pool and adds no identity to research data.
+// Enabled only when the app is served from the Pi (same-origin) — a cross-origin
+// login from peirastes.com would hit the same tailnet/CORS wall as contribute.
+const ACCT_TOKEN_KEY = "apophenia_acct_token";
+const acctEnabled = () =>
+  typeof location !== "undefined" && location.hostname === PI_HOST;
+const acctToken = () => {
+  try { return localStorage.getItem(ACCT_TOKEN_KEY) || ""; } catch { return ""; }
+};
+const setAcctToken = (t) => {
+  try { t ? localStorage.setItem(ACCT_TOKEN_KEY, t) : localStorage.removeItem(ACCT_TOKEN_KEY); } catch {}
+};
+async function acctApi(path, method = "GET", body) {
+  const headers = { "Content-Type": "application/json" };
+  const t = acctToken();
+  if (t) headers["Authorization"] = `Bearer ${t}`;
+  try {
+    const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    let data = {};
+    try { data = await res.json(); } catch {}
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: "network error" } };
+  }
+}
+
 const VERSION = "0.4.1";
 const PARAMS_HASH =
   "v0.4.1|mom(phi .82/.92/.99, sd.25, obs.7)|mr(k.04 s0 / k.12 s1.5 / k.12 s8 @VIS-4)|reg(mu.30 p.06 / .45 p.04 / .90 p.01)|cls(sens=binom α.05 1sided vs p.5; restr=apo≤10 OR nAbst≥.4)";
@@ -353,6 +383,86 @@ function CompassGrid({ quadrant, sensAxis, restrAxis }) {
   );
 }
 
+// ---------- personal history dashboard (accounts only) ----------
+function HistoryDashboard({ sessions }) {
+  const mono = "'Share Tech Mono', monospace";
+  const qColor = { A: C.up, B: C.trace, C: C.brass, D: C.down, "—": C.dim };
+  const withBrier = sessions.filter((s) => typeof s.meanBrier === "number");
+  const n = sessions.length;
+  const best = withBrier.length ? Math.min(...withBrier.map((s) => s.meanBrier)) : null;
+  const latest = sessions[sessions.length - 1];
+  const beatCount = withBrier.filter((s) => s.meanBrier < 0.25).length;
+
+  const W = 560, H = 150, PAD = 26;
+  const bs = withBrier.map((s) => s.meanBrier);
+  const hi = Math.max(0.5, ...(bs.length ? bs : [0.5]));
+  const xOf = (i) => PAD + (bs.length <= 1 ? (W - 2 * PAD) / 2 : (i / (bs.length - 1)) * (W - 2 * PAD));
+  const yOf = (v) => PAD + (1 - v / hi) * (H - 2 * PAD);
+
+  const label = (t) => (
+    <div style={{ fontSize: 10, letterSpacing: "0.14em", color: C.dim, textTransform: "uppercase", fontFamily: mono, marginBottom: 6 }}>{t}</div>
+  );
+  const stat = (k, v) => (
+    <div key={k} style={{ flex: "1 1 110px", background: "rgba(4,7,12,0.5)", border: `1px solid ${C.line}`, borderRadius: 8, padding: "10px 12px" }}>
+      <div style={{ fontSize: 9.5, letterSpacing: "0.12em", color: C.dim, textTransform: "uppercase", fontFamily: mono }}>{k}</div>
+      <div style={{ fontSize: 19, fontWeight: 700, color: C.brass, fontFamily: "'Orbitron', sans-serif", lineHeight: 1.25 }}>{v}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {stat("Sessions", n)}
+        {stat("Best Brier", best == null ? "—" : best.toFixed(3))}
+        {stat("Beat 0.250", `${beatCount}/${withBrier.length || 0}`)}
+        {stat("Latest", latest ? latest.quadrant || "—" : "—")}
+      </div>
+
+      {bs.length >= 1 && (
+        <div style={{ marginBottom: 18 }}>
+          {label("Mean Brier over sessions · lower is better")}
+          <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
+            <rect x="0" y="0" width={W} height={H} rx="8" fill="rgba(8,12,18,0.6)" stroke={C.line} />
+            <line x1={PAD} y1={yOf(0.25)} x2={W - PAD} y2={yOf(0.25)} stroke={C.dim} strokeWidth="1" strokeDasharray="3 4" opacity="0.6" />
+            <text x={W - PAD} y={yOf(0.25) - 5} textAnchor="end" fontFamily={mono} fontSize="9" fill={C.dim}>0.250 · the bar</text>
+            {bs.length > 1 && (
+              <polyline points={bs.map((v, i) => `${xOf(i)},${yOf(v)}`).join(" ")} fill="none" stroke={C.trace} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+            )}
+            {bs.map((v, i) => (
+              <circle key={i} cx={xOf(i)} cy={yOf(v)} r="3.5" fill={v < 0.25 ? C.up : C.down} />
+            ))}
+          </svg>
+        </div>
+      )}
+
+      {label("Quadrant history")}
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 18 }}>
+        {sessions.map((s, i) => (
+          <span key={i} title={`${(s.at || "").slice(0, 10)} · Brier ${typeof s.meanBrier === "number" ? s.meanBrier.toFixed(3) : "—"}`}
+            style={{ width: 26, height: 26, borderRadius: 6, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 13, color: qColor[s.quadrant] || C.dim, background: `${qColor[s.quadrant] || C.dim}22`, border: `1px solid ${qColor[s.quadrant] || C.dim}55` }}>
+            {s.quadrant || "—"}
+          </span>
+        ))}
+      </div>
+
+      {label("Sessions")}
+      {[...sessions].reverse().map((s, i) => (
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.line}`, fontSize: 12.5, gap: 10 }}>
+          <span style={{ color: C.dim, fontFamily: mono }}>
+            {(s.at || "").slice(0, 10)} · {s.sessionSize === "full" ? "Full" : "Quick"}
+          </span>
+          <span style={{ whiteSpace: "nowrap" }}>
+            <span style={{ color: qColor[s.quadrant] || C.dim, fontWeight: 600 }}>{s.quadrant || "—"}</span>
+            {typeof s.meanBrier === "number" && (
+              <span style={{ color: s.meanBrier < 0.25 ? C.up : C.down, marginLeft: 8, fontFamily: mono }}>{s.meanBrier.toFixed(3)}</span>
+            )}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- main ----------
 export default function ApopheniaFilter() {
   const [phase, setPhase] = useState("intro");
@@ -369,6 +479,14 @@ export default function ApopheniaFilter() {
   const [records, setRecords] = useState([]);
   const [sessionMeta, setSessionMeta] = useState(null);
   const [contribStatus, setContribStatus] = useState("idle");
+  const [account, setAccount] = useState(null);        // {username} when signed in
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("login");   // "login" | "register"
+  const [authForm, setAuthForm] = useState({ username: "", password: "", invite: "" });
+  const [authMsg, setAuthMsg] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle"); // save-to-history status
+  const [history, setHistory] = useState(null);
   const timerRef = useRef(null);
   const trialStartRef = useRef(null);
 
@@ -391,6 +509,7 @@ export default function ApopheniaFilter() {
     setRecords([]);
     setTrialIdx(0);
     setContribStatus("idle");
+    setSaveStatus("idle");
     setSessionMeta({
       instrument: "apophenia-filter",
       version: VERSION,
@@ -649,6 +768,66 @@ export default function ApopheniaFilter() {
     }
   };
 
+  // ---------- optional account: validate any stored token on load ----------
+  useEffect(() => {
+    if (!acctEnabled() || !acctToken()) return;
+    acctApi("/api/me").then((r) => {
+      if (r.ok && r.data.username) setAccount({ username: r.data.username });
+      else setAcctToken("");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const submitAuth = async () => {
+    const u = authForm.username.trim();
+    if (!u || !authForm.password) { setAuthMsg("username + password required"); return; }
+    setAuthBusy(true); setAuthMsg("");
+    const path = authMode === "register" ? "/api/register" : "/api/login";
+    const body = authMode === "register"
+      ? { username: u, password: authForm.password, invite: authForm.invite.trim() }
+      : { username: u, password: authForm.password };
+    const r = await acctApi(path, "POST", body);
+    setAuthBusy(false);
+    if (r.ok && r.data.token) {
+      setAcctToken(r.data.token);
+      setAccount({ username: r.data.username });
+      setAuthOpen(false);
+      setAuthForm({ username: "", password: "", invite: "" });
+    } else {
+      setAuthMsg(r.data.error || "sign-in failed");
+    }
+  };
+  const signOut = async () => {
+    try { await acctApi("/api/logout", "POST"); } catch {}
+    setAcctToken(""); setAccount(null);
+  };
+  const saveToHistory = async () => {
+    if (!account) return;
+    setSaveStatus("saving");
+    const p = buildPayload();
+    const record = {
+      sessionId: p.sessionId,
+      at: p.completedAt || new Date().toISOString(),
+      sessionSize: p.sessionSize,
+      version: p.version,
+      ...(p.summary || {}),
+    };
+    const r = await acctApi("/api/store/apophenia", "PUT", { name: p.sessionId, value: record });
+    setSaveStatus(r.ok ? "saved" : "error");
+  };
+  const openHistory = async () => {
+    setHistory(null);
+    setPhase("history");
+    const r = await acctApi("/api/store/apophenia");
+    setHistory(
+      r.ok
+        ? Object.values(r.data || {})
+            .filter((x) => x && x.sessionId)
+            .sort((a, b) => (String(a.at) < String(b.at) ? -1 : 1))
+        : []
+    );
+  };
+
   // ---------- styles ----------
   const S = {
     app: {
@@ -849,6 +1028,51 @@ export default function ApopheniaFilter() {
               above chance, so a confident verdict isn't possible. The Full Lab is
               the real measurement.
             </div>
+
+            {acctEnabled() && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
+                {account ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 12.5, color: C.dim }}>
+                      Signed in as <span style={{ color: C.trace, fontWeight: 600 }}>{account.username}</span>
+                    </span>
+                    <span style={{ display: "flex", gap: 8 }}>
+                      <button style={{ ...S.secondary, marginTop: 0, width: "auto", padding: "8px 13px" }} onClick={openHistory}>MY HISTORY</button>
+                      <button style={{ ...S.secondary, marginTop: 0, width: "auto", padding: "8px 13px" }} onClick={signOut}>SIGN OUT</button>
+                    </span>
+                  </div>
+                ) : !authOpen ? (
+                  <div style={{ fontSize: 12, color: C.dim, lineHeight: 1.55 }}>
+                    Optional:{" "}
+                    <button
+                      onClick={() => { setAuthOpen(true); setAuthMsg(""); }}
+                      style={{ background: "none", border: "none", color: C.trace, cursor: "pointer", padding: 0, font: "inherit", textDecoration: "underline" }}
+                    >
+                      sign in or create an account
+                    </button>{" "}
+                    to track your calibration across sessions and devices. Your history is private to you and is never mixed into the anonymous research data.
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: "flex", gap: 12, marginBottom: 8, fontSize: 12.5 }}>
+                      <button onClick={() => { setAuthMode("login"); setAuthMsg(""); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, font: "inherit", color: authMode === "login" ? C.brass : C.dim, fontWeight: authMode === "login" ? 700 : 400 }}>Sign in</button>
+                      <span style={{ color: C.dim }}>·</span>
+                      <button onClick={() => { setAuthMode("register"); setAuthMsg(""); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, font: "inherit", color: authMode === "register" ? C.brass : C.dim, fontWeight: authMode === "register" ? 700 : 400 }}>Create account</button>
+                    </div>
+                    <input style={S.input} placeholder="username" value={authForm.username} maxLength={60} onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })} />
+                    <input style={S.input} type="password" placeholder="password (6+ chars)" value={authForm.password} onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })} />
+                    {authMode === "register" && (
+                      <input style={S.input} placeholder="invite code" value={authForm.invite} onChange={(e) => setAuthForm({ ...authForm, invite: e.target.value })} />
+                    )}
+                    {authMsg && <div style={{ fontSize: 12, color: C.down, marginTop: 6 }}>{authMsg}</div>}
+                    <button style={{ ...S.primary, opacity: authBusy ? 0.6 : 1 }} disabled={authBusy} onClick={submitAuth}>
+                      {authBusy ? "…" : authMode === "register" ? "Create account" : "Sign in"}
+                    </button>
+                    <button onClick={() => { setAuthOpen(false); setAuthMsg(""); }} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: "10px 0 0", font: "inherit", fontSize: 12 }}>cancel</button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1263,6 +1487,29 @@ export default function ApopheniaFilter() {
                     ? "FAILED — TAP TO RETRY"
                     : "ENDPOINT NOT CONFIGURED")}
               </button>
+              {acctEnabled() && (account ? (
+                <button
+                  style={{
+                    ...S.secondary,
+                    borderColor: saveStatus === "saved" ? C.up : C.trace,
+                    color: saveStatus === "saved" ? C.up : C.trace,
+                    opacity: saveStatus === "saving" ? 0.6 : 1,
+                  }}
+                  disabled={saveStatus === "saving" || saveStatus === "saved"}
+                  onClick={saveToHistory}
+                >
+                  {saveStatus === "idle" && "★ SAVE TO MY HISTORY"}
+                  {saveStatus === "saving" && "SAVING…"}
+                  {saveStatus === "saved" && "✓ SAVED TO YOUR HISTORY"}
+                  {saveStatus === "error" && "SAVE FAILED — TAP TO RETRY"}
+                </button>
+              ) : (
+                <div style={{ fontSize: 11.5, color: C.dim, marginTop: 10, lineHeight: 1.55 }}>
+                  Signed-in users can save this to a private personal history
+                  (your calibration over time) — separate from the anonymous
+                  research data above.
+                </div>
+              ))}
             </div>
 
             <div style={S.panel}>
@@ -1292,6 +1539,30 @@ export default function ApopheniaFilter() {
               </button>
             </div>
           </>
+        )}
+
+        {/* ---------------- PERSONAL HISTORY (accounts) ---------------- */}
+        {phase === "history" && (
+          <div style={{ ...S.panel, borderColor: C.trace }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <div style={{ ...S.eyebrow, marginBottom: 0, color: C.trace, textShadow: "none" }}>
+                Your history{account ? ` · ${account.username}` : ""}
+              </div>
+              <button style={{ ...S.secondary, marginTop: 0, width: "auto", padding: "7px 13px" }} onClick={() => setPhase("intro")}>
+                ← BACK
+              </button>
+            </div>
+            {history === null ? (
+              <p style={{ ...S.p, color: C.dim, marginBottom: 0 }}>Loading…</p>
+            ) : history.length === 0 ? (
+              <p style={{ ...S.p, color: C.dim, marginBottom: 0 }}>
+                No saved sessions yet. Finish a session and tap{" "}
+                <b style={{ color: C.trace }}>★ Save to my history</b> on the report.
+              </p>
+            ) : (
+              <HistoryDashboard sessions={history} />
+            )}
+          </div>
         )}
       </div>
     </div>
