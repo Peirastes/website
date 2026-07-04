@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp, RefreshCw, Compass } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, Info, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp, RefreshCw, Compass, MessageSquare, FolderKanban } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 
@@ -22,6 +22,8 @@ import { TaskForm } from './views/TaskForm';
 import { MatrixView } from './views/MatrixView';
 import { ListView } from './views/ListView';
 import { BridgeView } from './views/BridgeView';
+import { CopilotView } from './views/CopilotView';
+import { ProjectsView } from './views/ProjectsView';
 
 const API_BASE = '/api';
 
@@ -55,6 +57,7 @@ const EisenhowerTaskManager = () => {
 
   // All state must be declared before any conditional rendering
   const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [settings, setSettings] = useState({
     domains: ['Teaching', 'Projects', 'Personal'],
     scopes: ['Professional', 'Personal'],
@@ -292,7 +295,17 @@ const EisenhowerTaskManager = () => {
       if (serverBackup) setBackupMetadata(serverBackup);
     } catch (e) { /* use defaults */ }
 
+    try {
+      const serverProjects = await apiFetch('/projects');
+      if (serverProjects && serverProjects.projects) setProjects(serverProjects.projects);
+    } catch (e) { /* projects optional */ }
+
     setIsLoading(false);
+  };
+
+  // Reload just the project list (after create/assign/status changes).
+  const refreshProjects = async () => {
+    try { const r = await apiFetch('/projects'); if (r && r.projects) setProjects(r.projects); } catch {}
   };
 
   const handleRefresh = async () => {
@@ -743,8 +756,9 @@ const EisenhowerTaskManager = () => {
       // breathing) so the workspace's margin-top alone controls the
       // visible gap. The workspace then uses `margin-top: 0.9rem` to
       // match the inter-Q cin-matrix-grid gap exactly. See cinematic.css.
-      paddingTop: '7.2rem',
-      paddingBottom: '3.6rem'
+      // Copilot tab hides the task-readout bar, so it only needs to clear the chrome.
+      paddingTop: '4.4rem', /* readout removed — only clear the chrome title now */
+      paddingBottom: 'var(--etm-actionbar-clear)' /* 2-row panel on mobile, single line on desktop */
     }}>
       {/* PHASE 1: SVG film-grain layer — see `.cin-grain` in index.css.
           position: fixed escapes this stacking context; mix-blend-mode:
@@ -761,9 +775,6 @@ const EisenhowerTaskManager = () => {
         title="Eisenhower Task Manager"
         sub="Operations — Task Prioritization Console"
         crew="Critical · Strategic · Delegate · Eliminate"
-        version="v3.0"
-        onInfo={() => setShowInfo(true)}
-        onSettings={() => setShowSettings(true)}
       />
 
       {/* PHASE 5 cleanup: removed etm-reveal-* keyframes (retired in
@@ -774,47 +785,9 @@ const EisenhowerTaskManager = () => {
 
       {/* === CONTROL PANEL LAYOUT: readouts → screens → controls === */}
 
-      {/* PHASE 3: Cinematic readout bar — acrylic glass, bare colored
-          numbers for Q1-Q4 (no text labels — LED + color encodes
-          identity), text labels preserved on Overdue/Today (temporal
-          state, not quadrant identity), Mk-III nameplate at right.
-          Q1='do-first', Q2='schedule', Q3='delegate', Q4='eliminate'.
-          NOTE: the `env(safe-area-inset-top)` inline paddingTop was
-          removed here — it was a leftover from when this strip sat at
-          the very top of the viewport. With the chrome row above, the
-          notch is already cleared by .cin-flank's top inset; keeping it
-          here was overriding the symmetric 0.5rem CSS padding and
-          pushing the cell content to the top of the bar on desktop. */}
-      <div className="readout-bar">
-        <div className="readout-group">
-          {[
-            { qid: 'q1', valKey: 'do-first'   },
-            { qid: 'q2', valKey: 'schedule'   },
-            { qid: 'q3', valKey: 'delegate'   },
-            { qid: 'q4', valKey: 'eliminate'  },
-          ].map(r => (
-            <div key={r.qid} className="readout-cell readout-cell--quad">
-              <span className={`cin-led cin-led--${r.qid}`} />
-              <div className={`readout-cell__value readout-cell__value--${r.qid}`}>{stats.byQuadrant[r.valKey] ?? 0}</div>
-            </div>
-          ))}
-        </div>
-        <div className="readout-group">
-          {stats.overdue.length > 0 && (
-            <div className="readout-cell">
-              <div className="readout-cell__label"><span className="cin-led cin-led--crit cin-led--pulse" /> Overdue</div>
-              <div className="readout-cell__value readout-cell__value--crit">{stats.overdue.length}</div>
-            </div>
-          )}
-          {stats.dueToday.length > 0 && (
-            <div className="readout-cell">
-              <div className="readout-cell__label"><span className="cin-led cin-led--warn cin-led--pulse" /> Today</div>
-              <div className="readout-cell__value readout-cell__value--warn">{stats.dueToday.length}</div>
-            </div>
-          )}
-          <div className="hidden sm:block cin-nameplate">Peirastes Mk-III</div>
-        </div>
-      </div>
+      {/* Readout bar removed 2026-06-19 — its Q1–Q4 counts duplicated the Matrix
+          quadrant tabs, and the info wasn't wanted on the other tabs. Content now
+          only needs to clear the chrome (paddingTop 5rem), reclaiming the row. */}
 
       {/* Middle: Main Content — fills viewport between readouts and control bar */}
       {/* PHASE 5 polish: removed `max-w-7xl mx-auto px-* py-2` from <main>.
@@ -869,9 +842,17 @@ const EisenhowerTaskManager = () => {
           />
         ) : view === 'bridge' ? (
           <BridgeView
-            tasks={liveTasks} getQuadrant={getQuadrant}
+            tasks={liveTasks} projects={projects} getQuadrant={getQuadrant}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
             settings={settings}
+          />
+        ) : view === 'copilot' ? (
+          <CopilotView />
+        ) : view === 'projects' ? (
+          <ProjectsView
+            projects={projects} tasks={tasks}
+            onRefresh={refreshProjects}
+            setEditingTask={setEditingTask} setShowForm={setShowForm}
           />
         ) : (
           <AnalyticsView
@@ -888,61 +869,78 @@ const EisenhowerTaskManager = () => {
           done counts) is dropped here — the same numbers are already
           implicit in the top readout bar's Q1-Q4 counts. */}
       <div className="cin-action-bar">
-        <div className="cin-view-tabs" role="tablist">
-          {[
-            { key: 'matrix',    icon: LayoutGrid,  label: 'Matrix' },
-            { key: 'list',      icon: List,        label: 'List' },
-            { key: 'gantt',     icon: BarChart3,   label: 'Gantt' },
-            { key: 'calendar',  icon: Calendar,    label: 'Calendar' },
-            { key: 'bridge',    icon: Compass,     label: 'Bridge' },
-            { key: 'analytics', icon: TrendingUp,  label: 'Analytics' }
-          ].map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              className={`cin-view-tab ${view === key ? 'on' : ''}`}
-              onClick={() => setView(key)}
-              role="tab"
-              aria-selected={view === key}
-            >
-              <span className="cin-view-tab__glyph"><Icon size={13} /></span>
-              <span>{label}</span>
-            </button>
-          ))}
+        {/* Dashboard panel: Views cluster (instruments) over Actions cluster
+            (center console), stacked tight into a compact paneled frame — no
+            seam, minimal vertical padding. */}
+        <div className="cin-dash-zone cin-dash-zone--views">
+          <div className="cin-view-tabs" role="tablist">
+            {[
+              { key: 'matrix',    icon: LayoutGrid,  label: 'Matrix' },
+              { key: 'list',      icon: List,        label: 'List' },
+              { key: 'gantt',     icon: BarChart3,   label: 'Gantt' },
+              { key: 'calendar',  icon: Calendar,    label: 'Calendar' },
+              { key: 'bridge',    icon: Compass,     label: 'Bridge' },
+              { key: 'analytics', icon: TrendingUp,  label: 'Analytics' },
+              { key: 'projects',  icon: FolderKanban, label: 'Projects' },
+              { key: 'copilot',   icon: MessageSquare, label: 'Copilot' }
+            ].map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                className={`cin-view-tab ${view === key ? 'on' : ''}`}
+                onClick={() => setView(key)}
+                role="tab"
+                aria-selected={view === key}
+              >
+                <span className="cin-view-tab__glyph"><Icon size={13} /></span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="cin-action-bar__divider" />
-
-        <button
-          className="cin-add-task"
-          onClick={() => { setEditingTask(null); setShowForm(true); }}
-          title="Add new task"
-        >
-          <span className="cin-add-task__glyph"><Plus size={14} strokeWidth={2.5} /></span>
-          <span>Add Task</span>
-        </button>
-
-        <div className="cin-action-bar__divider" />
-
-        <div className="cin-utility-cluster">
+        <div className="cin-dash-zone cin-dash-zone--actions">
           <button
-            className="cin-utility-btn"
-            onClick={exportData}
-            title="Export data"
-            aria-label="Export"
-          ><Download size={13} /></button>
-          <label className="cin-utility-btn" title="Import data" style={{ cursor: 'pointer' }}>
-            <Upload size={13} />
-            <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
-          </label>
-          <button
-            className="cin-utility-btn"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            title="Refresh"
-            aria-label="Refresh"
+            className="cin-add-task"
+            onClick={() => { setEditingTask(null); setShowForm(true); }}
+            title="Add new task"
           >
-            <RefreshCw size={13} className={isRefreshing ? 'cin-utility-btn--spin' : ''} />
+            <span className="cin-add-task__glyph"><Plus size={14} strokeWidth={2.5} /></span>
+            <span>Add Task</span>
           </button>
+
+          <div className="cin-utility-cluster">
+            <button
+              className="cin-utility-btn"
+              onClick={() => setShowInfo(true)}
+              title="About this app"
+              aria-label="About"
+            ><Info size={13} /></button>
+            <button
+              className="cin-utility-btn"
+              onClick={() => setShowSettings(true)}
+              title="Settings"
+              aria-label="Settings"
+            ><Settings size={13} /></button>
+            <button
+              className="cin-utility-btn"
+              onClick={exportData}
+              title="Export data"
+              aria-label="Export"
+            ><Download size={13} /></button>
+            <label className="cin-utility-btn" title="Import data" style={{ cursor: 'pointer' }}>
+              <Upload size={13} />
+              <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
+            </label>
+            <button
+              className="cin-utility-btn"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh"
+              aria-label="Refresh"
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'cin-utility-btn--spin' : ''} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1039,6 +1037,8 @@ const EisenhowerTaskManager = () => {
             setDefaultDueDate('');
           }}
           settings={settings}
+          projects={projects}
+          tasks={tasks}
         />
       )}
 

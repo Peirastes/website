@@ -2968,45 +2968,81 @@ body.app-locked .cin-action-bar {
   position: absolute;
   top: 14px;
   z-index: 4;
-  pointer-events: none;
+  pointer-events: none;          /* panel is click-through; interactive rows re-enable */
   font-family: 'Share Tech Mono', monospace;
+  max-height: calc(100% - 28px);
+  overflow-y: auto;
+  scrollbar-width: none;
 }
-.bridge-hud--status { left: 16px; display: flex; flex-direction: column; gap: 10px; }
-.bridge-hud__stat { display: flex; align-items: baseline; gap: 7px; }
-.bridge-hud__num {
-  font-size: 20px; font-weight: 500; line-height: 1;
-  color: rgba(220, 230, 240, 0.85); letter-spacing: 0.02em;
-}
-.bridge-hud__num--crit { color: var(--crit); text-shadow: 0 0 6px var(--crit-glow); }
-.bridge-hud__lbl {
-  font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: rgba(220, 230, 240, 0.42);
-}
-.bridge-hud--quests { right: 16px; width: 232px; }
+.bridge-hud::-webkit-scrollbar { width: 0; height: 0; }
+.bridge-hud--sectors  { left: 16px;  width: 208px; }
+.bridge-hud--projects { right: 16px; width: 232px; }
 .bridge-hud__head {
   font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
   letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--cin-gold); text-shadow: 0 0 6px var(--cin-gold-glow);
-  margin-bottom: 10px; padding-bottom: 6px;
+  margin-bottom: 8px; padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 204, 0, 0.18);
 }
-.bridge-hud__empty { font-size: 9px; color: rgba(220, 230, 240, 0.35); letter-spacing: 0.08em; }
-.bridge-quest { margin-bottom: 9px; }
-.bridge-quest__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.bridge-quest__name {
-  font-size: 9.5px; letter-spacing: 0.04em; color: rgba(220, 230, 240, 0.82);
+.bridge-hud__empty { font-size: 9px; color: rgba(220, 230, 240, 0.35); letter-spacing: 0.06em; padding: 2px 0 6px; }
+.bridge-hud__caret { color: rgba(220, 230, 240, 0.5); font-size: 9px; width: 10px; flex-shrink: 0; }
+
+/* Expandable header rows (sectors + projects) — clickable, so re-enable events. */
+.bridge-sector__head, .bridge-project__head {
+  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: none; padding: 4px; margin: 0;
+  color: inherit; text-align: left; border-radius: 4px;
+  transition: background 120ms ease;
+}
+.bridge-sector__head:hover, .bridge-project__head:hover,
+.bridge-sector__head:focus-visible, .bridge-project__head:focus-visible {
+  background: rgba(255, 255, 255, 0.05); outline: none;
+}
+.bridge-sector { margin-bottom: 1px; }
+.bridge-sector__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.bridge-sector--q1 .bridge-sector__dot { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.bridge-sector--q2 .bridge-sector__dot { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.bridge-sector--q3 .bridge-sector__dot { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.bridge-sector--q4 .bridge-sector__dot { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+.bridge-sector__name {
+  flex: 1; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(220, 230, 240, 0.78);
+}
+.bridge-sector__count { font-size: 11px; color: rgba(220, 230, 240, 0.55); flex-shrink: 0; }
+
+.bridge-project { margin-bottom: 8px; }
+.bridge-project__name {
+  flex: 1; font-size: 10px; letter-spacing: 0.03em; color: rgba(220, 230, 240, 0.85);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.bridge-quest__due { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(125, 214, 255, 0.6); flex-shrink: 0; }
-.bridge-quest__due.is-overdue { color: var(--crit); }
-.bridge-quest__bar { height: 3px; margin-top: 4px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
+.bridge-project__pct { font-size: 9px; color: rgba(125, 214, 255, 0.6); flex-shrink: 0; }
+
+/* Task sub-list — shared by sectors + projects. */
+.bridge-hud__list { margin: 1px 0 6px 16px; display: flex; flex-direction: column; }
+.bridge-hud__item {
+  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  background: none; border: none; padding: 3px 5px; margin: 0 -5px;
+  border-radius: 3px; text-align: left; transition: background 120ms ease;
+}
+.bridge-hud__item:hover, .bridge-hud__item:focus-visible { background: rgba(255, 204, 0, 0.08); outline: none; }
+.bridge-hud__item-name {
+  font-size: 9px; letter-spacing: 0.02em; color: rgba(220, 230, 240, 0.7);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bridge-hud__item:hover .bridge-hud__item-name { color: var(--cin-gold); }
+.bridge-hud__item-due { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(125, 214, 255, 0.55); flex-shrink: 0; }
+.bridge-hud__item-due.is-overdue { color: var(--crit); }
+
+/* Project progress bar (task rollup). */
+.bridge-quest__bar { height: 3px; margin: 2px 4px 0; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
 .bridge-quest__fill { height: 100%; background: var(--cin-gold); border-radius: 2px; box-shadow: 0 0 4px var(--cin-gold-glow); }
 
-/* On phones the globe fills the width, so the quest tracker would cover it —
-   keep the compact status readout, hide the wider quest list. */
+/* On phones the globe fills the width; keep the compact sectors, hide projects. */
 @media (max-width: 767px) {
-  .bridge-hud--quests { display: none; }
-  .bridge-hud__num { font-size: 16px; }
+  .bridge-hud--projects { display: none; }
+  .bridge-hud--sectors { width: 168px; }
 }
 .bridge-scene--horizon {
   cursor: grab;

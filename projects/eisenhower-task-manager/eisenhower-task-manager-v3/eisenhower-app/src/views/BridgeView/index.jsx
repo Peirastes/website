@@ -24,7 +24,7 @@ import { RadarScene } from './RadarScene';
  * Recenter button, task-details popup, and routing to the
  * Horizon/Radar children based on mode.
  */
-export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, settings }) => {
+export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, setShowForm, settings }) => {
   const [mode, setMode] = useState('horizon');
   const [filterQuad, setFilterQuad] = useState('all');
   /* Title-label visibility on the Bridge.
@@ -145,20 +145,55 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
     }
   };
 
-  /* ── Corner-HUD data: status counts (top-left) + tracked "quests" (top-right)
-     to fill the voids flanking the globe. ── */
+  /* ── Corner HUD data: expandable QUADRANT SECTORS (top-left) + ACTIVE
+     PROJECTS with their tasks (top-right), filling the voids by the globe. ── */
   const isOpenTask = (t) => (Number(t.percentComplete) || 0) < 100;
-  const overdueCount  = visible.filter(t => isOpenTask(t) && dayOffset(t.dueDate, t.dueTime) < 0).length;
-  const dueTodayCount = visible.filter(t => { const d = dayOffset(t.dueDate, t.dueTime); return isOpenTask(t) && d >= 0 && d < 1; }).length;
-  const trackedCount  = visible.filter(t => t.tracked && isOpenTask(t)).length;
-  const quests = visible
-    .filter(t => t.tracked && isOpenTask(t))
-    .sort((a, b) => dayOffset(a.dueDate, a.dueTime) - dayOffset(b.dueDate, b.dueTime))
-    .slice(0, 6);
-  const questDue = (t) => {
+  const dueLabel = (t) => {
+    if (!t.dueDate) return '';
     const d = dayOffset(t.dueDate, t.dueTime);
+    if (!Number.isFinite(d)) return '';
     return d < 0 ? 'overdue' : d < 1 ? 'today' : `${Math.ceil(d)}d`;
   };
+  const byDue = (a, b) => {
+    const da = dayOffset(a.dueDate, a.dueTime), db = dayOffset(b.dueDate, b.dueTime);
+    const fa = Number.isFinite(da), fb = Number.isFinite(db);
+    if (fa && fb) return da - db;      // both dated → soonest first
+    return fa ? -1 : fb ? 1 : 0;        // dated before undated
+  };
+  const trunc = (s, n = 24) => (s && s.length > n + 1 ? s.slice(0, n) + '…' : (s || ''));
+
+  const [openSectors, setOpenSectors] = useState(() => new Set());
+  const [openProjects, setOpenProjects] = useState(() => new Set());
+  const toggleIn = (setFn, key) => setFn(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
+  });
+
+  const QUAD_META = [
+    { key: 'do-first',  qid: 'q1', label: 'Critical'  },
+    { key: 'schedule',  qid: 'q2', label: 'Strategic' },
+    { key: 'delegate',  qid: 'q3', label: 'Delegate'  },
+    { key: 'eliminate', qid: 'q4', label: 'Eliminate' },
+  ];
+  const sectorTasks = (key) =>
+    visible.filter(t => isOpenTask(t) && getQuadrant(t) === key).sort(byDue);
+
+  const projProgress = (p) => {
+    const mine = tasks.filter(t => t.projectId === p.id && !t.deletedAt);
+    if (mine.length) return Math.round(mine.reduce((s, t) => s + (Number(t.percentComplete) || 0), 0) / mine.length);
+    if (typeof p.manualPercent === 'number') return Math.round(p.manualPercent);
+    return p.status === 'done' ? 100 : 0;
+  };
+  const activeProjects = (projects || [])
+    .filter(p => p.status !== 'done' && p.status !== 'archived')
+    .map(p => ({
+      id: p.id, name: p.name, pct: projProgress(p),
+      tasks: tasks.filter(t => t.projectId === p.id && isOpenTask(t)).sort(byDue),
+    }))
+    /* Only projects with actionable work or real progress — skip the 0%,
+       task-less portfolio entries so the panel stays a live worklist. */
+    .filter(p => p.tasks.length > 0 || p.pct > 0)
+    .sort((a, b) => b.tasks.length - a.tasks.length || b.pct - a.pct || (a.name || '').localeCompare(b.name || ''))
+    .slice(0, 12);
 
   return (
     <div className="cin-view-panel">
@@ -223,39 +258,73 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
             title="Recenter on now"
           >Recenter</button>
         )}
-        {/* Corner HUD — status readout (top-left) + quest tracker (top-right),
-            filling the voids that flank the globe. Horizon only. */}
+        {/* Corner HUD — expandable QUADRANT SECTORS (top-left) + ACTIVE PROJECTS
+            with their tasks (top-right). Fills the voids; horizon only. */}
         {mode === 'horizon' && (
           <>
-            <div className="bridge-hud bridge-hud--status">
-              <div className="bridge-hud__stat">
-                <span className={`bridge-hud__num${overdueCount ? ' bridge-hud__num--crit' : ''}`}>{overdueCount}</span>
-                <span className="bridge-hud__lbl">Overdue</span>
-              </div>
-              <div className="bridge-hud__stat">
-                <span className="bridge-hud__num">{dueTodayCount}</span>
-                <span className="bridge-hud__lbl">Due Today</span>
-              </div>
-              <div className="bridge-hud__stat">
-                <span className="bridge-hud__num">{trackedCount}</span>
-                <span className="bridge-hud__lbl">Tracked</span>
-              </div>
+            <div className="bridge-hud bridge-hud--sectors">
+              <div className="bridge-hud__head">◇ Sectors</div>
+              {QUAD_META.map(q => {
+                const list = sectorTasks(q.key);
+                const open = openSectors.has(q.key);
+                return (
+                  <div key={q.key} className={`bridge-sector bridge-sector--${q.qid}`}>
+                    <button type="button" className="bridge-sector__head"
+                            onClick={() => toggleIn(setOpenSectors, q.key)}
+                            onPointerDown={(e) => e.stopPropagation()}>
+                      <span className="bridge-hud__caret">{list.length ? (open ? '▾' : '▸') : '·'}</span>
+                      <span className="bridge-sector__dot" />
+                      <span className="bridge-sector__name">{q.label}</span>
+                      <span className="bridge-sector__count">{list.length}</span>
+                    </button>
+                    {open && list.length > 0 && (
+                      <div className="bridge-hud__list">
+                        {list.map(t => (
+                          <button key={t.id} type="button" className="bridge-hud__item"
+                                  onClick={() => onPick(t)} onPointerDown={(e) => e.stopPropagation()}>
+                            <span className="bridge-hud__item-name">{trunc(t.task)}</span>
+                            <span className={`bridge-hud__item-due${dayOffset(t.dueDate, t.dueTime) < 0 ? ' is-overdue' : ''}`}>{dueLabel(t)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div className="bridge-hud bridge-hud--quests">
-              <div className="bridge-hud__head">◈ Active Objectives</div>
-              {quests.length === 0 ? (
-                <div className="bridge-hud__empty">Track a task to pin it here.</div>
-              ) : quests.map(q => (
-                <div key={q.id} className="bridge-quest">
-                  <div className="bridge-quest__row">
-                    <span className="bridge-quest__name">{q.task.length > 26 ? q.task.slice(0, 24) + '…' : q.task}</span>
-                    <span className={`bridge-quest__due${dayOffset(q.dueDate, q.dueTime) < 0 ? ' is-overdue' : ''}`}>{questDue(q)}</span>
+
+            <div className="bridge-hud bridge-hud--projects">
+              <div className="bridge-hud__head">◈ Active Projects</div>
+              {activeProjects.length === 0 ? (
+                <div className="bridge-hud__empty">No active projects.</div>
+              ) : activeProjects.map(p => {
+                const open = openProjects.has(p.id);
+                return (
+                  <div key={p.id} className="bridge-project">
+                    <button type="button" className="bridge-project__head"
+                            onClick={() => toggleIn(setOpenProjects, p.id)}
+                            onPointerDown={(e) => e.stopPropagation()}>
+                      <span className="bridge-hud__caret">{p.tasks.length ? (open ? '▾' : '▸') : '·'}</span>
+                      <span className="bridge-project__name">{trunc(p.name, 22)}</span>
+                      <span className="bridge-project__pct">{p.pct}%</span>
+                    </button>
+                    <div className="bridge-quest__bar"><div className="bridge-quest__fill" style={{ width: `${p.pct}%` }} /></div>
+                    {open && (
+                      <div className="bridge-hud__list">
+                        {p.tasks.length === 0 ? (
+                          <div className="bridge-hud__empty">no open tasks</div>
+                        ) : p.tasks.map(t => (
+                          <button key={t.id} type="button" className="bridge-hud__item"
+                                  onClick={() => onPick(t)} onPointerDown={(e) => e.stopPropagation()}>
+                            <span className="bridge-hud__item-name">{trunc(t.task)}</span>
+                            <span className={`bridge-hud__item-due${dayOffset(t.dueDate, t.dueTime) < 0 ? ' is-overdue' : ''}`}>{dueLabel(t)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="bridge-quest__bar">
-                    <div className="bridge-quest__fill" style={{ width: `${Math.round(Number(q.percentComplete) || 0)}%` }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         )}
