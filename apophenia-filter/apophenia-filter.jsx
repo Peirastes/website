@@ -31,8 +31,11 @@ import { useState, useEffect, useRef, useMemo } from "react";
    ============================================================ */
 
 const CONFIG = {
-  CONTRIBUTE_ENDPOINT: "", // e.g. "https://xyz.supabase.co/rest/v1/sessions"
-  API_KEY: "",             // Supabase anon key (insert-only via RLS)
+  // Self-hosted collection on peirastes-pi (Tailscale Funnel). Append-only,
+  // write-only, no IP read/stored. The key below is only a bot deterrent
+  // (it is unavoidably public in the page source) — not a secret.
+  CONTRIBUTE_ENDPOINT: "https://peirastes-pi.tail6fdfc3.ts.net/api/contrib/apophenia-filter",
+  API_KEY: "kuZSP54EQvK-HdU0qkB2wzQ3",
 };
 
 const VERSION = "0.4.1";
@@ -626,11 +629,7 @@ export default function ApopheniaFilter() {
     setContribStatus("sending");
     try {
       const headers = { "Content-Type": "application/json" };
-      if (CONFIG.API_KEY) {
-        headers["apikey"] = CONFIG.API_KEY;
-        headers["Authorization"] = `Bearer ${CONFIG.API_KEY}`;
-        headers["Prefer"] = "return=minimal";
-      }
+      if (CONFIG.API_KEY) headers["Authorization"] = `Bearer ${CONFIG.API_KEY}`;
       const res = await fetch(CONFIG.CONTRIBUTE_ENDPOINT, {
         method: "POST",
         headers,
