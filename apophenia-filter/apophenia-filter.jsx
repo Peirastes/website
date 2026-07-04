@@ -30,11 +30,19 @@ import { useState, useEffect, useRef, useMemo } from "react";
    3. Fill in CONFIG below.
    ============================================================ */
 
+// Self-hosted collection on peirastes-pi (Tailscale Funnel). Append-only,
+// write-only, no IP read/stored. The key below is only a bot deterrent
+// (it is unavoidably public in the page source) — not a secret.
+// Host-aware endpoint: when this page is itself served from the Pi (…ts.net),
+// post SAME-ORIGIN — so it works even from a browser on the tailnet (a
+// cross-origin post to the Pi's private tailnet IP is blocked by Chrome's
+// Local Network Access). From peirastes.com it posts to the funnel as usual.
+const PI_HOST = "peirastes-pi.tail6fdfc3.ts.net";
 const CONFIG = {
-  // Self-hosted collection on peirastes-pi (Tailscale Funnel). Append-only,
-  // write-only, no IP read/stored. The key below is only a bot deterrent
-  // (it is unavoidably public in the page source) — not a secret.
-  CONTRIBUTE_ENDPOINT: "https://peirastes-pi.tail6fdfc3.ts.net/api/contrib/apophenia-filter",
+  CONTRIBUTE_ENDPOINT:
+    typeof location !== "undefined" && location.hostname === PI_HOST
+      ? "/api/contrib/apophenia-filter"
+      : `https://${PI_HOST}/api/contrib/apophenia-filter`,
   API_KEY: "kuZSP54EQvK-HdU0qkB2wzQ3",
 };
 
