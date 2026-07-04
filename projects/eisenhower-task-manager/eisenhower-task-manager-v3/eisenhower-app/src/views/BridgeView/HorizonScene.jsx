@@ -32,11 +32,12 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  * handlers still live inline here.
  */
 export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all' }) => {
-  const W = 1000, H = 600;
-  /* Touch / phone screens get larger pips, bars, and labels so the smaller
-     scaled-down globe stays legible and tappable. */
-  const uiScale = (typeof window !== 'undefined'
-    && window.matchMedia('(max-width: 767px)').matches) ? 1.7 : 1;
+  /* Phone screens: a portrait viewBox so the globe fills the tall frame instead
+     of letterboxing a landscape chart, plus larger pips/labels for legibility. */
+  const isMobile = (typeof window !== 'undefined'
+    && window.matchMedia('(max-width: 767px)').matches);
+  const W = 1000, H = isMobile ? 1150 : 600;
+  const uiScale = isMobile ? 1.7 : 1;
   const N = lanes.length;
   const svgRef = React.useRef(null);
 
@@ -76,14 +77,14 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      and slides them across the visible cap. */
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
-  const SCALE = 800;
+  const SCALE = isMobile ? 1040 : 800;   // bigger globe on phones — fills the frame, sides curve off
   /* Camera state + drag handlers come from useCameraDrag. Defaults
      (cameraAlt = R, panX = 0, panY = 240) reproduce the Picture6
      framing — globe inscribed in chart with ~38 px side buffer + ship
      anchored bottom-centre. */
   const { cameraAlt, panX, panY, handlers: dragHandlers } = useCameraDrag({
     svgRef,
-    init: { cameraAlt: R, panX: 0, panY: 240 },
+    init: { cameraAlt: R, panX: 0, panY: isMobile ? 330 : 240 },
     bounds: { ALT_MIN, ALT_MAX },
     viewBox: { W, H },
     maxDays,
@@ -272,7 +273,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
       ref={svgRef}
       viewBox={`0 0 ${W} ${H}`}
       className="bridge-scene bridge-scene--horizon"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio={isMobile ? 'xMidYMin meet' : 'xMidYMid meet'}
       {...dragHandlers}
     >
       <defs>
