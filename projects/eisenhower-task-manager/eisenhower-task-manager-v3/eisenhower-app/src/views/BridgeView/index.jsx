@@ -232,13 +232,6 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
       <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
-        {/* Cartographic corner ticks framing the free-floating stage
-            (canonical Artemis/Tip-Recover chrome). */}
-        <span className="bridge-tick bridge-tick--tl" aria-hidden="true" />
-        <span className="bridge-tick bridge-tick--tr" aria-hidden="true" />
-        <span className="bridge-tick bridge-tick--bl" aria-hidden="true" />
-        <span className="bridge-tick bridge-tick--br" aria-hidden="true" />
-
         {/* Console dock — bottom-centre floating glass control bar. Carries the
             mode toggle + filters that used to sit in the header, so the app
             masthead stays the one and only centred title. */}
