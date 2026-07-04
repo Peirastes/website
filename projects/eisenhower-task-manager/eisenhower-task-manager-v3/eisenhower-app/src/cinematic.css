@@ -158,6 +158,7 @@ body.app-locked .cin-hints {
   gap: 4px;
   margin-bottom: 4px;
   line-height: 1;
+  white-space: nowrap;   /* keep the wordmark on one line (no mid-title wrap) */
 }
 .cin-title__name span { color: var(--cin-gold); }
 .cin-title__sub {
@@ -3127,10 +3128,8 @@ body.app-locked .cin-action-bar {
 }
 .bridge-overdue__list::-webkit-scrollbar { width: 0; height: 0; }
 
-/* On phones the globe fills the width; keep the compact sectors, hide projects. */
+/* On phones the globe fills the width; panels stay floating + collapsible. */
 @media (max-width: 767px) {
-  .bridge-hud--projects { display: none; }
-  /* Lift the overdue tray clear of the bottom action bar. */
   .bridge-overdue { bottom: 12px; }
   .bridge-overdue__list { width: min(250px, calc(100vw - 40px)); }
 }
@@ -3159,10 +3158,17 @@ body.app-locked .cin-action-bar {
    full-bleed stage. */
 .cin-view-panel--bridge .cin-view-panel__body { height: 100%; }
 
-/* ─── Console — top-left floating glass control panel (mode toggle + filters),
-   mirroring the KB Explorer's left filter rail. Vertical stack. ─── */
-/* Left command column — Console (bridge controls) over the app dock (Views
-   nav + Actions). Rail is inert; each frame owns its own area. */
+/* Chrome overlay — wraps every floating rail. Landscape: a full-bleed inert
+   layer, so the rails inside float over the globe exactly as before. Portrait
+   reflow (further down) turns it into an in-flow top band. */
+.bridge-chrome {
+  position: absolute; inset: 0; z-index: 5;
+  pointer-events: none;
+}
+
+/* ─── Command — top-left floating glass panel: one collapsible frame holding
+   the Bridge controls (mode + filters), the Views nav, and the Actions
+   (Add Task + utilities). One of the Bridge's three floating panels. ─── */
 .bridge-rail--left {
   position: absolute; z-index: 6;
   top: 14px; left: 16px;
@@ -3170,21 +3176,32 @@ body.app-locked .cin-action-bar {
   max-height: calc(100% - 28px);
   pointer-events: none;
 }
-/* Shared glass frame for every left-column panel. */
-.bridge-console, .bridge-dock {
+.bridge-console {
   pointer-events: auto;
-  width: 176px;
-  display: flex; flex-direction: column; align-items: stretch; gap: 9px;
+  width: 178px; min-height: 0;
+  display: flex; flex-direction: column; align-items: stretch;
   padding: 9px 11px 11px; border-radius: 11px;
   background: linear-gradient(180deg, rgba(16, 22, 32, 0.60) 0%, rgba(10, 15, 24, 0.50) 55%, rgba(8, 12, 20, 0.58) 100%);
   backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
   border: 1px solid var(--glass-border);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
-.bridge-console__head {
-  margin-bottom: 1px; padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 204, 0, 0.18);
+/* Collapsible body — scrolls if the stack outgrows the viewport height. */
+.bridge-console__body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: stretch; gap: 9px;
 }
+.bridge-console__body::-webkit-scrollbar { width: 0; height: 0; }
+.bridge-console.is-collapsed .bridge-hud__head { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.bridge-console.is-collapsed .bridge-console__body { display: none; }
+/* Section sub-labels + hairline dividers inside the frame. */
+.bridge-console__sub {
+  font-family: 'Orbitron', sans-serif; font-size: 8.5px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(220, 230, 240, 0.5); margin-bottom: -2px;
+}
+.bridge-console__sep { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 2px 0; border: none; }
+.bridge-console__actions { display: flex; flex-direction: column; gap: 7px; }
 .bridge-console .cin-mode-toggle { margin: 0; display: flex; width: 100%; }
 .bridge-console .cin-mode-toggle__btn { flex: 1; text-align: center; padding: 4px 4px; letter-spacing: 0.10em; }
 /* Filters stack: label above a full-width select. */
@@ -3193,23 +3210,18 @@ body.app-locked .cin-action-bar {
 }
 .bridge-console .cin-filter__label { letter-spacing: 0.16em; }
 .bridge-console .cin-filter select { width: 100%; }
-.bridge-console__sep { display: none; }
-
-/* App-dock rail frames — Views nav (vertical) + Actions (Add Task + utilities). */
-.bridge-dock--actions { gap: 7px; }
-.bridge-dock .cin-view-tabs {
+/* Views nav — vertical menu (always labelled, overriding the bar's icon collapse). */
+.bridge-console .cin-view-tabs {
   flex-direction: column; align-items: stretch; gap: 2px; width: 100%;
 }
-.bridge-dock .cin-view-tab {
+.bridge-console .cin-view-tab {
   width: 100%; justify-content: flex-start;
   padding: 5px 8px; font-size: 10.5px; letter-spacing: 0.12em;
 }
-/* Rail nav always shows labels (it's a vertical menu), overriding the bar's
-   sub-1080px icons-only collapse. */
-.bridge-dock .cin-view-tab > span:not(.cin-view-tab__glyph) { display: inline !important; }
-.bridge-dock .cin-add-task { width: 100%; justify-content: center; padding: 6px 10px; }
-.bridge-dock .cin-utility-cluster { justify-content: space-between; gap: 2px; }
-.bridge-dock .cin-utility-btn { flex: 1; height: 26px; }
+.bridge-console .cin-view-tab > span:not(.cin-view-tab__glyph) { display: inline !important; }
+.bridge-console .cin-add-task { width: 100%; justify-content: center; padding: 6px 10px; }
+.bridge-console .cin-utility-cluster { justify-content: space-between; gap: 2px; }
+.bridge-console .cin-utility-btn { flex: 1; height: 26px; }
 
 /* ─── Right rail — Sectors over Projects, stacked. Clicks pass through the
    gaps (rail is inert; the panels own their own area). ─── */
@@ -3229,15 +3241,11 @@ body.app-locked .cin-action-bar {
    text on the filter dropdowns (the values are self-evident). */
 @media (max-width: 767px) {
   .bridge-rail--left { top: 12px; left: 12px; }
-  .bridge-console, .bridge-dock { width: 138px; }
+  .bridge-console { width: 150px; }
   .bridge-console .cin-filter__label { display: none; }
   .bridge-console .cin-filter select { min-width: 0; }
-  /* Rail nav collapses to icons-only on phones to keep the column short. */
-  .bridge-dock .cin-view-tab > span:not(.cin-view-tab__glyph) { display: none !important; }
-  .bridge-dock .cin-view-tabs { flex-flow: row wrap; justify-content: center; gap: 4px; }
-  .bridge-dock .cin-view-tab { width: auto; padding: 6px 8px; }
   .bridge-rail--right { top: 12px; right: 12px; }
-  .bridge-rail--right .bridge-hud { width: 168px; }
+  .bridge-rail--right .bridge-hud { width: 158px; }
 }
 .bridge-scene--horizon {
   cursor: grab;

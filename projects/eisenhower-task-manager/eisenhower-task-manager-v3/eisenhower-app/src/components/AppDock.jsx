@@ -70,15 +70,16 @@ export const AppDock = ({
   );
 
   if (layout === 'rail') {
+    /* Inline sections that nest inside the Bridge's single Command frame —
+       no glass chrome of their own; the frame around them supplies it. */
     return (
       <>
-        <div className="bridge-dock bridge-dock--nav">
-          <div className="bridge-console__head"><span className="bridge-hud__head-label">◰ Views</span></div>
-          {tabs}
-        </div>
-        <div className="bridge-dock bridge-dock--actions">
-          {actions}
-        </div>
+        <span className="bridge-console__sep" />
+        <div className="bridge-console__sub">◰ Views</div>
+        {tabs}
+        <span className="bridge-console__sep" />
+        <div className="bridge-console__sub">◰ Actions</div>
+        <div className="bridge-console__actions">{actions}</div>
       </>
     );
   }

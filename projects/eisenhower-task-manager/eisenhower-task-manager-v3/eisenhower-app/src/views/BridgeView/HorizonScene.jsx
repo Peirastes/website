@@ -32,14 +32,33 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  * handlers still live inline here.
  */
 export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all', focusQuad = null, focusProject = null }) => {
-  /* Phone screens: a portrait viewBox so the globe fills the tall frame instead
-     of letterboxing a landscape chart, plus larger pips/labels for legibility. */
+  const svgRef = React.useRef(null);
+  /* Measure the SVG's own rendered box so the globe framing matches the shape
+     of the area it actually occupies — not just the window. In the menus-on-top
+     layout the globe gets a wide-short strip at the bottom (wants the landscape
+     dome); a phone leaves a tall strip (wants the portrait full sphere). Keying
+     off the container aspect makes both self-adjust. */
+  const [boxAspect, setBoxAspect] = React.useState(1.6);
+  React.useEffect(() => {
+    const el = svgRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      if (r.width > 0 && r.height > 0) setBoxAspect(r.width / r.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* Tall container → portrait viewBox (centred full sphere); wide container →
+     landscape viewBox (dome zoomed to the top, horizon low). `isMobile` (width)
+     still drives touch pip-sizing regardless of framing. */
   const isMobile = (typeof window !== 'undefined'
     && window.matchMedia('(max-width: 767px)').matches);
-  const W = 1000, H = isMobile ? 1150 : 600;
+  const isPortrait = boxAspect < 1.1;
+  const W = 1000, H = isPortrait ? 1150 : 600;
   const uiScale = isMobile ? 1.7 : 1;
   const N = lanes.length;
-  const svgRef = React.useRef(null);
 
   /* True 3D sphere projection — latitude/longitude grid model.
      The ship sits on the equator at longitude 0; sphere center at world
@@ -77,14 +96,14 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      and slides them across the visible cap. */
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
-  const SCALE = isMobile ? 1040 : 920;   // globe fills the free-space frame; sides bleed off-screen
+  const SCALE = isPortrait ? 1040 : 920;   // globe fills the free-space frame; sides bleed off-screen
   /* Camera state + drag handlers come from useCameraDrag. Defaults
      (cameraAlt = R, panX = 0, panY = 240) reproduce the Picture6
      framing — globe inscribed in chart with ~38 px side buffer + ship
      anchored bottom-centre. */
   const { cameraAlt, panX, panY, handlers: dragHandlers } = useCameraDrag({
     svgRef,
-    init: { cameraAlt: R, panX: 0, panY: isMobile ? 330 : 240 },
+    init: { cameraAlt: R, panX: 0, panY: isPortrait ? 330 : 240 },
     bounds: { ALT_MIN, ALT_MAX },
     viewBox: { W, H },
     maxDays,
@@ -273,7 +292,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
       ref={svgRef}
       viewBox={`0 0 ${W} ${H}`}
       className="bridge-scene bridge-scene--horizon"
-      preserveAspectRatio={isMobile ? 'xMidYMin meet' : 'xMidYMid meet'}
+      preserveAspectRatio={isPortrait ? 'xMidYMin meet' : 'xMidYMid meet'}
       {...dragHandlers}
     >
       <defs>

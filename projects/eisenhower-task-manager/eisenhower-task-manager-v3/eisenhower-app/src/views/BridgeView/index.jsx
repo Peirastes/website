@@ -236,14 +236,25 @@ export const BridgeView = ({
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
       <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
-        {/* Left command column — Console (Bridge controls) over the app dock
-            (Views nav + Actions), so the Bridge is a self-contained cockpit
-            and the bottom action bar is retired here. */}
+        {/* All floating chrome (rails + overdue). Landscape: an inert full-bleed
+            overlay whose frames float over the globe. Portrait/tall: this becomes
+            an in-flow top band and the globe below fills the rest. */}
+        <div className="bridge-chrome">
+        {/* Left command column — a SINGLE collapsible Command frame holding the
+            Bridge controls (mode + filters), the Views nav, and the Actions
+            (Add Task + utilities). One of the Bridge's three floating panels. */}
         <div className="bridge-rail bridge-rail--left">
-        <div className="bridge-console">
-          <div className="bridge-console__head">
-            <span className="bridge-hud__head-label">◱ Console</span>
+        <div className={`bridge-console${collapsed.has('console') ? ' is-collapsed' : ''}`}>
+          <div className="bridge-hud__head">
+            <span className="bridge-hud__head-label">◱ Command</span>
+            <button type="button" className="bridge-hud__collapse"
+                    onClick={() => toggleIn(setCollapsed, 'console')}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title={collapsed.has('console') ? 'Expand panel' : 'Collapse panel'}>
+              {collapsed.has('console') ? '▸' : '▾'}
+            </button>
           </div>
+          <div className="bridge-console__body">
           <div className="cin-mode-toggle" role="group" aria-label="Bridge mode">
             <button
               type="button"
@@ -260,7 +271,6 @@ export const BridgeView = ({
               aria-pressed={mode === 'radar'}
             >Radar</button>
           </div>
-          <span className="bridge-console__sep" />
           <div className="cin-filter">
             <label className="cin-filter__label">Quadrant</label>
             <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}
@@ -284,15 +294,16 @@ export const BridgeView = ({
               </select>
             </div>
           )}
+          <AppDock
+            layout="rail"
+            view={view} setView={setView}
+            onAddTask={() => { setEditingTask(null); setShowForm(true); }}
+            onInfo={onInfo} onSettings={onSettings}
+            onExport={onExport} onImport={onImport}
+            onRefresh={onRefresh} isRefreshing={isRefreshing}
+          />
+          </div>
         </div>
-        <AppDock
-          layout="rail"
-          view={view} setView={setView}
-          onAddTask={() => { setEditingTask(null); setShowForm(true); }}
-          onInfo={onInfo} onSettings={onSettings}
-          onExport={onExport} onImport={onImport}
-          onRefresh={onRefresh} isRefreshing={isRefreshing}
-        />
         </div>
         {/* Recenter floats over the globe (out of the header flow) so its
             show/hide never reflows the toolbar and jostles the frame. */}
@@ -428,6 +439,7 @@ export const BridgeView = ({
             )}
           </>
         )}
+        </div>
         {mode === 'horizon' ? (
           <HorizonScene
             tasks={visible} lanes={lanes} laneOf={laneOf}
