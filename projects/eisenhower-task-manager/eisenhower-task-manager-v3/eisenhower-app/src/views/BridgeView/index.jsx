@@ -232,10 +232,12 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
       <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
-        {/* Console dock — bottom-centre floating glass control bar. Carries the
-            mode toggle + filters that used to sit in the header, so the app
-            masthead stays the one and only centred title. */}
+        {/* Console — top-left floating glass control panel (mode toggle +
+            filters), mirroring the KB Explorer's left filter rail. */}
         <div className="bridge-console">
+          <div className="bridge-console__head">
+            <span className="bridge-hud__head-label">◱ Console</span>
+          </div>
           <div className="cin-mode-toggle" role="group" aria-label="Bridge mode">
             <button
               type="button"
@@ -292,6 +294,8 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
             with their tasks (top-right). Fills the voids; horizon only. */}
         {mode === 'horizon' && (
           <>
+            {/* Right rail — Sectors over Projects, stacked (KB-Explorer style). */}
+            <div className="bridge-rail bridge-rail--right">
             <div className={`bridge-hud bridge-hud--sectors${collapsed.has('sectors') ? ' is-collapsed' : ''}${focusQuad ? ' is-focusing' : ''}`}>
               <div className="bridge-hud__head">
                 <span className="bridge-hud__head-label">◇ Sectors</span>
@@ -378,6 +382,7 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
                 );
               })}
               </div>
+            </div>
             </div>
 
             {/* Overdue-behind tray — bottom-left, red glass. Only shows when
