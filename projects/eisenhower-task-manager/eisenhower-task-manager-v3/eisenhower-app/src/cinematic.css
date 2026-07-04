@@ -2957,8 +2957,56 @@ body.app-locked .cin-action-bar {
 .bridge-recenter {
   position: absolute;
   top: 8px;
-  right: 8px;
-  z-index: 5;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+}
+
+/* ─── Bridge corner HUD — status readout + quest tracker filling the voids
+   that flank the globe. Overlays only; never intercept the globe drag. ─── */
+.bridge-hud {
+  position: absolute;
+  top: 14px;
+  z-index: 4;
+  pointer-events: none;
+  font-family: 'Share Tech Mono', monospace;
+}
+.bridge-hud--status { left: 16px; display: flex; flex-direction: column; gap: 10px; }
+.bridge-hud__stat { display: flex; align-items: baseline; gap: 7px; }
+.bridge-hud__num {
+  font-size: 20px; font-weight: 500; line-height: 1;
+  color: rgba(220, 230, 240, 0.85); letter-spacing: 0.02em;
+}
+.bridge-hud__num--crit { color: var(--crit); text-shadow: 0 0 6px var(--crit-glow); }
+.bridge-hud__lbl {
+  font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(220, 230, 240, 0.42);
+}
+.bridge-hud--quests { right: 16px; width: 232px; }
+.bridge-hud__head {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--cin-gold); text-shadow: 0 0 6px var(--cin-gold-glow);
+  margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 204, 0, 0.18);
+}
+.bridge-hud__empty { font-size: 9px; color: rgba(220, 230, 240, 0.35); letter-spacing: 0.08em; }
+.bridge-quest { margin-bottom: 9px; }
+.bridge-quest__row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bridge-quest__name {
+  font-size: 9.5px; letter-spacing: 0.04em; color: rgba(220, 230, 240, 0.82);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bridge-quest__due { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(125, 214, 255, 0.6); flex-shrink: 0; }
+.bridge-quest__due.is-overdue { color: var(--crit); }
+.bridge-quest__bar { height: 3px; margin-top: 4px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
+.bridge-quest__fill { height: 100%; background: var(--cin-gold); border-radius: 2px; box-shadow: 0 0 4px var(--cin-gold-glow); }
+
+/* On phones the globe fills the width, so the quest tracker would cover it —
+   keep the compact status readout, hide the wider quest list. */
+@media (max-width: 767px) {
+  .bridge-hud--quests { display: none; }
+  .bridge-hud__num { font-size: 16px; }
 }
 .bridge-scene--horizon {
   cursor: grab;

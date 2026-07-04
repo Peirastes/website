@@ -145,6 +145,21 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
     }
   };
 
+  /* ── Corner-HUD data: status counts (top-left) + tracked "quests" (top-right)
+     to fill the voids flanking the globe. ── */
+  const isOpenTask = (t) => (Number(t.percentComplete) || 0) < 100;
+  const overdueCount  = visible.filter(t => isOpenTask(t) && dayOffset(t.dueDate, t.dueTime) < 0).length;
+  const dueTodayCount = visible.filter(t => { const d = dayOffset(t.dueDate, t.dueTime); return isOpenTask(t) && d >= 0 && d < 1; }).length;
+  const trackedCount  = visible.filter(t => t.tracked && isOpenTask(t)).length;
+  const quests = visible
+    .filter(t => t.tracked && isOpenTask(t))
+    .sort((a, b) => dayOffset(a.dueDate, a.dueTime) - dayOffset(b.dueDate, b.dueTime))
+    .slice(0, 6);
+  const questDue = (t) => {
+    const d = dayOffset(t.dueDate, t.dueTime);
+    return d < 0 ? 'overdue' : d < 1 ? 'today' : `${Math.ceil(d)}d`;
+  };
+
   return (
     <div className="cin-view-panel">
       <div className="cin-view-panel__head">
@@ -207,6 +222,42 @@ export const BridgeView = ({ tasks, getQuadrant, setEditingTask, setShowForm, se
             onPointerDown={(e) => e.stopPropagation()}
             title="Recenter on now"
           >Recenter</button>
+        )}
+        {/* Corner HUD — status readout (top-left) + quest tracker (top-right),
+            filling the voids that flank the globe. Horizon only. */}
+        {mode === 'horizon' && (
+          <>
+            <div className="bridge-hud bridge-hud--status">
+              <div className="bridge-hud__stat">
+                <span className={`bridge-hud__num${overdueCount ? ' bridge-hud__num--crit' : ''}`}>{overdueCount}</span>
+                <span className="bridge-hud__lbl">Overdue</span>
+              </div>
+              <div className="bridge-hud__stat">
+                <span className="bridge-hud__num">{dueTodayCount}</span>
+                <span className="bridge-hud__lbl">Due Today</span>
+              </div>
+              <div className="bridge-hud__stat">
+                <span className="bridge-hud__num">{trackedCount}</span>
+                <span className="bridge-hud__lbl">Tracked</span>
+              </div>
+            </div>
+            <div className="bridge-hud bridge-hud--quests">
+              <div className="bridge-hud__head">◈ Active Objectives</div>
+              {quests.length === 0 ? (
+                <div className="bridge-hud__empty">Track a task to pin it here.</div>
+              ) : quests.map(q => (
+                <div key={q.id} className="bridge-quest">
+                  <div className="bridge-quest__row">
+                    <span className="bridge-quest__name">{q.task.length > 26 ? q.task.slice(0, 24) + '…' : q.task}</span>
+                    <span className={`bridge-quest__due${dayOffset(q.dueDate, q.dueTime) < 0 ? ' is-overdue' : ''}`}>{questDue(q)}</span>
+                  </div>
+                  <div className="bridge-quest__bar">
+                    <div className="bridge-quest__fill" style={{ width: `${Math.round(Number(q.percentComplete) || 0)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
         {mode === 'horizon' ? (
           <HorizonScene
