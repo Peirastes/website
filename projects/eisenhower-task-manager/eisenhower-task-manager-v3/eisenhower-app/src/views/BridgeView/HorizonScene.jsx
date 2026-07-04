@@ -31,7 +31,7 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  * zoom breakpoint snap is useHorizonZoom. Camera state + drag
  * handlers still live inline here.
  */
-export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all' }) => {
+export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all', focusQuad = null, focusProject = null }) => {
   /* Phone screens: a portrait viewBox so the globe fills the tall frame instead
      of letterboxing a landscape chart, plus larger pips/labels for legibility. */
   const isMobile = (typeof window !== 'undefined'
@@ -537,14 +537,19 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           const hit = boxes.some(b => !(box.x2 < b.x1 || box.x1 > b.x2 || box.y2 < b.y1 || box.y1 > b.y2));
           if (!hit) { it.showLabel = true; boxes.push(box); }
         }
-        // Phase 3 — render.
+        // Phase 3 — render. A focused sector/project dims every non-matching
+        // pip so the HUD panel steers the globe (calm the dimmed ones — no
+        // blip, no label).
         return items.map(({ t, d_eff, xy, qid, isEvent, isDone, isOverdue,
-                            scale, distScale, showLabel, labelText }) => (
+                            scale, distScale, showLabel, labelText }) => {
+          const dim = (focusQuad && getQuadrant(t) !== focusQuad)
+                   || (focusProject && t.projectId !== focusProject);
+          return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}${dim ? ' bridge-pip--dim' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
-             style={{ cursor: 'pointer' }}>
+             style={{ cursor: 'pointer', opacity: dim ? 0.12 : 1 }}>
             {isEvent ? (
               /* Calendar EVENT — a duration-length bar with a steady glow. */
               <EventBlock pts={eventBandPts(t, d_eff)}
@@ -555,7 +560,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
                     overdue tasks, so the field stays calm. */}
                 {!isDone && (
                   <>
-                    {(t.tracked || isOverdue) && (
+                    {(t.tracked || isOverdue) && !dim && (
                       <circle cx={xy.x} cy={xy.y} r={11 * scale * uiScale}
                               className="bridge-pip__blip"
                               style={{ animationDelay: `${(hashId(t.id) % 340) / 100}s` }} />
@@ -566,14 +571,15 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
                 <circle cx={xy.x} cy={xy.y} r={5 * scale * uiScale} className="bridge-pip__core" />
               </>
             )}
-            {showLabel && (
+            {showLabel && !dim && (
               <text x={xy.x + 13 * scale * uiScale} y={xy.y + 4}
                     className="bridge-pip__label"
                     style={{ fontSize: `${10 * scale * uiScale}px` }}>{labelText}</text>
             )}
             <title>{t.task} · due {new Date(t.dueDate).toLocaleDateString()}</title>
           </g>
-        ));
+          );
+        });
       })()}
 
       {/* Ship marker — sub-camera point sits at chart centre. */}

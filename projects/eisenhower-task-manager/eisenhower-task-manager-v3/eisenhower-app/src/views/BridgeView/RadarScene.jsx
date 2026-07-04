@@ -8,7 +8,7 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  * per domain lane). Ship at centre. Companion to HorizonScene, both
  * rendered inside BridgeView depending on the mode toggle.
  */
-export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadrant, onPick }) => {
+export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadrant, onPick, focusQuad = null, focusProject = null }) => {
   const SIZE = 700;
   const CX = SIZE / 2, CY = SIZE / 2;
   const MAX_R = 295;
@@ -124,18 +124,20 @@ export const RadarScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, getQuadra
         /* Overdue tasks clamp to r=0 (pile at the ship) — escalate them red
            and give them a pulse so the centre cluster reads as "behind". */
         const isOverdue = !isDone && dayOffset(t.dueDate, t.dueTime) < 0;
+        const dim = (focusQuad && getQuadrant(t) !== focusQuad)
+                 || (focusProject && t.projectId !== focusProject);
         return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}${dim ? ' bridge-pip--dim' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
-             style={{ cursor: 'pointer' }}>
+             style={{ cursor: 'pointer', opacity: dim ? 0.12 : 1 }}>
             {isEvent ? (
               /* Calendar EVENT — a duration-length bar with a steady glow. */
               <EventBlock pts={eventPts} thick={7 * uiScale} className="bridge-event__block" />
             ) : (
               <>
-                {!isDone && (t.tracked || isOverdue) && (
+                {!isDone && (t.tracked || isOverdue) && !dim && (
                   <circle cx={x} cy={y} r={9 * uiScale} className="bridge-pip__blip" />
                 )}
                 {!isDone && (

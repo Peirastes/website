@@ -168,6 +168,32 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
     const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
   });
 
+  /* ── HUD-as-control-surface: focusing a sector or project dims every
+     non-matching pip on the globe so the panel steers the view. Focus is
+     single-select and mutually exclusive between the two panels; clicking
+     the active row again clears it. Focusing also opens that row's task
+     list (accordion — only one open at a time). ── */
+  const [focusQuad, setFocusQuad] = useState(null);
+  const [focusProject, setFocusProject] = useState(null);
+  const pickSector = (key) => {
+    const active = focusQuad === key;
+    setFocusProject(null);
+    setFocusQuad(active ? null : key);
+    setOpenSectors(active ? new Set() : new Set([key]));
+  };
+  const pickProject = (id) => {
+    const active = focusProject === id;
+    setFocusQuad(null);
+    setFocusProject(active ? null : id);
+    setOpenProjects(active ? new Set() : new Set([id]));
+  };
+  /* Panels collapse to just their header pill to bare the globe. */
+  const [collapsed, setCollapsed] = useState(() => new Set());
+  /* Overdue-behind tray: open, overdue tasks that have fallen past the back
+     edge of the view window (>7d behind the ship) and so aren't on the globe
+     at all — the real blind spot. Surfaced as a tab that expands a list. */
+  const [showOverdue, setShowOverdue] = useState(false);
+
   const QUAD_META = [
     { key: 'do-first',  qid: 'q1', label: 'Critical'  },
     { key: 'schedule',  qid: 'q2', label: 'Strategic' },
@@ -195,8 +221,17 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
     .sort((a, b) => b.tasks.length - a.tasks.length || b.pct - a.pct || (a.name || '').localeCompare(b.name || ''))
     .slice(0, 12);
 
+  /* Overdue tasks that have slipped behind the window's back edge (off - anchor
+     < -7) — invisible on the globe, so pull them out into their own tray. */
+  const lateLabel = (t) => `${Math.max(1, Math.floor(-dayOffset(t.dueDate, t.dueTime)))}d late`;
+  const overdueBehind = tasks
+    .filter(t => t.dueDate && !t.completedDate && isOpenTask(t)
+              && dayOffset(t.dueDate, t.dueTime) < 0
+              && (dayOffset(t.dueDate, t.dueTime) - viewAnchor) < -7)
+    .sort(byDue);
+
   return (
-    <div className="cin-view-panel">
+    <div className="cin-view-panel cin-view-panel--bridge">
       <div className="cin-view-panel__head">
         <div className="cin-view-panel__title">
           Bridge · Navigation
@@ -262,15 +297,25 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
             with their tasks (top-right). Fills the voids; horizon only. */}
         {mode === 'horizon' && (
           <>
-            <div className="bridge-hud bridge-hud--sectors">
-              <div className="bridge-hud__head">◇ Sectors</div>
+            <div className={`bridge-hud bridge-hud--sectors${collapsed.has('sectors') ? ' is-collapsed' : ''}${focusQuad ? ' is-focusing' : ''}`}>
+              <div className="bridge-hud__head">
+                <span className="bridge-hud__head-label">◇ Sectors</span>
+                <button type="button" className="bridge-hud__collapse"
+                        onClick={() => toggleIn(setCollapsed, 'sectors')}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title={collapsed.has('sectors') ? 'Expand panel' : 'Collapse panel'}>
+                  {collapsed.has('sectors') ? '▸' : '▾'}
+                </button>
+              </div>
+              <div className="bridge-hud__body">
               {QUAD_META.map(q => {
                 const list = sectorTasks(q.key);
                 const open = openSectors.has(q.key);
+                const focused = focusQuad === q.key;
                 return (
                   <div key={q.key} className={`bridge-sector bridge-sector--${q.qid}`}>
-                    <button type="button" className="bridge-sector__head"
-                            onClick={() => toggleIn(setOpenSectors, q.key)}
+                    <button type="button" className={`bridge-sector__head${focused ? ' is-focused' : ''}`}
+                            onClick={() => pickSector(q.key)}
                             onPointerDown={(e) => e.stopPropagation()}>
                       <span className="bridge-hud__caret">{list.length ? (open ? '▾' : '▸') : '·'}</span>
                       <span className="bridge-sector__dot" />
@@ -291,18 +336,29 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
                   </div>
                 );
               })}
+              </div>
             </div>
 
-            <div className="bridge-hud bridge-hud--projects">
-              <div className="bridge-hud__head">◈ Active Projects</div>
+            <div className={`bridge-hud bridge-hud--projects${collapsed.has('projects') ? ' is-collapsed' : ''}${focusProject ? ' is-focusing' : ''}`}>
+              <div className="bridge-hud__head">
+                <span className="bridge-hud__head-label">◈ Active Projects</span>
+                <button type="button" className="bridge-hud__collapse"
+                        onClick={() => toggleIn(setCollapsed, 'projects')}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title={collapsed.has('projects') ? 'Expand panel' : 'Collapse panel'}>
+                  {collapsed.has('projects') ? '▸' : '▾'}
+                </button>
+              </div>
+              <div className="bridge-hud__body">
               {activeProjects.length === 0 ? (
                 <div className="bridge-hud__empty">No active projects.</div>
               ) : activeProjects.map(p => {
                 const open = openProjects.has(p.id);
+                const focused = focusProject === p.id;
                 return (
                   <div key={p.id} className="bridge-project">
-                    <button type="button" className="bridge-project__head"
-                            onClick={() => toggleIn(setOpenProjects, p.id)}
+                    <button type="button" className={`bridge-project__head${focused ? ' is-focused' : ''}`}
+                            onClick={() => pickProject(p.id)}
                             onPointerDown={(e) => e.stopPropagation()}>
                       <span className="bridge-hud__caret">{p.tasks.length ? (open ? '▾' : '▸') : '·'}</span>
                       <span className="bridge-project__name">{trunc(p.name, 22)}</span>
@@ -325,7 +381,35 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
                   </div>
                 );
               })}
+              </div>
             </div>
+
+            {/* Overdue-behind tray — bottom-left, red glass. Only shows when
+                something has slipped off the back of the horizon. */}
+            {overdueBehind.length > 0 && (
+              <div className={`bridge-overdue${showOverdue ? ' is-open' : ''}`}>
+                {showOverdue && (
+                  <div className="bridge-overdue__list">
+                    {overdueBehind.slice(0, 12).map(t => (
+                      <button key={t.id} type="button" className="bridge-hud__item"
+                              onClick={() => onPick(t)} onPointerDown={(e) => e.stopPropagation()}>
+                        <span className="bridge-hud__item-name">{trunc(t.task, 26)}</span>
+                        <span className="bridge-hud__item-due is-overdue">{lateLabel(t)}</span>
+                      </button>
+                    ))}
+                    {overdueBehind.length > 12 && (
+                      <div className="bridge-hud__empty">+{overdueBehind.length - 12} more</div>
+                    )}
+                  </div>
+                )}
+                <button type="button" className="bridge-overdue__tab"
+                        onClick={() => setShowOverdue(s => !s)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title="Overdue tasks behind the horizon">
+                  ◂ {overdueBehind.length} overdue behind
+                </button>
+              </div>
+            )}
           </>
         )}
         {mode === 'horizon' ? (
@@ -336,12 +420,14 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
             viewAnchor={viewAnchor} setViewAnchor={setViewAnchor}
             getQuadrant={getQuadrant} onPick={onPick}
             labelMode={labelMode}
+            focusQuad={focusQuad} focusProject={focusProject}
           />
         ) : (
           <RadarScene
             tasks={visible} lanes={lanes} laneOf={laneOf}
             dayOffset={dayOffset} maxDays={RADAR_DAYS}
             getQuadrant={getQuadrant} onPick={onPick}
+            focusQuad={focusQuad} focusProject={focusProject}
           />
         )}
       </div>
