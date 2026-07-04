@@ -6,6 +6,7 @@ import { Bar, Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 import { BootOverlay } from './components/BootOverlay';
 import { CinematicChrome } from './components/CinematicChrome';
+import { AppDock } from './components/AppDock';
 import { SearchPalette } from './components/SearchPalette';
 import { SettingsModal } from './components/SettingsModal';
 import { ShortcutHelp } from './components/ShortcutHelp';
@@ -845,6 +846,10 @@ const EisenhowerTaskManager = () => {
             tasks={liveTasks} projects={projects} getQuadrant={getQuadrant}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
             settings={settings}
+            view={view} setView={setView}
+            onInfo={() => setShowInfo(true)} onSettings={() => setShowSettings(true)}
+            onExport={exportData} onImport={importData}
+            onRefresh={handleRefresh} isRefreshing={isRefreshing}
           />
         ) : view === 'copilot' ? (
           <CopilotView />
@@ -868,81 +873,19 @@ const EisenhowerTaskManager = () => {
           / Refresh) on the right. The v2 footer's stats block (active /
           done counts) is dropped here — the same numbers are already
           implicit in the top readout bar's Q1-Q4 counts. */}
-      <div className="cin-action-bar">
-        {/* Dashboard panel: Views cluster (instruments) over Actions cluster
-            (center console), stacked tight into a compact paneled frame — no
-            seam, minimal vertical padding. */}
-        <div className="cin-dash-zone cin-dash-zone--views">
-          <div className="cin-view-tabs" role="tablist">
-            {[
-              { key: 'matrix',    icon: LayoutGrid,  label: 'Matrix' },
-              { key: 'list',      icon: List,        label: 'List' },
-              { key: 'gantt',     icon: BarChart3,   label: 'Gantt' },
-              { key: 'calendar',  icon: Calendar,    label: 'Calendar' },
-              { key: 'bridge',    icon: Compass,     label: 'Bridge' },
-              { key: 'analytics', icon: TrendingUp,  label: 'Analytics' },
-              { key: 'projects',  icon: FolderKanban, label: 'Projects' },
-              { key: 'copilot',   icon: MessageSquare, label: 'Copilot' }
-            ].map(({ key, icon: Icon, label }) => (
-              <button
-                key={key}
-                className={`cin-view-tab ${view === key ? 'on' : ''}`}
-                onClick={() => setView(key)}
-                role="tab"
-                aria-selected={view === key}
-              >
-                <span className="cin-view-tab__glyph"><Icon size={13} /></span>
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="cin-dash-zone cin-dash-zone--actions">
-          <button
-            className="cin-add-task"
-            onClick={() => { setEditingTask(null); setShowForm(true); }}
-            title="Add new task"
-          >
-            <span className="cin-add-task__glyph"><Plus size={14} strokeWidth={2.5} /></span>
-            <span>Add Task</span>
-          </button>
-
-          <div className="cin-utility-cluster">
-            <button
-              className="cin-utility-btn"
-              onClick={() => setShowInfo(true)}
-              title="About this app"
-              aria-label="About"
-            ><Info size={13} /></button>
-            <button
-              className="cin-utility-btn"
-              onClick={() => setShowSettings(true)}
-              title="Settings"
-              aria-label="Settings"
-            ><Settings size={13} /></button>
-            <button
-              className="cin-utility-btn"
-              onClick={exportData}
-              title="Export data"
-              aria-label="Export"
-            ><Download size={13} /></button>
-            <label className="cin-utility-btn" title="Import data" style={{ cursor: 'pointer' }}>
-              <Upload size={13} />
-              <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
-            </label>
-            <button
-              className="cin-utility-btn"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              title="Refresh"
-              aria-label="Refresh"
-            >
-              <RefreshCw size={13} className={isRefreshing ? 'cin-utility-btn--spin' : ''} />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* PHASE 4 finale: cinematic action bar. On the Bridge this dock moves
+          into the view's own top-left command column (rendered inside
+          BridgeView), so the bottom strip is suppressed there. */}
+      {view !== 'bridge' && (
+        <AppDock
+          layout="bar"
+          view={view} setView={setView}
+          onAddTask={() => { setEditingTask(null); setShowForm(true); }}
+          onInfo={() => setShowInfo(true)} onSettings={() => setShowSettings(true)}
+          onExport={exportData} onImport={importData}
+          onRefresh={handleRefresh} isRefreshing={isRefreshing}
+        />
+      )}
 
       {/* PHASE 5: Backup reminder toast — cinematic acrylic glass.
           Floats bottom-right above the action bar. Amber left edge

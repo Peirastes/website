@@ -3161,9 +3161,19 @@ body.app-locked .cin-action-bar {
 
 /* ─── Console — top-left floating glass control panel (mode toggle + filters),
    mirroring the KB Explorer's left filter rail. Vertical stack. ─── */
-.bridge-console {
+/* Left command column — Console (bridge controls) over the app dock (Views
+   nav + Actions). Rail is inert; each frame owns its own area. */
+.bridge-rail--left {
   position: absolute; z-index: 6;
-  top: 14px; left: 16px; width: 176px;
+  top: 14px; left: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  max-height: calc(100% - 28px);
+  pointer-events: none;
+}
+/* Shared glass frame for every left-column panel. */
+.bridge-console, .bridge-dock {
+  pointer-events: auto;
+  width: 176px;
   display: flex; flex-direction: column; align-items: stretch; gap: 9px;
   padding: 9px 11px 11px; border-radius: 11px;
   background: linear-gradient(180deg, rgba(16, 22, 32, 0.60) 0%, rgba(10, 15, 24, 0.50) 55%, rgba(8, 12, 20, 0.58) 100%);
@@ -3185,6 +3195,22 @@ body.app-locked .cin-action-bar {
 .bridge-console .cin-filter select { width: 100%; }
 .bridge-console__sep { display: none; }
 
+/* App-dock rail frames — Views nav (vertical) + Actions (Add Task + utilities). */
+.bridge-dock--actions { gap: 7px; }
+.bridge-dock .cin-view-tabs {
+  flex-direction: column; align-items: stretch; gap: 2px; width: 100%;
+}
+.bridge-dock .cin-view-tab {
+  width: 100%; justify-content: flex-start;
+  padding: 5px 8px; font-size: 10.5px; letter-spacing: 0.12em;
+}
+/* Rail nav always shows labels (it's a vertical menu), overriding the bar's
+   sub-1080px icons-only collapse. */
+.bridge-dock .cin-view-tab > span:not(.cin-view-tab__glyph) { display: inline !important; }
+.bridge-dock .cin-add-task { width: 100%; justify-content: center; padding: 6px 10px; }
+.bridge-dock .cin-utility-cluster { justify-content: space-between; gap: 2px; }
+.bridge-dock .cin-utility-btn { flex: 1; height: 26px; }
+
 /* ─── Right rail — Sectors over Projects, stacked. Clicks pass through the
    gaps (rail is inert; the panels own their own area). ─── */
 .bridge-rail--right {
@@ -3202,9 +3228,14 @@ body.app-locked .cin-action-bar {
 /* On phones the globe fills the width; keep controls compact, drop the label
    text on the filter dropdowns (the values are self-evident). */
 @media (max-width: 767px) {
-  .bridge-console { width: 150px; }
+  .bridge-rail--left { top: 12px; left: 12px; }
+  .bridge-console, .bridge-dock { width: 138px; }
   .bridge-console .cin-filter__label { display: none; }
   .bridge-console .cin-filter select { min-width: 0; }
+  /* Rail nav collapses to icons-only on phones to keep the column short. */
+  .bridge-dock .cin-view-tab > span:not(.cin-view-tab__glyph) { display: none !important; }
+  .bridge-dock .cin-view-tabs { flex-flow: row wrap; justify-content: center; gap: 4px; }
+  .bridge-dock .cin-view-tab { width: auto; padding: 6px 8px; }
   .bridge-rail--right { top: 12px; right: 12px; }
   .bridge-rail--right .bridge-hud { width: 168px; }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TaskDetailsModal } from '../../components/TaskDetailsModal';
+import { AppDock } from '../../components/AppDock';
 import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
 
@@ -23,7 +24,10 @@ import { RadarScene } from './RadarScene';
  * Recenter button, task-details popup, and routing to the
  * Horizon/Radar children based on mode.
  */
-export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, setShowForm, settings }) => {
+export const BridgeView = ({
+  tasks, projects = [], getQuadrant, setEditingTask, setShowForm, settings,
+  view, setView, onInfo, onSettings, onExport, onImport, onRefresh, isRefreshing
+}) => {
   const [mode, setMode] = useState('horizon');
   const [filterQuad, setFilterQuad] = useState('all');
   /* Title-label visibility on the Bridge.
@@ -232,8 +236,10 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
       <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
-        {/* Console — top-left floating glass control panel (mode toggle +
-            filters), mirroring the KB Explorer's left filter rail. */}
+        {/* Left command column — Console (Bridge controls) over the app dock
+            (Views nav + Actions), so the Bridge is a self-contained cockpit
+            and the bottom action bar is retired here. */}
+        <div className="bridge-rail bridge-rail--left">
         <div className="bridge-console">
           <div className="bridge-console__head">
             <span className="bridge-hud__head-label">◱ Console</span>
@@ -278,6 +284,15 @@ export const BridgeView = ({ tasks, projects = [], getQuadrant, setEditingTask, 
               </select>
             </div>
           )}
+        </div>
+        <AppDock
+          layout="rail"
+          view={view} setView={setView}
+          onAddTask={() => { setEditingTask(null); setShowForm(true); }}
+          onInfo={onInfo} onSettings={onSettings}
+          onExport={onExport} onImport={onImport}
+          onRefresh={onRefresh} isRefreshing={isRefreshing}
+        />
         </div>
         {/* Recenter floats over the globe (out of the header flow) so its
             show/hide never reflows the toolbar and jostles the frame. */}
