@@ -6,6 +6,7 @@ import { Bar, Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 import { BootOverlay } from './components/BootOverlay';
 import { CinematicChrome } from './components/CinematicChrome';
+import { BridgeClock } from './components/BridgeClock';
 import { AppDock } from './components/AppDock';
 import { SearchPalette } from './components/SearchPalette';
 import { SettingsModal } from './components/SettingsModal';
@@ -778,6 +779,9 @@ const EisenhowerTaskManager = () => {
         crew={view === 'bridge' ? '' : 'Critical · Strategic · Delegate · Eliminate'}
         align={view === 'bridge' ? 'left' : 'center'}
       />
+      {/* Live wall-clock, top-right on the Bridge header line (above the Command
+          frame), mirroring the left-anchored Chronosphere title. */}
+      {view === 'bridge' && <BridgeClock />}
 
       {/* PHASE 5 cleanup: removed etm-reveal-* keyframes (retired in
           Phase 2 when the cinematic scan-line took over the entrance).
