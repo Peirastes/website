@@ -773,9 +773,10 @@ const EisenhowerTaskManager = () => {
           The etm-readout-strip needs ~4.5rem of breathing room from the
           viewport top to clear the chrome — handled by the wrapper below. */}
       <CinematicChrome
-        title="Eisenhower Task Manager"
-        sub="Operations — Task Prioritization Console"
-        crew="Critical · Strategic · Delegate · Eliminate"
+        title={view === 'bridge' ? 'Chronosphere' : 'Eisenhower Task Manager'}
+        sub={view === 'bridge' ? 'Temporal Task Horizon' : 'Operations — Task Prioritization Console'}
+        crew={view === 'bridge' ? '' : 'Critical · Strategic · Delegate · Eliminate'}
+        align={view === 'bridge' ? 'left' : 'center'}
       />
 
       {/* PHASE 5 cleanup: removed etm-reveal-* keyframes (retired in

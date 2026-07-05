@@ -17,7 +17,8 @@ import React from 'react';
 export const CinematicChrome = ({
   title = 'Eisenhower Task Manager',
   sub   = 'Operations — Task Prioritization Console',
-  crew  = 'Critical · Strategic · Delegate · Eliminate'
+  crew  = 'Critical · Strategic · Delegate · Eliminate',
+  align = 'center'   // 'center' (default) or 'left' (corner-anchored, e.g. the Bridge)
 }) => {
   // Split the title so the LAST word is spanned for the .cin-title__name span
   // color treatment (matches the canonical "Artemis II" pattern).
@@ -29,7 +30,7 @@ export const CinematicChrome = ({
   })();
 
   return (
-    <div className="cin-title" aria-label={`${title} — ${sub}`}>
+    <div className={`cin-title ${align === 'left' ? 'cin-title--left' : ''}`} aria-label={`${title} — ${sub}`}>
       <div className="cin-title__name">
         {titleParts.head}<span>{titleParts.tail}</span>
       </div>

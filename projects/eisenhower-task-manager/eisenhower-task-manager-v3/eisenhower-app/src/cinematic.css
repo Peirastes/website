@@ -161,6 +161,17 @@ body.app-locked .cin-hints {
   white-space: nowrap;   /* keep the wordmark on one line (no mid-title wrap) */
 }
 .cin-title__name span { color: var(--cin-gold); }
+
+/* Left-anchored variant (the Bridge titles itself "Chronosphere" in the top-
+   left corner instead of the centred app wordmark). */
+.cin-title--left {
+  left: max(1.4rem, env(safe-area-inset-left, 0px) + 0.4rem);
+  transform: none;
+  text-align: left;
+  animation-name: cin-fade-in-plain;
+}
+.cin-title--left .cin-title__name { justify-content: flex-start; }
+@keyframes cin-fade-in-plain { 0% { opacity: 0; } 100% { opacity: 1; } }
 .cin-title__sub {
   font-family: 'Inter', sans-serif;
   font-size: 9px;
@@ -2955,13 +2966,41 @@ body.app-locked .cin-action-bar {
 /* Recenter floats over the globe (top-right) rather than living in the header
    toolbar, so its conditional show/hide never reflows the layout and jostles
    the globe frame. */
-.bridge-recenter {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 6;
+/* ─── Look-point readout — top-centre time-axis pill. Absolute date/time on the
+   left, ± offset from now on the right, over the central "where you're looking"
+   axis. HTML overlay so it stays crisp at any sphere scale (the on-sphere edge
+   labels go illegible when zoomed out; this never does). ─── */
+.bridge-lookpoint {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 6; pointer-events: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 13px; border-radius: 999px;
+  font-family: 'Share Tech Mono', monospace; white-space: nowrap;
+  background: linear-gradient(180deg, rgba(16, 22, 32, 0.62) 0%, rgba(8, 12, 20, 0.58) 100%);
+  backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
+.bridge-lookpoint__abs {
+  font-size: 12px; letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--cin-gold); text-shadow: 0 0 8px var(--cin-gold-glow);
+}
+.bridge-lookpoint__time { color: rgba(255, 174, 32, 0.72); }
+.bridge-lookpoint__tick { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.20); flex-shrink: 0; }
+.bridge-lookpoint__rel {
+  font-size: 12px; letter-spacing: 0.12em; font-weight: 700;
+  color: rgba(125, 214, 255, 0.85);
+}
+.bridge-lookpoint.is-now .bridge-lookpoint__rel {
+  color: var(--cin-gold); text-shadow: 0 0 8px var(--cin-gold-glow);
+}
+.bridge-lookpoint__rel--btn {
+  pointer-events: auto; cursor: pointer; background: none; border: none;
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 5px; border-radius: 7px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.bridge-lookpoint__rel--btn:hover { background: rgba(255, 204, 0, 0.12); color: var(--cin-gold); }
+.bridge-lookpoint__recenter { font-size: 11px; opacity: 0.75; }
 
 /* ─── Bridge corner HUD — status readout + quest tracker filling the voids
    that flank the globe. Overlays only; never intercept the globe drag. ─── */
@@ -3166,12 +3205,13 @@ body.app-locked .cin-action-bar {
   pointer-events: none;
 }
 
-/* ─── Command — top-left floating glass panel: one collapsible frame holding
+/* ─── Command — top-RIGHT floating glass panel: one collapsible frame holding
    the Bridge controls (mode + filters), the Views nav, and the Actions
-   (Add Task + utilities). One of the Bridge's three floating panels. ─── */
-.bridge-rail--left {
+   (Add Task + utilities). On the right so a thumb reaches the controls when
+   holding a phone/tablet; the task readouts sit left for the other hand. ─── */
+.bridge-rail--command {
   position: absolute; z-index: 6;
-  top: 14px; left: 16px;
+  top: 14px; right: 16px;
   display: flex; flex-direction: column; gap: 12px;
   max-height: calc(100% - 28px);
   pointer-events: none;
@@ -3223,29 +3263,29 @@ body.app-locked .cin-action-bar {
 .bridge-console .cin-utility-cluster { justify-content: space-between; gap: 2px; }
 .bridge-console .cin-utility-btn { flex: 1; height: 26px; }
 
-/* ─── Right rail — Sectors over Projects, stacked. Clicks pass through the
-   gaps (rail is inert; the panels own their own area). ─── */
-.bridge-rail--right {
+/* ─── Task rail (LEFT) — Sectors over Projects, stacked. Clicks pass through
+   the gaps (rail is inert; the panels own their own area). ─── */
+.bridge-rail--tasks {
   position: absolute; z-index: 4;
-  top: 14px; right: 16px;
+  top: 14px; left: 16px;
   display: flex; flex-direction: column; gap: 12px;
   max-height: calc(100% - 28px);
   pointer-events: none;
 }
-.bridge-rail--right .bridge-hud { position: static; max-height: none; width: 224px; }
+.bridge-rail--tasks .bridge-hud { position: static; max-height: none; width: 224px; }
 /* Sectors takes its natural height; Projects flexes and scrolls below it. */
-.bridge-rail--right .bridge-hud--sectors  { flex: 0 0 auto; }
-.bridge-rail--right .bridge-hud--projects { flex: 1 1 auto; min-height: 0; }
+.bridge-rail--tasks .bridge-hud--sectors  { flex: 0 0 auto; }
+.bridge-rail--tasks .bridge-hud--projects { flex: 1 1 auto; min-height: 0; }
 
 /* On phones the globe fills the width; keep controls compact, drop the label
    text on the filter dropdowns (the values are self-evident). */
 @media (max-width: 767px) {
-  .bridge-rail--left { top: 12px; left: 12px; }
+  .bridge-rail--command { top: 12px; right: 12px; }
   .bridge-console { width: 150px; }
   .bridge-console .cin-filter__label { display: none; }
   .bridge-console .cin-filter select { min-width: 0; }
-  .bridge-rail--right { top: 12px; right: 12px; }
-  .bridge-rail--right .bridge-hud { width: 158px; }
+  .bridge-rail--tasks { top: 12px; left: 12px; }
+  .bridge-rail--tasks .bridge-hud { width: 158px; }
 }
 
 /* The Bridge hides the bottom action bar, so the shell's reserved action-bar
@@ -3266,10 +3306,10 @@ body.app-locked .cin-action-bar {
   .cin-title__sub, .cin-title__crew { display: none; }
 
   /* Frames hug the corners tighter; cap to the stage and scroll if needed. */
-  .bridge-rail--left  { top: 8px; left: 8px; max-height: calc(100% - 16px); }
-  .bridge-rail--right { top: 8px; right: 8px; max-height: calc(100% - 16px); }
+  .bridge-rail--command  { top: 8px; right: 8px; max-height: calc(100% - 16px); }
+  .bridge-rail--tasks { top: 8px; left: 8px; max-height: calc(100% - 16px); }
   .bridge-console { width: 154px; }
-  .bridge-rail--right .bridge-hud { width: 176px; }
+  .bridge-rail--tasks .bridge-hud { width: 176px; }
 
   /* Command: pack it so Views + Actions stay on-screen without scrolling. */
   .bridge-console__body { gap: 6px; }
@@ -3423,16 +3463,19 @@ body.app-locked .cin-action-bar {
 }
 
 /* ─── Shared labels ───────────────────────────────────────────── */
+/* Bumped for legibility — these sit near the sphere's curved limb and were too
+   small to read on phones/tablets. Larger + higher-contrast so the date axis is
+   readable there too (the top-centre look-point pill is the primary readout). */
 .bridge-range-label {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.10em;
-  fill: rgba(125, 214, 255, 0.50);
+  fill: rgba(125, 214, 255, 0.68);
 }
 /* Absolute calendar/clock labels (left side of horizon arcs). Tinted
    gold to read as the real-time anchor versus the cyan relative axis. */
 .bridge-range-label--abs {
-  fill: rgba(255, 174, 32, 0.55);
+  fill: rgba(255, 174, 32, 0.72);
 }
 /* Ship sublabel — small calendar/clock readout under the relative
    anchor label, shown only when panned off real-now. */

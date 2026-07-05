@@ -237,6 +237,26 @@ export const BridgeView = ({
               && (dayOffset(t.dueDate, t.dueTime) - viewAnchor) < -7)
     .sort(byDue);
 
+  /* ── Look-point readout: the date/time at the CENTRE of the view (the origin
+     meridian, lon 0 = "where you're looking"). Panning slides time under this
+     axis, so centre = now + viewAnchor. Shown as a legible pill at top-centre —
+     absolute date/time on the LEFT, ± offset from now on the RIGHT — so the time
+     axis is readable at any scale instead of squinting at the sphere's edges. ── */
+  const lookDate = new Date(Date.now() + viewAnchor * 86400000);
+  const lookIsNow = Math.abs(viewAnchor) < 0.021;   // within ~30 min of now
+  const lookAbsDate = lookDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const lookAbsTime = lookDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const lookShowTime = Math.abs(viewAnchor) < 1.5;   // time-of-day only reads meaningfully within ~a day
+  const lookRel = (() => {
+    const a = Math.abs(viewAnchor);
+    if (lookIsNow) return 'NOW';
+    const s = viewAnchor < 0 ? '−' : '+';
+    if (a < 1) return `${s}${Math.max(1, Math.round(a * 24))}h`;
+    if (a < 14) return `${s}${Math.round(a)}d`;
+    if (a < 60) return `${s}${Math.round(a / 7)}w`;
+    return `${s}${Math.round(a / 30)}mo`;
+  })();
+
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
       <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
@@ -247,7 +267,7 @@ export const BridgeView = ({
         {/* Left command column — a SINGLE collapsible Command frame holding the
             Bridge controls (mode + filters), the Views nav, and the Actions
             (Add Task + utilities). One of the Bridge's three floating panels. */}
-        <div className="bridge-rail bridge-rail--left">
+        <div className="bridge-rail bridge-rail--command">
         <div className={`bridge-console${collapsed.has('console') ? ' is-collapsed' : ''}`}>
           <div className="bridge-hud__head">
             <span className="bridge-hud__head-label">◱ Command</span>
@@ -309,23 +329,33 @@ export const BridgeView = ({
           </div>
         </div>
         </div>
-        {/* Recenter floats over the globe (out of the header flow) so its
-            show/hide never reflows the toolbar and jostles the frame. */}
-        {mode === 'horizon' && Math.abs(viewAnchor) >= 1/48 && (
-          <button
-            type="button"
-            className="cin-btn cin-btn--secondary bridge-recenter"
-            onClick={() => setViewAnchor(0)}
-            onPointerDown={(e) => e.stopPropagation()}
-            title="Recenter on now"
-          >Recenter</button>
+        {/* Look-point readout — top-centre time axis: absolute date/time (left)
+            + ± offset from now (right), flanking a centre tick that sits over the
+            origin meridian. When panned it doubles as the Recenter control. */}
+        {mode === 'horizon' && (
+          <div className={`bridge-lookpoint${lookIsNow ? ' is-now' : ''}`}>
+            <span className="bridge-lookpoint__abs">
+              {lookAbsDate}{lookShowTime ? <span className="bridge-lookpoint__time"> · {lookAbsTime}</span> : null}
+            </span>
+            <span className="bridge-lookpoint__tick" aria-hidden="true" />
+            {lookIsNow ? (
+              <span className="bridge-lookpoint__rel">NOW</span>
+            ) : (
+              <button type="button" className="bridge-lookpoint__rel bridge-lookpoint__rel--btn"
+                      onClick={() => setViewAnchor(0)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      title="Recenter on now">
+                {lookRel}<span className="bridge-lookpoint__recenter">⟲</span>
+              </button>
+            )}
+          </div>
         )}
         {/* Corner HUD — expandable QUADRANT SECTORS (top-left) + ACTIVE PROJECTS
             with their tasks (top-right). Fills the voids; horizon only. */}
         {mode === 'horizon' && (
           <>
             {/* Right rail — Sectors over Projects, stacked (KB-Explorer style). */}
-            <div className="bridge-rail bridge-rail--right">
+            <div className="bridge-rail bridge-rail--tasks">
             <div className={`bridge-hud bridge-hud--sectors${collapsed.has('sectors') ? ' is-collapsed' : ''}${focusQuad ? ' is-focusing' : ''}`}>
               <div className="bridge-hud__head">
                 <span className="bridge-hud__head-label">◇ Sectors</span>
