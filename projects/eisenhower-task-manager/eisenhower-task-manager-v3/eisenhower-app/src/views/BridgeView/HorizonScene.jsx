@@ -452,24 +452,25 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         );
       })}
 
-      {/* TODAY label — gold "NOW" at both ends of the today meridian. */}
+      {/* NOW tag — rides the ZERO-TIME (today) meridian: the live current clock
+          time on the present axis. Placed on the upper-mid of the line, offset to
+          the side, so it stays clear of the top-centre Horizon pill and reads far
+          more legibly than the old "NOW" labels stranded at the curved limb. */}
       {(() => {
         const todayLon = dayToLon(-viewAnchor);
         if (Math.abs(todayLon) > ALPHA_LIMB) return null;
         const pts = meridianPts(todayLon);
         if (pts.length < 2) return null;
-        let leftPt = pts[0], rightPt = pts[0];
-        for (const p of pts) {
-          if (p.x < leftPt.x) leftPt = p;
-          if (p.x > rightPt.x) rightPt = p;
-        }
+        /* Anchor the clock where the NOW arc crosses the centre column (the ship's
+           x), lifted just above the line — so it reads as the present sitting on
+           the zero-time axis, over the ship when unpanned and sliding with the arc
+           as you pan. */
+        let cPt = pts[0];
+        for (const p of pts) { if (Math.abs(p.x - CX) < Math.abs(cPt.x - CX)) cPt = p; }
+        const nowClock = new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
         return (
-          <g>
-            <text x={leftPt.x - 6}  y={leftPt.y + 3}  textAnchor="end"
-                  className="bridge-range-label bridge-range-label--today">NOW</text>
-            <text x={rightPt.x + 6} y={rightPt.y + 3} textAnchor="start"
-                  className="bridge-range-label bridge-range-label--today">NOW</text>
-          </g>
+          <text x={cPt.x} y={cPt.y - 16} textAnchor="middle"
+                className="bridge-range-label bridge-range-label--today bridge-now-tag">NOW · {nowClock}</text>
         );
       })()}
 

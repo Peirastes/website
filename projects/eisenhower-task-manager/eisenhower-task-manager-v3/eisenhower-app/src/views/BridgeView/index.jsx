@@ -334,12 +334,13 @@ export const BridgeView = ({
             origin meridian. When panned it doubles as the Recenter control. */}
         {mode === 'horizon' && (
           <div className={`bridge-lookpoint${lookIsNow ? ' is-now' : ''}`}>
+            <span className="bridge-lookpoint__tag">Horizon</span>
             <span className="bridge-lookpoint__abs">
               {lookAbsDate}{lookShowTime ? <span className="bridge-lookpoint__time"> · {lookAbsTime}</span> : null}
             </span>
             <span className="bridge-lookpoint__tick" aria-hidden="true" />
             {lookIsNow ? (
-              <span className="bridge-lookpoint__rel">NOW</span>
+              <span className="bridge-lookpoint__rel">±0</span>
             ) : (
               <button type="button" className="bridge-lookpoint__rel bridge-lookpoint__rel--btn"
                       onClick={() => setViewAnchor(0)}
