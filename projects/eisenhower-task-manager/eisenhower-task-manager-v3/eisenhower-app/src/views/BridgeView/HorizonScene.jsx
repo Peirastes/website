@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import {
   formatAbsolute,
   formatRelative,
+  formatDateTime,
 } from '../../lib/dateFormat';
 import { QID_BY_QUAD } from '../../lib/quadrant';
 import {
@@ -470,10 +471,16 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
            as you pan. */
         let cPt = pts[0];
         for (const p of pts) { if (Math.abs(p.x - CX) < Math.abs(cPt.x - CX)) cPt = p; }
-        const nowClock = new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        /* Stacked label matching the VIEWING model: "NOW" tag on top, the live
+           date·time below — same font/size as the ship (VIEWING) readout. */
+        const readY = cPt.y - (isShort ? 54 : 16);
         return (
-          <text x={cPt.x} y={cPt.y - (isShort ? 58 : 16)} textAnchor="middle"
-                className="bridge-now-tag">NOW · {nowClock}</text>
+          <g>
+            <text x={cPt.x} y={readY - 12} textAnchor="middle"
+                  className="bridge-ship-label">NOW</text>
+            <text x={cPt.x} y={readY} textAnchor="middle"
+                  className="bridge-ship-date">{formatDateTime(Date.now())}</text>
+          </g>
         );
       })()}
 
@@ -613,7 +620,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         <circle r={11 * uiScale} fill="none" className="bridge-ship-ring" />
         <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">VIEWING</text>
         <text x={0} y={42} textAnchor="middle" className="bridge-ship-date">
-          {formatAbsolute(Date.now() + viewAnchor * 86400000, gridSpacing)}
+          {formatDateTime(Date.now() + viewAnchor * 86400000)}
         </text>
       </g>
     </svg>

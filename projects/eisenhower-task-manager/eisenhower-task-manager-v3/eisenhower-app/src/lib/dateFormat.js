@@ -58,6 +58,26 @@ export const formatAbsolute = (refMs, granularityDays) => {
     : `${month} ${day} '${String(d.getFullYear()).slice(-2)}`;
 };
 
+/** Full "date · time" readout — ALWAYS shows both the calendar date and
+ *  the wall-clock time, at every horizon scale. This is the shared model
+ *  for the three stacked Bridge time references (NOW / VIEWING / HORIZON):
+ *  a label on top, this date·time line below. Unlike formatAbsolute it
+ *  never drops the date at sub-day scales nor the time at coarse ones. */
+export const formatDateTime = (refMs) => {
+  const d = new Date(refMs);
+  const month = BRIDGE_MONTH_ABBR[d.getMonth()];
+  const day = d.getDate();
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const dateStr = sameYear
+    ? `${month} ${day}`
+    : `${month} ${day} '${String(d.getFullYear()).slice(-2)}`;
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if (h === 0) h = 12;
+  return `${dateStr} · ${h}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
 /** Right-side relative-from-ship label on a calendar-anchored grid arc.
  *  Direction (ahead vs behind) is implied visually so suffix is omitted. */
 export const formatRelative = (effOff) => {

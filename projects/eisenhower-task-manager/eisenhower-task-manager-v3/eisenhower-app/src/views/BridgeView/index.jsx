@@ -4,6 +4,7 @@ import { AppDock } from '../../components/AppDock';
 import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
 import { isEventTask } from './PipShape';
+import { formatDateTime } from '../../lib/dateFormat';
 
 /**
  * ═════════════════════════════════════════════════════════════════
@@ -254,12 +255,7 @@ export const BridgeView = ({
     return `${Math.round(a / 30)}mo`;
   };
   const horizonAheadDays = viewAnchor + maxDays;
-  const _nowYear = new Date().getFullYear();
-  const horizonDate = new Date(Date.now() + horizonAheadDays * 86400000);
-  const horizonAbs = horizonDate.toLocaleDateString(undefined,
-    horizonDate.getFullYear() === _nowYear
-      ? { month: 'short', day: 'numeric' }
-      : { month: 'short', day: 'numeric', year: 'numeric' });
+  const horizonAbs = formatDateTime(Date.now() + horizonAheadDays * 86400000);
   const horizonAhead = `+${span(horizonAheadDays)}`;
   const isPanned = Math.abs(viewAnchor) >= 0.021;
 
@@ -342,15 +338,17 @@ export const BridgeView = ({
         {mode === 'horizon' && (
           <div className="bridge-lookpoint">
             <span className="bridge-lookpoint__tag">Horizon</span>
-            <span className="bridge-lookpoint__abs">{horizonAbs}</span>
-            <span className="bridge-lookpoint__tick" aria-hidden="true" />
-            <span className="bridge-lookpoint__rel">{horizonAhead}</span>
-            {isPanned && (
-              <button type="button" className="bridge-lookpoint__recenter-btn"
-                      onClick={() => setViewAnchor(0)}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      title="Recenter on now">⟲</button>
-            )}
+            <div className="bridge-lookpoint__read">
+              <span className="bridge-lookpoint__abs">{horizonAbs}</span>
+              <span className="bridge-lookpoint__tick" aria-hidden="true" />
+              <span className="bridge-lookpoint__rel">{horizonAhead}</span>
+              {isPanned && (
+                <button type="button" className="bridge-lookpoint__recenter-btn"
+                        onClick={() => setViewAnchor(0)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title="Recenter on now">⟲</button>
+              )}
+            </div>
           </div>
         )}
         {/* Corner HUD — expandable QUADRANT SECTORS (top-left) + ACTIVE PROJECTS
