@@ -237,25 +237,31 @@ export const BridgeView = ({
               && (dayOffset(t.dueDate, t.dueTime) - viewAnchor) < -7)
     .sort(byDue);
 
-  /* ── Look-point readout: the date/time at the CENTRE of the view (the origin
-     meridian, lon 0 = "where you're looking"). Panning slides time under this
-     axis, so centre = now + viewAnchor. Shown as a legible pill at top-centre —
-     absolute date/time on the LEFT, ± offset from now on the RIGHT — so the time
-     axis is readable at any scale instead of squinting at the sphere's edges. ── */
-  const lookDate = new Date(Date.now() + viewAnchor * 86400000);
-  const lookIsNow = Math.abs(viewAnchor) < 0.021;   // within ~30 min of now
-  const lookAbsDate = lookDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  const lookAbsTime = lookDate.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  const lookShowTime = Math.abs(viewAnchor) < 1.5;   // time-of-day only reads meaningfully within ~a day
-  const lookRel = (() => {
-    const a = Math.abs(viewAnchor);
-    if (lookIsNow) return 'NOW';
-    const s = viewAnchor < 0 ? '−' : '+';
-    if (a < 1) return `${s}${Math.max(1, Math.round(a * 24))}h`;
-    if (a < 14) return `${s}${Math.round(a)}d`;
-    if (a < 60) return `${s}${Math.round(a / 7)}w`;
-    return `${s}${Math.round(a / 30)}mo`;
-  })();
+  /* ── Three time references on the Bridge:
+       • NOW     (real time)     — the amber clock riding the zero-time axis.
+       • VIEWING (measured time) — date/time at the centre measurement line
+                                   (now + viewAnchor); shown at the ship marker.
+       • HORIZON (future time)   — date at the sphere's FUTURE EDGE and how far
+                                   ahead of now it is. That's this top pill: the
+                                   furthest the globe currently sees.
+     The horizon edge is maxDays beyond the viewing centre, i.e. viewAnchor +
+     maxDays ahead of now. ── */
+  const span = (days) => {
+    const a = Math.abs(days);
+    if (a < 1)  return `${Math.max(1, Math.round(a * 24))}h`;
+    if (a < 14) return `${Math.round(a)}d`;
+    if (a < 60) return `${Math.round(a / 7)}w`;
+    return `${Math.round(a / 30)}mo`;
+  };
+  const horizonAheadDays = viewAnchor + maxDays;
+  const _nowYear = new Date().getFullYear();
+  const horizonDate = new Date(Date.now() + horizonAheadDays * 86400000);
+  const horizonAbs = horizonDate.toLocaleDateString(undefined,
+    horizonDate.getFullYear() === _nowYear
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' });
+  const horizonAhead = `+${span(horizonAheadDays)}`;
+  const isPanned = Math.abs(viewAnchor) >= 0.021;
 
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
@@ -329,25 +335,21 @@ export const BridgeView = ({
           </div>
         </div>
         </div>
-        {/* Look-point readout — top-centre time axis: absolute date/time (left)
-            + ± offset from now (right), flanking a centre tick that sits over the
-            origin meridian. When panned it doubles as the Recenter control. */}
+        {/* HORIZON readout — top-centre pill: the future EDGE of the globe. Its
+            date (left) + how far ahead of now it reaches (right). Distinct from
+            the VIEWING time at the centre and the NOW clock on the zero axis.
+            A ⟲ appears when panned to recenter the view on now. */}
         {mode === 'horizon' && (
-          <div className={`bridge-lookpoint${lookIsNow ? ' is-now' : ''}`}>
+          <div className="bridge-lookpoint">
             <span className="bridge-lookpoint__tag">Horizon</span>
-            <span className="bridge-lookpoint__abs">
-              {lookAbsDate}{lookShowTime ? <span className="bridge-lookpoint__time"> · {lookAbsTime}</span> : null}
-            </span>
+            <span className="bridge-lookpoint__abs">{horizonAbs}</span>
             <span className="bridge-lookpoint__tick" aria-hidden="true" />
-            {lookIsNow ? (
-              <span className="bridge-lookpoint__rel">±0</span>
-            ) : (
-              <button type="button" className="bridge-lookpoint__rel bridge-lookpoint__rel--btn"
+            <span className="bridge-lookpoint__rel">{horizonAhead}</span>
+            {isPanned && (
+              <button type="button" className="bridge-lookpoint__recenter-btn"
                       onClick={() => setViewAnchor(0)}
                       onPointerDown={(e) => e.stopPropagation()}
-                      title="Recenter on now">
-                {lookRel}<span className="bridge-lookpoint__recenter">⟲</span>
-              </button>
+                      title="Recenter on now">⟲</button>
             )}
           </div>
         )}

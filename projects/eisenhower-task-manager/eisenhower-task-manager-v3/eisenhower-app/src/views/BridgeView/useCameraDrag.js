@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { nextHorizon } from './projection';
 
 /**
  * Camera-drag state machine for the Horizon scene. Three button-routed
@@ -32,6 +33,7 @@ export const useCameraDrag = ({
   bounds,
   viewBox,
   maxDays,
+  setMaxDays,
   viewAnchor,
   setViewAnchor,
 }) => {
@@ -48,7 +50,28 @@ export const useCameraDrag = ({
   });
   const justDragged = useRef(false);
 
+  /* Multi-touch pinch-zoom. We track every active pointer so a second
+     finger can switch the gesture from single-finger drag to pinch.
+     maxDays/setMaxDays are mirrored into refs so the move handler always
+     reads the live value even as breakpoint steps re-render the parent. */
+  const pointers = useRef(new Map());     // pointerId → { x, y }
+  const pinch = useRef({ active: false, baseDist: 0 });
+  const maxDaysRef = useRef(maxDays);     maxDaysRef.current = maxDays;
+  const setMaxDaysRef = useRef(setMaxDays); setMaxDaysRef.current = setMaxDays;
+  const PINCH_STEP = 1.25;                 // distance ratio that advances one breakpoint
+
   const onPointerDown = (e) => {
+    // Track this pointer for pinch detection.
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size >= 2) {
+      // Second finger down → pinch-zoom. Abort any single-finger drag.
+      dragState.current.active = false;
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { active: true, baseDist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+      if (svgRef.current) svgRef.current.style.cursor = '';
+      e.preventDefault();
+      return;
+    }
     if (e.button === 1) {
       // Middle-click (wheel button): altitude
       dragState.current = { active: true, mode: 'alt', startY: e.clientY, startAlt: cameraAlt, moved: false };
@@ -73,6 +96,36 @@ export const useCameraDrag = ({
   };
 
   const onPointerMove = (e) => {
+    // Keep tracked pointer positions current (for pinch distance).
+    if (pointers.current.has(e.pointerId)) {
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pinch.current.active && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      const ratio = dist / pinch.current.baseDist;
+      const setMD = setMaxDaysRef.current;
+      if (setMD) {
+        /* Advance maxDaysRef IMMEDIATELY (not just on the next React render) so
+           successive pinch moves within one gesture keep stepping through the
+           breakpoints instead of re-computing from a stale value — otherwise a
+           fast pinch only moves one step per render and appears to stick (e.g.
+           jammed at the 14-day "2w" tier). */
+        if (ratio > PINCH_STEP) {            // fingers spread → zoom IN (nearer horizon)
+          const next = nextHorizon(maxDaysRef.current, 'in');
+          maxDaysRef.current = next;
+          setMD(next);
+          pinch.current.baseDist = dist;
+        } else if (ratio < 1 / PINCH_STEP) { // fingers together → zoom OUT (farther horizon)
+          const next = nextHorizon(maxDaysRef.current, 'out');
+          maxDaysRef.current = next;
+          setMD(next);
+          pinch.current.baseDist = dist;
+        }
+      }
+      e.preventDefault();
+      return;
+    }
     const s = dragState.current;
     if (!s.active || !svgRef.current) return;
     if (s.mode === 'alt') {
@@ -108,6 +161,15 @@ export const useCameraDrag = ({
   };
 
   const onPointerUp = (e) => {
+    pointers.current.delete(e.pointerId);
+    if (pinch.current.active && pointers.current.size < 2) {
+      // Pinch ended. Block the synthetic click that follows so lifting a
+      // finger off a pip doesn't select it. Don't resume single-drag from
+      // any leftover finger (it would jump) — dragState is already inactive.
+      pinch.current.active = false;
+      justDragged.current = true;
+      setTimeout(() => { justDragged.current = false; }, 0);
+    }
     const s = dragState.current;
     if (!s.active) return;
     justDragged.current = s.moved;

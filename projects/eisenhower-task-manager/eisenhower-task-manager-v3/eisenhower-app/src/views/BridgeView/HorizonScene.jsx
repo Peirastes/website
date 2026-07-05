@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import {
   formatAbsolute,
   formatRelative,
-  formatAnchor,
 } from '../../lib/dateFormat';
 import { QID_BY_QUAD } from '../../lib/quadrant';
 import {
@@ -474,7 +473,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         const nowClock = new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
         return (
           <text x={cPt.x} y={cPt.y - (isShort ? 58 : 16)} textAnchor="middle"
-                className="bridge-range-label bridge-range-label--today bridge-now-tag">NOW · {nowClock}</text>
+                className="bridge-now-tag">NOW · {nowClock}</text>
         );
       })()}
 
@@ -606,18 +605,16 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         });
       })()}
 
-      {/* Ship marker — sub-camera point sits at chart centre. */}
+      {/* Ship marker — sub-camera point at chart centre = the VIEWING (measured)
+          time: the date/time under the origin dot, where the central measurement
+          line reads. Distinct from NOW (real time) and HORIZON (future edge). */}
       <g transform={`translate(${CX}, ${CY})`}>
         <circle r={6 * uiScale} className="bridge-ship-core" />
         <circle r={11 * uiScale} fill="none" className="bridge-ship-ring" />
-        <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">
-          {formatAnchor(viewAnchor)}
+        <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">VIEWING</text>
+        <text x={0} y={42} textAnchor="middle" className="bridge-ship-date">
+          {formatAbsolute(Date.now() + viewAnchor * 86400000, gridSpacing)}
         </text>
-        {Math.abs(viewAnchor) >= 1/48 && (
-          <text x={0} y={42} textAnchor="middle" className="bridge-ship-date">
-            {formatAbsolute(todayMs + viewAnchor * 86400000, Math.abs(viewAnchor))}
-          </text>
-        )}
       </g>
     </svg>
   );
