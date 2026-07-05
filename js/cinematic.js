@@ -21,7 +21,7 @@
       '<span class="chrome-tick chrome-tick--tr"></span>' +
       '<span class="chrome-tick chrome-tick--bl"></span>' +
       '<span class="chrome-tick chrome-tick--br"></span>';
-    body.appendChild(chrome);
+    void chrome; /* cartographic corner chrome removed site-wide */
   })();
 
   // Trigger fade-in animations on next frame.
