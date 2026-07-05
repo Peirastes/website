@@ -1,0 +1,230 @@
+Yes. Besides A/B comparison and binary tournaments, the most powerful fast-fitting approaches are mostly about **reducing preference learning into ranking, clustering, bandits, memory retrieval, or constraint updates**.
+
+## Strongest algorithms / structures for fast user-preference fitting
+
+| Method                                       | Core idea                                                    | Best for                                                            |
+| -------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| **Contextual bandits**                       | Try options, observe reward, adapt quickly                   | Choosing style, format, priority, tone                              |
+| **Multi-armed bandits**                      | Allocate more attempts to options that win                   | Fast personalization with little data                               |
+| **Bayesian preference learning**             | Maintain uncertainty over what user prefers                  | Learning from sparse feedback                                       |
+| **Bradley-Terry / Elo ranking**              | Infer latent preference scores from comparisons              | Ranking styles, templates, agents, rubrics                          |
+| **Thompson sampling**                        | Sample from uncertain preferences, update after feedback     | Balancing exploration/exploitation                                  |
+| **Nearest-neighbor memory**                  | Retrieve similar past cases and reuse user-approved behavior | “What did I like in similar situations?”                            |
+| **Case-based reasoning**                     | Store situations + decisions + corrections                   | Reusing prior judgments                                             |
+| **Constraint satisfaction**                  | Convert corrections into hard/soft rules                     | Stable schemas, priority rules, formatting                          |
+| **Decision trees / rule induction**          | Learn interpretable “if X, then Y” rules                     | Fast explainable preference capture                                 |
+| **Online logistic regression**               | Incrementally update weights from feedback                   | Lightweight personalization classifier                              |
+| **Embedding + vector memory**                | Store preference examples semantically                       | Matching vibe/intent across different wording                       |
+| **Active learning**                          | Ask only the most informative questions                      | “Grill me” sessions that converge faster                            |
+| **Collaborative filtering**                  | Infer preference from similar users/items                    | Less useful for single-user systems unless you have population data |
+| **Reinforcement learning from feedback**     | Optimize policy from rewards over time                       | Full agent behavior adaptation                                      |
+| **Genetic algorithms / evolutionary search** | Mutate prompts/rules; keep winners                           | Prompt/system optimization                                          |
+| **Beam search with reranking**               | Generate many candidates, score, keep best                   | Notes, summaries, task extraction                                   |
+| **Pareto optimization**                      | Optimize tradeoffs, not one score                            | Concise vs complete, stable vs creative                             |
+| **Knowledge graph / ontology memory**        | Track entities, relations, priorities, commitments           | Long-term structured user intent                                    |
+
+## The highest-leverage stack
+
+For your use case, I’d probably think in this stack:
+
+| Layer                | Algorithm/data structure                   | Purpose                                          |
+| -------------------- | ------------------------------------------ | ------------------------------------------------ |
+| **Memory**           | Vector store + knowledge graph             | Recall similar past user preferences             |
+| **Preference model** | Bradley-Terry / Elo + Bayesian uncertainty | Rank outputs/styles/rules                        |
+| **Exploration**      | Contextual bandit / Thompson sampling      | Try variants without wasting attention           |
+| **Rule extraction**  | Decision tree / constraint induction       | Convert feedback into durable rules              |
+| **Validation**       | Schema + constraint checker                | Prevent drift and malformed outputs              |
+| **Synthesis**        | Beam search + reranking                    | Produce best candidate under learned preferences |
+
+## Most relevant to “fit me quickly”
+
+### 1. Contextual bandits
+
+Instead of randomly generating styles, the system treats each output style as an “arm.”
+
+But the choice depends on context:
+
+| Context             | Preferred behavior           |
+| ------------------- | ---------------------------- |
+| lecture notes       | dense hierarchy              |
+| tasks               | explicit action verbs        |
+| philosophical notes | preserve terminology         |
+| project planning    | dependency-first             |
+| chat logs           | extract intent + commitments |
+
+The system learns:
+
+> In context C, user tends to prefer output strategy S.
+
+This is probably one of the best fits for fast personalization.
+
+---
+
+### 2. Bayesian preference model
+
+This is useful because early user data is sparse.
+
+Instead of saying:
+
+> “The user prefers concise notes.”
+
+It says:
+
+> “There is a 70% probability the user prefers concise notes in this context, but uncertainty is high.”
+
+That lets the system avoid overfitting from one correction.
+
+Good for modeling preferences like:
+
+| Preference dimension | Example                      |
+| -------------------- | ---------------------------- |
+| detail level         | terse vs expansive           |
+| structure            | outline vs prose             |
+| ontology             | entities-first vs narrative  |
+| task extraction      | aggressive vs conservative   |
+| priority             | cautious vs urgency-weighted |
+
+---
+
+### 3. Bradley-Terry / Elo ranking
+
+Every output template, rule, or agent behavior gets a score.
+
+When the user chooses one over another, the winner’s score rises and loser’s falls.
+
+Useful because it turns subjective comparison into a stable preference table.
+
+Example:
+
+| Style                     | Score |
+| ------------------------- | ----: |
+| compressed ontology table |  1580 |
+| prose summary             |  1420 |
+| bullet hierarchy          |  1510 |
+| YAML extraction           |  1640 |
+
+This gives you fast ordering without needing explicit numeric ratings.
+
+---
+
+### 4. Case-based reasoning
+
+This is underrated.
+
+Store examples like:
+
+```yaml
+case:
+  input_type: lecture_transcript
+  context: philosophy
+  user_correction: "don't flatten technical terms"
+  accepted_output_pattern: "preserve terms, define briefly, link concepts"
+  resulting_rule: "preserve domain vocabulary unless user asks to simplify"
+```
+
+Then when a new similar input appears, retrieve the closest cases.
+
+This works better than abstract guide docs alone because it preserves **situated judgment**.
+
+---
+
+### 5. Rule induction / constraint learning
+
+Every correction should become either:
+
+| Correction type     | System update                  |
+| ------------------- | ------------------------------ |
+| “Too vague”         | Require concrete nouns         |
+| “Too long”          | Add compression constraint     |
+| “Wrong priority”    | Update priority rubric         |
+| “Missed dependency” | Add dependency extraction rule |
+| “Bad format”        | Demote that template           |
+
+This turns preference into durable machinery.
+
+The key is separating:
+
+**soft preference** from **hard invariant**.
+
+| Type            | Example                                     |
+| --------------- | ------------------------------------------- |
+| Hard rule       | `priority` must be low/medium/high          |
+| Soft rule       | prefer medium when task blocks another task |
+| Context rule    | for lecture notes, preserve terminology     |
+| Negative rule   | avoid generic summaries                     |
+| Escalation rule | ask/flag when priority confidence is low    |
+
+## Best “fast convergence” architecture
+
+```text
+Input
+  ↓
+Classify context
+  ↓
+Retrieve similar prior cases
+  ↓
+Generate candidate under schema
+  ↓
+Score using learned preference model
+  ↓
+Validate against hard constraints
+  ↓
+Show output
+  ↓
+Capture correction / acceptance / edit
+  ↓
+Update:
+  - preference scores
+  - rules
+  - examples
+  - uncertainty
+```
+
+## Data structures that matter
+
+| Data structure                   | Use                                           |
+| -------------------------------- | --------------------------------------------- |
+| **Vector store**                 | semantic retrieval of similar cases           |
+| **Knowledge graph**              | entities, projects, tasks, dependencies       |
+| **Rule table**                   | explicit user/system constraints              |
+| **Preference matrix**            | user likes style A over B in context C        |
+| **Elo table**                    | ranks templates, rubrics, agents              |
+| **Decision log**                 | records why prior outputs were accepted       |
+| **Feature store**                | structured variables used for scoring         |
+| **Conflict graph**               | detects contradictory preferences             |
+| **Priority queue**               | ranks pending tasks/corrections by importance |
+| **Versioned prompt/rubric repo** | tracks evolution of agent behavior            |
+
+## The strongest combo
+
+For your described system:
+
+> **Contextual bandit + vector memory + rule induction + schema validation + Elo-ranked templates**
+
+That gives you:
+
+| Need                  | Mechanism            |
+| --------------------- | -------------------- |
+| Fast adaptation       | contextual bandit    |
+| Reuse past preference | vector memory        |
+| Stable structure      | schema validation    |
+| Explainability        | induced rules        |
+| Ranking styles        | Elo / Bradley-Terry  |
+| Avoid overfitting     | Bayesian uncertainty |
+
+## Compressed ontology
+
+| Layer         | Learns what?           |
+| ------------- | ---------------------- |
+| **Schema**    | what outputs may exist |
+| **Rubric**    | what counts as good    |
+| **Memory**    | what mattered before   |
+| **Bandit**    | what to try next       |
+| **Ranker**    | what usually wins      |
+| **Rules**     | what must persist      |
+| **Validator** | what cannot pass       |
+| **Graph**     | how things relate      |
+
+## One-line version
+
+The best systems do not merely compare outputs; they maintain a **preference memory**, a **ranking model**, a **rule system**, and an **uncertainty-aware exploration policy** around generation.

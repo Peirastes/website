@@ -25,7 +25,7 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 DATA_SCRIPT = SCRIPTS_DIR / "generate_ecdo_watch_data.py"
 STATUS_FILE = LOGS_DIR / "last_run_status.json"
 
-TIMEOUT_SECONDS = 600  # 10 minutes max for script to complete (USGS/IERS can be slow)
+TIMEOUT_SECONDS = 900  # 15 minutes max for script to complete (USGS/IERS can be slow)
 HEALTHY_MAX_AGE_HOURS = 24
 
 # ===== LOGGING SETUP =====

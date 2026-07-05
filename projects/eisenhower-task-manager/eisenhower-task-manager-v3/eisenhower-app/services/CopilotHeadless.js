@@ -8,6 +8,16 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const workdir = require('./workdirService');
+const { approvalsService } = require('./approvalsService');
+
+// When approvals are ON, route tool permissions through the MCP approval_prompt
+// tool (human-in-the-loop) instead of auto-approving everything.
+function permissionArgs() {
+  return approvalsService.isEnabled()
+    ? ['--permission-prompt-tool', 'mcp__peirastes-tools__approval_prompt']
+    : ['--permission-mode', 'bypassPermissions'];
+}
 
 const MCP_CONFIG = path.join(__dirname, '..', '..', 'peirastes-mcp-server', 'mcp-config.json');
 const SYSTEM_PROMPT_FILE = path.join(__dirname, '..', 'data', 'copilot-system-prompt.txt');
@@ -105,11 +115,18 @@ if you need the current category/subcategory list rather than assuming.
 - Default new tasks to Q2/rank 2, assignedDate = today
 - When a task is done, call complete_task immediately
 
-## File System
-Use read_file, write_file, list_directory, search_files MCP tools for Dropbox file operations.
+## Files & Code — you have the full native dev toolset
+- **Read** a file before you **Edit** it (Edit = exact-string surgical replace; Write = new file / full rewrite). Use these for real code work, not whole-file guesswork.
+- **Grep** (ripgrep) for file contents, **Glob** for filename patterns — ALWAYS scope a search with a path inside the working directory or a project folder; never grep all of Dropbox.
+- MCP read_file/write_file/list_directory/search_files still exist (path-flexible anywhere in Dropbox) — fine for one-off reads outside the project, but prefer native tools for code.
 
-## Shell
-Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
+## Working Directory
+- Your tools (Read/Edit/Write/Grep/Glob/Bash and background jobs) run from: ${workdir.get()}
+- To work in a different project, call set_workdir (absolute path, or relative to the current dir). It takes effect on the NEXT turn; for the current turn, use absolute paths.
+
+## Shell & long work
+- Use Bash (native) or shell_command for QUICK (<30s) commands.
+- For anything longer — builds, installs, npm/pip, git clones, long scripts — use **run_job** (runs in the background, survives the turn, Cole is notified on completion). Report the job id; check progress with get_job.
 
 ## Context
 - Current date & time: ${now} (local)
@@ -118,6 +135,28 @@ Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
 - Cole is a university instructor (Physics/PSE-I & II, Dynamics, Intro to Engineering, Electrical Science Lab) who also runs peirastes.com and several Electron apps
 - His time is the primary constraint — guard it fiercely
 - Keep responses concise — this is a mobile interface`;
+  }
+
+  // Isolated one-shot agent run for scheduled/background work (e.g. the daily
+  // briefing). No history, no session resume — never touches the chat conversation.
+  async runOnce(message, opts = {}) {
+    this._writeSystemPrompt();
+    const sysPrompt = fs.readFileSync(SYSTEM_PROMPT_FILE, 'utf-8');
+    const args = [
+      '-p', message,
+      '--mcp-config', MCP_CONFIG,
+      '--output-format', 'json',
+      '--model', resolveModel(opts.model),
+      ...permissionArgs(),
+      '--system-prompt', sysPrompt,
+      '--disallowed-tools', 'Agent,NotebookEdit'
+    ];
+    const result = await this._spawnClaude(args);
+    let parsed;
+    try { parsed = JSON.parse(result.stdout); }
+    catch { throw new Error('Failed to parse agent output'); }
+    if (parsed.is_error) throw new Error(parsed.result || 'agent error');
+    return (parsed.result || '').trim();
   }
 
   async chat(userMessage, opts = {}) {
@@ -132,9 +171,9 @@ Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
       '--mcp-config', MCP_CONFIG,
       '--output-format', 'json',
       '--model', resolveModel(opts.model),
-      '--permission-mode', 'bypassPermissions',
+      ...permissionArgs(),
       '--system-prompt', sysPrompt,
-      '--disallowed-tools', 'Edit,Write,Read,Glob,Grep,Agent,NotebookEdit'
+      '--disallowed-tools', 'Agent,NotebookEdit'
     ];
 
     let result;
@@ -219,9 +258,9 @@ Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
       '--include-partial-messages',
       '--verbose',
       '--model', resolveModel(opts.model),
-      '--permission-mode', 'bypassPermissions',
+      ...permissionArgs(),
       '--system-prompt', sysPrompt,
-      '--disallowed-tools', 'Edit,Write,Read,Glob,Grep,Agent,NotebookEdit'
+      '--disallowed-tools', 'Agent,NotebookEdit'
     ];
 
     const args = this.sessionId ? [...baseArgs, '--resume', this.sessionId] : baseArgs;
@@ -263,8 +302,8 @@ Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
     let aborted = false;
     await new Promise((resolve) => {
       const proc = spawn(CLAUDE_BIN, args, {
-        cwd: 'C:\\Users\\Cole\\Dropbox',
-        timeout: 120000,
+        cwd: workdir.get(),
+        timeout: 300000, // 5 min — allows time for a human approval mid-turn
         env: SUBSCRIPTION_ENV,
         windowsHide: true
       });
@@ -337,8 +376,8 @@ Use shell_command for git, python, pandoc, npm, etc. 60s timeout.
   _spawnClaude(args) {
     return new Promise((resolve, reject) => {
       const proc = spawn(CLAUDE_BIN, args, {
-        cwd: 'C:\\Users\\Cole\\Dropbox',
-        timeout: 120000, // 2 min max
+        cwd: workdir.get(),
+        timeout: 300000, // 5 min — allows time for a human approval mid-turn
         env: SUBSCRIPTION_ENV,
         windowsHide: true
       });

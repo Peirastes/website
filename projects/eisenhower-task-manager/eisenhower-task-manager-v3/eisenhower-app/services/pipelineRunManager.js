@@ -58,10 +58,13 @@ class PipelineRunManager {
   /**
    * Launch a pipeline. Returns immediately; execution runs async.
    */
-  launch(filename, parameters = {}) {
+  launch(filename, parameters = {}, mode) {
     if (this.state.status === 'running' || this.state.status === 'paused-breakpoint') {
       throw new Error('A pipeline is already running. Abort it first.');
     }
+
+    // Route model calls to the subscription (default) or the paid org key for this run.
+    if (this.claude && this.claude.setMode) this.claude.setMode(mode);
 
     const filePath = path.join(this.pipelinesDir, filename);
     if (!fs.existsSync(filePath)) {

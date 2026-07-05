@@ -1,5 +1,7 @@
-const CACHE_NAME = 'etm-v1';
-const SHELL_URLS = ['/', '/manifest.json'];
+const CACHE_NAME = 'etm-v2';
+// App is served under /etm/ (see server.js). Precache the real shell base,
+// not root — the old ['/', '/manifest.json'] cached the wrong paths.
+const SHELL_URLS = ['/etm/', '/etm/manifest.json'];
 
 // Install: cache app shell
 self.addEventListener('install', (event) => {

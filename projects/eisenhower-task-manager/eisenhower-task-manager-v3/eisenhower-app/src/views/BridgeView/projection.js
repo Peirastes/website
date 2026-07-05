@@ -54,6 +54,22 @@ export const HORIZON_TIERS = [
 ];
 export const HORIZON_BREAKPOINTS = HORIZON_TIERS.map(t => t.horizon);
 
+/**
+ * Snap the horizon distance to the next breakpoint. Shared by the wheel
+ * zoom (useHorizonZoom) and the touch pinch zoom (useCameraDrag).
+ *   dir 'in'  → next-smaller horizon (zoom in / spread fingers / scroll up)
+ *   dir 'out' → next-larger horizon  (zoom out / pinch fingers / scroll down)
+ * Returns the current value unchanged at the ends of the range.
+ */
+export const nextHorizon = (current, dir) => {
+  if (dir === 'out') {
+    return HORIZON_BREAKPOINTS.find(bp => bp > current + 1e-9)
+        ?? HORIZON_BREAKPOINTS[HORIZON_BREAKPOINTS.length - 1];
+  }
+  return [...HORIZON_BREAKPOINTS].reverse().find(bp => bp < current - 1e-9)
+      ?? HORIZON_BREAKPOINTS[0];
+};
+
 /** One lane = one 15° latitude band. */
 export const SECTOR_WIDTH = Math.PI / 12;
 

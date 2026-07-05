@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Upload, Settings, AlertCircle, CheckCircle, LayoutGrid, List, Shield, Clock, Archive, Repeat, BarChart3, TrendingUp, RefreshCw } from 'lucide-react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar, Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend);
 import { PINModal } from './components/PINModal';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api';
 
 async function apiFetch(path) {
   const res = await fetch(`${API_BASE}${path}`);
@@ -29,13 +29,21 @@ const EisenhowerTaskManager = () => {
   const [isUnlocked, setIsUnlocked] = useState(() => {
     return sessionStorage.getItem('eisenhower-unlocked') === 'true';
   });
+  // Track if we just unlocked (for entrance animation) vs already unlocked on load
+  const [justUnlocked, setJustUnlocked] = useState(false);
+  const [appRevealed, setAppRevealed] = useState(() => {
+    // If already unlocked on mount, skip the reveal animation
+    return sessionStorage.getItem('eisenhower-unlocked') === 'true';
+  });
 
   // All state must be declared before any conditional rendering
   const [tasks, setTasks] = useState([]);
   const [settings, setSettings] = useState({
-    categories: ['Career', 'Personal'],
+    domains: ['Teaching', 'Projects', 'Personal'],
+    scopes: ['Professional', 'Personal'],
     subcategories: {
-      'Career': ['Dynamics', 'Statics', 'Intro to Engineering', 'Thermal Engineering Lab', 'Physics'],
+      'Teaching': ['PSEII', 'Dynamics', 'Statics', 'Intro to Engineering', 'TE Lab'],
+      'Projects': ['Optics Lab', 'ETM', 'Bond Graph Engine', 'Agent World', 'Website', 'Collision Lab', 'Capacitor Lab', 'Smoke Sim', 'Artemis II', 'ODS Paper', 'DSL', 'KB Explorer', 'Pipeline IDE'],
       'Personal': ['Car', 'Home', 'Health', 'Finance']
     }
   });
@@ -53,24 +61,22 @@ const EisenhowerTaskManager = () => {
   const [completingTask, setCompletingTask] = useState(null);
   const [filters, setFilters] = useState({
     quadrant: 'all',
-    category: 'all',
+    domain: 'all',
+    scope: 'all',
     status: 'active',
     recurrence: 'all'
   });
   const [sortBy, setSortBy] = useState('priority');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Show PIN modal if not unlocked (after all state is declared)
-  if (!isUnlocked) {
-    return <PINModal onUnlock={() => setIsUnlocked(true)} />;
-  }
+  // PIN check moved to JSX return — no early return before hooks
 
-  // Sample seed data with all recurrence types
-  const sampleTasks = [
+  // Dead code: sample tasks kept for reference but unused — server is single source of truth
+  const _unusedSampleTasks = [
     {
       id: '1',
       task: 'Prepare Homework (HW3)',
-      category: 'Career',
+      domain: 'Teaching', scope: 'Professional',
       subcategory: 'Dynamics',
       isUrgent: true,
       isNecessary: true,
@@ -90,8 +96,8 @@ const EisenhowerTaskManager = () => {
     {
       id: '2',
       task: 'Complete Lab Report',
-      category: 'Career',
-      subcategory: 'Thermal Engineering Lab',
+      domain: 'Teaching', scope: 'Professional',
+      subcategory: 'TE Lab',
       isUrgent: true,
       isNecessary: true,
       rank: 2,
@@ -110,8 +116,8 @@ const EisenhowerTaskManager = () => {
     {
       id: '3',
       task: 'Review Course Material',
-      category: 'Career',
-      subcategory: 'Physics',
+      domain: 'Teaching', scope: 'Professional',
+      subcategory: 'PSEII',
       isUrgent: false,
       isNecessary: true,
       rank: 1,
@@ -130,7 +136,7 @@ const EisenhowerTaskManager = () => {
     {
       id: '4',
       task: 'Attend Team Meeting',
-      category: 'Career',
+      domain: 'Teaching', scope: 'Professional',
       subcategory: 'Intro to Engineering',
       isUrgent: true,
       isNecessary: false,
@@ -150,7 +156,7 @@ const EisenhowerTaskManager = () => {
     {
       id: '5',
       task: 'Schedule Car Maintenance',
-      category: 'Personal',
+      domain: 'Personal', scope: 'Personal',
       subcategory: 'Car',
       isUrgent: false,
       isNecessary: true,
@@ -170,7 +176,7 @@ const EisenhowerTaskManager = () => {
     {
       id: '6',
       task: 'File Annual Tax Documents',
-      category: 'Personal',
+      domain: 'Personal', scope: 'Personal',
       subcategory: 'Finance',
       isUrgent: false,
       isNecessary: true,
@@ -190,7 +196,7 @@ const EisenhowerTaskManager = () => {
     {
       id: '7',
       task: 'Plan Spring Project',
-      category: 'Career',
+      domain: 'Teaching', scope: 'Professional',
       subcategory: 'Intro to Engineering',
       isUrgent: false,
       isNecessary: true,
@@ -210,8 +216,8 @@ const EisenhowerTaskManager = () => {
     {
       id: '8',
       task: 'Browse Course Catalog',
-      category: 'Career',
-      subcategory: 'Physics',
+      domain: 'Teaching', scope: 'Professional',
+      subcategory: 'PSEII',
       isUrgent: false,
       isNecessary: false,
       rank: 3,
@@ -229,83 +235,57 @@ const EisenhowerTaskManager = () => {
     }
   ];
 
-  // Load data on mount — try server first, fall back to localStorage
-  useEffect(() => {
-    const loadData = async () => {
-      let serverAvailable = false;
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-      // Tasks: server → localStorage → sampleTasks
-      try {
-        const serverTasks = await apiFetch('/tasks');
-        if (Array.isArray(serverTasks) && serverTasks.length > 0) {
-          setTasks(serverTasks);
-          serverAvailable = true;
-        }
-      } catch (e) { /* server not available */ }
+  // Load data from server (single source of truth)
+  const [serverOffline, setServerOffline] = useState(false);
 
-      if (!serverAvailable) {
-        try {
-          const tasksData = localStorage.getItem('eisenhower-tasks');
-          if (tasksData) {
-            setTasks(JSON.parse(tasksData));
-          } else {
-            setTasks(sampleTasks);
-          }
-        } catch (e) {
-          setTasks(sampleTasks);
-        }
-      }
-
-      // Settings: server → localStorage → defaults
-      try {
-        const serverSettings = await apiFetch('/settings');
-        if (serverSettings) {
-          setSettings(serverSettings);
-        }
-      } catch (e) {
-        try {
-          const settingsData = localStorage.getItem('eisenhower-settings');
-          if (settingsData) {
-            setSettings(JSON.parse(settingsData));
-          }
-        } catch (e2) { /* use defaults */ }
-      }
-
-      // Backup metadata: server → localStorage → defaults
-      try {
-        const serverBackup = await apiFetch('/backup-metadata');
-        if (serverBackup) {
-          setBackupMetadata(serverBackup);
-        }
-      } catch (e) {
-        try {
-          const backupData = localStorage.getItem('eisenhower-backup-metadata');
-          if (backupData) {
-            setBackupMetadata(JSON.parse(backupData));
-          }
-        } catch (e2) { /* use defaults */ }
-      }
-
+  const loadData = async () => {
+    try {
+      const serverTasks = await apiFetch('/tasks');
+      setTasks(Array.isArray(serverTasks) ? serverTasks : []);
+      setServerOffline(false);
+    } catch (e) {
+      setServerOffline(true);
       setIsLoading(false);
-    };
-    loadData();
-  }, []);
+      return;
+    }
 
-  // Save tasks when they change — server + localStorage
+    try {
+      const serverSettings = await apiFetch('/settings');
+      if (serverSettings) setSettings(serverSettings);
+    } catch (e) { /* use defaults */ }
+
+    try {
+      const serverBackup = await apiFetch('/backup-metadata');
+      if (serverBackup) setBackupMetadata(serverBackup);
+    } catch (e) { /* use defaults */ }
+
+    setIsLoading(false);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadData();
+    setIsRefreshing(false);
+  };
+
+  // Load data on mount — and re-load when unlocked after PIN entry
   useEffect(() => {
-    if (!isLoading) {
-      const saveData = async () => {
-        // Always save to localStorage as local cache
-        try {
-          localStorage.setItem('eisenhower-tasks', JSON.stringify(tasks));
-        } catch (e) {
-          console.error('Failed to save tasks to localStorage:', e);
-        }
+    if (isUnlocked) {
+      loadData();
+    }
+  }, [isUnlocked]);
 
-        // Try to save to server
+  // Save tasks to server when they change
+  useEffect(() => {
+    if (!isLoading && !serverOffline) {
+      const saveData = async () => {
         try {
           await apiPost('/tasks', tasks);
-        } catch (e) { /* server not available — localStorage is the backup */ }
+        } catch (e) {
+          console.error('Failed to save tasks:', e);
+        }
 
         const updatedMetadata = {
           ...backupMetadata,
@@ -313,28 +293,22 @@ const EisenhowerTaskManager = () => {
         };
         setBackupMetadata(updatedMetadata);
         try {
-          localStorage.setItem('eisenhower-backup-metadata', JSON.stringify(updatedMetadata));
-        } catch (e) { /* ignore */ }
-        try {
           await apiPost('/backup-metadata', updatedMetadata);
-        } catch (e) { /* server not available */ }
+        } catch (e) { /* ignore */ }
       };
       saveData();
     }
   }, [tasks, isLoading]);
 
-  // Save settings when they change — server + localStorage
+  // Save settings to server when they change
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !serverOffline) {
       const saveSettings = async () => {
         try {
-          localStorage.setItem('eisenhower-settings', JSON.stringify(settings));
-        } catch (e) {
-          console.error('Failed to save settings to localStorage:', e);
-        }
-        try {
           await apiPost('/settings', settings);
-        } catch (e) { /* server not available */ }
+        } catch (e) {
+          console.error('Failed to save settings:', e);
+        }
       };
       saveSettings();
     }
@@ -560,241 +534,129 @@ const EisenhowerTaskManager = () => {
     return Math.floor((new Date() - new Date(backupMetadata.lastExport)) / (1000 * 60 * 60 * 24));
   };
 
-  if (isLoading) {
+  // Show PIN modal if not unlocked (must be before loading check)
+  if (!isUnlocked) {
+    return <PINModal onUnlock={() => {
+      setJustUnlocked(true);
+      setIsUnlocked(true);
+      // Trigger reveal after vault doors are mostly open (doors take 1.6s)
+      setTimeout(() => setAppRevealed(true), 1200);
+    }} />;
+  }
+
+  if (serverOffline) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <div className="text-2xl font-light text-slate-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{
+        background: 'radial-gradient(ellipse at 50% 40%, #1a2024, #0a0e12 65%, #040608)',
+        fontFamily: "'Courier New', monospace"
+      }}>
+        <div className="text-center space-y-4">
+          <div className="etm-led etm-led--red etm-led--pulse mx-auto" style={{ width: 12, height: 12 }} />
+          <div className="text-sm font-bold uppercase tracking-widest" style={{
+            color: '#ff3344',
+            textShadow: '0 0 10px rgba(255,51,68,.3)'
+          }}>Server Offline</div>
+          <div style={{ color: '#506070', fontSize: '12px', maxWidth: '280px' }}>
+            ETM server is not reachable. Ensure the server is running and you are connected to Tailscale.
+          </div>
+          <button
+            onClick={() => { setServerOffline(false); setIsLoading(true); loadData(); }}
+            className="etm-pushbutton text-sm mt-4"
+          >
+            <RefreshCw size={14} /> Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading && !justUnlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        background: 'radial-gradient(ellipse at 50% 40%, #1a2024, #0a0e12 65%, #040608)',
+        fontFamily: "'Courier New', monospace"
+      }}>
+        <div className="text-sm font-bold uppercase tracking-widest" style={{
+          color: '#ffaa33',
+          textShadow: '0 0 10px rgba(255,170,51,.3)'
+        }}>Initializing...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+    <div className={`h-screen flex flex-col text-[#c8d0e0] overflow-hidden ${justUnlocked && !appRevealed ? 'etm-reveal-start' : ''} ${justUnlocked && appRevealed ? 'etm-reveal-animate' : ''}`} style={{
+      fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      background: 'radial-gradient(ellipse at 50% 30%, #1a2024, #0a0e12 60%, #040608)'
+    }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
-        
-        .quadrant-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .etm-reveal-start {
+          opacity: 0;
+          transform: translateY(100vh);
         }
-        
-        .quadrant-card:hover {
-          transform: translateY(-2px);
+        .etm-reveal-animate {
+          animation: etmReveal 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+          border-top: 3px solid #0c1014;
+          box-shadow: 0 -6px 24px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
         }
-        
-        .task-item {
-          transition: all 0.2s ease;
+        .etm-reveal-animate::before {
+          content: '';
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          height: 6px;
+          z-index: 9999;
+          background: repeating-linear-gradient(90deg, #ffaa33 0px, #ffaa33 12px, #1e2428 12px, #1e2428 24px);
+          opacity: 0.5;
+          animation: etmHazardFade 1.2s ease-out forwards;
         }
-        
-        .task-item:hover {
-          transform: translateX(4px);
-        }
-        
-        .completed-task {
-          opacity: 0.6;
-        }
-        
+
         .priority-badge {
           font-family: 'JetBrains Mono', monospace;
           font-size: 0.75rem;
           font-weight: 600;
         }
-        
-        .modal-backdrop {
-          animation: fadeIn 0.2s ease;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        .modal-content {
-          animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .ai-gradient {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .pulse-animation {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.7;
-          }
-        }
       `}</style>
 
-      {/* Backup Reminder Banner */}
-      {showBackupReminder && (
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="pulse-animation" size={20} />
-              <span className="font-semibold">
-                Backup Reminder: It's been {getDaysSinceExport()} days since your last export
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={exportData}
-                className="bg-white text-orange-600 px-4 py-1.5 rounded-lg font-medium hover:bg-orange-50 transition-colors"
-              >
-                Export Now
-              </button>
-              <button
-                onClick={() => setShowBackupReminder(false)}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* === CONTROL PANEL LAYOUT: readouts → screens → controls === */}
 
-      {/* Header */}
-      <header className="bg-white border-b-2 border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Top: LED Readout Strip */}
+      <div className="etm-readout-strip" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1 sm:py-2">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-indigo-900 bg-clip-text text-transparent">
-                Eisenhower Matrix
-              </h1>
-              <p className="text-sm text-slate-500 mt-1 font-medium tracking-wide">
-                URGENT × IMPORTANT TASK PRIORITIZATION
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex bg-slate-100 rounded-lg p-1">
-                <button
-                  onClick={() => setView('matrix')}
-                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
-                    view === 'matrix'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <LayoutGrid size={16} />
-                  <span className="font-medium">Matrix</span>
-                </button>
-                <button
-                  onClick={() => setView('list')}
-                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
-                    view === 'list'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <List size={16} />
-                  <span className="font-medium">List</span>
-                </button>
-                <button
-                  onClick={() => setView('gantt')}
-                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
-                    view === 'gantt'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <BarChart3 size={16} />
-                  <span className="font-medium">Gantt</span>
-                </button>
-                <button
-                  onClick={() => setView('analytics')}
-                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
-                    view === 'analytics'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <TrendingUp size={16} />
-                  <span className="font-medium">Analytics</span>
-                </button>
-                <button
-                  onClick={() => setView('calendar')}
-                  className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
-                    view === 'calendar'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <Calendar size={16} />
-                  <span className="font-medium">Calendar</span>
-                </button>
-              </div>
-              <button
-                onClick={() => {
-                  setEditingTask(null);
-                  setShowForm(true);
-                }}
-                className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg shadow-indigo-200 font-medium"
-              >
-                <Plus size={18} strokeWidth={2.5} />
-                Add Task
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Stats Bar */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <div className="text-xs font-semibold text-red-700 uppercase tracking-wider">Do First</div>
-              <div className="text-2xl font-bold text-red-900 mt-1">{stats.byQuadrant['do-first']}</div>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-              <div className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Schedule</div>
-              <div className="text-2xl font-bold text-blue-900 mt-1">{stats.byQuadrant['schedule']}</div>
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              <div className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Delegate</div>
-              <div className="text-2xl font-bold text-amber-900 mt-1">{stats.byQuadrant['delegate']}</div>
-            </div>
-            <div className="bg-slate-100 border border-slate-200 rounded-lg px-4 py-3">
-              <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Eliminate</div>
-              <div className="text-2xl font-bold text-slate-800 mt-1">{stats.byQuadrant['eliminate']}</div>
-            </div>
-            {stats.overdue.length > 0 && (
-              <div className="bg-rose-100 border-2 border-rose-400 rounded-lg px-4 py-3">
-                <div className="text-xs font-semibold text-rose-700 uppercase tracking-wider flex items-center gap-1">
-                  <AlertCircle size={12} />
-                  Overdue
+            <div className="flex items-center gap-4 sm:gap-6">
+              {[
+                { label: 'Q1', cls: 'etm-readout__value--red', led: 'etm-led--red', val: stats.byQuadrant['do-first'] },
+                { label: 'Q2', cls: 'etm-readout__value--cyan', led: 'etm-led--cyan', val: stats.byQuadrant['schedule'] },
+                { label: 'Q3', cls: 'etm-readout__value--amber', led: 'etm-led--amber', val: stats.byQuadrant['delegate'] },
+                { label: 'Q4', cls: 'etm-readout__value--muted', led: 'etm-led--muted', val: stats.byQuadrant['eliminate'] },
+              ].map(r => (
+                <div key={r.label} className="etm-readout" style={{ padding: '4px 8px' }}>
+                  <div className="etm-readout__label"><span className={`etm-led ${r.led}`} /> {r.label}</div>
+                  <div className={`etm-readout__value ${r.cls}`} style={{ fontSize: '18px' }}>{r.val}</div>
                 </div>
-                <div className="text-2xl font-bold text-rose-900 mt-1">{stats.overdue.length}</div>
-              </div>
-            )}
-            {stats.dueToday.length > 0 && (
-              <div className="bg-orange-100 border-2 border-orange-400 rounded-lg px-4 py-3">
-                <div className="text-xs font-semibold text-orange-700 uppercase tracking-wider">Due Today</div>
-                <div className="text-2xl font-bold text-orange-900 mt-1">{stats.dueToday.length}</div>
-              </div>
-            )}
+              ))}
+            </div>
+            <div className="flex items-center gap-3 sm:gap-4">
+              {stats.overdue.length > 0 && (
+                <div className="etm-readout" style={{ padding: '4px 8px' }}>
+                  <div className="etm-readout__label"><span className="etm-led etm-led--red etm-led--pulse" /> Overdue</div>
+                  <div className="etm-readout__value etm-readout__value--red" style={{ fontSize: '18px' }}>{stats.overdue.length}</div>
+                </div>
+              )}
+              {stats.dueToday.length > 0 && (
+                <div className="etm-readout" style={{ padding: '4px 8px' }}>
+                  <div className="etm-readout__label"><span className="etm-led etm-led--amber etm-led--pulse" /> Today</div>
+                  <div className="etm-readout__value etm-readout__value--amber" style={{ fontSize: '18px' }}>{stats.dueToday.length}</div>
+                </div>
+              )}
+              <div className="hidden sm:block etm-nameplate">Peirastes Mk-II</div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Middle: Main Content — fills viewport between readouts and control bar */}
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 flex-1 min-h-0 w-full h-full">
         {view === 'matrix' ? (
           <MatrixView
             tasks={tasks}
@@ -808,102 +670,139 @@ const EisenhowerTaskManager = () => {
             calculateTaskScore={calculateTaskScore}
           />
         ) : view === 'list' ? (
-          <ListView
-            tasks={tasks}
-            filters={filters}
-            setFilters={setFilters}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            getQuadrant={getQuadrant}
-            calculatePriority={calculatePriority}
-            toggleComplete={toggleComplete}
-            setEditingTask={setEditingTask}
-            setShowForm={setShowForm}
-            deleteTask={deleteTask}
-            calculateTaskScore={calculateTaskScore}
-            settings={settings}
-          />
+          <MonitorShell
+            title="LIST VIEW" label="TASK LIST — ALL QUADRANTS"
+            ledClass="etm-led--cyan" screenClass="etm-monitor__glass--schedule" monitorClass="etm-monitor--schedule"
+          >
+            <ListView
+              tasks={tasks} filters={filters} setFilters={setFilters}
+              sortBy={sortBy} setSortBy={setSortBy} getQuadrant={getQuadrant}
+              calculatePriority={calculatePriority} toggleComplete={toggleComplete}
+              setEditingTask={setEditingTask} setShowForm={setShowForm}
+              deleteTask={deleteTask} calculateTaskScore={calculateTaskScore}
+              settings={settings}
+            />
+          </MonitorShell>
         ) : view === 'gantt' ? (
-          <GanttView
-            tasks={tasks}
-            getQuadrant={getQuadrant}
-            calculatePriority={calculatePriority}
-            toggleComplete={toggleComplete}
-            setEditingTask={setEditingTask}
-            setShowForm={setShowForm}
-            deleteTask={deleteTask}
-            settings={settings}
-          />
+          <MonitorShell
+            title="GANTT CHART" label="TIMELINE — TASK SCHEDULING"
+            ledClass="etm-led--amber" screenClass="etm-monitor__glass--delegate" monitorClass="etm-monitor--delegate"
+          >
+            <GanttView
+              tasks={tasks} getQuadrant={getQuadrant}
+              calculatePriority={calculatePriority} toggleComplete={toggleComplete}
+              setEditingTask={setEditingTask} setShowForm={setShowForm}
+              deleteTask={deleteTask} settings={settings}
+            />
+          </MonitorShell>
         ) : view === 'calendar' ? (
-          <CalendarView
-            tasks={tasks}
-            filters={filters}
-            setFilters={setFilters}
-            getQuadrant={getQuadrant}
-            calculatePriority={calculatePriority}
-            toggleComplete={toggleComplete}
-            setEditingTask={setEditingTask}
-            setShowForm={setShowForm}
-            deleteTask={deleteTask}
-            setDefaultDueDate={setDefaultDueDate}
-            settings={settings}
-          />
+          <MonitorShell
+            title="CALENDAR" label="MONTHLY — TASK SCHEDULE"
+            ledClass="etm-led--green" screenClass="etm-monitor__glass--schedule" monitorClass="etm-monitor--schedule"
+          >
+            <CalendarView
+              tasks={tasks} filters={filters} setFilters={setFilters}
+              getQuadrant={getQuadrant} calculatePriority={calculatePriority}
+              toggleComplete={toggleComplete} setEditingTask={setEditingTask}
+              setShowForm={setShowForm} deleteTask={deleteTask}
+              setDefaultDueDate={setDefaultDueDate} settings={settings}
+            />
+          </MonitorShell>
         ) : (
-          <AnalyticsView
-            tasks={tasks}
-            calculateTaskScore={calculateTaskScore}
-          />
+          <MonitorShell
+            title="ANALYTICS" label="PERFORMANCE — HISTORICAL DATA"
+            ledClass="etm-led--green" screenClass="etm-monitor__glass--schedule" monitorClass="etm-monitor--schedule"
+          >
+            <AnalyticsView
+              tasks={tasks} calculateTaskScore={calculateTaskScore}
+            />
+          </MonitorShell>
         )}
       </main>
 
-      {/* Footer with Backup Info */}
-      <footer className="bg-white border-t border-slate-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-6">
-              <div className="text-sm text-slate-600">
-                <span className="font-semibold">{stats.active.length}</span> active · 
-                <span className="font-semibold ml-1">{stats.completed.length}</span> completed
+      {/* Bottom: Control Bar — chassis with view selector, actions, stats */}
+      <footer className="etm-chassis" style={{ borderTop: '2px solid #0c1014', borderBottom: 'none' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+          <div className="flex items-center justify-between gap-2">
+            {/* Left: title + stats */}
+            <div className="flex items-center gap-3 sm:gap-5">
+              <h1 className="text-sm sm:text-base font-bold tracking-wider uppercase hidden sm:block" style={{
+                color: '#e86030',
+                textShadow: '0 0 8px rgba(232,96,48,.3)'
+              }}>
+                ETM
+              </h1>
+              <div className="text-xs text-[#506070] font-data">
+                <span className="text-[#8899aa]">{stats.active.length}</span> active ·
+                <span className="text-[#8899aa] ml-1">{stats.completed.length}</span> done
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Clock size={14} />
-                <span>
-                  Last backup: {
-                    backupMetadata.lastExport
-                      ? `${getDaysSinceExport()} days ago`
-                      : 'Never'
-                  }
-                </span>
-              </div>
-              {backupMetadata.exportCount > 0 && (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Archive size={14} />
-                  <span>{backupMetadata.exportCount} exports</span>
-                </div>
-              )}
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={exportData}
-                className="px-4 py-2 border-2 border-emerald-300 bg-emerald-50 text-emerald-700 rounded-lg flex items-center gap-2 hover:bg-emerald-100 transition-colors font-medium"
-              >
-                <Download size={16} />
-                Export Backup
+
+            {/* Center: view selector */}
+            <div className="flex gap-1 rounded p-0.5 etm-panel--recessed">
+              {[
+                { key: 'matrix', icon: LayoutGrid, label: 'Matrix' },
+                { key: 'list', icon: List, label: 'List' },
+                { key: 'gantt', icon: BarChart3, label: 'Gantt' },
+                { key: 'analytics', icon: TrendingUp, label: 'Analytics' },
+                { key: 'calendar', icon: Calendar, label: 'Calendar' },
+              ].map(({ key, icon: Icon, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setView(key)}
+                  className={`etm-pushbutton ${view === key ? 'etm-pushbutton--active' : ''}`}
+                  style={{ padding: '4px 8px', fontSize: '11px' }}
+                >
+                  <Icon size={13} />
+                  <span className="hidden lg:inline">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Right: actions */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <button onClick={exportData} className="etm-pushbutton text-[#50c878]" style={{ padding: '4px 8px', fontSize: '11px' }}>
+                <Download size={13} /> <span className="hidden sm:inline">Export</span>
               </button>
-              <label className="px-4 py-2 border border-slate-300 rounded-lg flex items-center gap-2 hover:bg-slate-50 transition-colors text-slate-700 cursor-pointer font-medium">
-                <Upload size={16} />
-                Import
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={importData}
-                  className="hidden"
-                />
+              <label className="etm-pushbutton cursor-pointer" style={{ padding: '4px 8px', fontSize: '11px' }}>
+                <Upload size={13} /> <span className="hidden sm:inline">Import</span>
+                <input type="file" accept=".json" onChange={importData} className="hidden" />
               </label>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="etm-pushbutton"
+                style={{ padding: '5px' }}
+                title="Refresh"
+              >
+                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
+              <button
+                onClick={() => { setEditingTask(null); setShowForm(true); }}
+                className="etm-pushbutton etm-pushbutton--accent uppercase tracking-wider font-bold"
+                style={{ padding: '4px 10px', fontSize: '11px' }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span className="hidden sm:inline">Add</span>
+              </button>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Backup reminder — now a small overlay toast */}
+      {showBackupReminder && (
+        <div className="fixed bottom-16 right-4 z-40 etm-panel p-3 max-w-xs" style={{ borderLeft: '3px solid #ff8822' }}>
+          <div className="flex items-center gap-2 text-xs text-[#fbbf24]">
+            <Shield size={14} />
+            <span>Backup: {getDaysSinceExport()}d since last export</span>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <button onClick={exportData} className="etm-pushbutton text-[#50c878]" style={{ padding: '3px 8px', fontSize: '10px' }}>Export</button>
+            <button onClick={() => setShowBackupReminder(false)} className="etm-pushbutton" style={{ padding: '3px 6px', fontSize: '10px' }}>Dismiss</button>
+          </div>
+        </div>
+      )}
 
       {/* Task Form Modal */}
       {showForm && (
@@ -947,96 +846,88 @@ const CompletionModal = ({ task, onConfirm, onCancel }) => {
     onConfirm(task.id, qualityRating, easeRating);
   };
 
-  const RatingStars = ({ value, onChange, label, color }) => {
+  const RatingLEDs = ({ value, onChange, label, litClass }) => {
+    const labels = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
     return (
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-slate-700">{label}</label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
+        <label className="block text-sm font-semibold text-[#8899aa]">{label}</label>
+        <div className="etm-led-rating">
+          {[1, 2, 3, 4, 5].map((dot) => (
             <button
-              key={star}
+              key={dot}
               type="button"
-              onClick={() => onChange(star)}
-              className={`text-3xl transition-all transform hover:scale-110 ${
-                value >= star ? color : 'text-slate-300'
-              }`}
-            >
-              ★
-            </button>
+              onClick={() => onChange(dot)}
+              className={`etm-led-rating__dot ${value >= dot ? `etm-led-rating__dot--lit ${litClass}` : ''}`}
+            />
           ))}
         </div>
-        <div className="text-xs text-slate-500">
-          {value === null ? 'Click to rate' : 
-           value === 1 ? 'Poor' :
-           value === 2 ? 'Fair' :
-           value === 3 ? 'Good' :
-           value === 4 ? 'Very Good' :
-           'Excellent'}
+        <div className="text-xs text-[#506070] font-data">
+          {value === null ? 'Click to rate' : labels[value]}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="modal-backdrop fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="modal-content bg-white rounded-2xl shadow-2xl max-w-lg w-full">
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+    <div className="etm-modal-backdrop p-4">
+      <div className="etm-modal rounded-xl max-w-lg w-full">
+        <div className="etm-chassis px-6 py-4 flex items-center justify-between rounded-t-xl" style={{ borderBottom: '2px solid #0c1014' }}>
           <div className="flex items-center gap-3">
-            <CheckCircle className="text-white" size={24} />
-            <h2 className="text-2xl font-bold text-white">Complete Task</h2>
+            <span className="etm-led etm-led--green" style={{ width: 10, height: 10 }} />
+            <h2 className="text-xl font-bold text-[#c8d0e0] tracking-wider uppercase">Complete Task</h2>
           </div>
           <button
             onClick={onCancel}
-            className="text-white/80 hover:text-white transition-colors"
+            className="text-[#8899aa] hover:text-[#c8d0e0] transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="bg-slate-50 rounded-lg p-4 border-2 border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">Task:</h3>
-            <p className="text-slate-700">{task.task}</p>
+          <div className="etm-panel--recessed p-4">
+            <h3 className="font-label text-[#506070] mb-2">Task</h3>
+            <p className="text-[#c8d0e0] font-medium">{task.task}</p>
             {task.subcategory && (
-              <p className="text-sm text-slate-500 mt-1">{task.subcategory}</p>
+              <p className="text-sm text-[#506070] mt-1">{task.subcategory}</p>
             )}
           </div>
 
           <div className="space-y-6">
-            <RatingStars
+            <RatingLEDs
               value={qualityRating}
               onChange={setQualityRating}
               label="How well did you complete this task?"
-              color="text-yellow-400"
+              litClass="green"
             />
 
-            <RatingStars
+            <RatingLEDs
               value={easeRating}
               onChange={setEaseRating}
               label="How easy/difficult was this task?"
-              color="text-blue-400"
+              litClass="amber"
             />
           </div>
 
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-            <p className="text-sm text-blue-800">
-              <strong>Quality:</strong> Your satisfaction with the result<br/>
-              <strong>Ease:</strong> How smooth the process was (5 = very easy, 1 = very difficult)
+          <div className="etm-panel--recessed p-4">
+            <p className="text-sm text-[#8899aa]">
+              <strong className="text-[#c8d0e0]">Quality:</strong> Your satisfaction with the result<br/>
+              <strong className="text-[#c8d0e0]">Ease:</strong> How smooth the process was (5 = very easy, 1 = very difficult)
             </p>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2a3048]">
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+              className="etm-pushbutton px-6 py-2.5"
             >
               Cancel
             </button>
             <button
               onClick={handleConfirm}
               disabled={qualityRating === null || easeRating === null}
-              className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="etm-pushbutton etm-pushbutton--accent px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <CheckCircle size={18} />
               Mark as Complete
@@ -1052,7 +943,7 @@ const TaskScoreBar = ({ score }) => {
   if (score === null) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-slate-500">-</span>
+        <span className="text-xs font-medium text-[#506070]">-</span>
       </div>
     );
   }
@@ -1071,19 +962,19 @@ const TaskScoreBar = ({ score }) => {
     const greenValue = Math.round(34 + (102 - 34) * intensity); // 22-66
     const grayValue = Math.round(197 - (197 - 160) * intensity); // C5-A0
     barColor = `rgb(${Math.round(16 + (34 - 16) * intensity)}, ${greenValue}, ${grayValue})`;
-    bgColor = 'bg-emerald-100';
+    bgColor = 'bg-[#33ff6620]';
   } else if (score < 0) {
     // Late completion - red gradient
     const intensity = Math.min(Math.abs(score), 1);
-    const redValue = Math.round(239 - (239 - 220) * intensity); // EF-DC
-    const greenValue = Math.round(68 - (68 - 38) * intensity); // 44-26
-    const blueValue = Math.round(68 - (68 - 35) * intensity); // 44-23
+    const redValue = Math.round(239 - (239 - 220) * intensity);
+    const greenValue = Math.round(68 - (68 - 38) * intensity);
+    const blueValue = Math.round(68 - (68 - 35) * intensity);
     barColor = `rgb(${redValue}, ${greenValue}, ${blueValue})`;
-    bgColor = 'bg-rose-100';
+    bgColor = 'bg-[#ff334420]';
   } else {
     // Right on time - neutral
-    barColor = 'rgb(100, 116, 139)'; // slate-500
-    bgColor = 'bg-slate-100';
+    barColor = 'rgb(100, 116, 139)';
+    bgColor = 'bg-[#1a1e2c]';
   }
 
   return (
@@ -1097,7 +988,7 @@ const TaskScoreBar = ({ score }) => {
           }}
         />
       </div>
-      <span className="text-xs font-medium text-slate-600 w-10 text-right">
+      <span className="text-xs font-medium text-[#8899aa] w-10 text-right">
         {score.toFixed(2)}
       </span>
     </div>
@@ -1105,210 +996,345 @@ const TaskScoreBar = ({ score }) => {
 };
 
 const MatrixView = ({ tasks, getQuadrant, sortTasks, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore }) => {
+  const [activeTab, setActiveTab] = useState('do-first');
+  const [expandedTask, setExpandedTask] = useState(null);
   const activeTasks = tasks.filter(t => t.percentComplete < 100);
-  
+
   const quadrants = [
     {
       id: 'do-first',
       title: 'DO FIRST',
+      shortTitle: 'Do First',
       subtitle: 'Urgent & Necessary',
-      bgColor: 'bg-gradient-to-br from-red-50 to-orange-50',
-      borderColor: 'border-red-300',
-      accentColor: 'bg-red-500',
-      textColor: 'text-red-900',
-      icon: '🔥'
+      screenClass: 'etm-monitor__glass--do-first',
+      monitorClass: 'etm-monitor--do-first',
+      textColor: 'text-[#ff6675]',
+      tabColor: '#ff3344',
+      ledClass: 'etm-led--red',
+      label: 'Q1 — URGENT / NECESSARY'
     },
     {
       id: 'schedule',
       title: 'SCHEDULE',
+      shortTitle: 'Schedule',
       subtitle: 'Necessary, Not Urgent',
-      bgColor: 'bg-gradient-to-br from-blue-50 to-indigo-50',
-      borderColor: 'border-blue-300',
-      accentColor: 'bg-blue-500',
-      textColor: 'text-blue-900',
-      icon: '📅'
+      screenClass: 'etm-monitor__glass--schedule',
+      monitorClass: 'etm-monitor--schedule',
+      textColor: 'text-[#6ea8fe]',
+      tabColor: '#00ccdd',
+      ledClass: 'etm-led--cyan',
+      label: 'Q2 — NOT URGENT / NECESSARY'
     },
     {
       id: 'delegate',
       title: 'DELEGATE',
+      shortTitle: 'Delegate',
       subtitle: 'Urgent, Not Necessary',
-      bgColor: 'bg-gradient-to-br from-amber-50 to-yellow-50',
-      borderColor: 'border-amber-300',
-      accentColor: 'bg-amber-500',
-      textColor: 'text-amber-900',
-      icon: '👥'
+      screenClass: 'etm-monitor__glass--delegate',
+      monitorClass: 'etm-monitor--delegate',
+      textColor: 'text-[#fbbf24]',
+      tabColor: '#ff8822',
+      ledClass: 'etm-led--amber',
+      label: 'Q3 — URGENT / NOT NECESSARY'
     },
     {
       id: 'eliminate',
       title: 'ELIMINATE',
+      shortTitle: 'Eliminate',
       subtitle: 'Neither Urgent Nor Necessary',
-      bgColor: 'bg-gradient-to-br from-slate-50 to-gray-100',
-      borderColor: 'border-slate-300',
-      accentColor: 'bg-slate-400',
-      textColor: 'text-slate-700',
-      icon: '🗑️'
+      screenClass: 'etm-monitor__glass--eliminate',
+      monitorClass: 'etm-monitor--eliminate',
+      textColor: 'text-[#8899aa]',
+      tabColor: '#506070',
+      ledClass: 'etm-led--muted',
+      label: 'Q4 — NOT URGENT / NOT NECESSARY'
     }
   ];
 
+  // Count tasks per quadrant for tab badges
+  const quadrantCounts = {};
+  for (const q of quadrants) {
+    quadrantCounts[q.id] = activeTasks.filter(t => getQuadrant(t) === q.id).length;
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {quadrants.map((quadrant) => {
-        const quadrantTasks = sortTasks(activeTasks.filter(t => getQuadrant(t) === quadrant.id));
-        
-        return (
-          <div
-            key={quadrant.id}
-            className={`quadrant-card ${quadrant.bgColor} border-2 ${quadrant.borderColor} rounded-xl shadow-lg overflow-hidden`}
+    <div className="h-full flex flex-col min-h-0">
+      {/* Mobile tab bar */}
+      <div className="md:hidden flex border-b border-[#2a3048] mb-4 -mx-1">
+        {quadrants.map((q) => (
+          <button
+            key={q.id}
+            onClick={() => setActiveTab(q.id)}
+            className={`flex-1 py-2.5 px-1 text-center transition-all relative ${
+              activeTab === q.id ? 'text-[#c8d0e0]' : 'text-[#506070]'
+            }`}
           >
-            <div className={`${quadrant.accentColor} px-6 py-4 flex items-center justify-between`}>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{quadrant.icon}</span>
-                  <h2 className="text-lg font-bold text-white tracking-wider">{quadrant.title}</h2>
-                </div>
-                <p className="text-xs text-white/90 mt-1 font-medium">{quadrant.subtitle}</p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1">
-                <span className="text-white font-bold text-lg">{quadrantTasks.length}</span>
-              </div>
-            </div>
-            
-            <div className="p-4 space-y-3 min-h-[300px]">
-              {quadrantTasks.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-slate-400 font-medium">
-                  No tasks in this quadrant
-                </div>
-              ) : (
-                quadrantTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    calculatePriority={calculatePriority}
-                    toggleComplete={toggleComplete}
-                    onEdit={() => {
-                      setEditingTask(task);
-                      setShowForm(true);
-                    }}
-                    onDelete={deleteTask}
-                    calculateTaskScore={calculateTaskScore}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-const TaskCard = ({ task, calculatePriority, toggleComplete, onEdit, onDelete, calculateTaskScore }) => {
-  const priority = calculatePriority(task);
-  const isOverdue = priority < 0;
-  const dueDate = new Date(task.dueDate);
-  const taskScore = calculateTaskScore(task);
-  
-  const getRecurrenceIcon = (pattern) => {
-    const icons = {
-      once: '📌',
-      daily: '☀️',
-      weekly: '📅',
-      monthly: '🗓️',
-      yearly: '📆'
-    };
-    return icons[pattern] || '📌';
-  };
-
-  const getRecurrenceColor = (pattern) => {
-    const colors = {
-      once: 'bg-slate-100 text-slate-700',
-      daily: 'bg-purple-100 text-purple-700',
-      weekly: 'bg-indigo-100 text-indigo-700',
-      monthly: 'bg-cyan-100 text-cyan-700',
-      yearly: 'bg-teal-100 text-teal-700'
-    };
-    return colors[pattern] || 'bg-slate-100 text-slate-700';
-  };
-  
-  return (
-    <div className={`task-item bg-white border-2 ${isOverdue ? 'border-rose-400' : 'border-slate-200'} rounded-lg p-4 shadow-sm hover:shadow-md ${task.percentComplete === 100 ? 'completed-task' : ''}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1">
-          <input
-            type="checkbox"
-            checked={task.percentComplete === 100}
-            onChange={() => toggleComplete(task.id)}
-            className="mt-1 w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-          />
-          <div className="flex-1">
-            <h3 className={`font-semibold ${task.percentComplete === 100 ? 'line-through text-slate-500' : 'text-slate-900'}`}>
-              {task.task}
-            </h3>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="priority-badge bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-                Rank {task.rank}
-              </span>
-              <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                isOverdue
-                  ? 'bg-rose-100 text-rose-700'
-                  : priority === 0
-                  ? 'bg-orange-100 text-orange-700'
-                  : priority <= 3
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-emerald-100 text-emerald-700'
-              }`}>
-                {isOverdue ? `${Math.abs(priority)}d overdue` : priority === 0 ? 'Due today' : `${priority}d left`}
-              </span>
-              <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                {task.subcategory}
-              </span>
-              <span className={`text-xs px-2 py-0.5 rounded font-medium flex items-center gap-1 ${getRecurrenceColor(task.recurringPattern || 'once')}`}>
-                <span>{getRecurrenceIcon(task.recurringPattern || 'once')}</span>
-                {task.recurringPattern || 'once'}
-              </span>
-              {task.percentComplete > 0 && task.percentComplete < 100 && (
-                <span className="text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded font-medium">
-                  {task.percentComplete}%
-                </span>
-              )}
-            </div>
-            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <Calendar size={12} />
-              Due: {dueDate.toLocaleDateString()}
-            </div>
-            {taskScore !== null && (
-              <div className="mt-3 pt-2 border-t border-slate-200">
-                <div className="text-xs font-medium text-slate-600 mb-1">Planning/Execution Score:</div>
-                <TaskScoreBar score={taskScore} />
-              </div>
+            <div className="text-sm font-semibold">{q.shortTitle}</div>
+            <div className="text-xs font-mono mt-0.5" style={{ color: q.tabColor }}>{quadrantCounts[q.id]}</div>
+            {activeTab === q.id && (
+              <div className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full" style={{ backgroundColor: q.tabColor }} />
             )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onEdit}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-          >
-            <Edit2 size={16} />
           </button>
-          <button
-            onClick={() => onDelete(task.id)}
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
+        ))}
+      </div>
+
+      {/* Mobile: single monitor */}
+      <div className="md:hidden">
+        {quadrants.filter(q => q.id === activeTab).map((quadrant) => {
+          const quadrantTasks = sortTasks(activeTasks.filter(t => getQuadrant(t) === quadrant.id));
+          return (
+            <div key={quadrant.id} className={`etm-monitor ${quadrant.monitorClass}`}>
+              <div className="etm-monitor__hood"><div className="etm-tex-metal" /></div>
+              <div className="etm-monitor__bezel">
+                <div className="etm-tex-metal" />
+                <div className="etm-monitor__label">{quadrant.label}</div>
+                <div className="etm-monitor__well">
+                  <div className={`etm-monitor__glass ${quadrant.screenClass}`}>
+                    <div className="etm-monitor__status">
+                      <div className="etm-monitor__designation">
+                        <span className={`etm-led ${quadrant.ledClass}`} style={{ width: 6, height: 6 }} />
+                        {quadrant.title}
+                      </div>
+                      <div className="etm-monitor__count">{quadrantTasks.length}</div>
+                    </div>
+                    <div className="etm-monitor__content" style={{ maxHeight: '50vh' }}>
+                      {quadrantTasks.length === 0 ? (
+                        <div className="etm-monitor__empty">NO TASKS</div>
+                      ) : (
+                        <div className="etm-monitor__tasks space-y-1">
+                          {quadrantTasks.map((task) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              calculatePriority={calculatePriority}
+                              toggleComplete={toggleComplete}
+                              onEdit={() => {
+                                setEditingTask(task);
+                                setShowForm(true);
+                              }}
+                              onDelete={deleteTask}
+                              calculateTaskScore={calculateTaskScore}
+                              isExpanded={expandedTask === task.id}
+                              onToggleExpand={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: 2x2 CRT monitor array */}
+      <div className="hidden md:grid grid-cols-2 gap-2 flex-1 min-h-0" style={{ gridTemplateRows: '1fr 1fr' }}>
+        {quadrants.map((quadrant) => {
+          const quadrantTasks = sortTasks(activeTasks.filter(t => getQuadrant(t) === quadrant.id));
+          return (
+            <div key={quadrant.id} className={`etm-monitor ${quadrant.monitorClass}`}>
+              <div className="etm-monitor__hood">
+                <div className="etm-tex-metal" />
+              </div>
+              <div className="etm-monitor__bezel">
+                <div className="etm-tex-metal" />
+                <div className="etm-tex-grain" />
+                <div className="etm-monitor__label">{quadrant.label}</div>
+                <div className="etm-monitor__rivet" style={{ top: 5, left: 5 }} />
+                <div className="etm-monitor__rivet" style={{ top: 5, right: 5 }} />
+                <div className="etm-monitor__rivet" style={{ bottom: 5, left: 5 }} />
+                <div className="etm-monitor__rivet" style={{ bottom: 5, right: 5 }} />
+
+                <div className="etm-monitor__well">
+                  <div className={`etm-monitor__glass ${quadrant.screenClass}`}>
+                    <div className="etm-monitor__status">
+                      <div className="etm-monitor__designation">
+                        <span className={`etm-led ${quadrant.ledClass}`} style={{ width: 6, height: 6 }} />
+                        {quadrant.title}
+                      </div>
+                      <div className="etm-monitor__count">{quadrantTasks.length}</div>
+                    </div>
+                    <div className="etm-monitor__content">
+                      {quadrantTasks.length === 0 ? (
+                        <div className="etm-monitor__empty">NO TASKS</div>
+                      ) : (
+                        <div className="etm-monitor__tasks space-y-1">
+                          {quadrantTasks.map((task) => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              calculatePriority={calculatePriority}
+                              toggleComplete={toggleComplete}
+                              onEdit={() => {
+                                setEditingTask(task);
+                                setShowForm(true);
+                              }}
+                              onDelete={deleteTask}
+                              calculateTaskScore={calculateTaskScore}
+                              isExpanded={expandedTask === task.id}
+                              onToggleExpand={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings }) => {
+const TaskCard = ({ task, calculatePriority, toggleComplete, onEdit, onDelete, calculateTaskScore, isExpanded, onToggleExpand }) => {
+  const priority = calculatePriority(task);
+  const isOverdue = priority < 0;
+  const dueDate = new Date(task.dueDate);
+  const taskScore = calculateTaskScore(task);
+
+  const getRecurrenceColor = (pattern) => {
+    const colors = {
+      once: 'bg-[#1a1e2c] text-[#8899aa]',
+      daily: 'bg-[#764ba220] text-[#b794f4]',
+      weekly: 'bg-[#667eea20] text-[#818cf8]',
+      monthly: 'bg-[#00ccdd20] text-[#6ea8fe]',
+      yearly: 'bg-[#33ff6620] text-[#50c878]'
+    };
+    return colors[pattern] || 'bg-[#1a1e2c] text-[#8899aa]';
+  };
+
+  return (
+    <div
+      className={`etm-card ${isOverdue ? 'etm-card--overdue' : ''} ${task.percentComplete === 100 ? 'etm-card--completed' : ''}`}
+      style={{
+        padding: '6px 8px',
+        background: isExpanded ? 'rgba(255,255,255,0.03)' : undefined,
+        borderColor: isExpanded ? 'rgba(232,96,48,0.25)' : undefined
+      }}
+    >
+      {/* Collapsed row — always visible */}
+      <div
+        className="flex items-center justify-between gap-2 cursor-pointer"
+        onClick={onToggleExpand}
+      >
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <input
+            type="checkbox"
+            checked={task.percentComplete === 100}
+            onChange={(e) => { e.stopPropagation(); toggleComplete(task.id); }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-3.5 h-3.5 rounded border-[#2a3048] text-[#e86030] focus:ring-1 focus:ring-[#e86030] cursor-pointer flex-shrink-0"
+          />
+          <span className={`text-xs font-medium truncate ${task.percentComplete === 100 ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
+            {task.task}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="etm-badge bg-[#1a1e2c] text-[#8899aa]" style={{ fontSize: '9px', padding: '1px 4px' }}>
+            R{task.rank}
+          </span>
+          <span className={`etm-badge ${
+            isOverdue
+              ? 'bg-[#ff334420] text-[#ff6675]'
+              : priority === 0
+              ? 'bg-[#ff882220] text-[#fbbf24]'
+              : priority <= 3
+              ? 'bg-[#fbbf2420] text-[#fbbf24]'
+              : 'bg-[#33ff6620] text-[#50c878]'
+          }`} style={{ fontSize: '9px', padding: '1px 4px' }}>
+            {isOverdue ? `${Math.abs(priority)}d over` : priority === 0 ? 'Today' : `${priority}d`}
+          </span>
+        </div>
+      </div>
+
+      {/* Expanded detail panel */}
+      {isExpanded && (
+        <div className="mt-1.5 pt-1.5 border-t border-[rgba(255,255,255,0.04)]" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px', color: '#8899aa' }}>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>{task.domain}{task.subcategory ? ` / ${task.subcategory}` : ''}</span>
+            <span className="text-[#506070]">{task.scope}</span>
+            <span className={`uppercase ${getRecurrenceColor(task.recurringPattern || 'once')}`} style={{ fontSize: '9px', padding: '0 4px', borderRadius: '2px' }}>
+              {task.recurringPattern || 'once'}
+            </span>
+            <span style={{ color: '#506070' }}>Due: {dueDate.toLocaleDateString()}</span>
+            {task.percentComplete > 0 && task.percentComplete < 100 && (
+              <span style={{ color: '#6ea8fe' }}>{task.percentComplete}%</span>
+            )}
+            {task.timeEstimateValue && (
+              <span style={{ color: '#506070' }}>Est: {task.timeEstimateValue}{task.timeEstimateUnit === 'hours' ? 'h' : 'd'}</span>
+            )}
+          </div>
+          {task.notes && (
+            <div className="mt-1" style={{ color: '#506070', fontSize: '9px' }}>{task.notes}</div>
+          )}
+          {taskScore !== null && (
+            <div className="mt-1">
+              <span style={{ color: '#506070', fontSize: '9px' }}>Score: </span>
+              <TaskScoreBar score={taskScore} />
+            </div>
+          )}
+          <div className="flex items-center gap-2 mt-1.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="etm-pushbutton" style={{ padding: '2px 6px', fontSize: '9px' }}
+            >
+              <Edit2 size={10} /> Edit
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+              className="etm-pushbutton text-[#ff6675]" style={{ padding: '2px 6px', fontSize: '9px' }}
+            >
+              <Trash2 size={10} /> Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Reusable single-monitor shell for non-matrix views
+const MonitorShell = ({ title, label, ledClass, screenClass, monitorClass, toolbar, children }) => (
+  <div className={`etm-monitor ${monitorClass} h-full`}>
+    <div className="etm-monitor__hood"><div className="etm-tex-metal" /></div>
+    <div className="etm-monitor__bezel">
+      <div className="etm-tex-metal" />
+      <div className="etm-tex-grain" />
+      <div className="etm-monitor__label">{label}</div>
+      <div className="etm-monitor__rivet" style={{ top: 5, left: 5 }} />
+      <div className="etm-monitor__rivet" style={{ top: 5, right: 5 }} />
+      <div className="etm-monitor__rivet" style={{ bottom: 5, left: 5 }} />
+      <div className="etm-monitor__rivet" style={{ bottom: 5, right: 5 }} />
+      <div className="etm-monitor__well">
+        <div className={`etm-monitor__glass ${screenClass}`}>
+          <div className="etm-monitor__status">
+            <div className="etm-monitor__designation">
+              <span className={`etm-led ${ledClass}`} style={{ width: 6, height: 6 }} />
+              {title}
+            </div>
+            {toolbar && <div className="flex items-center gap-1.5">{toolbar}</div>}
+          </div>
+          <div className="etm-monitor__content">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const ListView =({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, calculateTaskScore, settings }) => {
   const filteredTasks = tasks.filter(task => {
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
     if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
-    if (filters.category !== 'all' && task.category !== filters.category) return false;
+    if (filters.domain !== 'all' && task.domain !== filters.domain) return false;
+    if (filters.scope !== 'all' && task.scope !== filters.scope) return false;
     if (filters.recurrence !== 'all' && (task.recurringPattern || 'once') !== filters.recurrence) return false;
     return true;
   });
@@ -1318,8 +1344,8 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
       return calculatePriority(a) - calculatePriority(b);
     } else if (sortBy === 'dueDate') {
       return new Date(a.dueDate) - new Date(b.dueDate);
-    } else if (sortBy === 'category') {
-      return a.category.localeCompare(b.category);
+    } else if (sortBy === 'domain') {
+      return (a.domain || '').localeCompare(b.domain || '');
     } else if (sortBy === 'recurrence') {
       const order = { once: 1, daily: 2, weekly: 3, monthly: 4, yearly: 5 };
       return (order[a.recurringPattern || 'once'] || 0) - (order[b.recurringPattern || 'once'] || 0);
@@ -1334,46 +1360,35 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
     'eliminate': 'Eliminate'
   };
 
-  const getRecurrenceIcon = (pattern) => {
-    const icons = {
-      once: '📌',
-      daily: '☀️',
-      weekly: '📅',
-      monthly: '🗓️',
-      yearly: '📆'
-    };
-    return icons[pattern] || '📌';
-  };
-
   const getRecurrenceColor = (pattern) => {
     const colors = {
-      once: 'bg-slate-100 text-slate-700',
-      daily: 'bg-purple-100 text-purple-700',
-      weekly: 'bg-indigo-100 text-indigo-700',
-      monthly: 'bg-cyan-100 text-cyan-700',
-      yearly: 'bg-teal-100 text-teal-700'
+      once: 'bg-[#1a1e2c] text-[#8899aa]',
+      daily: 'bg-[#764ba220] text-[#b794f4]',
+      weekly: 'bg-[#667eea20] text-[#818cf8]',
+      monthly: 'bg-[#00ccdd20] text-[#6ea8fe]',
+      yearly: 'bg-[#33ff6620] text-[#50c878]'
     };
-    return colors[pattern] || 'bg-slate-100 text-slate-700';
+    return colors[pattern] || 'bg-[#1a1e2c] text-[#8899aa]';
   };
 
   return (
-    <div className="space-y-4">
+    <div className="p-2 space-y-2" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
       {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-[rgba(255,255,255,0.04)]">
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          className="etm-input text-sm sm:text-base"
         >
           <option value="active">Active Tasks</option>
           <option value="completed">Completed</option>
           <option value="all">All Tasks</option>
         </select>
-        
+
         <select
           value={filters.quadrant}
           onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          className="etm-input text-sm sm:text-base"
         >
           <option value="all">All Quadrants</option>
           <option value="do-first">Do First</option>
@@ -1383,128 +1398,197 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
         </select>
 
         <select
-          value={filters.category}
-          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          value={filters.domain}
+          onChange={(e) => setFilters({ ...filters, domain: e.target.value })}
+          className="etm-input text-sm sm:text-base"
         >
-          <option value="all">All Categories</option>
-          {settings.categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
+          <option value="all">All Domains</option>
+          {(settings.domains || []).map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+
+        <select
+          value={filters.scope}
+          onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
+          className="etm-input text-sm sm:text-base"
+        >
+          <option value="all">All Scopes</option>
+          {(settings.scopes || []).map(s => (
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
 
         <select
           value={filters.recurrence}
           onChange={(e) => setFilters({ ...filters, recurrence: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium flex items-center gap-2"
+          className="etm-input text-sm sm:text-base"
         >
           <option value="all">All Recurrence</option>
-          <option value="once">📌 Once</option>
-          <option value="daily">☀️ Daily</option>
-          <option value="weekly">📅 Weekly</option>
-          <option value="monthly">🗓️ Monthly</option>
-          <option value="yearly">📆 Yearly</option>
+          <option value="once">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly</option>
         </select>
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-slate-600 font-medium">Sort by:</span>
+        <div className="col-span-2 sm:ml-auto flex items-center gap-2">
+          <span className="text-sm text-[#506070] font-medium">Sort by:</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+            className="etm-input text-sm sm:text-base"
           >
             <option value="priority">Priority</option>
             <option value="dueDate">Due Date</option>
-            <option value="category">Category</option>
+            <option value="domain">Domain</option>
             <option value="recurrence">Recurrence</option>
           </select>
         </div>
       </div>
 
+      {/* Mobile Card View */}
+      <div className="sm:hidden space-y-3">
+        {sortedTasks.map((task) => {
+          const priority = calculatePriority(task);
+          const isOverdue = priority < 0;
+          const quadrant = getQuadrant(task);
+          return (
+            <div key={task.id} className={`etm-panel p-4 ${task.percentComplete === 100 ? 'opacity-60' : ''}`}>
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={task.percentComplete === 100}
+                  onChange={() => toggleComplete(task.id)}
+                  className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-[#e86030] mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className={`font-semibold text-sm ${task.percentComplete === 100 ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
+                    {task.task}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                      quadrant === 'do-first' ? 'bg-[#ff334420] text-[#ff6675]'
+                      : quadrant === 'schedule' ? 'bg-[#00ccdd20] text-[#6ea8fe]'
+                      : quadrant === 'delegate' ? 'bg-[#ff882220] text-[#fbbf24]'
+                      : 'bg-[#1a1e2c] text-[#8899aa]'
+                    }`}>{quadrantLabels[quadrant]}</span>
+                    <span className="text-xs text-[#506070]">{task.domain}</span>
+                    {task.dueDate && (
+                      <span className={`text-xs font-mono ${isOverdue ? 'text-[#ff6675] font-semibold' : 'text-[#506070]'}`}>
+                        {isOverdue ? `${Math.abs(priority)}d overdue` : priority === 0 ? 'Today' : `${priority}d`}
+                      </span>
+                    )}
+                  </div>
+                  {task.percentComplete > 0 && task.percentComplete < 100 && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="etm-progress flex-1">
+                        <div className="etm-progress__fill" style={{ width: `${task.percentComplete}%` }} />
+                      </div>
+                      <span className="text-xs text-[#506070]">{task.percentComplete}%</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => { setEditingTask(task); setShowForm(true); }} className="p-1.5 text-[#506070] hover:text-[#e86030] rounded">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={() => deleteTask(task.id)} className="p-1.5 text-[#506070] hover:text-[#ff6675] rounded">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {sortedTasks.length === 0 && (
+          <div className="text-center py-12 text-[#506070]">No tasks found matching your filters</div>
+        )}
+      </div>
+
       {/* Tasks Table */}
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="hidden sm:block etm-panel overflow-hidden">
         <table className="w-full">
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="bg-[#0a0e12] border-b border-[#2a3048]">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-12"></th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Task</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Quadrant</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Recurrence</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Due Date</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Priority</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Progress</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Score</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-24">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider w-12"></th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Task</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Quadrant</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Category</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Recurrence</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Due Date</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Priority</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Progress</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider">Score</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#506070] uppercase tracking-wider w-24">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[#1a1e2c]">
             {sortedTasks.map((task) => {
               const priority = calculatePriority(task);
               const isOverdue = priority < 0;
               const recurrencePattern = task.recurringPattern || 'once';
-              
+
               return (
-                <tr key={task.id} className={`hover:bg-slate-50 transition-colors ${task.percentComplete === 100 ? 'opacity-60' : ''}`}>
+                <tr key={task.id} className={`hover:bg-[#2e3438] transition-colors ${task.percentComplete === 100 ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={task.percentComplete === 100}
                       onChange={() => toggleComplete(task.id)}
-                      className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-2 focus:ring-[#e86030] cursor-pointer"
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <div className={`font-semibold ${task.percentComplete === 100 ? 'line-through text-slate-500' : 'text-slate-900'}`}>
+                    <div className={`font-semibold ${task.percentComplete === 100 ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
                       {task.task}
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">{task.subcategory}</div>
+                    <div className="text-xs text-[#506070] mt-1">{task.subcategory}</div>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-1 rounded font-medium ${
                       getQuadrant(task) === 'do-first'
-                        ? 'bg-red-100 text-red-700'
+                        ? 'bg-[#ff334420] text-[#ff6675]'
                         : getQuadrant(task) === 'schedule'
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-[#00ccdd20] text-[#6ea8fe]'
                         : getQuadrant(task) === 'delegate'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-slate-100 text-slate-700'
+                        ? 'bg-[#ff882220] text-[#fbbf24]'
+                        : 'bg-[#1a1e2c] text-[#8899aa]'
                     }`}>
                       {quadrantLabels[getQuadrant(task)]}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{task.category}</td>
+                  <td className="px-4 py-3 text-sm text-[#8899aa]">{task.domain}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-1 rounded font-medium flex items-center gap-1 w-fit ${getRecurrenceColor(recurrencePattern)}`}>
-                      <span>{getRecurrenceIcon(recurrencePattern)}</span>
+                    <span className={`etm-badge uppercase ${getRecurrenceColor(recurrencePattern)}`}>
                       {recurrencePattern}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">
+                  <td className="px-4 py-3 text-sm text-[#8899aa]">
                     {new Date(task.dueDate).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`priority-badge px-2 py-1 rounded ${
                       isOverdue
-                        ? 'bg-rose-100 text-rose-700'
+                        ? 'bg-[#ff334420] text-[#ff6675]'
                         : priority === 0
-                        ? 'bg-orange-100 text-orange-700'
+                        ? 'bg-[#ff882220] text-[#fbbf24]'
                         : priority <= 3
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-emerald-100 text-emerald-700'
+                        ? 'bg-[#fbbf2420] text-[#fbbf24]'
+                        : 'bg-[#33ff6620] text-[#50c878]'
                     }`}>
                       {isOverdue ? `${Math.abs(priority)}d overdue` : priority === 0 ? 'Today' : `${priority}d`}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-200 rounded-full h-2 max-w-[80px]">
+                      <div className="etm-progress flex-1 max-w-[80px]">
                         <div
-                          className="bg-indigo-600 h-2 rounded-full transition-all"
+                          className={`etm-progress__fill ${task.percentComplete === 100 ? 'etm-progress__fill--complete' : ''}`}
                           style={{ width: `${task.percentComplete}%` }}
                         />
                       </div>
-                      <span className="text-xs text-slate-600 font-medium w-8">{task.percentComplete}%</span>
+                      <span className="text-xs text-[#506070] font-medium w-8">{task.percentComplete}%</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -1517,13 +1601,13 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
                           setEditingTask(task);
                           setShowForm(true);
                         }}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                        className="p-1.5 text-[#506070] hover:text-[#e86030] hover:bg-[#e8603015] rounded transition-colors"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => deleteTask(task.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 text-[#506070] hover:text-[#ff6675] hover:bg-[#ff334415] rounded transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1534,9 +1618,9 @@ const ListView = ({ tasks, filters, setFilters, sortBy, setSortBy, getQuadrant, 
             })}
           </tbody>
         </table>
-        
+
         {sortedTasks.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
+          <div className="text-center py-12 text-[#506070]">
             No tasks found matching your filters
           </div>
         )}
@@ -1549,7 +1633,8 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
   const [formData, setFormData] = useState(
     task || {
       task: '',
-      category: 'Career',
+      domain: 'Teaching',
+      scope: 'Professional',
       subcategory: '',
       isUrgent: false,
       isNecessary: false,
@@ -1576,95 +1661,109 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
     onSave(formData);
   };
 
-  const subcategoryOptions = settings.subcategories[formData.category] || [];
+  const subcategoryOptions = settings.subcategories[formData.domain] || [];
 
   return (
-    <div className="modal-backdrop fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="modal-content bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-2xl font-bold text-white">
+    <div className="etm-modal-backdrop p-0 sm:p-4">
+      <div className="etm-modal rounded-none sm:rounded-xl max-w-2xl w-full max-h-[100vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 etm-chassis px-6 py-4 flex items-center justify-between sm:rounded-t-xl" style={{ borderBottom: '2px solid #0c1014' }}>
+          <h2 className="text-xl font-bold text-[#c8d0e0] tracking-wider uppercase">
             {task ? 'Edit Task' : 'New Task'}
           </h2>
           <button
             onClick={onCancel}
-            className="text-white/80 hover:text-white transition-colors"
+            className="text-[#8899aa] hover:text-[#c8d0e0] transition-colors"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Task Name */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
               Task Name *
             </label>
             <input
               type="text"
               value={formData.task}
               onChange={(e) => setFormData({ ...formData, task: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="etm-input"
               placeholder="Enter task description"
               required
             />
           </div>
 
           {/* Urgency and Necessity */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-50 border-2 border-slate-200 rounded-lg p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="etm-panel--recessed p-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.isUrgent}
                   onChange={(e) => setFormData({ ...formData, isUrgent: e.target.checked })}
-                  className="w-5 h-5 rounded border-slate-300 text-orange-600 focus:ring-2 focus:ring-orange-500"
+                  className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-2 focus:ring-[#e86030]"
                 />
                 <div>
-                  <div className="font-semibold text-slate-900">Urgent</div>
-                  <div className="text-xs text-slate-600">Time-sensitive</div>
+                  <div className="font-semibold text-[#c8d0e0]">Urgent</div>
+                  <div className="text-xs text-[#506070]">Time-sensitive</div>
                 </div>
               </label>
             </div>
-            <div className="bg-slate-50 border-2 border-slate-200 rounded-lg p-4">
+            <div className="etm-panel--recessed p-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.isNecessary}
                   onChange={(e) => setFormData({ ...formData, isNecessary: e.target.checked })}
-                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                  className="w-5 h-5 rounded border-[#2a3048] text-[#e86030] focus:ring-2 focus:ring-[#e86030]"
                 />
                 <div>
-                  <div className="font-semibold text-slate-900">Necessary</div>
-                  <div className="text-xs text-slate-600">Important/Critical</div>
+                  <div className="font-semibold text-[#c8d0e0]">Necessary</div>
+                  <div className="text-xs text-[#506070]">Important/Critical</div>
                 </div>
               </label>
             </div>
           </div>
 
-          {/* Category and Subcategory */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Domain, Scope, and Subcategory */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Category
+              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
+                Domain
               </label>
               <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={formData.domain}
+                onChange={(e) => setFormData({ ...formData, domain: e.target.value, subcategory: '' })}
+                className="etm-input"
               >
-                {settings.categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {(settings.domains || []).map(d => (
+                  <option key={d} value={d}>{d}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
+                Scope
+              </label>
+              <select
+                value={formData.scope}
+                onChange={(e) => setFormData({ ...formData, scope: e.target.value })}
+                className="etm-input"
+              >
+                {(settings.scopes || []).map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
                 Subcategory
               </label>
               <select
                 value={formData.subcategory}
                 onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="etm-input"
               >
                 <option value="">Select...</option>
                 {subcategoryOptions.map(sub => (
@@ -1675,38 +1774,38 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
           </div>
 
           {/* Dates and Rank */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
                 Assigned Date
               </label>
               <input
                 type="date"
                 value={formData.assignedDate}
                 onChange={(e) => setFormData({ ...formData, assignedDate: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="etm-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
                 Due Date *
               </label>
               <input
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="etm-input"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-[#8899aa] mb-2">
                 Rank (1-3)
               </label>
               <select
                 value={formData.rank}
                 onChange={(e) => setFormData({ ...formData, rank: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="etm-input"
               >
                 <option value={1}>1 - Highest</option>
                 <option value={2}>2 - Medium</option>
@@ -1717,7 +1816,7 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
 
           {/* Time Estimate */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
               Time Estimate (Optional)
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -1731,7 +1830,7 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
                     ...formData,
                     timeEstimateValue: e.target.value ? parseFloat(e.target.value) : null
                   })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="etm-input"
                   placeholder="e.g., 5, 2.5"
                 />
               </div>
@@ -1739,21 +1838,21 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
                 <select
                   value={formData.timeEstimateUnit}
                   onChange={(e) => setFormData({ ...formData, timeEstimateUnit: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="etm-input"
                 >
                   <option value="hours">Hours</option>
                   <option value="days">Days</option>
                 </select>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-2 italic">
-              💡 5-Minute Rule: If a task takes less than 5 minutes, just do it now instead of scheduling it.
+            <p className="text-xs text-[#506070] mt-2 italic">
+              5-Minute Rule: If a task takes less than 5 minutes, just do it now instead of scheduling it.
             </p>
           </div>
 
           {/* Progress */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
               Progress: {formData.percentComplete}%
             </label>
             <input
@@ -1763,58 +1862,59 @@ const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
               step="10"
               value={formData.percentComplete}
               onChange={(e) => setFormData({ ...formData, percentComplete: parseInt(e.target.value) })}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              className="w-full h-2 bg-[#1a1e2c] rounded-lg appearance-none cursor-pointer"
+              style={{ accentColor: '#e86030' }}
             />
           </div>
 
           {/* Recurring Pattern */}
-          <div className="bg-slate-50 border-2 border-slate-200 rounded-lg p-4">
-            <label className="block text-sm font-semibold text-slate-700 mb-3">
+          <div className="bg-[#0a0e12] border-2 border-[#2a3048] rounded-lg p-4">
+            <label className="block text-sm font-semibold text-[#8899aa] mb-3">
               Recurrence Pattern
             </label>
             <select
               value={formData.recurringPattern || 'once'}
-              onChange={(e) => setFormData({ 
-                ...formData, 
+              onChange={(e) => setFormData({
+                ...formData,
                 recurringPattern: e.target.value,
                 isRecurring: e.target.value !== 'once'
               })}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="etm-input"
             >
-              <option value="once">📌 Once (one-time task)</option>
-              <option value="daily">☀️ Daily (every day)</option>
-              <option value="weekly">📅 Weekly (every week)</option>
-              <option value="monthly">🗓️ Monthly (every month)</option>
-              <option value="yearly">📆 Yearly (annually)</option>
+              <option value="once">Once (one-time task)</option>
+              <option value="daily">Daily (every day)</option>
+              <option value="weekly">Weekly (every week)</option>
+              <option value="monthly">Monthly (every month)</option>
+              <option value="yearly">Yearly (annually)</option>
             </select>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-[#8899aa] mb-2">
               Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="etm-input resize-none"
               rows="3"
               placeholder="Additional details..."
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#2a3048]">
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-3 border-2 border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+              className="etm-pushbutton px-6 py-2.5"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg shadow-indigo-200 font-medium"
+              className="etm-pushbutton etm-pushbutton--accent px-6 py-2.5"
             >
               {task ? 'Update Task' : 'Create Task'}
             </button>
@@ -1833,7 +1933,7 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
 
   if (completed.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+      <div className="flex flex-col items-center justify-center py-24 text-[#506070]">
         <TrendingUp size={48} strokeWidth={1.5} />
         <p className="mt-4 text-lg font-medium">No completed tasks yet</p>
         <p className="text-sm">Complete some tasks to see analytics here.</p>
@@ -1876,15 +1976,15 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
       {
         label: 'Quality',
         data: qualityCounts,
-        backgroundColor: 'rgba(99, 102, 241, 0.7)',
-        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(80, 200, 120, 0.6)',
+        borderColor: '#50c878',
         borderWidth: 1,
       },
       {
         label: 'Ease',
         data: easeCounts,
-        backgroundColor: 'rgba(59, 130, 246, 0.7)',
-        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(0, 204, 221, 0.6)',
+        borderColor: '#00ccdd',
         borderWidth: 1,
       },
     ],
@@ -1917,8 +2017,8 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
           const due = new Date(t.dueDate).getTime();
           return Math.round((due - assigned) / (1000 * 60 * 60 * 24));
         }),
-        backgroundColor: 'rgba(99, 102, 241, 0.6)',
-        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(0, 204, 221, 0.5)',
+        borderColor: '#00ccdd',
         borderWidth: 1,
       },
       {
@@ -1987,24 +2087,24 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
       {
         label: 'Quality (rolling avg)',
         data: rollingAvg(qualityValues, windowSize),
-        borderColor: 'rgb(99, 102, 241)',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        borderColor: '#50c878',
+        backgroundColor: 'rgba(80, 200, 120, 0.1)',
         tension: 0.3,
         fill: false,
       },
       {
         label: 'Ease (rolling avg)',
         data: rollingAvg(easeValues, windowSize),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: '#00ccdd',
+        backgroundColor: 'rgba(0, 204, 221, 0.1)',
         tension: 0.3,
         fill: false,
       },
       {
         label: 'Task Score (scaled 0-5)',
         data: rollingAvg(scoreValues.map(v => v ?? 0), windowSize),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        borderColor: '#e86030',
+        backgroundColor: 'rgba(232, 96, 48, 0.1)',
         tension: 0.3,
         fill: false,
         borderDash: [5, 5],
@@ -2024,42 +2124,42 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
   };
 
   const statCards = [
-    { label: 'Completed', value: completed.length, color: 'text-indigo-600' },
-    { label: 'Avg Quality', value: avgQuality !== null ? avgQuality.toFixed(1) : '—', color: 'text-indigo-600' },
-    { label: 'Avg Ease', value: avgEase !== null ? avgEase.toFixed(1) : '—', color: 'text-blue-600' },
-    { label: 'Avg Score', value: avgScore !== null ? avgScore.toFixed(2) : '—', color: 'text-green-600' },
-    { label: 'Median Deadline Error', value: medianError !== null ? `${medianError > 0 ? '+' : ''}${medianError.toFixed(1)}d` : '—', color: medianError !== null && medianError > 0 ? 'text-red-500' : 'text-green-600' },
+    { label: 'Completed', value: completed.length, color: 'text-[#e86030]' },
+    { label: 'Avg Quality', value: avgQuality !== null ? avgQuality.toFixed(1) : '—', color: 'text-[#50c878]' },
+    { label: 'Avg Ease', value: avgEase !== null ? avgEase.toFixed(1) : '—', color: 'text-[#00ccdd]' },
+    { label: 'Avg Score', value: avgScore !== null ? avgScore.toFixed(2) : '—', color: 'text-[#e86030]' },
+    { label: 'Deadline Error', value: medianError !== null ? `${medianError > 0 ? '+' : ''}${medianError.toFixed(1)}d` : '—', color: medianError !== null && medianError > 0 ? 'text-[#ff3344]' : 'text-[#50c878]' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="p-2 space-y-3" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-5 gap-2">
         {statCards.map((card) => (
-          <div key={card.label} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 text-center">
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{card.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${card.color}`}>{card.value}</p>
+          <div key={card.label} className="text-center p-2 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
+            <p style={{ fontSize: '8px', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#506070' }}>{card.label}</p>
+            <p className={`text-lg font-bold mt-0.5 font-data ${card.color}`}>{card.value}</p>
           </div>
         ))}
       </div>
 
       {/* Score distribution */}
       {withRatings.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="p-3 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
           <Bar data={scoreDistData} options={scoreDistOptions} />
         </div>
       )}
 
       {/* Duration accuracy */}
       {recentWithDates.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="p-3 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
           <Bar data={durationData} options={durationOptions} />
         </div>
       )}
 
       {/* Trends */}
       {chronological.length >= 3 && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="p-3 border border-[rgba(255,255,255,0.04)] rounded" style={{ background: 'rgba(255,255,255,0.01)' }}>
           <Line data={trendData} options={trendOptions} />
         </div>
       )}
@@ -2070,7 +2170,8 @@ const AnalyticsView = ({ tasks, calculateTaskScore }) => {
 const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setEditingTask, setShowForm, deleteTask, settings }) => {
   const [filters, setFilters] = useState({
     quadrant: 'all',
-    category: 'all',
+    domain: 'all',
+    scope: 'all',
     status: 'active'
   });
   const [groupBy, setGroupBy] = useState('quadrant');
@@ -2175,7 +2276,8 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
     if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
-    if (filters.category !== 'all' && task.category !== filters.category) return false;
+    if (filters.domain !== 'all' && task.domain !== filters.domain) return false;
+    if (filters.scope !== 'all' && task.scope !== filters.scope) return false;
     return true;
   });
 
@@ -2187,12 +2289,20 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
         'delegate': filteredTasks.filter(t => getQuadrant(t) === 'delegate'),
         'eliminate': filteredTasks.filter(t => getQuadrant(t) === 'eliminate')
       };
+    } else if (groupBy === 'scope') {
+      const grouped = {};
+      filteredTasks.forEach(task => {
+        const s = task.scope || 'Professional';
+        if (!grouped[s]) grouped[s] = [];
+        grouped[s].push(task);
+      });
+      return grouped;
     } else {
       const grouped = {};
       filteredTasks.forEach(task => {
-        const cat = task.category;
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(task);
+        const d = task.domain || 'Teaching';
+        if (!grouped[d]) grouped[d] = [];
+        grouped[d].push(task);
       });
       return grouped;
     }
@@ -2224,12 +2334,12 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
 
   const getQuadrantBg = (quadrant) => {
     const colors = {
-      'do-first': 'bg-red-50',
-      'schedule': 'bg-blue-50',
-      'delegate': 'bg-amber-50',
-      'eliminate': 'bg-slate-50'
+      'do-first': 'bg-[#ff334408]',
+      'schedule': 'bg-[#00ccdd08]',
+      'delegate': 'bg-[#ff882208]',
+      'eliminate': 'bg-[#1a1e2c]'
     };
-    return colors[quadrant] || 'bg-gray-50';
+    return colors[quadrant] || 'bg-[#1a1e2c]';
   };
 
   // Get gridline and label frequencies based on timeline scale
@@ -2263,14 +2373,13 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
   const lanes = Object.keys(grouped).filter(key => grouped[key].length > 0);
 
   return (
-    <div className="space-y-4">
+    <div className="p-2 space-y-2" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
       {/* Header Controls */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-4">
-        <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap pb-2 border-b border-[rgba(255,255,255,0.04)]">
           <select
             value={filters.status}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+            className="etm-input text-sm"
           >
             <option value="active">Active Tasks</option>
             <option value="completed">Completed</option>
@@ -2280,7 +2389,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
           <select
             value={filters.quadrant}
             onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+            className="etm-input text-sm"
           >
             <option value="all">All Quadrants</option>
             <option value="do-first">Do First</option>
@@ -2290,55 +2399,62 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
           </select>
 
           <select
-            value={filters.category}
-            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+            value={filters.domain}
+            onChange={(e) => setFilters({ ...filters, domain: e.target.value })}
+            className="etm-input text-sm"
           >
-            <option value="all">All Categories</option>
-            {settings.categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+            <option value="all">All Domains</option>
+            {(settings.domains || []).map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+
+          <select
+            value={filters.scope}
+            onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
+            className="etm-input text-sm"
+          >
+            <option value="all">All Scopes</option>
+            {(settings.scopes || []).map(s => (
+              <option key={s} value={s}>{s}</option>
             ))}
           </select>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600 font-medium">Group by:</span>
+            <span className="text-sm text-[#506070] font-medium">Group by:</span>
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium text-sm"
+              className="etm-input text-sm"
             >
               <option value="quadrant">Quadrant</option>
-              <option value="category">Category</option>
+              <option value="domain">Domain</option>
+              <option value="scope">Scope</option>
             </select>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600 font-medium">Timeline:</span>
+            <span className="text-sm text-[#506070] font-medium">Timeline:</span>
             <button
               onClick={() => setShowHistory(!showHistory)}
-              className={`px-4 py-2 border rounded-lg font-medium text-sm transition-all ${
-                showHistory
-                  ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-              }`}
+              className={`etm-pushbutton text-sm ${showHistory ? 'etm-pushbutton--accent' : ''}`}
               title={showHistory ? 'Showing all historical data' : 'Showing from today forward'}
             >
-              {showHistory ? '📜 History ON' : '📅 Today Forward'}
+              {showHistory ? 'History ON' : 'Today Forward'}
             </button>
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-slate-600 font-medium">Zoom:</span>
-            <div className="flex bg-slate-100 rounded-lg p-1 overflow-x-auto">
+            <span className="text-sm text-[#506070] font-medium">Zoom:</span>
+            <div className="flex gap-1 etm-panel--recessed p-1 overflow-x-auto">
               {['daily', 'weekly', 'monthly', 'quarterly', 'yearly'].map(level => (
                 <button
                   key={level}
                   onClick={() => handleZoomButtonClick(level)}
-                  className={`px-2.5 py-1 rounded text-sm font-medium transition-all whitespace-nowrap ${
-                    getNearestZoomLevel() === level
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
+                  className={`etm-pushbutton text-xs whitespace-nowrap ${
+                    getNearestZoomLevel() === level ? 'etm-pushbutton--active' : ''
                   }`}
+                  style={{ padding: '4px 8px' }}
                   title="Click to set, or use Alt+Scroll to zoom"
                 >
                   {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -2346,28 +2462,25 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
               ))}
             </div>
           </div>
+          <div className="ml-auto text-[#506070]" style={{ fontSize: '9px' }}>
+            {filteredTasks.length}/{tasks.filter(t => t.dueDate).length} tasks
+          </div>
         </div>
-
-        <div className="text-xs text-slate-600">
-          Showing {filteredTasks.length} of {tasks.filter(t => t.dueDate).length} tasks with due dates
-          {showHistory && ' • Viewing full history'}
-        </div>
-      </div>
 
       {/* Gantt Chart */}
       {filteredTasks.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-lg p-12 text-center">
-          <div className="text-slate-400 font-medium">No tasks found matching your filters</div>
+        <div className="etm-panel p-12 text-center">
+          <div className="text-[#506070] font-medium">No tasks found matching your filters</div>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm" onWheel={handleChartWheel}>
+        <div className="etm-panel overflow-hidden" onWheel={handleChartWheel}>
           <div className="overflow-x-auto">
             {/* Timeline Header */}
             <div className="flex">
-              <div className="w-48 border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-sm text-slate-700 flex-shrink-0">
+              <div className="w-48 border-r border-[#2a3048] bg-[#0a0e12] px-4 py-3 font-semibold text-sm text-[#8899aa] flex-shrink-0">
                 Task
               </div>
-              <div className="border-b border-slate-200 bg-slate-50 px-2 py-2 flex relative" style={{ minWidth: `${totalDays * timelineScale}px` }}>
+              <div className="border-b border-[#2a3048] bg-[#0a0e12] px-2 py-2 flex relative" style={{ minWidth: `${totalDays * timelineScale}px` }}>
                 {/* Weekend shading */}
                 {Array.from({ length: Math.min(totalDays, 365) }).map((_, i) => {
                   const date = new Date(minDate);
@@ -2377,7 +2490,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                   return isWeekend ? (
                     <div
                       key={`weekend-${i}`}
-                      className="absolute bg-slate-100 opacity-20 h-full"
+                      className="absolute bg-[#2a3048] opacity-20 h-full"
                       style={{
                         left: `${dateToX(date)}%`,
                         width: `${dateToX(new Date(date.getTime() + oneDay)) - dateToX(date)}%`
@@ -2396,7 +2509,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                   return i % freq.gridline === 0 ? (
                     <div
                       key={`gridline-${i}`}
-                      className="absolute w-px bg-slate-300 h-full opacity-40"
+                      className="absolute w-px bg-[#506070] h-full opacity-40"
                       style={{
                         left: `${x}%`
                       }}
@@ -2414,7 +2527,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                   return i % freq.label === 0 ? (
                     <div
                       key={i}
-                      className="absolute text-xs text-slate-600 font-semibold"
+                      className="absolute text-xs text-[#506070] font-semibold"
                       style={{
                         left: `${x}%`,
                         top: '4px'
@@ -2439,18 +2552,18 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
             {/* Swim Lanes */}
             {lanes.map((lane) => {
               const laneLabel = groupBy === 'quadrant'
-                ? { 'do-first': '🔥 Do First', 'schedule': '📅 Schedule', 'delegate': '👥 Delegate', 'eliminate': '🗑️ Eliminate' }[lane]
+                ? { 'do-first': 'Do First', 'schedule': 'Schedule', 'delegate': 'Delegate', 'eliminate': 'Eliminate' }[lane]
                 : lane;
 
               return (
                 <div key={lane}>
                   {/* Lane Header */}
-                  <div className={`flex ${getQuadrantBg(groupBy === 'quadrant' ? lane : 'schedule')} border-b border-slate-200`}>
-                    <div className="w-48 border-r border-slate-200 px-4 py-3 flex-shrink-0">
-                      <div className="font-semibold text-sm text-slate-700">
+                  <div className={`flex ${getQuadrantBg(groupBy === 'quadrant' ? lane : 'schedule')} border-b border-[#2a3048]`}>
+                    <div className="w-48 border-r border-[#2a3048] px-4 py-3 flex-shrink-0">
+                      <div className="font-semibold text-sm text-[#c8d0e0]">
                         {laneLabel}
                       </div>
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-[#506070]">
                         {grouped[lane].length} task{grouped[lane].length !== 1 ? 's' : ''}
                       </div>
                     </div>
@@ -2467,16 +2580,16 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                     const quadrant = getQuadrant(task);
 
                     return (
-                      <div key={task.id} className="flex border-b border-slate-100 hover:bg-indigo-50 transition-colors relative">
+                      <div key={task.id} className="flex border-b border-[#1a1e2c] hover:bg-[#2e3438] transition-colors relative">
                         {/* Task name - clickable to open context menu */}
                         <div
-                          className="w-48 border-r border-slate-200 px-4 py-3 flex-shrink-0 cursor-pointer hover:bg-indigo-100 transition-colors"
+                          className="w-48 border-r border-[#2a3048] px-4 py-3 flex-shrink-0 cursor-pointer hover:bg-[#2e3438] transition-colors"
                           onClick={() => setActiveContextMenu(activeContextMenu === task.id ? null : task.id)}
                         >
-                          <div className={`text-sm font-medium ${isCompleted ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                          <div className={`text-sm font-medium ${isCompleted ? 'line-through text-[#506070]' : 'text-[#c8d0e0]'}`}>
                             {task.task}
                           </div>
-                          <div className="text-xs text-slate-500 mt-1">
+                          <div className="text-xs text-[#506070] mt-1">
                             {task.subcategory}
                           </div>
                         </div>
@@ -2493,7 +2606,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                             return i % freq.gridline === 0 ? (
                               <div
                                 key={`gridline-task-${i}`}
-                                className="absolute w-px bg-slate-300 h-full opacity-30 z-0"
+                                className="absolute w-px bg-[#506070] h-full opacity-30 z-0"
                                 style={{
                                   left: `${x}%`
                                 }}
@@ -2577,7 +2690,7 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                             />
 
                             {/* Context Menu */}
-                            <div className="fixed bg-white border border-slate-200 rounded-lg shadow-xl z-50" style={{
+                            <div className="fixed etm-panel shadow-xl z-50" style={{
                               top: '50%',
                               left: '50%',
                               transform: 'translate(-50%, -50%)',
@@ -2590,32 +2703,32 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
                                 }}
                                 className={`w-full px-4 py-2 text-sm text-left transition-colors flex items-center gap-2 ${
                                   isCompleted
-                                    ? 'text-emerald-600 hover:bg-emerald-50'
-                                    : 'text-slate-700 hover:bg-indigo-50'
+                                    ? 'text-[#50c878] hover:bg-[#33ff6610]'
+                                    : 'text-[#8899aa] hover:bg-[#2e3438]'
                                 }`}
                               >
                                 <CheckCircle size={16} />
                                 <span>{isCompleted ? 'Mark incomplete' : 'Mark complete'}</span>
                               </button>
-                              <div className="border-t border-slate-200" />
+                              <div className="border-t border-[#2a3048]" />
                               <button
                                 onClick={() => {
                                   setEditingTask(task);
                                   setShowForm(true);
                                   setActiveContextMenu(null);
                                 }}
-                                className="w-full px-4 py-2 text-sm text-left text-slate-700 hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                                className="w-full px-4 py-2 text-sm text-left text-[#8899aa] hover:bg-[#2e3438] transition-colors flex items-center gap-2"
                               >
                                 <Edit2 size={16} />
                                 <span>Edit</span>
                               </button>
-                              <div className="border-t border-slate-200" />
+                              <div className="border-t border-[#2a3048]" />
                               <button
                                 onClick={() => {
                                   deleteTask(task.id);
                                   setActiveContextMenu(null);
                                 }}
-                                className="w-full px-4 py-2 text-sm text-left text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                                className="w-full px-4 py-2 text-sm text-left text-[#ff6675] hover:bg-[#ff334415] transition-colors flex items-center gap-2"
                               >
                                 <Trash2 size={16} />
                                 <span>Delete</span>
@@ -2634,29 +2747,29 @@ const GanttView = ({ tasks, getQuadrant, calculatePriority, toggleComplete, setE
       )}
 
       {/* Legend */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4">
-        <div className="text-sm font-semibold text-slate-700 mb-3">Legend</div>
+      <div className="etm-panel p-4">
+        <div className="text-sm font-semibold text-[#c8d0e0] mb-3">Legend</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Do First', color: '#ef4444' },
-            { label: 'Schedule', color: '#3b82f6' },
-            { label: 'Delegate', color: '#f59e0b' },
-            { label: 'Eliminate', color: '#9ca3af' }
+            { label: 'Do First', color: '#ff3344' },
+            { label: 'Schedule', color: '#00ccdd' },
+            { label: 'Delegate', color: '#ff8822' },
+            { label: 'Eliminate', color: '#506070' }
           ].map(item => (
             <div key={item.label} className="flex items-center gap-2">
               <div
                 className="w-4 h-4 rounded"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-sm text-slate-600">{item.label}</span>
+              <span className="text-sm text-[#8899aa]">{item.label}</span>
             </div>
           ))}
         </div>
-        <div className="mt-3 text-xs text-slate-600">
-          <div>• Bar width represents time estimate (due date - estimate = start date)</div>
-          <div>• Diamond indicates task without time estimate (milestone)</div>
-          <div>• Red line shows today's date</div>
-          <div>• Gray shading indicates weekends</div>
+        <div className="mt-3 text-xs text-[#506070]">
+          <div>Bar width represents time estimate (due date - estimate = start date)</div>
+          <div>Diamond indicates task without time estimate (milestone)</div>
+          <div>Red line shows today's date</div>
+          <div>Gray shading indicates weekends</div>
         </div>
       </div>
     </div>
@@ -2691,7 +2804,8 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
     if (filters.status === 'active' && task.percentComplete === 100) return false;
     if (filters.status === 'completed' && task.percentComplete < 100) return false;
     if (filters.quadrant !== 'all' && getQuadrant(task) !== filters.quadrant) return false;
-    if (filters.category !== 'all' && task.category !== filters.category) return false;
+    if (filters.domain !== 'all' && task.domain !== filters.domain) return false;
+    if (filters.scope !== 'all' && task.scope !== filters.scope) return false;
     return true;
   });
 
@@ -2716,10 +2830,10 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
   const goToday = () => setCalendarDate(new Date());
 
   const quadrantColors = {
-    'do-first': { border: 'border-l-red-500', bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
-    'schedule': { border: 'border-l-blue-500', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
-    'delegate': { border: 'border-l-amber-500', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-    'eliminate': { border: 'border-l-slate-400', bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-400' }
+    'do-first': { border: 'border-l-[#ff3344]', bg: 'bg-[#ff334410]', text: 'text-[#ff6675]', dot: 'bg-[#ff3344]' },
+    'schedule': { border: 'border-l-[#00ccdd]', bg: 'bg-[#00ccdd10]', text: 'text-[#6ea8fe]', dot: 'bg-[#00ccdd]' },
+    'delegate': { border: 'border-l-[#ff8822]', bg: 'bg-[#ff882210]', text: 'text-[#fbbf24]', dot: 'bg-[#ff8822]' },
+    'eliminate': { border: 'border-l-[#506070]', bg: 'bg-[#1a1e2c]', text: 'text-[#8899aa]', dot: 'bg-[#506070]' }
   };
 
   const handleDayClick = (dateStr) => {
@@ -2731,36 +2845,33 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
   const MAX_VISIBLE = 3;
 
   return (
-    <div className="space-y-4">
+    <div className="p-2 space-y-2" style={{ fontFamily: "'Courier New', monospace", fontSize: '10px' }}>
       {/* Header */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <button onClick={prevMonth} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors">
-            <ChevronLeft size={20} className="text-slate-600" />
+      <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-[rgba(255,255,255,0.04)]">
+        <div className="flex items-center gap-2">
+          <button onClick={prevMonth} className="p-1 rounded hover:bg-[#2e3438] transition-colors">
+            <ChevronLeft size={14} className="text-[#8899aa]" />
           </button>
-          <h2 className="text-xl font-bold text-slate-900 min-w-[200px] text-center">
+          <h2 className="text-sm font-bold text-[#c8d0e0] min-w-[140px] text-center">
             {monthNames[month]} {year}
           </h2>
-          <button onClick={nextMonth} className="p-1.5 rounded-md hover:bg-slate-100 transition-colors">
-            <ChevronRight size={20} className="text-slate-600" />
+          <button onClick={nextMonth} className="p-1 rounded hover:bg-[#2e3438] transition-colors">
+            <ChevronRight size={14} className="text-[#8899aa]" />
           </button>
-          <button onClick={goToday} className="ml-2 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 transition-colors">
+          <button onClick={goToday} className="etm-pushbutton ml-1" style={{ padding: '2px 6px', fontSize: '9px' }}>
             Today
           </button>
         </div>
         {undatedCount > 0 && (
-          <div className="text-sm text-slate-500">
-            {undatedCount} task{undatedCount !== 1 ? 's' : ''} with no due date
+          <div className="text-[#506070]" style={{ fontSize: '9px' }}>
+            {undatedCount} undated
           </div>
         )}
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4 flex items-center gap-4 flex-wrap">
+        {/* Inline filters */}
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          className="etm-input"
         >
           <option value="active">Active Tasks</option>
           <option value="completed">Completed</option>
@@ -2769,7 +2880,7 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
         <select
           value={filters.quadrant}
           onChange={(e) => setFilters({ ...filters, quadrant: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          className="etm-input"
         >
           <option value="all">All Quadrants</option>
           <option value="do-first">Do First</option>
@@ -2778,23 +2889,33 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
           <option value="eliminate">Eliminate</option>
         </select>
         <select
-          value={filters.category}
-          onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-          className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+          value={filters.domain}
+          onChange={(e) => setFilters({ ...filters, domain: e.target.value })}
+          className="etm-input"
         >
-          <option value="all">All Categories</option>
-          {settings.categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
+          <option value="all">All Domains</option>
+          {(settings.domains || []).map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <select
+          value={filters.scope}
+          onChange={(e) => setFilters({ ...filters, scope: e.target.value })}
+          className="etm-input"
+        >
+          <option value="all">All Scopes</option>
+          {(settings.scopes || []).map(s => (
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="etm-panel overflow-hidden">
         {/* Day-of-week header */}
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+        <div className="grid grid-cols-7 border-b border-[#2a3048] bg-[#0a0e12]">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="px-2 py-2.5 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <div key={day} className="px-2 py-2.5 text-center text-xs font-semibold text-[#506070] uppercase tracking-wider">
               {day}
             </div>
           ))}
@@ -2814,9 +2935,9 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
             return (
               <div
                 key={idx}
-                className={`min-h-[110px] border-b border-r border-slate-100 p-1.5 transition-colors ${
-                  isCurrentMonth ? 'bg-white' : 'bg-slate-50/50'
-                } ${isToday ? 'bg-indigo-50 ring-1 ring-inset ring-indigo-300' : ''}`}
+                className={`min-h-[110px] border-b border-r border-[#1a1e2c] p-1.5 transition-colors ${
+                  isCurrentMonth ? 'bg-[#1e2428]' : 'bg-[#0a0e12]/50'
+                } ${isToday ? 'bg-[#e8603010] ring-1 ring-inset ring-[#e86030]' : ''}`}
                 onClick={(e) => {
                   if (e.target === e.currentTarget || e.target.closest('[data-day-bg]')) {
                     handleDayClick(dateStr);
@@ -2826,8 +2947,8 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
                 {/* Day number */}
                 <div className="flex items-center justify-between mb-1" data-day-bg>
                   <span className={`text-sm font-medium leading-none ${
-                    isToday ? 'bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center' :
-                    isCurrentMonth ? 'text-slate-700' : 'text-slate-400'
+                    isToday ? 'bg-[#e86030] text-white w-6 h-6 rounded-full flex items-center justify-center' :
+                    isCurrentMonth ? 'text-[#c8d0e0]' : 'text-[#506070]'
                   }`}>
                     {day.getDate()}
                   </span>
@@ -2853,7 +2974,7 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
                         }}
                         title={`${task.task} — ${quadrant}`}
                       >
-                        <span className={`truncate flex-1 ${isOverdue ? 'text-red-600 font-semibold' : colors.text} ${isCompleted ? 'line-through' : ''}`}>
+                        <span className={`truncate flex-1 ${isOverdue ? 'text-[#ff6675] font-semibold' : colors.text} ${isCompleted ? 'line-through' : ''}`}>
                           {task.task}
                         </span>
                         {isRecurring && <Repeat size={10} className={colors.text} />}
@@ -2862,7 +2983,7 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
                   })}
                   {!isExpanded && hiddenCount > 0 && (
                     <button
-                      className="text-xs text-indigo-600 font-medium hover:text-indigo-800 pl-1.5"
+                      className="text-xs text-[#e86030] font-medium hover:text-[#ff7040] pl-1.5"
                       onClick={(e) => {
                         e.stopPropagation();
                         setExpandedDay(dateStr);
@@ -2873,7 +2994,7 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
                   )}
                   {isExpanded && dayTasks.length > MAX_VISIBLE && (
                     <button
-                      className="text-xs text-slate-500 font-medium hover:text-slate-700 pl-1.5"
+                      className="text-xs text-[#506070] font-medium hover:text-[#8899aa] pl-1.5"
                       onClick={(e) => {
                         e.stopPropagation();
                         setExpandedDay(null);
@@ -2890,28 +3011,28 @@ const CalendarView = ({ tasks, filters, setFilters, getQuadrant, calculatePriori
       </div>
 
       {/* Legend */}
-      <div className="bg-white border border-slate-200 rounded-lg p-4">
+      <div className="etm-panel p-4">
         <div className="flex flex-wrap items-center gap-4 text-sm">
           {[
-            { label: 'Do First', color: 'bg-red-500' },
-            { label: 'Schedule', color: 'bg-blue-500' },
-            { label: 'Delegate', color: 'bg-amber-500' },
-            { label: 'Eliminate', color: 'bg-slate-400' }
+            { label: 'Do First', color: 'bg-[#ff3344]' },
+            { label: 'Schedule', color: 'bg-[#00ccdd]' },
+            { label: 'Delegate', color: 'bg-[#ff8822]' },
+            { label: 'Eliminate', color: 'bg-[#506070]' }
           ].map(item => (
             <div key={item.label} className="flex items-center gap-1.5">
               <div className={`w-3 h-3 rounded ${item.color}`} />
-              <span className="text-slate-600">{item.label}</span>
+              <span className="text-[#8899aa]">{item.label}</span>
             </div>
           ))}
           <div className="flex items-center gap-1.5 ml-2">
-            <span className="text-red-600 font-semibold text-xs">Overdue</span>
-            <span className="text-slate-400">= red text</span>
+            <span className="text-[#ff6675] font-semibold text-xs">Overdue</span>
+            <span className="text-[#506070]">= red text</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Repeat size={12} className="text-slate-500" />
-            <span className="text-slate-600">= recurring</span>
+            <Repeat size={12} className="text-[#506070]" />
+            <span className="text-[#8899aa]">= recurring</span>
           </div>
-          <div className="text-slate-500 ml-auto text-xs">Click empty space to add a task on that date</div>
+          <div className="text-[#506070] ml-auto text-xs">Click empty space to add a task on that date</div>
         </div>
       </div>
     </div>

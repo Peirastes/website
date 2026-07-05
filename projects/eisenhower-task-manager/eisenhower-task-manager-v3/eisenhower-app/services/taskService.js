@@ -16,9 +16,48 @@ async function readTasks() {
 }
 
 async function writeTasks(tasks) {
+  // GUARD: never overwrite tasks.json with anything but an array. A bare object
+  // (e.g. a single task POSTed to /api/tasks) used to clobber every task — refuse it.
+  if (!Array.isArray(tasks)) {
+    throw new Error(`writeTasks refused: expected an array, got ${tasks === null ? 'null' : typeof tasks}`);
+  }
+  // BACKUP-BEFORE-OVERWRITE: snapshot the current file first so any bad write
+  // (even a valid-but-wrong array) is locally recoverable. Best-effort + pruned.
+  try {
+    if (await fs.pathExists(TASKS_FILE)) {
+      const backupDir = path.join(DATA_DIR, 'task-backups');
+      await fs.ensureDir(backupDir);
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      await fs.copy(TASKS_FILE, path.join(backupDir, `tasks-${stamp}.json`));
+      const files = (await fs.readdir(backupDir)).filter(f => f.startsWith('tasks-')).sort();
+      for (const old of files.slice(0, -40)) await fs.remove(path.join(backupDir, old)).catch(() => {});
+    }
+  } catch { /* backup is best-effort — never block a write on it */ }
+
   const tmpFile = TASKS_FILE + '.tmp';
   await fs.writeJson(tmpFile, tasks, { spaces: 2 });
-  await fs.rename(tmpFile, TASKS_FILE);
+  await renameWithRetry(tmpFile, TASKS_FILE);
+}
+
+// tasks.json lives inside the Dropbox folder, so Dropbox (and AV / the search
+// indexer) intermittently hold a transient handle on it. On Windows that makes
+// the atomic rename-over fail with EPERM/EBUSY/EACCES seemingly at random —
+// which previously surfaced as silent "my change didn't save" write failures.
+// Retry with a short backoff; the lock clears in tens of ms.
+async function renameWithRetry(from, to, tries = 8) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      await fs.rename(from, to);
+      return;
+    } catch (err) {
+      const transient = err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES';
+      if (transient && i < tries - 1) {
+        await new Promise(r => setTimeout(r, 60 * (i + 1))); // 60,120,...,420ms
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function getTasks() {
@@ -39,7 +78,20 @@ async function getTasks() {
   return tasks;
 }
 
+// Minimal shape guard so a malformed task can't be written and break a view
+// (the bulk array guard in writeTasks catches wrong *containers*; this catches
+// wrong *items*). Kept light on purpose — importTasks does the heavy normalizing.
+function validateTask(task) {
+  if (!task || typeof task !== 'object' || Array.isArray(task)) {
+    throw new Error('Task must be an object');
+  }
+  if (!task.task || typeof task.task !== 'string' || !task.task.trim()) {
+    throw new Error('Task must have a non-empty "task" name');
+  }
+}
+
 async function addTask(task) {
+  validateTask(task);
   const tasks = await readTasks();
   if (!task.id) {
     task.id = String(Date.now());
@@ -60,7 +112,41 @@ async function updateTask(id, fields) {
   return tasks[index];
 }
 
+// SOFT delete: mark the task with a `deletedAt` tombstone instead of removing
+// it. This matches the UI (App.jsx deleteTask) so an agent/API delete is just
+// as recoverable as a click delete — restoreTask undoes it, the views filter
+// out tombstones (liveTasks), and the UI reclaims trash after a 24h grace
+// window. For a genuine permanent removal use purgeTask. Idempotent.
 async function deleteTask(id) {
+  const tasks = await readTasks();
+  const index = tasks.findIndex(t => t.id === id);
+  if (index === -1) {
+    throw new Error('Task not found');
+  }
+  if (tasks[index].deletedAt) {
+    return tasks[index]; // already in trash — no-op
+  }
+  tasks[index] = { ...tasks[index], deletedAt: new Date().toISOString() };
+  await writeTasks(tasks);
+  return tasks[index];
+}
+
+// Undo a soft delete: clear the tombstone.
+async function restoreTask(id) {
+  const tasks = await readTasks();
+  const index = tasks.findIndex(t => t.id === id);
+  if (index === -1) {
+    throw new Error('Task not found');
+  }
+  const { deletedAt, ...rest } = tasks[index];
+  tasks[index] = rest;
+  await writeTasks(tasks);
+  return tasks[index];
+}
+
+// PERMANENT removal — bypasses the trash. Irreversible (recoverable only via
+// the tasks.json backups in task-backups/). Use deleteTask for normal deletes.
+async function purgeTask(id) {
   const tasks = await readTasks();
   const index = tasks.findIndex(t => t.id === id);
   if (index === -1) {
@@ -193,6 +279,9 @@ module.exports = {
   addTask,
   updateTask,
   deleteTask,
+  restoreTask,
+  purgeTask,
+  validateTask,
   importTasks,
   getSettings,
   saveSettings,

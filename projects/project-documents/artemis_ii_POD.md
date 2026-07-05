@@ -1,109 +1,80 @@
 # Project Overview Document (POD)
 
-**Project:** Artemis II Orbital Trajectory Simulator
+> A POD is a 1-2 page snapshot. Read time: 3 minutes.
+
+---
+
+**Project:** Artemis II Orbital Trajectory Simulator (v1, v2, v3.5)
 **Lead:** Cole Prather
-**Status:** Active (v2 shipped)
-**Last Updated:** 2026-04-07
+**Status:** Complete — three deployments live; mission concluded 2026-04-11
+**Last Updated:** 2026-05-26
 
 ---
 
 ## The Problem
 
-General relativity predicts that clocks at different gravitational potentials and velocities tick at different rates, but this effect is almost never presented in terms of a real, ongoing space mission. NASA's Artemis II — the first crewed lunar flight since Apollo 17 in 1972 — provides a rare opportunity to make orbital mechanics and relativistic physics tangible: a spacecraft carrying four astronauts on a 10-day free-return trajectory around the Moon, with every phase computable from first principles. Most online trackers during the mission showed animated dots on pre-recorded paths. None computed the trajectory from physics in real time, and none were transparent about their model's accuracy.
+NASA's Artemis II — the first crewed lunar flight since Apollo 17 — was a rare opportunity to make orbital mechanics tangible in real time: a spacecraft on a 10-day free-return trajectory around the Moon, every phase computable from first principles. Most online trackers showed animated dots on pre-recorded paths. The project's three deployments answer three different questions: **v1** ("can a single-file browser app track a real mission in real time?"), **v2** ("how close can we actually get with high-fidelity physics?"), and **v3.5** ("what is the canonical chrome pattern for a Peirastes mission tracker?"). All three live on peirastes.com; the public Projects listing points at v3.5 as the production face.
 
-**Driving Question:** Can a single-file browser app predict a real spacecraft's position to within minutes of NASA's published timeline using nothing but Newtonian gravity and a numerical integrator — and be honest about where it's wrong?
+**Driving Question:** Can a real spacecraft's trajectory be tracked from physics rather than ephemeris consumption — and what's the cleanest way to present that to a visitor?
 
 ---
 
 ## What's Novel
 
-1. **Physics-first trajectory** — RK4 integration under three-body gravity (Earth + Moon + Sun), not pre-recorded animation or NASA ephemeris consumption. The trajectory is computed from scratch on every page load.
-2. **Transparent fidelity indicators** — every mission event has a colored confidence rating with hover tooltips explaining the physics, the approximation, and the known error. No other public Artemis II tracker did this.
-3. **Scrolling aviation tape gauges** — real cockpit instrument behavior where the scale moves past a fixed center readout. Four gauges: velocity, altitude, lunar distance, gravitational potential.
-4. **LUNAR distance gauge** — a real-time proximity meter to the Moon that drops dramatically at perilune. Obvious in retrospect; absent from every other tracker.
-5. **Time dilation decomposition** — gravitational blueshift vs velocity dilation tracked as separate cumulative components, visible in the expanded time panel.
-6. **Canceled OTC burns** — reflecting actual NASA mission decisions (all three outbound corrections were canceled because the TLI was nominal).
-7. **Calibration testbed** — a standalone Node.js tool with 2D parameter search, sweep modes, and a chronological diff table for tuning against NASA data.
+- **v1**: physics-first trajectory (RK4 under three-body gravity) shipped *during the live mission* — Flight Day 6, lunar flyby day — with transparent fidelity indicators on every event. No other public tracker did this.
+- **v2**: high-fidelity 3D rebuild validated to **0.05 km RMS / 0.08 km max** against JPL Horizons (DE440 + 5 real burns) — engineering-grade.
+- **v3.5**: the project that locked **the canonical Peirastes v2 (Cinematic Tier) chrome vocabulary** for all future cinematic instruments. Same v2 lab frame + physics + JS preserved verbatim; new outer chrome that propagates to Tip-Recover, Optics Lab, Smoke Sim, and any future mission tracker.
 
 ---
 
 ## Goals
 
-**Primary Objective:** Deliver a browser-based instrument that tracks a real lunar mission in real time using computed physics, with enough fidelity to be pedagogically valuable and enough transparency to be scientifically honest.
+**Primary Objective:** Three goals, one per version. v1 — track the live mission. v2 — get engineering-grade accuracy. v3.5 — establish the cinematic instrument template. **All three achieved.**
 
-**Achieved (v2):**
-1. Three-body physics calibrated against NASA mission control (perilune within 3 min, splashdown within 10 min)
-2. Responsive layout for desktop and mobile
-3. Peirastes Instrument tier aesthetic
-4. Fidelity indicators, hover tooltips, scrolling tape gauges
-5. Real screenshot replacing placeholder thumbnail
-6. Shipped during the mission (Flight Day 6, lunar flyby day)
+**Near-Term** (1-3 months):
 
-**Next (v3 candidates):**
-1. Elliptical Moon orbit from JPL ephemeris
-2. 3D trajectory with out-of-plane components
-3. Finite-duration burns (real TLI is 5m50s)
-4. Post-mission validation against actual NASA telemetry
-5. Auto-zoom during lunar flyby approach
-6. Spacecraft icon with attitude indication
+1. Update Mission Tracker POD/PSR to reflect that v3.5 is its first deployment and the UI-track unblocking happened by inlining chrome rather than waiting for the Acrylic HUD library.
+2. Real screenshot replacing the placeholder thumbnail (Artemis II v2 entry in `projects.json` currently shows v1's `artemis-ii.png`; `artemis-ii-v2.png` exists unused).
+3. Decide whether v1 stays preserved as a "live-mission artifact" or eventually retires.
+
+**Long-Term** (3-12 months):
+
+1. Reuse v3.5 chrome + v2 physics as the seed of a generalized **Mission Tracker** framework (Artemis III, Mars Sample Return, etc.).
+2. Post-mission telemetry comparison — once NASA publishes the actual flight reconstruction, validate the three-body model against ground truth.
 
 ---
 
 ## What Works
 
-- Full 10-day trajectory computed via RK4 under Earth + Moon + Sun gravity (10s timestep, ~13k points)
-- Calibrated against NASA: launch exact, perilune -2m 20s, splashdown -10m 10s
-- Scrolling aviation tape gauges (VEL, ALT, LUNAR, Φ) with major/half/minor demarcations
-- Four-trace Flight Dynamics graph (altitude, velocity, potential, Δτ)
-- Mission log with fidelity indicators, hover tooltips, canceled OTC burns, brief event T+ elapsed
-- Collapsible mission time panel with Earth/Orion clocks and Δτ gravitational/velocity decomposition
-- Callout-style canvas labels with leader lines and fan-out overlap avoidance
-- Live mode syncs to real mission elapsed time
-- NASA livestream button
-- Responsive: desktop right-column panels + mobile bottom-anchored telemetry/graphs
-- Single HTML file (~95KB), no frameworks, no backend
+- **v1** (`/artemis-ii/`, deployed 2026-04-06) — RK4 three-body trajectory, scrolling aviation tape gauges, four-trace Flight Dynamics graph, fidelity indicators with hover tooltips, mission log with canceled OTC burns, callout-style canvas labels with fan-out, time-dilation decomposition (gravitational vs. velocity). Single HTML file (~95 KB). Post-splashdown updates landed 2026-04-26 (livestream button → "Mission Complete", info panel update).
+- **v2** (`/artemis-ii-v2/`, deployed 2026-04-26) — high-fidelity 3D, Chebyshev DE440 Moon ephemeris, state-injection burn modeling (5 real burns, no synthetic calibration), 0.05 km RMS / 0.08 km max vs. Horizons. iPad and mobile layout shipped 2026-04-26.
+- **v3.5** (`/artemis-ii-v3-5/`, deployed 2026-05-09, LOCKED) — Cinematic Tier reimagining. Same v2 physics; new outer chrome (`.cin-flank` / `.cin-title` / `.cin-tick` / `.cin-action` vocabulary, gold + cyan palette, Cinzel-wordmark-only typography). Now public-facing as "Artemis II v2" in `projects.json` project36. **Canonical clone source for future cinematic instruments** at `Website/projects/mission-tracker/working/artemis2_v3_5_ui.html`.
+- **Calibration testbed** — Node.js CLI with 2D parameter search, sweep modes, chronological diff table. Reusable.
 
 ## What Doesn't
 
-- Flyby altitude is ~2× NASA's value (12,349 km vs 6,546 km) — the start-angle calibration trades altitude precision for timing accuracy
-- 2D orbital plane — real Artemis II has out-of-plane components
-- Circular Moon orbit (real: 363k–405k km elliptical)
-- Impulsive burns (real TLI is 5m50s, not instantaneous)
-- Post-flyby TCM is synthetic (calibrated for correct splashdown, not replicating a real burn)
-- No J2 Earth oblateness, no solar radiation pressure
-- Callout labels can still go off-screen on some mobile viewports (clamping implementation reverted due to rendering bug)
-- Graph panel too small to be genuinely useful on mobile
-- No data export
+- **v1's flyby altitude** is ~2× NASA's value (12,349 km vs. 6,546 km) — the start-angle calibration traded altitude precision for timing accuracy. v2 fixed this (0.05 km RMS).
+- **v3.5 has SEO `<head>` block** (added in SA audit 2026-05-22) but the Vite-source clone template at `mission-tracker/working/artemis2_v3_5_ui.html` does **not**. Future missions cloned from it will inherit the gap. (SA backlog item.)
+- **Image wiring inconsistency**: `project36` (v3.5 / "Artemis II v2") in `projects.json` points to `artemis-ii.png` (v1's image); `artemis-ii-v2.png` exists unused.
+- **Post-mission ground-truth comparison not yet run.** Once NASA publishes the official flight reconstruction, v1 should be validated against it.
+
+---
+
+## Next Steps
+
+| Priority | Action | Target |
+|----------|--------|--------|
+| 1 | Mission Tracker POD/PSR update (downstream from this POD revision) | 2026-06-02 |
+| 2 | Patch `artemis2_v3_5_ui.html` clone source with SEO `<head>` block | 2026-06-15 |
+| 3 | Swap project36 image wiring to `artemis-ii-v2.png`; real v2 screenshot capture | 2026-07-01 |
 
 ---
 
 ## Open Questions
 
-1. Once post-mission telemetry is published, how closely does the three-body trajectory match the actual flight path?
-2. Can the flyby altitude be improved without sacrificing timing accuracy? (May require 3D integration or elliptical Moon orbit.)
-3. Would adapting the framework to Artemis III (NRHO + landing) be feasible in the same single-file architecture?
-
----
-
-## Project Disposition (2026-04-07)
-
-**Status: v2 complete. No v3 planned. Maintenance mode.**
-
-The simulator's peak value was the lunar flyby (April 6). The return coast is 4 days of gradually decreasing altitude — no dramatic events until splashdown on April 11. The audience that shared and engaged with the app did so during the flyby window. Adding 3D trajectories, JPL ephemeris, or finite-duration burns now would be engineering for engineering's sake — the public audience won't notice the difference.
-
-The v3 candidates (elliptical Moon orbit, 3D rendering, finite burns) are better foundations for a **generalized orbital mechanics engine** aimed at Artemis III, which will involve NRHO, docking, and a lunar landing — a genuinely new project that justifies the effort.
-
-**Remaining tasks before archive:**
-1. Verify splashdown renders correctly on April 11 (quick live check)
-2. After splashdown: swap NASA livestream button for "Mission Complete" badge or link to NASA's mission summary
-3. After splashdown: update info panel "Future Plans" to note mission concluded successfully
-
-**Reusable assets for future projects:**
-- Calibration testbed (Node.js CLI with parameter sweeps and diff tables)
-- Scrolling aviation tape gauge component
-- `drawCallout()` canvas label system with fan-out overlap avoidance
-- `stackPanels()` dynamic responsive layout pattern
-- Fidelity indicator pattern (transparent model confidence reporting)
+1. Does v1 stay alive indefinitely as a "live-mission artifact" — preserved exactly as it was during the mission — or eventually retire to a static archive page?
+2. When NASA publishes post-mission telemetry, does the three-body model match to within v1's own fidelity-indicator claims, or does post-hoc analysis reveal larger errors than the live model admitted?
+3. Is the cinematic chrome vocabulary genuinely reusable for an *unmanned* mission (Mars Sample Return, etc.) or is "Mission" implicitly crewed in the chrome's visual language?
 
 ---
 
@@ -111,11 +82,12 @@ The v3 candidates (elliptical Moon orbit, 3D rendering, finite burns) are better
 
 | Version | Date | Notes |
 |---------|------|-------|
-| 1.0 | 2026-04-03 | Initial creation as "Orion Lab". Two-body physics (Earth + Moon). ~20-hour perilune timing error. |
-| 2.0 | 2026-04-05 | Renamed to "Artemis II". Added Sun gravity, post-flyby TCM, NASA calibration (perilune -2m, splashdown -10m). Peirastes instrument aesthetic. Responsive layout. |
-| 2.1 | 2026-04-06 | Scrolling aviation tape gauges, LUNAR distance gauge, fidelity indicators, hover tooltips, callout labels, NASA livestream, info panel rewrite, crew tribute. Shipped on Flight Day 6 (lunar flyby day). ~100 commits. |
-| 2.1.1 | 2026-04-07 | Documentation (POD v2, PSR, social posts). Project disposition: maintenance mode. |
+| 1.0 | 2026-04-03 | Initial creation as "Orion Lab". Two-body physics. |
+| 2.0 | 2026-04-05 | Renamed to Artemis II. Sun gravity, post-flyby TCM, NASA calibration. Shipped Flight Day 6. |
+| 2.1 | 2026-04-06 | Tape gauges, fidelity indicators, callout labels, NASA livestream, mobile responsive. |
+| 3.0 | 2026-04-16 | Mission concluded 2026-04-11. v2 physics track complete (0.05 km RMS vs Horizons). v2 UI track paused pending Acrylic HUD library. |
+| 4.0 | 2026-05-26 | **v2 deployed at `/artemis-ii-v2/` on 2026-04-26.** **v3.5 LOCKED 2026-05-09** at `/artemis-ii-v3-5/` (public-facing as "Artemis II v2" in `projects.json` project36). v3.5 unblocked the UI track by inlining its own Cinematic chrome; the Acrylic HUD library is no longer a gating dependency. v3.5 is now the canonical clone source for future cinematic mission instruments. Status remains Complete; the project has stopped accumulating fundamental version changes. |
 
 ---
 
-*This document provides orientation. For challenges and lessons learned, see the Project Status Report (PSR).*
+*This document provides orientation. For detailed analysis, see the Project Status Report (PSR).*

@@ -1,202 +1,30 @@
-# 🔧 Styling Issues - Fix Guide
+# Styling Architecture
 
-## Problem: App looks unstyled (no colors, basic HTML)
+ETM uses a hybrid approach: Tailwind CSS utilities for layout + custom CSS component classes for the Peirastes instrument aesthetic.
 
-This means **Tailwind CSS isn't loading**. Here's how to fix it:
+## CSS Structure
 
-### ✅ Quick Fix (Most Common)
+**`src/index.css`** contains:
+1. Google Fonts import (Space Grotesk + JetBrains Mono)
+2. `:root` design tokens from Peirastes Style Guide v2.1
+3. Component classes (`etm-chassis`, `etm-monitor`, `etm-pushbutton`, etc.)
+4. CRT monitor construction (hood, bezel, well, glass, scanlines, vignette)
+5. SVG noise textures for metallic surfaces
+6. Animations (LED pulse, modal transitions, reveal sequence)
+7. Dark scrollbar styling
 
-1. **Stop the app** (Ctrl+C in terminal)
+**`tailwind.config.js`** — default config, no custom extensions. Colors use arbitrary values (`bg-[#1e2428]`) that match the `:root` tokens.
 
-2. **Install Tailwind CSS:**
-   ```bash
-   npm install -D tailwindcss postcss autoprefixer
-   ```
+## If Styles Look Wrong
 
-3. **Verify these files exist:**
-   - `tailwind.config.js` ✓
-   - `postcss.config.js` ✓
-   - `src/index.css` should start with:
-     ```css
-     @tailwind base;
-     @tailwind components;
-     @tailwind utilities;
-     ```
+1. Hard refresh (Ctrl+Shift+R)
+2. Check that `dist/` was rebuilt: `npm run build`
+3. Verify the Express server is serving the latest dist: restart with `npm run server`
+4. Check browser DevTools Network tab for cached CSS files
 
-4. **Restart the app:**
-   ```bash
-   npm run dev
-   ```
+## Font Dependencies
 
-5. **Hard refresh your browser:**
-   - Windows/Linux: `Ctrl + Shift + R`
-   - Mac: `Cmd + Shift + R`
-
----
-
-## Problem: Still looks wrong after fix
-
-### Solution 1: Clear Build Cache
-```bash
-# Stop the app (Ctrl+C)
-# Delete cache
-rm -rf node_modules/.vite
-# Restart
-npm run dev
-```
-
-### Solution 2: Reinstall Everything
-```bash
-# Stop the app (Ctrl+C)
-# Delete node_modules
-rm -rf node_modules
-# Reinstall
-npm install
-# Restart
-npm run dev
-```
-
-### Solution 3: Check Browser Console
-1. Open browser DevTools (F12)
-2. Check Console tab for errors
-3. Look for:
-   - ❌ CSS loading errors
-   - ❌ Module not found errors
-   - ❌ Network errors
-
----
-
-## Expected Appearance
-
-When working correctly, you should see:
-
-✅ **Gradient background** (blue/indigo)
-✅ **Color-coded quadrants:**
-   - Red/orange: "Do First"
-   - Blue: "Schedule"  
-   - Yellow/amber: "Delegate"
-   - Gray: "Eliminate"
-✅ **Rounded cards** with shadows
-✅ **Colored badges** for priorities
-✅ **Gradient buttons** (purple AI Input, blue Add Task)
-
----
-
-## Verification Checklist
-
-Run these commands to verify setup:
-
-```bash
-# 1. Check if Tailwind is installed
-npm list tailwindcss
-# Should show: tailwindcss@3.3.0 (or similar)
-
-# 2. Check if config files exist
-ls -la | grep -E "(tailwind|postcss)"
-# Should show: tailwind.config.js, postcss.config.js
-
-# 3. Check if index.css has Tailwind directives
-head -n 3 src/index.css
-# Should show: @tailwind base; @tailwind components; @tailwind utilities;
-```
-
----
-
-## Fresh Start (Nuclear Option)
-
-If nothing works, start completely fresh:
-
-```bash
-# 1. Extract the ZIP to a NEW folder
-unzip eisenhower-task-manager.zip -d ~/Desktop/task-manager-fresh
-
-# 2. Navigate to new folder
-cd ~/Desktop/task-manager-fresh/eisenhower-task-manager
-
-# 3. Install dependencies
-npm install
-
-# 4. Run
-npm run dev
-
-# 5. Hard refresh browser
-```
-
----
-
-## Still Having Issues?
-
-### Check Your Setup:
-
-**Node.js version:**
-```bash
-node --version
-# Should be v16 or higher
-```
-
-**npm version:**
-```bash
-npm --version
-# Should be 8 or higher
-```
-
-**Port availability:**
-```bash
-# Make sure port 5173 isn't in use
-# Windows: netstat -ano | findstr :5173
-# Mac/Linux: lsof -i :5173
-```
-
----
-
-## Alternative: Use the Artifact Version
-
-If local setup continues to have issues:
-
-1. Go to Claude.ai
-2. Ask Claude: "Run the Eisenhower Task Manager artifact"
-3. Use it directly in the browser (no installation needed!)
-4. Export your data when done
-
-The artifact version works perfectly because Tailwind is pre-configured in that environment.
-
----
-
-## Screenshots for Reference
-
-**CORRECT** appearance:
-- Colorful gradient backgrounds
-- Cards with rounded corners
-- Visible shadows and borders
-- Color-coded priority badges
-
-**WRONG** appearance (Tailwind not loading):
-- Plain white background
-- No rounded corners
-- Black text on white
-- Basic browser default styles
-- Looks like unstyled HTML
-
----
-
-## Quick Test
-
-Paste this in browser console while app is running:
-
-```javascript
-// Check if Tailwind is loaded
-getComputedStyle(document.querySelector('#root')).getPropertyValue('font-family')
-```
-
-If it shows system fonts, Tailwind is working. If it shows 'Times New Roman' or default serif, Tailwind isn't loaded.
-
----
-
-## Need More Help?
-
-1. Check the browser console (F12) for specific errors
-2. Look at the Network tab - is index.css loading?
-3. Verify all files from the ZIP were extracted
-4. Try a different browser (Chrome, Firefox, Safari)
-
-**Most common fix:** Just reinstall dependencies and hard refresh! 🔄
+The app loads fonts via Google Fonts CDN (in `index.css`). If fonts don't load:
+- Space Grotesk falls back to `system-ui, sans-serif`
+- JetBrains Mono falls back to `Consolas, monospace`
+- Courier New (CRT screens) is a system font, always available

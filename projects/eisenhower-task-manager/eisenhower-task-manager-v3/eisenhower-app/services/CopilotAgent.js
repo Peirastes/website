@@ -35,21 +35,27 @@ class CopilotAgent {
     return `You are Cole's AI Copilot — a multi-role assistant that can operate as any of his agents. You have direct access to his Eisenhower Task Manager, Dropbox filesystem, and can execute shell commands on his PC.
 
 ## Agent Hats
-Cole has a team of AI agent personas. When he says "put on your XX hat" or asks you to work as a specific agent, use the read_agent_guide tool to load that agent's guide and adopt its persona, tone, and workflow.
+Cole's agent team was reframed (2026-06-15) as the roles he himself embodies. When he says
+"put on your [Role] hat" (by full name or alias) or asks you to work as a specific agent, use the
+read_agent_guide tool with the alias code to load that role's guide and adopt its persona, tone, and workflow.
 
-| Hat | Role | Guide Path |
-|-----|------|------------|
-| PM | Project Manager | Agents/PM Agent/PM_AGENT_GUIDE.md |
-| CE | Computer Engineer | Agents/CE Agent/CE_AGENT_GUIDE.md |
-| CD | Creative Director | Agents/CD Agent/CD_AGENT_GUIDE.md |
-| RA | Research Assistant | Agents/RA Agent/RA_AGENT_GUIDE.md |
-| SA | Site Administrator | Agents/SA Agent/SA_AGENT_GUIDE.md |
-| TA | Teaching Assistant | Agents/TA Agent/TA_AGENT_GUIDE.md |
+| Alias | Role | Guide Path |
+|-------|------|------------|
+| ART  | Artist | Agents/Artist/ARTIST_GUIDE.md |
+| ENG  | Engineer (lead; all technical building, software included) | Agents/Engineer/ENGINEER_GUIDE.md |
+| PROF | Professor | Agents/Professor/PROFESSOR_GUIDE.md |
+| SCI  | Scientist | Agents/Scientist/SCIENTIST_GUIDE.md |
+| WEB  | Web Admin | Agents/Web Admin/WEB_ADMIN_GUIDE.md |
+| PM   | Project Manager | Agents/Project Manager/PROJECT_MANAGER_GUIDE.md |
+| PA   | Personal Assistant | Agents/Personal Assistant/PERSONAL_ASSISTANT_GUIDE.md |
 
 When no specific hat is requested, default to the PM persona.
 
 ## Default Personality (PM)
 Direct, witty, a little sassy — like Cortana with a project management degree. Concise (you're on a mobile screen). Push back on overcommitment. Celebrate wins briefly. No emojis unless Cole uses them first.
+
+## PA Autonomy (when wearing the PA hat)
+Reversibility-gated: act on internal/reversible things; propose-first on outward-facing or hard-to-reverse ones (sending email, booking, anything others see).
 
 ## Task Schema (Eisenhower Task Manager)
 - **task**, **category** (Career/Personal), **subcategory**
@@ -68,7 +74,7 @@ You can read, write, list, search files, and run shell commands within Cole's Dr
 
 ## Context
 - Today: ${today}
-- Cole is a university instructor (Dynamics, PSEII Physics, Intro to Engineering, etc.)
+- Cole is a university instructor (Physics/PSE-I & II, Dynamics, Intro to Engineering, Electrical Science Lab)
 - He runs peirastes.com and several Electron apps
 - His time is the primary constraint — guard it fiercely
 
@@ -252,7 +258,7 @@ You can read, write, list, search files, and run shell commands within Cole's Dr
         input_schema: {
           type: 'object',
           properties: {
-            agent: { type: 'string', enum: ['PM', 'CE', 'CD', 'RA', 'SA', 'TA'] }
+            agent: { type: 'string', enum: ['ART', 'ENG', 'PROF', 'SCI', 'WEB', 'PM', 'PA'] }
           },
           required: ['agent']
         }
@@ -501,12 +507,13 @@ You can read, write, list, search files, and run shell commands within Cole's Dr
       // ===== AGENT HAT =====
       case 'read_agent_guide': {
         const agentMap = {
-          PM: 'PM Agent/PM_AGENT_GUIDE.md',
-          CE: 'CE Agent/CE_AGENT_GUIDE.md',
-          CD: 'CD Agent/CD_AGENT_GUIDE.md',
-          RA: 'RA Agent/RA_AGENT_GUIDE.md',
-          SA: 'SA Agent/SA_AGENT_GUIDE.md',
-          TA: 'TA Agent/TA_AGENT_GUIDE.md'
+          ART:  'Artist/ARTIST_GUIDE.md',
+          ENG:  'Engineer/ENGINEER_GUIDE.md',
+          PROF: 'Professor/PROFESSOR_GUIDE.md',
+          SCI:  'Scientist/SCIENTIST_GUIDE.md',
+          WEB:  'Web Admin/WEB_ADMIN_GUIDE.md',
+          PM:   'Project Manager/PROJECT_MANAGER_GUIDE.md',
+          PA:   'Personal Assistant/PERSONAL_ASSISTANT_GUIDE.md'
         };
         const guidePath = agentMap[input.agent];
         if (!guidePath) throw new Error(`Unknown agent: ${input.agent}`);
@@ -600,8 +607,15 @@ You can read, write, list, search files, and run shell commands within Cole's Dr
     }
   }
 
-  async chat(userMessage) {
+  async chat(userMessage, opts = {}) {
     this.history.push({ role: 'user', content: userMessage });
+
+    const MODEL_IDS = {
+      sonnet: 'claude-sonnet-4-6',
+      opus:   'claude-opus-4-8',
+      haiku:  'claude-haiku-4-5-20251001'
+    };
+    const model = MODEL_IDS[opts.model] || MODEL_IDS.sonnet;
 
     let messages = [...this.history];
     let response;
@@ -609,7 +623,7 @@ You can read, write, list, search files, and run shell commands within Cole's Dr
 
     while (true) {
       response = await this.client.messages.create({
-        model: 'claude-sonnet-4-6',
+        model,
         max_tokens: 4096,
         system: this.systemPrompt,
         tools: this.tools,

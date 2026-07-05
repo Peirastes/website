@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { HORIZON_BREAKPOINTS } from './projection';
+import { nextHorizon } from './projection';
 
 /**
  * Breakpoint-snap wheel zoom for the Horizon scene. Each scroll click
@@ -18,16 +18,7 @@ export const useHorizonZoom = (svgRef, maxDays, setMaxDays) => {
     if (!el || !setMaxDays) return;
     const handler = (e) => {
       e.preventDefault();
-      let next;
-      if (e.deltaY > 0) {
-        // Zoom OUT — smallest breakpoint strictly greater than current.
-        next = HORIZON_BREAKPOINTS.find(bp => bp > maxDays + 1e-9)
-            ?? HORIZON_BREAKPOINTS[HORIZON_BREAKPOINTS.length - 1];
-      } else {
-        // Zoom IN — largest breakpoint strictly less than current.
-        next = [...HORIZON_BREAKPOINTS].reverse().find(bp => bp < maxDays - 1e-9)
-            ?? HORIZON_BREAKPOINTS[0];
-      }
+      const next = nextHorizon(maxDays, e.deltaY > 0 ? 'out' : 'in');
       if (Math.abs(next - maxDays) < 1e-9) return;
       setMaxDays(next);
     };

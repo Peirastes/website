@@ -15,7 +15,7 @@ import { splitDueDate } from '../lib/dateFormat';
  * scheduled event — those are filtered out of the Matrix / List /
  * Gantt / Analytics views and shown only on the Bridge + Calendar.
  */
-export const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) => {
+export const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings, projects = [], tasks = [] }) => {
   const [formData, setFormData] = useState(() => {
     if (task) {
       /* Prefer explicit dueTime; fall back to splitting a legacy
@@ -58,6 +58,15 @@ export const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) =
   };
 
   const subcategoryOptions = settings.subcategories[formData.domain] || [];
+
+  /* Project dropdown: surface tracked projects (quests being followed, or any
+     with tasks) at the top, the rest of the portfolio below. (The active project
+     store mirrors all of peirastes.com, so most entries are task-less containers.) */
+  const projectIdsWithTasks = new Set(tasks.filter(t => !t.deletedAt && t.projectId).map(t => t.projectId));
+  const isTracked = p => p.tracked || projectIdsWithTasks.has(p.id);
+  const assignable = projects.filter(p => p.status !== 'archived').sort((a, b) => a.name.localeCompare(b.name));
+  const trackedProjects = assignable.filter(isTracked);
+  const otherProjects = assignable.filter(p => !isTracked(p));
 
   return (
     <div className="cin-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}>
@@ -145,6 +154,28 @@ export const TaskForm = ({ task, defaultDueDate, onSave, onCancel, settings }) =
                   {subcategoryOptions.map(sub => <option key={sub} value={sub}>{sub}</option>)}
                 </select>
               </div>
+            </div>
+
+            {/* Project */}
+            <div className="cin-field">
+              <label className="cin-field__label">Project</label>
+              <select
+                className="cin-select"
+                value={formData.projectId || ''}
+                onChange={(e) => setFormData({ ...formData, projectId: e.target.value || null })}
+              >
+                <option value="">— None —</option>
+                {trackedProjects.length > 0 && (
+                  <optgroup label="Tracked Projects">
+                    {trackedProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                )}
+                {otherProjects.length > 0 && (
+                  <optgroup label="All projects">
+                    {otherProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                )}
+              </select>
             </div>
 
             {/* Assigned / Due / Rank */}
