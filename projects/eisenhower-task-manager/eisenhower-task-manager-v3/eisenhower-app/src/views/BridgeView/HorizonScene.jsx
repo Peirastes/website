@@ -100,14 +100,18 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      and slides them across the visible cap. */
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
-  const SCALE = isPortrait ? 1040 : 920;   // globe fills the free-space frame; sides bleed off-screen
+  /* Landscape scale sized so the globe's full width fits inside the viewBox
+     (diameter ≈ 0.577·SCALE·2 ≈ 958 < 1000) with a small side margin, instead
+     of bleeding off the sides — on tablet aspect ratios the old oversize
+     clipped the sphere's left/right. Portrait still fills tall + bleeds sides. */
+  const SCALE = isPortrait ? 1040 : 830;
   /* Camera state + drag handlers come from useCameraDrag. Defaults
      (cameraAlt = R, panX = 0, panY = 240) reproduce the Picture6
      framing — globe inscribed in chart with ~38 px side buffer + ship
      anchored bottom-centre. */
   const { cameraAlt, panX, panY, handlers: dragHandlers } = useCameraDrag({
     svgRef,
-    init: { cameraAlt: R, panX: 0, panY: isPortrait ? 330 : 240 },
+    init: { cameraAlt: R, panX: 0, panY: isPortrait ? 330 : 190 },
     bounds: { ALT_MIN, ALT_MAX },
     viewBox: { W, H },
     maxDays,

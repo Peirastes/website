@@ -3227,7 +3227,7 @@ body.app-locked .cin-action-bar {
 }
 .bridge-console {
   pointer-events: auto;
-  width: 178px; min-height: 0;
+  width: 208px; min-height: 0;
   display: flex; flex-direction: column; align-items: stretch;
   padding: 9px 11px 11px; border-radius: 11px;
   background: linear-gradient(180deg, rgba(16, 22, 32, 0.60) 0%, rgba(10, 15, 24, 0.50) 55%, rgba(8, 12, 20, 0.58) 100%);
@@ -3281,7 +3281,7 @@ body.app-locked .cin-action-bar {
   max-height: calc(100% - 28px);
   pointer-events: none;
 }
-.bridge-rail--tasks .bridge-hud { position: static; max-height: none; width: 224px; }
+.bridge-rail--tasks .bridge-hud { position: static; max-height: none; width: 258px; }
 /* Sectors takes its natural height; Projects flexes and scrolls below it. */
 .bridge-rail--tasks .bridge-hud--sectors  { flex: 0 0 auto; }
 .bridge-rail--tasks .bridge-hud--projects { flex: 1 1 auto; min-height: 0; }
@@ -3301,6 +3301,12 @@ body.app-locked .cin-action-bar {
    clearance is dead space here — reclaim it at every size so the globe (and
    the floating frames' available height) reaches the bottom edge. */
 .etm-shell--bridge { padding-bottom: 0.6rem !important; }
+/* Height must track the VISIBLE viewport, not 100vh. On iPad/iOS Safari 100vh
+   includes the area behind the browser toolbars, so the bottom of the stage
+   (VIEWING marker + near-field tasks) gets pushed off-screen. Dynamic-viewport
+   units fix it; on browsers without dvh the invalid !important value is dropped
+   and the cascade falls back to the h-screen (100vh) utility. */
+.etm-shell--bridge { height: 100dvh !important; }
 
 /* ─── Short viewports (LANDSCAPE PHONES + short desktop windows): a landscape
    phone is wide-but-short, so the width breakpoints above never fire. Key on
