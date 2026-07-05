@@ -295,6 +295,21 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
   /* Ship at (lat=0, lon=0). */
   const shipXY = projectLatLon(0, 0);
 
+  /* VIEWING's signed offset from real-now — mirrors the HORIZON pill's "+3mo"
+     tail, but can be negative (viewing behind now) and is blank within ~30 min
+     of now (unpanned VIEWING == NOW, so no indicator is shown). Same tier
+     thresholds as the HORIZON span(). */
+  const viewingRel = (() => {
+    const a = Math.abs(viewAnchor);
+    if (a < 1 / 48) return null;
+    let s;
+    if (a < 1)       s = `${Math.round(a * 24)}h`;
+    else if (a < 14) s = `${Math.round(a)}d`;
+    else if (a < 60) s = `${Math.round(a / 7)}w`;
+    else             s = `${Math.round(a / 30)}mo`;
+    return `${viewAnchor < 0 ? '-' : '+'}${s}`;
+  })();
+
   return (
     <svg
       ref={svgRef}
@@ -625,6 +640,12 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">VIEWING</text>
         <text x={0} y={42} textAnchor="middle" className="bridge-ship-date">
           {formatDateTime(Date.now() + viewAnchor * 86400000)}
+          {viewingRel && (
+            <>
+              <tspan className="bridge-ship-sep"> | </tspan>
+              <tspan className="bridge-ship-rel">{viewingRel}</tspan>
+            </>
+          )}
         </text>
       </g>
     </svg>
