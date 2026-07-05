@@ -55,6 +55,10 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      still drives touch pip-sizing regardless of framing. */
   const isMobile = (typeof window !== 'undefined'
     && window.matchMedia('(max-width: 767px)').matches);
+  /* Short viewports (landscape phones) put the backup toast at bottom-centre —
+     lift the NOW clock higher off the horizon there so it clears it. */
+  const isShort = (typeof window !== 'undefined'
+    && window.matchMedia('(max-height: 520px)').matches);
   const isPortrait = boxAspect < 1.1;
   const W = 1000, H = isPortrait ? 1150 : 600;
   const uiScale = isMobile ? 1.7 : 1;
@@ -469,7 +473,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         for (const p of pts) { if (Math.abs(p.x - CX) < Math.abs(cPt.x - CX)) cPt = p; }
         const nowClock = new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
         return (
-          <text x={cPt.x} y={cPt.y - 16} textAnchor="middle"
+          <text x={cPt.x} y={cPt.y - (isShort ? 58 : 16)} textAnchor="middle"
                 className="bridge-range-label bridge-range-label--today bridge-now-tag">NOW · {nowClock}</text>
         );
       })()}
