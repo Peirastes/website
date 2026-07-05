@@ -18,9 +18,16 @@ export const BridgeClock = () => {
   const time = now.toLocaleTimeString(undefined, {
     hour: 'numeric', minute: '2-digit', second: '2-digit',
   });
-  const date = now.toLocaleDateString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric',
-  });
+  // Fully-spelled date with an ordinal day — "Sunday, July 5th, 2026".
+  // (toLocaleDateString has no ordinal option, so build the suffix by hand.)
+  const weekday = now.toLocaleDateString(undefined, { weekday: 'long' });
+  const month = now.toLocaleDateString(undefined, { month: 'long' });
+  const d = now.getDate();
+  const suffix = (n) => {
+    const v = n % 100;
+    return (v >= 11 && v <= 13) ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+  };
+  const date = `${weekday}, ${month} ${d}${suffix(d)}, ${now.getFullYear()}`;
 
   return (
     <div className="bridge-clock" aria-label="Current date and time">
