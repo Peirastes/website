@@ -54,20 +54,20 @@ export const BridgeView = ({
      Only applied in Horizon mode. */
   const [viewAnchor, setViewAnchor] = useState(0);
 
-  /* Live day tick. `today` below is derived once per render, so without a
-     nudge the meridian + all day-offset math freeze at mount time — leave
-     the Bridge open across midnight and "NOW" never rolls. This polls every
-     60s but only forces a re-render when the calendar day actually changes
-     (the identity return bails React out the other 1439 minutes), so the
-     overhead is one re-render per midnight, not per minute. */
-  const [, setDayKey] = useState(() => new Date().toDateString());
+  /* Live minute tick. `today` and the NOW clock are derived per render, so
+     without a nudge they freeze at mount time. Key on the current minute so the
+     NOW clock ticks live (and the day-offset math still rolls across midnight).
+     Poll 4×/min but only re-render when the minute actually changes (the
+     identity return bails React out otherwise), so it's one re-render per
+     minute, aligned to within ~15s of the boundary. */
+  const [, setMinuteKey] = useState(() => Math.floor(Date.now() / 60000));
   useEffect(() => {
     const id = setInterval(() => {
-      setDayKey(prev => {
-        const now = new Date().toDateString();
-        return prev === now ? prev : now;
+      setMinuteKey(prev => {
+        const m = Math.floor(Date.now() / 60000);
+        return prev === m ? prev : m;
       });
-    }, 60000);
+    }, 15000);
     return () => clearInterval(id);
   }, []);
 
