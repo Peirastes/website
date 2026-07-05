@@ -740,7 +740,7 @@ const EisenhowerTaskManager = () => {
     // The keyframes definitions in the inline <style> below are now inert
     // (kept for one cycle in case we want to restore them); they'll be
     // cleaned up in a future polish pass.
-    <div className="h-screen flex flex-col text-[#c8d0e0] overflow-hidden" style={{
+    <div className={`etm-shell ${view === 'bridge' ? 'etm-shell--bridge' : ''} h-screen flex flex-col text-[#c8d0e0] overflow-hidden`} style={{
       fontFamily: "'Inter', system-ui, sans-serif",
       // PHASE 1 (Cinematic foundation): was a solid radial-gradient bg
       // (#1a2024 → #0a0e12 → #040608). Removed so the cinematic banner
@@ -891,7 +891,7 @@ const EisenhowerTaskManager = () => {
           Floats bottom-right above the action bar. Amber left edge
           signals the warning state without shouting. */}
       {showBackupReminder && (
-        <div style={{
+        <div className="etm-backup-toast" style={{
           position: 'fixed',
           bottom: 'calc(1.6rem + 50px)',
           right: '1.6rem',

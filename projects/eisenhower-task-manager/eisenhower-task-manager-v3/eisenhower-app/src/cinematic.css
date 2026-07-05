@@ -3247,6 +3247,50 @@ body.app-locked .cin-action-bar {
   .bridge-rail--right { top: 12px; right: 12px; }
   .bridge-rail--right .bridge-hud { width: 158px; }
 }
+
+/* The Bridge hides the bottom action bar, so the shell's reserved action-bar
+   clearance is dead space here — reclaim it at every size so the globe (and
+   the floating frames' available height) reaches the bottom edge. */
+.etm-shell--bridge { padding-bottom: 0.6rem !important; }
+
+/* ─── Short viewports (LANDSCAPE PHONES + short desktop windows): a landscape
+   phone is wide-but-short, so the width breakpoints above never fire. Key on
+   HEIGHT: reclaim the masthead's vertical band and pack the floating frames so
+   nav stays reachable without the frame outgrowing a ~380px-tall stage. ─── */
+@media (max-height: 520px) {
+  /* Reclaim the top padding that clears the (now compressed) masthead. */
+  .etm-shell { padding-top: 1.7rem !important; }
+  /* Masthead → one tight line pinned to the very top. */
+  .cin-title { top: 3px; }
+  .cin-title__name { font-size: 12px; letter-spacing: 0.16em; margin-bottom: 0; }
+  .cin-title__sub, .cin-title__crew { display: none; }
+
+  /* Frames hug the corners tighter; cap to the stage and scroll if needed. */
+  .bridge-rail--left  { top: 8px; left: 8px; max-height: calc(100% - 16px); }
+  .bridge-rail--right { top: 8px; right: 8px; max-height: calc(100% - 16px); }
+  .bridge-console { width: 154px; }
+  .bridge-rail--right .bridge-hud { width: 176px; }
+
+  /* Command: pack it so Views + Actions stay on-screen without scrolling. */
+  .bridge-console__body { gap: 6px; }
+  .bridge-console .cin-filter__label { display: none; }   /* selects are self-evident */
+  .bridge-console__sub { display: none; }                 /* separators alone divide the sections */
+  /* Views nav → compact icon grid (icons only, ~4 per row). */
+  .bridge-console .cin-view-tabs { flex-flow: row wrap; justify-content: center; gap: 4px; }
+  .bridge-console .cin-view-tab { width: auto; flex: 0 0 auto; padding: 5px 6px; }
+  .bridge-console .cin-view-tab > span:not(.cin-view-tab__glyph) { display: none !important; }
+  /* Actions row: Add Task + utilities compact so the whole frame fits. */
+  .bridge-console .cin-add-task { padding: 5px 8px; }
+  .bridge-console .cin-utility-btn { height: 24px; }
+
+  /* Backup toast: off the right rail — a slim centred pill along the bottom. */
+  .etm-backup-toast {
+    bottom: 6px !important; right: auto !important;
+    left: 50% !important; transform: translateX(-50%);
+    max-width: min(300px, calc(100vw - 24px)) !important;
+  }
+}
+
 .bridge-scene--horizon {
   cursor: grab;
   user-select: none;
