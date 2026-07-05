@@ -111,7 +111,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      anchored bottom-centre. */
   const { cameraAlt, panX, panY, handlers: dragHandlers } = useCameraDrag({
     svgRef,
-    init: { cameraAlt: R, panX: 0, panY: isPortrait ? 330 : 190 },
+    init: { cameraAlt: R, panX: 0, panY: isPortrait ? 330 : 225 },
     bounds: { ALT_MIN, ALT_MAX },
     viewBox: { W, H },
     maxDays,
