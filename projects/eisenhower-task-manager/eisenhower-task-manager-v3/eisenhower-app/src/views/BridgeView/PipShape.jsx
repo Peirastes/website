@@ -16,12 +16,15 @@ export const isEventTask = (t) =>
   t.isEvent === true || t.subcategory === 'Schedule' || String(t.id).startsWith('evt-');
 
 /* Event length in minutes, read from the time-estimate fields (events store
-   their block length there). Defaults to 60 when unset. */
+   their block length there). Floored at a 15-minute MINIMUM bar length, so no
+   event ever renders shorter than a quarter-hour block (this also covers the
+   duration-less case, which lands on the 15-minute floor). */
+export const EVENT_MIN_MINUTES = 15;
 export const durationMin = (t) => {
   const v = Number(t.timeEstimateValue) || 0;
   const u = t.timeEstimateUnit || 'minutes';
   const m = u === 'hours' ? v * 60 : u === 'days' ? v * 480 : u === 'weeks' ? v * 2400 : v;
-  return m > 0 ? m : 60;
+  return Math.max(m, EVENT_MIN_MINUTES);
 };
 
 /* A calendar EVENT band: a stroked polyline that follows the projected TIME
