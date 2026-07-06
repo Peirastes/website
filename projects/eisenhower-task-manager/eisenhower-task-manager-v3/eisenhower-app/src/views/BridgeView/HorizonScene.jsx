@@ -100,11 +100,13 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      and slides them across the visible cap. */
   const ALT_MIN = R * 0.15;                                  // ~ surface skim
   const ALT_MAX = R * 20;                                    // ~ deep space
-  /* Landscape scale sized so the globe's full width fits inside the viewBox
-     (diameter ≈ 0.577·SCALE·2 ≈ 958 < 1000) with a small side margin, instead
-     of bleeding off the sides — on tablet aspect ratios the old oversize
-     clipped the sphere's left/right. Portrait still fills tall + bleeds sides. */
-  const SCALE = isPortrait ? 1040 : 830;
+  /* Landscape scale sized so not just the globe but its EDGE date/time labels
+     (which sit just outside the limb) fit on screen at tablet widths — the
+     limb alone fit at 830 but the labels beyond it clipped. Shrinking pulls
+     everything in toward the origin (the ship always projects to the fixed
+     projection centre regardless of SCALE, so the origin stays put). Portrait
+     still fills tall + bleeds sides. */
+  const SCALE = isPortrait ? 1040 : 770;
   /* Camera state + drag handlers come from useCameraDrag. Defaults
      (cameraAlt = R, panX = 0, panY = 240) reproduce the Picture6
      framing — globe inscribed in chart with ~38 px side buffer + ship
@@ -499,6 +501,42 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
                   className="bridge-ship-label">NOW</text>
             <text x={cPt.x} y={readY} textAnchor="middle"
                   className="bridge-ship-date">{formatDateTime(Date.now())}</text>
+          </g>
+        );
+      })()}
+
+      {/* HORIZON readout — the sphere's FUTURE EDGE (viewAnchor + maxDays ahead
+          of now). Floats above the top limb (the horizon curve) by the SAME
+          offset NOW floats above its meridian, and reuses the ship label/date
+          styles so it matches NOW / VIEWING in size. A ⟲ appears when panned to
+          recenter on now. */}
+      {(() => {
+        const apexY = CY - LIMB_R_PX;              // top of the limb circle
+        const readY = apexY - (isShort ? 54 : 16); // same float as NOW
+        const horizonAheadDays = viewAnchor + maxDays;
+        const hzAbs = formatDateTime(Date.now() + horizonAheadDays * 86400000);
+        const hspan = (days) => {
+          const a = Math.abs(days);
+          if (a < 1)  return `${Math.max(1, Math.round(a * 24))}h`;
+          if (a < 14) return `${Math.round(a)}d`;
+          if (a < 60) return `${Math.round(a / 7)}w`;
+          return `${Math.round(a / 30)}mo`;
+        };
+        const isPanned = Math.abs(viewAnchor) >= 0.021;
+        return (
+          <g>
+            <text x={CX} y={readY - 12} textAnchor="middle"
+                  className="bridge-ship-label">HORIZON</text>
+            <text x={CX} y={readY} textAnchor="middle" className="bridge-ship-date">
+              {hzAbs}
+              <tspan className="bridge-ship-sep"> | </tspan>
+              <tspan className="bridge-ship-rel">{`+${hspan(horizonAheadDays)}`}</tspan>
+              {isPanned && setViewAnchor && (
+                <tspan className="bridge-horizon-recenter" dx="7"
+                       onPointerDown={(e) => e.stopPropagation()}
+                       onClick={(e) => { e.stopPropagation(); setViewAnchor(0); }}>⟲</tspan>
+              )}
+            </text>
           </g>
         );
       })()}

@@ -4,7 +4,6 @@ import { AppDock } from '../../components/AppDock';
 import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
 import { isEventTask } from './PipShape';
-import { formatDateTime } from '../../lib/dateFormat';
 
 /**
  * ═════════════════════════════════════════════════════════════════
@@ -243,21 +242,9 @@ export const BridgeView = ({
        • VIEWING (measured time) — date/time at the centre measurement line
                                    (now + viewAnchor); shown at the ship marker.
        • HORIZON (future time)   — date at the sphere's FUTURE EDGE and how far
-                                   ahead of now it is. That's this top pill: the
-                                   furthest the globe currently sees.
-     The horizon edge is maxDays beyond the viewing centre, i.e. viewAnchor +
-     maxDays ahead of now. ── */
-  const span = (days) => {
-    const a = Math.abs(days);
-    if (a < 1)  return `${Math.max(1, Math.round(a * 24))}h`;
-    if (a < 14) return `${Math.round(a)}d`;
-    if (a < 60) return `${Math.round(a / 7)}w`;
-    return `${Math.round(a / 30)}mo`;
-  };
-  const horizonAheadDays = viewAnchor + maxDays;
-  const horizonAbs = formatDateTime(Date.now() + horizonAheadDays * 86400000);
-  const horizonAhead = `+${span(horizonAheadDays)}`;
-  const isPanned = Math.abs(viewAnchor) >= 0.021;
+                                   ahead of now it is; rendered inside
+                                   HorizonScene floating above the top limb,
+                                   alongside NOW / VIEWING. ── */
 
   return (
     <div className="cin-view-panel cin-view-panel--bridge">
@@ -331,26 +318,6 @@ export const BridgeView = ({
           </div>
         </div>
         </div>
-        {/* HORIZON readout — top-centre pill: the future EDGE of the globe. Its
-            date (left) + how far ahead of now it reaches (right). Distinct from
-            the VIEWING time at the centre and the NOW clock on the zero axis.
-            A ⟲ appears when panned to recenter the view on now. */}
-        {mode === 'horizon' && (
-          <div className="bridge-lookpoint">
-            <span className="bridge-lookpoint__tag">Horizon</span>
-            <div className="bridge-lookpoint__read">
-              <span className="bridge-lookpoint__abs">{horizonAbs}</span>
-              <span className="bridge-lookpoint__tick" aria-hidden="true" />
-              <span className="bridge-lookpoint__rel">{horizonAhead}</span>
-              {isPanned && (
-                <button type="button" className="bridge-lookpoint__recenter-btn"
-                        onClick={() => setViewAnchor(0)}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        title="Recenter on now">⟲</button>
-              )}
-            </div>
-          </div>
-        )}
         {/* Corner HUD — expandable QUADRANT SECTORS (top-left) + ACTIVE PROJECTS
             with their tasks (top-right). Fills the voids; horizon only. */}
         {mode === 'horizon' && (

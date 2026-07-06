@@ -3000,57 +3000,9 @@ body.app-locked .cin-action-bar {
   flex: 1;
   min-height: 0;
 }
-/* Recenter floats over the globe (top-right) rather than living in the header
-   toolbar, so its conditional show/hide never reflows the layout and jostles
-   the globe frame. */
-/* ─── Look-point readout — top-centre time-axis pill. Absolute date/time on the
-   left, ± offset from now on the right, over the central "where you're looking"
-   axis. HTML overlay so it stays crisp at any sphere scale (the on-sphere edge
-   labels go illegible when zoomed out; this never does). ─── */
-/* Top-centre HORIZON readout — plain stacked text (no pill frame, so it
-   never masks the sphere's horizon behind it), matching the VIEWING / NOW
-   markers: the "HORIZON" tag on top, then a row with the horizon date·time
-   and the +## distance ahead below it. Same amber/Orbitron label family as
-   the on-globe ship (VIEWING) and NOW readouts. */
-.bridge-lookpoint {
-  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-  z-index: 6; pointer-events: none;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  font-family: 'Share Tech Mono', monospace; white-space: nowrap;
-}
-/* Sizes match the on-SCREEN size of the NOW/VIEWING on-globe labels. Those are
-   SVG text (label 9px, date 11px in viewBox units) scaled up ~1.36× by the
-   sphere's render transform, so ≈12px / ≈15px on screen; this HTML overlay is
-   fixed CSS px, so it's sized to that scaled result to read as the same size. */
-.bridge-lookpoint__tag {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.20em; text-transform: uppercase;
-  color: var(--cin-gold); text-shadow: 0 0 4px var(--cin-gold-glow);
-}
-.bridge-lookpoint__read {
-  display: flex; align-items: center; gap: 8px;
-}
-.bridge-lookpoint__abs {
-  font-size: 15px; letter-spacing: 0.10em; text-transform: uppercase;
-  color: var(--cin-gold-soft);
-}
-.bridge-lookpoint__time { color: rgba(255, 174, 32, 0.72); }
-.bridge-lookpoint__tick { width: 1px; height: 15px; background: rgba(255, 255, 255, 0.20); flex-shrink: 0; }
-.bridge-lookpoint__rel {
-  font-size: 15px; letter-spacing: 0.12em; font-weight: 700;
-  color: rgba(125, 214, 255, 0.85);
-}
-.bridge-lookpoint.is-now .bridge-lookpoint__rel {
-  color: var(--cin-gold); text-shadow: 0 0 8px var(--cin-gold-glow);
-}
-/* ⟲ recenter — appears in the pill only when the view is panned off now. */
-.bridge-lookpoint__recenter-btn {
-  pointer-events: auto; cursor: pointer; background: none; border: none;
-  color: rgba(125, 214, 255, 0.85); font-size: 19px; line-height: 1;
-  padding: 3px 7px; margin-left: -1px; border-radius: 8px;
-  transition: background 120ms ease, color 120ms ease;
-}
-.bridge-lookpoint__recenter-btn:hover { background: rgba(255, 204, 0, 0.12); color: var(--cin-gold); }
+/* The HORIZON readout is now on-globe SVG text (see HorizonScene / the
+   .bridge-ship-* + .bridge-horizon-recenter styles above) floating above the
+   top limb, so the old top-centre HTML pill (.bridge-lookpoint*) is retired. */
 
 /* ─── Bridge corner HUD — status readout + quest tracker filling the voids
    that flank the globe. Overlays only; never intercept the globe drag. ─── */
@@ -3550,11 +3502,18 @@ body.app-locked .cin-action-bar {
   fill: rgba(125, 214, 255, 0.85);
   font-weight: 700;
 }
-/* Bar separator before the VIEWING offset — the text-glyph equivalent of the
-   HORIZON pill's vertical tick, so both readouts split date·time | ± the same
+/* Bar separator before the VIEWING / HORIZON offset — the text-glyph equivalent
+   of the old pill's vertical tick, so the readouts split date·time | ± the same
    way (a bar, not a dot). */
 .bridge-ship-sep {
   fill: rgba(255, 255, 255, 0.22);
+}
+/* ⟲ recenter glyph on the on-globe HORIZON readout — clickable (auto pointer
+   events over the otherwise drag-through text) and cyan like the offset. */
+.bridge-horizon-recenter {
+  fill: rgba(125, 214, 255, 0.85);
+  cursor: pointer;
+  pointer-events: auto;
 }
 .bridge-lane-label {
   font-family: 'Share Tech Mono', monospace;
