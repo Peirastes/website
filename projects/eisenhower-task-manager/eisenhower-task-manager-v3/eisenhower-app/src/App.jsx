@@ -7,6 +7,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 import { BootOverlay } from './components/BootOverlay';
 import { CinematicChrome } from './components/CinematicChrome';
 import { BridgeClock } from './components/BridgeClock';
+import { BridgeTelemetry } from './components/BridgeTelemetry';
 import { AppDock } from './components/AppDock';
 import { SearchPalette } from './components/SearchPalette';
 import { SettingsModal } from './components/SettingsModal';
@@ -266,6 +267,8 @@ const EisenhowerTaskManager = () => {
   ];
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // True while an auto-save write is in flight — drives the Bridge SYNC LED.
+  const [isSaving, setIsSaving] = useState(false);
 
   // Load data from server (single source of truth)
   const [serverOffline, setServerOffline] = useState(false);
@@ -364,6 +367,7 @@ const EisenhowerTaskManager = () => {
   useEffect(() => {
     if (!isLoading && !serverOffline) {
       const saveData = async () => {
+        setIsSaving(true);
         try {
           await apiPost('/tasks', tasks);
         } catch (e) {
@@ -378,6 +382,7 @@ const EisenhowerTaskManager = () => {
         try {
           await apiPost('/backup-metadata', updatedMetadata);
         } catch (e) { /* ignore */ }
+        setIsSaving(false);
       };
       saveData();
     }
@@ -782,6 +787,15 @@ const EisenhowerTaskManager = () => {
       {/* Live wall-clock, top-right on the Bridge header line (above the Command
           frame), mirroring the left-anchored Chronosphere title. */}
       {view === 'bridge' && <BridgeClock />}
+      {/* Telemetry rail — system-status LEDs + Edmond weather, centred on the
+          header line between the wordmark and the clock. */}
+      {view === 'bridge' && (
+        <BridgeTelemetry
+          saving={isSaving}
+          daysSinceExport={getDaysSinceExport()}
+          overdueCount={stats.overdue.length}
+        />
+      )}
 
       {/* PHASE 5 cleanup: removed etm-reveal-* keyframes (retired in
           Phase 2 when the cinematic scan-line took over the entrance).
