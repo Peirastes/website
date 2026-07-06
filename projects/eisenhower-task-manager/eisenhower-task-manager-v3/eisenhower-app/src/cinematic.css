@@ -199,8 +199,8 @@ body.app-locked .cin-hints {
   top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.2rem);
   right: 16px;
   z-index: 100;
-  display: flex; flex-direction: column; align-items: flex-end;
-  text-align: right;
+  display: flex; flex-direction: column; align-items: flex-start;
+  text-align: left;
   pointer-events: none;
   opacity: 0;
   animation: cin-fade-in-plain 700ms ease 350ms forwards;
@@ -234,13 +234,13 @@ body.app-locked .cin-hints {
    above the dome; non-interactive (pure display) so it never blocks a drag. */
 .bridge-telemetry {
   position: fixed;
-  top: 1.1rem;
+  top: 1rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  align-items: stretch;
   padding: 7px 16px;
   border-radius: 8px;
   background: linear-gradient(180deg, rgba(16, 22, 32, 0.58) 0%, rgba(8, 12, 20, 0.55) 100%);
@@ -249,9 +249,20 @@ body.app-locked .cin-hints {
   border: 1px solid var(--glass-border);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   pointer-events: none;
-  max-width: min(72vw, 920px);
+  max-width: min(64vw, 780px);
   opacity: 0;
   animation: cin-fade-in-plain 700ms ease 350ms forwards;
+}
+/* Two stacked instrument rows — LEDs over environment, hairline between. */
+.bridge-telemetry__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bridge-telemetry__row + .bridge-telemetry__row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 6px;
+  padding-top: 6px;
 }
 .bridge-telemetry__title {
   font-family: 'Orbitron', sans-serif;
@@ -259,10 +270,11 @@ body.app-locked .cin-hints {
   letter-spacing: 0.2em; text-transform: uppercase;
   color: var(--cin-gold); text-shadow: 0 0 6px var(--cin-gold-glow);
   white-space: nowrap;
+  min-width: 96px;   /* shared width so both rows' clusters line up */
 }
 .bridge-telemetry__group { display: flex; align-items: center; gap: 13px; }
 .bridge-telemetry__div {
-  width: 1px; align-self: stretch; margin: 1px 1px;
+  width: 1px; align-self: stretch; margin: 1px 0;
   background: rgba(255, 255, 255, 0.13);
 }
 /* One LED module — coloured pip + label + optional numeric value. */
@@ -324,6 +336,37 @@ body.app-locked .cin-hints {
   font-size: 8.5px; font-weight: 600;
   letter-spacing: 0.13em; text-transform: uppercase;
   color: var(--cin-cyan-soft); white-space: nowrap;
+}
+.bridge-telemetry__mark { color: var(--cin-gold); }
+
+/* Phone — portrait (narrow) OR landscape (short): the two-row panel is too
+   much, so collapse to a single glanceable strip. One ◇ mark, LED pips with
+   their count badges (no word labels), a divider, then just the temperature +
+   condition glyph + moon disk. Reads by colour at arm's length. iPad/desktop
+   keep the full two rows. */
+@media (max-width: 767px), (max-height: 520px) {
+  .bridge-telemetry {
+    flex-direction: row;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 12px;
+    max-width: none;
+  }
+  .bridge-telemetry__row { gap: 9px; }
+  .bridge-telemetry__row + .bridge-telemetry__row {
+    border-top: none; margin-top: 0; padding-top: 0;
+  }
+  .bridge-telemetry__group { gap: 9px; }
+  /* Row 1 → keep only the diamond; drop the word, its divider, LED labels. */
+  .bridge-telemetry__row:first-child .bridge-telemetry__title { min-width: 0; font-size: 0; }
+  .bridge-telemetry__row:first-child .bridge-telemetry__mark { font-size: 11px; }
+  .bridge-telemetry__row:first-child .bridge-telemetry__div { display: none; }
+  .bridge-tled__label { display: none; }
+  /* Row 2 → drop the ENVIRONMENT label; its divider becomes the LED|sky split. */
+  .bridge-telemetry__row:last-child .bridge-telemetry__title { display: none; }
+  .bridge-telemetry__sun { display: none; }
+  .bridge-telemetry__moontxt { display: none; }
+  .bridge-telemetry__cond { font-size: 0; gap: 0; }   /* hide "CLEAR", keep glyph */
 }
 
 /* Corner cartographic ticks */
@@ -612,6 +655,11 @@ body.app-locked .cin-hints {
   .cin-title__name { font-size: 14px; }
   .cin-title__sub { font-size: 8px; }
   .cin-title__crew { display: none; }
+  /* Compact clock so its date line clears the top-right Command frame; right
+     inset mirrors the title's left inset to hug the curved screen. */
+  .bridge-clock { right: max(1.4rem, env(safe-area-inset-right, 0px) + 0.4rem); }
+  .bridge-clock__time { font-size: 14px; margin-bottom: 1px; }
+  .bridge-clock__date { font-size: 8px; letter-spacing: 0.10em; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3411,10 +3459,18 @@ body.app-locked .cin-action-bar {
 @media (max-height: 520px) {
   /* Reclaim the top padding that clears the (now compressed) masthead. */
   .etm-shell { padding-top: 1.7rem !important; }
-  /* Masthead → one tight line pinned to the very top. */
-  .cin-title { top: 3px; }
-  .cin-title__name { font-size: 12px; letter-spacing: 0.16em; margin-bottom: 0; }
-  .cin-title__sub, .cin-title__crew { display: none; }
+  /* Masthead → compact but still a proper title + subtitle block, hugging the
+     top-left (left inset respects a landscape notch; keep it minimal). */
+  .cin-title { top: 5px; left: max(0.9rem, env(safe-area-inset-left, 0px) + 2px); }
+  .cin-title__name { font-size: 13px; letter-spacing: 0.18em; margin-bottom: 1px; }
+  .cin-title__sub { font-size: 7.5px; letter-spacing: 0.18em; margin-bottom: 0; }
+  .cin-title__crew { display: none; }
+  /* Clock → compact stack pinned top-right so its date line no longer drops
+     into the Command frame below it. Right inset mirrors the title's left
+     inset so both hug the curved screen symmetrically. */
+  .bridge-clock { top: 5px; right: max(0.9rem, env(safe-area-inset-right, 0px) + 2px); }
+  .bridge-clock__time { font-size: 13px; margin-bottom: 1px; }
+  .bridge-clock__date { font-size: 7.5px; letter-spacing: 0.10em; }
 
   /* Frames hug the corners tighter; cap to the stage and scroll if needed. */
   .bridge-rail--command  { top: 8px; right: 8px; max-height: calc(100% - 16px); }

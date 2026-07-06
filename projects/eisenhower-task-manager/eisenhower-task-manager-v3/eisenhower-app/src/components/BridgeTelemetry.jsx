@@ -184,36 +184,42 @@ export const BridgeTelemetry = ({ saving = false, daysSinceExport = null, overdu
 
   return (
     <div className="bridge-telemetry" aria-label="Bridge telemetry">
-      <span className="bridge-telemetry__title">◇ TELEMETRY</span>
-
-      <div className="bridge-telemetry__group">
-        <Led state={linkState} label="Link" pulse={link === 'idle'} />
-        <Led state={syncState} label="Sync" pulse={saving} />
-        <Led state={backupState} label="Backup"
-             value={daysSinceExport != null ? `${daysSinceExport}d` : null} />
-        <Led state={overdueState} label="Overdue"
-             value={overdueCount > 0 ? String(overdueCount) : null} />
-        <Led state={piState} label="Pi Server" pulse={pi === 'idle'} />
+      {/* Row 1 — system status LEDs. */}
+      <div className="bridge-telemetry__row">
+        <span className="bridge-telemetry__title"><span className="bridge-telemetry__mark">◇</span> TELEMETRY</span>
+        <span className="bridge-telemetry__div" />
+        <div className="bridge-telemetry__group">
+          <Led state={linkState} label="Link" pulse={link === 'idle'} />
+          <Led state={syncState} label="Sync" pulse={saving} />
+          <Led state={backupState} label="Backup"
+               value={daysSinceExport != null ? `${daysSinceExport}d` : null} />
+          <Led state={overdueState} label="Overdue"
+               value={overdueCount > 0 ? String(overdueCount) : null} />
+          <Led state={piState} label="Pi Server" pulse={pi === 'idle'} />
+        </div>
       </div>
 
-      <span className="bridge-telemetry__div" />
-
-      <div className="bridge-telemetry__group bridge-telemetry__weather">
-        {weather ? (
-          <>
-            <span className="bridge-telemetry__temp">{Math.round(weather.temp)}°F</span>
-            <span className="bridge-telemetry__cond">
-              <span className="bridge-telemetry__glyph">{weather.glyph}</span>{weather.label}
-            </span>
-            <span className="bridge-telemetry__sun">↑{weather.sunrise} ↓{weather.sunset}</span>
-          </>
-        ) : (
-          <span className="bridge-telemetry__cond bridge-telemetry__cond--dim">Edmond · —</span>
-        )}
-        <span className="bridge-telemetry__moon" title={`${moon.name} · ${moon.illum}% illuminated`}>
-          <MoonPhase phase={moon.phase} />
-          <span className="bridge-telemetry__moontxt">{moon.name} {moon.illum}%</span>
-        </span>
+      {/* Row 2 — environment: Edmond weather + moon phase. */}
+      <div className="bridge-telemetry__row">
+        <span className="bridge-telemetry__title"><span className="bridge-telemetry__mark">◇</span> ENVIRONMENT</span>
+        <span className="bridge-telemetry__div" />
+        <div className="bridge-telemetry__group bridge-telemetry__weather">
+          {weather ? (
+            <>
+              <span className="bridge-telemetry__temp">{Math.round(weather.temp)}°F</span>
+              <span className="bridge-telemetry__cond">
+                <span className="bridge-telemetry__glyph">{weather.glyph}</span>{weather.label}
+              </span>
+              <span className="bridge-telemetry__sun">↑{weather.sunrise} ↓{weather.sunset}</span>
+            </>
+          ) : (
+            <span className="bridge-telemetry__cond bridge-telemetry__cond--dim">Edmond · —</span>
+          )}
+          <span className="bridge-telemetry__moon" title={`${moon.name} · ${moon.illum}% illuminated`}>
+            <MoonPhase phase={moon.phase} />
+            <span className="bridge-telemetry__moontxt">{moon.name} {moon.illum}%</span>
+          </span>
+        </div>
       </div>
     </div>
   );

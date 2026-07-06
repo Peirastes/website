@@ -512,7 +512,11 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           recenter on now. */}
       {(() => {
         const apexY = CY - LIMB_R_PX;              // top of the limb circle
-        const readY = apexY - (isShort ? 54 : 16); // same float as NOW
+        /* Constant ~16px float above the curve. Unlike NOW (which lifts on
+           short screens to clear the bottom backup toast), HORIZON sits at the
+           TOP apex — there's nothing to clear there, and an extra lift only
+           floats it up into the header/telemetry band. */
+        const readY = apexY - 16;
         const horizonAheadDays = viewAnchor + maxDays;
         const hzAbs = formatDateTime(Date.now() + horizonAheadDays * 86400000);
         const hspan = (days) => {
