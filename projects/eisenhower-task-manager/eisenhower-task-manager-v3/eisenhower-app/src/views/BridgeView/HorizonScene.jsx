@@ -289,8 +289,15 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
     wireframeLons.push( k * GRID_STEP);
     wireframeLons.push(-k * GRID_STEP);
   }
-  /* Effective offset for tasks (real days-until-due minus pan anchor). */
-  const effOffset = (t) => dayOffset(t.dueDate, t.dueTime) - viewAnchor;
+  /* Effective offset for tasks (real days-until-due minus pan anchor).
+     Undated backlog pips (tracked-project work with no due date) are parked
+     near the far horizon of the current view and fanned out radially by a
+     stable per-task hash so a cluster doesn't stack on a single meridian.
+     Independent of viewAnchor, so they ride the horizon edge as you pan. */
+  const effOffset = (t) =>
+    t.__backlog
+      ? maxDays * (0.45 + 0.3 * (t.__lonFrac ?? 0.5)) - viewAnchor
+      : dayOffset(t.dueDate, t.dueTime) - viewAnchor;
   const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
   const sortedTasks = [...tasks].sort((a, b) => effOffset(b) - effOffset(a));
 
@@ -583,7 +590,22 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         for (const t of sortedTasks) {
           const d_eff = effOffset(t);
           if (Math.abs(d_eff) / maxDays > 1.0) continue;
-          const xy = dayLaneToXY(d_eff, laneOf(t), t.id);
+          let xy;
+          if (t.__backlog) {
+            /* Backlog sits on a REAL (synthetic) sphere point: distinct lon
+               (time, from __lonFrac) + lat (lateral within the Projects lane,
+               from __latNorm). Real projection, so it pans/rotates with the
+               globe like every other pip — just with a made-up position since
+               it has no due date. */
+            const lon = Math.max(-ALPHA_LIMB, Math.min(ALPHA_LIMB, dayToLon(d_eff)));
+            const [lo, hi] = laneSectors[laneOf(t)] || [-ALPHA_LIMB, ALPHA_LIMB];
+            const c = (lo + hi) / 2, halfW = (hi - lo) / 2;
+            const lat = c + (t.__latNorm ?? 0) * halfW * 1.05;
+            if (!isVisible(lat, lon)) continue;
+            xy = projectLatLon(lat, lon);
+          } else {
+            xy = dayLaneToXY(d_eff, laneOf(t), t.id);
+          }
           if (!xy) continue;
           const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
           const isEvent = isEventTask(t);
@@ -637,7 +659,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
                    || (focusProject && t.projectId !== focusProject);
           return (
           <g key={t.id}
-             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}${dim ? ' bridge-pip--dim' : ''}`}
+             className={`bridge-pip bridge-pip--${qid} ${isDone ? 'bridge-pip--done' : ''} ${isOverdue ? 'bridge-pip--overdue' : ''}${dim ? ' bridge-pip--dim' : ''}${t.__backlog ? ' bridge-pip--backlog' : ''}`}
              onPointerDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); onPick(t); }}
              style={{ cursor: 'pointer', opacity: dim ? 0.12 : 1 }}>

@@ -237,6 +237,43 @@ export const BridgeView = ({
               && (dayOffset(t.dueDate, t.dueTime) - viewAnchor) < -7)
     .sort(byDue);
 
+  /* ── Backlog pips: undated tasks from ACTIVE + TRACKED projects, parked at
+     the far horizon of the Projects lane so tracked initiatives have presence
+     on the globe even before any task gets a due date. Dated project tasks
+     already plot normally; these are the undated remainder, capped per project
+     and flagged with __backlog so HorizonScene parks + styles them distinctly.
+     Horizon mode only. ── */
+  const BACKLOG_CAP = 6;
+  const backlogTasks = (() => {
+    if (mode !== 'horizon') return [];
+    const trackedIds = new Set((projects || [])
+      .filter(p => p.tracked && p.status === 'active').map(p => p.id));
+    if (trackedIds.size === 0) return [];
+    const perProj = new Map();
+    for (const t of tasks) {
+      if (t.deletedAt || t.dueDate) continue;        // dated tasks plot normally
+      if (!trackedIds.has(t.projectId)) continue;
+      if (!isOpenTask(t) || isEventTask(t)) continue;
+      const arr = perProj.get(t.projectId) || [];
+      perProj.set(t.projectId, arr);
+      arr.push(t);
+    }
+    const out = [];
+    for (const arr of perProj.values()) {
+      arr.sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+      for (const t of arr.slice(0, BACKLOG_CAP)) out.push({ ...t, __backlog: true });
+    }
+    /* Low-discrepancy spread (index-based — these project IDs are sequential
+       and hash poorly). Two irrational multipliers scatter a lon/lat pair so
+       the parked backlog fills the Projects lane instead of stacking; the pips
+       still sit on real sphere points (HorizonScene) so they pan with the globe. */
+    out.forEach((t, i) => {
+      t.__lonFrac = (i * 0.6180339887 + 0.13) % 1;               // time depth 0..1
+      t.__latNorm = ((i * 0.7548776662 + 0.37) % 1) * 1.8 - 0.9; // lateral −0.9..0.9
+    });
+    return out;
+  })();
+
   /* ── Three time references on the Bridge:
        • NOW     (real time)     — the amber clock riding the zero-time axis.
        • VIEWING (measured time) — date/time at the centre measurement line
@@ -444,7 +481,8 @@ export const BridgeView = ({
         </div>
         {mode === 'horizon' ? (
           <HorizonScene
-            tasks={visible} lanes={lanes} laneOf={laneOf}
+            tasks={backlogTasks.length ? [...visible, ...backlogTasks] : visible}
+            lanes={lanes} laneOf={laneOf}
             dayOffset={dayOffset} maxDays={horizonDays}
             setMaxDays={setHorizonDays}
             viewAnchor={viewAnchor} setViewAnchor={setViewAnchor}
