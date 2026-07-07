@@ -31,7 +31,7 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  * zoom breakpoint snap is useHorizonZoom. Camera state + drag
  * handlers still live inline here.
  */
-export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all', focusQuad = null, focusProject = null }) => {
+export const HorizonScene = ({ tasks, lanes, laneOf, sublaneLanes = [], dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all', focusQuad = null, focusProject = null }) => {
   const svgRef = React.useRef(null);
   /* Measure the SVG's own rendered box so the globe framing matches the shape
      of the area it actually occupies — not just the window. In the menus-on-top
@@ -155,17 +155,29 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
   /* The (lat, lon) a task occupies. Shared between pip projection and
      dependency-arc rendering so the arc endpoints land on the same
      jittered positions as the pips. */
-  const taskLatLon = (d, laneIdx, taskId) => {
+  const taskLatLon = (d, t) => {
     const lon = Math.max(-ALPHA_LIMB, Math.min(ALPHA_LIMB, dayToLon(d)));
-    const [lo, hi] = laneSectors[laneIdx] || [-ALPHA_LIMB, ALPHA_LIMB];
-    const c = (lo + hi) / 2;
-    const halfW = (hi - lo) / 2;
-    const norm = (hashId(taskId) % 1000) / 1000 - 0.5;
-    const lat = c + norm * halfW * 1.2;
+    const [lo, hi] = laneSectors[laneOf(t)] || [-ALPHA_LIMB, ALPHA_LIMB];
+    /* Sub-band within the lane when the task carries a sublane assignment;
+       otherwise the whole lane band. */
+    const sub = t.__sublane;
+    let center, halfW;
+    if (sub && sub.subCount > 1) {
+      const subFull = (hi - lo) / sub.subCount;
+      center = lo + (sub.subIdx + 0.5) * subFull;
+      halfW = subFull / 2;
+    } else {
+      center = (lo + hi) / 2;
+      halfW = (hi - lo) / 2;
+    }
+    /* Backlog carries its own lateral spread; dated pips jitter by id. Kept
+       inside the sub-band so tracks stay legible. */
+    const nrm = t.__backlog ? (t.__latNorm ?? 0) : ((hashId(t.id) % 1000) / 1000 - 0.5);
+    const lat = center + nrm * halfW * (t.__backlog ? 0.55 : 0.85);
     return { lat, lon };
   };
-  const dayLaneToXY = (d, laneIdx, taskId) => {
-    const { lat, lon } = taskLatLon(d, laneIdx, taskId);
+  const dayLaneToXY = (d, t) => {
+    const { lat, lon } = taskLatLon(d, t);
     if (!isVisible(lat, lon)) return null;
     return projectLatLon(lat, lon);
   };
@@ -176,15 +188,14 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
      at every zoom — a 3-hour block reaches three hours along the axis. A short
      visibility floor keeps a brief event from vanishing when zoomed far out. */
   const eventBandPts = (t, startD) => {
-    const lane = laneOf(t), id = t.id;
-    const p0 = dayLaneToXY(startD, lane, id);
+    const p0 = dayLaneToXY(startD, t);
     if (!p0) return null;
     const durDays = durationMin(t) / 1440;
     const out = [p0]; let acc = 0, prev = p0, atLimb = false;
     // Phase 1 — trace the real span, start → start + duration.
     const N = 32;
     for (let i = 1; i <= N; i++) {
-      const q = dayLaneToXY(startD + (durDays * i) / N, lane, id);
+      const q = dayLaneToXY(startD + (durDays * i) / N, t);
       if (!q) { atLimb = true; break; }
       acc += Math.hypot(q.x - prev.x, q.y - prev.y);
       out.push(q); prev = q;
@@ -194,7 +205,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
     let d = startD + durDays, guard = 0;
     while (!atLimb && acc < MIN_PX && guard++ < 200) {
       d += step;
-      const q = dayLaneToXY(d, lane, id);
+      const q = dayLaneToXY(d, t);
       if (!q) break;
       acc += Math.hypot(q.x - prev.x, q.y - prev.y);
       out.push(q); prev = q;
@@ -447,6 +458,37 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
             );
           });
         })()}
+
+        {/* Sublane labels — small, at each sub-band centre on the prime
+            meridian, sitting just below the domain lane label. */}
+        {(() => {
+          /* Only label sublanes that currently have a pip on the globe — empty
+             tracked tracks (e.g. Family/Friends before they hold anything)
+             stay unlabelled to avoid crowding the ship readouts. */
+          const occupied = new Set();
+          for (const t of tasks) {
+            if (t.__sublane) occupied.add(`${t.__sublane.laneIdx}:${t.__sublane.subIdx}`);
+          }
+          const out = [];
+          sublaneLanes.forEach((subs, i) => {
+            if (!subs || subs.length === 0) return;
+            const [lo, hi] = laneSectors[i] || [];
+            if (lo == null) return;
+            const subFull = (hi - lo) / subs.length;
+            subs.forEach((s) => {
+              if (!occupied.has(`${i}:${s.subIdx}`)) return;
+              const center = lo + (s.subIdx + 0.5) * subFull;
+              const pt = projectLatLon(center, 0);
+              if (!pt) return;
+              const label = s.name.length > 11 ? s.name.slice(0, 10) + '…' : s.name;
+              out.push(
+                <text key={`sl-${i}-${s.subIdx}`} x={pt.x} y={pt.y + 40}
+                      textAnchor="middle" className="bridge-sublane-label">{label.toUpperCase()}</text>
+              );
+            });
+          });
+          return out;
+        })()}
       </g>
 
       {/* Limb — TRUE GEOMETRIC CIRCLE, drawn over the clipped contents. */}
@@ -561,14 +603,14 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
           if (!Array.isArray(t.dependsOn) || t.dependsOn.length === 0) return;
           const tEff = effOffset(t);
           if (Math.abs(tEff) / maxDays > 1.0) return;
-          const target = taskLatLon(tEff, laneOf(t), t.id);
+          const target = taskLatLon(tEff, t);
           if (!isVisible(target.lat, target.lon)) return;
           t.dependsOn.forEach(depId => {
             const src = byId.get(depId);
             if (!src) return;
             const sEff = effOffset(src);
             if (Math.abs(sEff) / maxDays > 1.0) return;
-            const source = taskLatLon(sEff, laneOf(src), src.id);
+            const source = taskLatLon(sEff, src);
             if (!isVisible(source.lat, source.lon)) return;
             const pts = greatCircleArc(source.lat, source.lon, target.lat, target.lon);
             if (pts.length >= 2) arcs.push({ key: `${depId}->${t.id}`, d: polyPath(pts) });
@@ -590,22 +632,7 @@ export const HorizonScene = ({ tasks, lanes, laneOf, dayOffset, maxDays, setMaxD
         for (const t of sortedTasks) {
           const d_eff = effOffset(t);
           if (Math.abs(d_eff) / maxDays > 1.0) continue;
-          let xy;
-          if (t.__backlog) {
-            /* Backlog sits on a REAL (synthetic) sphere point: distinct lon
-               (time, from __lonFrac) + lat (lateral within the Projects lane,
-               from __latNorm). Real projection, so it pans/rotates with the
-               globe like every other pip — just with a made-up position since
-               it has no due date. */
-            const lon = Math.max(-ALPHA_LIMB, Math.min(ALPHA_LIMB, dayToLon(d_eff)));
-            const [lo, hi] = laneSectors[laneOf(t)] || [-ALPHA_LIMB, ALPHA_LIMB];
-            const c = (lo + hi) / 2, halfW = (hi - lo) / 2;
-            const lat = c + (t.__latNorm ?? 0) * halfW * 1.05;
-            if (!isVisible(lat, lon)) continue;
-            xy = projectLatLon(lat, lon);
-          } else {
-            xy = dayLaneToXY(d_eff, laneOf(t), t.id);
-          }
+          const xy = dayLaneToXY(d_eff, t);
           if (!xy) continue;
           const qid = QID_BY_QUAD[getQuadrant(t)] || 'q4';
           const isEvent = isEventTask(t);

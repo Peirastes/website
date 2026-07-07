@@ -5,6 +5,32 @@ import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
 import { isEventTask } from './PipShape';
 
+/* ── Sublane seed (Phase 1) ────────────────────────────────────────────────
+   Each domain lane subdivides into TRACKED sublanes. A sublane matches one or
+   more legacy `subcategory` tags, so a clean track absorbs messy history
+   without ever retagging a task (tags are the permanent record). The Projects
+   domain is special: its sublanes are the TRACKED projects, matched by
+   projectId. Only tracked sublanes render; a task whose tag/project isn't in a
+   tracked sublane is hidden from the globe — re-track it later and its history
+   returns, correctly placed. Phase 2 moves this seed into settings + a
+   manager UI. ── */
+const SUBLANE_SEED = {
+  Instructor: [
+    { name: 'PSE-I',        matches: ['PSEI Notes', 'PSEI HW', 'PSEI Exam', 'PSEI Drill'] },
+    { name: 'Elec Sci Lab', matches: ['Electrical Science Lab', 'Thermal Engineering Lab', 'TE Lab'] },
+    { name: 'Duties',       matches: ['Schedule'] },
+  ],
+  Coordinator: [
+    { name: 'Ignition',     matches: ['Ignition'] },
+  ],
+  Personal: [
+    { name: 'Bills',        matches: ['Finance'] },
+    { name: 'Chores',       matches: ['Home', 'Car'] },
+    { name: 'Family',       matches: ['Family'] },
+    { name: 'Friends',      matches: ['Friends'] },
+  ],
+};
+
 /**
  * ═════════════════════════════════════════════════════════════════
  *   BRIDGE VIEW — Horizon (forward perspective) + Radar (top-down PPI)
@@ -106,6 +132,34 @@ export const BridgeView = ({
     return idx === -1 ? 0 : idx;
   };
 
+  /* Tracked sublanes per domain. Projects → tracked projects (by id); every
+     other domain → its seed list. */
+  const projectSublanes = (projects || [])
+    .filter(p => p.tracked && p.status !== 'done' && p.status !== 'archived')
+    .map(p => ({ name: p.name, projectId: p.id }));
+  const sublanesByDomain = {};
+  for (const d of baseDomains) {
+    sublanesByDomain[d] = d === 'Projects' ? projectSublanes : (SUBLANE_SEED[d] || []);
+  }
+  /* Resolve a task to its sublane sub-band, or null if it belongs to no
+     tracked sublane (→ hidden from the globe). A domain with no sublanes
+     configured falls back to the whole lane so it can't be blanked by a gap. */
+  const resolveSub = (t) => {
+    const laneIdx = baseDomains.indexOf(t.domain);
+    if (laneIdx === -1) return null;
+    const subs = sublanesByDomain[t.domain] || [];
+    if (subs.length === 0) return { laneIdx, subIdx: 0, subCount: 1 };
+    const subIdx = t.domain === 'Projects'
+      ? subs.findIndex(s => s.projectId === t.projectId)
+      : subs.findIndex(s => (s.matches || []).includes(t.subcategory));
+    if (subIdx === -1) return null;
+    return { laneIdx, subIdx, subCount: subs.length };
+  };
+  /* Per-lane sublane rows for on-globe labels. */
+  const sublaneLanes = lanes.map((d) =>
+    (sublanesByDomain[d] || []).map((s, subIdx, arr) =>
+      ({ name: s.name, subIdx, subCount: arr.length })));
+
   const visible = tasks.filter(t => {
     /* Completed tasks remain visible on the Bridge — they render
        without the ring/blip so the player sees "cleared targets"
@@ -119,6 +173,14 @@ export const BridgeView = ({
     if (mode === 'horizon') off -= viewAnchor;
     return off >= -7 && off <= maxDays;
   });
+
+  /* Globe task set: visible tasks that belong to a TRACKED sublane, annotated
+     with their sub-band. Tasks in untracked sublanes are dropped (hidden). */
+  const visibleSub = [];
+  for (const t of visible) {
+    const s = resolveSub(t);
+    if (s) visibleSub.push({ ...t, __sublane: s });
+  }
 
   /* Click a pip → show a lightweight details popup first. The "Edit"
      button inside the popup hands off to the existing edit form. */
@@ -261,7 +323,10 @@ export const BridgeView = ({
     const out = [];
     for (const arr of perProj.values()) {
       arr.sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
-      for (const t of arr.slice(0, BACKLOG_CAP)) out.push({ ...t, __backlog: true });
+      for (const t of arr.slice(0, BACKLOG_CAP)) {
+        const s = resolveSub(t);
+        if (s) out.push({ ...t, __backlog: true, __sublane: s });
+      }
     }
     /* Low-discrepancy spread (index-based — these project IDs are sequential
        and hash poorly). Two irrational multipliers scatter a lon/lat pair so
@@ -481,7 +546,8 @@ export const BridgeView = ({
         </div>
         {mode === 'horizon' ? (
           <HorizonScene
-            tasks={backlogTasks.length ? [...visible, ...backlogTasks] : visible}
+            tasks={backlogTasks.length ? [...visibleSub, ...backlogTasks] : visibleSub}
+            sublaneLanes={sublaneLanes}
             lanes={lanes} laneOf={laneOf}
             dayOffset={dayOffset} maxDays={horizonDays}
             setMaxDays={setHorizonDays}
