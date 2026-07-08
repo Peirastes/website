@@ -16,12 +16,20 @@ import { isEventTask } from './PipShape';
    manager UI. ── */
 const SUBLANE_SEED = {
   Instructor: [
-    { name: 'PSE-I',        matches: ['PSEI Notes', 'PSEI HW', 'PSEI Exam', 'PSEI Drill'] },
-    { name: 'Elec Sci Lab', matches: ['Electrical Science Lab', 'Thermal Engineering Lab', 'TE Lab'] },
-    { name: 'Duties',       matches: ['Schedule'] },
+    /* `matches` are exact `subcategory` tags; `titleMatches` are case-insensitive
+       substrings of the task TITLE. Title matching disambiguates the coarse
+       "Schedule" tag, which lumps PSE-I Lectures, Office Hours, and Electrical
+       Science Lab meetings together — the title routes each to the right track.
+       resolveSub returns the FIRST matching sublane, so order is priority. */
+    { name: 'PSE-I',        matches: ['PSEI Notes', 'PSEI HW', 'PSEI Exam', 'PSEI Drill', 'PSEI Lecture', 'PSEI Grading'],
+                            titleMatches: ['PSE-I'] },
+    { name: 'Elec Sci Lab', matches: ['Electrical Science Lab', 'Thermal Engineering Lab', 'TE Lab'],
+                            titleMatches: ['Electrical Science', 'Thermal Engineering'] },
+    { name: 'Duties',       matches: ['Schedule', 'Service'],
+                            titleMatches: ['Office Hours'] },
   ],
   Coordinator: [
-    { name: 'Ignition',     matches: ['Ignition'] },
+    { name: 'Ignition',     matches: ['Ignition'], titleMatches: ['Ignition'] },
   ],
   Personal: [
     { name: 'Bills',        matches: ['Finance'] },
@@ -70,6 +78,14 @@ export const BridgeView = ({
   useEffect(() => {
     try { localStorage.setItem('bridge-label-mode', labelMode); } catch {}
   }, [labelMode]);
+  /* Sublane density columns — toggleable (persisted). On by default. */
+  const [showDensity, setShowDensity] = useState(() => {
+    try { return localStorage.getItem('bridge-density') !== 'off'; }
+    catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('bridge-density', showDensity ? 'on' : 'off'); } catch {}
+  }, [showDensity]);
   /* Horizon distance is wheel-zoomable. State lives here so it survives
      Horizon ↔ Radar toggles. */
   const [horizonDays, setHorizonDays] = useState(() =>
@@ -149,9 +165,13 @@ export const BridgeView = ({
     if (laneIdx === -1) return null;
     const subs = sublanesByDomain[t.domain] || [];
     if (subs.length === 0) return { laneIdx, subIdx: 0, subCount: 1 };
+    const title = (t.task || '').toLowerCase();
+    const matchSub = (s) =>
+      (s.matches || []).includes(t.subcategory) ||
+      (s.titleMatches || []).some(k => title.includes(k.toLowerCase()));
     const subIdx = t.domain === 'Projects'
       ? subs.findIndex(s => s.projectId === t.projectId)
-      : subs.findIndex(s => (s.matches || []).includes(t.subcategory));
+      : subs.findIndex(matchSub);
     if (subIdx === -1) return null;
     return { laneIdx, subIdx, subCount: subs.length };
   };
@@ -409,6 +429,20 @@ export const BridgeView = ({
               </select>
             </div>
           )}
+          {mode === 'horizon' && (
+            <div className="cin-filter cin-filter--toggle">
+              <label className="cin-filter__label">Density</label>
+              <button type="button"
+                      className={`bridge-toggle${showDensity ? ' is-on' : ''}`}
+                      onClick={() => setShowDensity(v => !v)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      aria-pressed={showDensity}
+                      title="Sublane density columns">
+                <span className="bridge-toggle__track"><span className="bridge-toggle__knob" /></span>
+                <span className="bridge-toggle__txt">{showDensity ? 'On' : 'Off'}</span>
+              </button>
+            </div>
+          )}
           <AppDock
             layout="rail"
             view={view} setView={setView}
@@ -553,7 +587,7 @@ export const BridgeView = ({
             setMaxDays={setHorizonDays}
             viewAnchor={viewAnchor} setViewAnchor={setViewAnchor}
             getQuadrant={getQuadrant} onPick={onPick}
-            labelMode={labelMode}
+            labelMode={labelMode} showDensity={showDensity}
             focusQuad={focusQuad} focusProject={focusProject}
           />
         ) : (

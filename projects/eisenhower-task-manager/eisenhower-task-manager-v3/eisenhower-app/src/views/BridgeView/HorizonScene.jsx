@@ -31,7 +31,7 @@ import { isEventTask, durationMin, EventBlock } from './PipShape';
  * zoom breakpoint snap is useHorizonZoom. Camera state + drag
  * handlers still live inline here.
  */
-export const HorizonScene = ({ tasks, lanes, laneOf, sublaneLanes = [], dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all', focusQuad = null, focusProject = null }) => {
+export const HorizonScene = ({ tasks, lanes, laneOf, sublaneLanes = [], dayOffset, maxDays, setMaxDays, viewAnchor = 0, setViewAnchor, getQuadrant, onPick, labelMode = 'all', showDensity = true, focusQuad = null, focusProject = null }) => {
   const svgRef = React.useRef(null);
   /* Measure the SVG's own rendered box so the globe framing matches the shape
      of the area it actually occupies — not just the window. In the menus-on-top
@@ -353,6 +353,60 @@ export const HorizonScene = ({ tasks, lanes, laneOf, sublaneLanes = [], dayOffse
       <circle cx={CX} cy={CY} r={LIMB_R_PX} fill="url(#bridge-globe)" />
 
       <g clipPath="url(#bridge-globe-clip)">
+        {/* Sublane columns — each tracked sub-band drawn as a soft-bordered
+            vertical track, its translucent fill deepening with how many pips
+            ride it, so a category's internal density reads at a glance. Drawn
+            first (behind the grid + pips) as a background stratum. Boundaries
+            follow constant-latitude parallels; the ribbon fill is the area
+            between a sub-band's two bounding parallels, closed along the limb. */}
+        {showDensity && (() => {
+          const counts = new Map();
+          for (const t of tasks) {
+            if (t.__sublane) {
+              const k = `${t.__sublane.laneIdx}:${t.__sublane.subIdx}`;
+              counts.set(k, (counts.get(k) || 0) + 1);
+            }
+          }
+          let maxC = 1;
+          for (const v of counts.values()) if (v > maxC) maxC = v;
+          const ribbon = (hiC, loC) =>
+            'M ' + hiC.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ')
+            + ' L ' + [...loC].reverse().map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ') + ' Z';
+          const fills = [];
+          const borders = [];
+          sublaneLanes.forEach((subs, i) => {
+            if (!subs || subs.length < 2) return;   // only multi-track lanes divide
+            const [lo, hi] = laneSectors[i] || [];
+            if (lo == null) return;
+            const n = subs.length;
+            const subFull = (hi - lo) / n;
+            // Density fill per occupied sub-band.
+            subs.forEach((s) => {
+              const c = counts.get(`${i}:${s.subIdx}`) || 0;
+              if (c === 0) return;
+              const bLo = lo + s.subIdx * subFull;
+              const hiC = parallelPts(bLo + subFull);
+              const loC = parallelPts(bLo);
+              if (hiC.length < 2 || loC.length < 2) return;
+              const op = 0.035 + 0.17 * (c / maxC);
+              fills.push(
+                <path key={`sb-${i}-${s.subIdx}`} d={ribbon(hiC, loC)}
+                      className="bridge-sublane-band" fillOpacity={op.toFixed(3)} />
+              );
+            });
+            // Soft interior borders between the tracks.
+            for (let k = 1; k < n; k++) {
+              const pts = parallelPts(lo + k * subFull);
+              if (pts.length < 2) continue;
+              borders.push(
+                <path key={`sbd-${i}-${k}`} d={polyPath(pts)} fill="none"
+                      className="bridge-sublane-rail" />
+              );
+            }
+          });
+          return <>{fills}{borders}</>;
+        })()}
+
         {/* Parallels (constant latitude) — every 15°, INCLUDING the
             equator. All latitudes share the lane-rail style because they
             all represent task lanes. */}
@@ -480,10 +534,18 @@ export const HorizonScene = ({ tasks, lanes, laneOf, sublaneLanes = [], dayOffse
               const center = lo + (s.subIdx + 0.5) * subFull;
               const pt = projectLatLon(center, 0);
               if (!pt) return;
-              const label = s.name.length > 11 ? s.name.slice(0, 10) + '…' : s.name;
+              const label = s.name.length > 13 ? s.name.slice(0, 12) + '…' : s.name;
+              /* Vertical track label — hangs DOWN as a column footer just below
+                 the domain lane label, centred on the sub-band meridian and
+                 reading top-to-bottom into the empty near-foreground (clear of
+                 both the VIEWING readout and the pip stream). Compact font keeps
+                 even the long project names inside the viewport's bottom edge. */
+              const ly = pt.y + 30;
               out.push(
-                <text key={`sl-${i}-${s.subIdx}`} x={pt.x} y={pt.y + 40}
-                      textAnchor="middle" className="bridge-sublane-label">{label.toUpperCase()}</text>
+                <text key={`sl-${i}-${s.subIdx}`} x={pt.x} y={ly}
+                      textAnchor="end" dominantBaseline="central"
+                      className="bridge-sublane-label"
+                      transform={`rotate(-90 ${pt.x} ${ly})`}>{label.toUpperCase()}</text>
               );
             });
           });
@@ -728,16 +790,21 @@ export const HorizonScene = ({ tasks, lanes, laneOf, sublaneLanes = [], dayOffse
       <g transform={`translate(${CX}, ${CY})`}>
         <circle r={6 * uiScale} className="bridge-ship-core" />
         <circle r={11 * uiScale} fill="none" className="bridge-ship-ring" />
-        <text x={0} y={28} textAnchor="middle" className="bridge-ship-label">VIEWING</text>
-        <text x={0} y={42} textAnchor="middle" className="bridge-ship-date">
-          {formatDateTime(Date.now() + viewAnchor * 86400000)}
-          {viewingRel && (
-            <>
+        {/* Readout sits ABOVE the origin dot so it clears the vertical sublane
+            labels that hang below in the near foreground. Shown only when panned
+            (viewingRel set): unpanned, VIEWING == NOW and the NOW tag already
+            sits above the dot with the same time, so a second readout there would
+            just collide with it. */}
+        {viewingRel && (
+          <>
+            <text x={0} y={-30} textAnchor="middle" className="bridge-ship-label">VIEWING</text>
+            <text x={0} y={-16} textAnchor="middle" className="bridge-ship-date">
+              {formatDateTime(Date.now() + viewAnchor * 86400000)}
               <tspan className="bridge-ship-sep"> | </tspan>
               <tspan className="bridge-ship-rel">{viewingRel}</tspan>
-            </>
-          )}
-        </text>
+            </text>
+          </>
+        )}
       </g>
     </svg>
   );
