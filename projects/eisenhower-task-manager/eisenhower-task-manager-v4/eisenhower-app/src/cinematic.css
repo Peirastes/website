@@ -1,0 +1,4540 @@
+/* ═══════════════════════════════════════════════════════════════
+   PEIRASTES CINEMATIC TIER — v3 Phase 2 CSS
+   ───────────────────────────────────────────────────────────────
+   Chrome row, boot overlay, PIN keypad, scan-line, app-locked
+   animation suppression. Imported by src/index.css and rendered
+   on top of the v2 etm-* chrome via fixed positioning.
+
+   Vocabulary is byte-equivalent with the cinematic demo and the
+   canonical artemis-ii-v3-5/index.html chrome row per CD memory:
+   "chrome must be a verbatim copy". Title gets top:1.2rem (vs
+   flanks at 1.6rem) so the 3-line block's visual center aligns
+   with the wordmark — see project_etm_cinematic_demo memory.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Locked-state suppression ────────────────────────────────────
+   While body has .app-locked, all entrance-animated chrome stays
+   invisible. Removing the class lets cin-fade-in fire fresh, in
+   sync with the boot overlay fading out + scan-line sweeping. */
+body.app-locked .cin-flank,
+body.app-locked .cin-title,
+body.app-locked .cin-hints {
+  animation: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CINEMATIC CHROME ROW — byte-equivalent of artemis-ii-v3-5
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-flank {
+  position: fixed;
+  top: max(1.6rem, env(safe-area-inset-top, 0px) + 0.6rem);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  animation: cin-fade-in 700ms ease 250ms forwards;
+}
+.cin-flank--left {
+  left: max(1.6rem, env(safe-area-inset-left, 0px) + 0.6rem);
+  align-items: flex-start;
+}
+.cin-flank--right {
+  right: max(1.6rem, env(safe-area-inset-right, 0px) + 0.6rem);
+  align-items: flex-end;
+  animation-delay: 400ms;
+}
+
+.cin-wordmark {
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--cin-gold-soft);
+  text-decoration: none;
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+  transition: color 200ms, text-shadow 200ms;
+  line-height: 1;
+}
+.cin-wordmark:hover {
+  color: var(--cin-gold);
+  text-shadow: 0 0 14px var(--cin-gold-glow);
+}
+
+.cin-version {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.56rem;
+  font-weight: 500;
+  color: rgba(125, 214, 255, 0.55);
+  letter-spacing: 0.20em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.cin-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.cin-action {
+  background: linear-gradient(180deg,
+    rgba(20, 26, 36, 0.82) 0%,
+    rgba(8, 12, 18, 0.90) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.62);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.cin-action__glyph { display: inline-block; line-height: 1; }
+.cin-action:hover {
+  color: var(--cin-cyan);
+  background: linear-gradient(180deg,
+    rgba(125, 214, 255, 0.08) 0%,
+    rgba(8, 12, 18, 0.85) 100%);
+  border-color: rgba(125, 214, 255, 0.30);
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 8px var(--cin-cyan-glow);
+}
+.cin-action[disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+  color: rgba(180, 180, 180, 0.5);
+  border-color: rgba(255, 255, 255, 0.06);
+  border-left-color: transparent;
+}
+
+/* Instrument title — top:1.2rem vs flanks at 1.6rem so 3-line block's
+   visual center aligns with wordmark center (see memory entry). */
+.cin-title {
+  position: fixed;
+  top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.2rem);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in-centered 700ms ease 350ms forwards;
+}
+@keyframes cin-fade-in-centered {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  100% { opacity: 1; transform: translate(-50%, 0); }
+}
+.cin-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--cin-gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 4px;
+  line-height: 1;
+  white-space: nowrap;   /* keep the wordmark on one line (no mid-title wrap) */
+}
+.cin-title__name span { color: var(--cin-gold); }
+
+/* Left-anchored variant (the Bridge titles itself "Chronosphere" in the top-
+   left corner instead of the centred app wordmark). */
+.cin-title--left {
+  left: max(1.4rem, env(safe-area-inset-left, 0px) + 0.4rem);
+  transform: none;
+  text-align: left;
+  animation-name: cin-fade-in-plain;
+}
+.cin-title--left .cin-title__name { justify-content: flex-start; }
+@keyframes cin-fade-in-plain { 0% { opacity: 0; } 100% { opacity: 1; } }
+.cin-title__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--cin-cyan-soft);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.cin-title__crew {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 400;
+  color: rgba(220, 220, 220, 0.55);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Bridge live wall-clock — pinned top-right on the header line, mirroring the
+   left-anchored .cin-title. Gold time + cyan date echo the title's gold name +
+   cyan subtitle. Fixed to the viewport (same context as the title) so it rides
+   the header band above the Command frame. */
+.bridge-clock {
+  position: fixed;
+  top: max(1.2rem, env(safe-area-inset-top, 0px) + 0.2rem);
+  right: 16px;
+  z-index: 100;
+  display: flex; flex-direction: column; align-items: flex-start;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in-plain 700ms ease 350ms forwards;
+}
+.bridge-clock__time {
+  /* Same font / size / glow as the CHRONOSPHERE wordmark (.cin-title__name)
+     so the two read as one header. Orbitron's solid strokes also tame the
+     halo that the old thin mono font made look over-glowed. tabular-nums keeps
+     the right-aligned digits from jittering as the seconds tick. */
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px; font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--cin-gold);
+  text-shadow: 0 0 14px var(--cin-gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  line-height: 1;
+  margin-bottom: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.bridge-clock__date {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px; font-weight: 500;
+  color: var(--cin-cyan-soft);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Telemetry rail — slender instrument strip pinned to the header line and
+   centred between the CHRONOSPHERE wordmark (left) and the live clock
+   (right). System-status LEDs, a divider, then the Edmond sky readout.
+   Fixed to the viewport like the title/clock so it rides the header band
+   above the dome; non-interactive (pure display) so it never blocks a drag. */
+.bridge-telemetry {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 7px 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(16, 22, 32, 0.58) 0%, rgba(8, 12, 20, 0.55) 100%);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+  max-width: min(64vw, 780px);
+  opacity: 0;
+  animation: cin-fade-in-plain 700ms ease 350ms forwards;
+}
+/* Two stacked instrument rows — LEDs over environment, hairline between. */
+.bridge-telemetry__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bridge-telemetry__row + .bridge-telemetry__row {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.bridge-telemetry__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8.5px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--cin-gold); text-shadow: 0 0 6px var(--cin-gold-glow);
+  white-space: nowrap;
+  min-width: 96px;   /* shared width so both rows' clusters line up */
+}
+.bridge-telemetry__group { display: flex; align-items: center; gap: 13px; }
+.bridge-telemetry__div {
+  width: 1px; align-self: stretch; margin: 1px 0;
+  background: rgba(255, 255, 255, 0.13);
+}
+/* One LED module — coloured pip + label + optional numeric value. */
+.bridge-tled { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.bridge-tled__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.5);
+  line-height: 1;
+}
+.bridge-tled__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; font-weight: 500; line-height: 1;
+  letter-spacing: 0.02em;
+}
+.bridge-tled__value--ok   { color: var(--ok);   text-shadow: 0 0 8px var(--ok-glow); }
+.bridge-tled__value--warn { color: var(--warn); text-shadow: 0 0 8px var(--warn-glow); }
+.bridge-tled__value--crit { color: var(--crit); text-shadow: 0 0 8px var(--crit-glow); }
+/* Sky cluster — temp (gold) · condition (cyan) · sunrise/sunset (dim cyan). */
+.bridge-telemetry__weather { gap: 12px; }
+.bridge-telemetry__temp {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; font-weight: 500;
+  color: var(--cin-gold-soft); text-shadow: 0 0 8px var(--cin-gold-glow);
+  letter-spacing: 0.02em;
+}
+.bridge-telemetry__cond {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px; font-weight: 600;
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--cin-cyan-soft);
+}
+.bridge-telemetry__cond--dim { color: rgba(220, 230, 240, 0.35); }
+.bridge-telemetry__glyph {
+  font-size: 12px; line-height: 1;
+  color: var(--cin-gold-soft); text-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.bridge-telemetry__sun {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  color: rgba(125, 214, 255, 0.6);
+  letter-spacing: 0.03em; white-space: nowrap;
+}
+/* Moon phase — tiny gold SVG disk + phase name / illumination. */
+.bridge-telemetry__moon { display: flex; align-items: center; gap: 5px; }
+.bridge-moon { display: block; flex-shrink: 0; }
+.bridge-moon__disk {
+  fill: rgba(125, 140, 165, 0.14);
+  stroke: rgba(125, 140, 165, 0.32); stroke-width: 0.5;
+}
+.bridge-moon__lit {
+  fill: var(--cin-gold-soft);
+  filter: drop-shadow(0 0 3px var(--cin-gold-glow));
+}
+.bridge-telemetry__moontxt {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px; font-weight: 600;
+  letter-spacing: 0.13em; text-transform: uppercase;
+  color: var(--cin-cyan-soft); white-space: nowrap;
+}
+.bridge-telemetry__mark { color: var(--cin-gold); }
+
+/* Phone — portrait (narrow) OR landscape (short): the two-row panel is too
+   much, so collapse to a single glanceable strip. One ◇ mark, LED pips with
+   their count badges (no word labels), a divider, then just the temperature +
+   condition glyph + moon disk. Reads by colour at arm's length. iPad/desktop
+   keep the full two rows. */
+@media (max-width: 767px), (max-height: 520px) {
+  .bridge-telemetry {
+    flex-direction: row;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 12px;
+    max-width: none;
+  }
+  .bridge-telemetry__row { gap: 9px; }
+  .bridge-telemetry__row + .bridge-telemetry__row {
+    border-top: none; margin-top: 0; padding-top: 0;
+  }
+  .bridge-telemetry__group { gap: 9px; }
+  /* Row 1 → keep only the diamond; drop the word, its divider, LED labels. */
+  .bridge-telemetry__row:first-child .bridge-telemetry__title { min-width: 0; font-size: 0; }
+  .bridge-telemetry__row:first-child .bridge-telemetry__mark { font-size: 11px; }
+  .bridge-telemetry__row:first-child .bridge-telemetry__div { display: none; }
+  .bridge-tled__label { display: none; }
+  /* Row 2 → drop the ENVIRONMENT label; its divider becomes the LED|sky split. */
+  .bridge-telemetry__row:last-child .bridge-telemetry__title { display: none; }
+  .bridge-telemetry__sun { display: none; }
+  .bridge-telemetry__moontxt { display: none; }
+  .bridge-telemetry__cond { font-size: 0; gap: 0; }   /* hide "CLEAR", keep glyph */
+}
+
+/* Corner cartographic ticks */
+.cin-tick {
+  position: fixed;
+  width: 16px; height: 16px;
+  z-index: 99;
+  pointer-events: none;
+  opacity: 0;
+  animation: cin-fade-in 800ms ease 600ms forwards;
+}
+.cin-tick::before, .cin-tick::after {
+  content: '';
+  position: absolute;
+  background: rgba(125, 214, 255, 0.45);
+}
+.cin-tick--tl {
+  top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);
+  left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem);
+}
+.cin-tick--tl::before { top: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--tl::after  { top: 0; left: 0; width: 1px; height: 12px; }
+.cin-tick--tr {
+  top: max(0.9rem, env(safe-area-inset-top, 0px) + 0.3rem);
+  right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem);
+}
+.cin-tick--tr::before { top: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--tr::after  { top: 0; right: 0; width: 1px; height: 12px; }
+.cin-tick--bl {
+  bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem);
+  left: max(0.9rem, env(safe-area-inset-left, 0px) + 0.3rem);
+}
+.cin-tick--bl::before { bottom: 0; left: 0; width: 12px; height: 1px; }
+.cin-tick--bl::after  { bottom: 0; left: 0; width: 1px; height: 12px; }
+.cin-tick--br {
+  bottom: max(0.9rem, env(safe-area-inset-bottom, 0px) + 0.3rem);
+  right: max(0.9rem, env(safe-area-inset-right, 0px) + 0.3rem);
+}
+.cin-tick--br::before { bottom: 0; right: 0; width: 12px; height: 1px; }
+.cin-tick--br::after  { bottom: 0; right: 0; width: 1px; height: 12px; }
+
+@keyframes cin-fade-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOOT OVERLAY — PIN unlock gate, cinematic register
+   ═══════════════════════════════════════════════════════════════ */
+
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  background: rgba(6, 8, 12, 0.62);
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  transition: opacity 400ms ease, backdrop-filter 400ms ease;
+}
+.boot-overlay.hide {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  pointer-events: none;
+}
+
+.boot-title {
+  text-align: center;
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 300ms forwards;
+}
+.boot-title__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  text-shadow: 0 0 14px var(--cin-gold-glow), 0 0 32px rgba(255, 174, 32, 0.18);
+  margin-bottom: 6px;
+}
+.boot-title__status {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--cin-cyan-soft);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.boot-title__status::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--cin-cyan);
+  box-shadow: 0 0 6px var(--cin-cyan-glow);
+  animation: bootStatusPulse 1.8s ease-in-out infinite;
+}
+.boot-title__status--locked::before {
+  background: #ff3344;
+  box-shadow: 0 0 6px rgba(255, 51, 68, 0.5);
+}
+.boot-title__status--locked { color: rgba(255, 51, 68, 0.85); }
+
+@keyframes bootStatusPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* PIN display — 4 dots */
+.pin-display {
+  display: flex;
+  gap: 14px;
+  padding: 12px 20px;
+  background: rgba(8, 12, 18, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 500ms forwards;
+}
+.pin-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: rgba(8, 12, 18, 0.7);
+  border: 1px solid rgba(125, 214, 255, 0.30);
+  transition: all 180ms ease;
+}
+.pin-dot--filled {
+  background: var(--cin-gold);
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 10px var(--cin-gold-glow);
+}
+.pin-display.shake {
+  animation: pinShake 360ms ease;
+}
+@keyframes pinShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-8px); }
+  40%      { transform: translateX(7px); }
+  60%      { transform: translateX(-5px); }
+  80%      { transform: translateX(3px); }
+}
+.pin-display.shake .pin-dot {
+  background: #ff3344;
+  border-color: #ff3344;
+  box-shadow: 0 0 10px rgba(255, 51, 68, 0.45);
+}
+
+/* PIN keypad — 3×4 grid */
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 70px);
+  grid-template-rows:    repeat(4, 56px);
+  gap: 8px;
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 700ms forwards;
+}
+.pin-key {
+  background: rgba(8, 12, 18, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  color: rgba(232, 232, 232, 0.85);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 140ms ease;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.pin-key:hover {
+  color: var(--cin-cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: rgba(125, 214, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(125, 214, 255, 0.15),
+    0 0 10px var(--cin-cyan-glow);
+}
+.pin-key:active, .pin-key.press {
+  color: var(--cin-gold);
+  border-color: rgba(255, 174, 32, 0.40);
+  background: rgba(255, 174, 32, 0.08);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.45),
+    0 0 12px var(--cin-gold-glow);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.pin-key:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pin-key--util {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+
+.pin-keypad.flash {
+  animation: pinUnlock 300ms ease;
+}
+@keyframes pinUnlock {
+  0%   { filter: brightness(1); }
+  40%  { filter: brightness(1.8); }
+  100% { filter: brightness(1); }
+}
+
+.boot-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.45);
+  opacity: 0;
+  animation: bootFadeIn 800ms ease 900ms forwards;
+  text-align: center;
+  max-width: 320px;
+  line-height: 1.5;
+}
+.boot-hint__error {
+  color: #ff3344;
+  text-shadow: 0 0 6px rgba(255, 51, 68, 0.35);
+  font-weight: 600;
+}
+
+@keyframes bootFadeIn {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Scan-line sweep on unlock */
+.boot-scanline {
+  position: fixed;
+  left: 0; right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--cin-gold);
+  box-shadow: 0 0 12px var(--cin-gold-glow), 0 0 24px var(--cin-gold-glow), 0 4px 28px rgba(255, 174, 32, 0.25);
+  z-index: 250;
+  pointer-events: none;
+  opacity: 0;
+}
+.boot-scanline.sweep {
+  animation: bootScan 1500ms cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+@keyframes bootScan {
+  0%   { top: 0;       opacity: 0; }
+  15%  { opacity: 0.90; }
+  85%  { opacity: 0.40; }
+  100% { top: 100vh;   opacity: 0; }
+}
+
+@media (max-width: 767px) {
+  .pin-keypad {
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows:    repeat(4, 46px);
+    gap: 6px;
+  }
+  .pin-key { font-size: 18px; }
+  .pin-key--util { font-size: 9.5px; }
+  .boot-title__name { font-size: 13px; }
+  .boot-title__status { font-size: 8.5px; }
+  .cin-title__name { font-size: 14px; }
+  .cin-title__sub { font-size: 8px; }
+  .cin-title__crew { display: none; }
+  /* Compact clock so its date line clears the top-right Command frame; right
+     inset mirrors the title's left inset to hug the curved screen. */
+  .bridge-clock { right: max(1.4rem, env(safe-area-inset-right, 0px) + 0.4rem); }
+  .bridge-clock__time { font-size: 14px; margin-bottom: 1px; }
+  .bridge-clock__date { font-size: 8px; letter-spacing: 0.10em; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 3 — Readout bar (top vital signs, cinematic register)
+   ───────────────────────────────────────────────────────────────
+   Replaces v2's .etm-readout-strip metallic chassis. Acrylic glass
+   strip below the chrome row. Q1-Q4 cells show bare colored
+   numbers + LED pip (no "Q1"/"Q2" text labels — color encodes
+   identity per Cole's earlier feedback). Overdue/Today keep text
+   labels because their semantic is temporal, not quadrant.
+   ═══════════════════════════════════════════════════════════════ */
+
+.readout-bar {
+  /* Same positioning pattern as .cin-action-bar — guarantees identical
+     width behavior. Was previously in flex flow with width + align-self
+     center, but the flex-column-stretch + explicit-cross-size case was
+     rendering inconsistently across browsers, making the bar appear
+     wider than the action bar. Fixed positioning sidesteps the flex
+     edge cases entirely. */
+  position: fixed;
+  top: 5rem;       /* clears the chrome row at top:1.2-1.6rem + content */
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(80rem, calc(100vw - 1.6rem));
+  z-index: 40;     /* below chrome (100) + boot overlay (200), above workspace */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--glass-bg-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  box-shadow: var(--glass-shadow);
+  flex-shrink: 0;
+}
+.readout-group {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+.readout-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.readout-cell--quad { gap: 0.32rem; }   /* bare-number quadrant cells, tighter */
+.readout-cell__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  line-height: 1;     /* matches __value's line-height so flex centering aligns text baselines */
+}
+.readout-cell__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1;
+}
+/* Quadrant hue tokens — used by readout cell values, quad-panel
+   chromatic edges, task priority badges. Cinematic-tier mapping
+   per demo: q1=red q2=cyan q3=amber q4=muted. */
+:root {
+  --q1-hue:    #ff5566;
+  --q2-hue:    #7dd6ff;
+  --q3-hue:    #ffb060;
+  --q4-hue:    #8090a4;
+  --q1-glow:   rgba(255, 85, 102, 0.35);
+  --q2-glow:   rgba(125, 214, 255, 0.30);
+  --q3-glow:   rgba(255, 176, 96, 0.35);
+  --q4-glow:   rgba(128, 144, 164, 0.22);
+  --q1-soft:   rgba(255, 85, 102, 0.10);
+  --q2-soft:   rgba(125, 214, 255, 0.08);
+  --q3-soft:   rgba(255, 176, 96, 0.10);
+  --q4-soft:   rgba(128, 144, 164, 0.06);
+  --crit:      #ff3344;
+  --crit-glow: rgba(255, 51, 68, 0.45);
+  --warn:      #ff8822;
+  --warn-glow: rgba(255, 136, 34, 0.45);
+  --ok:        #2fd07a;
+  --ok-glow:   rgba(47, 208, 122, 0.45);
+}
+.readout-cell__value--q1   { color: var(--q1-hue); text-shadow: 0 0 10px var(--q1-glow); }
+.readout-cell__value--q2   { color: var(--q2-hue); text-shadow: 0 0 10px var(--q2-glow); }
+.readout-cell__value--q3   { color: var(--q3-hue); text-shadow: 0 0 10px var(--q3-glow); }
+.readout-cell__value--q4   { color: var(--q4-hue); text-shadow: 0 0 8px  var(--q4-glow); }
+.readout-cell__value--crit { color: var(--crit);   text-shadow: 0 0 10px var(--crit-glow); }
+.readout-cell__value--warn { color: var(--warn);   text-shadow: 0 0 10px var(--warn-glow); }
+
+/* Cinematic LED pips — separate from v2 .etm-led to avoid style
+   collision (v2's lives in index.css with its own glow tokens). */
+.cin-led {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cin-led--q1   { background: var(--q1-hue); box-shadow: 0 0 6px var(--q1-glow); }
+.cin-led--q2   { background: var(--q2-hue); box-shadow: 0 0 6px var(--q2-glow); }
+.cin-led--q3   { background: var(--q3-hue); box-shadow: 0 0 6px var(--q3-glow); }
+.cin-led--q4   { background: var(--q4-hue); box-shadow: 0 0 5px var(--q4-glow); }
+.cin-led--crit { background: var(--crit);   box-shadow: 0 0 6px var(--crit-glow); }
+.cin-led--warn { background: var(--warn);   box-shadow: 0 0 6px var(--warn-glow); }
+.cin-led--ok   { background: var(--ok);     box-shadow: 0 0 6px var(--ok-glow); }
+.cin-led--idle { background: rgba(150, 160, 175, 0.5); box-shadow: 0 0 4px rgba(150, 160, 175, 0.28); }
+.cin-led--pulse { animation: cinLedPulse 2s ease-in-out infinite; }
+@keyframes cinLedPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* Mk-N nameplate — letterpressed device serial */
+.cin-nameplate {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.55));
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.03);
+  border: 1px solid rgba(0,0,0,0.20);
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: rgba(180, 180, 180, 0.55);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 -1px 1px rgba(0,0,0,0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 3 — Matrix view workspace + quad-panels
+   ───────────────────────────────────────────────────────────────
+   Replaces v2's `etm-monitor` CRT housings (hood / bezel / rivets /
+   well / glass / scanlines) with acrylic-glass `quad-panel` cards.
+   Each panel has a chromatic-edge left border in its quadrant hue
+   + a subtle hue wash on the background (the phosphor echo).
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-workspace {
+  flex: 1;
+  min-height: 0;
+  /* Shared horizontal-span pattern + align-self: center for the same
+     flex-column-stretch reason as .readout-bar — see comment there. */
+  width: min(80rem, calc(100vw - 1.6rem));
+  align-self: center;
+  /* margin-top buffers Q1/Q2 below the chrome. margin-bottom buffers Q3/Q4
+     above the action bar at DESKTOP (≥1080px), where --etm-actionbar-clear is
+     the tight 3.4rem that only just clears the single-row bar. Below 1080px the
+     clearance is 5.25rem (already carries the buffer), so the mobile/tablet
+     overrides below drop this margin to match the scrolling .cin-view-panel views. */
+  margin-top: 0.9rem;
+  margin-bottom: 0.9rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cin-matrix-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.quad-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 14px 16px 12px;
+  position: relative;
+  overflow: hidden;
+}
+/* Chromatic edge (left) — quadrant identity. Soft top→fading
+   gradient feels like a phosphor signal rising from the panel side. */
+.quad-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 6px 0 0 6px;
+  pointer-events: none;
+}
+.quad-panel--q1::before { background: linear-gradient(180deg, var(--q1-hue) 0%, transparent 100%); box-shadow: 0 0 12px var(--q1-glow); }
+.quad-panel--q2::before { background: linear-gradient(180deg, var(--q2-hue) 0%, transparent 100%); box-shadow: 0 0 12px var(--q2-glow); }
+.quad-panel--q3::before { background: linear-gradient(180deg, var(--q3-hue) 0%, transparent 100%); box-shadow: 0 0 12px var(--q3-glow); }
+.quad-panel--q4::before { background: linear-gradient(180deg, var(--q4-hue) 0%, transparent 100%); box-shadow: 0 0 8px  var(--q4-glow); }
+/* Faint hue wash on bg — the phosphor echo (very subtle) */
+.quad-panel--q1 { background-image: linear-gradient(135deg, var(--q1-soft) 0%, transparent 60%); }
+.quad-panel--q2 { background-image: linear-gradient(135deg, var(--q2-soft) 0%, transparent 60%); }
+.quad-panel--q3 { background-image: linear-gradient(135deg, var(--q3-soft) 0%, transparent 60%); }
+.quad-panel--q4 { background-image: linear-gradient(135deg, var(--q4-soft) 0%, transparent 60%); }
+
+.quad-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.quad-panel__designation {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quad-panel--q1 .quad-panel__designation { color: var(--q1-hue); text-shadow: 0 0 8px var(--q1-glow); }
+.quad-panel--q2 .quad-panel__designation { color: var(--q2-hue); text-shadow: 0 0 8px var(--q2-glow); }
+.quad-panel--q3 .quad-panel__designation { color: var(--q3-hue); text-shadow: 0 0 8px var(--q3-glow); }
+.quad-panel--q4 .quad-panel__designation { color: var(--q4-hue); text-shadow: 0 0 6px var(--q4-glow); }
+.quad-panel__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.40);
+}
+.quad-panel__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+}
+.quad-panel--q1 .quad-panel__count { color: var(--q1-hue); }
+.quad-panel--q2 .quad-panel__count { color: var(--q2-hue); }
+.quad-panel--q3 .quad-panel__count { color: var(--q3-hue); }
+.quad-panel--q4 .quad-panel__count { color: var(--q4-hue); }
+
+.cin-task-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.cin-task-list::-webkit-scrollbar { width: 5px; }
+.cin-task-list::-webkit-scrollbar-track { background: transparent; }
+.cin-task-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+.cin-task-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+
+/* Individual task row — click to edit. Checkbox in row toggles complete. */
+.cin-task {
+  position: relative;
+  padding: 7px 9px 7px 10px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  transition: all 160ms ease;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.cin-task:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+  transform: translateX(2px);
+}
+.cin-task--overdue { border-color: rgba(255, 51, 68, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 51, 68, 0.08); }
+.cin-task--today   { border-color: rgba(255, 136, 34, 0.24); }
+.cin-task--done    { opacity: 0.45; }
+.cin-task--done .cin-task__name { text-decoration: line-through; }
+
+.cin-task__check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 2px;
+  background: rgba(8, 12, 18, 0.55);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 160ms ease;
+  position: relative;
+}
+.cin-task__check:hover { border-color: var(--cin-cyan); box-shadow: 0 0 4px var(--cin-cyan-glow); }
+.cin-task__check:checked {
+  background: var(--cin-gold);
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.cin-task__check:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  color: rgba(8, 12, 18, 0.95);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cin-task__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.92);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.cin-task__meta-row {
+  grid-column: 2 / 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+  margin-top: 2px;
+}
+.cin-task__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cin-task__badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cin-task__badge--overdue { color: var(--crit); background: rgba(255, 51, 68, 0.12); border: 1px solid rgba(255, 51, 68, 0.25); text-shadow: 0 0 5px var(--crit-glow); }
+.cin-task__badge--today   { color: var(--warn); background: rgba(255, 136, 34, 0.12); border: 1px solid rgba(255, 136, 34, 0.22); text-shadow: 0 0 5px var(--warn-glow); }
+.cin-task__badge--soon    { color: var(--cin-gold-soft); background: rgba(255, 174, 32, 0.08); border: 1px solid rgba(255, 174, 32, 0.18); }
+.cin-task__badge--later   { color: rgba(80, 200, 120, 0.85); background: rgba(80, 200, 120, 0.06); border: 1px solid rgba(80, 200, 120, 0.18); }
+
+.quad-panel__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.30);
+}
+
+@media (max-width: 1023px) {
+  /* Width formula intentionally NOT overridden here. Previously this
+     dropped the viewport-edge inset from 1.6rem to 1rem on smaller
+     screens, but that made the bars SNAP WIDER when crossing the
+     1024px breakpoint (e.g. 972.8px at 1024px viewport jumped to 991px
+     at 1023px). Cole flagged this as the bars "snapping" to a larger
+     size. Now all viewport sizes use the same `min(80rem, calc(100vw -
+     3.2rem))` so the bars only ever match-or-shrink monotonically. */
+  /* At this breakpoint .cin-matrix-grid gap is 0.7rem (see below), so
+     margin-top matches that for the readout-to-Q1/Q2 buffer. NO margin-bottom:
+     <1080px --etm-actionbar-clear (5.25rem) already buffers the action bar, so
+     the grid fills to that edge like the scrolling .cin-view-panel views. */
+  .cin-workspace { margin-top: 0.7rem; margin-bottom: 0; }
+  .cin-matrix-grid { gap: 0.7rem; }
+}
+@media (max-width: 767px) {
+  /* On narrow widths the matrix view falls back to a single-quadrant
+     pattern with a cinematic tab bar (see .cin-mobile-* below). All
+     three bars still share edges via the min() pattern above. */
+  .readout-bar { padding: 0.4rem 0.7rem; gap: 0.5rem; flex-wrap: wrap; }
+  .readout-group { gap: 0.5rem; }
+  .readout-cell__value { font-size: 0.9rem; }
+  .cin-nameplate { display: none; }
+}
+
+/* ─── Mobile matrix tabs (Phase 5 polish) ────────────────────────
+   Single-quadrant view at narrow widths with a cinematic 4-tab bar
+   at the top instead of the v2 underline-style tabs. Each tab shows
+   abbreviation + count in its quadrant hue; active tab gets a
+   per-quadrant chromatic left edge + glow + brighter bg. */
+.cin-mobile-tabs { display: none; }
+.cin-mobile-matrix { display: none; }
+@media (max-width: 767px) {
+  .cin-mobile-tabs {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0 0.2rem;
+    /* Visible buffer below the readout bar — mirrors the workspace's
+       margin-top pattern at desktop (Cole's "buffer same as inter-Q gap"
+       principle, applied to mobile). At mobile the readout bar is
+       slightly shorter so this lands at ~1rem visible gap, close to
+       the <1024px desktop's 0.7rem buffer. */
+    margin-top: 0.7rem;
+    margin-bottom: 0.6rem;
+    /* Same horizontal-span pattern as the other four bars — without
+       this, the mobile matrix went full viewport width while the
+       readout + action bars stayed at viewport - 3.2rem, creating
+       the same snap-wider issue at the 768px breakpoint that the
+       desktop fix solved. align-self: center for the flex-column
+       parent (MatrixView's outer div). */
+    width: min(80rem, calc(100vw - 1.6rem));
+    align-self: center;
+  }
+  .cin-mobile-matrix {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    width: min(80rem, calc(100vw - 1.6rem));
+    align-self: center;
+    /* No margin-bottom: --etm-actionbar-clear (5.25rem on mobile) already
+       buffers the action bar, so the single quadrant fills to that edge — the
+       same ~12px gap the scrolling .cin-view-panel views get. An extra margin
+       here double-buffered the matrix (Cole: "too much spacing on the grid"). */
+    margin-bottom: 0;
+  }
+}
+.cin-mobile-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 4px 6px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  position: relative;
+}
+.cin-mobile-tab:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.cin-mobile-tab.on {
+  background: rgba(8, 12, 18, 0.65);
+  border-top-color: rgba(255, 255, 255, 0.10);
+  border-right-color: rgba(255, 255, 255, 0.10);
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+.cin-mobile-tab--q1.on { border-left-color: var(--q1-hue); box-shadow: inset 0 0 12px rgba(255, 85, 102, 0.10), 0 0 8px var(--q1-glow); }
+.cin-mobile-tab--q2.on { border-left-color: var(--q2-hue); box-shadow: inset 0 0 12px rgba(125, 214, 255, 0.10), 0 0 8px var(--q2-glow); }
+.cin-mobile-tab--q3.on { border-left-color: var(--q3-hue); box-shadow: inset 0 0 12px rgba(255, 176, 96, 0.10), 0 0 8px var(--q3-glow); }
+.cin-mobile-tab--q4.on { border-left-color: var(--q4-hue); box-shadow: inset 0 0 8px  rgba(128, 144, 164, 0.08), 0 0 6px var(--q4-glow); }
+.cin-mobile-tab__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  white-space: nowrap;
+}
+.cin-mobile-tab.on .cin-mobile-tab__label { color: rgba(232, 232, 232, 0.92); }
+.cin-mobile-tab__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+}
+.cin-mobile-tab--q1 .cin-mobile-tab__count { color: var(--q1-hue); }
+.cin-mobile-tab--q2 .cin-mobile-tab__count { color: var(--q2-hue); }
+.cin-mobile-tab--q3 .cin-mobile-tab__count { color: var(--q3-hue); }
+.cin-mobile-tab--q4 .cin-mobile-tab__count { color: var(--q4-hue); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 4 — CinematicViewPanel (drop-in for MonitorShell)
+   ───────────────────────────────────────────────────────────────
+   Acrylic-glass full-workspace card for List / Gantt / Calendar /
+   Analytics views. Replaces v2's etm-monitor CRT housing with the
+   demo's panel topology — 4-stop quadrant-rainbow top edge (the
+   canonical "all-quadrant view" signature), Orbitron gold title +
+   optional count, optional toolbar on the right, scrollable body
+   inside. The view components' INTERNAL elements (TaskCard rows,
+   filter dropdowns, charts) keep their existing v2 styling for
+   now — Phase 4 swaps the shell; inner-content polish per view
+   lands as follow-up refactors if any feel off vs the prototype.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-view-panel {
+  height: 100%;
+  /* Shared horizontal-span pattern matching .readout-bar / .cin-workspace
+     / .cin-action-bar — bounded at 80rem (v2 max-w-7xl), centered, with
+     a 1.6rem viewport-edge inset minimum. <main> is block-level so a
+     classical `margin: 0 auto` centers cleanly here (no flex item
+     concerns). */
+  width: min(80rem, calc(100vw - 1.6rem));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 14px 18px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.cin-view-panel::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+
+.cin-view-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.cin-view-panel__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.cin-view-panel__count {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.65);
+  letter-spacing: 0.05em;
+  text-shadow: none;
+}
+.cin-view-panel__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.40);
+  margin-left: 0.6rem;
+}
+
+.cin-view-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cin-view-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  padding-right: 4px;
+}
+.cin-view-panel__body::-webkit-scrollbar { width: 5px; }
+.cin-view-panel__body::-webkit-scrollbar-track { background: transparent; }
+.cin-view-panel__body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+.cin-view-panel__body::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.24); }
+
+@media (max-width: 767px) {
+  .cin-view-panel { padding: 10px 12px 12px; }
+  .cin-view-panel__title { font-size: 10px; }
+  /* Collapse the Bridge header on phones so the globe gets the vertical space:
+     drop the verbose helper line and tighten the head + toolbar. */
+  .cin-view-panel__sub { display: none; }
+  .cin-view-panel__head { margin-bottom: 6px; padding-bottom: 6px; gap: 0.5rem 0.6rem; }
+  .cin-view-panel__toolbar { gap: 0.4rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 4b — View-specific inner styling (List / Calendar / Gantt /
+   Analytics). Ported from the etm-cinematic-demo prototype.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Shared: segmented mode toggle (Simple ↔ Advanced) ───────────── */
+.cin-mode-toggle {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(8, 12, 18, 0.4);
+  margin-right: 0.4rem;
+}
+.cin-mode-toggle__btn {
+  padding: 4px 11px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(200, 210, 224, 0.5);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease, text-shadow 120ms ease;
+}
+.cin-mode-toggle__btn + .cin-mode-toggle__btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.10);
+}
+.cin-mode-toggle__btn:hover:not(.is-active) { color: rgba(220, 230, 240, 0.85); }
+.cin-mode-toggle__btn.is-active {
+  background: rgba(125, 214, 255, 0.10);
+  color: var(--cin-cyan);
+  text-shadow: 0 0 6px var(--cin-cyan-glow);
+}
+
+/* ─── Shared: cinematic filter dropdown ──────────────────────────── */
+.cin-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cin-filter__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.50);
+  white-space: nowrap;
+}
+.cin-filter select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.85);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 24px 3px 9px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7'><path d='M1 1l5 5 5-5' stroke='%237dd6ff' stroke-width='1.4' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 9px;
+}
+.cin-filter select:hover, .cin-filter select:focus {
+  outline: none;
+  border-color: rgba(125, 214, 255, 0.30);
+  color: var(--cin-cyan);
+}
+.cin-filter select option {
+  background: #0a0e16;
+  color: #e8e8e8;
+  font-family: 'Inter', sans-serif;
+}
+
+.cin-mini-btn {
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.65);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 2px 9px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  line-height: 1.2;
+}
+.cin-mini-btn:hover {
+  color: var(--cin-cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: rgba(125, 214, 255, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIST view — table of all tasks
+   ═══════════════════════════════════════════════════════════════ */
+
+.list-table {
+  display: flex;
+  flex-direction: column;
+}
+.list-row {
+  display: grid;
+  /* Default = Simple mode. Advanced grid is set on .list-table--advanced below. */
+  grid-template-columns: 4px 1fr 140px 70px 90px;
+  gap: 14px;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  background: rgba(8, 12, 18, 0.38);
+  transition: all 160ms ease;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.list-table--advanced .list-row {
+  /* stripe · name+proj · domain · scope · recur · due · rank · progress */
+  grid-template-columns: 4px 1fr 90px 90px 70px 110px 56px 80px;
+  gap: 12px;
+}
+.list-row__meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 200, 220, 0.55);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-row:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+  transform: translateX(2px);
+}
+.list-row--header {
+  background: transparent;
+  border: none;
+  padding: 0 12px 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.42);
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 0;
+  cursor: default;
+}
+.list-row--header:hover {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transform: none;
+}
+.list-row__h-priority { text-align: right; }
+.list-row--overdue { border-color: rgba(255, 51, 68, 0.28); box-shadow: inset 0 0 0 1px rgba(255, 51, 68, 0.08); }
+.list-row--today   { border-color: rgba(255, 136, 34, 0.24); }
+.list-row--done    { opacity: 0.45; }
+.list-row--done .list-row__name { text-decoration: line-through; }
+
+.list-row__stripe {
+  height: 28px;
+  border-radius: 2px;
+  align-self: stretch;
+  margin: -2px 0;
+}
+.list-row--q1 .list-row__stripe { background: var(--q1-hue); box-shadow: 0 0 8px var(--q1-glow); }
+.list-row--q2 .list-row__stripe { background: var(--q2-hue); box-shadow: 0 0 8px var(--q2-glow); }
+.list-row--q3 .list-row__stripe { background: var(--q3-hue); box-shadow: 0 0 8px var(--q3-glow); }
+.list-row--q4 .list-row__stripe { background: var(--q4-hue); box-shadow: 0 0 6px var(--q4-glow); }
+
+.list-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.list-row__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.92);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-row__project {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.list-row__due {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.65);
+}
+.list-row__due--overdue { color: var(--crit); text-shadow: 0 0 6px var(--crit-glow); font-weight: 600; }
+.list-row__due--today   { color: var(--warn); text-shadow: 0 0 6px var(--warn-glow); font-weight: 600; }
+
+.list-row__priority {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+.list-row--q1 .list-row__priority { color: var(--q1-hue); }
+.list-row--q2 .list-row__priority { color: var(--q2-hue); }
+.list-row--q3 .list-row__priority { color: var(--q3-hue); }
+.list-row--q4 .list-row__priority { color: var(--q4-hue); }
+
+.list-row__bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.list-row__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 300ms ease;
+}
+.list-row--q1 .list-row__bar-fill { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.list-row--q2 .list-row__bar-fill { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.list-row--q3 .list-row__bar-fill { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.list-row--q4 .list-row__bar-fill { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+
+.list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.30);
+}
+
+@media (max-width: 767px) {
+  /* Both modes collapse to a single-column row on mobile. Higher specificity
+     match for .list-table--advanced so the 8-col grid template loses to this. */
+  .list-row,
+  .list-table--advanced .list-row {
+    grid-template-columns: 4px 1fr auto;
+    gap: 10px;
+  }
+  .list-row__due, .list-row__priority, .list-row__bar, .list-row__meta { display: none; }
+  .list-row__main { grid-column: 2; }
+  .list-row--header { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CALENDAR view — 7x6 month grid with task pills
+   ═══════════════════════════════════════════════════════════════ */
+
+.cal-monthnav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cal-monthnav__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+  min-width: 180px;
+  text-align: center;
+}
+.cal-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.40);
+  flex-shrink: 0;
+}
+.cal-weekday-header > div { text-align: center; padding: 4px 0; }
+.cal-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  overflow: hidden;
+}
+.cal-cell {
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 5px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+  overflow: hidden;
+  transition: all 160ms ease;
+  cursor: pointer;
+}
+.cal-cell:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.cal-cell--other-month { opacity: 0.32; }
+.cal-cell--today {
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 14px var(--cin-gold-glow), inset 0 0 0 1px var(--cin-gold-faint);
+  background: linear-gradient(135deg, rgba(255, 174, 32, 0.08), rgba(8, 12, 18, 0.38) 70%);
+}
+.cal-cell--weekend { background: rgba(8, 12, 18, 0.28); }
+.cal-cell__date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(220, 220, 220, 0.65);
+  letter-spacing: 0.04em;
+  text-align: right;
+  line-height: 1;
+}
+.cal-cell--today .cal-cell__date {
+  color: var(--cin-gold);
+  font-weight: 700;
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.cal-cell__tasks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  min-height: 0;
+}
+.cal-task-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+.cal-task-pill:hover { background: rgba(255, 255, 255, 0.06); }
+.cal-task-pill--q1 { border-left-color: var(--q1-hue); background: rgba(255, 85, 102, 0.10); }
+.cal-task-pill--q2 { border-left-color: var(--q2-hue); background: rgba(125, 214, 255, 0.10); }
+.cal-task-pill--q3 { border-left-color: var(--q3-hue); background: rgba(255, 176, 96, 0.10); }
+.cal-task-pill--q4 { border-left-color: var(--q4-hue); background: rgba(128, 144, 164, 0.08); }
+.cal-task-pill__time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  color: var(--cin-cyan-soft);
+  margin-right: 4px;
+}
+.cal-task-pill__overflow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: rgba(220, 220, 220, 0.40);
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .cal-task-pill { font-size: 8px; padding: 1px 3px; }
+  .cal-cell { padding: 3px 4px; }
+  .cal-monthnav__title { min-width: 120px; font-size: 10px; }
+  .cal-weekday-header { font-size: 0.52rem; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GANTT view — 21-day timeline window
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Tape-gauge timeline ────────────────────────────────────────
+   No browser scrollbar — the user click-and-drags anywhere on the
+   tape to scrub. Native scroll under the hood (scrollLeft set in
+   JS by the React component on pointermove); horizontal scrollbar
+   hidden in CSS. Vertical scrollbar also hidden — tasks list is
+   typically short enough; mouse-wheel still scrolls vertically.
+   Label column sticks to the left during scrub; axis row sticks
+   to the top during vertical wheel. */
+.gantt-tape {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;        /* let touch scroll vertically; horizontal handled by drag */
+  background: rgba(8, 12, 18, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/legacy Edge */
+}
+.gantt-tape::-webkit-scrollbar { display: none; }    /* Chromium/Safari */
+
+.gantt-tape__inner {
+  display: grid;
+  grid-template-columns: var(--label-px) var(--tape-px);
+  grid-auto-rows: min-content;
+  position: relative;
+  min-width: max-content;
+}
+
+/* Axis row — top-left spacer + a flex strip of per-day cells.
+   Clean minimal demarcation: every-day micro-tick + sparse text labels. */
+.gantt-axis-tape__spacer {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  height: 30px;
+  background: var(--glass-bg-deep);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.gantt-axis-tape__days {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 30px;
+  background: var(--glass-bg-deep);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  display: flex;
+  align-items: flex-end;
+}
+.gantt-axis-tape__day {
+  width: var(--day-px);
+  height: 100%;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(220, 220, 220, 0.45);
+}
+/* Per-day micro-tick at the bottom edge of the axis — sits to the right
+   of each day cell to mark the day-boundary. Major-tick on the 1st of
+   the month + on TODAY (taller, brighter). */
+.gantt-axis-tape__day::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.10);
+}
+.gantt-axis-tape__day.is-month-start::after,
+.gantt-axis-tape__day.is-today::after {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.gantt-axis-tape__day.is-weekend {
+  background: rgba(255, 255, 255, 0.018);
+}
+.gantt-axis-tape__day.is-month-start .gantt-axis-tape__tick-label {
+  color: var(--cin-cyan-soft);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+.gantt-axis-tape__day.is-today .gantt-axis-tape__tick-label {
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.gantt-axis-tape__tick-label { white-space: nowrap; }
+
+/* Task rows. Clean track — no per-day gridlines (those live on the axis). */
+.gantt-row-tape__label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--glass-bg-deep);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+.gantt-row-tape__label:hover { background: rgba(20, 28, 38, 0.55); }
+
+.gantt-row-tape__track {
+  position: relative;
+  height: 44px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.gantt-today-line-tape {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--cin-gold);
+  box-shadow: 0 0 10px var(--cin-gold-glow);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.gantt-tape__empty {
+  grid-column: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(180, 180, 180, 0.35);
+}
+
+.gantt-row__label-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(232, 232, 232, 0.90);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gantt-row__label-meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
+
+.gantt-bar {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  overflow: hidden;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(8, 12, 18, 0.95);
+  cursor: pointer;
+  transition: filter 160ms ease;
+}
+.gantt-bar:hover { filter: brightness(1.18); }
+.gantt-bar--q1 { background: var(--q1-hue); box-shadow: 0 0 10px var(--q1-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--q2 { background: var(--q2-hue); box-shadow: 0 0 10px var(--q2-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--q3 { background: var(--q3-hue); box-shadow: 0 0 10px var(--q3-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--q4 { background: var(--q4-hue); box-shadow: 0 0 6px  var(--q4-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--overdue { background: var(--crit); box-shadow: 0 0 14px var(--crit-glow), inset 0 1px 0 rgba(255,255,255,0.18); }
+.gantt-bar--done    { opacity: 0.4; }
+
+@media (max-width: 1023px) {
+  /* Narrower label column on mid-screens. Tape day-width unchanged so the
+     visible time-span scales by viewport rather than by label size. */
+  .gantt-tape__inner { grid-template-columns: 160px var(--tape-px); }
+}
+@media (max-width: 767px) {
+  .gantt-tape { display: none; }
+  .gantt-narrow-notice {
+    padding: 24px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(180, 180, 180, 0.5);
+    text-align: center;
+  }
+}
+.gantt-narrow-notice { display: none; }
+@media (max-width: 767px) { .gantt-narrow-notice { display: block; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   ANALYTICS view — scorecards + bar charts + velocity SVG
+   ═══════════════════════════════════════════════════════════════ */
+
+.analytics-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.score-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.score-tile {
+  padding: 10px 14px 12px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  border-left: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.score-tile--total    { border-left-color: rgba(220, 220, 220, 0.55); }
+.score-tile--complete { border-left-color: var(--status-positive, #50c878); }
+.score-tile--overdue  { border-left-color: var(--crit); }
+.score-tile--priority { border-left-color: var(--cin-gold); }
+
+.score-tile__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.score-tile__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+}
+.score-tile--total    .score-tile__value { color: rgba(232, 232, 232, 0.92); }
+.score-tile--complete .score-tile__value { color: #50c878; text-shadow: 0 0 10px rgba(80, 200, 120, 0.30); }
+.score-tile--overdue  .score-tile__value { color: var(--crit);  text-shadow: 0 0 10px var(--crit-glow); }
+.score-tile--priority .score-tile__value { color: var(--cin-gold); text-shadow: 0 0 10px var(--cin-gold-glow); }
+.score-tile__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(180, 180, 180, 0.45);
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.chart-card {
+  background: rgba(8, 12, 18, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 180px;
+}
+.chart-card--wide { grid-column: 1 / -1; }
+.chart-card__title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.chart-card__title-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(180, 180, 180, 0.40);
+  text-transform: none;
+  font-weight: 500;
+}
+
+.hbar-rows { display: flex; flex-direction: column; gap: 9px; }
+.hbar-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 36px;
+  align-items: center;
+  gap: 10px;
+}
+.hbar-row__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: rgba(220, 220, 220, 0.80);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hbar-row__track {
+  position: relative;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.hbar-row__fill {
+  position: absolute;
+  inset: 0;
+  width: 0%;
+  border-radius: 2px;
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hbar-row__fill--q1 { background: linear-gradient(90deg, var(--q1-hue), rgba(255, 85, 102, 0.55)); box-shadow: 0 0 8px var(--q1-glow); }
+.hbar-row__fill--q2 { background: linear-gradient(90deg, var(--q2-hue), rgba(125, 214, 255, 0.55)); box-shadow: 0 0 8px var(--q2-glow); }
+.hbar-row__fill--q3 { background: linear-gradient(90deg, var(--q3-hue), rgba(255, 176, 96, 0.55)); box-shadow: 0 0 8px var(--q3-glow); }
+.hbar-row__fill--q4 { background: linear-gradient(90deg, var(--q4-hue), rgba(128, 144, 164, 0.55)); box-shadow: 0 0 6px var(--q4-glow); }
+.hbar-row__fill--neutral { background: linear-gradient(90deg, var(--cin-cyan), rgba(125, 214, 255, 0.45)); box-shadow: 0 0 8px var(--cin-cyan-glow); }
+.hbar-row__value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(220, 220, 220, 0.75);
+  text-align: right;
+}
+
+.velocity-chart {
+  flex: 1;
+  min-height: 140px;
+  position: relative;
+}
+.velocity-chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.velocity-chart__axis-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  fill: rgba(180, 180, 180, 0.45);
+  text-transform: uppercase;
+}
+.velocity-chart__axis-label--today { fill: var(--cin-gold); font-weight: 700; }
+.velocity-chart__gridline { stroke: rgba(255, 255, 255, 0.04); stroke-width: 1; }
+.velocity-chart__area  { fill: url(#velocityGradient); opacity: 0.85; }
+.velocity-chart__line  { fill: none; stroke: var(--cin-gold); stroke-width: 1.5; filter: drop-shadow(0 0 4px var(--cin-gold-glow)); }
+.velocity-chart__today-line { stroke: var(--cin-gold); stroke-width: 1.5; stroke-dasharray: 3 3; opacity: 0.5; }
+.velocity-chart__point { fill: var(--cin-gold); filter: drop-shadow(0 0 4px var(--cin-gold-glow)); }
+
+@media (max-width: 1023px) {
+  .score-tiles { grid-template-columns: repeat(2, 1fr); }
+  .chart-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 767px) {
+  .score-tile__value { font-size: 22px; }
+  .hbar-row { grid-template-columns: 80px 1fr 30px; gap: 8px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 4 finale — Bottom action bar (replaces v2 etm-chassis footer)
+   ───────────────────────────────────────────────────────────────
+   Centered floating glass bar. View tabs + Add Task + utility cluster
+   (Export / Import / Refresh icons). Uses an action-bar-fade-in
+   keyframe so the centering offset (translateX(-50%)) survives the
+   entrance animation per the demo's title-shift pattern.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-action-bar {
+  position: fixed;
+  /* Lift above the home indicator (viewport-fit=cover) so it never overlaps content. */
+  bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px));
+  /* Compact floating panel — hugs its controls, centered. The CONTENT uses the
+     screen width; the dashboard stays small (no spread, no oversize). */
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 1.6rem);
+  z-index: 50;
+  /* Stacked zones (Views over Actions) on mobile; one row on desktop. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  background: var(--glass-bg-deep);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  box-shadow: var(--glass-shadow);
+  opacity: 0;
+  animation: cin-action-bar-fade-in 800ms ease 700ms forwards;
+}
+
+/* Dashboard zones — Views (instruments) over Actions (console), each tight +
+   centered. No seam: the zones stack directly with minimal vertical padding. */
+.cin-dash-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1px 10px;
+}
+
+/* Content bottom-clearance: clears the compact 2-row panel (mobile) or single line
+   (desktop). The mobile bar's top sits ~4.5rem above the viewport bottom (56px tall
+   at bottom:1rem); 5.25rem leaves a small matrix-like gap so scrolling views (list,
+   gantt, calendar) don't slip their last rows under the panel. */
+:root { --etm-actionbar-clear: calc(5.25rem + env(safe-area-inset-bottom, 0px)); }
+
+/* Desktop ≥1080px: one row instead of the 2-row stack. */
+@media (min-width: 1080px) {
+  :root { --etm-actionbar-clear: 3.4rem; }
+  .cin-action-bar { flex-direction: row; align-items: center; gap: 0.9rem; padding: 0.28rem 1rem; }
+}
+body.app-locked .cin-action-bar {
+  animation: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* Opacity-only so it never overrides the bar's transform — which differs by
+   breakpoint (none full-width on mobile; translateX(-50%) centered on desktop). */
+@keyframes cin-action-bar-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.cin-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cin-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.55);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 3px 11px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cin-view-tab:hover {
+  color: var(--cin-cyan);
+  background: rgba(125, 214, 255, 0.06);
+}
+.cin-view-tab.on {
+  color: var(--cin-gold);
+  background: rgba(255, 174, 32, 0.10);
+  border-color: rgba(255, 174, 32, 0.22);
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+}
+.cin-view-tab__glyph {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  opacity: 0.65;
+}
+.cin-view-tab.on .cin-view-tab__glyph { opacity: 1; }
+
+/* Below 1080px the labeled tabs would push the action bar past its frame —
+   collapse them to icons-only (the active tab + glyphs still read clearly). */
+@media (max-width: 1080px) {
+  .cin-view-tab > span:not(.cin-view-tab__glyph) { display: none; }
+  .cin-view-tab { padding: 5px 8px; gap: 0; }
+}
+
+.cin-action-bar__divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.10);
+  flex-shrink: 0;
+}
+
+.cin-add-task {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.32) 0%,
+    rgba(255, 124, 16, 0.32) 100%);
+  border: 1px solid rgba(255, 174, 32, 0.55);
+  color: var(--cin-gold);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 3px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 14px rgba(255, 174, 32, 0.18);
+}
+.cin-add-task:hover {
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.45) 0%,
+    rgba(255, 124, 16, 0.45) 100%);
+  border-color: rgba(255, 174, 32, 0.80);
+  color: #fff;
+  text-shadow: 0 0 10px var(--cin-gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 22px rgba(255, 174, 32, 0.32);
+}
+
+.cin-utility-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.cin-utility-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.55);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cin-utility-btn:hover {
+  color: var(--cin-cyan);
+  background: rgba(125, 214, 255, 0.06);
+  border-color: rgba(125, 214, 255, 0.22);
+}
+.cin-utility-btn--spin { animation: cin-spin 800ms linear infinite; }
+@keyframes cin-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 767px) {
+  /* Width is already handled by the shared min() rule above; mobile
+     just tightens internal padding/gap and drops the bar closer to
+     the viewport bottom edge. */
+  .cin-action-bar {
+    padding: 0.12rem 0.6rem;
+    gap: 0.08rem;
+    bottom: 1rem;
+  }
+  .cin-view-tab { padding: 3px 8px; font-size: 10px; }
+  .cin-view-tab span:not(.cin-view-tab__glyph) { display: none; }
+  .cin-add-task span:not(.cin-add-task__glyph) { display: none; }
+  .cin-add-task { padding: 3px 9px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 5 — Cinematic modal + form input vocabulary
+   ───────────────────────────────────────────────────────────────
+   Replaces v2's etm-chassis modal headers, etm-input form fields,
+   etm-pushbutton action buttons. Used by TaskForm + CompletionModal.
+   ═══════════════════════════════════════════════════════════════ */
+
+.cin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(6, 8, 12, 0.62);
+  backdrop-filter: blur(8px) saturate(1.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow-y: auto;
+  animation: cin-modal-fade-in 240ms ease;
+}
+@keyframes cin-modal-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.cin-modal {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg-modal);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75);
+  position: relative;
+  overflow: hidden;
+  animation: cin-modal-slide-up 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.cin-modal::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--q1-hue), var(--q2-hue), var(--q3-hue), var(--q4-hue));
+  opacity: 0.55;
+  border-radius: 6px 6px 0 0;
+  pointer-events: none;
+}
+@keyframes cin-modal-slide-up {
+  0%   { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.cin-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+.cin-modal__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cin-gold);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px var(--cin-gold-glow);
+}
+.cin-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: rgba(220, 220, 220, 0.55);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cin-modal__close:hover {
+  color: var(--cin-cyan);
+  background: rgba(125, 214, 255, 0.06);
+  border-color: rgba(125, 214, 255, 0.22);
+}
+
+.cin-modal__body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.cin-modal__body::-webkit-scrollbar { width: 5px; }
+.cin-modal__body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 3px; }
+
+.cin-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 12px 18px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+/* ─── Form layout helpers ────────────────────────────────────── */
+.cin-form-grid {
+  display: grid;
+  gap: 12px 14px;
+}
+.cin-form-grid--2 { grid-template-columns: 1fr 1fr; }
+.cin-form-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 600px) {
+  .cin-form-grid--2,
+  .cin-form-grid--3 { grid-template-columns: 1fr; }
+}
+
+.cin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.cin-field__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.cin-field__hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.40);
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────── */
+.cin-input,
+.cin-textarea,
+.cin-select {
+  width: 100%;
+  background: rgba(8, 12, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+  color: rgba(232, 232, 232, 0.92);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  padding: 6px 10px;
+  transition: all 160ms ease;
+}
+.cin-input:focus,
+.cin-textarea:focus,
+.cin-select:focus {
+  outline: none;
+  border-color: rgba(125, 214, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(125, 214, 255, 0.20), 0 0 10px var(--cin-cyan-glow);
+}
+.cin-input::placeholder { color: rgba(180, 180, 180, 0.35); }
+.cin-textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-family: 'Inter', sans-serif;
+}
+.cin-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 24px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 7'><path d='M1 1l5 5 5-5' stroke='%237dd6ff' stroke-width='1.4' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 9px;
+}
+.cin-select option { background: #0a0e16; color: #e8e8e8; }
+
+/* Date inputs — webkit-specific calendar indicator color */
+.cin-input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.6) sepia(0.3) hue-rotate(180deg) saturate(2);
+  cursor: pointer;
+  opacity: 0.7;
+}
+.cin-input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+
+/* Number-style inputs — hide the spin buttons (cleaner) */
+.cin-input[type="number"]::-webkit-inner-spin-button,
+.cin-input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* ─── Checkbox box (urgent/necessary etc.) ──────────────────── */
+.cin-check-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 10px 12px;
+  background: rgba(8, 12, 18, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+.cin-check-tile:hover {
+  background: rgba(20, 28, 38, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.cin-check-tile--checked {
+  background: rgba(255, 174, 32, 0.06);
+  border-color: rgba(255, 174, 32, 0.35);
+  box-shadow: 0 0 10px rgba(255, 174, 32, 0.15);
+}
+.cin-check-tile input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 2px;
+  background: rgba(8, 12, 18, 0.55);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 160ms ease;
+  position: relative;
+}
+.cin-check-tile input[type="checkbox"]:hover { border-color: var(--cin-cyan); }
+.cin-check-tile input[type="checkbox"]:checked {
+  background: var(--cin-gold);
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.cin-check-tile input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: rgba(8, 12, 18, 0.95);
+  font-weight: 700;
+  line-height: 1;
+}
+.cin-check-tile__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cin-check-tile__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(232, 232, 232, 0.92);
+}
+.cin-check-tile__sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
+
+/* ─── Buttons (modal footer) ─────────────────────────────────── */
+.cin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  border: 1px solid transparent;
+}
+.cin-btn--secondary {
+  background: rgba(8, 12, 18, 0.55);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(220, 220, 220, 0.70);
+}
+.cin-btn--secondary:hover {
+  color: var(--cin-cyan);
+  border-color: rgba(125, 214, 255, 0.30);
+  background: rgba(125, 214, 255, 0.06);
+}
+.cin-btn--primary {
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.32) 0%,
+    rgba(255, 124, 16, 0.32) 100%);
+  border-color: rgba(255, 174, 32, 0.55);
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 14px rgba(255, 174, 32, 0.18);
+}
+.cin-btn--primary:hover {
+  background: linear-gradient(180deg,
+    rgba(255, 174, 32, 0.45) 0%,
+    rgba(255, 124, 16, 0.45) 100%);
+  border-color: rgba(255, 174, 32, 0.80);
+  color: #fff;
+}
+.cin-btn--danger {
+  background: rgba(255, 51, 68, 0.10);
+  border-color: rgba(255, 51, 68, 0.35);
+  color: var(--crit);
+  text-shadow: 0 0 6px var(--crit-glow);
+}
+.cin-btn--danger:hover {
+  background: rgba(255, 51, 68, 0.20);
+  border-color: rgba(255, 51, 68, 0.60);
+}
+
+/* ─── LED rating (Completion modal — 1..5 dots) ─────────────── */
+.cin-rating-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.cin-rating-row__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.cin-rating-dots {
+  display: inline-flex;
+  gap: 8px;
+}
+.cin-rating-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 12, 18, 0.55);
+  cursor: pointer;
+  transition: all 160ms ease;
+  padding: 0;
+}
+.cin-rating-dot:hover { border-color: var(--cin-cyan); box-shadow: 0 0 6px var(--cin-cyan-glow); }
+.cin-rating-dot--lit-green {
+  background: #50c878;
+  border-color: #50c878;
+  box-shadow: 0 0 8px rgba(80, 200, 120, 0.45);
+}
+.cin-rating-dot--lit-amber {
+  background: var(--cin-gold);
+  border-color: var(--cin-gold);
+  box-shadow: 0 0 8px var(--cin-gold-glow);
+}
+.cin-rating-row__caption {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: rgba(180, 180, 180, 0.55);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW CROSSFADE — Matrix ↔ List ↔ Gantt ↔ Calendar ↔ Analytics
+   ═══════════════════════════════════════════════════════════════
+   140 ms opacity + 2 px rise. Wrapper inherits flex-column so the
+   matrix workspace's align-self centering and the other views'
+   .cin-view-panel margins are unchanged.
+   ═══════════════════════════════════════════════════════════════ */
+.cin-view-swap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  animation: cin-view-fade 140ms ease-out;
+}
+@keyframes cin-view-fade {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cin-view-swap { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SEARCH PALETTE (Ctrl+K)
+   ═══════════════════════════════════════════════════════════════
+   Acrylic-glass overlay, dimmed backdrop, centered ~640px panel.
+   Same surface vocab as modals (var(--glass-bg-modal), blur,
+   inset highlight) but lighter chrome — no chassis frame around
+   it, just the floating glass card.
+   ═══════════════════════════════════════════════════════════════ */
+.cin-search-overlay {
+  position: fixed; inset: 0;
+  z-index: 90;     /* above readout/action bars (40 / 50), below modals (100) */
+  background: rgba(2, 4, 8, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  animation: cin-fade-in 140ms ease-out;
+}
+
+.cin-search-panel {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: 70vh;
+  background: var(--glass-bg-modal);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cin-search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cin-search-icon { color: var(--cin-cyan-soft); flex-shrink: 0; }
+.cin-search-input {
+  flex: 1 1 auto;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #d4dce8;
+  letter-spacing: 0.01em;
+}
+.cin-search-input::placeholder { color: rgba(180, 200, 220, 0.35); }
+.cin-search-kbd,
+.cin-search-footer kbd {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+  color: rgba(200, 210, 224, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+  letter-spacing: 0.04em;
+}
+
+.cin-search-results {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.4rem 0;
+}
+.cin-search-empty {
+  padding: 1.6rem 1rem;
+  text-align: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(180, 200, 220, 0.4);
+}
+
+.cin-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #c8d0e0;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+.cin-search-row.is-highlight {
+  background: rgba(125, 214, 255, 0.06);
+  border-left-color: var(--cin-cyan);
+}
+.cin-search-row.is-done {
+  color: rgba(180, 200, 220, 0.45);
+}
+.cin-search-row.is-done .cin-search-row__name { text-decoration: line-through; }
+
+.cin-search-row__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(200, 210, 224, 0.4);
+}
+.cin-search-row__dot[data-qid="q1"] { background: hsl(var(--q1-hue), 78%, 60%); box-shadow: 0 0 6px hsl(var(--q1-hue), 78%, 60%, 0.5); }
+.cin-search-row__dot[data-qid="q2"] { background: hsl(var(--q2-hue), 78%, 60%); box-shadow: 0 0 6px hsl(var(--q2-hue), 78%, 60%, 0.5); }
+.cin-search-row__dot[data-qid="q3"] { background: hsl(var(--q3-hue), 78%, 60%); box-shadow: 0 0 6px hsl(var(--q3-hue), 78%, 60%, 0.5); }
+.cin-search-row__dot[data-qid="q4"] { background: hsl(var(--q4-hue), 16%, 55%); }
+
+.cin-search-row__name {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cin-search-row__meta {
+  flex-shrink: 0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(180, 200, 220, 0.55);
+  text-transform: uppercase;
+}
+
+.cin-search-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(180, 200, 220, 0.55);
+}
+.cin-search-footer kbd { font-size: 9px; margin-right: 0.25rem; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS MODAL — taxonomy editor (domains / scopes / subcats)
+   ═══════════════════════════════════════════════════════════════
+   Uses the existing .cin-modal-* shell. Adds sectioning, chip
+   add/remove pattern, and a per-domain subgroup card.
+   ═══════════════════════════════════════════════════════════════ */
+.cin-settings-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 14px 0 6px;
+}
+.cin-settings-section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.cin-settings-section__head {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  margin-bottom: 10px;
+}
+.cin-settings-section__hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(180, 200, 220, 0.5);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.cin-settings-subgroup {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  background: rgba(8, 12, 18, 0.32);
+}
+.cin-settings-subgroup__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--cin-cyan-soft);
+  margin-bottom: 8px;
+}
+
+/* Chip row + chip pill */
+.cin-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-height: 22px;
+}
+.cin-chip-row__empty {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(180, 200, 220, 0.32);
+  text-transform: uppercase;
+  padding: 3px 0;
+}
+.cin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 4px 3px 9px;
+  border-radius: 2px;
+  background: rgba(125, 214, 255, 0.06);
+  border: 1px solid rgba(125, 214, 255, 0.18);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(220, 230, 240, 0.85);
+  letter-spacing: 0.01em;
+}
+.cin-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: rgba(220, 230, 240, 0.5);
+  cursor: pointer;
+  transition: all 120ms ease;
+  padding: 0;
+}
+.cin-chip__remove:hover {
+  background: rgba(255, 51, 68, 0.18);
+  color: var(--crit);
+}
+
+.cin-chip-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cin-chip-input-row .cin-input { flex: 1 1 auto; }
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUT HELP CARD (? key)
+   ═══════════════════════════════════════════════════════════════ */
+.cin-shortcut-overlay {
+  position: fixed; inset: 0;
+  z-index: 95;
+  background: rgba(2, 4, 8, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cin-fade-in 140ms ease-out;
+}
+.cin-shortcut-card {
+  width: min(26rem, calc(100vw - 2rem));
+  background: var(--glass-bg-modal);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+}
+.cin-shortcut-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cin-shortcut-card__title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.cin-shortcut-card__body {
+  padding: 0.7rem 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.cin-shortcut-row {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  align-items: center;
+  gap: 1rem;
+}
+.cin-shortcut-row__keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.cin-shortcut-row__keys kbd {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  color: rgba(200, 210, 224, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+  letter-spacing: 0.04em;
+}
+.cin-shortcut-row__plus {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(180, 200, 220, 0.45);
+}
+.cin-shortcut-row__desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(220, 230, 240, 0.78);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UNDO TOAST (post-delete safety net)
+   ═══════════════════════════════════════════════════════════════
+   Floating acrylic strip at the lower-left. Sits above the action
+   bar (z 50) but below modals (100) so it can be undone before a
+   second action clobbers it. ~5 s lifetime managed in App.jsx.
+   ═══════════════════════════════════════════════════════════════ */
+.cin-undo-toast {
+  position: fixed;
+  bottom: 5.4rem;     /* clears the floating action bar (1.6rem + chrome) */
+  left: 1.6rem;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.55rem 0.7rem 0.55rem 0.9rem;
+  background: var(--glass-bg-modal);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-left: 2px solid var(--crit);
+  border-radius: 4px;
+  box-shadow: var(--glass-shadow);
+  font-family: 'Inter', sans-serif;
+  max-width: min(28rem, calc(100vw - 3.2rem));
+  animation: cin-undo-rise 180ms ease-out;
+}
+@keyframes cin-undo-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cin-undo-toast__msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+.cin-undo-toast__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--crit);
+  text-shadow: 0 0 6px var(--crit-glow);
+  flex-shrink: 0;
+}
+.cin-undo-toast__name {
+  font-size: 12px;
+  color: rgba(220, 230, 240, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.cin-undo-toast__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 4px 10px;
+  background: rgba(125, 214, 255, 0.10);
+  border: 1px solid rgba(125, 214, 255, 0.28);
+  border-radius: 3px;
+  color: var(--cin-cyan);
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px var(--cin-cyan-glow);
+  cursor: pointer;
+  transition: all 120ms ease;
+  flex-shrink: 0;
+}
+.cin-undo-toast__btn:hover {
+  background: rgba(125, 214, 255, 0.18);
+  border-color: var(--cin-cyan);
+}
+@media (max-width: 767px) {
+  .cin-undo-toast { left: 0.8rem; right: 0.8rem; bottom: 7rem; max-width: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INFO / ABOUT MODAL
+   ═══════════════════════════════════════════════════════════════ */
+.cin-info-block { padding-bottom: 4px; }
+.cin-info-block__name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+  margin-bottom: 2px;
+}
+.cin-info-block__version {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--cin-cyan-soft);
+  margin-bottom: 8px;
+}
+.cin-info-block__line {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(220, 230, 240, 0.78);
+  line-height: 1.5;
+}
+
+.cin-info-kbd {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 3px;
+  color: rgba(200, 210, 224, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cin-info-grid {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 4px 14px;
+}
+.cin-info-grid__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(180, 200, 220, 0.5);
+  align-self: center;
+}
+.cin-info-grid__value {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(220, 230, 240, 0.80);
+}
+
+.cin-info-foot {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+.cin-info-foot__link {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: rgba(220, 230, 240, 0.75);
+  text-decoration: none;
+  transition: color 120ms ease, text-shadow 120ms ease;
+}
+.cin-info-foot__link:hover {
+  color: var(--cin-gold);
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BRIDGE VIEW — Horizon (forward perspective) + Radar (PPI top-down)
+   ═══════════════════════════════════════════════════════════════ */
+.bridge-scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+  flex: 1;
+  min-height: 0;
+}
+/* The HORIZON readout is now on-globe SVG text (see HorizonScene / the
+   .bridge-ship-* + .bridge-horizon-recenter styles above) floating above the
+   top limb, so the old top-centre HTML pill (.bridge-lookpoint*) is retired. */
+
+/* ─── Bridge corner HUD — status readout + quest tracker filling the voids
+   that flank the globe. Overlays only; never intercept the globe drag. ─── */
+.bridge-hud {
+  position: absolute;
+  top: 14px;
+  z-index: 4;
+  pointer-events: auto;          /* real glass panel — it owns its own area */
+  font-family: 'Share Tech Mono', monospace;
+  max-height: calc(100% - 28px);
+  display: flex;
+  flex-direction: column;
+  /* Floating acrylic panel — translucent glass over the free-floating globe. */
+  padding: 9px 11px 10px;
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(16, 22, 32, 0.60) 0%, rgba(10, 15, 24, 0.50) 55%, rgba(8, 12, 20, 0.58) 100%);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+/* Active steering focus — the panel glows to signal it's driving the globe. */
+.bridge-hud.is-focusing {
+  border-color: rgba(255, 204, 0, 0.34);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 204, 0, 0.18),
+    0 0 22px rgba(255, 174, 32, 0.16);
+}
+.bridge-hud--sectors  { left: 16px;  width: 208px; }
+.bridge-hud--projects { right: 16px; width: 232px; }
+/* Body scrolls; the header pill stays pinned. */
+.bridge-hud__body { overflow-y: auto; min-height: 0; scrollbar-width: none; }
+.bridge-hud__body::-webkit-scrollbar { width: 0; height: 0; }
+.bridge-hud__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 204, 0, 0.18);
+  flex-shrink: 0;
+}
+.bridge-hud__head-label {
+  font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--cin-gold); text-shadow: 0 0 6px var(--cin-gold-glow);
+}
+.bridge-hud__collapse {
+  pointer-events: auto; cursor: pointer; background: none; border: none;
+  color: rgba(220, 230, 240, 0.55); font-size: 10px; line-height: 1;
+  padding: 2px 5px; border-radius: 5px; transition: color 120ms ease, background 120ms ease;
+}
+.bridge-hud__collapse:hover { color: var(--cin-gold); background: rgba(255, 204, 0, 0.10); }
+/* Collapsed → just the header pill floats, globe bared. */
+.bridge-hud.is-collapsed { padding-bottom: 9px; }
+.bridge-hud.is-collapsed .bridge-hud__head { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.bridge-hud.is-collapsed .bridge-hud__body { display: none; }
+.bridge-hud__empty { font-size: 9px; color: rgba(220, 230, 240, 0.35); letter-spacing: 0.06em; padding: 2px 0 6px; }
+.bridge-hud__caret { color: rgba(220, 230, 240, 0.5); font-size: 9px; width: 10px; flex-shrink: 0; }
+
+/* Expandable header rows (sectors + projects) — clickable, so re-enable events. */
+.bridge-sector__head, .bridge-project__head {
+  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: none; border: none; padding: 4px; margin: 0;
+  color: inherit; text-align: left; border-radius: 4px;
+  transition: background 120ms ease;
+}
+.bridge-sector__head:hover, .bridge-project__head:hover,
+.bridge-sector__head:focus-visible, .bridge-project__head:focus-visible {
+  background: rgba(255, 255, 255, 0.05); outline: none;
+}
+/* Focused row — this sector/project is steering the globe. */
+.bridge-sector__head.is-focused, .bridge-project__head.is-focused {
+  background: rgba(255, 204, 0, 0.13);
+  box-shadow: inset 2px 0 0 var(--cin-gold);
+}
+.bridge-sector__head.is-focused .bridge-sector__name,
+.bridge-project__head.is-focused .bridge-project__name { color: var(--cin-gold); }
+/* When one row is focused, mute its siblings so the choice reads clearly. */
+.bridge-hud.is-focusing .bridge-sector:not(:has(.is-focused)),
+.bridge-hud.is-focusing .bridge-project:not(:has(.is-focused)) { opacity: 0.45; }
+.bridge-sector { margin-bottom: 1px; }
+.bridge-sector__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.bridge-sector--q1 .bridge-sector__dot { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.bridge-sector--q2 .bridge-sector__dot { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.bridge-sector--q3 .bridge-sector__dot { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.bridge-sector--q4 .bridge-sector__dot { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+.bridge-sector__name {
+  flex: 1; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(220, 230, 240, 0.78);
+}
+.bridge-sector__count { font-size: 11px; color: rgba(220, 230, 240, 0.55); flex-shrink: 0; }
+
+.bridge-project { margin-bottom: 1px; }
+.bridge-project__dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: var(--cin-gold); box-shadow: 0 0 4px var(--cin-gold-glow);
+}
+.bridge-project__name {
+  flex: 1; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(220, 230, 240, 0.78);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bridge-project__pct { font-size: 11px; color: rgba(220, 230, 240, 0.55); flex-shrink: 0; }
+
+/* Task sub-list — shared by sectors + projects. */
+.bridge-hud__list { margin: 1px 0 6px 16px; display: flex; flex-direction: column; }
+.bridge-hud__item {
+  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  background: none; border: none; padding: 3px 5px; margin: 0 -5px;
+  border-radius: 3px; text-align: left; transition: background 120ms ease;
+}
+.bridge-hud__item:hover, .bridge-hud__item:focus-visible { background: rgba(255, 204, 0, 0.08); outline: none; }
+.bridge-hud__item-name {
+  font-size: 9px; letter-spacing: 0.02em; color: rgba(220, 230, 240, 0.7);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bridge-hud__item:hover .bridge-hud__item-name { color: var(--cin-gold); }
+.bridge-hud__item-due { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(125, 214, 255, 0.55); flex-shrink: 0; }
+.bridge-hud__item-due.is-overdue { color: var(--crit); }
+
+/* Project progress bar (task rollup). */
+.bridge-quest__bar { height: 3px; margin: 2px 4px 0; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden; }
+.bridge-quest__fill { height: 100%; background: var(--cin-gold); border-radius: 2px; box-shadow: 0 0 4px var(--cin-gold-glow); }
+
+/* ─── Overdue-behind tray — red glass tab bottom-left; tasks that slipped off
+   the back of the horizon and would otherwise be invisible. Expands upward. ─── */
+.bridge-overdue {
+  position: absolute; left: 16px; bottom: 16px; z-index: 5;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.bridge-overdue__tab {
+  pointer-events: auto; cursor: pointer;
+  font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--crit);
+  padding: 6px 12px; border-radius: 9px; border: 1px solid rgba(255, 51, 68, 0.36);
+  background: linear-gradient(180deg, rgba(30, 14, 16, 0.66) 0%, rgba(20, 10, 12, 0.60) 100%);
+  backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 51, 68, 0.16),
+    0 0 14px rgba(255, 51, 68, 0.12);
+  animation: bridge-overdue-pulse 2.6s ease-in-out infinite;
+}
+.bridge-overdue__tab:hover { color: #ff6070; border-color: rgba(255, 51, 68, 0.6); }
+.bridge-overdue.is-open .bridge-overdue__tab { animation: none; }
+@keyframes bridge-overdue-pulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,51,68,0.16), 0 0 8px rgba(255,51,68,0.08); }
+  50%      { box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,51,68,0.20), 0 0 20px rgba(255,51,68,0.22); }
+}
+.bridge-overdue__list {
+  pointer-events: auto;
+  width: 250px; padding: 8px 10px; border-radius: 10px;
+  display: flex; flex-direction: column;
+  max-height: 44vh; overflow-y: auto; scrollbar-width: none;
+  background: linear-gradient(180deg, rgba(26, 13, 16, 0.72) 0%, rgba(16, 9, 12, 0.66) 100%);
+  backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 51, 68, 0.24);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 51, 68, 0.12);
+}
+.bridge-overdue__list::-webkit-scrollbar { width: 0; height: 0; }
+
+/* On phones the globe fills the width; panels stay floating + collapsible. */
+@media (max-width: 767px) {
+  .bridge-overdue { bottom: 12px; }
+  .bridge-overdue__list { width: min(250px, calc(100vw - 40px)); }
+}
+
+/* ═══ Bridge "free-space" frame — the globe floats on the app's deep-space
+   backdrop (no boxy card), and the nav/controls become a floating glass
+   panel overlay, matching the Artemis II v2 space-frame treatment. Scoped
+   to the Bridge so every other view keeps its standard panel chrome. ═══ */
+.cin-view-panel--bridge {
+  background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+  /* Break out of the shared 80rem width cap to full-bleed the stage, so the
+     oversized globe clips at the SCREEN edges (reads as bleeding off-screen)
+     instead of at the panel edge (which looked like a frame). */
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+.cin-view-panel--bridge::before { display: none; }   /* kill the rainbow top bar */
+/* No header now — the app masthead is the one centred title; the body is the
+   full-bleed stage. */
+.cin-view-panel--bridge .cin-view-panel__body { height: 100%; }
+
+/* Chrome overlay — wraps every floating rail. Landscape: a full-bleed inert
+   layer, so the rails inside float over the globe exactly as before. Portrait
+   reflow (further down) turns it into an in-flow top band. */
+.bridge-chrome {
+  position: absolute; inset: 0; z-index: 5;
+  pointer-events: none;
+}
+
+/* ─── Command — top-RIGHT floating glass panel: one collapsible frame holding
+   the Bridge controls (mode + filters), the Views nav, and the Actions
+   (Add Task + utilities). On the right so a thumb reaches the controls when
+   holding a phone/tablet; the task readouts sit left for the other hand. ─── */
+.bridge-rail--command {
+  position: absolute; z-index: 6;
+  top: 6px; right: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  max-height: calc(100% - 20px);
+  pointer-events: none;
+}
+.bridge-console {
+  pointer-events: auto;
+  width: 208px; min-height: 0;
+  display: flex; flex-direction: column; align-items: stretch;
+  padding: 9px 11px 11px; border-radius: 11px;
+  background: linear-gradient(180deg, rgba(16, 22, 32, 0.60) 0%, rgba(10, 15, 24, 0.50) 55%, rgba(8, 12, 20, 0.58) 100%);
+  backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+/* Collapsible body — scrolls if the stack outgrows the viewport height. */
+.bridge-console__body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none;
+  display: flex; flex-direction: column; align-items: stretch; gap: 9px;
+}
+.bridge-console__body::-webkit-scrollbar { width: 0; height: 0; }
+.bridge-console.is-collapsed .bridge-hud__head { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.bridge-console.is-collapsed .bridge-console__body { display: none; }
+/* Section sub-labels + hairline dividers inside the frame. */
+.bridge-console__sub {
+  font-family: 'Orbitron', sans-serif; font-size: 8.5px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(220, 230, 240, 0.5); margin-bottom: -2px;
+}
+.bridge-console__sep { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 2px 0; border: none; }
+.bridge-console__actions { display: flex; flex-direction: column; gap: 7px; }
+.bridge-console .cin-mode-toggle { margin: 0; display: flex; width: 100%; }
+.bridge-console .cin-mode-toggle__btn { flex: 1; text-align: center; padding: 4px 4px; letter-spacing: 0.10em; }
+/* Filters stack: label above a full-width select. */
+.bridge-console .cin-filter {
+  margin: 0; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+}
+.bridge-console .cin-filter__label { letter-spacing: 0.16em; }
+.bridge-console .cin-filter select { width: 100%; }
+/* Views nav — vertical menu (always labelled, overriding the bar's icon collapse). */
+.bridge-console .cin-view-tabs {
+  flex-direction: column; align-items: stretch; gap: 2px; width: 100%;
+}
+.bridge-console .cin-view-tab {
+  width: 100%; justify-content: flex-start;
+  padding: 5px 8px; font-size: 10.5px; letter-spacing: 0.12em;
+}
+.bridge-console .cin-view-tab > span:not(.cin-view-tab__glyph) { display: inline !important; }
+.bridge-console .cin-add-task { width: 100%; justify-content: center; padding: 6px 10px; }
+.bridge-console .cin-utility-cluster { justify-content: space-between; gap: 2px; }
+.bridge-console .cin-utility-btn { flex: 1; height: 26px; }
+
+/* ─── Task rail (LEFT) — Sectors over Projects, stacked. Clicks pass through
+   the gaps (rail is inert; the panels own their own area). ─── */
+.bridge-rail--tasks {
+  position: absolute; z-index: 4;
+  top: 6px; left: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  max-height: calc(100% - 20px);
+  pointer-events: none;
+}
+.bridge-rail--tasks .bridge-hud { position: static; max-height: none; width: 258px; }
+/* Sectors takes its natural height; Projects flexes and scrolls below it. */
+.bridge-rail--tasks .bridge-hud--sectors  { flex: 0 0 auto; }
+.bridge-rail--tasks .bridge-hud--projects { flex: 1 1 auto; min-height: 0; }
+
+/* On phones the globe fills the width; keep controls compact, drop the label
+   text on the filter dropdowns (the values are self-evident). */
+@media (max-width: 767px) {
+  .bridge-rail--command { top: 12px; right: 12px; }
+  .bridge-console { width: 150px; }
+  .bridge-console .cin-filter__label { display: none; }
+  .bridge-console .cin-filter select { min-width: 0; }
+  .bridge-rail--tasks { top: 12px; left: 12px; }
+  .bridge-rail--tasks .bridge-hud { width: 158px; }
+}
+
+/* The Bridge hides the bottom action bar, so the shell's reserved action-bar
+   clearance is dead space here — reclaim it at every size so the globe (and
+   the floating frames' available height) reaches the bottom edge. */
+.etm-shell--bridge { padding-bottom: 0.6rem !important; }
+/* Height must track the VISIBLE viewport, not 100vh. On iPad/iOS Safari 100vh
+   includes the area behind the browser toolbars, so the bottom of the stage
+   (VIEWING marker + near-field tasks) gets pushed off-screen. Dynamic-viewport
+   units fix it; on browsers without dvh the invalid !important value is dropped
+   and the cascade falls back to the h-screen (100vh) utility. */
+.etm-shell--bridge { height: 100dvh !important; }
+
+/* ─── Short viewports (LANDSCAPE PHONES + short desktop windows): a landscape
+   phone is wide-but-short, so the width breakpoints above never fire. Key on
+   HEIGHT: reclaim the masthead's vertical band and pack the floating frames so
+   nav stays reachable without the frame outgrowing a ~380px-tall stage. ─── */
+@media (max-height: 520px) {
+  /* Reclaim the top padding that clears the (now compressed) masthead. */
+  .etm-shell { padding-top: 1.7rem !important; }
+  /* Masthead → compact but still a proper title + subtitle block, hugging the
+     top-left (left inset respects a landscape notch; keep it minimal). */
+  .cin-title { top: 5px; left: max(0.9rem, env(safe-area-inset-left, 0px) + 2px); }
+  .cin-title__name { font-size: 13px; letter-spacing: 0.18em; margin-bottom: 1px; }
+  .cin-title__sub { font-size: 7.5px; letter-spacing: 0.18em; margin-bottom: 0; }
+  .cin-title__crew { display: none; }
+  /* Clock → compact stack pinned top-right so its date line no longer drops
+     into the Command frame below it. Right inset mirrors the title's left
+     inset so both hug the curved screen symmetrically. */
+  .bridge-clock { top: 5px; right: max(0.9rem, env(safe-area-inset-right, 0px) + 2px); }
+  .bridge-clock__time { font-size: 13px; margin-bottom: 1px; }
+  .bridge-clock__date { font-size: 7.5px; letter-spacing: 0.10em; }
+
+  /* Frames hug the corners tighter; cap to the stage and scroll if needed. */
+  .bridge-rail--command  { top: 8px; right: 8px; max-height: calc(100% - 16px); }
+  .bridge-rail--tasks { top: 8px; left: 8px; max-height: calc(100% - 16px); }
+  .bridge-console { width: 154px; }
+  .bridge-rail--tasks .bridge-hud { width: 176px; }
+
+  /* Command: pack it so Views + Actions stay on-screen without scrolling. */
+  .bridge-console__body { gap: 6px; }
+  .bridge-console .cin-filter__label { display: none; }   /* selects are self-evident */
+  .bridge-console__sub { display: none; }                 /* separators alone divide the sections */
+  /* Views nav → compact icon grid (icons only, ~4 per row). */
+  .bridge-console .cin-view-tabs { flex-flow: row wrap; justify-content: center; gap: 4px; }
+  .bridge-console .cin-view-tab { width: auto; flex: 0 0 auto; padding: 5px 6px; }
+  .bridge-console .cin-view-tab > span:not(.cin-view-tab__glyph) { display: none !important; }
+  /* Actions row: Add Task + utilities compact so the whole frame fits. */
+  .bridge-console .cin-add-task { padding: 5px 8px; }
+  .bridge-console .cin-utility-btn { height: 24px; }
+
+  /* Backup toast: off the right rail — a slim centred pill along the bottom. */
+  .etm-backup-toast {
+    bottom: 6px !important; right: auto !important;
+    left: 50% !important; transform: translateX(-50%);
+    max-width: min(300px, calc(100vw - 24px)) !important;
+  }
+}
+
+.bridge-scene--horizon {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Shared HUD frame around either scene */
+.bridge-frame {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.14);
+  stroke-width: 1;
+}
+
+/* ─── Horizon scene ───────────────────────────────────────────── */
+.bridge-horizon {
+  fill: none;
+  stroke: var(--cin-gold);
+  stroke-width: 1.2;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 6px var(--cin-gold-glow));
+}
+/* Background wireframe — uniform 15° lat/lon graticule. */
+.bridge-wire {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.16);
+  stroke-width: 0.5;
+}
+.bridge-wire--axis {
+  stroke: rgba(125, 214, 255, 0.35);
+  stroke-width: 0.7;
+}
+.bridge-range-arc {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.55);
+  stroke-width: 0.9;
+  stroke-dasharray: 5 3;
+}
+.bridge-range-arc--minor {
+  stroke: rgba(125, 214, 255, 0.09);
+  stroke-width: 0.3;
+  stroke-dasharray: 1 6;
+}
+.bridge-range-arc--half-minor {
+  stroke: rgba(125, 214, 255, 0.045);
+  stroke-width: 0.25;
+  stroke-dasharray: 1 6;
+}
+/* Night side — semi-transparent wash over the past hemisphere. Sits
+   below the TODAY meridian and on top of the wireframe so the past
+   grid reads as slightly darker; pips drawn over it stay bright. */
+.bridge-nightside {
+  fill: rgba(0, 0, 0, 0.35);
+  stroke: none;
+  pointer-events: none;
+}
+
+/* TODAY meridian — same gold-amber as the limb, no dashes, brighter. */
+.bridge-range-arc--today {
+  stroke: var(--cin-gold);
+  stroke-width: 1;
+  stroke-dasharray: none;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 5px var(--cin-gold-glow));
+}
+/* Origin line — the stationary central meridian marking where you're looking on
+   the time axis. A clean, bright, straight vertical axis; the today meridian
+   slides through it as you pan (and coincides with it at the default view). */
+.bridge-range-arc--origin {
+  stroke: var(--cin-gold);
+  stroke-width: 1.4;
+  stroke-dasharray: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 5px var(--cin-gold-glow));
+}
+.bridge-range-label--today {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  fill: var(--cin-gold);
+  text-shadow: 0 0 6px var(--cin-gold-glow);
+}
+/* The live NOW readout on the zero-time axis now reuses the shared ship
+   label/date styling (.bridge-ship-label + .bridge-ship-date) so it matches
+   the VIEWING and HORIZON references exactly — label on top, date·time below. */
+.bridge-lane-rail {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.45);
+  stroke-width: 0.8;
+}
+.bridge-ship {
+  fill: var(--cin-gold);
+  filter: drop-shadow(0 0 7px var(--cin-gold-glow));
+}
+
+/* ─── Radar scene ─────────────────────────────────────────────── */
+.bridge-range-ring {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.22);
+  stroke-width: 0.6;
+  stroke-dasharray: 3 5;
+}
+.bridge-radar-rim {
+  fill: none;
+  stroke: var(--cin-gold);
+  stroke-width: 1;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 5px var(--cin-gold-glow));
+}
+.bridge-sector-divider {
+  stroke: rgba(125, 214, 255, 0.10);
+  stroke-width: 0.5;
+  stroke-dasharray: 2 4;
+}
+.bridge-ship-core {
+  fill: var(--cin-gold);
+  filter: drop-shadow(0 0 8px var(--cin-gold-glow));
+}
+.bridge-ship-ring {
+  fill: none;
+  stroke: var(--cin-gold);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+.bridge-compass-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  fill: var(--cin-gold);
+  text-shadow: 0 0 4px var(--cin-gold-glow);
+}
+
+/* ─── Shared labels ───────────────────────────────────────────── */
+/* Bumped for legibility — these sit near the sphere's curved limb and were too
+   small to read on phones/tablets. Larger + higher-contrast so the date axis is
+   readable there too (the top-centre look-point pill is the primary readout). */
+.bridge-range-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  fill: rgba(125, 214, 255, 0.68);
+}
+/* Absolute calendar/clock labels (left side of horizon arcs). Tinted
+   gold to read as the real-time anchor versus the cyan relative axis. */
+.bridge-range-label--abs {
+  fill: rgba(255, 174, 32, 0.72);
+}
+/* Ship sublabel — small calendar/clock readout under the relative
+   anchor label, shown only when panned off real-now. */
+.bridge-ship-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  fill: rgba(255, 174, 32, 0.72);
+}
+/* Signed offset-from-now tail on the VIEWING readout — cyan, mirroring the
+   HORIZON pill's relative (+3mo). Inherits the ship-date font/size. */
+.bridge-ship-rel {
+  fill: rgba(125, 214, 255, 0.85);
+  font-weight: 700;
+}
+/* Bar separator before the VIEWING / HORIZON offset — the text-glyph equivalent
+   of the old pill's vertical tick, so the readouts split date·time | ± the same
+   way (a bar, not a dot). */
+.bridge-ship-sep {
+  fill: rgba(255, 255, 255, 0.22);
+}
+/* ⟲ recenter glyph on the on-globe HORIZON readout — clickable (auto pointer
+   events over the otherwise drag-through text) and cyan like the offset. */
+.bridge-horizon-recenter {
+  fill: rgba(125, 214, 255, 0.85);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.bridge-lane-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  fill: rgba(125, 214, 255, 0.65);
+}
+/* Sublane (track) labels — smaller + dimmer than the domain lane label, in
+   gold to read as the finer subdivision. */
+.bridge-sublane-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: rgba(255, 174, 32, 0.68);
+}
+/* Density toggle — a compact switch in the Command frame, matching the
+   .cin-filter row layout (label left, control right). */
+.cin-filter--toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bridge-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(180, 200, 220, 0.55);
+}
+.bridge-toggle__track {
+  position: relative;
+  width: 26px;
+  height: 12px;
+  border-radius: 7px;
+  background: rgba(120, 140, 160, 0.18);
+  border: 1px solid rgba(140, 160, 180, 0.28);
+  transition: background 0.18s, border-color 0.18s;
+}
+.bridge-toggle__knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(180, 200, 220, 0.7);
+  transition: transform 0.18s, background 0.18s;
+}
+.bridge-toggle.is-on {
+  color: var(--cin-gold, #ffae20);
+}
+.bridge-toggle.is-on .bridge-toggle__track {
+  background: rgba(255, 174, 32, 0.28);
+  border-color: rgba(255, 174, 32, 0.5);
+}
+.bridge-toggle.is-on .bridge-toggle__knob {
+  transform: translateX(14px);
+  background: var(--cin-gold, #ffae20);
+}
+
+/* Sublane density column — translucent gold fill (per-band opacity set inline
+   from pip count) with a soft, slightly blurred border between tracks. */
+.bridge-sublane-band {
+  fill: var(--cin-gold, #ffae20);
+}
+.bridge-sublane-rail {
+  stroke: rgba(255, 174, 32, 0.32);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  filter: blur(0.5px);
+}
+
+/* ── Sublane Manager modal ────────────────────────────────────────────────── */
+.sl-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(140, 160, 180, 0.15);
+}
+.sl-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(180, 200, 220, 0.55);
+  transition: color 0.15s, border-color 0.15s;
+}
+.sl-tab:hover { color: rgba(210, 225, 240, 0.85); }
+.sl-tab.is-active {
+  color: var(--cin-gold, #ffae20);
+  border-bottom-color: var(--cin-gold, #ffae20);
+}
+
+.sl-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.sl-row {
+  border: 1px solid rgba(140, 160, 180, 0.16);
+  border-radius: 5px;
+  padding: 8px 10px;
+  background: rgba(20, 30, 45, 0.35);
+  transition: opacity 0.15s;
+}
+.sl-row.is-untracked { opacity: 0.5; }
+.sl-row__main { display: flex; align-items: center; gap: 8px; }
+.sl-track {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 22px;
+  border: 1px solid rgba(140, 160, 180, 0.25);
+  border-radius: 4px;
+  background: rgba(120, 140, 160, 0.1);
+  color: rgba(180, 200, 220, 0.5);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.sl-track.is-on {
+  color: var(--cin-gold, #ffae20);
+  border-color: rgba(255, 174, 32, 0.45);
+  background: rgba(255, 174, 32, 0.12);
+}
+.sl-name { flex: 0 0 9rem; font-size: 12px; }
+.sl-stats {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: rgba(170, 190, 210, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sl-stats b { color: rgba(210, 225, 240, 0.9); font-weight: 600; }
+.sl-stats__star { color: var(--cin-gold, #ffae20); flex: 0 0 auto; }
+.sl-row__ctrls { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+.sl-row__ctrls .cin-utility-btn:disabled { opacity: 0.3; cursor: default; }
+.sl-del:hover { color: #ff6b6b; }
+
+.sl-binds { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding-left: 34px; }
+.sl-bind { display: flex; align-items: flex-start; gap: 8px; }
+.sl-bind__label {
+  flex: 0 0 4.5rem;
+  padding-top: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(150, 170, 190, 0.5);
+}
+.sl-bind .cin-chip-row { flex: 1 1 auto; }
+.sl-tagin {
+  width: 5.5rem;
+  min-width: 4rem;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.sl-muted { color: rgba(150, 170, 190, 0.45); font-size: 0.85em; }
+.cin-chip--title { border-color: rgba(120, 180, 255, 0.35); color: rgba(180, 210, 245, 0.9); }
+.cin-chip--ghost {
+  cursor: pointer;
+  border-style: dashed;
+  background: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cin-chip--ghost:hover {
+  border-color: rgba(255, 174, 32, 0.5);
+  color: var(--cin-gold, #ffae20);
+}
+.bridge-pip__label {
+  font-family: 'Inter', sans-serif;
+  fill: rgba(220, 230, 240, 0.72);
+  pointer-events: none;   /* don't catch clicks meant for the pip */
+}
+.bridge-ship-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.20em;
+  fill: var(--cin-gold);
+  text-shadow: 0 0 4px var(--cin-gold-glow);
+}
+
+/* ─── Task pips (quadrant-hued reticle dots) ─────────────────── */
+.bridge-pip__core { stroke: none; transition: transform 120ms ease; }
+.bridge-pip__ring {
+  fill: none;
+  stroke-width: 1;
+  opacity: 0.55;
+  transition: opacity 120ms ease;
+}
+/* --q{n}-hue tokens are defined as hex colors, not bare HSL hue numbers,
+   so we use them directly instead of wrapping in hsl(). */
+.bridge-pip--q1 .bridge-pip__core { fill: var(--q1-hue); }
+.bridge-pip--q1 .bridge-pip__ring { stroke: var(--q1-hue); filter: drop-shadow(0 0 4px var(--q1-glow)); }
+.bridge-pip--q1 .bridge-pip__blip { stroke: var(--q1-hue); }
+.bridge-pip--q2 .bridge-pip__core { fill: var(--q2-hue); }
+.bridge-pip--q2 .bridge-pip__ring { stroke: var(--q2-hue); filter: drop-shadow(0 0 4px var(--q2-glow)); }
+.bridge-pip--q2 .bridge-pip__blip { stroke: var(--q2-hue); }
+.bridge-pip--q3 .bridge-pip__core { fill: var(--q3-hue); }
+.bridge-pip--q3 .bridge-pip__ring { stroke: var(--q3-hue); filter: drop-shadow(0 0 4px var(--q3-glow)); }
+.bridge-pip--q3 .bridge-pip__blip { stroke: var(--q3-hue); }
+.bridge-pip--q4 .bridge-pip__core { fill: var(--q4-hue); }
+.bridge-pip--q4 .bridge-pip__ring { stroke: var(--q4-hue); filter: drop-shadow(0 0 3px var(--q4-glow)); }
+.bridge-pip--q4 .bridge-pip__blip { stroke: var(--q4-hue); }
+/* Backlog pips — undated tracked-project work parked at the horizon. Hollow +
+   dashed gold (echoing the horizon limb) so they read as "on the horizon, no
+   ETA" and are never mistaken for dated, deadline-bearing pips. Placed after
+   the quadrant rules so it overrides their core/ring fill at equal specificity. */
+.bridge-pip--backlog .bridge-pip__core {
+  fill: rgba(255, 174, 32, 0.16);
+  stroke: var(--cin-gold-soft); stroke-width: 1.1;
+}
+.bridge-pip--backlog .bridge-pip__ring {
+  stroke: var(--cin-gold-soft); opacity: 0.45;
+  stroke-dasharray: 2.5 2.5; filter: none;
+}
+
+/* Radar-blip pulse — the outer ring scales out and fades over and over,
+   while the core/ring stay stable. transform-box: fill-box pins the
+   scale to the circle's own bounding box centre. */
+@keyframes bridge-pip-blip {
+  0%   { transform: scale(1);    opacity: 0.32; }
+  80%  { opacity: 0;             }
+  100% { transform: scale(1.9);  opacity: 0;    }
+}
+.bridge-pip__blip {
+  fill: none;
+  stroke-width: 0.6;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bridge-pip-blip 3.4s infinite ease-out;
+  pointer-events: none;
+}
+
+/* Completed pip — no ring, no blip; just a faded core that drifts past
+   the ship as a record of "cleared targets". */
+.bridge-pip--done .bridge-pip__core {
+  opacity: 0.42;
+}
+.bridge-pip--done:hover .bridge-pip__core {
+  opacity: 0.85;
+  transform: scale(1.25);
+}
+
+/* Overdue + incomplete — the escalation the night wash must NOT bury.
+   Overrides the quadrant hue with the app-wide --crit red and swaps the
+   calm 3.4s radar pulse for a faster, larger one, so "what am I behind
+   on" reads at a glance even sitting on the darkened past hemisphere.
+   Higher specificity than the .bridge-pip--q{n} rules, so it wins the
+   colour cascade regardless of the task's quadrant. */
+.bridge-pip--overdue .bridge-pip__core {
+  fill: var(--crit);
+  filter: drop-shadow(0 0 6px var(--crit-glow));
+}
+.bridge-pip--overdue .bridge-pip__ring {
+  stroke: var(--crit);
+  stroke-width: 1.4;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 6px var(--crit-glow));
+}
+.bridge-pip--overdue .bridge-pip__blip {
+  stroke: var(--crit);
+  stroke-width: 1.1;
+  animation-name: bridge-pip-overdue;
+  animation-duration: 1.5s;
+}
+.bridge-pip--overdue .bridge-pip__label {
+  fill: rgba(255, 120, 130, 0.95);
+  font-weight: 600;
+}
+@keyframes bridge-pip-overdue {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  70%  { opacity: 0; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ─── Calendar EVENT blocks — duration bars with a steady glow (no blip).
+   Events read as calendar time-blocks: length ∝ duration, a constant
+   quadrant-hued glow instead of the task blip's pulse. ─────────────────── */
+.bridge-event__block {
+  fill: none;
+  transition: stroke-width 120ms ease, opacity 120ms ease;
+}
+.bridge-pip--q1 .bridge-event__block { stroke: var(--q1-hue); filter: drop-shadow(0 0 6px var(--q1-glow)); }
+.bridge-pip--q2 .bridge-event__block { stroke: var(--q2-hue); filter: drop-shadow(0 0 6px var(--q2-glow)); }
+.bridge-pip--q3 .bridge-event__block { stroke: var(--q3-hue); filter: drop-shadow(0 0 6px var(--q3-glow)); }
+.bridge-pip--q4 .bridge-event__block { stroke: var(--q4-hue); filter: drop-shadow(0 0 5px var(--q4-glow)); }
+.bridge-pip--done .bridge-event__block { opacity: 0.4; filter: none; }
+.bridge-pip--overdue .bridge-event__block { stroke: var(--crit); filter: drop-shadow(0 0 7px var(--crit-glow)); }
+
+/* Dependency arc — great-circle line between a prerequisite and its
+   dependent task. Direction shown by an animated dash flow that drifts
+   FROM source TO target. */
+.bridge-dep-arc {
+  fill: none;
+  stroke: rgba(125, 214, 255, 0.34);
+  stroke-width: 0.8;
+  stroke-dasharray: 5 7;
+  animation: bridge-dep-flow 2.4s linear infinite;
+  pointer-events: none;
+}
+@keyframes bridge-dep-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+/* ─── Task Details popup (clicked pip) ────────────────────────── */
+.cin-task-details__badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+.cin-task-details__badge--q1 { color: var(--q1-hue); text-shadow: 0 0 6px var(--q1-glow); }
+.cin-task-details__badge--q2 { color: var(--q2-hue); text-shadow: 0 0 6px var(--q2-glow); }
+.cin-task-details__badge--q3 { color: var(--q3-hue); text-shadow: 0 0 6px var(--q3-glow); }
+.cin-task-details__badge--q4 { color: var(--q4-hue); text-shadow: 0 0 4px var(--q4-glow); }
+
+.cin-task-details__name {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(240, 244, 252, 0.92);
+  margin-bottom: 12px;
+  line-height: 1.35;
+}
+
+.cin-task-details__notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: rgba(125, 214, 255, 0.04);
+  border-left: 2px solid rgba(125, 214, 255, 0.35);
+  border-radius: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(220, 228, 240, 0.78);
+}
+.cin-task-details__notes-icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: rgba(125, 214, 255, 0.7);
+}
+
+.cin-task-details__grid {
+  display: grid;
+  gap: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+}
+.cin-task-details__row {
+  display: grid;
+  grid-template-columns: 16px 70px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.cin-task-details__icon {
+  color: rgba(125, 214, 255, 0.6);
+  justify-self: center;
+}
+.cin-task-details__label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.55);
+}
+.cin-task-details__value {
+  color: rgba(240, 244, 252, 0.92);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cin-task-details__bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  max-width: 180px;
+}
+.cin-task-details__bar-fill {
+  height: 100%;
+  transition: width 220ms ease;
+}
+.cin-task-details__bar-fill--q1 { background: var(--q1-hue); box-shadow: 0 0 4px var(--q1-glow); }
+.cin-task-details__bar-fill--q2 { background: var(--q2-hue); box-shadow: 0 0 4px var(--q2-glow); }
+.cin-task-details__bar-fill--q3 { background: var(--q3-hue); box-shadow: 0 0 4px var(--q3-glow); }
+.cin-task-details__bar-fill--q4 { background: var(--q4-hue); box-shadow: 0 0 4px var(--q4-glow); }
+.cin-task-details__bar-text {
+  font-size: 0.72rem;
+  color: rgba(220, 228, 240, 0.7);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Track-toggle pill — gold tint when active, matching the horizon. */
+.cin-task-details__track.is-tracked {
+  color: var(--cin-gold);
+  border-color: rgba(255, 174, 32, 0.55);
+  box-shadow: 0 0 6px var(--cin-gold-glow);
+}
+
+.bridge-pip:hover .bridge-pip__ring { opacity: 1; stroke-width: 1.5; }
+.bridge-pip:hover .bridge-pip__core { transform-box: fill-box; transform-origin: center; transform: scale(1.25); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Mobile-polish pass (CE, 2026-06-14)
+   ───────────────────────────────────────────────────────────────
+   Touch-device fixes:
+   (1) Lift every form control to 16px so iOS Safari doesn't auto-zoom
+       the viewport on focus (any input < 16px triggers the zoom).
+   (2) Grow tap-target HEIGHT toward the 44px guideline. Heights only —
+       the bottom action bar is horizontally dense (≈10 controls), so
+       widths stay compact to keep it on one row on narrow phones.
+   Scoped to `pointer: coarse` (true touch primary) so mouse desktops
+   keep their compact density, and iPad in landscape (> 767px, so a
+   width query would miss it) still gets the fixes.
+   ═══════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  /* (1) iOS zoom-on-focus guard */
+  .cin-input,
+  .cin-textarea,
+  .cin-select,
+  .cin-search-input { font-size: 16px; }
+
+  /* (2) tap targets */
+  .cin-input,
+  .cin-select { min-height: 40px; }
+  .cin-view-tab { min-height: 40px; }
+  .cin-add-task { min-height: 40px; }
+  .cin-utility-btn { width: 34px; height: 38px; }
+  .cin-mobile-tab { min-height: 44px; }      /* matrix quadrant tabs */
+}
+
+/* Phones: the centered instrument title (fixed, left:50%, wide Orbitron
+   tracking, no max-width) grows past the corner flanks and collides with
+   the PEIRASTES wordmark — it can't fit between the flanks at a readable
+   size on a ~390px screen. Hide it; the wordmark + the view-panel header
+   ("BRIDGE · NAVIGATION", etc.) already carry identity. The flank shrink
+   at ≤767px (font-size 14px) keeps it for tablets/large landscape. */
+@media (max-width: 600px) {
+  .cin-title { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROJECTS VIEW — first-class projects with rolled-up progress
+   ═══════════════════════════════════════════════════════════════
+   Card grid; each card = name + status pill + computed progress bar
+   + counts, expandable to its task list. Progress is derived live
+   from the task list (task.projectId), never stored. Surface vocab
+   matches the acrylic-glass view panels. */
+.proj-empty {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: rgba(220, 220, 220, 0.5);
+  text-align: center;
+  padding: 28px 12px;
+  line-height: 1.5;
+}
+.proj-empty-sm {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(220, 220, 220, 0.45);
+  padding: 8px 2px;
+  line-height: 1.45;
+}
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 12px;
+}
+.proj-card-r {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--glass-border);
+  border-left: 3px solid var(--cin-cyan);
+  border-radius: 7px;
+  padding: 12px 14px 13px;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.proj-card-r:hover { background: rgba(255, 255, 255, 0.045); }
+.proj-card-r__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+.proj-card-r__name {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(235, 235, 235, 0.95);
+  letter-spacing: 0.01em;
+}
+.proj-card-r__status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(220, 220, 220, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.proj-st-active   { color: var(--cin-cyan); border-color: rgba(120, 220, 255, 0.35); }
+.proj-st-done     { color: #79e08a; border-color: rgba(121, 224, 138, 0.40); }
+.proj-st-paused   { color: var(--cin-gold); border-color: var(--cin-gold-glow); }
+.proj-st-archived { color: rgba(180, 180, 180, 0.45); opacity: 0.8; }
+.proj-bar-r {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 10px 0 7px;
+}
+.proj-bar-r__fill {
+  height: 100%;
+  background: var(--cin-cyan);
+  border-radius: 3px;
+  transition: width 320ms ease;
+}
+.proj-card-r__meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(220, 220, 220, 0.55);
+  letter-spacing: 0.03em;
+}
+.proj-od { color: #ff6b6b; }
+.proj-card-r__detail {
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.proj-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(220, 220, 220, 0.72);
+  line-height: 1.45;
+}
+.proj-task-r {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 140ms ease;
+}
+.proj-task-r:hover { border-color: rgba(120, 220, 255, 0.32); }
+.proj-task-r__name {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(230, 230, 230, 0.9);
+}
+.proj-task-r__pct {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: rgba(220, 220, 220, 0.5);
+  white-space: nowrap;
+}
+.proj-card-r__actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 3px;
+}
+.proj-card-r__actions button {
+  flex: 1;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.68);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.proj-card-r__actions button:hover { border-color: rgba(120, 220, 255, 0.35); color: rgba(235, 235, 235, 0.92); }
+.proj-card-r__actions .proj-danger { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.32); }
+.proj-card-r__actions .proj-danger:hover { border-color: rgba(255, 107, 107, 0.6); color: #ff8a8a; }
+
+/* toolbar — filter chips + sort */
+.proj-chips { display: inline-flex; gap: 4px; }
+.proj-chip {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(220, 220, 220, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.proj-chip:hover { color: rgba(235, 235, 235, 0.9); border-color: rgba(120, 220, 255, 0.3); }
+.proj-chip--on { color: #04121a; background: var(--cin-cyan); border-color: var(--cin-cyan); }
+.proj-sort {
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+  min-width: 78px;
+  width: auto;
+}
+.proj-track-pick {
+  font-size: 11px !important;
+  padding: 5px 8px !important;
+  min-width: 92px;
+  max-width: 150px;
+  width: auto;
+  color: var(--cin-cyan);
+}
+
+/* type badge on a card */
+.proj-type {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(220, 220, 220, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+/* portfolio link in expanded detail */
+.proj-link {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--cin-cyan);
+  text-decoration: none;
+  letter-spacing: 0.03em;
+}
+.proj-link:hover { text-decoration: underline; }
+
+/* sub-area task groups within a project (e.g. Airframe / Test Rig / Gimbal) */
+.proj-task-group { display: flex; flex-direction: column; gap: 6px; }
+.proj-task-group + .proj-task-group { margin-top: 4px; }
+.proj-task-group__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--cin-gold);
+  opacity: 0.85;
+  margin: 2px 0;
+}
+.proj-task-group__head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.proj-task-group__count {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(220, 220, 220, 0.45);
+}
+
+/* manual-percent editor for task-less projects */
+.proj-manual { display: flex; flex-direction: column; gap: 6px; padding: 2px 0; }
+.proj-manual__label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(220, 220, 220, 0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INSTRUMENT DRAWER — a supplementary instrument (Matrix first) that slides
+   OUT like a tool drawer over the Chronosphere floor. Cockpit
+   re-architecture: the globe is the console, the right Command rail is the
+   instrument bank; selecting an instrument pulls its drawer out from the
+   right. z-index sits BELOW the chrome (100) so the Chronosphere title /
+   clock / telemetry stay framed on top, and BELOW modals (300) so an
+   Add-Task form launched from the drawer still layers above.
+   ═══════════════════════════════════════════════════════════════════════ */
+.cin-drawer-scrim {
+  position: fixed;
+  inset: 4.4rem 0 0 0;      /* start under the fixed chrome row */
+  z-index: 92;
+  background: radial-gradient(ellipse at 120% 50%,
+              rgba(2, 4, 8, 0.10) 0%, rgba(2, 4, 8, 0.58) 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.cin-drawer.is-open .cin-drawer-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The drawer body — hangs from the chrome line, anchored to the right, and
+   slides out to the LEFT over the globe. Stowed = pushed fully off the right
+   edge. A left-side leading edge accent reads as the drawer's face. */
+.cin-drawer-panel {
+  position: fixed;
+  top: 4.6rem;
+  bottom: 1rem;
+  right: 1rem;
+  width: min(62rem, 80vw);
+  z-index: 94;
+  display: flex;
+  min-height: 0;
+  overflow: visible;        /* let the pull-handle poke past the left edge */
+  border-radius: 10px;
+  background: var(--glass-bg-deep, rgba(10, 14, 20, 0.86));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-left: 2px solid rgba(255, 174, 32, 0.45);
+  box-shadow: -28px 0 64px -18px rgba(0, 0, 0, 0.75),
+              0 2px 0 rgba(255, 174, 32, 0.08) inset;
+  /* Stowed: shoved fully off the right edge — its own width + the 1rem gap +
+     the pull-handle's poke-out so no dead tab peeks while closed. The
+     Instruments menu is the sole launcher; the handle only closes. */
+  transform: translateX(calc(100% + 1rem + 30px));
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              width 0.35s ease;
+}
+.cin-drawer.is-open .cin-drawer-panel {
+  transform: translateX(0);
+}
+/* Wide variant — List / Gantt need the horizontal room a table / timeline
+   wants; Matrix reads fine in the narrower default. */
+.cin-drawer.is-wide .cin-drawer-panel {
+  width: min(84rem, calc(100vw - 2rem));
+}
+.cin-drawer-panel__body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+}
+/* The hosted MatrixView's desktop grid wraps in .cin-workspace, sized for the
+   full viewport (min(80rem, …) + margin:0 auto). Re-fit it to the drawer's
+   width so it fills the tray instead of overflowing off-screen. */
+.cin-drawer-panel__body .cin-workspace {
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+  margin: 0;
+}
+/* List / Gantt render their own .cin-view-panel glass card, also sized for the
+   full viewport. Re-fit to the drawer width and flatten the card so it reads
+   as the drawer's tray, not a card floating inside the drawer (the drawer's
+   gold left edge is the frame). */
+.cin-drawer-panel__body .cin-view-panel {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  box-shadow: none;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.cin-drawer-panel__body .cin-view-panel::before { display: none; }
+
+/* Pull-handle — vertical grab-face on the drawer's leading (left) edge. It
+   pokes out to the left of the panel and rides out with it. */
+.cin-drawer-handle {
+  position: absolute;
+  top: 50%;
+  left: -26px;
+  transform: translateY(-50%);
+  height: 132px;
+  width: 27px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: grab;
+  touch-action: none;        /* let the pointer drag the drawer, not scroll */
+  user-select: none;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  background: var(--glass-bg-deep, rgba(10, 14, 20, 0.92));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: -10px 0 22px -8px rgba(0, 0, 0, 0.6);
+  color: var(--cin-gold);
+  text-shadow: 0 0 8px var(--cin-gold-glow);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.cin-drawer-handle:hover {
+  background: rgba(255, 174, 32, 0.14);
+  box-shadow: -10px 0 24px -6px rgba(0, 0, 0, 0.7),
+              0 0 18px rgba(255, 174, 32, 0.20);
+}
+.cin-drawer.is-dragging .cin-drawer-handle { cursor: grabbing; }
+/* While dragging, freeze the scrim fade so it doesn't flicker as the panel
+   transform is driven inline. */
+.cin-drawer.is-dragging .cin-drawer-scrim { transition: none; }
+.cin-drawer-handle__chev { opacity: 0.85; flex: 0 0 auto; }
+.cin-drawer-handle__label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);   /* read bottom-to-top */
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.cin-drawer-handle__grip {
+  flex: 0 0 auto;
+  width: 3px;
+  height: 26px;
+  border-radius: 2px;
+  background: linear-gradient(180deg,
+    transparent, rgba(255, 174, 32, 0.85), transparent);
+  box-shadow: 3px 0 0 -1px rgba(255, 174, 32, 0.35);
+}
+
+@media (max-width: 767px) {
+  .cin-drawer-panel { width: calc(100vw - 3.2rem); right: 1rem; }
+}

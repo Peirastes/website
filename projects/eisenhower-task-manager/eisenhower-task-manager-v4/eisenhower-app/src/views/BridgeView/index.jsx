@@ -1,0 +1,602 @@
+import React, { useState, useEffect } from 'react';
+import { TaskDetailsModal } from '../../components/TaskDetailsModal';
+import { SublaneManagerModal } from '../../components/SublaneManagerModal';
+import { AppDock } from '../../components/AppDock';
+import { HorizonScene } from './HorizonScene';
+import { RadarScene } from './RadarScene';
+import { isEventTask } from './PipShape';
+import { domainRegistry, sublaneMatches } from './sublanes';
+
+/* Sublane registry lives in settings.sublanes (server-persisted), seeded from
+   DEFAULT_SUBLANES and edited via the Sublane Manager modal (Phase 2). Each
+   domain lane subdivides into TRACKED tracks that bind to existing subcategory
+   tags and/or title keywords — a task whose tag/project isn't in a tracked
+   track is hidden from the globe; re-track it later and its history returns.
+   The Projects domain is special: its tracks are the TRACKED projects. See
+   ./sublanes.js for the model + matching + stats helpers. */
+
+/**
+ * ═════════════════════════════════════════════════════════════════
+ *   BRIDGE VIEW — Horizon (forward perspective) + Radar (top-down PPI)
+ * ═════════════════════════════════════════════════════════════════
+ *
+ * Bridge-of-the-ship metaphor. Tasks approach the present as time
+ * advances. Two visualizations of the same data:
+ *   • Horizon: wireframe-globe with lanes as latitudes + dates as
+ *     longitudes; drag to spin, wheel to zoom, middle-drag for
+ *     altitude, right-drag for screen-space pan.
+ *   • Radar:  concentric range rings + sectored pie; ship at
+ *     centre, tasks at polar coords (r=time, θ=domain sector).
+ *
+ * Lanes = settings.domains. Tasks with unknown / missing domain
+ * are placed in lane 0 by default.
+ *
+ * This file is the shell — toggle, toolbar, label-mode select,
+ * Recenter button, task-details popup, and routing to the
+ * Horizon/Radar children based on mode.
+ */
+export const BridgeView = ({
+  tasks, projects = [], getQuadrant, setEditingTask, setShowForm, settings, setSettings,
+  view, setView, activeInstrument = null, onInstrument,
+  onInfo, onSettings, onExport, onImport, onRefresh, isRefreshing
+}) => {
+  const [mode, setMode] = useState('horizon');
+  const [filterQuad, setFilterQuad] = useState('all');
+  /* Title-label visibility on the Bridge.
+       all        — every task pip labelled
+       incomplete — only LIVE tasks labelled (completed pips bare)
+       tracked    — only tasks with tracked:true labelled
+       none       — no labels at all
+     Persisted to localStorage so the choice survives reloads. */
+  const [labelMode, setLabelMode] = useState(() => {
+    try { return localStorage.getItem('bridge-label-mode') || 'all'; }
+    catch { return 'all'; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('bridge-label-mode', labelMode); } catch {}
+  }, [labelMode]);
+  /* Sublane density columns — toggleable (persisted). On by default. */
+  const [showDensity, setShowDensity] = useState(() => {
+    try { return localStorage.getItem('bridge-density') !== 'off'; }
+    catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('bridge-density', showDensity ? 'on' : 'off'); } catch {}
+  }, [showDensity]);
+  /* Sublane Manager modal (Phase 2) — launched from the Command ⚙ actions. */
+  const [showSublanes, setShowSublanes] = useState(false);
+  /* Horizon distance is wheel-zoomable. State lives here so it survives
+     Horizon ↔ Radar toggles. */
+  const [horizonDays, setHorizonDays] = useState(() =>
+    (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) ? 21 : 90);
+  /* Time anchor for Horizon's drag-to-pan. Fractional days from real-now.
+     viewAnchor = 0 means the ship sits at "now" (default). Positive =
+     ship has sailed forward in time; negative = panned to the past.
+     Only applied in Horizon mode. */
+  const [viewAnchor, setViewAnchor] = useState(0);
+
+  /* Live minute tick. `today` and the NOW clock are derived per render, so
+     without a nudge they freeze at mount time. Key on the current minute so the
+     NOW clock ticks live (and the day-offset math still rolls across midnight).
+     Poll 4×/min but only re-render when the minute actually changes (the
+     identity return bails React out otherwise), so it's one re-render per
+     minute, aligned to within ~15s of the boundary. */
+  const [, setMinuteKey] = useState(() => Math.floor(Date.now() / 60000));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMinuteKey(prev => {
+        const m = Math.floor(Date.now() / 60000);
+        return prev === m ? prev : m;
+      });
+    }, 15000);
+    return () => clearInterval(id);
+  }, []);
+
+  const RADAR_DAYS   = 180;
+  const maxDays = mode === 'horizon' ? horizonDays : RADAR_DAYS;
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  /* Fractional days, so the Horizon can resolve below 1d into hours.
+     Date-only strings ("YYYY-MM-DD") parse as local midnight; if an
+     explicit dueTime ("HH:MM") is supplied, it's folded in to give a
+     fractional-day offset. Legacy "YYYY-MM-DDTHH:MM" strings still
+     parse correctly via the fallback. */
+  const dayOffset = (d, t) => {
+    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      const [y, m, day] = d.split('-').map(Number);
+      let h = 0, mi = 0;
+      if (typeof t === 'string' && /^\d{1,2}:\d{2}/.test(t)) {
+        [h, mi] = t.split(':').map(Number);
+      }
+      return (new Date(y, m - 1, day, h, mi).getTime() - today.getTime()) / 86400000;
+    }
+    const dd = (typeof d === 'string') ? new Date(d) : d;
+    return (dd.getTime() - today.getTime()) / 86400000;
+  };
+
+  /* Default lanes — Teaching first-left, Personal first-right. Order
+     determines lateral position via the alternating-outward sector
+     packer in HorizonScene: lanes[0] = first-left, lanes[1] = first-
+     right, lanes[2] = second-left, lanes[3] = second-right, etc. */
+  const baseDomains = (settings?.domains && settings.domains.length > 0)
+    ? settings.domains
+    : ['Teaching', 'Personal'];
+  const lanes = baseDomains;
+  const laneOf = (t) => {
+    const idx = baseDomains.indexOf(t.domain);
+    return idx === -1 ? 0 : idx;
+  };
+
+  /* Tracked sublanes per domain. Projects → tracked projects (by id); every
+     other domain → its registry entries (settings.sublanes, seeded from
+     DEFAULT_SUBLANES), filtered to the tracked ones only. */
+  const projectSublanes = (projects || [])
+    .filter(p => p.tracked && p.status !== 'done' && p.status !== 'archived')
+    .map(p => ({ name: p.name, projectId: p.id }));
+  const sublanesByDomain = {};
+  for (const d of baseDomains) {
+    sublanesByDomain[d] = d === 'Projects'
+      ? projectSublanes
+      : domainRegistry(settings, d).filter(s => s.tracked !== false);
+  }
+  /* Resolve a task to its sublane sub-band, or null if it belongs to no
+     tracked sublane (→ hidden from the globe). A domain with no sublanes
+     configured falls back to the whole lane so it can't be blanked by a gap. */
+  const resolveSub = (t) => {
+    const laneIdx = baseDomains.indexOf(t.domain);
+    if (laneIdx === -1) return null;
+    const subs = sublanesByDomain[t.domain] || [];
+    if (subs.length === 0) return { laneIdx, subIdx: 0, subCount: 1 };
+    const subIdx = t.domain === 'Projects'
+      ? subs.findIndex(s => s.projectId === t.projectId)
+      : subs.findIndex(s => sublaneMatches(s, t));
+    if (subIdx === -1) return null;
+    return { laneIdx, subIdx, subCount: subs.length };
+  };
+  /* Per-lane sublane rows for on-globe labels. */
+  const sublaneLanes = lanes.map((d) =>
+    (sublanesByDomain[d] || []).map((s, subIdx, arr) =>
+      ({ name: s.name, subIdx, subCount: arr.length })));
+
+  const visible = tasks.filter(t => {
+    /* Completed tasks remain visible on the Bridge — they render
+       without the ring/blip so the player sees "cleared targets"
+       drift past the ship after completion. */
+    if (!t.dueDate) return false;
+    if (filterQuad !== 'all' && getQuadrant(t) !== filterQuad) return false;
+    /* In Horizon mode, the visible window is anchored to viewAnchor —
+       so panning forward in time keeps the [-7d, +horizon] window
+       relative to the new ship position. */
+    let off = dayOffset(t.dueDate, t.dueTime);
+    if (mode === 'horizon') off -= viewAnchor;
+    return off >= -7 && off <= maxDays;
+  });
+
+  /* Globe task set: visible tasks that belong to a TRACKED sublane, annotated
+     with their sub-band. Tasks in untracked sublanes are dropped (hidden). */
+  const visibleSub = [];
+  for (const t of visible) {
+    const s = resolveSub(t);
+    if (s) visibleSub.push({ ...t, __sublane: s });
+  }
+
+  /* Click a pip → show a lightweight details popup first. The "Edit"
+     button inside the popup hands off to the existing edit form. */
+  const [selectedTask, setSelectedTask] = useState(null);
+  const onPick = (t) => setSelectedTask(t);
+  const handleEditFromDetails = (t) => { setEditingTask(t); setShowForm(true); };
+
+  /* Toggle the task's `tracked` flag via PATCH. Used by the details
+     modal so the user can curate the "tracked" label-mode subset. */
+  const [trackedVersion, setTrackedVersion] = useState(0); // forces re-render of selectedTask
+  const handleToggleTrack = async (t) => {
+    const next = !t.tracked;
+    try {
+      const res = await fetch(`/api/tasks/${t.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracked: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+      /* Mutate in place so the visible list reflects it immediately
+         without waiting for the parent to refetch. */
+      t.tracked = updated.tracked;
+      setSelectedTask({ ...t });
+      setTrackedVersion(v => v + 1);
+    } catch (e) {
+      console.error('toggleTrack failed:', e);
+    }
+  };
+
+  /* ── Corner HUD data: expandable QUADRANT SECTORS (top-left) + ACTIVE
+     PROJECTS with their tasks (top-right), filling the voids by the globe. ── */
+  const isOpenTask = (t) => (Number(t.percentComplete) || 0) < 100;
+  const dueLabel = (t) => {
+    if (!t.dueDate) return '';
+    const d = dayOffset(t.dueDate, t.dueTime);
+    if (!Number.isFinite(d)) return '';
+    return d < 0 ? 'overdue' : d < 1 ? 'today' : `${Math.ceil(d)}d`;
+  };
+  const byDue = (a, b) => {
+    const da = dayOffset(a.dueDate, a.dueTime), db = dayOffset(b.dueDate, b.dueTime);
+    const fa = Number.isFinite(da), fb = Number.isFinite(db);
+    if (fa && fb) return da - db;      // both dated → soonest first
+    return fa ? -1 : fb ? 1 : 0;        // dated before undated
+  };
+  const trunc = (s, n = 24) => (s && s.length > n + 1 ? s.slice(0, n) + '…' : (s || ''));
+
+  const [openSectors, setOpenSectors] = useState(() => new Set());
+  const [openProjects, setOpenProjects] = useState(() => new Set());
+  const toggleIn = (setFn, key) => setFn(prev => {
+    const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n;
+  });
+
+  /* ── HUD-as-control-surface: focusing a sector or project dims every
+     non-matching pip on the globe so the panel steers the view. Focus is
+     single-select and mutually exclusive between the two panels; clicking
+     the active row again clears it. Focusing also opens that row's task
+     list (accordion — only one open at a time). ── */
+  const [focusQuad, setFocusQuad] = useState(null);
+  const [focusProject, setFocusProject] = useState(null);
+  const pickSector = (key) => {
+    const active = focusQuad === key;
+    setFocusProject(null);
+    setFocusQuad(active ? null : key);
+    setOpenSectors(active ? new Set() : new Set([key]));
+  };
+  const pickProject = (id) => {
+    const active = focusProject === id;
+    setFocusQuad(null);
+    setFocusProject(active ? null : id);
+    setOpenProjects(active ? new Set() : new Set([id]));
+  };
+  /* Panels collapse to just their header pill to bare the globe. */
+  const [collapsed, setCollapsed] = useState(() => new Set());
+  /* Overdue-behind tray: open, overdue tasks that have fallen past the back
+     edge of the view window (>7d behind the ship) and so aren't on the globe
+     at all — the real blind spot. Surfaced as a tab that expands a list. */
+  const [showOverdue, setShowOverdue] = useState(false);
+
+  const QUAD_META = [
+    { key: 'do-first',  qid: 'q1', label: 'Critical'  },
+    { key: 'schedule',  qid: 'q2', label: 'Strategic' },
+    { key: 'delegate',  qid: 'q3', label: 'Delegate'  },
+    { key: 'eliminate', qid: 'q4', label: 'Eliminate' },
+  ];
+  /* The Sectors readout is a TASK list — calendar events (which expire rather
+     than get completed) are excluded here; they live on the globe as timebars
+     and on the Calendar, not in the quadrant to-do rollup. */
+  const sectorTasks = (key) =>
+    visible.filter(t => isOpenTask(t) && !isEventTask(t) && getQuadrant(t) === key).sort(byDue);
+
+  const projProgress = (p) => {
+    const mine = tasks.filter(t => t.projectId === p.id && !t.deletedAt);
+    if (mine.length) return Math.round(mine.reduce((s, t) => s + (Number(t.percentComplete) || 0), 0) / mine.length);
+    if (typeof p.manualPercent === 'number') return Math.round(p.manualPercent);
+    return p.status === 'done' ? 100 : 0;
+  };
+  const activeProjects = (projects || [])
+    .filter(p => p.status !== 'done' && p.status !== 'archived')
+    .map(p => ({
+      id: p.id, name: p.name, pct: projProgress(p),
+      tasks: tasks.filter(t => t.projectId === p.id && isOpenTask(t) && !isEventTask(t)).sort(byDue),
+    }))
+    /* Only projects with actionable work or real progress — skip the 0%,
+       task-less portfolio entries so the panel stays a live worklist. */
+    .filter(p => p.tasks.length > 0 || p.pct > 0)
+    .sort((a, b) => b.tasks.length - a.tasks.length || b.pct - a.pct || (a.name || '').localeCompare(b.name || ''))
+    .slice(0, 12);
+
+  /* Overdue tasks that have slipped behind the window's back edge (off - anchor
+     < -7) — invisible on the globe, so pull them out into their own tray. */
+  const lateLabel = (t) => `${Math.max(1, Math.floor(-dayOffset(t.dueDate, t.dueTime)))}d late`;
+  const overdueBehind = tasks
+    .filter(t => t.dueDate && !t.completedDate && isOpenTask(t) && !isEventTask(t)
+              && dayOffset(t.dueDate, t.dueTime) < 0
+              && (dayOffset(t.dueDate, t.dueTime) - viewAnchor) < -7)
+    .sort(byDue);
+
+  /* ── Backlog pips: undated tasks from ACTIVE + TRACKED projects, parked at
+     the far horizon of the Projects lane so tracked initiatives have presence
+     on the globe even before any task gets a due date. Dated project tasks
+     already plot normally; these are the undated remainder, capped per project
+     and flagged with __backlog so HorizonScene parks + styles them distinctly.
+     Horizon mode only. ── */
+  const BACKLOG_CAP = 6;
+  const backlogTasks = (() => {
+    if (mode !== 'horizon') return [];
+    const trackedIds = new Set((projects || [])
+      .filter(p => p.tracked && p.status === 'active').map(p => p.id));
+    if (trackedIds.size === 0) return [];
+    const perProj = new Map();
+    for (const t of tasks) {
+      if (t.deletedAt || t.dueDate) continue;        // dated tasks plot normally
+      if (!trackedIds.has(t.projectId)) continue;
+      if (!isOpenTask(t) || isEventTask(t)) continue;
+      const arr = perProj.get(t.projectId) || [];
+      perProj.set(t.projectId, arr);
+      arr.push(t);
+    }
+    const out = [];
+    for (const arr of perProj.values()) {
+      arr.sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+      for (const t of arr.slice(0, BACKLOG_CAP)) {
+        const s = resolveSub(t);
+        if (s) out.push({ ...t, __backlog: true, __sublane: s });
+      }
+    }
+    /* Low-discrepancy spread (index-based — these project IDs are sequential
+       and hash poorly). Two irrational multipliers scatter a lon/lat pair so
+       the parked backlog fills the Projects lane instead of stacking; the pips
+       still sit on real sphere points (HorizonScene) so they pan with the globe. */
+    out.forEach((t, i) => {
+      t.__lonFrac = (i * 0.6180339887 + 0.13) % 1;               // time depth 0..1
+      t.__latNorm = ((i * 0.7548776662 + 0.37) % 1) * 1.8 - 0.9; // lateral −0.9..0.9
+    });
+    return out;
+  })();
+
+  /* ── Three time references on the Bridge:
+       • NOW     (real time)     — the amber clock riding the zero-time axis.
+       • VIEWING (measured time) — date/time at the centre measurement line
+                                   (now + viewAnchor); shown at the ship marker.
+       • HORIZON (future time)   — date at the sphere's FUTURE EDGE and how far
+                                   ahead of now it is; rendered inside
+                                   HorizonScene floating above the top limb,
+                                   alongside NOW / VIEWING. ── */
+
+  return (
+    <div className="cin-view-panel cin-view-panel--bridge">
+      <div className="cin-view-panel__body" style={{ overflow: 'hidden', display: 'flex', position: 'relative' }}>
+        {/* All floating chrome (rails + overdue). Landscape: an inert full-bleed
+            overlay whose frames float over the globe. Portrait/tall: this becomes
+            an in-flow top band and the globe below fills the rest. */}
+        <div className="bridge-chrome">
+        {/* Left command column — a SINGLE collapsible Command frame holding the
+            Bridge controls (mode + filters), the Views nav, and the Actions
+            (Add Task + utilities). One of the Bridge's three floating panels. */}
+        <div className="bridge-rail bridge-rail--command">
+        <div className={`bridge-console${collapsed.has('console') ? ' is-collapsed' : ''}`}>
+          <div className="bridge-hud__head">
+            <span className="bridge-hud__head-label">◱ Command</span>
+            <button type="button" className="bridge-hud__collapse"
+                    onClick={() => toggleIn(setCollapsed, 'console')}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    title={collapsed.has('console') ? 'Expand panel' : 'Collapse panel'}>
+              {collapsed.has('console') ? '▸' : '▾'}
+            </button>
+          </div>
+          <div className="bridge-console__body">
+          <div className="cin-mode-toggle" role="group" aria-label="Bridge mode">
+            <button
+              type="button"
+              className={`cin-mode-toggle__btn ${mode === 'horizon' ? 'is-active' : ''}`}
+              onClick={() => setMode('horizon')}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-pressed={mode === 'horizon'}
+            >Horizon</button>
+            <button
+              type="button"
+              className={`cin-mode-toggle__btn ${mode === 'radar' ? 'is-active' : ''}`}
+              onClick={() => setMode('radar')}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-pressed={mode === 'radar'}
+            >Radar</button>
+          </div>
+          <div className="cin-filter">
+            <label className="cin-filter__label">Quadrant</label>
+            <select value={filterQuad} onChange={(e) => setFilterQuad(e.target.value)}
+                    onPointerDown={(e) => e.stopPropagation()}>
+              <option value="all">All</option>
+              <option value="do-first">Q1 · Critical</option>
+              <option value="schedule">Q2 · Strategic</option>
+              <option value="delegate">Q3 · Delegate</option>
+              <option value="eliminate">Q4 · Eliminate</option>
+            </select>
+          </div>
+          {mode === 'horizon' && (
+            <div className="cin-filter">
+              <label className="cin-filter__label">Labels</label>
+              <select value={labelMode} onChange={(e) => setLabelMode(e.target.value)}
+                      onPointerDown={(e) => e.stopPropagation()}>
+                <option value="all">All</option>
+                <option value="incomplete">Incomplete</option>
+                <option value="tracked">Tracked only</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          )}
+          {mode === 'horizon' && (
+            <div className="cin-filter cin-filter--toggle">
+              <label className="cin-filter__label">Density</label>
+              <button type="button"
+                      className={`bridge-toggle${showDensity ? ' is-on' : ''}`}
+                      onClick={() => setShowDensity(v => !v)}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      aria-pressed={showDensity}
+                      title="Sublane density columns">
+                <span className="bridge-toggle__track"><span className="bridge-toggle__knob" /></span>
+                <span className="bridge-toggle__txt">{showDensity ? 'On' : 'Off'}</span>
+              </button>
+            </div>
+          )}
+          <AppDock
+            layout="rail"
+            view={view} setView={setView}
+            activeInstrument={activeInstrument} onInstrument={onInstrument}
+            onAddTask={() => { setEditingTask(null); setShowForm(true); }}
+            onInfo={onInfo} onSettings={onSettings}
+            onExport={onExport} onImport={onImport}
+            onRefresh={onRefresh} isRefreshing={isRefreshing}
+            onSublanes={() => setShowSublanes(true)}
+          />
+          </div>
+        </div>
+        </div>
+        {/* Corner HUD — expandable QUADRANT SECTORS (top-left) + ACTIVE PROJECTS
+            with their tasks (top-right). Fills the voids; horizon only. */}
+        {mode === 'horizon' && (
+          <>
+            {/* Right rail — Sectors over Projects, stacked (KB-Explorer style). */}
+            <div className="bridge-rail bridge-rail--tasks">
+            <div className={`bridge-hud bridge-hud--sectors${collapsed.has('sectors') ? ' is-collapsed' : ''}${focusQuad ? ' is-focusing' : ''}`}>
+              <div className="bridge-hud__head">
+                <span className="bridge-hud__head-label">◇ Sectors</span>
+                <button type="button" className="bridge-hud__collapse"
+                        onClick={() => toggleIn(setCollapsed, 'sectors')}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title={collapsed.has('sectors') ? 'Expand panel' : 'Collapse panel'}>
+                  {collapsed.has('sectors') ? '▸' : '▾'}
+                </button>
+              </div>
+              <div className="bridge-hud__body">
+              {QUAD_META.map(q => {
+                const list = sectorTasks(q.key);
+                const open = openSectors.has(q.key);
+                const focused = focusQuad === q.key;
+                return (
+                  <div key={q.key} className={`bridge-sector bridge-sector--${q.qid}`}>
+                    <button type="button" className={`bridge-sector__head${focused ? ' is-focused' : ''}`}
+                            onClick={() => pickSector(q.key)}
+                            onPointerDown={(e) => e.stopPropagation()}>
+                      <span className="bridge-hud__caret">{list.length ? (open ? '▾' : '▸') : '·'}</span>
+                      <span className="bridge-sector__dot" />
+                      <span className="bridge-sector__name">{q.label}</span>
+                      <span className="bridge-sector__count">{list.length}</span>
+                    </button>
+                    {open && list.length > 0 && (
+                      <div className="bridge-hud__list">
+                        {list.map(t => (
+                          <button key={t.id} type="button" className="bridge-hud__item"
+                                  onClick={() => onPick(t)} onPointerDown={(e) => e.stopPropagation()}>
+                            <span className="bridge-hud__item-name">{trunc(t.task)}</span>
+                            <span className={`bridge-hud__item-due${dayOffset(t.dueDate, t.dueTime) < 0 ? ' is-overdue' : ''}`}>{dueLabel(t)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              </div>
+            </div>
+
+            <div className={`bridge-hud bridge-hud--projects${collapsed.has('projects') ? ' is-collapsed' : ''}${focusProject ? ' is-focusing' : ''}`}>
+              <div className="bridge-hud__head">
+                <span className="bridge-hud__head-label">◈ Active Projects</span>
+                <button type="button" className="bridge-hud__collapse"
+                        onClick={() => toggleIn(setCollapsed, 'projects')}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title={collapsed.has('projects') ? 'Expand panel' : 'Collapse panel'}>
+                  {collapsed.has('projects') ? '▸' : '▾'}
+                </button>
+              </div>
+              <div className="bridge-hud__body">
+              {activeProjects.length === 0 ? (
+                <div className="bridge-hud__empty">No active projects.</div>
+              ) : activeProjects.map(p => {
+                const open = openProjects.has(p.id);
+                const focused = focusProject === p.id;
+                return (
+                  <div key={p.id} className="bridge-project">
+                    <button type="button" className={`bridge-project__head${focused ? ' is-focused' : ''}`}
+                            onClick={() => pickProject(p.id)}
+                            onPointerDown={(e) => e.stopPropagation()}>
+                      <span className="bridge-hud__caret">{p.tasks.length ? (open ? '▾' : '▸') : '·'}</span>
+                      <span className="bridge-project__dot" />
+                      <span className="bridge-project__name">{trunc(p.name, 22)}</span>
+                      <span className="bridge-project__pct">{p.pct}%</span>
+                    </button>
+                    <div className="bridge-quest__bar"><div className="bridge-quest__fill" style={{ width: `${p.pct}%` }} /></div>
+                    {open && (
+                      <div className="bridge-hud__list">
+                        {p.tasks.length === 0 ? (
+                          <div className="bridge-hud__empty">no open tasks</div>
+                        ) : p.tasks.map(t => (
+                          <button key={t.id} type="button" className="bridge-hud__item"
+                                  onClick={() => onPick(t)} onPointerDown={(e) => e.stopPropagation()}>
+                            <span className="bridge-hud__item-name">{trunc(t.task)}</span>
+                            <span className={`bridge-hud__item-due${dayOffset(t.dueDate, t.dueTime) < 0 ? ' is-overdue' : ''}`}>{dueLabel(t)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              </div>
+            </div>
+            </div>
+
+            {/* Overdue-behind tray — bottom-left, red glass. Only shows when
+                something has slipped off the back of the horizon. */}
+            {overdueBehind.length > 0 && (
+              <div className={`bridge-overdue${showOverdue ? ' is-open' : ''}`}>
+                {showOverdue && (
+                  <div className="bridge-overdue__list">
+                    {overdueBehind.slice(0, 12).map(t => (
+                      <button key={t.id} type="button" className="bridge-hud__item"
+                              onClick={() => onPick(t)} onPointerDown={(e) => e.stopPropagation()}>
+                        <span className="bridge-hud__item-name">{trunc(t.task, 26)}</span>
+                        <span className="bridge-hud__item-due is-overdue">{lateLabel(t)}</span>
+                      </button>
+                    ))}
+                    {overdueBehind.length > 12 && (
+                      <div className="bridge-hud__empty">+{overdueBehind.length - 12} more</div>
+                    )}
+                  </div>
+                )}
+                <button type="button" className="bridge-overdue__tab"
+                        onClick={() => setShowOverdue(s => !s)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        title="Overdue tasks behind the horizon">
+                  ◂ {overdueBehind.length} overdue behind
+                </button>
+              </div>
+            )}
+          </>
+        )}
+        </div>
+        {mode === 'horizon' ? (
+          <HorizonScene
+            tasks={backlogTasks.length ? [...visibleSub, ...backlogTasks] : visibleSub}
+            sublaneLanes={sublaneLanes}
+            lanes={lanes} laneOf={laneOf}
+            dayOffset={dayOffset} maxDays={horizonDays}
+            setMaxDays={setHorizonDays}
+            viewAnchor={viewAnchor} setViewAnchor={setViewAnchor}
+            getQuadrant={getQuadrant} onPick={onPick}
+            labelMode={labelMode} showDensity={showDensity}
+            focusQuad={focusQuad} focusProject={focusProject}
+          />
+        ) : (
+          <RadarScene
+            tasks={visible} lanes={lanes} laneOf={laneOf}
+            dayOffset={dayOffset} maxDays={RADAR_DAYS}
+            getQuadrant={getQuadrant} onPick={onPick}
+            focusQuad={focusQuad} focusProject={focusProject}
+          />
+        )}
+      </div>
+
+      {selectedTask && (
+        <TaskDetailsModal
+          task={selectedTask}
+          getQuadrant={getQuadrant}
+          onEdit={handleEditFromDetails}
+          onToggleTrack={handleToggleTrack}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
+
+      {showSublanes && setSettings && (
+        <SublaneManagerModal
+          settings={settings} setSettings={setSettings}
+          tasks={tasks} domains={baseDomains}
+          onClose={() => setShowSublanes(false)}
+        />
+      )}
+    </div>
+  );
+};

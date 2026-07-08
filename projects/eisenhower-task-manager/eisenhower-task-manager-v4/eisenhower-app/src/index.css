@@ -1,0 +1,109 @@
+/* ═══════════════════════════════════════════════════════════════
+   PEIRASTES CINEMATIC TIER — ETM v3
+   ═══════════════════════════════════════════════════════════════
+   Phase 5+ sweep: stripped all v2 etm-* token + class definitions
+   (chassis / monitor / pushbutton / input / panel / card / badge /
+   led / modal / progress / readout / nameplate / texture / reveal
+   /led-rating). None had callers after the v3 refactor completed.
+   What remains: the cinematic font @import, the cinematic tokens
+   the Cinematic Tier components rely on, the body + #root base,
+   the Phase 1 atmosphere (banner backdrop + vignette + grain),
+   and the Tailwind directives that some utility classes still use.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Cinematic font family. Cinzel = PEIRASTES wordmark only,
+   Orbitron = instrument titles, Inter = shell UI, Share Tech Mono
+   = numerical readouts. */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+
+/* Cinematic tier styles — chrome row, boot overlay, PIN keypad,
+   scan-line, all view panels, action bar, modals. */
+@import './cinematic.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Cinematic tokens ───────────────────────────────────────────
+   --cin-gold / --cin-cyan: instrument accents
+   --glass-*: acrylic-glass surface tokens
+   Quadrant hue tokens (--q1-hue etc.) live in cinematic.css. */
+:root {
+  --cin-gold:        #ffae20;
+  --cin-gold-soft:   rgba(255, 174, 32, 0.72);
+  --cin-gold-faint:  rgba(255, 174, 32, 0.28);
+  --cin-gold-glow:   rgba(255, 174, 32, 0.45);
+  --cin-cyan:        #7dd6ff;
+  --cin-cyan-soft:   rgba(125, 214, 255, 0.65);
+  --cin-cyan-faint:  rgba(125, 214, 255, 0.22);
+  --cin-cyan-glow:   rgba(125, 214, 255, 0.30);
+
+  --glass-bg:        rgba(10, 14, 22, 0.42);
+  --glass-bg-deep:   rgba(8, 12, 18, 0.55);
+  --glass-bg-modal:  rgba(10, 14, 22, 0.88);
+  --glass-border:    rgba(255, 255, 255, 0.10);
+  --glass-blur:      blur(22px) saturate(1.4);
+  --glass-shadow:    0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Base reset + body ─────────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #040608;
+  color: #c8d0e0;
+}
+
+#root {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;     /* sit above the body::before banner backdrop */
+}
+
+/* ─── Phase 1 atmosphere ────────────────────────────────────────
+   Banner backdrop + vignette + film grain. Layered behind the
+   entire app via z-index -2 / -1 / 0. Banner path matches
+   Vite's `base: /etm/` and server.js's `app.use('/etm', static('dist'))`.
+   Filter values match KB Explorer's exact cinematic treatment. */
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background-image: url('/etm/PeirastesBanner.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.45) brightness(0.28) contrast(1.05) hue-rotate(-10deg);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 20%, rgba(6, 9, 18, 0.72) 95%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 30%, rgba(0, 0, 0, 0.58) 100%);
+}
+
+/* SVG film-grain — rendered as a separate DOM element from App.jsx
+   so it can sit above body::after but below #root content. */
+.cin-grain {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");
+  mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { filter: saturate(0.45) brightness(0.20) contrast(1.05) hue-rotate(-10deg); }
+}
