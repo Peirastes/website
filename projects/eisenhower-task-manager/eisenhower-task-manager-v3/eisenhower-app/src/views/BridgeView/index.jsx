@@ -1,43 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { TaskDetailsModal } from '../../components/TaskDetailsModal';
+import { SublaneManagerModal } from '../../components/SublaneManagerModal';
 import { AppDock } from '../../components/AppDock';
 import { HorizonScene } from './HorizonScene';
 import { RadarScene } from './RadarScene';
 import { isEventTask } from './PipShape';
+import { domainRegistry, sublaneMatches } from './sublanes';
 
-/* ── Sublane seed (Phase 1) ────────────────────────────────────────────────
-   Each domain lane subdivides into TRACKED sublanes. A sublane matches one or
-   more legacy `subcategory` tags, so a clean track absorbs messy history
-   without ever retagging a task (tags are the permanent record). The Projects
-   domain is special: its sublanes are the TRACKED projects, matched by
-   projectId. Only tracked sublanes render; a task whose tag/project isn't in a
-   tracked sublane is hidden from the globe — re-track it later and its history
-   returns, correctly placed. Phase 2 moves this seed into settings + a
-   manager UI. ── */
-const SUBLANE_SEED = {
-  Instructor: [
-    /* `matches` are exact `subcategory` tags; `titleMatches` are case-insensitive
-       substrings of the task TITLE. Title matching disambiguates the coarse
-       "Schedule" tag, which lumps PSE-I Lectures, Office Hours, and Electrical
-       Science Lab meetings together — the title routes each to the right track.
-       resolveSub returns the FIRST matching sublane, so order is priority. */
-    { name: 'PSE-I',        matches: ['PSEI Notes', 'PSEI HW', 'PSEI Exam', 'PSEI Drill', 'PSEI Lecture', 'PSEI Grading'],
-                            titleMatches: ['PSE-I'] },
-    { name: 'Elec Sci Lab', matches: ['Electrical Science Lab', 'Thermal Engineering Lab', 'TE Lab'],
-                            titleMatches: ['Electrical Science', 'Thermal Engineering'] },
-    { name: 'Duties',       matches: ['Schedule', 'Service'],
-                            titleMatches: ['Office Hours'] },
-  ],
-  Coordinator: [
-    { name: 'Ignition',     matches: ['Ignition'], titleMatches: ['Ignition'] },
-  ],
-  Personal: [
-    { name: 'Bills',        matches: ['Finance'] },
-    { name: 'Chores',       matches: ['Home', 'Car'] },
-    { name: 'Family',       matches: ['Family'] },
-    { name: 'Friends',      matches: ['Friends'] },
-  ],
-};
+/* Sublane registry lives in settings.sublanes (server-persisted), seeded from
+   DEFAULT_SUBLANES and edited via the Sublane Manager modal (Phase 2). Each
+   domain lane subdivides into TRACKED tracks that bind to existing subcategory
+   tags and/or title keywords — a task whose tag/project isn't in a tracked
+   track is hidden from the globe; re-track it later and its history returns.
+   The Projects domain is special: its tracks are the TRACKED projects. See
+   ./sublanes.js for the model + matching + stats helpers. */
 
 /**
  * ═════════════════════════════════════════════════════════════════
@@ -60,7 +36,7 @@ const SUBLANE_SEED = {
  * Horizon/Radar children based on mode.
  */
 export const BridgeView = ({
-  tasks, projects = [], getQuadrant, setEditingTask, setShowForm, settings,
+  tasks, projects = [], getQuadrant, setEditingTask, setShowForm, settings, setSettings,
   view, setView, onInfo, onSettings, onExport, onImport, onRefresh, isRefreshing
 }) => {
   const [mode, setMode] = useState('horizon');
@@ -86,6 +62,8 @@ export const BridgeView = ({
   useEffect(() => {
     try { localStorage.setItem('bridge-density', showDensity ? 'on' : 'off'); } catch {}
   }, [showDensity]);
+  /* Sublane Manager modal (Phase 2) — launched from the Command ⚙ actions. */
+  const [showSublanes, setShowSublanes] = useState(false);
   /* Horizon distance is wheel-zoomable. State lives here so it survives
      Horizon ↔ Radar toggles. */
   const [horizonDays, setHorizonDays] = useState(() =>
@@ -149,13 +127,16 @@ export const BridgeView = ({
   };
 
   /* Tracked sublanes per domain. Projects → tracked projects (by id); every
-     other domain → its seed list. */
+     other domain → its registry entries (settings.sublanes, seeded from
+     DEFAULT_SUBLANES), filtered to the tracked ones only. */
   const projectSublanes = (projects || [])
     .filter(p => p.tracked && p.status !== 'done' && p.status !== 'archived')
     .map(p => ({ name: p.name, projectId: p.id }));
   const sublanesByDomain = {};
   for (const d of baseDomains) {
-    sublanesByDomain[d] = d === 'Projects' ? projectSublanes : (SUBLANE_SEED[d] || []);
+    sublanesByDomain[d] = d === 'Projects'
+      ? projectSublanes
+      : domainRegistry(settings, d).filter(s => s.tracked !== false);
   }
   /* Resolve a task to its sublane sub-band, or null if it belongs to no
      tracked sublane (→ hidden from the globe). A domain with no sublanes
@@ -165,13 +146,9 @@ export const BridgeView = ({
     if (laneIdx === -1) return null;
     const subs = sublanesByDomain[t.domain] || [];
     if (subs.length === 0) return { laneIdx, subIdx: 0, subCount: 1 };
-    const title = (t.task || '').toLowerCase();
-    const matchSub = (s) =>
-      (s.matches || []).includes(t.subcategory) ||
-      (s.titleMatches || []).some(k => title.includes(k.toLowerCase()));
     const subIdx = t.domain === 'Projects'
       ? subs.findIndex(s => s.projectId === t.projectId)
-      : subs.findIndex(matchSub);
+      : subs.findIndex(s => sublaneMatches(s, t));
     if (subIdx === -1) return null;
     return { laneIdx, subIdx, subCount: subs.length };
   };
@@ -450,6 +427,7 @@ export const BridgeView = ({
             onInfo={onInfo} onSettings={onSettings}
             onExport={onExport} onImport={onImport}
             onRefresh={onRefresh} isRefreshing={isRefreshing}
+            onSublanes={() => setShowSublanes(true)}
           />
           </div>
         </div>
@@ -607,6 +585,14 @@ export const BridgeView = ({
           onEdit={handleEditFromDetails}
           onToggleTrack={handleToggleTrack}
           onClose={() => setSelectedTask(null)}
+        />
+      )}
+
+      {showSublanes && setSettings && (
+        <SublaneManagerModal
+          settings={settings} setSettings={setSettings}
+          tasks={tasks} domains={baseDomains}
+          onClose={() => setShowSublanes(false)}
         />
       )}
     </div>

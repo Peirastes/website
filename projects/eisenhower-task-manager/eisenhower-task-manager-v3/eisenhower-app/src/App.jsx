@@ -864,7 +864,7 @@ const EisenhowerTaskManager = () => {
           <BridgeView
             tasks={liveTasks} projects={projects} getQuadrant={getQuadrant}
             setEditingTask={setEditingTask} setShowForm={setShowForm}
-            settings={settings}
+            settings={settings} setSettings={setSettings}
             view={view} setView={setView}
             onInfo={() => setShowInfo(true)} onSettings={() => setShowSettings(true)}
             onExport={exportData} onImport={importData}

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   LayoutGrid, List, BarChart3, Calendar, Compass, TrendingUp,
-  FolderKanban, MessageSquare, Plus, Info, Settings, Download, Upload, RefreshCw
+  FolderKanban, MessageSquare, Plus, Info, Settings, Download, Upload, RefreshCw, Columns
 } from 'lucide-react';
 
 /**
@@ -24,7 +24,8 @@ const VIEW_TABS = [
 
 export const AppDock = ({
   layout = 'bar', view, setView,
-  onAddTask, onInfo, onSettings, onExport, onImport, onRefresh, isRefreshing
+  onAddTask, onInfo, onSettings, onExport, onImport, onRefresh, isRefreshing,
+  onSublanes
 }) => {
   /* On the Bridge the dock floats over the draggable globe — stop pointerdown
      from starting a globe drag. Harmless on the bottom bar. */
@@ -57,6 +58,9 @@ export const AppDock = ({
       <div className="cin-utility-cluster">
         <button className="cin-utility-btn" onClick={onInfo} onPointerDown={stop} title="About this app" aria-label="About"><Info size={13} /></button>
         <button className="cin-utility-btn" onClick={onSettings} onPointerDown={stop} title="Settings" aria-label="Settings"><Settings size={13} /></button>
+        {onSublanes && (
+          <button className="cin-utility-btn" onClick={onSublanes} onPointerDown={stop} title="Manage sublanes" aria-label="Manage sublanes"><Columns size={13} /></button>
+        )}
         <button className="cin-utility-btn" onClick={onExport} onPointerDown={stop} title="Export data" aria-label="Export"><Download size={13} /></button>
         <label className="cin-utility-btn" title="Import data" style={{ cursor: 'pointer' }} onPointerDown={stop}>
           <Upload size={13} />
