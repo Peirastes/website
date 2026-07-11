@@ -6,6 +6,7 @@
 import io
 import json
 import math
+import sys
 import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -16,6 +17,17 @@ from typing import Any, Dict, List, Optional
 import requests
 import pandas as pd
 import numpy as np
+
+# Force UTF-8 on stdout/stderr so non-ASCII in prints (status markers, station
+# names) never crash under a Windows cp1252 pipe when this script is launched
+# captured by run_daily_update.py. Without this, a printed U+2713 raised a
+# UnicodeEncodeError mid-fetch, falsely marking magnetometer stations failed.
+# (Python 3.7+; guarded so it degrades cleanly if reconfigure is unavailable.)
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 # Optional: VirES client for INTERMAGNET ground data (primary magnetometer source)
 # Install: pip install viresclient
@@ -1714,7 +1726,7 @@ def main():
                 df = load_vires_mag_timeseries_H(station, start_time, end_time)
                 if not df.empty:
                     all_mag_data.append(df)
-                    print(f"      {station}: {len(df)} records from VirES ✓")
+                    print(f"      {station}: {len(df)} records from VirES [OK]")
                     station_status = "ok"
                     station_source = "VirES"
                 else:
@@ -1730,7 +1742,7 @@ def main():
                 df = load_usgs_mag_timeseries_H(station, start_time, end_time)
                 if not df.empty:
                     all_mag_data.append(df)
-                    print(f"      {station}: {len(df)} records from USGS ✓")
+                    print(f"      {station}: {len(df)} records from USGS [OK]")
                     station_status = "ok"
                     station_source = "USGS"
                 else:
@@ -1745,7 +1757,7 @@ def main():
                 df = load_intermagnet_mag_timeseries_H(station, start_time, end_time)
                 if not df.empty:
                     all_mag_data.append(df)
-                    print(f"      {station}: {len(df)} records from BGS HAPI ✓")
+                    print(f"      {station}: {len(df)} records from BGS HAPI [OK]")
                     station_status = "ok"
                     station_source = "INTERMAGNET"
                 else:
