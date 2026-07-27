@@ -1,0 +1,106 @@
+/* ============================================================
+   PEIRASTES · COURSES · component styles  (WEB-11)
+   ------------------------------------------------------------
+   Loaded ONLY on course landing pages (e.g. courses/pseii.html)
+   ALONGSIDE cinematic.css. The Courses HUB (courses.html) is a
+   carbon copy of the Projects page and needs nothing here — it
+   uses the shared .quest-card / .page-body vocabulary directly.
+
+   This file styles what the Projects page has no analog for: the
+   course landing's four content-type columns + the completion slot.
+   Additive only; no base cinematic rule is overridden.
+   ============================================================ */
+
+/* ---- Completion slot (STUB · WEB-11) ----
+   Revealed only for a signed-in PeirAuth user by js/courses.js.
+   Fill width + label bind to real completion data in phase 2
+   (Pi backend endpoint); inert for now. */
+.course-progress {
+  font-family: var(--font-ui);
+}
+.course-progress__label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+}
+.course-progress__bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.course-progress__fill {
+  height: 100%;
+  width: 0%; /* phase-2: bound to real per-course completion */
+  background: var(--accent);
+  transition: width 400ms ease;
+}
+
+/* ---- Course landing: the four content-type columns ---- */
+.course-columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.course-column {
+  background: var(--surface);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--accent);
+  padding: 1.15rem 1.2rem 1.3rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.course-column__head {
+  font-family: var(--font-ui);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(125, 214, 255, 0.16);
+}
+.course-column__list {
+  display: flex;
+  flex-direction: column;
+}
+.course-item {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text-mid);
+  text-decoration: none;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: color 160ms ease, padding-left 160ms ease;
+}
+.course-item:last-child { border-bottom: none; }
+.course-item:hover { color: var(--gold); padding-left: 0.3rem; }
+.course-item__num {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  margin-right: 0.5rem;
+}
+.course-column__empty {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--text-dim);
+  padding: 0.5rem 0;
+}
+
+/* ---- Responsive column collapse ---- */
+@media (max-width: 900px) {
+  .course-columns { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .course-columns { grid-template-columns: 1fr; }
+}
