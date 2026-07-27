@@ -3,48 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-    <title>Slavic TTS — Peirastes</title>
-    <meta name="description" content="Live Russian & Ukrainian text-to-speech and translation — type either language, see the pronunciation and meaning, and hear it in a natural male voice.">
-    <meta property="og:title" content="Slavic TTS — Peirastes">
-    <meta property="og:description" content="Russian & Ukrainian text-to-speech + translation, both directions, at any speed.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://peirastes.com/tts">
-    <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="manifest" href="/manifest.json">
+    <title>Slavic TTS — Live</title>
     <meta name="theme-color" content="#0a0d10">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Slavic TTS">
+    <meta name="apple-mobile-web-app-title" content="TTS">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230a0d10'/%3E%3Ctext x='50' y='70' font-size='58' text-anchor='middle' fill='%237dd6ff'%3E%D0%94%3C/text%3E%3C/svg%3E">
     <style>
-      html, body { margin: 0; height: 100%; background: #0a0d10; overflow: hidden; }
-      iframe { border: 0; width: 100%; height: 100%; height: 100dvh; display: block; }
-      .home {
-        position: fixed;
-        top: calc(env(safe-area-inset-top) + 0.5rem);
-        left: 0.7rem;
-        z-index: 10;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase;
-        color: rgba(125, 214, 255, 0.72); text-decoration: none;
-        background: rgba(8, 16, 22, 0.6);
-        padding: 0.5rem 0.75rem; border-radius: 8px;
-        backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-        transition: color 0.16s;
+      :root{
+        --accent:#7dd6ff; --accent-soft:rgba(125,214,255,.06);
+        --gold:#f0c060; --text:rgba(255,255,255,.92); --mid:rgba(255,255,255,.65);
+        --dim:rgba(255,255,255,.4); --surface:rgba(8,16,22,.55); --bg:#0a0d10;
+        --ui:'Inter',system-ui,-apple-system,sans-serif;
       }
-      .home:hover { color: #fff; }
+      *{box-sizing:border-box}
+      html,body{margin:0}
+      body{
+        min-height:100vh;min-height:100dvh;
+        background:radial-gradient(ellipse 90% 60% at 50% 0%, rgba(125,214,255,.05), transparent 60%), var(--bg);
+        color:var(--text); font-family:var(--ui);
+        display:flex; flex-direction:column; align-items:center;
+        padding:clamp(1.2rem,5vw,2.5rem) 1.1rem 3rem;
+        padding-top:calc(clamp(1.2rem,5vw,2.5rem) + env(safe-area-inset-top));
+        -webkit-tap-highlight-color:transparent;
+      }
+      .wrap{width:100%;max-width:560px}
+      header{text-align:center;margin-bottom:1.4rem}
+      h1{font-size:clamp(1.5rem,6vw,2rem);letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin:0;font-weight:700}
+      .sub{font-size:.66rem;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);margin-top:.55rem}
+      .modes{display:flex;gap:.5rem;margin-bottom:1.1rem}
+      .mode-btn{flex:1;font-family:var(--ui);font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:.7rem .4rem;border-radius:10px;border:1px solid rgba(125,214,255,.2);background:transparent;color:var(--mid);cursor:pointer;transition:background .16s,border-color .16s,color .16s}
+      .mode-btn.is-active{background:rgba(125,214,255,.15);border-color:var(--accent);color:var(--text)}
+      .panel{background:var(--surface);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:1.2rem;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);margin-bottom:1.1rem}
+      label{display:block;font-size:.6rem;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:.55rem}
+      textarea{width:100%;min-height:120px;resize:vertical;background:rgba(0,0,0,.35);border:1px solid rgba(125,214,255,.18);border-radius:10px;color:var(--text);font-family:var(--ui);font-size:1.15rem;line-height:1.5;padding:.8rem .9rem}
+      textarea:focus{outline:none;border-color:var(--accent)}
+      select{width:100%;background:rgba(0,0,0,.35);color:var(--text);border:1px solid rgba(125,214,255,.18);border-radius:10px;padding:.7rem .8rem;font-family:var(--ui);font-size:1rem;-webkit-appearance:none;appearance:none}
+      .row{margin-bottom:1.1rem}
+      .rate-head{display:flex;justify-content:space-between;align-items:baseline}
+      .rate-val{font-size:.85rem;color:var(--gold);font-weight:600}
+      input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+      .buttons{display:flex;gap:.7rem;margin-top:.3rem}
+      button.act{flex:1;font-family:var(--ui);font-size:.8rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:.95rem 1rem;border-radius:11px;border:1px solid rgba(125,214,255,.3);background:transparent;color:var(--text);cursor:pointer;transition:background .16s,transform .08s}
+      button.act:active{transform:scale(.98)}
+      #play{background:linear-gradient(180deg,rgba(125,214,255,.22),rgba(125,214,255,.10));border-color:var(--accent)}
+      #play:disabled{opacity:.5;cursor:default}
+      #stop:hover{background:var(--accent-soft)}
+      .status{font-size:.82rem;color:var(--mid);margin-top:1rem;min-height:1.2em;text-align:center}
+      .status b{color:var(--gold)}
+      .out{margin-top:.9rem;padding-top:.85rem;border-top:1px solid rgba(125,214,255,.12)}
+      .out__label{font-size:.58rem;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);margin-bottom:.35rem}
+      .out__pron{font-size:1.02rem;line-height:1.5;color:var(--gold);font-style:italic;min-height:1.2em}
+      .out__result{font-size:1.05rem;line-height:1.5;color:var(--text);min-height:1.2em}
+      .spin{display:inline-block;width:.8em;height:.8em;border:2px solid var(--dim);border-top-color:var(--accent);border-radius:50%;animation:s .7s linear infinite;vertical-align:-1px;margin-right:.4em}
+      @keyframes s{to{transform:rotate(360deg)}}
+      .note{font-size:.78rem;line-height:1.55;color:var(--dim);margin-top:1.3rem}
+      .note strong{color:var(--mid)}
     </style>
 </head>
 <body>
-    <!-- Back to the site -->
-    <a class="home" href="/">&larr; Peirastes</a>
+    <div class="wrap">
+        <header>
+            <h1>Голос</h1>
+            <div class="sub">Voice</div>
+        </header>
 
-    <!-- The app itself runs on the always-on Pi (edge-tts backend + funnel HTTPS). -->
-    <iframe
-        src="https://peirastes-pi.tail6fdfc3.ts.net:8443/"
-        title="Slavic TTS"
-        allow="autoplay"
-        referrerpolicy="no-referrer"></iframe>
+        <div class="modes">
+            <button class="mode-btn is-active" id="modeFwd" type="button">RU/UK → EN</button>
+            <button class="mode-btn" id="modeRev" type="button">EN → RU/UK</button>
+        </div>
+
+        <div class="panel">
+            <label for="text" id="inputLabel">Text</label>
+            <textarea id="text" spellcheck="false" placeholder="Вставь текст…">Це так непросто, бути гловой колгоспу</textarea>
+            <div class="out">
+                <div class="out__label" id="resultLabel">Translation</div>
+                <div class="out__result" id="result"></div>
+            </div>
+            <div class="out">
+                <div class="out__label">Pronunciation</div>
+                <div class="out__pron" id="pron"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="row">
+                <label for="voice">Voice</label>
+                <select id="voice">
+                    <option value="ru-RU-DmitryNeural">Dmitry — Russian · Male</option>
+                    <option value="uk-UA-OstapNeural">Ostap — Ukrainian · Male</option>
+                    <option value="ru-RU-SvetlanaNeural">Svetlana — Russian · Female</option>
+                    <option value="uk-UA-PolinaNeural">Polina — Ukrainian · Female</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="rate-head"><label for="rate" style="margin-bottom:0">Speed</label><span class="rate-val" id="rateVal">1.00×</span></div>
+                <input type="range" id="rate" min="0.5" max="1.3" step="0.05" value="1">
+            </div>
+            <div class="buttons">
+                <button class="act" id="play">▶ Speak</button>
+                <button class="act" id="stop">■ Stop</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <audio id="audio" preload="auto"></audio>
+
+        <div class="note">
+            <strong>Two-way.</strong> <em>RU/UK → EN:</em> type Cyrillic, see its pronunciation + English meaning, hear it.
+            <em>EN → RU/UK:</em> type English, get the Russian/Ukrainian + pronunciation, and hear it spoken.
+            Language follows the selected voice. Add to Home Screen to use it like an app.
+        </div>
+    </div>
+
+    <script>
+      (function(){
+        "use strict";
+        var $=function(id){return document.getElementById(id);};
+        var textEl=$("text"), voiceSel=$("voice"), rateEl=$("rate"), rateVal=$("rateVal"),
+            playBtn=$("play"), stopBtn=$("stop"), statusEl=$("status"), audio=$("audio"),
+            pronEl=$("pron"), resultEl=$("result"), resultLabel=$("resultLabel"), inputLabel=$("inputLabel"),
+            modeFwd=$("modeFwd"), modeRev=$("modeRev");
+        var lastUrl=null, mode="fwd", revCyr="", trTimer=null, trReqId=0;
+        // API base: relative when served from the Pi itself; absolute (to the Pi funnel)
+        // when this same page is served from peirastes.com — with CORS handled server-side.
+        var API=(location.hostname==="peirastes-pi.tail6fdfc3.ts.net")?"":"https://peirastes-pi.tail6fdfc3.ts.net:8443";
+
+        // --- transliteration (client-side) ---
+        var RU={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+        var UK={'а':'a','б':'b','в':'v','г':'h','ґ':'g','д':'d','е':'e','є':'ye','ж':'zh','з':'z','и':'y','і':'i','ї':'yi','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ь':'','ю':'yu','я':'ya'};
+        function langOf(v){ return v.indexOf('uk-')===0 ? 'uk' : 'ru'; }
+        function translit(text, v){
+          var map=(langOf(v)==='uk')?UK:RU, out='';
+          for(var i=0;i<text.length;i++){
+            var ch=text[i], low=ch.toLowerCase(), m=map[low];
+            if(m===undefined){ out+=ch; continue; }
+            if(ch!==low && m) m=m.charAt(0).toUpperCase()+m.slice(1);
+            out+=m;
+          }
+          return out;
+        }
+
+        function doTranslate(text, source, target){
+          return fetch(API+'/translate',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({text:text, source:source, target:target})})
+            .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+            .then(function(j){ return j.translation || ''; });
+        }
+
+        // Recompute the two output lines for the current mode (debounced network part).
+        function refresh(){
+          var text=textEl.value.trim();
+          if(mode==='fwd'){
+            pronEl.textContent = translit(textEl.value, voiceSel.value); // instant
+          }
+          if(!text){ resultEl.textContent=''; if(mode==='rev'){ pronEl.textContent=''; revCyr=''; } return; }
+          clearTimeout(trTimer);
+          trTimer=setTimeout(function(){
+            var id=++trReqId;
+            resultEl.textContent='…'; if(mode==='rev') pronEl.textContent='…';
+            if(mode==='fwd'){
+              doTranslate(text, langOf(voiceSel.value), 'en')
+                .then(function(en){ if(id===trReqId) resultEl.textContent = en || '(no translation)'; })
+                .catch(function(){ if(id===trReqId) resultEl.textContent='(unavailable)'; });
+            } else {
+              doTranslate(text, 'en', langOf(voiceSel.value))
+                .then(function(cyr){ if(id!==trReqId) return; revCyr=cyr; resultEl.textContent=cyr||'(no translation)'; pronEl.textContent=translit(cyr, voiceSel.value); })
+                .catch(function(){ if(id===trReqId){ resultEl.textContent='(unavailable)'; pronEl.textContent=''; } });
+            }
+          }, 550);
+        }
+
+        function speakTextForMode(){ return (mode==='fwd') ? textEl.value.trim() : revCyr.trim(); }
+
+        function applyMode(){
+          var rev=(mode==='rev');
+          modeFwd.classList.toggle('is-active', !rev);
+          modeRev.classList.toggle('is-active', rev);
+          inputLabel.textContent = rev ? 'English' : 'Text';
+          textEl.placeholder = rev ? 'Type English…' : 'Вставь текст…';
+          resultLabel.textContent = rev ? (langOf(voiceSel.value)==='uk' ? 'Ukrainian' : 'Russian') : 'Translation';
+          try{ localStorage.setItem('tts_mode', mode); }catch(e){}
+          refresh();
+        }
+
+        function rateStr(){ var pct=Math.round((parseFloat(rateEl.value)-1)*100); return (pct>=0?"+":"")+pct+"%"; }
+        function status(html){ statusEl.innerHTML=html||""; }
+
+        // restore prefs
+        try{
+          var v=localStorage.getItem("tts_voice"); if(v) voiceSel.value=v;
+          var r=localStorage.getItem("tts_rate"); if(r) rateEl.value=r;
+          var t=localStorage.getItem("tts_text"); if(t) textEl.value=t;
+          var m=localStorage.getItem("tts_mode"); if(m==="rev"||m==="fwd") mode=m;
+        }catch(e){}
+        rateVal.textContent=parseFloat(rateEl.value).toFixed(2)+"×";
+
+        rateEl.addEventListener("input",function(){
+          rateVal.textContent=parseFloat(rateEl.value).toFixed(2)+"×";
+          try{localStorage.setItem("tts_rate",rateEl.value);}catch(e){}
+        });
+        voiceSel.addEventListener("change",function(){ try{localStorage.setItem("tts_voice",voiceSel.value);}catch(e){} applyMode(); });
+        textEl.addEventListener("input",function(){ try{localStorage.setItem("tts_text",textEl.value);}catch(e){} refresh(); });
+        modeFwd.addEventListener("click",function(){ if(mode!=="fwd"){ mode="fwd"; textEl.value=""; revCyr=""; try{localStorage.setItem("tts_text","");}catch(e){} applyMode(); textEl.focus(); } });
+        modeRev.addEventListener("click",function(){ if(mode!=="rev"){ mode="rev"; textEl.value=""; revCyr=""; try{localStorage.setItem("tts_text","");}catch(e){} applyMode(); textEl.focus(); } });
+
+        async function speak(){
+          var text=speakTextForMode();
+          if(!text){ status(mode==='rev' ? "Type English first — I'll speak the translation." : "Enter some text first."); return; }
+          status('<span class="spin"></span>Generating…'); playBtn.disabled=true;
+          try{
+            var res=await fetch(API+"/tts",{method:"POST",headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({text:text, voice:voiceSel.value, rate:rateStr()})});
+            if(!res.ok){ var err={}; try{ err=await res.json(); }catch(e){} throw new Error(err.error || ("server "+res.status)); }
+            var blob=await res.blob();
+            if(lastUrl) URL.revokeObjectURL(lastUrl);
+            lastUrl=URL.createObjectURL(blob); audio.src=lastUrl; await audio.play();
+            status('Playing — <b>'+voiceSel.options[voiceSel.selectedIndex].text+'</b>');
+          }catch(e){ status("Error: "+e.message+" — is the TTS server running?"); }
+          finally{ playBtn.disabled=false; }
+        }
+        playBtn.addEventListener("click",speak);
+        stopBtn.addEventListener("click",function(){ audio.pause(); audio.currentTime=0; status(""); });
+        audio.addEventListener("ended",function(){ status(""); });
+
+        applyMode();
+      })();
+    </script>
 </body>
 </html>
