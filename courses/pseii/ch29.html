@@ -31,19 +31,27 @@
       background:rgba(240,160,48,.03);text-align:center}
     .fig-ph__tag{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#a06820}
     .fig-ph__cap{font-size:.9rem;color:#9a9890;max-width:42ch}
+    /* Sim block breaks OUT wider than the ~760px reading column so dense instrument apps have room */
+    .sim-block{width:min(94vw,1060px);margin:2rem 0;margin-left:50%;transform:translateX(-50%)}
     /* Acrylic frame (from acrylic_hud_components .acrylic-panel): amber edge + chromatic-aberration split (amber R / cyan L) + backdrop blur + floating shadow */
-    .sim-embed{position:relative;margin:2rem 0;border-radius:10px;overflow:hidden;
+    .sim-embed{position:relative;border-radius:10px;overflow:hidden;
       background:linear-gradient(180deg,rgba(18,22,28,.62) 0%,rgba(12,16,22,.58) 60%,rgba(10,14,20,.62) 100%);
       backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
       border:1px solid rgba(240,160,48,.45);
       box-shadow:1px 0 0 rgba(240,160,48,.38),-1px 0 0 rgba(64,232,208,.30),
         0 0 28px rgba(240,160,48,.13),0 18px 48px rgba(0,0,0,.65),0 4px 12px rgba(0,0,0,.5),
         inset 0 0 40px rgba(240,160,48,.04),inset 0 1px 0 rgba(240,160,48,.18)}
-    .sim-embed__frame{position:relative;width:100%;aspect-ratio:16/10;background:#05080c}
+    .sim-embed__frame{position:relative;width:100%;height:clamp(460px,76vh,760px);background:#05080c}
     .sim-embed__frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
     /* title pulled OUT of the frame — reads as a subtitle in the text; frame stays minimal */
-    .sim-lead{font-family:'Cinzel',serif;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;color:#f0a030;margin:2rem 0 .55rem}
-    .sim-note{font-size:.86rem;color:#9a9890;margin:.7rem 0 1.6rem;max-width:60ch}
+    .sim-lead{font-family:'Cinzel',serif;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;color:#f0a030;margin:0 0 .55rem}
+    .sim-foot{display:flex;justify-content:space-between;align-items:baseline;gap:1.2rem;flex-wrap:wrap;margin:.7rem 0 0}
+    .sim-note{font-size:.86rem;color:#9a9890;margin:0;max-width:60ch}
+    .sim-full{font-family:'Cinzel',serif;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;
+      color:rgba(240,160,48,.85);text-decoration:none;white-space:nowrap}
+    .sim-full:hover{color:#f0a030}
+    @media (max-width:900px){.sim-block{width:94vw}}
+    @media (max-width:560px){.sim-block{width:96vw}.sim-embed__frame{height:clamp(420px,72vh,560px)}}
     .chapter-back{display:inline-block;margin-bottom:1.5rem;font-family:'Cinzel',serif;font-size:.8rem;
       letter-spacing:.08em;color:rgba(240,160,48,.7);text-decoration:none}
     .chapter-back:hover{color:#f0a030}
@@ -204,11 +212,16 @@
 </ul>
 <p>This 90-degree phase shift between flux and EMF is characteristic of all sinusoidal induction. It is analogous to position and velocity in simple harmonic motion: position is maximum when velocity is zero, and vice versa.</p>
 <hr />
-<div class="sim-lead">Interactive &middot; Induction Lab</div>
-<div class="sim-embed">
-  <div class="sim-embed__frame"><iframe src="/induction-lab/index.html" title="Induction Lab" loading="lazy"></iframe></div>
+<div class="sim-block">
+  <div class="sim-lead">Interactive &middot; Induction Lab</div>
+  <div class="sim-embed">
+    <div class="sim-embed__frame"><iframe src="/induction-lab/induction_lab.html?embed=1" title="Induction Lab" loading="lazy" allow="fullscreen"></iframe></div>
+  </div>
+  <div class="sim-foot">
+    <span class="sim-note">Drive a coil through changing fields, read the induced EMF on a live scope, and watch Lenz's law choose the direction.</span>
+    <a class="sim-full" href="/induction-lab/induction_lab.html" target="_blank" rel="noopener">Open full screen &#8599;</a>
+  </div>
 </div>
-<p class="sim-note">Drive a coil through changing fields, read the induced EMF on a live scope, and watch Lenz's law choose the direction.</p>
 <h2 id="lenzs-law">29.3 — Lenz’s Law</h2>
 <h3 id="the-direction-of-the-induced-current">The Direction of the Induced Current</h3>
 <p>Faraday’s Law gives us the <em>magnitude</em> of the induced EMF. <strong>Lenz’s Law</strong> gives us the <em>direction</em>:</p>
