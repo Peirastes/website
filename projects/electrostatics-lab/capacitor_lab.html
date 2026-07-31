@@ -24,6 +24,24 @@
   <!-- notes-embed mode: hide standalone cinematic chrome when framed via ?embed -->
   <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain{display:none !important}</style>
   <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
+  <!-- flat-reskin pass 1: strip metal chassis/textures/rivets, flatten panels+headers to the Artemis flat-void cloth -->
+  <style id="flat-reskin">
+    :root{--fl-amber:#ffae20;--fl-cyan:#7dd6ff;--fl-glass:rgba(10,16,24,.55);--fl-border:rgba(255,255,255,.09);}
+    .tex-m,.tex-b,.tex-r,.tex-g,.chassis>.tex,.sub-panel>.tex,.rivet{display:none !important}
+    .chassis{background:radial-gradient(ellipse at 50% 35%,#0c1018 0%,#070b12 55%,#04060a 100%) !important;border:none !important;box-shadow:none !important}
+    .chassis::before{display:none !important}
+    .sub-panel{background:var(--fl-glass) !important;border:1px solid var(--fl-border) !important;border-top:1px solid var(--fl-border) !important;border-bottom:1px solid var(--fl-border) !important;border-radius:8px !important;box-shadow:0 8px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03) !important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .sp-hdr{background:transparent !important;border-bottom:1px solid rgba(255,174,32,.22) !important;box-shadow:none !important}
+    .sp-lbl{font-family:'Orbitron',sans-serif !important;color:var(--fl-amber) !important;text-shadow:none !important;letter-spacing:.18em !important}
+    .np-bar{background:rgba(8,12,18,.6) !important;border:1px solid var(--fl-border) !important;border-top:1px solid var(--fl-border) !important;box-shadow:inset 0 1px 3px rgba(0,0,0,.5) !important}
+    /* pass 2: masthead + mode buttons */
+    .np-bar h1{color:var(--fl-amber) !important;font-family:'Orbitron',sans-serif !important;text-shadow:0 0 12px rgba(255,174,32,.28) !important}
+    .mode-btn{background:rgba(255,174,32,.05) !important;border:1px solid rgba(255,174,32,.28) !important;border-radius:4px !important;color:rgba(255,255,255,.6) !important;font-family:'Inter',sans-serif !important;box-shadow:none !important}
+    .mode-btn.on,.mode-btn.active,.mode-btn.sel{background:linear-gradient(180deg,#ffbc3e,#e08a10) !important;color:#141414 !important;border-color:var(--fl-amber) !important}
+    /* pass 3: toggle housing + dielectric button legibility */
+    .ss{background:rgba(8,12,18,.5) !important;border:1px solid var(--fl-border) !important;border-top:1px solid var(--fl-border) !important;box-shadow:inset 0 1px 3px rgba(0,0,0,.4) !important;border-radius:4px !important}
+    .pbtn{font-family:'Inter',sans-serif !important;font-size:9.5px !important;font-weight:600 !important;letter-spacing:.03em !important;border-radius:4px !important;min-width:40px !important}
+  </style>
 </head><body>
 <a href="https://peirastes.com" class="peirastes-home" title="Back to Peirastes">Peirastes</a>
 
@@ -141,7 +159,7 @@ function knob(id,val,mn,mx,c,lb,un){
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+(kO+1.5)+'" fill="none" stroke="#1c2026" stroke-width="1"/>';
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+kM+'" fill="none" stroke="#1e2024" stroke-width="'+(kO-kI+1)+'"/>';
   s+='<g transform="rotate('+ag+','+cx+','+cy+')">';
-  for(var i=0;i<48;i++){var a=i*360/48*Math.PI/180;s+='<line x1="'+(cx+kI*Math.cos(a))+'" y1="'+(cy+kI*Math.sin(a))+'" x2="'+(cx+kO*Math.cos(a))+'" y2="'+(cy+kO*Math.sin(a))+'" stroke="'+(i%2===0?'#383e44':'#1c2026')+'" stroke-width="1.2"/>';}
+  for(var i=0;i<48;i++){var a=i*360/48*Math.PI/180;s+='<line x1="'+(cx+kI*Math.cos(a))+'" y1="'+(cy+kI*Math.sin(a))+'" x2="'+(cx+kO*Math.cos(a))+'" y2="'+(cy+kO*Math.sin(a))+'" stroke="'+(i%2===0?'rgba(255,174,32,.32)':'rgba(255,255,255,.06)')+'" stroke-width="1.2"/>';}
   s+='</g>';
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+kO+'" fill="none" stroke="#1c2026" stroke-width=".5"/>';
   s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+kI+'" fill="none" stroke="#1c2026" stroke-width=".5"/>';
@@ -151,17 +169,17 @@ function knob(id,val,mn,mx,c,lb,un){
   s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+ix+'" y2="'+iy+'" stroke="'+c+'" stroke-width="2.5" stroke-linecap="round"/>';
   s+='<circle cx="'+ix+'" cy="'+iy+'" r="2.5" fill="'+c+'"/>';
   var hp='';for(var i=0;i<6;i++){var a3=(i*60-30)*Math.PI/180;hp+=(cx+5*Math.cos(a3))+','+(cy+5*Math.sin(a3))+' ';}
-  s+='<polygon points="'+hp+'" fill="#1e2024" stroke="#3e444a" stroke-width=".8"/><circle cx="'+cx+'" cy="'+cy+'" r="2" fill="'+c+'50"/></svg>';
+  s+='<polygon points="'+hp+'" fill="#0f151d" stroke="rgba(255,174,32,.25)" stroke-width=".8"/><circle cx="'+cx+'" cy="'+cy+'" r="2" fill="'+c+'50"/></svg>';
   var vs=val>=100?val.toFixed(0):val>=10?val.toFixed(1):val.toFixed(2);
   var uTex=un.indexOf('\\')>=0?un:'\\text{'+un+'}';
   var texStr=lb+'='+vs+'\\;'+uTex;
   var rendered=ktx(texStr);
-  return'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;user-select:none"><div style="width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#383e44,#282c30 30%,#111418 70%,#1c2026);border:2px solid #3e444a;border-top:2px solid #383e44;border-bottom:3px solid #1c2026;box-shadow:inset 0 3px 5px rgba(255,255,255,.04),inset 0 -2px 4px rgba(0,0,0,.3),0 4px 8px rgba(0,0,0,.5),0 2px 3px rgba(0,0,0,.3),0 8px 16px rgba(0,0,0,.25)">'+s+'</div><div class="knob-ktx" style="text-align:center;margin-top:-2px;color:'+c+';text-shadow:0 0 8px '+c+'60,0 0 18px '+c+'20">'+rendered+'</div></div>';}
+  return'<div style="display:flex;flex-direction:column;align-items:center;gap:1px;user-select:none"><div style="width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#18202a,#0e141c 62%,#090d13);border:1px solid rgba(255,174,32,.30);box-shadow:inset 0 1px 3px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.45)">'+s+'</div><div class="knob-ktx" style="text-align:center;margin-top:-2px;color:'+c+';text-shadow:0 0 8px '+c+'60,0 0 18px '+c+'20">'+rendered+'</div></div>';}
 
 function dome(id,lb,c,sz,pr){var lit=!pr;
   return'<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none" id="'+id+'"><div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .1s;'+(pr?'transform:translateY(2px);background:radial-gradient(circle at 50% 50%,#111418,#1c2026 60%);box-shadow:inset 0 3px 6px rgba(0,0,0,.6),0 1px 2px rgba(0,0,0,.3)':'background:radial-gradient(circle at 50% 45%,'+c+'30,#111418 60%,#1c2026);box-shadow:inset 0 -2px 4px rgba(0,0,0,.4),inset 0 2px 3px '+c+'10,0 3px 1px #1c2026,0 5px 10px rgba(0,0,0,.5),0 0 12px '+c+'15')+'"><div style="width:'+(sz-10)+'px;height:'+(sz-10)+'px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .1s;'+(lit?'background:radial-gradient(circle at 45% 38%,'+c+'cc,'+c+' 40%,'+c+'88);box-shadow:inset 0 2px 4px rgba(255,255,255,.25),inset 0 -2px 3px rgba(0,0,0,.3),0 0 8px '+c+'60':'background:radial-gradient(circle at 50% 50%,#282c30,#1e2024 60%,#111418);box-shadow:inset 0 2px 4px rgba(0,0,0,.3)')+'">'+(lit?'<div style="width:32%;height:16%;border-radius:50%;background:rgba(255,255,255,.2);filter:blur(1px);position:relative;top:-20%"></div>':'')+'</div></div><div style="font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;color:'+(pr?c:'#506070')+';text-shadow:'+(pr?'0 0 4px '+c+'40':'none')+'">'+lb+'</div></div>';}
 
-function pbtn(k,lb,a){return'<div class="pbtn" data-mat="'+k+'" style="'+(a?'padding:5px 7px 3px;color:#ffaa22;text-shadow:0 0 6px rgba(255,170,34,.3);background:linear-gradient(180deg,#111418,#1e2024);box-shadow:inset 0 2px 4px rgba(0,0,0,.5),0 0 8px rgba(255,170,34,.15),0 1px 1px rgba(0,0,0,.3);transform:translateY(1px)':'color:#506070;background:linear-gradient(180deg,#383e44,#282c30 40%,#1e2024);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 3px 1px #1c2026,0 4px 6px rgba(0,0,0,.4),0 2px 2px rgba(0,0,0,.3)')+'"><div style="position:absolute;top:2px;left:50%;transform:translateX(-50%);height:2px;border-radius:1px;width:'+(a?'10':'6')+'px;background:'+(a?'#ffaa22':'#1c2026')+';box-shadow:'+(a?'0 0 4px #ffaa22,0 0 8px rgba(255,170,34,.3)':'none')+';transition:all .08s"></div><span style="display:block;margin-top:3px">'+lb+'</span></div>';}
+function pbtn(k,lb,a){return'<div class="pbtn" data-mat="'+k+'" style="'+(a?'padding:5px 7px 3px;color:#141414;background:linear-gradient(180deg,#ffbc3e,#e08a10);border:1px solid #ffae20;box-shadow:0 0 10px rgba(255,174,32,.22)':'color:rgba(255,255,255,.5);background:rgba(255,255,255,.035);border:1px solid rgba(255,174,32,.2);box-shadow:none')+'"><div style="position:absolute;top:2px;left:50%;transform:translateX(-50%);height:2px;border-radius:1px;width:'+(a?'10':'6')+'px;background:'+(a?'#ffaa22':'#1c2026')+';box-shadow:'+(a?'0 0 4px #ffaa22,0 0 8px rgba(255,170,34,.3)':'none')+';transition:all .08s"></div><span style="display:block;margin-top:3px">'+lb+'</span></div>';}
 function updDOM(){
   var R=S.res*1e3,C=cC(S.area,S.sep,D[S.diel].k),tau=R*C,tw=Math.max(tau*5,1e-6),mV=Math.ceil(S.supV/5)*5||5;
   var Q=C*S.vc,U=.5*C*S.vc*S.vc,I=(S.chg?1:-1)*(S.supV/R)*Math.exp(-S.st/tau);
