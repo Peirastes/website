@@ -44,17 +44,33 @@
     /* pass 3: toggle housing + dielectric button legibility */
     .ss{background:rgba(8,12,18,.5) !important;border:1px solid var(--fl-border) !important;border-top:1px solid var(--fl-border) !important;box-shadow:inset 0 1px 3px rgba(0,0,0,.4) !important;border-radius:4px !important}
     .pbtn{font-family:'Inter',sans-serif !important;font-size:9.5px !important;font-weight:600 !important;letter-spacing:.03em !important;border-radius:4px !important;min-width:40px !important}
-    /* pass 4: lab world (circuit) fills the LEFT; controls + readouts banked on the RIGHT */
-    .main-grid{position:relative !important;display:grid !important;grid-template-columns:minmax(0,1fr) 296px 312px !important;grid-template-rows:100% !important;align-items:stretch !important;gap:14px !important}
-    /* circuit cross-section = unframed world in the wide first column */
-    .main-grid>.col:nth-child(2){grid-column:1 !important;grid-row:1 !important;min-width:0 !important;position:static !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:6px !important}
-    .main-grid>.col:nth-child(2) .sub-panel{background:transparent !important;border:none !important;box-shadow:none !important;backdrop-filter:none !important;width:100% !important;height:100% !important;display:flex !important;align-items:center !important;justify-content:center !important}
-    .main-grid>.col:nth-child(2) .sp-hdr{display:none !important}
-    .main-grid>.col:nth-child(2) .sp-body{width:100% !important;height:100% !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:0 !important}
-    .main-grid>.col:nth-child(2) #appSvg{width:100% !important;height:100% !important;max-height:none !important;max-width:none !important}
-    /* right-hand instrument bank: controls column, then readouts column */
-    .main-grid>.col:nth-child(1){grid-column:2 !important;grid-row:1 !important;min-width:0 !important;z-index:2 !important}
-    .main-grid>.col:nth-child(3){grid-column:3 !important;grid-row:1 !important;min-width:0 !important;z-index:2 !important}
+    /* pass 4: Optics/Induction canon — world (circuit + scope) fills the left, ONE control
+       panel full-height on the right, telemetry/analysis as bottom card rows, equation strip.
+       display:contents promotes each col's sub-panels into direct grid items so we can place
+       them individually into named areas without touching the DOM. */
+    .main-grid{position:relative !important;display:grid !important;
+      grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 316px !important;
+      grid-template-rows:minmax(0,1fr) auto auto !important;
+      grid-template-areas:"circuit scope controls" "telem analysis controls" "eqs eqs eqs" !important;
+      gap:12px !important;align-items:stretch !important}
+    .main-grid>.col{display:contents !important}
+    /* circuit = unframed world backdrop (top-left) */
+    .main-grid>.col:nth-child(2)>.sub-panel{grid-area:circuit !important;background:transparent !important;border:none !important;box-shadow:none !important;backdrop-filter:none !important;min-width:0 !important;min-height:0 !important;display:flex !important;flex-direction:column !important}
+    .main-grid>.col:nth-child(2)>.sub-panel .sp-hdr{display:none !important}
+    .main-grid>.col:nth-child(2)>.sub-panel .sp-body{flex:1 !important;min-height:0 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:0 !important}
+    #appSvg{width:100% !important;height:100% !important;max-height:none !important;max-width:none !important}
+    /* oscilloscope = instrument beside the circuit in the world (top-right of world) */
+    .main-grid>.col:nth-child(1)>.sub-panel{grid-area:scope !important;min-width:0 !important;min-height:0 !important}
+    /* control panel (guided step + controls stacked) = right column; hugs content at top */
+    .main-grid>.col:nth-child(1)>.ctrl-stack{grid-area:controls !important;align-self:start !important;min-width:0 !important}
+    /* readouts along the bottom, then equation strip */
+    .main-grid>.col:nth-child(3)>.sub-panel:nth-child(1){grid-area:telem !important;min-width:0 !important}
+    .main-grid>.col:nth-child(3)>.sub-panel:nth-child(2){grid-area:analysis !important;min-width:0 !important}
+    .main-grid>.col:nth-child(3)>.sub-panel:nth-child(3){grid-area:eqs !important;min-width:0 !important}
+    /* telemetry reads as a card row (3 across, wide enough for the values) */
+    #tG{grid-template-columns:repeat(3,1fr) !important}
+    /* equation strip spans full width along the bottom (4 across) */
+    #eG{grid-template-columns:repeat(4,1fr) !important}
   </style>
 </head><body>
 <a href="https://peirastes.com" class="peirastes-home" title="Back to Peirastes">Peirastes</a>
@@ -101,6 +117,7 @@
   <div class="main-grid">
     <!-- LEFT COLUMN: Controls + Oscilloscope -->
     <div class="col">
+      <div class="ctrl-stack" style="display:flex;flex-direction:column;gap:12px;min-width:0">
       <div class="sub-panel" id="gP" style="display:none;--panel-glow:rgba(255,170,34,.04)"><div class="tex tex-m"></div><div class="tex tex-b"></div><div class="tex tex-r"></div><div class="tex tex-g"></div><div class="rivet" style="top:4px;left:4px"></div><div class="rivet" style="top:4px;right:4px"></div>
         <div class="sp-hdr"><span class="sp-lbl" style="color:#ffaa22" id="gT"></span><span style="font-family:'Share Tech Mono',monospace;font-size:12px;color:#506070" id="gS"></span></div><div class="sp-body" id="gB"></div></div>
       <div class="sub-panel" style="--panel-glow:rgba(0,180,220,.04)"><div class="tex tex-m"></div><div class="tex tex-b"></div><div class="tex tex-r"></div><div class="tex tex-g"></div><div class="rivet" style="top:4px;left:4px"></div><div class="rivet" style="top:4px;right:4px"></div>
@@ -112,6 +129,7 @@
           <div id="mR" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px"></div>
           <div id="aR" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding-top:4px"></div>
         </div></div>
+      </div><!-- /ctrl-stack -->
       <div class="sub-panel" style="--panel-glow:rgba(51,238,85,.04);flex:1;display:flex;flex-direction:column"><div class="tex tex-m"></div><div class="tex tex-b"></div><div class="tex tex-r"></div><div class="tex tex-g"></div><div class="rivet" style="top:4px;left:4px"></div><div class="rivet" style="top:4px;right:4px"></div>
         <div class="sp-hdr"><span class="sp-lbl" style="color:#33ee55">OSCILLOSCOPE</span><div style="display:flex;align-items:center;gap:5px"><div class="ss" id="ssS"></div><span id="rL" style="font-size:10px;font-family:'Share Tech Mono',monospace;color:#506070">IDLE</span></div></div>
         <div class="sp-body" style="flex:1;display:flex;flex-direction:column"><div id="cR" style="display:flex;gap:4px;margin-bottom:6px"></div>
