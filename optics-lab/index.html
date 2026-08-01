@@ -435,6 +435,27 @@ select.input-field:focus {
   text-shadow: 0 0 6px var(--gold-glow);
 }
 
+/* ── App title block — top-left, three-tier (amber name / teal mode / gray scope),
+   Artemis / Tip-Recover vocabulary at scale. Mode line tracks the active module. ── */
+.opt-title { position: relative; z-index: 8; flex: 0 0 auto; margin-bottom: 2px; }
+.opt-title__name {
+  font-family: 'Orbitron', sans-serif; font-size: 23px; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase;
+  text-shadow: 0 0 14px var(--gold-glow), 0 0 34px rgba(255, 174, 32, 0.18);
+  line-height: 1;
+}
+.opt-title__mode {
+  font-family: 'Orbitron', sans-serif; font-size: 11.5px; font-weight: 600;
+  color: var(--cyan); letter-spacing: 0.16em; text-transform: uppercase;
+  text-shadow: 0 0 8px var(--cyan-glow); margin-top: 7px;
+}
+.opt-title__scope {
+  font-family: 'Share Tech Mono', monospace; font-size: 9.5px;
+  color: var(--text-dim, #8a8a8a); letter-spacing: 0.18em; text-transform: uppercase;
+  margin-top: 5px;
+}
+.crt-label { display: none; }   /* mode name now lives in .opt-title__mode */
+
 .canvas-wrap {
   position: relative; z-index: 1;
   width: 100%;
@@ -1200,6 +1221,11 @@ select.input-field:focus {
 
   <!-- Display area -->
   <div class="display-area">
+    <div class="opt-title">
+      <div class="opt-title__name">Optics Lab</div>
+      <div class="opt-title__mode" id="optMode">Snell's Law &amp; Total Internal Reflection</div>
+      <div class="opt-title__scope">PSE-II &bull; Geometric &amp; Wave Optics</div>
+    </div>
     <!-- Snell display -->
     <div class="panel on" id="p-sn">
       <div class="crt-screen">
@@ -1392,6 +1418,8 @@ window.sw=function(t){
   document.getElementById('p-'+t).classList.add('on');
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
   document.getElementById('t-'+t).classList.add('on');
+  var _lbl=document.querySelector('#p-'+t+' .crt-label');
+  if(_lbl)document.getElementById('optMode').textContent=_lbl.textContent;
   document.querySelectorAll('.module-ctrl').forEach(function(c){c.style.display='none';});
   var ctrl=document.getElementById('ctrl-'+t);
   if(ctrl)ctrl.style.display='';
