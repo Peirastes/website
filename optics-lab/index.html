@@ -418,9 +418,12 @@ select.input-field:focus {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;   /* readouts float at the bottom; the world (abs canvas-wrap) fills behind */
   gap: 12px;
   min-height: 0;
 }
+/* readouts (cards + equation strip) overlay the bottom of the world */
+.crt-screen > .cards, .crt-screen > .eq-strip { position: relative; z-index: 7; }
 .crt-screen::before { display: none; }
 .crt-screen::after { display: none; }
 
@@ -457,21 +460,12 @@ select.input-field:focus {
 .crt-label { display: none; }   /* mode name now lives in .opt-title__mode */
 
 .canvas-wrap {
-  position: relative; z-index: 1;
-  width: 100%;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute; inset: 0; z-index: 1;   /* fill the whole crt-screen — the world is the backdrop */
   min-height: 0;
 }
 .canvas-wrap canvas {
   display: block;
-  max-width: 100%;
-  max-height: calc(100vh - 16rem);   /* leave room for chrome row + label + cards + eq */
-  width: auto;
-  height: auto;
-  margin: 0 auto;
+  width: 100%; height: 100%;   /* fill the container (aspect lock removed in setupCanvas) */
 }
 
 /* Cards (readouts) — recessed + chromatic edges, like tape gauges */
@@ -1313,13 +1307,20 @@ var BASE_W_LN=780, BASE_H_LN=460;
 
 function setupCanvas(cv, baseW, baseH) {
   var dpr = window.devicePixelRatio || 1;
-  cv.width = baseW * dpr;
-  cv.height = baseH * dpr;
+  /* Fill the container (the .canvas-wrap): break the fixed aspect lock so the
+     world uses the whole available rectangle instead of an aspect-boxed slab.
+     Logical W/H = the displayed CSS-pixel size; the scenes draw to fill it. */
+  var host = cv.parentElement;
+  var W = Math.round(host.clientWidth)  || baseW;
+  var H = Math.round(host.clientHeight) || baseH;
+  cv.width  = Math.round(W * dpr);
+  cv.height = Math.round(H * dpr);
   cv.style.width = '100%';
-  cv.style.height = 'auto';
-  cv.style.aspectRatio = baseW + ' / ' + baseH;
+  cv.style.height = '100%';
+  cv.style.aspectRatio = 'auto';
   var ctx = cv.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cv._lw = W; cv._lh = H;
   return ctx;
 }
 
@@ -1541,7 +1542,7 @@ function uS(){
 
   var cv=document.getElementById('sc');
   var W=BASE_W_SN, H=BASE_H_SN;
-  var ctx=setupCanvas(cv, W, H);
+  var ctx=setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
   var mx=W/2,my=H/2;
 
   var n1d=cauchy(n1b,wl),n2d=cauchy(n2b,wl);
@@ -1561,7 +1562,7 @@ function uS(){
   ctx.font='12px "JetBrains Mono",monospace';ctx.textAlign='left';ctx.fillStyle=TX;ctx.fillText('normal',mx+8,30);
   var uT=document.getElementById('nu').selectedOptions[0].text;
   var lT=document.getElementById('nl').selectedOptions[0].text;
-  ctx.textAlign='right';ctx.globalAlpha=0.35;ctx.fillText(uT,W-16,my-14);ctx.fillText(lT,W-16,my+24);ctx.globalAlpha=1;
+  ctx.textAlign='left';ctx.globalAlpha=0.35;ctx.fillText(uT,16,my-14);ctx.fillText(lT,16,my+24);ctx.globalAlpha=1;
 
   var t1r=t1*Math.PI/180,rL=200;
   var hasCrit=n1d>n2d;
@@ -1655,7 +1656,7 @@ function uL(){
 
   var cv=document.getElementById('lc');
   var W=BASE_W_LN, H=BASE_H_LN;
-  var ctx=setupCanvas(cv, W, H);
+  var ctx=setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
   grd(ctx,W,H);
@@ -1848,7 +1849,7 @@ function uD(){
 
   var cv = document.getElementById('dc');
   var W = BASE_W_DS, H = BASE_H_DS;
-  var ctx = setupCanvas(cv, W, H);
+  var ctx = setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
   ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
   grd(ctx,W,H);
 
@@ -2045,7 +2046,7 @@ function uSS(){
 
   var cv = document.getElementById('ssc');
   var W = BASE_W_SS, H = BASE_H_SS;
-  var ctx = setupCanvas(cv, W, H);
+  var ctx = setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
   ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
   grd(ctx,W,H);
 
@@ -2178,7 +2179,7 @@ function uG(){
 
   var cv = document.getElementById('gc');
   var W = BASE_W_GR, H = BASE_H_GR;
-  var ctx = setupCanvas(cv, W, H);
+  var ctx = setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
   ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
   grd(ctx,W,H);
 
@@ -2375,6 +2376,13 @@ else document.addEventListener('DOMContentLoaded', function(){
   var check = setInterval(function(){ if(window.katex){ clearInterval(check); renderKaTeX(); } }, 50);
   setTimeout(function(){ clearInterval(check); }, 5000);
 });
+
+/* Redraw the active module on resize / font-load so the container-filled canvas
+   backing store stays matched to its box (aspect lock removed in setupCanvas). */
+function _redrawActive(){ var t=currentTab; t==='ln'?uL():t==='ds'?uD():t==='ss'?uSS():t==='gr'?uG():uS(); }
+var _rzT; window.addEventListener('resize', function(){ clearTimeout(_rzT); _rzT=setTimeout(_redrawActive, 120); });
+requestAnimationFrame(function(){ requestAnimationFrame(_redrawActive); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(_redrawActive);
 
 })();
 </script>
