@@ -1927,6 +1927,8 @@ function uD(){
   var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
   var srcX    = 30;     // x position of light source
   var midY    = H/2;
+  var Z=1.5, zcx=(slitX+screenX)/2, zcy=H/2;
+  ctx.save();ctx.translate(zcx,zcy);ctx.scale(Z,Z);ctx.translate(-zcx,-zcy);   /* zoom the apparatus 150% around its center */
 
   // Convert to consistent units for physics: λ in m, d in m, a in m
   var lam = wl * 1e-9;
@@ -2052,13 +2054,6 @@ function uD(){
     ctx.restore();
   }
 
-  // Labels
-  ctx.font = '11px "JetBrains Mono",monospace';
-  ctx.fillStyle = TX; ctx.textAlign = 'center';
-  ctx.fillText('barrier', slitX, H - 8);
-  ctx.fillText('screen', screenX, H - 8);
-  if(barW > 20) ctx.fillText('I(\u03B8)', graphX + barW/2, yTop - 8);
-
   // Slit labels
   ctx.font = '10px "JetBrains Mono",monospace';
   ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.textAlign = 'right';
@@ -2074,6 +2069,12 @@ function uD(){
   // Central max label
   ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.textAlign = 'left';
   ctx.fillText('m=0', graphX + barW + 6, midY + 3);
+  ctx.restore();
+  /* edge labels — pinned to the frame edges, aligned to the zoomed apparatus */
+  ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='center';
+  ctx.fillText('barrier', zcx+(slitX-zcx)*Z, H-72);
+  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-72);
+  if(barW>20) ctx.fillText('I(θ)', zcx+(graphX+barW/2-zcx)*Z, 16);
 
   // === Readout cards ===
   var refLam = source ? domWl(source)*1e-9 : lam;
@@ -2122,6 +2123,8 @@ function uSS(){
   var slitX = 140;
   // Screen position scales with L
   var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
+  var Z=1.5, zcx=(slitX+screenX)/2, zcy=H/2;
+  ctx.save();ctx.translate(zcx,zcy);ctx.scale(Z,Z);ctx.translate(-zcx,-zcy);
 
   // Barrier with single slit
   var slitWidPx = Math.max(3, Math.min(60, a*1.2));
@@ -2185,10 +2188,6 @@ function uSS(){
   }
   ctx.stroke(); ctx.globalAlpha=1;
 
-  // Labels
-  ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
-  ctx.fillText('barrier',slitX,H-8); ctx.fillText('screen',screenX,H-8);
-  if(barW > 20) ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
 
   // Slit width label
   ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=0.5;
@@ -2198,6 +2197,11 @@ function uSS(){
 
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
   ctx.fillText('m=0',graphX+barW+6,midY+3);
+  ctx.restore();
+  ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='center';
+  ctx.fillText('barrier', zcx+(slitX-zcx)*Z, H-72);
+  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-72);
+  if(barW>20) ctx.fillText('I(θ)', zcx+(graphX+barW/2-zcx)*Z, 16);
 
   // Readout cards
   var refLam = source ? domWl(source)*1e-9 : lam;
@@ -2255,6 +2259,8 @@ function uG(){
   var slitX = 140;
   // Screen position scales with L: L=0.2→closer, L=3.0→far right
   var screenX = Math.round(slitX + 60 + (W - slitX - 120) * (L - 0.2) / 2.8);
+  var Z=1.5, zcx=(slitX+screenX)/2, zcy=H/2;
+  ctx.save();ctx.translate(zcx,zcy);ctx.scale(Z,Z);ctx.translate(-zcx,-zcy);
 
   // Visual slit spacing scales with d (µm): larger d → wider pixel separation
   var visN = N;
@@ -2370,12 +2376,13 @@ function uG(){
     ctx.stroke(); ctx.setLineDash([]); ctx.restore();
   }
 
-  // Labels
-  ctx.font='11px "JetBrains Mono",monospace'; ctx.fillStyle=TX; ctx.textAlign='center';
-  ctx.fillText('grating',slitX,H-8); ctx.fillText('screen',screenX,H-8);
-  if(barW > 20) ctx.fillText('I(\u03B8)',graphX+barW/2,yTop-8);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='left';
   ctx.fillText('m=0',graphX+barW+6,midY+3);
+  ctx.restore();
+  ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='center';
+  ctx.fillText('grating', zcx+(slitX-zcx)*Z, H-72);
+  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-72);
+  if(barW>20) ctx.fillText('I(θ)', zcx+(graphX+barW/2-zcx)*Z, 16);
 
   // Readout cards
   var refLam = source ? domWl(source)*1e-9 : lam;
