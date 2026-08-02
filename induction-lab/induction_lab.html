@@ -112,7 +112,8 @@ body::after {
 /* Control panel — floating glass on the right (Artemis-style, right-hand friendly) */
 .control-panel {
   position: absolute;
-  top: 0; bottom: 0; right: 0; left: auto;
+  top: 16px; bottom: auto; right: 16px; left: auto;
+  max-height: calc(100% - 32px);
   width: 320px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -132,7 +133,7 @@ body::after {
   position: absolute;
   top: 0; right: 0; bottom: 0;
   left: 0;                                   /* full-bleed void */
-  padding: 16px calc(300px + 2rem) 16px 16px;  /* clear the right-side control panel */
+  padding: 16px calc(320px + 2rem) 16px 16px;  /* clear the right-side control panel (320 + 16px inset + gap) */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -146,6 +147,10 @@ body::after {
   border: none;
   box-shadow: none;
 }
+
+/* Module viz panels — only the active (.on) one shows; sw() toggles .on */
+.panel { display: none; }
+.panel.on { display: block; }
 
 .panel-section { margin-bottom: 16px; }
 
@@ -329,6 +334,46 @@ body::after {
   text-transform: uppercase;
   text-shadow: 0 0 6px var(--gold-glow);
 }
+
+/* ── three-tier app title (name / live module / scope), matches optics .opt-title.
+   Shown only in embed (standalone uses the centered cin-title); module line set in sw(). ── */
+.app-title { position: fixed; top: 32px; left: 35px; z-index: 50; pointer-events: none; display: none; }
+.app-title__name { font-family: 'Orbitron', sans-serif; font-size: 23px; font-weight: 700; color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; text-shadow: 0 0 14px var(--gold-glow), 0 0 34px rgba(255,174,32,0.18); line-height: 1; margin-top: -3px; }
+.app-title__mode { font-family: 'Orbitron', sans-serif; font-size: 11.5px; font-weight: 600; color: var(--cyan); letter-spacing: 0.16em; text-transform: uppercase; text-shadow: 0 0 8px var(--cyan-glow); margin-top: 7px; }
+.app-title__scope { font-family: 'Share Tech Mono', monospace; font-size: 9.5px; color: var(--text-dim); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 5px; }
+
+/* ── action buttons (play / reset / toggle) — canon: grey neutral face, teal hover,
+   amber .on active state. Previously unstyled default buttons. ── */
+.btn-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.act-btn {
+  flex: 1; padding: 7px 6px;
+  font-family: 'Orbitron', sans-serif; font-size: 9.5px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.6);
+  background: linear-gradient(180deg, rgba(20,26,36,0.78), rgba(8,12,18,0.88));
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; cursor: pointer;
+  transition: all 0.14s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3);
+}
+.act-btn:hover { color: var(--cyan); border-color: rgba(125,214,255,0.30); box-shadow: inset 0 1px 0 rgba(125,214,255,0.15), 0 0 8px var(--cyan-glow); }
+.act-btn.on {
+  color: var(--gold); border-color: rgba(255,174,32,0.40);
+  background: linear-gradient(180deg, rgba(255,174,32,0.20), rgba(160,104,32,0.10));
+  text-shadow: 0 0 4px var(--gold-glow);
+  box-shadow: inset 0 0 0 1px rgba(255,174,32,0.20), 0 0 8px rgba(255,174,32,0.15);
+}
+/* Reset defaults — pure action button (grey text, teal glow on hover) */
+.reset-btn {
+  width: 100%; padding: 8px 12px; margin-top: 4px;
+  font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(220, 220, 220, 0.62);
+  background: linear-gradient(180deg, rgba(20,26,36,0.78), rgba(8,12,18,0.88));
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; cursor: pointer;
+  transition: all 0.14s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.3);
+}
+.reset-btn:hover { color: var(--cyan); border-color: rgba(125,214,255,0.30); box-shadow: inset 0 1px 0 rgba(125,214,255,0.15), 0 0 8px var(--cyan-glow); }
 
 .canvas-container {
   width: 100%; aspect-ratio: 16/9;
@@ -753,9 +798,27 @@ body::after {
 /* Checkboxes */
 .chk-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; margin-bottom: 6px; }
 .chk-row input[type=checkbox] {
-  accent-color: var(--gold);
-  width: 14px; height: 14px;
-  cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  position: relative; flex: 0 0 auto;
+  width: 34px; height: 18px; border-radius: 9px;
+  background: rgba(4, 6, 10, 0.85);
+  border: 1px solid rgba(255, 174, 32, 0.25);
+  cursor: pointer; margin: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chk-row input[type=checkbox]::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--text-dim); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.chk-row input[type=checkbox]:checked {
+  background: linear-gradient(180deg, rgba(255, 174, 32, 0.35), rgba(160, 104, 32, 0.20));
+  border-color: rgba(255, 174, 32, 0.28);
+}
+.chk-row input[type=checkbox]:checked::after {
+  transform: translateX(16px);
+  background: var(--gold); box-shadow: 0 0 6px var(--gold-glow);
 }
 .chk-row span { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
 
@@ -764,7 +827,7 @@ body > a[href="https://peirastes.com"] { display: none; }
 
 </style>
   <!-- notes-embed mode: hide standalone cinematic chrome when framed via ?embed -->
-  <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain{display:none !important}html.embed .main-grid{top:1.6rem !important}</style>
+  <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain{display:none !important}html.embed .main-grid{top:1.6rem !important}html.embed .app-title{display:block !important}html.embed .crt-label{display:none !important}html.embed .display-area{padding-top:66px !important}</style>
   <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 </head>
 <body>
@@ -808,6 +871,11 @@ body > a[href="https://peirastes.com"] { display: none; }
 </div>
 
 <div class="main-grid">
+  <div class="app-title">
+    <div class="app-title__name">Induction Lab</div>
+    <div class="app-title__mode" id="indMode">Piecewise-Linear B(t)</div>
+    <div class="app-title__scope">PSE-II &bull; Electromagnetic Induction</div>
+  </div>
   <div class="control-panel">
     <div class="panel-section">
       <div class="section-label">Lecture 1 — Faraday &amp; Lenz</div>
@@ -3903,8 +3971,19 @@ window.stepBack = function(mod){
   }
 };
 
+var MODULE_LABELS = {
+  pw: 'Piecewise-Linear B(t)',
+  wl: 'Wire & Loop — Mutual Induction',
+  lf: 'Loop Through Field Region',
+  em: 'Eddy Currents — Falling Magnet',
+  rl: 'RL Circuit — Rise & Decay',
+  sr: 'Motional EMF — Sliding Rod',
+  gn: 'AC Generator — Rotating Coil',
+  lz: "Lenz's Law — Solenoid & Loop"
+};
 window.sw = function(t){
   currentTab = t;
+  var ml = document.getElementById('indMode'); if(ml && MODULE_LABELS[t]) ml.textContent = MODULE_LABELS[t];
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
   document.getElementById('p-'+t).classList.add('on');
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
