@@ -676,7 +676,7 @@
       margin-bottom: 2px;
     }
 
-    .cin-tick { display: none !important;
+    .cin-tick {
       position: fixed; width: 16px; height: 16px;
       z-index: 99; pointer-events: none;
       opacity: 0;
@@ -891,7 +891,7 @@ const COLORS = {
   foundation:'#d0d8e8', PHIL:'#b8a0d8', EPI:'#b8a0d8', ECDO:'#e07050', TF:'#50c878',
   DSL:'#c084fc', PED:'#fbbf24', ARCH:'#e07050', PHYS:'#60b8e0', tes:'#607080', quotes:'#a08850', unknown:'#555',
   ai_shared:'#7a8a9a', human_skills:'#e8a040', ENG:'#4a90c2', BIO:'#84c061',
-  CE:'#00d4aa', CD:'#ff8866', PM:'#77aaff', RA:'#ffcc44', SA:'#cc88ff', TA:'#88ddaa'
+  ART:'#ff8866', SCI:'#ffcc44', PROF:'#88ddaa', WEB:'#cc88ff', PM:'#77aaff', PA:'#00d4aa'
 };
 // Canonical fields of study. Aliases: EPI (Epistemology) → PHIL (Philosophy & Epistemology);
 // ARCH (Archaeoastronomy) → ECDO (Earth & Space Science). SECTOR_OF normalizes alias-coded
@@ -903,7 +903,7 @@ const DOMAIN_NAMES = {
   TF:'Social Sciences & Economics', DSL:'Mathematics', PED:'Education & Pedagogy', PHYS:'Physics', ENG:'Engineering', BIO:'Life Sciences & Biology',
   tes:'TES Concepts', quotes:'Quotes', unknown:'Unknown',
   ai_shared:'Computer Science', human_skills:'Human Skills',
-  CE:'Computer Engineering', CD:'Content & Communication', PM:'Project Management', RA:'Research', SA:'Publishing & Distribution', TA:'Teaching'
+  ART:'Artist', SCI:'Scientist', PROF:'Professor', WEB:'Web Admin', PM:'Project Management', PA:'Personal Assistant'
 };
 // Explicit per-claim sector overrides. Checked first in both classifiers, before any
 // type/domain heuristic. Add a node ID here to pin it to a specific sector regardless
@@ -987,14 +987,14 @@ function getRadialDomainForForce(n) {
     return 'ai_shared';
   }
   if (n.type === 'sop' || n.type === 'skl') {
-    if (n.owner === 'TA') {
+    if (n.owner === 'PROF') {
       const t = (n.title||'').toLowerCase();
       if (t.includes('physics content') || t.includes('figure')) return 'PHYS';
       if (t.includes('pipeline') || t.includes('document')) return 'ai_shared';
       return 'PED';
     }
-    if (n.owner === 'RA') return 'EPI';
-    if (n.owner === 'CE') {
+    if (n.owner === 'SCI') return 'EPI';
+    if (n.owner === 'ENG') {
       const t = (n.title||'').toLowerCase();
       if (t.includes('control') || t.includes('embedded') || t.includes('firmware') || t.includes('hardware') || t.includes('mechanical')) return 'ENG';
       if (t.includes('simulation') || t.includes('numerical') || t.includes('scientific') || t.includes('physics')) return 'PHYS';
@@ -1006,14 +1006,14 @@ function getRadialDomainForForce(n) {
       if (t.includes('chart') || t.includes('time-series')) return 'TF';
       return 'ai_shared';
     }
-    if (n.owner === 'CD') {
+    if (n.owner === 'ART') {
       const t = (n.title||'').toLowerCase();
       if (t.includes('pedagogy') || t.includes('course') || t.includes('lesson') || t.includes('ebook')) return 'PED';
       if (t.includes('debate') || t.includes('philosophical')) return 'PHIL';
       return 'ai_shared';
     }
     if (n.owner === 'PM') return 'ai_shared';
-    if (n.owner === 'SA') {
+    if (n.owner === 'WEB') {
       const t = (n.title||'').toLowerCase();
       if (t.includes('youtube') || t.includes('publish')) return 'PED';
       return 'ai_shared';
@@ -1392,16 +1392,16 @@ function computeRadialPositions(nodes, links, width, height) {
     // ALL agent skills map to knowledge domains — no agent sectors
     if (n.type === 'sop' || n.type === 'skl') {
       // TA → mostly Pedagogy, but some skills are physics or tooling
-      if (n.owner === 'TA') {
+      if (n.owner === 'PROF') {
         const t = (n.title || '').toLowerCase();
         if (t.includes('physics content') || t.includes('figure')) return 'PHYS';
         if (t.includes('pipeline') || t.includes('document')) return 'ai_shared';
         return 'PED';
       }
       // RA → Research & Epistemology (research IS epistemology)
-      if (n.owner === 'RA') return 'EPI';
+      if (n.owner === 'SCI') return 'EPI';
       // CE → map each skill to the domain it actually serves
-      if (n.owner === 'CE') {
+      if (n.owner === 'ENG') {
         const t = (n.title || '').toLowerCase();
         // Engineering: control/embedded/firmware/hardware/mechanical (checked first — more specific)
         if (t.includes('control') || t.includes('embedded') || t.includes('firmware') || t.includes('hardware') || t.includes('mechanical')) return 'ENG';
@@ -1421,7 +1421,7 @@ function computeRadialPositions(nodes, links, width, height) {
         return 'ai_shared';
       }
       // CD → map by content type
-      if (n.owner === 'CD') {
+      if (n.owner === 'ART') {
         const t = (n.title || '').toLowerCase();
         if (t.includes('pedagogy') || t.includes('course') || t.includes('lesson') || t.includes('ebook')) return 'PED';
         if (t.includes('debate') || t.includes('philosophical')) return 'PHIL';
@@ -1431,7 +1431,7 @@ function computeRadialPositions(nodes, links, width, height) {
       // PM → Computer Systems & AI (orchestration, project management)
       if (n.owner === 'PM') return 'ai_shared';
       // SA → map by function
-      if (n.owner === 'SA') {
+      if (n.owner === 'WEB') {
         const t = (n.title || '').toLowerCase();
         if (t.includes('youtube') || t.includes('publish')) return 'PED';
         if (t.includes('seo') || t.includes('analytics') || t.includes('storefront') || t.includes('payment') || t.includes('web')) return 'ai_shared';
