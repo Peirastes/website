@@ -3,12 +3,11 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
 interface InfoPanelProps {
-  title: string;
   description: string;
   formula?: string;
 }
 
-export function InfoPanel({ title, description, formula }: InfoPanelProps) {
+export function InfoPanel({ description, formula }: InfoPanelProps) {
   const formulaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,10 +26,13 @@ export function InfoPanel({ title, description, formula }: InfoPanelProps) {
 
   return (
     <div className="info-panel">
-      <h2>{title}</h2>
+      <div className="ip-label">Overview</div>
       <p>{description}</p>
       {formula && (
-        <div className="formula" ref={formulaRef} />
+        <div className="ip-eq">
+          <div className="ip-eq-title">Field</div>
+          <div className="formula" ref={formulaRef} />
+        </div>
       )}
     </div>
   );

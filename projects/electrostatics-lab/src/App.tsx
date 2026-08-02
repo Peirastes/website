@@ -164,7 +164,14 @@ export default function App() {
         <div className="es-title__scope">PSE-II &middot; Electric Fields &amp; Potential</div>
       </div>
 
-      <ControlPanel controls={c} set={set} sections={sections} />
+      {/* Right rail: control panel (scrolls internally) + info frame below it */}
+      <div className="es-rail">
+        <ControlPanel controls={c} set={set} sections={sections} />
+        <InfoPanel
+          description={CASE_DESCRIPTIONS[caseType]}
+          formula={model.getFormula?.()}
+        />
+      </div>
 
       <div className="canvas-container">
         <Canvas>
@@ -229,12 +236,6 @@ export default function App() {
           />
         </Canvas>
       </div>
-
-      <InfoPanel
-        title={CASE_LABELS[caseType]}
-        description={CASE_DESCRIPTIONS[caseType]}
-        formula={model.getFormula?.()}
-      />
 
       {showSlice && (
         <SliceView
