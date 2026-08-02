@@ -401,16 +401,20 @@
         setTimeout(pushLevaDown, 1500);
       })();
 
-      /* Mirror the active case name into the three-tier title's teal line
-         (the info-panel h2 holds the current case, e.g. "Electric Dipole"). */
+      /* Mirror the active case name into the three-tier title's teal line.
+         POLL with a change-guard — do NOT MutationObserver the whole body:
+         writing #esMode (inside body) re-triggered the observer in a loop that
+         starved the React/Three.js render thread. */
       (function () {
         const el = document.getElementById('esMode');
+        if (!el) return;
+        let last = '';
         const sync = () => {
           const h = document.querySelector('.info-panel h2');
-          if (h && el && h.textContent.trim()) el.textContent = h.textContent.trim();
+          if (h) { const t = h.textContent.trim(); if (t && t !== last) { last = t; el.textContent = t; } }
         };
-        new MutationObserver(sync).observe(document.body, { subtree: true, childList: true, characterData: true });
-        sync(); setTimeout(sync, 500); setTimeout(sync, 1500);
+        setInterval(sync, 400);
+        sync();
       })();
     </script>
   </body>
