@@ -1602,6 +1602,7 @@ function uS(){
   /* Background: two media zones */
   ctx.fillStyle='#060810';ctx.fillRect(0,0,W,my);
   ctx.fillStyle=BG;ctx.fillRect(0,my,W,my);
+  ctx.save();var Z=1.5;ctx.translate(mx,my);ctx.scale(Z,Z);ctx.translate(-mx,-my);   /* zoom the scene 150% around the object */
   grd(ctx,W,H);
 
   /* Interface line and normal */
@@ -1610,11 +1611,9 @@ function uS(){
   ctx.setLineDash([5,8]);ctx.strokeStyle=NM;ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(mx,15);ctx.lineTo(mx,H-15);ctx.stroke();ctx.setLineDash([]);
 
-  /* Labels */
-  ctx.font='12px "JetBrains Mono",monospace';ctx.textAlign='left';ctx.fillStyle=TX;ctx.fillText('normal',mx+8,30);
+  /* Zone/normal labels are drawn screen-fixed AFTER the zoomed scene (see below) */
   var uT=document.getElementById('nu').selectedOptions[0].text;
   var lT=document.getElementById('nl').selectedOptions[0].text;
-  ctx.textAlign='left';ctx.globalAlpha=0.35;ctx.fillText(uT,16,my-14);ctx.fillText(lT,16,my+24);ctx.globalAlpha=1;
 
   var t1r=t1*Math.PI/180,rL=200;
   var hasCrit=n1d>n2d;
@@ -1669,6 +1668,11 @@ function uS(){
 
   /* Hit point */
   ctx.beginPath();ctx.arc(mx,my,3,0,2*Math.PI);ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fill();
+  ctx.restore();
+  /* Screen-fixed labels (not zoomed): normal marker + medium-zone tags */
+  ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='left';
+  ctx.fillText('normal',mx+8,30);
+  ctx.globalAlpha=0.35;ctx.fillText(uT,16,my-14);ctx.fillText(lT,16,my+24);ctx.globalAlpha=1;
 
   /* Readout cards */
   var sT2=n1d*Math.sin(t1r)/n2d;var tir=sT2>1;var col=wC(wl);
@@ -1711,9 +1715,9 @@ function uL(){
   var ctx=setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
-  grd(ctx,W,H);
-
   var lx=usableCX(cv,W),ay=H*0.5,sc=5;
+  ctx.save();var Z=1.5;ctx.translate(lx,ay);ctx.scale(Z,Z);ctx.translate(-lx,-ay);   /* zoom the scene 150% around the lens */
+  grd(ctx,W,H);
 
   /* Optical axis */
   ctx.strokeStyle=IF;ctx.lineWidth=0.5;
@@ -1852,6 +1856,7 @@ function uL(){
     }
   }
 
+  ctx.restore();
   /* Readout cards */
   var h='';
   var dis=!isFinite(di)?'\u221E':di.toFixed(1)+' cm';
