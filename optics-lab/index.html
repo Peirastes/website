@@ -1344,6 +1344,18 @@ function setupCanvas(cv, baseW, baseH) {
   return ctx;
 }
 
+/* Horizontal center of the VIEWABLE area (canvas left edge → control-panel left
+   edge), in logical px. Lets a single-object scene sit centered in the space the
+   viewer actually sees, not behind the floating right rail. Falls back to W/2. */
+function usableCX(cv, W){
+  var rail = document.querySelector('.right-rail');
+  if(!rail) return W/2;
+  var cvR = cv.getBoundingClientRect(), rR = rail.getBoundingClientRect();
+  var railLeftPx = rR.left - cvR.left;
+  if(!(railLeftPx > 0 && railLeftPx < cvR.width)) return W/2;
+  return (railLeftPx * (W / cvR.width)) / 2;
+}
+
 /* ── Wavelength → RGB (CIE piecewise approximation) ── */
 function wlRGB(wl){
   var r=0,g=0,b=0;
@@ -1564,7 +1576,7 @@ function uS(){
   var cv=document.getElementById('sc');
   var W=BASE_W_SN, H=BASE_H_SN;
   var ctx=setupCanvas(cv, W, H); W=cv._lw; H=cv._lh;
-  var mx=W/2,my=H/2;
+  var mx=usableCX(cv,W),my=H/2;
 
   var n1d=cauchy(n1b,wl),n2d=cauchy(n2b,wl);
 
@@ -1682,7 +1694,7 @@ function uL(){
   ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
   grd(ctx,W,H);
 
-  var lx=W*0.5,ay=H*0.5,sc=5;
+  var lx=usableCX(cv,W),ay=H*0.5,sc=5;
 
   /* Optical axis */
   ctx.strokeStyle=IF;ctx.lineWidth=0.5;
