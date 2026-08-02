@@ -169,7 +169,7 @@ body .instrument-stage {                  /* fallback: show even without is-read
   right: 1rem; left: auto;
   width: 320px;
   max-height: calc(100% - 2rem - 15px);
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 8px;
   z-index: 10;
   overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain;
 }
@@ -188,7 +188,7 @@ body .instrument-stage {                  /* fallback: show even without is-read
   flex: 0 0 auto;
 }
 /* Equations — individual glass cards below the control panel */
-.eq-rail { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+.eq-rail { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
 .eq-card {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -196,11 +196,21 @@ body .instrument-stage {                  /* fallback: show even without is-read
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   box-shadow: var(--glass-shadow);
-  padding: 11px 12px;
+  padding: 5px 12px 6px;
   text-align: center;
   overflow-x: auto;
 }
-.eq-card .katex { font-size: 13px; color: var(--cyan-soft); }
+.eq-card .katex { font-size: 12px; color: var(--cyan-soft); }
+.eq-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.18em; text-transform: uppercase;
+  text-shadow: 0 0 6px var(--gold-glow);
+  margin-bottom: 6px; padding-bottom: 4px;
+  border-bottom: 1px solid var(--gold-faint);
+  text-align: left;
+}
+.eq-body { text-align: center; }
 .crt-screen .eq-strip { display: none; }   /* moved to the eq-rail; kept as KaTeX source */
 
 .panel-section { margin-bottom: 18px; }
@@ -508,11 +518,11 @@ select.input-field:focus {
 /* Cards (readouts) — recessed + chromatic edges, like tape gauges */
 .cards {
   position: relative; z-index: 7;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));   /* 150% scale */
+  display: flex; flex-wrap: wrap; align-content: flex-end;
   gap: 9px;
   margin-top: 18px;
 }
+.card { flex: 0 0 auto; min-width: 78px; }   /* size to content — no wasted right-half */
 .card {
   background: rgba(6, 10, 18, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1267,9 +1277,9 @@ select.input-field:focus {
         <div class="canvas-wrap"><canvas id="sc"></canvas></div>
         <div class="cards" id="s-cards"></div>
         <div class="eq-strip">
-          <span class="eq" data-katex="n_1 \sin\theta_1 = n_2 \sin\theta_2"></span>
-          <span class="eq" data-katex="\theta_c = \sin^{-1}(n_2/n_1)"></span>
-          <span class="eq" data-katex="n(\lambda) = B + C/\lambda^2"></span>
+          <span class="eq" data-label="Snell's Law" data-katex="n_1 \sin\theta_1 = n_2 \sin\theta_2"></span>
+          <span class="eq" data-label="Critical Angle" data-katex="\theta_c = \sin^{-1}(n_2/n_1)"></span>
+          <span class="eq" data-label="Cauchy Dispersion" data-katex="n(\lambda) = B + C/\lambda^2"></span>
         </div>
       </div>
     </div>
@@ -1280,9 +1290,9 @@ select.input-field:focus {
         <div class="canvas-wrap"><canvas id="lc"></canvas></div>
         <div class="cards" id="l-cards"></div>
         <div class="eq-strip">
-          <span class="eq" data-katex="\dfrac{1}{d_o} + \dfrac{1}{d_i} = \dfrac{1}{f}"></span>
-          <span class="eq" data-katex="M = -\dfrac{d_i}{d_o}"></span>
-          <span class="eq" data-katex="f > 0 \;\text{converging}\quad f < 0 \;\text{diverging}"></span>
+          <span class="eq" data-label="Thin-Lens Equation" data-katex="\dfrac{1}{d_o} + \dfrac{1}{d_i} = \dfrac{1}{f}"></span>
+          <span class="eq" data-label="Magnification" data-katex="M = -\dfrac{d_i}{d_o}"></span>
+          <span class="eq" data-label="Sign Convention" data-katex="f > 0 \;\text{converging}\quad f < 0 \;\text{diverging}"></span>
         </div>
       </div>
     </div>
@@ -1293,9 +1303,9 @@ select.input-field:focus {
         <div class="canvas-wrap"><canvas id="dc"></canvas></div>
         <div class="cards" id="d-cards"></div>
         <div class="eq-strip">
-          <span class="eq" data-katex="d\sin\theta = m\lambda \;\text{(bright)}"></span>
-          <span class="eq" data-katex="\Delta y = \dfrac{\lambda L}{d}"></span>
-          <span class="eq" data-katex="I = I_0 \cos^2\!\left(\dfrac{\pi d \sin\theta}{\lambda}\right) \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
+          <span class="eq" data-label="Bright Fringes" data-katex="d\sin\theta = m\lambda \;\text{(bright)}"></span>
+          <span class="eq" data-label="Fringe Spacing" data-katex="\Delta y = \dfrac{\lambda L}{d}"></span>
+          <span class="eq" data-label="Intensity" data-katex="I = I_0 \cos^2\!\left(\dfrac{\pi d \sin\theta}{\lambda}\right) \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
         </div>
       </div>
     </div>
@@ -1306,9 +1316,9 @@ select.input-field:focus {
         <div class="canvas-wrap"><canvas id="ssc"></canvas></div>
         <div class="cards" id="ss-cards"></div>
         <div class="eq-strip">
-          <span class="eq" data-katex="a\sin\theta = m\lambda \;\text{(dark, } m \neq 0\text{)}"></span>
-          <span class="eq" data-katex="W_{\text{central}} = \dfrac{2\lambda L}{a}"></span>
-          <span class="eq" data-katex="I = I_0 \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
+          <span class="eq" data-label="Dark Fringes" data-katex="a\sin\theta = m\lambda \;\text{(dark, } m \neq 0\text{)}"></span>
+          <span class="eq" data-label="Central Width" data-katex="W_{\text{central}} = \dfrac{2\lambda L}{a}"></span>
+          <span class="eq" data-label="Intensity" data-katex="I = I_0 \operatorname{sinc}^2\!\left(\dfrac{\pi a \sin\theta}{\lambda}\right)"></span>
         </div>
       </div>
     </div>
@@ -1319,9 +1329,9 @@ select.input-field:focus {
         <div class="canvas-wrap"><canvas id="gc"></canvas></div>
         <div class="cards" id="g-cards"></div>
         <div class="eq-strip">
-          <span class="eq" data-katex="d\sin\theta = m\lambda \;\text{(principal max)}"></span>
-          <span class="eq" data-katex="I \propto \left[\dfrac{\sin(N\beta)}{N\sin\beta}\right]^2 \operatorname{sinc}^2(\alpha)"></span>
-          <span class="eq" data-katex="R = mN \;\text{(resolving power)}"></span>
+          <span class="eq" data-label="Principal Maxima" data-katex="d\sin\theta = m\lambda \;\text{(principal max)}"></span>
+          <span class="eq" data-label="Intensity" data-katex="I \propto \left[\dfrac{\sin(N\beta)}{N\sin\beta}\right]^2 \operatorname{sinc}^2(\alpha)"></span>
+          <span class="eq" data-label="Resolving Power" data-katex="R = mN \;\text{(resolving power)}"></span>
         </div>
       </div>
     </div>
@@ -2423,7 +2433,10 @@ function updateEqRail(t){
   var rail=document.getElementById('eqRail');
   if(!strip||!rail)return;
   var html='';
-  strip.querySelectorAll('.eq').forEach(function(e){ html+='<div class="eq-card">'+e.innerHTML+'</div>'; });
+  strip.querySelectorAll('.eq').forEach(function(e){
+    var lb=e.getAttribute('data-label');
+    html+='<div class="eq-card">'+(lb?'<div class="eq-title">'+lb+'</div>':'')+'<div class="eq-body">'+e.innerHTML+'</div></div>';
+  });
   rail.innerHTML=html;
 }
 function renderKaTeX(){
