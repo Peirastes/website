@@ -54,11 +54,14 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 /* ── layout ── */
 .main-grid{position:fixed;top:5.5rem;left:1.6rem;right:1.6rem;bottom:1.6rem;animation:appfade 1100ms ease 200ms backwards}
 @keyframes appfade{0%{opacity:0}100%{opacity:1}}
-.control-panel{position:absolute;top:0;bottom:auto;right:0;width:300px;max-height:100%;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:8px;box-shadow:var(--glass-shadow);padding:16px;overflow-y:auto;scrollbar-gutter:stable;z-index:10}
-.display-area{position:absolute;top:0;right:0;bottom:0;left:0;padding:12px calc(300px + 1.6rem) 12px 4px;display:flex;flex-direction:column;gap:12px;overflow:hidden;background:radial-gradient(ellipse at 45% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%)}
+.control-panel{position:absolute;top:16px;bottom:auto;right:16px;width:300px;max-height:calc(100% - 32px);background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:8px;box-shadow:var(--glass-shadow);padding:16px;overflow-y:auto;scrollbar-gutter:stable;z-index:10}
+.display-area{position:absolute;top:0;right:0;bottom:0;left:0;padding:9px calc(300px + 2rem) 12px 9px;display:flex;flex-direction:column;gap:12px;overflow:hidden;background:radial-gradient(ellipse at 45% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%)}
 
-.app-title{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:var(--gold);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 10px var(--gold-glow);flex:0 0 auto}
-.app-title span{color:var(--cyan-soft);font-size:9.5px;letter-spacing:.2em;margin-left:8px}
+/* three-tier app title (name / live charge-state / scope), matches optics .opt-title */
+.app-title{position:relative;z-index:8;flex:0 0 auto;margin-top:-3px;margin-bottom:2px}
+.app-title__name{font-family:'Orbitron',sans-serif;font-size:23px;font-weight:700;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;text-shadow:0 0 14px var(--gold-glow),0 0 34px rgba(255,174,32,.18);line-height:1}
+.app-title__mode{font-family:'Orbitron',sans-serif;font-size:11.5px;font-weight:600;color:var(--cyan);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 8px var(--cyan-glow);margin-top:7px}
+.app-title__scope{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--text-dim);letter-spacing:.18em;text-transform:uppercase;margin-top:5px}
 
 .world-row{flex:1 1 auto;min-height:0;display:flex;gap:16px}
 .circuit-wrap{flex:1.3 1 0;min-width:0;display:flex;align-items:center;justify-content:center}
@@ -109,7 +112,10 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 .ss i{display:block;width:7px;height:7px;border-radius:1px;font-style:normal}
 .polar-row{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
 .polar-lbl{display:flex;align-items:center;gap:5px;cursor:pointer;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
-.polar-lbl input{accent-color:var(--gold)}
+.polar-lbl input[type="checkbox"]{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 auto;width:34px;height:18px;border-radius:9px;background:rgba(4,6,10,.85);border:1px solid rgba(255,174,32,.25);cursor:pointer;margin:0;transition:background .15s,border-color .15s}
+.polar-lbl input[type="checkbox"]::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#8a8a8a;box-shadow:0 1px 2px rgba(0,0,0,.5);transition:transform .15s,background .15s,box-shadow .15s}
+.polar-lbl input[type="checkbox"]:checked{background:linear-gradient(180deg,rgba(255,174,32,.35),rgba(160,104,32,.20));border-color:rgba(255,174,32,.28)}
+.polar-lbl input[type="checkbox"]:checked::after{transform:translateX(16px);background:#ffae20;box-shadow:0 0 6px rgba(255,174,32,.45)}
 .knob-ktx .katex{font-size:12px}.knob-ktx{white-space:nowrap;text-align:center;line-height:1}
 .rval .katex{font-size:12.5px}.eq-card .katex{font-size:13.5px}.eq-card .katex-display{margin:0}
 #gP{background:rgba(255,174,32,.05);border:1px solid var(--gold-faint);border-radius:6px;padding:12px;margin-bottom:16px}
@@ -139,7 +145,11 @@ html.embed body::before,html.embed body::after{opacity:.6}
 <div class="main-grid">
   <!-- LEFT: lab world (circuit + scope) + readouts + equations -->
   <div class="display-area">
-    <div class="app-title">Capacitor &amp; Dielectrics<span>· RC CHARGING TRANSIENT</span></div>
+    <div class="app-title">
+      <div class="app-title__name">Capacitor &amp; Dielectrics</div>
+      <div class="app-title__mode" id="chgState">Steady State</div>
+      <div class="app-title__scope">PSE-II &bull; Capacitance &amp; Dielectrics</div>
+    </div>
     <div class="world-row">
       <div class="circuit-wrap"><svg id="appSvg" viewBox="0 0 360 310"></svg></div>
       <div class="scope-wrap">
@@ -231,6 +241,7 @@ function updDOM(){
   $('cR').innerHTML=['cap','resistor','both'].map(function(k){var l=k==='cap'?'CH1':k==='resistor'?'CH2':'DUAL';var a=S.sc===k;return'<div class="seg-btn'+(a?' on':'')+'" data-ch="'+k+'" style="flex:0 0 auto;padding:3px 9px;font-size:9px">'+l+'</div>'}).join('');
   var ssH='';[['#e05040',S.run],['#ffae20',true],['#40d870',true],['#40d870',!S.run],['#4488ff',true]].forEach(function(x){ssH+=ssd(x[0],x[1])});$('ssS').innerHTML=ssH;
   $('rL').textContent=S.run?'REC':'IDLE';$('rL').style.color=S.run?'#40d870':'#8a8a8a';$('rL').style.animation=S.run?'blink 2s infinite':'none';
+  $('chgState').textContent=S.run?(S.chg?'Charging':'Discharging'):'Steady State';
   // telemetry
   var fC=fSI(C,'F'),fT=fSI(tau,'s'),fI=fSI(Math.abs(I),'A'),fQ=fSI(Q,'C'),fU=fSI(U,'J');
   $('tG').innerHTML=rcv('C',fC.split(' ')[0],fC.split(' ').slice(1).join(' '),'#ffcc44')+rcv('\\tau',fT.split(' ')[0],fT.split(' ').slice(1).join(' '),'#ffae20')+rcv('V_C',S.vc.toFixed(2),'V','#40d870')+rcv('I',fI.split(' ')[0],fI.split(' ').slice(1).join(' '),'#7dd6ff')+rcv('Q',fQ.split(' ')[0],fQ.split(' ').slice(1).join(' '),'#40d870')+rcv('U',fU.split(' ')[0],fU.split(' ').slice(1).join(' '),'#e05040');
