@@ -419,11 +419,15 @@
       })();
 
       /* Title top: snug in embed, below the chrome row standalone. Set inline
-         to sidestep a CSS embed-cascade quirk in this build (both html.embed
-         and html:not(.embed) resolved to the standalone value). */
+         (the CSS embed cascade misbehaves in this build) and read the URL param
+         directly — the .embed CLASS isn't reliably set when this first runs, so
+         check ?embed and re-apply on a short timer. */
       (function () {
         const et = document.querySelector('.es-title');
-        if (et) et.style.top = document.documentElement.classList.contains('embed') ? '1.6rem' : '5.5rem';
+        if (!et) return;
+        const embed = new URLSearchParams(location.search).has('embed');
+        const setTop = () => { et.style.top = embed ? '1.6rem' : '5.5rem'; };
+        setTop(); setTimeout(setTop, 300); setTimeout(setTop, 1200);
       })();
     </script>
   </body>
