@@ -162,14 +162,19 @@ body .instrument-stage {                  /* fallback: show even without is-read
    Self-contained acrylic glass panel with margins so the void shows
    around its edges, like a HUD floating on the 3D scene. */
 
-.control-panel {
+/* Right rail: control panel + equation cards stacked, floating over the world's right */
+.right-rail {
   position: absolute;
-  top: 1rem;
-  bottom: auto;                /* hug content (floating panel) instead of full-height empty glass */
-  max-height: calc(100% - 2rem);
-  right: 1rem;                 /* right-side control panel (Artemis-style, right-hand friendly) */
-  left: auto;
+  top: 1rem; right: 1rem; left: auto;
   width: 320px;
+  max-height: calc(100% - 2rem);
+  display: flex; flex-direction: column; gap: 12px;
+  z-index: 10;
+  overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain;
+}
+.control-panel {
+  position: relative;
+  width: 100%;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -178,12 +183,24 @@ body .instrument-stage {                  /* fallback: show even without is-read
   box-shadow: var(--glass-shadow);
   padding: 16px;
   min-width: 0;
-  min-height: 0;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
-  overscroll-behavior: contain;
-  z-index: 10;
+  overflow: visible;
+  flex: 0 0 auto;
 }
+/* Equations — individual glass cards below the control panel */
+.eq-rail { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+.eq-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: var(--glass-shadow);
+  padding: 11px 12px;
+  text-align: center;
+  overflow-x: auto;
+}
+.eq-card .katex { font-size: 13px; color: var(--cyan-soft); }
+.crt-screen .eq-strip { display: none; }   /* moved to the eq-rail; kept as KaTeX source */
 
 .panel-section { margin-bottom: 18px; }
 
@@ -422,8 +439,8 @@ select.input-field:focus {
   gap: 12px;
   min-height: 0;
 }
-/* readouts (cards + equation strip) overlay the bottom of the world */
-.crt-screen > .cards, .crt-screen > .eq-strip { position: relative; z-index: 7; }
+/* readouts (cards) overlay the bottom of the world, kept clear of the right rail */
+.crt-screen > .cards { position: relative; z-index: 7; margin-right: calc(320px + 2rem); }
 .crt-screen::before { display: none; }
 .crt-screen::after { display: none; }
 
@@ -971,6 +988,7 @@ select.input-field:focus {
 
         <!-- panel-header dissolved — identity lives in cinematic chrome -->
 <div class="main-grid">
+  <div class="right-rail">
   <div class="control-panel">
     <!-- Module selector -->
     <div class="panel-section">
@@ -1212,6 +1230,8 @@ select.input-field:focus {
     <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules</div>
     <button class="reset-btn" id="share-btn" onclick="copyShareLink()" style="margin-top:12px">Copy share link</button>
   </div>
+  <div class="eq-rail" id="eqRail" aria-label="Governing relations"></div>
+  </div><!-- /right-rail -->
 
   <!-- Display area -->
   <div class="display-area">
@@ -1421,6 +1441,7 @@ window.sw=function(t){
   document.getElementById('t-'+t).classList.add('on');
   var _lbl=document.querySelector('#p-'+t+' .crt-label');
   if(_lbl)document.getElementById('optMode').textContent=_lbl.textContent;
+  updateEqRail(t);
   document.querySelectorAll('.module-ctrl').forEach(function(c){c.style.display='none';});
   var ctrl=document.getElementById('ctrl-'+t);
   if(ctrl)ctrl.style.display='';
@@ -2360,6 +2381,14 @@ window.copyShareLink=function(){
 loadHash();
 
 /* ── Render KaTeX equations ── */
+function updateEqRail(t){
+  var strip=document.querySelector('#p-'+(t||currentTab)+' .eq-strip');
+  var rail=document.getElementById('eqRail');
+  if(!strip||!rail)return;
+  var html='';
+  strip.querySelectorAll('.eq').forEach(function(e){ html+='<div class="eq-card">'+e.innerHTML+'</div>'; });
+  rail.innerHTML=html;
+}
 function renderKaTeX(){
   document.querySelectorAll('[data-katex]').forEach(function(el){
     try {
@@ -2370,6 +2399,7 @@ function renderKaTeX(){
       el.textContent = el.getAttribute('data-katex');
     }
   });
+  updateEqRail();
 }
 if(window.katex) renderKaTeX();
 else document.addEventListener('DOMContentLoaded', function(){
