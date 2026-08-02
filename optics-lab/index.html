@@ -196,21 +196,44 @@ body .instrument-stage {                  /* fallback: show even without is-read
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   box-shadow: var(--glass-shadow);
-  padding: 5px 12px 6px;
+  padding: 8px 14px 10px;
   text-align: center;
   overflow-x: auto;
 }
-.eq-card .katex { font-size: 12px; color: var(--cyan-soft); }
+.eq-card .katex { font-size: 18px; color: var(--cyan-soft); }   /* 150% of the former 12px */
 .eq-title {
   font-family: 'Orbitron', sans-serif;
-  font-size: 9px; font-weight: 700;
+  font-size: 10px; font-weight: 700;
   color: var(--gold); letter-spacing: 0.18em; text-transform: uppercase;
   text-shadow: 0 0 6px var(--gold-glow);
-  margin-bottom: 6px; padding-bottom: 4px;
+  margin-bottom: 7px; padding-bottom: 5px;
   border-bottom: 1px solid var(--gold-faint);
   text-align: left;
 }
 .eq-body { text-align: center; }
+/* Brief mode description — below the control panel, above the equations (Electrostatics-style) */
+.mode-desc {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: var(--glass-shadow);
+  padding: 11px 14px 12px;
+  flex: 0 0 auto;
+}
+.md-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.16em; text-transform: uppercase;
+  text-shadow: 0 0 6px var(--gold-glow);
+  margin-bottom: 6px;
+}
+.md-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; line-height: 1.5;
+  color: rgba(230, 230, 230, 0.72);
+}
 .crt-screen .eq-strip { display: none; }   /* moved to the eq-rail; kept as KaTeX source */
 
 .panel-section { margin-bottom: 18px; }
@@ -1249,6 +1272,7 @@ select.input-field:focus {
     <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules</div>
     <button class="reset-btn" id="share-btn" onclick="copyShareLink()" style="margin-top:12px">Copy share link</button>
   </div>
+  <div class="mode-desc" id="modeDesc"></div>
   <div class="eq-rail" id="eqRail" aria-label="Governing relations"></div>
   </div><!-- /right-rail -->
 
@@ -2423,9 +2447,19 @@ window.copyShareLink=function(){
 /* ── Initialize ── */
 loadHash();
 
-/* ── Render KaTeX equations ── */
+/* ── Render KaTeX equations + brief mode description ── */
+var MODE_DESC={
+  sn:{name:"Snell's Law",text:"Light bends where two media meet — it slows and turns toward the normal entering the denser medium, and beyond the critical angle it reflects entirely."},
+  ln:{name:"Thin Lenses",text:"A lens bends rays to form an image. Object and image distances tie together through the focal length, and their ratio fixes the magnification and orientation."},
+  ss:{name:"Single-Slit Diffraction",text:"Light through one narrow slit spreads into a broad bright band flanked by fainter fringes, with dark gaps where the slit's own wavelets cancel."},
+  ds:{name:"Double-Slit Interference",text:"Two coherent slits overlap their waves into evenly spaced bright and dark fringes; the spacing widens as the slits narrow or the screen moves farther back."},
+  gr:{name:"Diffraction Grating",text:"Many evenly spaced slits sharpen the interference into narrow, bright lines — the working principle behind splitting light into a spectrum."}
+};
 function updateEqRail(t){
-  var strip=document.querySelector('#p-'+(t||currentTab)+' .eq-strip');
+  var mt=t||currentTab;
+  var descEl=document.getElementById('modeDesc');
+  if(descEl){var md=MODE_DESC[mt];if(md)descEl.innerHTML='<div class="md-title">Overview</div><div class="md-text">'+md.text+'</div>';}
+  var strip=document.querySelector('#p-'+mt+' .eq-strip');
   var rail=document.getElementById('eqRail');
   if(!strip||!rail)return;
   var html='';
