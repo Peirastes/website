@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
-import { Leva, useControls, folder, button } from 'leva';
 import * as THREE from 'three';
 
 import { VectorFieldGlyphs } from './components/VectorFieldGlyphs';
@@ -11,6 +10,7 @@ import { ChargeGeometryRenderer } from './components/ChargeGeometryRenderer';
 import { SliceView } from './components/SliceView';
 import { CameraSlice } from './components/CameraSlice';
 import { InfoPanel } from './components/InfoPanel';
+import { ControlPanel, type Controls, type Section } from './components/ControlPanel';
 import { FieldModel } from './models/types';
 import {
   createSingleCharge,
@@ -27,7 +27,7 @@ import { createFinitePlate, createParallelPlates } from './models/FinitePlate';
 import './App.css';
 
 // Case definitions
-type CaseType = 
+type CaseType =
   | 'single_positive' | 'single_negative'
   | 'dipole' | 'like_charges' | 'quadrupole' | 'triangle'
   | 'finite_rod' | 'ring' | 'disk'
@@ -63,234 +63,184 @@ const CASE_DESCRIPTIONS: Record<CaseType, string> = {
 
 function createModel(caseType: CaseType, params: Record<string, number>): FieldModel {
   const { charge, separation, length, radius, width, height } = params;
-  
   switch (caseType) {
-    case 'single_positive':
-      return createSingleCharge(Math.abs(charge));
-    case 'single_negative':
-      return createSingleCharge(-Math.abs(charge));
-    case 'dipole':
-      return createDipole(separation, Math.abs(charge));
-    case 'like_charges':
-      return createLikeCharges(separation, Math.abs(charge));
-    case 'quadrupole':
-      return createQuadrupole(separation, Math.abs(charge));
-    case 'triangle':
-      return createTriangle(separation, Math.abs(charge));
-    case 'finite_rod':
-      return createFiniteRod(length, charge, 'y');
-    case 'ring':
-      return createChargedRing(radius, charge, 'x');
-    case 'disk':
-      return createChargedDisk(radius, charge, 'x');
-    case 'finite_plate':
-      return createFinitePlate(width, height, charge);
-    case 'parallel_plates':
-      return createParallelPlates(width, height, separation, Math.abs(charge));
-    default:
-      return createSingleCharge(1);
+    case 'single_positive': return createSingleCharge(Math.abs(charge));
+    case 'single_negative': return createSingleCharge(-Math.abs(charge));
+    case 'dipole': return createDipole(separation, Math.abs(charge));
+    case 'like_charges': return createLikeCharges(separation, Math.abs(charge));
+    case 'quadrupole': return createQuadrupole(separation, Math.abs(charge));
+    case 'triangle': return createTriangle(separation, Math.abs(charge));
+    case 'finite_rod': return createFiniteRod(length, charge, 'y');
+    case 'ring': return createChargedRing(radius, charge, 'x');
+    case 'disk': return createChargedDisk(radius, charge, 'x');
+    case 'finite_plate': return createFinitePlate(width, height, charge);
+    case 'parallel_plates': return createParallelPlates(width, height, separation, Math.abs(charge));
+    default: return createSingleCharge(1);
   }
 }
 
+const CASE_OPTIONS: Record<string, string> = Object.fromEntries(
+  (Object.entries(CASE_LABELS) as [CaseType, string][]).map(([k, v]) => [k, v])
+);
+
+const DEFAULTS: Controls = {
+  caseType: 'dipole',
+  charge: 1, separation: 2, length: 2, radius: 1, width: 2.5, height: 2.5,
+  showVectors: true, showFieldLines: true, showEquipotentials: true,
+  vectorDensity: 8, radialDensity: 6, azimuthalDensity: 2, equipotentialLevels: 5,
+  vectorScale: 0.3, logScale: false, clampMin: 0.01, clampMax: 5,
+  showGrid: true, showAxes: true, bounds: 4,
+  showCameraSlice: false, sliceOffset: 0, sliceSize: 8, sliceResolution: 80,
+  sliceOpacity: 0.85, sliceContours: true, sliceContourCount: 10, sliceLogScale: true,
+};
+
 export default function App() {
   const [showSlice, setShowSlice] = useState(false);
-  
-  // Main controls
-  const { caseType, charge, separation, length, radius, width, height } = useControls('Configuration', {
-    caseType: {
-      value: 'dipole' as CaseType,
-      options: Object.fromEntries(Object.entries(CASE_LABELS).map(([k, v]) => [v, k])),
-      label: 'Case',
-    },
-    charge: { value: 1, min: 0.1, max: 3, step: 0.1, label: 'Charge (Q)' },
-    separation: { value: 2, min: 0.5, max: 4, step: 0.1, label: 'Separation (d)' },
-    length: { value: 2, min: 0.5, max: 4, step: 0.1, label: 'Length (L)' },
-    radius: { value: 1, min: 0.3, max: 3, step: 0.1, label: 'Radius (R)' },
-    width: { value: 2.5, min: 1, max: 4, step: 0.1, label: 'Width' },
-    height: { value: 2.5, min: 1, max: 4, step: 0.1, label: 'Height' },
-  });
-  
-  // Visualization controls
-  const {
-    showVectors,
-    showFieldLines,
-    showEquipotentials,
-    vectorDensity,
-    radialDensity,
-    azimuthalDensity,
-    equipotentialLevels,
-    vectorScale,
-    logScale,
-    clampMin,
-    clampMax,
-  } = useControls('Visualization', {
-    showVectors: { value: true, label: 'Vector Field' },
-    showFieldLines: { value: true, label: 'Field Lines' },
-    showEquipotentials: { value: true, label: 'Equipotentials' },
-    vectorDensity: { value: 8, min: 4, max: 15, step: 1, label: 'Vector Density' },
-    radialDensity: { value: 6, min: 1, max: 16, step: 1, label: 'Radial Field Line Density' },
-    azimuthalDensity: { value: 2, min: 0, max: 8, step: 1, label: 'Azimuthal Density' },
-    equipotentialLevels: { value: 5, min: 1, max: 10, step: 1, label: 'Equipotential Levels' },
-    vectorScale: { value: 0.3, min: 0.1, max: 1, step: 0.05, label: 'Vector Scale' },
-    logScale: { value: false, label: 'Log Scale |E|' },
-    clampMin: { value: 0.01, min: 0.001, max: 0.5, step: 0.01, label: 'Clamp Min' },
-    clampMax: { value: 5, min: 1, max: 20, step: 0.5, label: 'Clamp Max' },
-  });
-  
-  // View controls
-  const { showGrid, showAxes, bounds } = useControls('View', {
-    showGrid: { value: true, label: 'Show Grid' },
-    showAxes: { value: true, label: 'Show Axes' },
-    bounds: { value: 4, min: 2, max: 8, step: 0.5, label: 'Domain Size' },
-    '2D Slice View': button(() => setShowSlice(s => !s)),
-  });
-  
-  // Camera Slice controls (the new live cross-section feature)
-  const {
-    showCameraSlice,
-    sliceOffset,
-    sliceSize,
-    sliceResolution,
-    sliceOpacity,
-    sliceContours,
-    sliceContourCount,
-    sliceLogScale,
-  } = useControls('Camera Slice', {
-    showCameraSlice: { value: false, label: 'Enable Live Slice' },
-    sliceOffset: { value: 0, min: -5, max: 5, step: 0.1, label: 'Slice Offset' },
-    sliceSize: { value: 8, min: 4, max: 15, step: 0.5, label: 'Slice Size' },
-    sliceResolution: { value: 80, min: 40, max: 150, step: 10, label: 'Resolution' },
-    sliceOpacity: { value: 0.85, min: 0.3, max: 1, step: 0.05, label: 'Opacity' },
-    sliceContours: { value: true, label: 'Show Contours' },
-    sliceContourCount: { value: 10, min: 4, max: 20, step: 1, label: 'Contour Lines' },
-    sliceLogScale: { value: true, label: 'Log Color Scale' },
-  });
-  
-  // Create model
-  const model = useMemo(() => {
-    return createModel(caseType as CaseType, { charge, separation, length, radius, width, height });
-  }, [caseType, charge, separation, length, radius, width, height]);
-  
-  // Compute bounds
+  const [c, setC] = useState<Controls>(DEFAULTS);
+  const set = (k: string, v: number | boolean | string) => setC(prev => ({ ...prev, [k]: v }));
+
+  // Typed views into the control state
+  const caseType = c.caseType as CaseType;
+  const charge = c.charge as number, separation = c.separation as number, length = c.length as number,
+    radius = c.radius as number, width = c.width as number, height = c.height as number, bounds = c.bounds as number;
+
+  const sections: Section[] = useMemo(() => [
+    { title: 'Configuration', fields: [
+      { key: 'caseType', type: 'select', label: 'Case', options: CASE_OPTIONS },
+      { key: 'charge', type: 'slider', label: 'Charge (Q)', min: 0.1, max: 3, step: 0.1 },
+      { key: 'separation', type: 'slider', label: 'Separation (d)', min: 0.5, max: 4, step: 0.1 },
+      { key: 'length', type: 'slider', label: 'Length (L)', min: 0.5, max: 4, step: 0.1 },
+      { key: 'radius', type: 'slider', label: 'Radius (R)', min: 0.3, max: 3, step: 0.1 },
+      { key: 'width', type: 'slider', label: 'Width', min: 1, max: 4, step: 0.1 },
+      { key: 'height', type: 'slider', label: 'Height', min: 1, max: 4, step: 0.1 },
+    ] },
+    { title: 'Visualization', fields: [
+      { key: 'showVectors', type: 'toggle', label: 'Vector Field' },
+      { key: 'showFieldLines', type: 'toggle', label: 'Field Lines' },
+      { key: 'showEquipotentials', type: 'toggle', label: 'Equipotentials' },
+      { key: 'vectorDensity', type: 'slider', label: 'Vector Density', min: 4, max: 15, step: 1 },
+      { key: 'radialDensity', type: 'slider', label: 'Radial Field Line Density', min: 1, max: 16, step: 1 },
+      { key: 'azimuthalDensity', type: 'slider', label: 'Azimuthal Density', min: 0, max: 8, step: 1 },
+      { key: 'equipotentialLevels', type: 'slider', label: 'Equipotential Levels', min: 1, max: 10, step: 1 },
+      { key: 'vectorScale', type: 'slider', label: 'Vector Scale', min: 0.1, max: 1, step: 0.05 },
+      { key: 'logScale', type: 'toggle', label: 'Log Scale |E|' },
+      { key: 'clampMin', type: 'slider', label: 'Clamp Min', min: 0.001, max: 0.5, step: 0.01 },
+      { key: 'clampMax', type: 'slider', label: 'Clamp Max', min: 1, max: 20, step: 0.5 },
+    ] },
+    { title: 'View', fields: [
+      { key: 'showGrid', type: 'toggle', label: 'Show Grid' },
+      { key: 'showAxes', type: 'toggle', label: 'Show Axes' },
+      { key: 'bounds', type: 'slider', label: 'Domain Size', min: 2, max: 8, step: 0.5 },
+      { key: '__slice', type: 'button', label: '2D Slice View', onClick: () => setShowSlice(s => !s) },
+    ] },
+    { title: 'Camera Slice', fields: [
+      { key: 'showCameraSlice', type: 'toggle', label: 'Enable Live Slice' },
+      { key: 'sliceOffset', type: 'slider', label: 'Slice Offset', min: -5, max: 5, step: 0.1 },
+      { key: 'sliceSize', type: 'slider', label: 'Slice Size', min: 4, max: 15, step: 0.5 },
+      { key: 'sliceResolution', type: 'slider', label: 'Resolution', min: 40, max: 150, step: 10 },
+      { key: 'sliceOpacity', type: 'slider', label: 'Opacity', min: 0.3, max: 1, step: 0.05 },
+      { key: 'sliceContours', type: 'toggle', label: 'Show Contours' },
+      { key: 'sliceContourCount', type: 'slider', label: 'Contour Lines', min: 4, max: 20, step: 1 },
+      { key: 'sliceLogScale', type: 'toggle', label: 'Log Color Scale' },
+    ] },
+  ], []);
+
+  const model = useMemo(
+    () => createModel(caseType, { charge, separation, length, radius, width, height }),
+    [caseType, charge, separation, length, radius, width, height]
+  );
+
   const domainBounds = useMemo(() => ({
     min: new THREE.Vector3(-bounds, -bounds, -bounds),
     max: new THREE.Vector3(bounds, bounds, bounds),
   }), [bounds]);
-  
+
   return (
     <div className="app">
-      <Leva 
-        collapsed={false}
-        titleBar={{ title: '⚡ Electrostatics Lab' }}
-        theme={{
-          colors: {
-            accent1: '#3498db',
-            accent2: '#2ecc71',
-            accent3: '#e74c3c',
-          },
-        }}
-      />
-      
+      {/* Three-tier canon title (tracks the active case) */}
+      <div className="es-title">
+        <div className="es-title__name">Electrostatics Lab</div>
+        <div className="es-title__mode">{CASE_LABELS[caseType]}</div>
+        <div className="es-title__scope">PSE-II &middot; Electric Fields &amp; Potential</div>
+      </div>
+
+      <ControlPanel controls={c} set={set} sections={sections} />
+
       <div className="canvas-container">
         <Canvas>
           <color attach="background" args={['#0a0a0f']} />
           <PerspectiveCamera makeDefault position={[6, 4, 6]} />
-          <OrbitControls 
-            enableDamping 
-            dampingFactor={0.05}
-            minDistance={2}
-            maxDistance={20}
-          />
-          
-          {/* Lighting */}
+          <OrbitControls enableDamping dampingFactor={0.05} minDistance={2} maxDistance={20} />
+
           <ambientLight intensity={0.4} />
           <directionalLight position={[10, 10, 5]} intensity={0.8} />
           <directionalLight position={[-10, -10, -5]} intensity={0.3} />
-          
-          {/* Grid */}
-          {showGrid && (
-            <Grid 
+
+          {(c.showGrid as boolean) && (
+            <Grid
               args={[bounds * 2, bounds * 2]}
-              cellSize={0.5}
-              cellThickness={0.5}
-              cellColor="#1a1a2e"
-              sectionSize={2}
-              sectionThickness={1}
-              sectionColor="#2a2a4e"
-              fadeDistance={bounds * 3}
-              fadeStrength={1}
-              followCamera={false}
+              cellSize={0.5} cellThickness={0.5} cellColor="#1a1a2e"
+              sectionSize={2} sectionThickness={1} sectionColor="#2a2a4e"
+              fadeDistance={bounds * 3} fadeStrength={1} followCamera={false}
               position={[0, -0.01, 0]}
             />
           )}
-          
-          {/* Axes helper */}
-          {showAxes && <axesHelper args={[bounds]} />}
-          
-          {/* Charge geometry */}
+
+          {(c.showAxes as boolean) && <axesHelper args={[bounds]} />}
+
           <ChargeGeometryRenderer model={model} />
-          
-          {/* Vector field glyphs */}
-          {showVectors && (
+
+          {(c.showVectors as boolean) && (
             <VectorFieldGlyphs
-              model={model}
-              bounds={domainBounds}
-              density={vectorDensity}
-              scale={vectorScale}
-              logScale={logScale}
-              clampMin={clampMin}
-              clampMax={clampMax}
+              model={model} bounds={domainBounds}
+              density={c.vectorDensity as number}
+              scale={c.vectorScale as number}
+              logScale={c.logScale as boolean}
+              clampMin={c.clampMin as number}
+              clampMax={c.clampMax as number}
             />
           )}
-          
-          {/* Field lines */}
-          {showFieldLines && (
+
+          {(c.showFieldLines as boolean) && (
             <FieldLines
-              model={model}
-              bounds={domainBounds}
-              radialDensity={radialDensity}
-              azimuthalDensity={azimuthalDensity}
+              model={model} bounds={domainBounds}
+              radialDensity={c.radialDensity as number}
+              azimuthalDensity={c.azimuthalDensity as number}
             />
           )}
-          
-          {/* Equipotential surfaces */}
-          {showEquipotentials && (
+
+          {(c.showEquipotentials as boolean) && (
             <EquipotentialSurfaces
-              model={model}
-              bounds={domainBounds}
-              numLevels={equipotentialLevels}
+              model={model} bounds={domainBounds}
+              numLevels={c.equipotentialLevels as number}
             />
           )}
-          
-          {/* Camera-aligned live slice */}
+
           <CameraSlice
             model={model}
-            enabled={showCameraSlice}
-            sliceOffset={sliceOffset}
-            resolution={sliceResolution}
-            size={sliceSize}
-            opacity={sliceOpacity}
-            showContours={sliceContours}
-            contourCount={sliceContourCount}
-            logScale={sliceLogScale}
+            enabled={c.showCameraSlice as boolean}
+            sliceOffset={c.sliceOffset as number}
+            resolution={c.sliceResolution as number}
+            size={c.sliceSize as number}
+            opacity={c.sliceOpacity as number}
+            showContours={c.sliceContours as boolean}
+            contourCount={c.sliceContourCount as number}
+            logScale={c.sliceLogScale as boolean}
           />
         </Canvas>
       </div>
-      
-      {/* Info panel */}
+
       <InfoPanel
-        title={CASE_LABELS[caseType as CaseType]}
-        description={CASE_DESCRIPTIONS[caseType as CaseType]}
+        title={CASE_LABELS[caseType]}
+        description={CASE_DESCRIPTIONS[caseType]}
         formula={model.getFormula?.()}
       />
-      
-      {/* 2D Slice view modal */}
+
       {showSlice && (
         <SliceView
-          model={model}
-          bounds={domainBounds}
+          model={model} bounds={domainBounds}
           onClose={() => setShowSlice(false)}
-          logScale={logScale}
+          logScale={c.logScale as boolean}
         />
       )}
     </div>

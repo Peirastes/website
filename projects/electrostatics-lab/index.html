@@ -6,53 +6,86 @@
     <title>Electrostatics Lab | Interactive 3D Field Visualization</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html, body, #root {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        font-family: 'Space Grotesk', sans-serif;
-        background: #0a0a0f;
-        color: #e0e0e0;
-      }
-      #site-nav {
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        height: 36px;
-        background: #0a0a0f;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        display: flex;
-        align-items: center;
-        padding: 0 16px;
-        gap: 20px;
-        z-index: 9999;
-        font-size: 12px;
-      }
-      #site-nav a { color: #808890; text-decoration: none; transition: color 0.15s; }
-      #site-nav a:hover { color: #e0e0e0; }
-      #site-nav .nav-title { color: #e0e0e0; font-weight: 600; letter-spacing: 0.5px; }
-      /* NOTE: cinematic v3.5 chrome is currently maintained ONLY in dist/index.html
-         (manually edited). If you re-run `vite build`, the chrome will be lost and
-         the deployed dist must be re-patched. To make the source the source-of-
-         truth, mirror the dist/index.html chrome block here. */
+      :root { --gold:#ffae20; --gold-soft:rgba(255,174,32,.72); --gold-faint:rgba(255,174,32,.28); --gold-glow:rgba(255,174,32,.45);
+              --cyan:#7dd6ff; --cyan-faint:rgba(125,214,255,.22); --cyan-glow:rgba(125,214,255,.30); }
+      * { margin:0; padding:0; box-sizing:border-box; }
+      html, body, #root { width:100%; height:100%; overflow:hidden; font-family:'Inter',system-ui,sans-serif; background:#06080c; color:#e8e8e8; }
+      #root { position:relative; z-index:1; }
+      body::before { content:''; position:fixed; inset:0; z-index:-2; background-image:url('../../../images/PeirastesBanner.jpg'); background-size:cover; background-position:center; filter:saturate(.55) brightness(.32) contrast(1.05); opacity:.85; }
+      body::after { content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+        background:radial-gradient(ellipse at 50% 45%,transparent 25%,rgba(6,8,12,.65) 95%),linear-gradient(180deg,rgba(0,0,0,.35) 0%,transparent 30%,rgba(0,0,0,.55) 100%); }
+      .cin-grain { position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.04; mix-blend-mode:overlay;
+        background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>"); }
+      .peirastes-home { position:fixed; top:8px; left:12px; font-family:'Cinzel',serif; font-size:11px; font-weight:600; color:rgba(224,224,224,.3); text-decoration:none; letter-spacing:.08em; z-index:9999; }
+      .peirastes-home:hover { color:#e07050; }
+      /* cinematic chrome */
+      .cin-flank { position:fixed; top:max(1.6rem,env(safe-area-inset-top,0px) + .6rem); z-index:100; display:flex; flex-direction:column; gap:.4rem; opacity:0; transform:translateY(-8px); animation:cin-fi 700ms ease 250ms forwards; }
+      .cin-flank--left { left:max(1.6rem,env(safe-area-inset-left,0px) + .6rem); align-items:flex-start; }
+      .cin-flank--right { right:max(1.6rem,env(safe-area-inset-right,0px) + .6rem); align-items:flex-end; animation-delay:400ms; }
+      .cin-wordmark { font-family:'Cinzel',serif; font-size:.78rem; font-weight:600; letter-spacing:.28em; color:var(--gold-soft); text-decoration:none; text-shadow:0 0 8px var(--gold-glow); line-height:1; }
+      .cin-wordmark:hover { color:var(--gold); text-shadow:0 0 14px var(--gold-glow); }
+      .cin-version { font-family:'Inter',sans-serif; font-size:.56rem; font-weight:500; color:rgba(125,214,255,.55); letter-spacing:.2em; text-transform:uppercase; }
+      .cin-title { position:fixed; top:max(1.6rem,env(safe-area-inset-top,0px) + .6rem); left:50%; transform:translateX(-50%); text-align:center; z-index:100; pointer-events:none; opacity:0; animation:cin-fic 700ms ease 350ms forwards; }
+      .cin-title__name { font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:var(--gold); letter-spacing:.24em; text-transform:uppercase; text-shadow:0 0 14px var(--gold-glow),0 0 32px rgba(255,174,32,.18); margin-bottom:4px; line-height:1; }
+      .cin-title__sub { font-family:'Inter',sans-serif; font-size:9px; font-weight:500; color:var(--cyan); letter-spacing:.22em; text-transform:uppercase; }
+      .cin-action-row { display:flex; align-items:center; gap:.55rem; }
+      .cin-action { background:linear-gradient(180deg,rgba(20,26,36,.82),rgba(8,12,18,.9)); border:1px solid rgba(255,255,255,.08); border-radius:3px; color:rgba(220,220,220,.62); font-size:13px; padding:4px 9px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 1px 2px rgba(0,0,0,.3); backdrop-filter:blur(6px); }
+      .cin-action[disabled] { cursor:not-allowed; opacity:.4; }
+      .cin-tick { position:fixed; width:16px; height:16px; z-index:99; pointer-events:none; opacity:0; animation:cin-fi 800ms ease 600ms forwards; }
+      .cin-tick::before, .cin-tick::after { content:''; position:absolute; background:rgba(125,214,255,.45); }
+      .cin-tick--tl { top:max(.9rem,env(safe-area-inset-top,0px) + .3rem); left:max(.9rem,env(safe-area-inset-left,0px) + .3rem); }
+      .cin-tick--tr { top:max(.9rem,env(safe-area-inset-top,0px) + .3rem); right:max(.9rem,env(safe-area-inset-right,0px) + .3rem); }
+      .cin-tick--bl { bottom:max(.9rem,env(safe-area-inset-bottom,0px) + .3rem); left:max(.9rem,env(safe-area-inset-left,0px) + .3rem); }
+      .cin-tick--br { bottom:max(.9rem,env(safe-area-inset-bottom,0px) + .3rem); right:max(.9rem,env(safe-area-inset-right,0px) + .3rem); }
+      .cin-tick--tl::before { top:0; left:0; width:12px; height:1px; } .cin-tick--tl::after { top:0; left:0; width:1px; height:12px; }
+      .cin-tick--tr::before { top:0; right:0; width:12px; height:1px; } .cin-tick--tr::after { top:0; right:0; width:1px; height:12px; }
+      .cin-tick--bl::before { bottom:0; left:0; width:12px; height:1px; } .cin-tick--bl::after { bottom:0; left:0; width:1px; height:12px; }
+      .cin-tick--br::before { bottom:0; right:0; width:12px; height:1px; } .cin-tick--br::after { bottom:0; right:0; width:1px; height:12px; }
+      .cin-hints { position:fixed; bottom:max(1.6rem,env(safe-area-inset-bottom,0px) + .6rem); left:max(1.6rem,env(safe-area-inset-left,0px) + .6rem); z-index:100; display:flex; gap:.35rem; font-family:'Share Tech Mono',monospace; font-size:.62rem; letter-spacing:.1em; color:rgba(180,180,180,.45); text-transform:uppercase; opacity:0; animation:cin-fi 800ms ease 750ms forwards; }
+      .cin-hints kbd { background:rgba(125,214,255,.06); border:1px solid var(--cyan-faint); border-radius:2px; padding:1px 5px; margin-right:.4rem; color:var(--cyan); font-size:.58rem; }
+      @keyframes cin-fi { 0%{opacity:0;transform:translateY(-8px)} 100%{opacity:1;transform:translateY(0)} }
+      @keyframes cin-fic { 0%{opacity:0;transform:translate(-50%,-8px)} 100%{opacity:1;transform:translate(-50%,0)} }
+      @media (max-height:500px){ .cin-flank,.cin-title,.cin-hints{display:none} }
     </style>
+    <!-- notes-embed: hide standalone chrome, show the in-app three-tier title -->
+    <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints,html.embed .peirastes-home{display:none !important}html.embed .es-title{display:block !important}</style>
+    <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
   </head>
   <body>
-    <nav id="site-nav">
-      <span class="nav-title">Peirastes</span>
-      <a href="../../index.html">Home</a>
-      <a href="../../about.html">About</a>
-      <a href="../../all-projects.html">Projects</a>
-      <a href="../../timeline.html">Physics Timeline</a>
-      <a href="../../quotes.html">Quotes</a>
-    </nav>
+    <a href="https://peirastes.com" class="peirastes-home" title="Back to Peirastes">Peirastes</a>
+    <div class="cin-grain" aria-hidden="true"></div>
+    <div class="cin-flank cin-flank--left">
+      <a class="cin-wordmark" href="https://peirastes.com/" title="Back to Peirastes">PEIRASTES</a>
+      <span class="cin-version">v3.5</span>
+    </div>
+    <div class="cin-title" aria-label="Electrostatics Lab">
+      <div class="cin-title__name">Electrostatics Lab</div>
+      <div class="cin-title__sub">3D Field Visualization &middot; Charges &middot; Lines &middot; Equipotentials</div>
+    </div>
+    <div class="cin-flank cin-flank--right">
+      <div class="cin-action-row">
+        <button class="cin-action" title="Info (coming soon)" disabled>&#9432;</button>
+        <button class="cin-action" title="Settings (coming soon)" disabled>&#9881;</button>
+      </div>
+    </div>
+    <div class="cin-tick cin-tick--tl"></div><div class="cin-tick cin-tick--tr"></div>
+    <div class="cin-tick cin-tick--bl"></div><div class="cin-tick cin-tick--br"></div>
+    <div class="cin-hints"><span><kbd>Esc</kbd> Home</span></div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+      (function () {
+        var l=document.querySelector('.cin-flank--left'), r=document.querySelector('.cin-flank--right'), t=document.querySelector('.cin-title');
+        if(!l||!r||!t) return;
+        var center=function(){ var lr=l.getBoundingClientRect(), rr=r.getBoundingClientRect(); if(!lr.width||!rr.width) return; t.style.left=((lr.right+rr.left)/2)+'px'; };
+        center(); window.addEventListener('resize',center);
+        new ResizeObserver(center).observe(l); new ResizeObserver(center).observe(r);
+        if(document.fonts) document.fonts.ready.then(center);
+      })();
+    </script>
   </body>
 </html>
