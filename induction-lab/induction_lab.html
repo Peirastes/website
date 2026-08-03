@@ -109,12 +109,19 @@ body::after {
   100% { opacity: 1; }
 }
 
-/* Control panel — floating glass on the right (Artemis-style, right-hand friendly) */
-.control-panel {
+/* Right rail: control panel (scrolls internally) stacked over the combined info frame */
+.ind-rail {
   position: absolute;
-  top: 16px; bottom: auto; right: 16px; left: auto;
+  top: 16px; right: 16px;
   max-height: calc(100% - 32px);
   width: 320px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 10;
+}
+.control-panel {
+  position: relative;
+  width: 100%;
+  flex: 0 1 auto; min-height: 0;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -122,11 +129,29 @@ body::after {
   border-radius: 8px;
   box-shadow: var(--glass-shadow);
   padding: 16px;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  z-index: 10;
 }
+/* Combined info frame — Overview + equations (grey border, matches control panel) */
+.info-frame {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: var(--glass-shadow);
+  padding: 13px 15px 14px;
+}
+.mode-desc { padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--glass-border); }
+.md-title { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; color: var(--gold); letter-spacing: 0.16em; text-transform: uppercase; text-shadow: 0 0 6px var(--gold-glow); margin-bottom: 6px; }
+.md-text { font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: rgba(230,230,230,0.72); }
+.ind-eq-rail { display: flex; flex-direction: column; gap: 10px; }
+.ind-eq { text-align: center; overflow-x: auto; overflow-y: hidden; padding: 2px 0 4px; }
+.ind-eq .katex { font-size: 18px; color: var(--cyan); }
+/* equations now live in the info frame; hide the in-viz source strip (kept for KaTeX source) */
+.eq-strip { display: none; }
 
 /* Display area — the lab void; control panel floats over its right side */
 .display-area {
@@ -876,6 +901,7 @@ body > a[href="https://peirastes.com"] { display: none; }
     <div class="app-title__mode" id="indMode">Piecewise-Linear B(t)</div>
     <div class="app-title__scope">PSE-II &bull; Electromagnetic Induction</div>
   </div>
+  <div class="ind-rail">
   <div class="control-panel">
     <div class="panel-section">
       <div class="section-label">Lecture 1 — Faraday &amp; Lenz</div>
@@ -1223,6 +1249,11 @@ body > a[href="https://peirastes.com"] { display: none; }
     </div>
 
     <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules · <kbd>Space</kbd> play/pause</div>
+  </div>
+  <div class="info-frame">
+    <div class="mode-desc" id="indDesc"></div>
+    <div class="ind-eq-rail" id="indEq"></div>
+  </div>
   </div>
 
   <!-- Display area -->
@@ -3981,9 +4012,32 @@ var MODULE_LABELS = {
   gn: 'AC Generator — Rotating Coil',
   lz: "Lenz's Law — Solenoid & Loop"
 };
+var MODULE_DESC = {
+  pw: "A uniform field through a stationary coil ramps up, holds, then falls. An EMF appears only while B is changing — proportional to the slope dB/dt — and vanishes whenever B is constant.",
+  wl: "An AC current in a straight wire sets up a changing field through a nearby loop. The mutual flux induces an EMF in the loop that lags the source current by 90°.",
+  lf: "A loop slides through a localized field region. Flux rises as it enters and falls as it leaves, so the EMF spikes at the boundaries and is zero while the loop is fully inside or outside.",
+  em: "A magnet falling through a copper tube induces circulating eddy currents. By Lenz's law they oppose the motion, braking the fall toward a near-constant terminal speed.",
+  rl: "Closing the switch on an inductor makes the current rise exponentially as the coil's back-EMF resists the change; opening it lets the current decay through the resistor.",
+  sr: "A conducting rod slides along rails in a magnetic field. Its motion sweeps out area, generating a motional EMF (ℰ = Bℓv) that drives a current against a retarding magnetic force.",
+  gn: "A coil rotates in a uniform field, so its flux varies sinusoidally. The induced EMF is the derivative of that flux — a sine — peaking as the coil sweeps parallel to the field.",
+  lz: "A magnet moves through a surrounding loop. The induced current always flows so its own field opposes the change in flux — repelling the approaching magnet, attracting the receding one."
+};
+function updateIndInfo(t){
+  t = t || currentTab || 'pw';
+  var descEl = document.getElementById('indDesc');
+  if(descEl && MODULE_DESC[t]) descEl.innerHTML = '<div class="md-title">Overview</div><div class="md-text">'+MODULE_DESC[t]+'</div>';
+  var src = document.querySelector('#p-'+t+' .eq-strip'), eqEl = document.getElementById('indEq');
+  if(src && eqEl){
+    eqEl.innerHTML='';
+    src.querySelectorAll('.eq').forEach(function(e){
+      var d=document.createElement('div'); d.className='ind-eq'; d.innerHTML=e.innerHTML; eqEl.appendChild(d);
+    });
+  }
+}
 window.sw = function(t){
   currentTab = t;
   var ml = document.getElementById('indMode'); if(ml && MODULE_LABELS[t]) ml.textContent = MODULE_LABELS[t];
+  updateIndInfo(t);
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
   document.getElementById('p-'+t).classList.add('on');
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
@@ -4101,6 +4155,7 @@ function renderKaTeX(){
       katex.render(el.getAttribute('data-katex'), el, { throwOnError:false, displayMode:false });
     } catch(e){ el.textContent = el.getAttribute('data-katex'); }
   });
+  if(typeof updateIndInfo==='function') updateIndInfo();
 }
 if(window.katex) renderKaTeX();
 else document.addEventListener('DOMContentLoaded', function(){
