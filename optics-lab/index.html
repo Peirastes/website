@@ -165,13 +165,13 @@ body .instrument-stage {                  /* fallback: show even without is-read
 /* Right rail: control panel + equation cards stacked, floating over the world's right */
 .right-rail {
   position: absolute;
-  top: calc(1rem + 15px);   /* +15px so the panel's TOP gap matches its RIGHT gap (which includes the 15px scrollbar gutter) */
+  top: calc(1rem + 15px);   /* +15px so the panel's TOP gap matches its RIGHT gap */
   right: 1rem; left: auto;
-  bottom: calc(1rem + 15px);
+  max-height: calc(100% - 2rem - 15px);   /* rail sizes to content, capped at the viewport */
   width: 320px;
   display: flex; flex-direction: column; gap: 8px;
   z-index: 10;
-  overflow: visible;   /* the rail no longer scrolls — the control panel does (info-frame stays pinned below it) */
+  overflow: visible;   /* the rail doesn't scroll; the control panel scrolls internally only when content exceeds the cap */
 }
 .control-panel {
   position: relative;
@@ -184,8 +184,8 @@ body .instrument-stage {                  /* fallback: show even without is-read
   box-shadow: var(--glass-shadow);
   padding: 16px;
   min-width: 0;
-  overflow-y: auto; scrollbar-gutter: stable;
-  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  flex: 0 1 auto; min-height: 0;   /* natural height (no stretch/blank space); shrinks + scrolls only if capped */
 }
 /* One combined glass frame below the control panel: Overview + all mode equations */
 .info-frame {
@@ -200,9 +200,9 @@ body .instrument-stage {                  /* fallback: show even without is-read
   display: flex; flex-direction: column;
 }
 /* equations — frameless sections within .info-frame, each keeps its title */
-.eq-rail { display: flex; flex-direction: column; gap: 9px; }
+.eq-rail { display: flex; flex-direction: column; gap: 11px; }
 .eq-card { padding: 0; text-align: center; overflow-x: auto; }
-.eq-card .katex { font-size: 13px; color: var(--cyan-soft); }   /* enlarged from 12px, trimmed to keep the frame compact (no rail scroll) */
+.eq-card .katex { font-size: 18px; color: var(--cyan-soft); }   /* matches the Electrostatics equation size (~17.6px) */
 .eq-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 10px; font-weight: 700;
