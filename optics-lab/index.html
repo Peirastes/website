@@ -167,11 +167,11 @@ body .instrument-stage {                  /* fallback: show even without is-read
   position: absolute;
   top: calc(1rem + 15px);   /* +15px so the panel's TOP gap matches its RIGHT gap (which includes the 15px scrollbar gutter) */
   right: 1rem; left: auto;
+  bottom: calc(1rem + 15px);
   width: 320px;
-  max-height: calc(100% - 2rem - 15px);
   display: flex; flex-direction: column; gap: 8px;
   z-index: 10;
-  overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain;
+  overflow: visible;   /* the rail no longer scrolls — the control panel does (info-frame stays pinned below it) */
 }
 .control-panel {
   position: relative;
@@ -184,8 +184,8 @@ body .instrument-stage {                  /* fallback: show even without is-read
   box-shadow: var(--glass-shadow);
   padding: 16px;
   min-width: 0;
-  overflow: visible;
-  flex: 0 0 auto;
+  overflow-y: auto; scrollbar-gutter: stable;
+  flex: 1 1 auto; min-height: 0;
 }
 /* One combined glass frame below the control panel: Overview + all mode equations */
 .info-frame {
@@ -200,9 +200,9 @@ body .instrument-stage {                  /* fallback: show even without is-read
   display: flex; flex-direction: column;
 }
 /* equations — frameless sections within .info-frame, each keeps its title */
-.eq-rail { display: flex; flex-direction: column; gap: 12px; }
+.eq-rail { display: flex; flex-direction: column; gap: 9px; }
 .eq-card { padding: 0; text-align: center; overflow-x: auto; }
-.eq-card .katex { font-size: 18px; color: var(--cyan-soft); }   /* 150% of the former 12px */
+.eq-card .katex { font-size: 13px; color: var(--cyan-soft); }   /* enlarged from 12px, trimmed to keep the frame compact (no rail scroll) */
 .eq-title {
   font-family: 'Orbitron', sans-serif;
   font-size: 10px; font-weight: 700;
@@ -232,7 +232,7 @@ body .instrument-stage {                  /* fallback: show even without is-read
 }
 .crt-screen .eq-strip { display: none; }   /* moved to the eq-rail; kept as KaTeX source */
 
-.panel-section { margin-bottom: 18px; }
+.panel-section { margin-bottom: 13px; }
 
 .section-label {
   font-family: 'Orbitron', sans-serif;
