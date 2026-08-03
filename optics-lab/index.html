@@ -524,34 +524,29 @@ select.input-field:focus {
 }
 
 /* Cards (readouts) — recessed + chromatic edges, like tape gauges */
+/* compact colored "symbol = value" chips, ported from the Capacitor telemetry style */
 .cards {
   position: relative; z-index: 7;
   display: flex; flex-wrap: wrap; align-content: flex-end;
-  gap: 9px;
-  margin-top: 18px;
+  gap: 6px;
+  margin-top: 16px;
 }
-.card { flex: 0 0 auto; min-width: 78px; }   /* size to content — no wasted right-half */
 .card {
+  flex: 0 0 auto;
   background: rgba(6, 10, 18, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 6px;
-  padding: 12px 15px;
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.55),
-    0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 7px 10px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; overflow: hidden;
 }
-.card-l {
-  font-family: 'Inter', sans-serif;
-  font-size: 13.5px; color: var(--text-dim);
-  letter-spacing: 0.10em; text-transform: uppercase;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
+.card-l { display: none; }   /* symbol now inline with the value (symbol = value) */
 .card-v {
-  font-size: 21px;
   font-family: 'Share Tech Mono', monospace;
-  color: var(--cyan);
-  text-shadow: 0 0 6px var(--cyan-glow);
+  font-size: 13.5px;
+  white-space: nowrap;
+  text-shadow: 0 0 5px currentColor;
 }
 
 /* Equation strip */
@@ -1425,7 +1420,24 @@ function cauchy(nb,wl){
 }
 
 /* ── Readout card HTML ── */
-function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div class="card-v" style="color:'+c+'">'+v+'</div></div>';}
+/* readout cards rendered as KaTeX "symbol = value" (matches the Capacitor telemetry) */
+function ktx(tex){ if(!window.katex) return null; try { return katex.renderToString(tex,{throwOnError:false,displayMode:false}); } catch(e){ return null; } }
+var _LBL2TEX={ 'n₁':'n_1','n₂':'n_2','θ₁':'\\theta_1','θ₂':'\\theta_2','θc':'\\theta_c','λ':'\\lambda','Δy':'\\Delta y','dₒ':'d_o','dᵢ':'d_i','hₒ':'h_o','hᵢ':'h_i','θ₁ (min)':'\\theta_1\\ \\text{(min)}','Central W':'W_{\\text{c}}','Image':'\\text{Image}' };
+function labelToTeX(l){ if(_LBL2TEX[l]) return _LBL2TEX[l]; if(/^[A-Za-z]$/.test(l)) return l; return '\\text{'+l+'}'; }
+function valueToTeX(v){
+  v=String(v).trim(); var m;
+  if(/^-?\d+(?:\.\d+)?$/.test(v)) return v;
+  if(v==='∞') return '\\infty';
+  if(m=v.match(/^(-?\d+(?:\.\d+)?)\s*°$/)) return m[1]+'^{\\circ}';
+  if(m=v.match(/^(-?\d+(?:\.\d+)?)\s*%$/)) return m[1]+'\\%';
+  if(m=v.match(/^(-?\d+(?:\.\d+)?)\s*(nm|mm|cm|m|µm|μm)$/)){ var u=(m[2]==='µm'||m[2]==='μm')?'\\mu\\text{m}':'\\text{'+m[2]+'}'; return m[1]+'\\,'+u; }
+  return '\\text{'+v.replace(/([%&$#_{}\\])/g,'\\$1')+'}';
+}
+function cd(l,v,c){
+  var r=ktx(labelToTeX(l)+' = '+valueToTeX(v));
+  var inner = (r!==null) ? r : (l+'&thinsp;=&thinsp;'+v);
+  return '<div class="card"><span class="card-v" style="color:'+c+'">'+inner+'</span></div>';
+}
 
 /* ── Light sources: continuous + gas-discharge emission lines (λ in nm, I = relative) ── */
 var SOURCES = {
@@ -2478,6 +2490,7 @@ function renderKaTeX(){
     }
   });
   updateEqRail();
+  if(window.sw && currentTab) sw(currentTab);   /* re-render readouts as KaTeX once it's loaded */
 }
 if(window.katex) renderKaTeX();
 else document.addEventListener('DOMContentLoaded', function(){
