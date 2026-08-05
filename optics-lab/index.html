@@ -483,7 +483,9 @@ select.input-field:focus {
 /* readouts (cards) overlay the bottom of the world, kept clear of the right rail */
 /* The world is now full-bleed (display-area padding:0), so the floating
    readouts carry their own inset instead of inheriting the old 1.5rem. */
-.crt-screen > .cards { position: relative; z-index: 7; margin: 0 calc(320px + 2rem) 1.9rem 1.9rem; }
+/* Readout row floats on the void, so it takes the same 35px inset as the
+   title and the canvas edge labels (see VOID_INSET in the script). */
+.crt-screen > .cards { position: relative; z-index: 7; margin: 0 calc(320px + 2rem) 35px 35px; }
 
 /* ── Embed: world runs edge-to-edge, exactly like the Electrostatics lab ──
    The stage inset drops to 0 (see the inline embed <style>), so .display-area
@@ -1386,6 +1388,18 @@ var BG='#08090d',BG2='#0d0f15';
 var GR='rgba(255,255,255,0.035)';
 var IF='rgba(255,255,255,0.12)';
 var NM='rgba(255,255,255,0.06)';
+/* Canonical inset for anything floating on the void — the top-left title, the
+   canvas edge labels, and the readout row all sit this far from the frame. The
+   framed rail uses 42; void content uses 35. Keep the CSS `.crt-screen > .cards`
+   margin in step with this value. */
+var VOID_INSET = 35;
+/* Baseline height for the diffraction modes' bottom edge labels (barrier /
+   screen / grating), measured up from the canvas bottom. They have to clear
+   the readout row that floats over the same corner: the cards sit
+   VOID_INSET (35) from the bottom and are ~38px tall, so their top edge is
+   near y = H-73 — which is exactly why these labels sat on top of the cards
+   when the row moved up to the canonical inset. */
+var CARD_CLEAR = 84;
 var TX='rgba(255,255,255,0.5)';
 var TXH='rgba(255,255,255,0.8)';
 
@@ -1735,10 +1749,17 @@ function uS(){
   /* Hit point */
   ctx.beginPath();ctx.arc(mx,my,3,0,2*Math.PI);ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fill();
   ctx.restore();
-  /* Screen-fixed labels (not zoomed): normal marker + medium-zone tags */
+  /* Screen-fixed labels (not zoomed): normal marker + medium-zone tags.
+     Both sit at the canonical 35px void inset — the same buffer as the
+     top-left title and the readout row, so every element floating on the
+     void lines up against the frame. `textBaseline='top'` for the normal
+     marker so 35 is the VISUAL top of the glyphs, not the baseline (at the
+     default alphabetic baseline, y=35 would render ~9px higher than the
+     title). Restored afterwards; the medium tags are positioned relative to
+     the interface line and want the default baseline. */
   ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='left';
-  ctx.fillText('normal',mx+8,30);
-  ctx.globalAlpha=0.35;ctx.fillText(uT,16,my-14);ctx.fillText(lT,16,my+24);ctx.globalAlpha=1;
+  ctx.textBaseline='top';ctx.fillText('normal',mx+8,VOID_INSET);ctx.textBaseline='alphabetic';
+  ctx.globalAlpha=0.35;ctx.fillText(uT,VOID_INSET,my-14);ctx.fillText(lT,VOID_INSET,my+24);ctx.globalAlpha=1;
 
   /* Readout cards */
   var sT2=n1d*Math.sin(t1r)/n2d;var tir=sT2>1;var col=wC(wl);
@@ -2127,8 +2148,8 @@ function uD(){
   ctx.restore();
   /* edge labels — pinned to the frame edges, aligned to the zoomed apparatus */
   ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='center';
-  ctx.fillText('barrier', zcx+(slitX-zcx)*Z, H-72);
-  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-72);
+  ctx.fillText('barrier', zcx+(slitX-zcx)*Z, H-CARD_CLEAR);
+  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-CARD_CLEAR);
   if(barW>20) ctx.fillText('I(θ)', zcx+(graphX+barW/2-zcx)*Z, 16);
 
   // === Readout cards ===
@@ -2254,8 +2275,8 @@ function uSS(){
   ctx.fillText('m=0',graphX+barW+6,midY+3);
   ctx.restore();
   ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='center';
-  ctx.fillText('barrier', zcx+(slitX-zcx)*Z, H-72);
-  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-72);
+  ctx.fillText('barrier', zcx+(slitX-zcx)*Z, H-CARD_CLEAR);
+  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-CARD_CLEAR);
   if(barW>20) ctx.fillText('I(θ)', zcx+(graphX+barW/2-zcx)*Z, 16);
 
   // Readout cards
@@ -2435,8 +2456,8 @@ function uG(){
   ctx.fillText('m=0',graphX+barW+6,midY+3);
   ctx.restore();
   ctx.font='11px "JetBrains Mono",monospace';ctx.fillStyle=TX;ctx.textAlign='center';
-  ctx.fillText('grating', zcx+(slitX-zcx)*Z, H-72);
-  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-72);
+  ctx.fillText('grating', zcx+(slitX-zcx)*Z, H-CARD_CLEAR);
+  ctx.fillText('screen', zcx+(screenX-zcx)*Z, H-CARD_CLEAR);
   if(barW>20) ctx.fillText('I(θ)', zcx+(graphX+barW/2-zcx)*Z, 16);
 
   // Readout cards
