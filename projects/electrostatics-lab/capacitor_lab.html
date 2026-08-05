@@ -71,11 +71,17 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 .app-title__scope{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--text-dim);letter-spacing:.18em;text-transform:uppercase;margin-top:5px}
 
 .world-row{flex:1 1 auto;min-height:0;display:flex;gap:16px}
-.circuit-wrap{flex:1.3 1 0;min-width:0;display:flex;align-items:center;justify-content:center}
+.circuit-wrap{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center}
+/* Readouts left, scope right — both bottom-aligned so their baselines agree. */
+.bottom-row{flex:0 0 auto;display:flex;gap:16px;align-items:flex-end}
+.bottom-row .readout-band{flex:1 1 0;min-width:0}
+.bottom-row .scope-wrap{flex:1 1 0;min-width:0}
 #appSvg{width:100%;height:100%;max-height:100%;display:block}
 .scope-wrap{flex:1 1 0;min-width:0;display:flex;flex-direction:column;min-height:0}
 .scope-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap}
-.scope-canvas{flex:1 1 auto;min-height:0;position:relative;border:1px solid var(--card-border);border-radius:6px;overflow:hidden;background:#080b12}
+/* Fixed height rather than flex-fill: in the bottom row the scope should read
+   as a wide, shallow trace window, not stretch to whatever height is left. */
+.scope-canvas{flex:0 0 auto;height:236px;position:relative;border:1px solid var(--card-border);border-radius:6px;overflow:hidden;background:#080b12}
 .scope-canvas canvas{width:100%;height:100%;display:block}
 
 .crt-label{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow)}
@@ -85,8 +91,12 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 .readout-band{flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
 .section-label{font-family:'Orbitron',sans-serif;font-size:9.5px;font-weight:700;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow);display:flex;align-items:center;gap:10px}
 .section-label small{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:.04em;text-shadow:none;font-weight:400}
-.rgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.rgrid.an{grid-template-columns:repeat(6,1fr)}
+/* 3 per row. Capacitor State's six cards wrap to 2x3, matching the two 3-card
+   Circuit Analysis rows, which frees the right half of the bottom row for the
+   scope. Was repeat(6,1fr): the six state cards ran as one full-width row
+   while Circuit Analysis (two grids of 3) only ever filled half of it. */
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rgrid.an{grid-template-columns:repeat(3,1fr)}
 .rcard{background:var(--card-bg);border:1px solid var(--card-border);border-radius:4px;padding:6px 7px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden}
 .rval{font-family:'Share Tech Mono',monospace;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kvl-note{font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--text-dim);opacity:.65;letter-spacing:.03em}
@@ -187,6 +197,19 @@ html.embed body::before,html.embed body::after{opacity:.6}
     </div>
     <div class="world-row">
       <div class="circuit-wrap"><svg id="appSvg" viewBox="0 0 360 310"></svg></div>
+    </div>
+    <!-- Bottom row: readouts left as 2x3 blocks, oscilloscope right at half
+         height. The scope used to sit beside the circuit in the world row,
+         where it stretched tall and dominated the frame. -->
+    <div class="bottom-row">
+      <div class="readout-band">
+        <div class="section-label">Capacitor State</div>
+        <div class="rgrid" id="tG"></div>
+        <div class="section-label">Circuit Analysis <small id="lRSec"></small></div>
+        <div class="rgrid an" id="cmpR"></div>
+        <div class="rgrid an" id="lG"></div>
+        <div class="kvl-note">KVL ▸ V_SUPPLY = V_R + V_CAP</div>
+      </div>
       <div class="scope-wrap">
         <div class="scope-head">
           <span class="crt-label">Oscilloscope</span>
@@ -195,14 +218,6 @@ html.embed body::before,html.embed body::after{opacity:.6}
         </div>
         <div class="scope-canvas"><canvas id="sC" width="560" height="300"></canvas></div>
       </div>
-    </div>
-    <div class="readout-band">
-      <div class="section-label">Telemetry</div>
-      <div class="rgrid" id="tG"></div>
-      <div class="section-label">Circuit Analysis <small id="lRSec"></small></div>
-      <div class="rgrid an" id="cmpR"></div>
-      <div class="rgrid an" id="lG"></div>
-      <div class="kvl-note">KVL ▸ V_SUPPLY = V_R + V_CAP</div>
     </div>
   </div>
   <!-- RIGHT: control panel + combined info frame -->
@@ -297,8 +312,20 @@ function updDOM(){
     if(window._katexReady){document.querySelectorAll('#eG .ktx').forEach(function(el){try{katex.render(el.dataset.tex,el,{displayMode:true,throwOnError:false})}catch(e){}});window._eqDone=true;}}
   drawScope();drawApp();}
 
+/* Match the canvas backing store to its rendered box (DPR-aware). Without this
+   the fixed 560x300 attributes get CSS-stretched to whatever the box is, which
+   squashed the grid out of square in the old tall layout. Everything in
+   drawScope is expressed relative to W and H, so it adapts on its own. */
+function sizeScope(){
+  var cv=$('sC'); if(!cv) return;
+  var r=cv.getBoundingClientRect(); if(!r.width||!r.height) return;
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}
+}
 function drawScope(){
   var R=S.res*1e3,C=cC(S.area,S.sep,D[S.diel].k),tau=R*C,tw=Math.max(tau*5,1e-6),mV=Math.ceil(S.supV/5)*5||5;
+  sizeScope();
   var cv=$('sC'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
   var p={t:26,b:30,l:48,r:14},pW=W-p.l-p.r,pH=H-p.t-p.b;
   var bg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*.6);
@@ -390,5 +417,8 @@ document.addEventListener('click',function(e){
 document.addEventListener('change',function(e){if(e.target.id==='chkP'){S.pol=e.target.checked;dirty=true}});
 function ml(){if(dirty){dirty=false;updDOM()}requestAnimationFrame(ml)}
 requestAnimationFrame(ml);
+/* The scope's backing store is sized from its rendered box, so a window resize
+   has to trigger a redraw or the canvas keeps the old dimensions and stretches. */
+window.addEventListener('resize',function(){dirty=true});
 </script>
 </body></html>
