@@ -20,9 +20,57 @@
   z-index: 10;
   font-family: 'Inter', system-ui, sans-serif;
 }
-.es-panel::-webkit-scrollbar { width: 8px; }
-.es-panel::-webkit-scrollbar-thumb { background: rgba(255, 174, 32, 0.25); border-radius: 4px; }
-.es-panel::-webkit-scrollbar-track { background: transparent; }
+/* ── Acrylic-glass scrollbar — ported verbatim from optics-lab (the canon
+   reference). Recessed gradient track + a thumb carrying the same
+   chromatic-aberration edge as the acrylic frame (cyan left / amber right,
+   white top highlight / dark bottom shade). Replaces the old flat
+   amber-tint bar, which was the last visible break from the Optics twin. */
+.es-panel::-webkit-scrollbar { width: 8px; height: 8px; }
+.es-panel::-webkit-scrollbar-track {
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(4, 6, 10, 0.65) 25%,
+    rgba(4, 6, 10, 0.65) 75%,
+    rgba(0, 0, 0, 0.45) 100%);
+  border-radius: 4px;
+  box-shadow:
+    inset 1px 0 3px rgba(0, 0, 0, 0.55),
+    inset -1px 0 3px rgba(0, 0, 0, 0.55),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+  margin: 4px 0;
+}
+.es-panel::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: rgba(40, 52, 68, 0.6);
+  border-left: 1px solid rgba(125, 214, 255, 0.10);
+  border-right: 1px solid rgba(255, 174, 32, 0.22);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.22);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    inset 2px 0 4px rgba(125, 214, 255, 0.04),
+    inset -2px 0 4px rgba(255, 174, 32, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+.es-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(50, 64, 82, 0.7);
+  border-left-color: rgba(125, 214, 255, 0.18);
+  border-right-color: rgba(255, 174, 32, 0.38);
+  border-top-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    inset 2px 0 6px rgba(125, 214, 255, 0.04),
+    inset -2px 0 6px rgba(255, 174, 32, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+@supports (-moz-appearance: none) {
+  .es-panel {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(125, 214, 255, 0.45) rgba(4, 6, 10, 0.6);
+  }
+}
 
 .es-section { margin-bottom: 16px; }
 .es-section:last-child { margin-bottom: 2px; }
