@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -176,9 +176,17 @@ export default function App() {
       <div className="canvas-container">
         <Canvas>
           <color attach="background" args={['#0a0a0f']} />
-          <PerspectiveCamera makeDefault position={[6, 4, 6]} />
+          {/* Default view chosen by Cole 2026-08-05, rounded to exact symmetry.
+              Spherical: radius √88 ≈ 9.38 (unchanged from the old default —
+              only the orientation moved), azimuth 0°, polar 60°.
+              azimuth 0 is what makes it symmetric: x is exactly 0, so the
+              camera sits square on the +z axis with no left/right bias.
+              polar 60° = 30° above the horizontal plane.
+              x = 0 · y = 9.38·cos60° = 4.69 · z = 9.38·sin60° = 8.12 */}
+          <PerspectiveCamera makeDefault position={[0, 4.69, 8.12]} />
           <UsableAreaOrigin />
-          <OrbitControls enableDamping dampingFactor={0.05} minDistance={2} maxDistance={20} />
+          <CameraReadout />
+          <OrbitControls makeDefault enableDamping dampingFactor={0.05} minDistance={2} maxDistance={20} />
 
           <ambientLight intensity={0.4} />
           <directionalLight position={[10, 10, 5]} intensity={0.8} />
@@ -247,6 +255,65 @@ export default function App() {
       )}
     </div>
   );
+}
+
+/**
+ * Dev aid for choosing the default camera orientation. Off unless the URL has
+ * `?cam` — nothing renders and no frame work happens for normal visitors.
+ *
+ * Orbit to the view you want, then read off the numbers: `position` and
+ * `target` paste straight into <PerspectiveCamera position={...}> and
+ * <OrbitControls target={...}>. Azimuth/polar/radius are the same view in
+ * spherical terms, which is usually the easier thing to describe out loud.
+ */
+function CameraReadout() {
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as { target?: THREE.Vector3 } | null;
+  const [box] = useState<HTMLDivElement | null>(() => {
+    if (typeof document === 'undefined') return null;
+    if (!new URLSearchParams(location.search).has('cam')) return null;
+    const d = document.createElement('div');
+    d.style.cssText = [
+      'position:fixed', 'left:35px', 'bottom:28px', 'z-index:9999',
+      'font:13px/1.65 "Share Tech Mono",monospace', 'color:#7dd6ff',
+      'background:rgba(10,14,22,.72)', '-webkit-backdrop-filter:blur(22px) saturate(1.4)',
+      'backdrop-filter:blur(22px) saturate(1.4)',
+      'border:1px solid rgba(255,255,255,.10)', 'border-radius:8px',
+      'padding:10px 14px', 'white-space:pre', 'pointer-events:none',
+      'box-shadow:0 10px 28px rgba(0,0,0,.55)',
+    ].join(';');
+    document.body.appendChild(d);
+    return d;
+  });
+
+  useEffect(() => () => { box?.remove(); }, [box]);
+
+  const spherical = useMemo(() => new THREE.Spherical(), []);
+  const offset = useMemo(() => new THREE.Vector3(), []);
+  const lastRef = useMemo(() => ({ t: 0 }), []);
+
+  useFrame(({ clock }) => {
+    if (!box) return;
+    const now = clock.getElapsedTime();
+    if (now - lastRef.t < 0.1) return;   // ~10 Hz is plenty for reading numbers
+    lastRef.t = now;
+
+    const p = camera.position;
+    const tgt = controls?.target ?? new THREE.Vector3(0, 0, 0);
+    offset.copy(p).sub(tgt);
+    spherical.setFromVector3(offset);
+    const deg = (r: number) => (r * 180) / Math.PI;
+    const f = (n: number) => (n >= 0 ? ' ' : '') + n.toFixed(2);
+
+    box.textContent =
+      `position  [${f(p.x)}, ${f(p.y)}, ${f(p.z)} ]\n` +
+      `target    [${f(tgt.x)}, ${f(tgt.y)}, ${f(tgt.z)} ]\n` +
+      `radius     ${f(spherical.radius)}\n` +
+      `azimuth    ${f(deg(spherical.theta))}°\n` +
+      `polar      ${f(deg(spherical.phi))}°`;
+  });
+
+  return null;
 }
 
 /**
