@@ -477,7 +477,12 @@ select.input-field:focus {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;   /* readouts float at the bottom; the world (abs canvas-wrap) fills behind */
-  gap: 12px;
+  /* 6px, matching the Capacitor Lab's readout-band gap. The only in-flow
+     children here are the Measurements heading and the cards (canvas-wrap is
+     absolute, crt-label is display:none), so this gap governs exactly that one
+     pair - and it ADDS to the heading's margin, which is why the heading read
+     as floating when only the margin was tuned. */
+  gap: 6px;
   min-height: 0;
 }
 /* readouts (cards) overlay the bottom of the world, kept clear of the right rail */
@@ -490,12 +495,12 @@ select.input-field:focus {
    Same 35px left inset as the cards, so label and boxes share one edge. */
 .crt-screen > .cards-label {
   position: relative; z-index: 7;
-  margin: 0 calc(320px + 2rem) 4px 35px;   /* 4 not 7: measured 12px of air
-     below the glyphs vs the Capacitor Lab's 9px, and the extra 3px read as the
-     heading floating away from its boxes. */
+  margin: 0 calc(320px + 2rem) 0 35px;   /* spacing comes from the flex gap */
   font-family: 'Orbitron', sans-serif;
   font-size: 10px; font-weight: 700;
   letter-spacing: 0.2em; text-transform: uppercase;
+  line-height: 1;   /* Orbitron's default line gap is large; without this the
+     box adds ~13px of leading under the glyphs and the heading floats. */
   color: var(--gold);
   text-shadow: 0 0 6px var(--gold-glow);
 }
