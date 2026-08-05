@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useState, useMemo, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -177,6 +177,7 @@ export default function App() {
         <Canvas>
           <color attach="background" args={['#0a0a0f']} />
           <PerspectiveCamera makeDefault position={[6, 4, 6]} />
+          <UsableAreaOrigin />
           <OrbitControls enableDamping dampingFactor={0.05} minDistance={2} maxDistance={20} />
 
           <ambientLight intensity={0.4} />
@@ -246,4 +247,63 @@ export default function App() {
       )}
     </div>
   );
+}
+
+/**
+ * Puts the world origin at the centre of the VISIBLE space — the strip between
+ * the left frame edge and the left edge of the control rail — instead of the
+ * centre of the canvas, half of which sits behind the rail. Same intent as the
+ * optics-lab `usableCX()` helper, but this is a 3D scene, so it shifts the
+ * camera's projection rather than a draw coordinate.
+ *
+ * Why setViewOffset and not a world translation: moving the camera AND the
+ * OrbitControls target by the same offset would also move the orbit centre, so
+ * dragging would rotate the scene about a point off to the side of the charges.
+ * setViewOffset moves only the projection's principal point — the origin still
+ * renders where we want it, and orbiting still spins about the charges.
+ *
+ * A positive offsetX shifts the frustum's left edge in +x camera space, which
+ * moves the rendered scene LEFT on screen — which is the direction we need.
+ */
+function UsableAreaOrigin() {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const width = useThree((s) => s.size.width);
+  const height = useThree((s) => s.size.height);
+
+  useEffect(() => {
+    const cam = camera as THREE.PerspectiveCamera;
+    if (!cam.isPerspectiveCamera) return;
+
+    const apply = () => {
+      const rail = document.querySelector('.es-rail') as HTMLElement | null;
+      const canvasLeft = gl.domElement.getBoundingClientRect().left;
+      const railLeft = rail ? rail.getBoundingClientRect().left : NaN;
+      const usableWidth = Number.isFinite(railLeft) ? railLeft - canvasLeft : width;
+
+      // Below the responsive breakpoint the rail stops overlaying the world
+      // (it stacks), so there is nothing to compensate for. Bail out rather
+      // than shove the scene off-screen on a phone.
+      if (!(usableWidth > 0) || usableWidth < width * 0.4) {
+        cam.clearViewOffset();
+        return;
+      }
+
+      const dx = width / 2 - usableWidth / 2;
+      if (dx < 1) cam.clearViewOffset();
+      else cam.setViewOffset(width, height, dx, 0, width, height);
+    };
+
+    // One frame later: on first mount the rail may not have been laid out yet,
+    // so its rect would read 0 and we'd measure the wrong usable width.
+    const raf = requestAnimationFrame(apply);
+    window.addEventListener('resize', apply);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', apply);
+      (camera as THREE.PerspectiveCamera).clearViewOffset?.();
+    };
+  }, [camera, gl, width, height]);
+
+  return null;
 }
