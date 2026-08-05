@@ -438,14 +438,17 @@ select.input-field:focus {
 .display-area {
   position: absolute;
   inset: 0;
-  padding: 1.5rem;   /* world fills the entire frame; the control panel floats over its right */
+  padding: 0;   /* world fills the entire frame edge-to-edge; the control panel floats over its right */
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
   min-height: 0;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  /* overflow-y was `scroll` + `scrollbar-gutter:stable`, which painted a
+     permanent dark scrollbar channel down the right of the WORLD (outside the
+     control-panel frame) even with nothing to scroll. `auto` keeps the safety
+     valve without reserving the channel. */
+  overflow-y: auto;
   overscroll-behavior: contain;
   /* Deep space — same vibe as Artemis trajectory panel */
   background: radial-gradient(ellipse at 60% 40%,
@@ -478,7 +481,29 @@ select.input-field:focus {
   min-height: 0;
 }
 /* readouts (cards) overlay the bottom of the world, kept clear of the right rail */
-.crt-screen > .cards { position: relative; z-index: 7; margin-right: calc(320px + 2rem); }
+/* The world is now full-bleed (display-area padding:0), so the floating
+   readouts carry their own inset instead of inheriting the old 1.5rem. */
+.crt-screen > .cards { position: relative; z-index: 7; margin: 0 calc(320px + 2rem) 1.9rem 1.9rem; }
+
+/* ── Embed: world runs edge-to-edge, exactly like the Electrostatics lab ──
+   The stage inset drops to 0 (see the inline embed <style>), so .display-area
+   — which carries the deep-space void — fills the acrylic frame completely.
+   The title and rail then float OVER the world at the locked twin buffers
+   rather than being inset by the stage. .opt-title must leave the flex flow,
+   or the world would start below it instead of behind it. */
+html.embed .opt-title {
+  position: absolute; top: 32px; left: 35px;
+  margin: 0; z-index: 8;
+}
+/* Rail keeps EXACTLY the geometry it had when the stage still carried its
+   0.7rem inset (top 42.2 / right 27.2 / max-height 860.6 at 930px) — the
+   numbers just move onto the rail now that the stage inset is gone. Don't
+   "tidy" these to 42/42: that shifts the panel 15px left and shortens the
+   rail enough to clip the last button. */
+html.embed .right-rail {
+  top: 42px; right: 27px;
+  max-height: calc(100% - 69px);
+}
 .crt-screen::before { display: none; }
 .crt-screen::after { display: none; }
 
@@ -980,7 +1005,7 @@ select.input-field:focus {
 }
 </style>
   <!-- notes-embed mode: hide standalone cinematic chrome when framed via ?embed -->
-  <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints,html.embed .peirastes-home{display:none !important}html.embed .instrument-stage{padding:0.7rem !important}</style>
+  <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints,html.embed .peirastes-home{display:none !important}html.embed .instrument-stage{padding:0 !important}</style>
   <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 </head>
 <body>
@@ -1261,7 +1286,13 @@ select.input-field:focus {
     </div>
 
     <div class="kbd-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch modules</div>
-    <button class="reset-btn" id="share-btn" onclick="copyShareLink()" style="margin-top:12px">Copy share link</button>
+    <!-- "Copy share link" removed 2026-08-05 (Cole) — not needed, and to be
+         reintroduced in a better form later. Its height was also what pushed
+         the Double-Slit panel past the rail cap and clipped the last button.
+         The URL-hash state it copied still works: loadHash() on line ~2483
+         restores mode + control values from location.hash, so a hand-copied
+         URL keeps sharing correctly. copyShareLink() kept as a no-op stub. -->
+
   </div>
   <div class="info-frame">
     <div class="mode-desc" id="modeDesc"></div>
@@ -2446,12 +2477,10 @@ function loadHash(){
   }
   if(tab) sw(tab); else uS();
 }
+/* Share button removed 2026-08-05 — stub kept so any stale handler or
+   bookmarklet calling it can't throw. Copies the URL; no DOM assumptions. */
 window.copyShareLink=function(){
-  navigator.clipboard.writeText(location.href).then(function(){
-    var btn=document.getElementById('share-btn');
-    btn.textContent='Copied!';
-    setTimeout(function(){btn.textContent='Copy share link';},1500);
-  });
+  if(navigator.clipboard) navigator.clipboard.writeText(location.href);
 };
 
 /* ── Initialize ── */
