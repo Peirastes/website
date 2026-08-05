@@ -162,8 +162,10 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  /* `scroll` + a styled ::-webkit-scrollbar paints a permanent dark channel
+     down the right of the WORLD even with nothing to scroll. `auto` keeps the
+     safety valve without reserving it. */
+  overflow-y: auto;
   overscroll-behavior: contain;
   background: radial-gradient(ellipse at 50% 40%,
     #0a0e16 0%, #06080c 55%, #04060a 100%);
@@ -797,14 +799,18 @@ body::after {
   font-size: 10px; color: var(--text-dim);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  white-space: nowrap; min-width: 88px;
+  white-space: nowrap; min-width: 78px;
   font-weight: 500;
 }
 .slider-row .sv {
   font-size: 12px; color: var(--gold);
   text-shadow: 0 0 5px var(--gold-glow);
   font-family: 'Share Tech Mono', monospace;
-  min-width: 62px; text-align: right;
+  min-width: 56px; text-align: right;
+  /* flex-shrink 0 + nowrap: the slider is flex:1 and was winning the squeeze,
+     so values with units ("0.080 m", "2.50 ohm") were being cut off at the
+     panel edge. Label min-width trimmed 88 -> 78 to pay for it. */
+  flex: 0 0 auto; white-space: nowrap;
 }
 
 /* Checkboxes */
@@ -839,7 +845,7 @@ body > a[href="https://peirastes.com"] { display: none; }
 
 </style>
   <!-- notes-embed mode: hide standalone cinematic chrome when framed via ?embed -->
-  <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain{display:none !important}html.embed .main-grid{top:1.6rem !important}html.embed .app-title{display:block !important}html.embed .crt-label{display:none !important}html.embed .display-area{padding-top:66px !important}</style>
+  <style>html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints,html.embed .peirastes-home{display:none !important}html.embed .main-grid{top:1.6rem !important}html.embed .app-title{display:block !important}html.embed .crt-label{display:none !important}html.embed .display-area{padding-top:66px !important;background:transparent !important}html.embed body{background:radial-gradient(ellipse at 50% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%)}</style>
   <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
 </head>
 <body>
