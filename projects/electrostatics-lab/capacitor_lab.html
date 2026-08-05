@@ -136,6 +136,34 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 /* embed: chrome hidden, fill the notes frame */
 html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints,html.embed .peirastes-home{display:none !important}
 html.embed .main-grid{top:1.6rem !important}
+/* World reaches the acrylic edge. `.main-grid` stays inset 1.6rem so the
+   circuit, scope, title and rail keep their measured buffers (title 35/35,
+   rail 42/42) — only the VOID moves. Carrying the gradient on the body in
+   embed instead of on `.display-area` makes it one continuous field across
+   the whole frame; leaving it on `.display-area` left a visible seam where
+   the inset ended (brightness stepped at exactly 25.6px on both edges). */
+html.embed .display-area{background:transparent}
+html.embed body{background:radial-gradient(ellipse at 45% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%)}
+
+/* Acrylic-glass scrollbar — the canon treatment, ported from optics-lab. The
+   panel is `overflow-y:auto`, so without this it would fall back to the default
+   browser bar the moment its content outgrew the rail. */
+.control-panel::-webkit-scrollbar{width:8px;height:8px}
+.control-panel::-webkit-scrollbar-track{
+  background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(4,6,10,.65) 25%,rgba(4,6,10,.65) 75%,rgba(0,0,0,.45) 100%);
+  border-radius:4px;
+  box-shadow:inset 1px 0 3px rgba(0,0,0,.55),inset -1px 0 3px rgba(0,0,0,.55),inset 0 2px 4px rgba(0,0,0,.35);
+  margin:4px 0}
+.control-panel::-webkit-scrollbar-thumb{
+  border-radius:4px;background:rgba(40,52,68,.6);
+  border-left:1px solid rgba(125,214,255,.10);border-right:1px solid rgba(255,174,32,.22);
+  border-top:1px solid rgba(255,255,255,.14);border-bottom:.5px solid rgba(0,0,0,.22);
+  box-shadow:0 1px 4px rgba(0,0,0,.4),inset 2px 0 4px rgba(125,214,255,.04),inset -2px 0 4px rgba(255,174,32,.08),inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.15)}
+.control-panel::-webkit-scrollbar-thumb:hover{
+  background:rgba(50,64,82,.7);
+  border-left-color:rgba(125,214,255,.18);border-right-color:rgba(255,174,32,.38);border-top-color:rgba(255,255,255,.22);
+  box-shadow:0 2px 6px rgba(0,0,0,.5),inset 2px 0 6px rgba(125,214,255,.04),inset -2px 0 6px rgba(255,174,32,.14),inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(0,0,0,.2)}
+@supports (-moz-appearance:none){.control-panel{scrollbar-width:thin;scrollbar-color:rgba(125,214,255,.45) rgba(4,6,10,.6)}}
 html.embed body::before,html.embed body::after{opacity:.6}
 </style>
 <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
