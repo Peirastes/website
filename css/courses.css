@@ -97,10 +97,41 @@
   padding: 0.5rem 0;
 }
 
+/* ---- Solo variant: a course landing with only the notes column ----
+   The public course page is the webbook — chapter notes and simulations —
+   with coursework served separately to enrolled students. A lone column in
+   the 4-up grid would sit at quarter width with three-quarters of the row
+   empty, which reads as broken rather than complete. This spans it full
+   width and flows the chapter list into two balanced text columns, so ten
+   chapters fill the space instead of running as one tall thin list. */
+.course-columns--solo { grid-template-columns: 1fr; }
+.course-columns--solo .course-column__list {
+  display: block;   /* the base rule is display:flex, and CSS multi-column is
+                       ignored on a flex container — must opt back out */
+  column-count: 2;
+  column-gap: 2.25rem;
+}
+.course-columns--solo .course-item {
+  break-inside: avoid;   /* never split a chapter row across the column break */
+}
+
+/* Quiet line standing in for the removed placeholder columns. Deliberately
+   understated — it states where coursework lives without drawing a border
+   around the absence. */
+.course-note {
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--text-dim);
+  margin-top: 1.4rem;
+}
+
 /* ---- Responsive column collapse ---- */
 @media (max-width: 900px) {
   .course-columns { grid-template-columns: repeat(2, 1fr); }
+  .course-columns--solo { grid-template-columns: 1fr; }
 }
 @media (max-width: 560px) {
   .course-columns { grid-template-columns: 1fr; }
+  .course-columns--solo .course-column__list { column-count: 1; }
 }
