@@ -81,7 +81,7 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;bac
 .scope-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 /* Fixed height rather than flex-fill: in the bottom row the scope should read
    as a wide, shallow trace window, not stretch to whatever height is left. */
-.scope-canvas{flex:0 0 auto;height:236px;position:relative;border:1px solid var(--card-border);border-radius:6px;overflow:hidden;background:#080b12}
+.scope-canvas{flex:0 0 auto;height:236px;position:relative;overflow:hidden}
 .scope-canvas canvas{width:100%;height:100%;display:block}
 
 .crt-label{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow)}
@@ -206,13 +206,6 @@ html.embed body::before,html.embed body::after{opacity:.6}
          height. The scope used to sit beside the circuit in the world row,
          where it stretched tall and dominated the frame. -->
     <div class="bottom-row">
-      <div class="readout-band">
-        <div class="section-label">Capacitor State</div>
-        <div class="rgrid" id="tG"></div>
-        <div class="section-label">Circuit Analysis <small id="lRSec"></small></div>
-        <div class="rgrid an" id="cmpR"></div>
-        <div class="rgrid an" id="lG"></div>
-      </div>
       <div class="scope-wrap">
         <div class="scope-head">
           <span class="crt-label">Oscilloscope</span>
@@ -220,6 +213,13 @@ html.embed body::before,html.embed body::after{opacity:.6}
           <span style="display:flex;align-items:center;gap:6px"><span class="ss" id="ssS"></span><span class="rec-label" id="rL">IDLE</span></span>
         </div>
         <div class="scope-canvas"><canvas id="sC" width="560" height="300"></canvas></div>
+      </div>
+      <div class="readout-band">
+        <div class="section-label">Capacitor State</div>
+        <div class="rgrid" id="tG"></div>
+        <div class="section-label">Circuit Analysis <small id="lRSec"></small></div>
+        <div class="rgrid an" id="cmpR"></div>
+        <div class="rgrid an" id="lG"></div>
       </div>
     </div>
   </div>
@@ -331,8 +331,7 @@ function drawScope(){
   sizeScope();
   var cv=$('sC'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
   var p={t:26,b:30,l:48,r:14},pW=W-p.l-p.r,pH=H-p.t-p.b;
-  var bg=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*.6);
-  bg.addColorStop(0,'#0a0f16');bg.addColorStop(1,'#05080d');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);   /* transparent — the void IS the screen */
   ctx.strokeStyle='rgba(255,255,255,.045)';ctx.lineWidth=.5;
   for(var i=0;i<=10;i++){var x=p.l+(i/10)*pW;ctx.beginPath();ctx.moveTo(x,p.t);ctx.lineTo(x,p.t+pH);ctx.stroke()}
   for(var i=0;i<=8;i++){var y2=p.t+(i/8)*pH;ctx.beginPath();ctx.moveTo(p.l,y2);ctx.lineTo(p.l+pW,y2);ctx.stroke()}
