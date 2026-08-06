@@ -477,6 +477,11 @@ body::after {
      uppercase rendered "B(t)" as "B(T)", which reads as Tesla, and
      "dB/dt" as "DB/DT". */
 .card-v { font-family: 'Share Tech Mono', monospace; font-size: 15px; font-weight: 600; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* KaTeX inside the cards: match the plain-text sizes it replaces, and inherit
+   the per-card colour instead of KaTeX's own. */
+.card-l .katex { font-size: 9.5px; color: inherit; }
+.card-v .katex { font-size: 15px; color: inherit; }
+.card-l .katex, .card-v .katex { white-space: nowrap; }
 
 .verify-row { display: flex; gap: 10px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
 .badge { font-family: 'Inter', sans-serif; font-size: 10px; padding: 3px 10px; border-radius: 3px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
@@ -1464,7 +1469,105 @@ function arrow(ctx, x1,y1, x2,y2, col, lw, head){
   ctx.closePath(); ctx.fill();
 }
 
-function cd(l,v,c){return'<div class="card"><div class="card-l">'+l+'</div><div class="card-v" style="color:'+(c||TXH)+'">'+v+'</div></div>';}
+/* ── Readout cards, KaTeX-rendered (ported from optics-lab) ──
+   Keeps this app's two-line label-over-value card, which suits these readouts:
+   several are categorical ("Phase 3", "CCW", "Stage II") or compound
+   ("P_mech = P_R"), and those need words and room. Only the RENDERING is
+   ported — both lines go through KaTeX so the symbols are real math.
+
+   Memoised: tick() rebuilds the card row every frame, so uncached
+   renderToString calls would run ~360x/second. Labels are static per module
+   and hit the cache every time; only changing values miss. */
+var _KTX_CACHE = {}, _KTX_N = 0;
+function ktx(tex){
+  if(!window.katex) return null;
+  if(Object.prototype.hasOwnProperty.call(_KTX_CACHE, tex)) return _KTX_CACHE[tex];
+  var out;
+  try { out = katex.renderToString(tex, {throwOnError:false, displayMode:false}); }
+  catch(e){ out = null; }
+  if(_KTX_N > 4000){ _KTX_CACHE = {}; _KTX_N = 0; }
+  _KTX_CACHE[tex] = out; _KTX_N++;
+  return out;
+}
+var _LBL2TEX = {
+  'θ(t)':'\\theta(t)',
+  'NΦ_B(t)':'N\\Phi_B(t)',
+  'Φ_B (per turn)':'\\Phi_B\\ \\text{(per turn)}',
+  'ε(t)':'\\varepsilon(t)',
+  'ε₀ peak':'\\varepsilon_0\\ \\text{peak}',
+  'f':'f',
+  'I_s(t)':'I_s(t)',
+  'B_sol':'B_{\\text{sol}}',
+  'Φ_B':'\\Phi_B',
+  'dΦ/dt':'d\\Phi/dt',
+  'I_loop':'I_{\\text{loop}}',
+  'Phase':'\\text{Phase}',
+  'B(t)':'B(t)',
+  'dB/dt':'dB/dt',
+  'I(t)':'I(t)',
+  '|ε| ramp':'|\\varepsilon|\\ \\text{ramp}',
+  'Stage':'\\text{Stage}',
+  'Φ(x)':'\\Phi(x)',
+  'ε(x)':'\\varepsilon(x)',
+  '|ε| peak':'|\\varepsilon|\\ \\text{peak}',
+  'Bℓv':'B\\ell v',
+  'I dir.':'I\\ \\text{dir.}',
+  'Φ_B(t)':'\\Phi_B(t)',
+  'I_ind(t)':'I_{\\text{ind}}(t)',
+  'Direction':'\\text{Direction}',
+  'Phase lag':'\\text{Phase lag}',
+  'v':'v',
+  'ε = BLv':'\\varepsilon = BLv',
+  'I':'I',
+  'F_brake':'F_{\\text{brake}}',
+  'P_mech = P_R':'P_{\\text{mech}} = P_R',
+  'τ_mech':'\\tau_{\\text{mech}}',
+  'v(t)':'v(t)',
+  'v_t':'v_t',
+  'τ':'\\tau',
+  'F_g':'F_g',
+  'P_dissip':'P_{\\text{dissip}}',
+  'I_max':'I_{\\max}',
+  'V_R':'V_R',
+  'V_L':'V_L',
+  'τ = L/R':'\\tau = L/R',
+  'U_B':'U_B',
+  '_':'_'
+};
+function _esc(s){ return String(s).replace(/([%&$#_{}])/g, '\\$1'); }
+function labelToTeX(l){
+  if(Object.prototype.hasOwnProperty.call(_LBL2TEX, l)) return _LBL2TEX[l];
+  if(/^[A-Za-z]$/.test(l)) return l;
+  return '\\text{' + _esc(l) + '}';
+}
+/* Units longest-first so T/s is not eaten by T, nor μWb/s by Wb. */
+var _UNIT = '(?:μWb\\/s|μWb|mWb|Wb|T\\/s|mT|T|m\\/s|mA|A|V|Hz|mm|cm|m|N|W|J|s|Ω)';
+/* Hyphen LAST in the class — a hyphen BETWEEN two escapes reads as a RANGE
+   (U+2212 down to U+00B1), an invalid RegExp that throws at load. */
+var _NUM = '[+±−-]?\\d+(?:\\.\\d+)?';
+var _UNIT_RE = new RegExp('^(' + _NUM + ')\\s*(' + _UNIT + ')$');
+var _PLAIN_RE = new RegExp('^' + _NUM + '$');
+var _DEG_RE   = new RegExp('^(' + _NUM + ')\\s*°$');
+function valueToTeX(v){
+  v = String(v).trim(); var m;
+  if(v === '∞') return '\\infty';
+  if(v === '—' || v === '-') return '\\text{—}';
+  var norm = function(n){ return n.replace(/−/g,'-').replace(/^±/, '\\pm '); };
+  if(_PLAIN_RE.test(v)) return norm(v);
+  if(m = v.match(_DEG_RE)) return norm(m[1]) + '^{\\circ}';
+  if(m = v.match(_UNIT_RE)){
+    var u = m[2] === 'Ω' ? '\\Omega' : '\\text{' + m[2].replace('μ','\\mu ') + '}';
+    return norm(m[1]) + '\\,' + u;
+  }
+  return '\\text{' + _esc(v) + '}';
+}
+function cd(l,v,c){
+  var lr = ktx(labelToTeX(l)), vr = ktx(valueToTeX(v));
+  return '<div class="card"><div class="card-l">' + (lr !== null ? lr : l) +
+         '</div><div class="card-v" style="color:' + (c || TXH) + '">' +
+         (vr !== null ? vr : v) + '</div></div>';
+}
+
 
 /* ════════════════════════════════════════════════════════════
    STATE
