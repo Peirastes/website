@@ -177,7 +177,12 @@ body::after {
 
 /* Module viz panels — only the active (.on) one shows; sw() toggles .on */
 .panel { display: none; }
-.panel.on { display: block; }
+/* The active panel and its screen stretch so .canvas-wrap has real height
+   for the canvas to fill; the readouts stay pinned beneath it. */
+.panel.on { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.panel.on > .crt-screen { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.canvas-wrap { flex: 1 1 auto; min-height: 0; position: relative; }
+.canvas-wrap > canvas { display: block; width: 100%; height: 100%; }
 
 .panel-section { margin-bottom: 16px; }
 
@@ -454,7 +459,18 @@ body::after {
 .result-value.amber { color: var(--gold); text-shadow: 0 0 6px var(--gold-glow); }
 
 /* Readout monitor cards (cd() output) — framed inset grid, matches Artemis TELEMETRY / .result-card */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; margin-top: 10px; }
+/* Heading over the readout row, matching Optics ("Optical Parameters") and the
+   Capacitor Lab's section labels. */
+.cards-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 0 0 6px var(--gold-glow);
+  margin-top: 10px;
+}
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; margin-top: 6px; }
 .card { background: rgba(6, 10, 18, 0.55); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 4px; padding: 8px 10px; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.55); min-width: 0; }
 .card-l { font-family: 'Inter', sans-serif; font-size: 9.5px; color: var(--text-dim); letter-spacing: 0.10em; text-transform: uppercase; font-weight: 500; margin-bottom: 4px; }
 .card-v { font-family: 'Share Tech Mono', monospace; font-size: 15px; font-weight: 600; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1256,6 +1272,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">Faraday's Law — Piecewise-Linear B(t) Through a Stationary Coil</div>
         <div class="canvas-wrap"><canvas id="pc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="p-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="\Phi_B(t) = B(t)\,\pi r^2\;\text{(per turn)}"></span>
@@ -1270,6 +1287,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">AC Current in a Straight Wire — Inducing Current in a Nearby Loop</div>
         <div class="canvas-wrap"><canvas id="wc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="w-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="B(r) = \mu_0 I/(2\pi r)"></span>
@@ -1283,6 +1301,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">Loop Sliding Through a Localized Field Region — Φ(x) and ε(x)</div>
         <div class="canvas-wrap"><canvas id="fc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="f-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="\Phi_B(x) = B\ell\cdot\text{overlap}(x)"></span>
@@ -1296,6 +1315,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">Eddy Currents — Magnet Falling Through a Copper Tube</div>
         <div class="canvas-wrap"><canvas id="ec"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="em-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="m\,dv/dt = mg - k\,v"></span>
@@ -1310,6 +1330,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">RL Circuit — Exponential Current Rise &amp; Decay</div>
         <div class="canvas-wrap"><canvas id="rc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="rl-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="\tau = L/R"></span>
@@ -1325,6 +1346,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">Motional EMF — Sliding Rod on Rails</div>
         <div class="canvas-wrap"><canvas id="sc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="sr-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="\mathcal{E} = BLv"></span>
@@ -1340,6 +1362,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">AC Generator — Rotating Coil in Uniform Field</div>
         <div class="canvas-wrap"><canvas id="gc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="g-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="\Phi_B = BA\cos(\omega t)\;\text{(per turn)}"></span>
@@ -1355,6 +1378,7 @@ body > a[href="https://peirastes.com"] { display: none; }
       <div class="crt-screen">
         <div class="crt-label">Lenz's Law — Solenoid Through a Surrounding Loop</div>
         <div class="canvas-wrap"><canvas id="lc"></canvas></div>
+        <div class="cards-label">Induction Parameters</div>
         <div class="cards" id="l-cards"></div>
         <div class="eq-strip">
           <span class="eq" data-katex="B_\text{sol} = \mu_0\, n\, I_s"></span>
@@ -1381,14 +1405,41 @@ var RED='#e05040', GREEN='#40d870';
 
 /* ── HiDPI setup ── */
 function setupCanvas(cv, baseW, baseH) {
-  var dpr = window.devicePixelRatio || 1;
-  cv.width = baseW * dpr;
-  cv.height = baseH * dpr;
+  /* The canvas now FILLS its host box instead of locking to a baseW/baseH
+     aspect ratio, which used to letterbox the world and leave a dead block of
+     void under it.
+
+     The eight modules draw in absolute coordinates tuned to 820x440 (lx=200,
+     loopR=130, a 40px grid), so feeding them raw container dimensions would
+     leave small artwork adrift in a large canvas. Instead the 820x440 logical
+     space is SCALED to fit the host and centred, via the context transform —
+     so every draw function keeps using W=BASE_W, H=BASE_H unchanged and simply
+     renders larger. Aspect is preserved (min of the two ratios), so nothing
+     distorts; any leftover margin is symmetric and shows the void, which the
+     near-black BG (#08090d) blends into.
+
+     tick() redraws the active module every frame and this re-measures on each
+     call, so a window resize is picked up without a resize listener. The
+     backing store is only reallocated when the box actually changes. */
+  var dpr  = window.devicePixelRatio || 1;
+  var host = cv.parentElement;
+  var bw   = (host && host.clientWidth)  || baseW;
+  var bh   = (host && host.clientHeight) || baseH;
   cv.style.width = '100%';
-  cv.style.height = 'auto';
-  cv.style.aspectRatio = baseW + ' / ' + baseH;
+  cv.style.height = '100%';
+  cv.style.aspectRatio = 'auto';
+  var w = Math.max(1, Math.round(bw * dpr)), h = Math.max(1, Math.round(bh * dpr));
   var ctx = cv.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (cv.width !== w || cv.height !== h) {
+    cv.width = w; cv.height = h;            // reallocating also clears
+  } else {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, w, h);              // clear the letterbox margins too
+  }
+  var s = Math.min(bw / baseW, bh / baseH);
+  ctx.setTransform(dpr * s, 0, 0, dpr * s,
+                   dpr * (bw - baseW * s) / 2,
+                   dpr * (bh - baseH * s) / 2);
   return ctx;
 }
 
