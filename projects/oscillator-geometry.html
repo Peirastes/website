@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Circle That Wasn't Big Enough - Peirastes</title>
+    <meta name="description" content="A purely geometric description of the damped oscillator: a circle whose radius decays, shifted up by that radius to produce the step response. The construction, the two constants that took two years to find, and its completion across every damping regime.">
+    <meta property="og:title" content="The Circle That Wasn't Big Enough - Peirastes">
+    <meta property="og:description" content="If simple harmonic motion is the shadow of a point on a circle, how much of the rest of oscillation is too? A geometric description mapped onto the mathematics, and the two constants that stalled it for two years.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://peirastes.com/projects/oscillator-geometry.html">
+    <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0d10">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/cinematic.css">
+    <style>
+        .fig { margin: 1.9rem 0; text-align: center; }
+        .fig img, .fig video { max-width: 100%; height: auto; border-radius: 4px; }
+        .fig figcaption { font-size: 0.9em; opacity: 0.78; margin-top: 0.6rem; }
+        .eqn {
+            margin: 1.5rem auto; padding: 1.1rem 1.3rem; max-width: 46rem;
+            background: rgba(12, 18, 26, 0.55);
+            border: 1px solid rgba(125, 214, 255, 0.16);
+            border-left: 2px solid rgba(125, 214, 255, 0.5);
+            border-radius: 4px; text-align: center;
+            font-family: 'Courier New', monospace; font-size: 1.02rem;
+            line-height: 1.85; color: #cfe6f2;
+        }
+        .eqn .note { display: block; margin-top: 0.7rem; font-family: 'Inter', sans-serif;
+                     font-size: 0.84rem; opacity: 0.72; line-height: 1.6; }
+        .aside-ai {
+            margin: 2.2rem 0 1.4rem; padding: 1.1rem 1.3rem;
+            background: rgba(240, 192, 96, 0.05);
+            border: 1px solid rgba(240, 192, 96, 0.22);
+            border-left: 3px solid rgba(240, 192, 96, 0.6);
+            border-radius: 4px;
+        }
+        .aside-ai .tag {
+            display: inline-block; font-size: 0.72rem; letter-spacing: 0.14em;
+            text-transform: uppercase; color: #f0c060; margin-bottom: 0.5rem;
+        }
+        .aside-ai p { margin: 0.4rem 0 0; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+    <div class="bg" aria-hidden="true">
+        <div class="bg__image"></div>
+        <div class="bg__vignette"></div>
+        <div class="bg__grain"></div>
+    </div>
+
+    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
+
+    <div class="profile">
+        <div class="profile__mark">P</div>
+        <div class="profile__meta">
+            <span class="profile__name">Peirastes</span>
+            <span class="profile__sub">Visitor</span>
+        </div>
+    </div>
+
+    <div class="hints">
+        <span class="hint"><kbd>Esc</kbd> Home</span>
+    </div>
+
+    <main class="page">
+        <header class="page-hero">
+            <div class="page-hero__inner">
+                <h1 class="page-hero__title">The Circle That Wasn't Big Enough</h1>
+                <p class="page-hero__subtitle">A Geometric Description of the Damped Oscillator &mdash; and the Two Constants That Took Two Years to Find</p>
+                <p class="page-hero__descriptor">Investigation</p>
+            </div>
+        </header>
+
+        <article class="page-body">
+            <div class="page-body__inner">
+
+                <div class="meta-row">
+                    <div class="meta-item">
+                        <span class="meta-item__label">Begun</span>
+                        <span class="meta-item__value">2024 &mdash; Manim Animation Project</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item__label">Resolved</span>
+                        <span class="meta-item__value">2026</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-item__label">Domain</span>
+                        <span class="meta-item__value">Classical Mechanics &middot; Teaching</span>
+                    </div>
+                </div>
+
+                <div class="content-body">
+
+                <p class="driving-question">
+                    Simple harmonic motion is the shadow of a point moving on a circle. How much of the rest of oscillation is the shadow of something too?
+                </p>
+
+                <h3>The construction</h3>
+                <p>
+                    Every mechanics course draws the same picture once: a point travels around a circle at constant speed, and its height traces a sine wave. The circle is a reference, a bookkeeping device, and then it is put away and the algebra takes over.
+                </p>
+                <p>
+                    I did not want to put it away. If the undamped oscillator is a point on a circle, then the <em>damped</em> oscillator should be a point on a circle whose radius <strong>decays exponentially</strong> &mdash; the amplitude is the radius, so let the radius die the way the amplitude dies. That is the canonical picture, and it is where I started in 2024. The question I actually wanted answered was the next one: <em>does the whole family come from deforming that circle?</em> Not just the underdamped case &mdash; critically damped, overdamped, driven. One picture, every regime.
+                </p>
+
+                <div class="fig">
+                    <video autoplay loop muted playsinline preload="metadata">
+                        <source src="oscillator-geometry/corrected-geometry.mp4" type="video/mp4">
+                    </video>
+                    <figcaption>The construction. The point rides a circle whose radius decays; its shadow, projected across, draws the response. The white ring is the analytic solution the geometry is supposed to reproduce.</figcaption>
+                </div>
+
+                <h3>Shifting the circle</h3>
+                <p>
+                    The second piece is the one I was most pleased with, and it is what turns a picture into a description. A free oscillation swings about zero. A <em>step</em> response &mdash; a system sitting at rest when its equilibrium suddenly moves &mdash; rises from zero, overshoots, and settles somewhere new. Those look like two different phenomena, and textbooks give them two different formulas.
+                </p>
+                <p>
+                    They are the same circle. Lift the centre by the radius, start the point from a different place on the rim, and the same rotating shadow that drew the free oscillation now draws the step response. The centre of the circle is <em>where equilibrium sits</em>. The radius is the amplitude. The angle is the phase. And the starting angle &mdash; the thing that decides which of the two responses you get &mdash; is set by the <strong>damping phase angle</strong>.
+                </p>
+                <p>
+                    So the parameter I had been calling a symmetry switch was never that. It is the <em>initial condition</em>, expressed geometrically. Free response and step response are two settings of one dial, and everything in between is a legitimate blend, because the system is linear. That is the mapping I was after: not an analogy to the mathematics, but a purely geometric statement that <em>is</em> the mathematics, with every algebraic constant standing for something you can point at in a drawing.
+                </p>
+
+                <h3>The catalogue, and the wall</h3>
+                <p>
+                    I wrote the family out &mdash; four damping regimes, each in a free and a step form, with the switch that moved between them &mdash; and built the animations to match. Below about &zeta;&nbsp;=&nbsp;0.25 for the step response and &zeta;&nbsp;=&nbsp;0.5 for the free one, the geometry and the mathematics sat on top of each other. Above that they drifted apart, and the harder I damped the worse it got.
+                </p>
+                <p>
+                    I could not find it. The animation was visibly right in the regime I could check by eye and visibly wrong outside it, which is the least useful kind of wrong. I set a standing goal in the notebook &mdash; <em>fine-tune the exponential decay of the circle for large zeta</em> &mdash; and eventually put the project down. It sat for two years.
+                </p>
+
+                <div class="fig">
+                    <video autoplay loop muted playsinline preload="metadata">
+                        <source src="oscillator-geometry/three-traces.mp4" type="video/mp4">
+                    </video>
+                    <figcaption>The failure, in one frame. Two concentric circles, one clock. The white halo is the analytic solution; the corrected trace rides inside it; the red trace &mdash; the geometry as originally built &mdash; climbs early and overshoots too far.</figcaption>
+                </div>
+
+                <h3>What was actually wrong</h3>
+                <p>
+                    The mathematics was never wrong. The closed-form solutions in the notebooks match the textbook forms to the last decimal place a double can hold, and they satisfy the differential equation directly. The error was entirely in the geometry &mdash; and it came down to two constants, both of them the same quantity.
+                </p>
+                <p>
+                    <strong>The circle was too small.</strong> Its radius has to be <em>A&nbsp;/&nbsp;sin&nbsp;&Phi;</em>, not <em>A</em>. The lift is the final value; the radius is strictly larger; and the gap between them is exactly why a step response overshoots at all.
+                </p>
+                <p>
+                    <strong>The point started in the wrong place.</strong> Not a quarter turn down, but <em>&Phi;</em> round from it, where <em>&Phi;&nbsp;=&nbsp;arccos&nbsp;&zeta;</em>. Both constants are the damping phase angle, and the punchline is that the code already computed it &mdash; it was sitting in every notebook, used by the equations and never handed to the circle. The two halves of the same file disagreed by exactly the quantity they both knew.
+                </p>
+
+                <div class="fig">
+                    <img src="oscillator-geometry/corrections.png" alt="Two-panel diagram: the circle at t equals zero showing the legacy radius A versus the corrected radius A over sine phi, with the phase angle marked at the centre from the theta equals pi reference; and the resulting traces showing the legacy shadow climbing early.">
+                    <figcaption>The correction, geometrically. Same centre, same reference direction &mdash; the corrected circle is larger, and the point starts at the phase angle rather than at the bottom.</figcaption>
+                </div>
+
+                <p>
+                    There is a reason two years of tuning never found it: <strong>the errors partially cancel</strong>. Correcting the radius on its own makes the fit measurably <em>worse</em> &mdash; more than three times worse at heavy damping &mdash; and so does correcting the starting angle on its own. Only moving both together lands. Any session of turning one knob at a time reports that you are going backwards, no matter which knob you turn.
+                </p>
+                <p>
+                    Worse, the parameter I had written down as the thing to fix was the one parameter that was already correct. The decay rate was right &mdash; but only because the natural frequency was hardcoded to 2&pi; in every notebook, which quietly made two separate errors invisible at once.
+                </p>
+
+                <h3>The result</h3>
+                <p>
+                    With both constants in place the geometry does not approximate the solution. It reproduces it, to the limit of double precision &mdash; a residual of about 10<sup>&minus;15</sup>, which is arithmetic noise, not agreement. The circle picture is not a teaching analogy for the damped oscillator. It is the solution, written in polar coordinates.
+                </p>
+
+                <div class="fig">
+                    <img src="oscillator-geometry/three-traces.png" alt="One plot with three traces at damping ratio 0.5: the analytic solution in thick black, the corrected geometry drawn thin on top of it, and the legacy geometry dashed in red departing on the rise with a maximum gap of 0.273 A.">
+                    <figcaption>Three traces, two curves. The corrected geometry is drawn thin and on top of the analytic solution because it <em>is</em> the analytic solution &mdash; they differ by 7&times;10<sup>&minus;16</sup>. Only the red one was ever wrong.</figcaption>
+                </div>
+
+                <div class="aside-ai">
+                    <span class="tag">Extension &mdash; developed with AI assistance</span>
+                    <p>
+                        Everything above is the project as I conceived and pursued it: the decaying-radius circle, the shifted centre, the catalogue, and the wall I hit. What follows goes past where I had taken it. The completion below &mdash; carrying the construction through <em>&zeta;&nbsp;=&nbsp;1</em> and into the overdamped regime, and collapsing the catalogue into a single expression &mdash; was worked out in 2026 in collaboration with an AI assistant, and I am flagging it as such rather than folding it into the original thread.
+                    </p>
+                </div>
+
+                <h3>Past the wall: the construction changes conic</h3>
+                <p>
+                    My assumption had always been that the circle picture simply ends at critical damping. Above <em>&zeta;&nbsp;=&nbsp;1</em> the roots go real, there is no rotation left to project, and <em>sin&nbsp;&Phi;</em> collapses to zero. That reads like a hard boundary, and I treated it as one.
+                </p>
+                <p>
+                    It is not a boundary. It is a change of curve. Above critical damping the point rides a <strong>hyperbola</strong> instead of a circle, and the motion is a hyperbolic rotation &mdash; a squeeze &mdash; instead of an ordinary one. The formula does not change shape at all; the circular functions become hyperbolic ones:
+                </p>
+
+                <div class="eqn">
+                    &zeta; &lt; 1 &nbsp;&rarr;&nbsp; &Phi; = arccos &zeta; &nbsp;&nbsp; radius = A / sin &Phi;<br>
+                    &zeta; &gt; 1 &nbsp;&rarr;&nbsp; &Psi; = arccosh &zeta; &nbsp;&nbsp; radius = A / sinh &Psi;
+                    <span class="note">cos&nbsp;&Phi;&nbsp;=&nbsp;&zeta; and cosh&nbsp;&Psi;&nbsp;=&nbsp;&zeta; are the same statement. Critical damping is the seam where the two conics meet and the construction degenerates.</span>
+                </div>
+
+                <div class="fig">
+                    <img src="oscillator-geometry/conic.png" alt="Three panels: at damping ratio 0.5 the point rides a circle with phi equal to 60 degrees; at 2.0 it rides a hyperbola with psi equal to 1.317; and the third panel shows the geometry laid over the analytic solution in all three regimes.">
+                    <figcaption>Same centre, same reference, same start construction &mdash; only the curve through the point changes. The start sits at height zero and horizontal offset &minus;R&#8320;&zeta; in <em>both</em> cases.</figcaption>
+                </div>
+
+                <p>
+                    Sweeping the damping ratio through the seam shows it directly. As damping rises toward critical, the point slides around to the extreme edge of the circle and the angle closes toward zero; past critical, it re-emerges at the vertex of a hyperbola, at the same height, with the curve through it now bending the other way. The response alongside goes from ringing to sluggish without a discontinuity, and the agreement with the analytic solution never moves off the noise floor &mdash; including at the seam itself.
+                </p>
+
+                <div class="fig">
+                    <video autoplay loop muted playsinline preload="metadata">
+                        <source src="oscillator-geometry/conic-sweep.mp4" type="video/mp4">
+                    </video>
+                    <figcaption>Damping ratio swept from 0.25 to 2.6. The circle closes, degenerates, and reopens as a hyperbola; the response is redrawn alongside. The running error stays at the floating-point floor throughout.</figcaption>
+                </div>
+
+                <h3>Reconciling the catalogue</h3>
+                <p>
+                    Which finally answers the question the 2024 catalogue was really asking. Four damping regimes, two symmetry states, eight separate closed forms with a switch bolted across them &mdash; all of it collapses into one line:
+                </p>
+
+                <div class="eqn">
+                    x(t) = A(1&minus;&lambda;) &minus; (1&minus;2&lambda;) &middot; [ A / S(&Phi;) ] &middot; e<sup>&minus;&zeta;&omega;&#8320;t</sup> &middot; S( &omega;&#8320;S(&Phi;)&middot;t + &Phi;(1&minus;&lambda;) )
+                    <span class="note">
+                        where C(&Phi;) = &zeta; defines the angle, and (S,&nbsp;C) = (sin,&nbsp;cos) below critical damping, (sinh,&nbsp;cosh) above it. &lambda;&nbsp;=&nbsp;1 gives the free response, &lambda;&nbsp;=&nbsp;0 the step response. Critical damping is the limit S(x)&nbsp;&rarr;&nbsp;x, &Phi;&nbsp;&rarr;&nbsp;0.
+                    </span>
+                </div>
+
+                <p>
+                    Every symbol in it is something you can point at on the drawing. <em>A(1&minus;&lambda;)</em> is where the centre sits. <em>A/S(&Phi;)</em> is the radius. <em>&Phi;</em> is the starting angle. <em>&omega;&#8320;S(&Phi;)</em> is the rate the angle advances. The exponential is the radius decaying. There is nothing left over.
+                </p>
+                <p>
+                    Checked row by row against the original catalogue, it reproduces every step-response form exactly, in every regime. It also surfaced something I had not noticed about my own notes: <strong>the switch was only ever wired for half the table</strong>. In the undamped and underdamped rows &lambda; sits inside the phase, where it correctly selects between the two responses. In the critically damped and overdamped rows I had written it as a multiplier, <em>(1&nbsp;&minus;&nbsp;&lambda;)</em>, which does not switch to the free response &mdash; it multiplies the entire solution by zero. Those two cells of the catalogue never had a free-response form at all. The single statement supplies them.
+                </p>
+
+                <h3>What this is, and what it isn't</h3>
+                <p>
+                    Nothing here is a new theorem. A complex exponential <em>is</em> a rotating vector of changing length; the phasor representation is standard, the second-order solutions are in every textbook, and the circular-to-hyperbolic correspondence is the ordinary behaviour of these functions either side of a repeated root. If you already think in complex exponentials, none of this will surprise you.
+                </p>
+                <p>
+                    What it is, is an exact construction rather than an approximate picture &mdash; and that distinction is the whole point for teaching. The reference circle is normally shown once for the undamped case and then abandoned, precisely because it seems not to survive damping. It survives all of it. Overshoot stops being a formula and becomes a visible fact about a circle being larger than the distance it has to cover. Critical damping stops being a special case to memorise and becomes the moment a curve degenerates on its way to becoming a different one.
+                </p>
+                <p>
+                    Two things remain genuinely outside the construction as it stands. <strong>Sinusoidal driving</strong> needs a second curve, turning at the drive frequency alongside the transient's own &mdash; one circle cannot hold both. And a <strong>continuously blended initial condition</strong> is not a linear interpolation of the geometry: two phasors of differing phase add as vectors, so the resultant radius and angle both have to be recomputed rather than slid between. Both were left where they are.
+                </p>
+
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Investigation</div>
+                            <a href="aeropendulum.html">Dynamic Control of an Aeropendulum</a>
+                            <p>The same second-order system as a physical rig &mdash; a validated digital twin, three control modes, and the finding that timing beat thrust.</p>
+                        </div>
+                        <div class="cross-link-card">
+                            <div class="label">Treatise</div>
+                            <a href="on-dynamical-systems.html">On Dynamical Systems</a>
+                            <p>A mathematical treatment of nonlinear dynamics, stability, and phase-space methods across physical domains.</p>
+                        </div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <script src="../js/cinematic.js"></script>
+</body>
+</html>
