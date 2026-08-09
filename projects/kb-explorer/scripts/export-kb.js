@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const KB_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'Agents', 'RA Agent', 'knowledge-base');
+const KB_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'Agents', 'Scientist', 'knowledge-base');
 const DOMAINS_DIR = path.join(KB_DIR, 'domains');
 const AI_KB_DIR = path.resolve(__dirname, '..', '..', '..', '..', 'Agents', 'knowledge-base');
 const AI_AGENTS_DIR = path.join(AI_KB_DIR, 'agents');
@@ -23,11 +23,11 @@ const OUTPUT_FILE = path.join(OUTPUT_DIR, 'kb-data.json');
 const DOMAIN_FILES = [
   'epistemology_and_method.md', 'ecdo_theory.md', 'thermofluidic_finance.md',
   'dynamical_systems.md', 'pedagogy_and_assessment.md', 'archaeoastronomy.md',
-  'physics_content.md', 'biology.md'
+  'physics_content.md', 'biology.md', 'social_field_theory.md'
 ];
 const AGENT_FILES = [
-  'ce_agent.md', 'cd_agent.md', 'pm_agent.md',
-  'ra_agent.md', 'sa_agent.md', 'ta_agent.md'
+  'artist.md', 'engineer.md', 'scientist.md', 'professor.md',
+  'web_admin.md', 'project_manager.md', 'personal_assistant.md'
 ];
 
 // ─── Shared Helpers ─────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ function parseDomainFile(markdown) {
   let match;
   while ((match = claimRegex.exec(markdown)) !== null) {
     const [, id, title, body] = match;
-    const prefixMap = { EPI:'EPI', ECDO:'ECDO', TF:'TF', DSL:'DSL', PED:'PED', ARCH:'ARCH', PHYS:'PHYS', BIO:'BIO' };
+    const prefixMap = { EPI:'EPI', ECDO:'ECDO', TF:'TF', DSL:'DSL', PED:'PED', ARCH:'ARCH', PHYS:'PHYS', BIO:'BIO', SFT:'SFT' };
     const prefix = id.match(/^([A-Z]+)-/);
     const depsLine = extractField(body, 'Dependencies') || '';
     const deps = depsLine.match(/(FP-\d+|DA-[A-Z]+-\d+|[A-Z]+-\d+)/g) || [];
@@ -122,16 +122,46 @@ function parseDomainFile(markdown) {
   return claims;
 }
 
+// Parses TES_INDEX.md into BOTH the concept rows and the article headers.
+// Article headers were previously discarded, leaving `article` as a bare string
+// repeated across concepts — so a bibliography had no node to point at. Each
+// article is now emitted as a first-class `source` node (SRC-TES-NN), which is
+// what makes citation joins (and therefore project overlap) computable.
 function parseTesIndex(markdown) {
   const concepts = new Map();
-  const rowRegex = /\|\s*(TES-[A-Z]+-\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|/g;
-  let match;
-  while ((match = rowRegex.exec(markdown)) !== null) {
-    const [, id, concept, use] = match;
+  const articles = new Map();   // title -> source node
+  let currentArticle = '';
+  let currentSrcId = '';
+  for (const line of markdown.split('\n')) {
+    const art = line.match(/^####\s+(\d+)\.\s+(.+?)\s*$/);
+    if (art) {
+      const num = art[1].padStart(2, '0');
+      currentArticle = art[2].trim();
+      currentSrcId = `SRC-TES-${num}`;
+      const year = (currentArticle.match(/\((\d{4})/) || [])[1] || '';
+      articles.set(currentArticle, {
+        id: currentSrcId, type: 'source', title: currentArticle,
+        year, url: '', location: '', priority: '',
+        corpus: 'TES', domain: 'tes', layer: 'human'
+      });
+      continue;
+    }
+    if (currentSrcId && articles.has(currentArticle)) {
+      const a = articles.get(currentArticle);
+      const url = line.match(/^-\s*\*\*URL:\*\*\s*`?([^`\s]+)`?/);
+      if (url) { a.url = url[1].trim(); continue; }
+      const loc = line.match(/^-\s*\*\*Location:\*\*\s*`?([^`]+)`?/);
+      if (loc) { a.location = loc[1].trim().replace(/`$/, ''); continue; }
+      const pri = line.match(/^-\s*\*\*Priority:\*\*\s*(.+?)\s*$/);
+      if (pri) { a.priority = pri[1].trim(); continue; }
+    }
+    const m = line.match(/^\|\s*(TES-[A-Z]+-\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$/);
+    if (!m) continue;
+    const [, id, concept, use] = m;
     if (concept === 'Concept' || concept.startsWith('---')) continue;
-    concepts.set(id, { id, type: 'tes', concept: concept.trim(), use: use.trim(), domain: 'tes', layer: 'human' });
+    concepts.set(id, { id, type: 'tes', concept: concept.trim(), use: use.trim(), article: currentArticle, srcId: currentSrcId, domain: 'tes', layer: 'human' });
   }
-  return concepts;
+  return { concepts, articles };
 }
 
 // ─── Quotes Parser ──────────────────────────────────────────────────────────
@@ -310,15 +340,26 @@ function main() {
     const md = fs.readFileSync(path.join(DOMAINS_DIR, file), 'utf-8');
     claimNodes.push(...parseDomainFile(md));
   }
-  const tesMap = parseTesIndex(tesIndex);
+  const { concepts: tesMap, articles: tesArticles } = parseTesIndex(tesIndex);
 
   const referencedTesIds = new Set();
   for (const claim of claimNodes) { for (const ref of claim.tesRefs) referencedTesIds.add(ref); }
+
+  // Surface the full TES corpus as browsable nodes (not only claim-referenced concepts)
   const tesNodes = [];
-  for (const id of referencedTesIds) {
-    const info = tesMap.get(id);
-    tesNodes.push({ id, type: 'tes', concept: info ? info.concept : id, use: info ? info.use : '', domain: 'tes', layer: 'human' });
+  for (const [id, info] of tesMap) {
+    tesNodes.push({
+      id, type: 'tes', concept: info.concept, use: info.use,
+      article: info.article || '', srcId: info.srcId || '',
+      referenced: referencedTesIds.has(id),
+      domain: 'tes', layer: 'human'
+    });
   }
+
+  // Literature as first-class nodes — one per source article. Lets a project's
+  // bibliography join to the graph, which is the prerequisite for any honest
+  // project-overlap measurement.
+  const sourceNodes = [...tesArticles.values()];
 
   const quotesHtml = fs.readFileSync(QUOTES_FILE, 'utf-8');
   const quoteNodes = parseQuotes(quotesHtml);
@@ -339,7 +380,7 @@ function main() {
 
   // ─── Combine ───────────────────────────────────────────────────────────
   const allAINodes = [...agentNodes, ...toolNodes, ...ifcNodes];
-  const nodes = [...foundationNodes, ...claimNodes, ...tesNodes, ...quoteNodes, ...hskNodes, ...allAINodes];
+  const nodes = [...foundationNodes, ...claimNodes, ...tesNodes, ...sourceNodes, ...quoteNodes, ...hskNodes, ...allAINodes];
   const nodeIndex = new Map(nodes.map(n => [n.id, n]));
 
   // ─── Build Links ───────────────────────────────────────────────────────
@@ -357,6 +398,23 @@ function main() {
   for (const q of quoteNodes) {
     for (const fpId of q.fpLinks) {
       if (nodeIndex.has(fpId)) links.push({ source: fpId, target: q.id, type: 'quote-resonance' });
+    }
+  }
+
+  // Concept → its source article. One edge per concept; makes each article node
+  // the hub of everything extracted from it, so citing the article reaches them all.
+  for (const t of tesNodes) {
+    if (t.srcId && nodeIndex.has(t.srcId)) {
+      links.push({ source: t.srcId, target: t.id, type: 'from-source' });
+    }
+  }
+
+  // TES internal cross-references (parsed from each concept's "use" text — "Connects to FP-… / TES-…").
+  // Typed as 'tes-reference' so they render as peripheral connective tissue without reshaping the radial layout.
+  for (const t of tesNodes) {
+    const refs = new Set((t.use.match(/(FP-\d+|TES-[A-Z]+-\d+)/g) || []).filter(r => r !== t.id));
+    for (const ref of refs) {
+      if (nodeIndex.has(ref)) links.push({ source: t.id, target: ref, type: 'tes-reference' });
     }
   }
 
@@ -423,6 +481,8 @@ function main() {
       hypothesized: claimNodes.filter(c => c.status === 'Hypothesized').length,
       speculative: claimNodes.filter(c => c.status === 'Speculative').length,
       quotes: quoteNodes.length,
+      tesConcepts: tesNodes.length,
+      sources: sourceNodes.length,
       humanSkills: hskNodes.length,
       sops: sopNodes.length, skills: sklNodes.length, tools: toolNodes.length,
       interfaces: ifcNodes.length
