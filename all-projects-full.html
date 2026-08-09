@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full Project Index (unlisted) - Peirastes</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  :root{
+    --accent:#7dd6ff; --gold:#f0c060;
+    --text-bright:rgba(255,255,255,.92); --text-mid:rgba(255,255,255,.65);
+    --text-dim:rgba(255,255,255,.4); --rule:rgba(125,214,255,.16);
+    --surface:rgba(8,16,22,.55); --page:#060c12;
+    --font-ui:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --font-mono:'Cascadia Mono',Consolas,ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--text-bright);
+       font-family:var(--font-ui);line-height:1.5;padding:0 1.25rem 5rem}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{padding:3.5rem 0 1.5rem;border-bottom:1px solid var(--rule)}
+  h1{font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:500;margin:0 0 .5rem;letter-spacing:-.01em}
+  .sub{color:var(--text-mid);max-width:62ch;margin:0}
+  .warn{margin-top:1rem;padding:.7rem .9rem;border-left:3px solid var(--gold);
+        background:rgba(240,192,96,.07);color:var(--text-mid);font-size:.88rem;max-width:70ch}
+  .bar{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.4rem 0 .5rem}
+  button{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+         background:transparent;color:var(--text-mid);border:1px solid var(--rule);
+         padding:.42rem .8rem;border-radius:3px;cursor:pointer}
+  button[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);background:rgba(125,214,255,.08)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .count{font-family:var(--font-mono);font-size:.72rem;color:var(--text-dim);margin:.6rem 0 1.2rem}
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:720px;font-size:.88rem}
+  th,td{text-align:left;padding:.6rem .7rem;border-bottom:1px solid rgba(255,255,255,.07);vertical-align:top}
+  thead th{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;
+           color:var(--text-dim);border-bottom:1px solid var(--rule);font-weight:400;position:sticky;top:0;background:var(--page)}
+  tr.hidden-row{background:rgba(240,192,96,.05)}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .id{font-family:var(--font-mono);font-size:.72rem;color:var(--text-dim)}
+  .pill{display:inline-block;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;
+        text-transform:uppercase;padding:.14em .45em;border:1px solid currentColor;border-radius:3px;white-space:nowrap}
+  .p-hidden{color:var(--gold)} .p-listed{color:rgba(255,255,255,.28)}
+  .muted{color:var(--text-mid)}
+  footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--rule);
+         font-family:var(--font-mono);font-size:.7rem;color:var(--text-dim);line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Full Project Index</h1>
+  <p class="sub">Every entry in <span class="id">projects.json</span>, including the ones held back from the public projects page. Generated in the browser from the live file, so it cannot drift.</p>
+  <div class="warn"><strong>Unlisted.</strong> This page is <span class="id">noindex, nofollow</span>, is not in the navigation, and is not in the sitemap. It is for your use — a link to it is a link to the hidden set.</div>
+</header>
+
+<div class="bar" id="bar"></div>
+<div class="count" id="count">loading…</div>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Project</th><th>ID</th><th>Type</th><th>Form</th><th>Status</th><th>Published</th><th>Listing</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<footer>
+  Public projects page: <a href="all-projects.html">all-projects.html</a> &middot; raw data: <a href="projects.json">projects.json</a><br>
+  Hidden entries carry <span class="id">"visible": false</span>, honoured by <span class="id">js/cinematic.js</span>.
+</footer>
+</div>
+
+<script>
+(function () {
+  var FILTERS = [
+    { key: 'all',    label: 'All',    fn: function () { return true; } },
+    { key: 'hidden', label: 'Hidden', fn: function (p) { return p.visible === false; } },
+    { key: 'listed', label: 'Listed', fn: function (p) { return p.visible !== false; } }
+  ];
+  var active = 'all', data = [];
+  var bar = document.getElementById('bar'),
+      rows = document.getElementById('rows'),
+      count = document.getElementById('count');
+
+  FILTERS.forEach(function (f) {
+    var b = document.createElement('button');
+    b.textContent = f.label;
+    b.setAttribute('aria-pressed', String(f.key === active));
+    b.addEventListener('click', function () { active = f.key; render(); });
+    f.btn = b; bar.appendChild(b);
+  });
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function render() {
+    var f = FILTERS.filter(function (x) { return x.key === active; })[0];
+    FILTERS.forEach(function (x) { x.btn.setAttribute('aria-pressed', String(x.key === active)); });
+    var list = data.filter(f.fn);
+    rows.innerHTML = list.map(function (p) {
+      var hid = p.visible === false;
+      return '<tr class="' + (hid ? 'hidden-row' : '') + '">'
+        + '<td><a href="' + esc(p.link) + '">' + esc(p.title) + '</a></td>'
+        + '<td class="id">' + esc(p.id) + '</td>'
+        + '<td class="muted">' + esc(p.type) + '</td>'
+        + '<td class="muted">' + esc(p.subtype || '—') + '</td>'
+        + '<td class="muted">' + esc(p.status) + '</td>'
+        + '<td class="id">' + esc(p.published) + '</td>'
+        + '<td><span class="pill ' + (hid ? 'p-hidden">hidden' : 'p-listed">listed') + '</span></td>'
+        + '</tr>';
+    }).join('');
+    var h = data.filter(function (p) { return p.visible === false; }).length;
+    count.textContent = 'showing ' + list.length + ' of ' + data.length
+      + '  ·  ' + h + ' hidden from the public projects page';
+  }
+
+  fetch('projects.json')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (json) {
+      data = json.slice().sort(function (a, b) {
+        return String(b.published || '').localeCompare(String(a.published || ''));
+      });
+      render();
+    })
+    .catch(function (e) {
+      count.textContent = 'Could not load projects.json — ' + e.message;
+    });
+})();
+</script>
+</body>
+</html>
