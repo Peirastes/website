@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thrust-Vectored Drone - Peirastes</title>
+    <meta name="description" content="A drone that carries a full glass at walking pace and recovers from a bump without spilling. Build log, kept as the work happens.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0a0d10">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/cinematic.css">
+    <style>
+        .content-body figure { margin: 2.2rem 0; }
+        .content-body figure img { width: 100%; height: auto; display: block; border-radius: 4px; }
+        .content-body figcaption { margin-top: .7rem; font-size: .88rem; line-height: 1.5; opacity: .72; }
+        .spec-table { width: 100%; border-collapse: collapse; margin: 1.4rem 0; font-size: .93rem; }
+        .spec-table th, .spec-table td { text-align: left; padding: .5rem .8rem .5rem 0; border-bottom: 1px solid rgba(255,255,255,.09); }
+        .spec-table th { font-weight: 600; opacity: .85; }
+
+        /* Build log — dated entries, newest first. The point of this page is
+           that it is APPENDED TO, so the log is styled as a running rail
+           rather than as prose that has to be rewritten each time. */
+        .log { margin: 1.6rem 0 0; padding: 0; list-style: none; }
+        .log__entry { position: relative; padding: 0 0 1.6rem 1.5rem; border-left: 1px solid rgba(255,255,255,.12); }
+        .log__entry:last-child { border-left-color: transparent; padding-bottom: .4rem; }
+        .log__entry::before {
+            content: ''; position: absolute; left: -4.5px; top: .42rem;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent, #7dd6ff); box-shadow: 0 0 8px rgba(125,214,255,.5);
+        }
+        .log__entry--open::before { background: transparent; border: 1px solid var(--text-dim, #7b8794); box-shadow: none; }
+        .log__date { font-family: var(--font-ui, inherit); font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; opacity: .6; }
+        .log__what { margin: .25rem 0 .35rem; font-weight: 600; }
+        .log__body { margin: 0; font-size: .95rem; line-height: 1.6; opacity: .85; }
+        .status-line { font-size: .84rem; letter-spacing: .14em; text-transform: uppercase; opacity: .62; margin-top: .5rem; }
+    </style>
+</head>
+<body>
+
+    <div class="bg" aria-hidden="true">
+        <div class="bg__image"></div>
+        <div class="bg__vignette"></div>
+        <div class="bg__grain"></div>
+    </div>
+
+    <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
+
+    <div class="profile">
+        <div class="profile__mark">P</div>
+        <div class="profile__meta">
+            <span class="profile__name">Peirastes</span>
+            <span class="profile__sub">Visitor</span>
+        </div>
+    </div>
+
+    <div class="hints">
+        <span class="hint"><kbd>Esc</kbd> Home</span>
+    </div>
+
+    <main class="page">
+        <header class="page-hero">
+            <div class="page-hero__inner">
+                <h1 class="page-hero__title">Thrust-Vectored Drone</h1>
+                <p class="page-hero__subtitle">Carrying a Full Glass Without Spilling It</p>
+                <p class="page-hero__descriptor">Robotics &middot; In Progress</p>
+            </div>
+        </header>
+
+        <article class="page-body">
+            <div class="page-body__inner">
+                <div class="content-body">
+
+                <p class="driving-question">
+                    A drink does not spill while the net acceleration vector stays pointed into the glass. So how small can you keep a flying machine's transients — not its cruise, its <em>transients</em> — when someone bumps it?
+                </p>
+
+                <!-- ================================================================
+                     IP BOUNDARY (decision of record, 2026-08-09):
+                       PUBLIC  -> that it exists and is being built; the spill-physics
+                                  FRAMING and the single success metric; which three
+                                  subsystems exist; the general arrangement figure and
+                                  the three-modes animation; the build NARRATIVE
+                                  (what was found, what it cost).
+                       PRIVATE -> the parametric model and its Params sheet, the
+                                  checker toolchain, printer calibration constants,
+                                  firmware, STLs, and the full requirements/error
+                                  budget. Those live in projects/thrust-vectored-drone/
+                                  and are NOT tracked in the site repo.
+                     Same rule as the CO2 rockets page: ingredients, not the recipe.
+                     Page is noindex + "visible": false in projects.json.
+                ================================================================= -->
+
+                <h2>The problem</h2>
+
+                <p>
+                    The target is a robot waiter: a drone that holds station at bar-top height, carries a full glass to a guest at about human walking pace, and recovers from a bump without spilling a drop. The honest success metric is exactly one thing — <strong>no spill</strong>. Size, speed and control bandwidth all fall out of it rather than being chosen up front.
+                </p>
+
+                <p>
+                    That metric turns out to be unusually well-behaved as a requirement, because spilling has a clean physical criterion. The drink stays in the glass while the net acceleration vector — gravity plus whatever lateral acceleration the vehicle is producing — stays pointed inside the freeboard cone. Steady cruise is nearly free: a tilting multirotor auto-aligns a fixed tray with effective gravity. The spill modes are the <em>transients</em>, the angular rates, the bumps, and the drink's own slosh mode.
+                </p>
+
+                <h2>Why thrust vectoring</h2>
+
+                <p>
+                    A conventional quadrotor produces horizontal force by tilting its whole body. Thrust vectoring produces horizontal force, and rejects disturbances, without a large body tilt — which is precisely an attack on the transient and bump modes rather than on cruise.
+                </p>
+
+                <p>
+                    There is a subtlety worth stating plainly, because it is the reason the design carries two mechanisms instead of one: keeping the <em>body</em> level does not keep the <em>liquid</em> aligned with effective gravity while accelerating. So the vehicle does both — vectored thrust to keep attitude excursions small and recover from knocks, and an actively stabilised tray that points the cup's "up" along the measured effective-gravity vector, decoupled from the airframe.
+                </p>
+
+                <h2>Three subsystems, one control problem</h2>
+
+                <table class="spec-table">
+                    <tr><th>Airframe</th><td>Vectored-thrust vehicle: propulsion, structure, avionics, TVC firmware, tethered hover, flight tuning. Obstacle sensing is spill-bounded — braking has to stay inside the acceleration budget, so detection range is set by <code>d&nbsp;=&nbsp;v&sup2;/2a</code>.</td></tr>
+                    <tr><th>Test Rig</th><td>A single-axis pitch rig that validates the control loop on a bench, before anything flies.</td></tr>
+                    <tr><th>Gimbal</th><td>The no-spill payload: a two-axis tray that tracks measured effective gravity from fused accelerometer and rate-gyro data.</td></tr>
+                </table>
+
+                <p>
+                    The reason to treat these as one project rather than three is that they are the same problem wearing different hardware: a one-degree-of-freedom platform-alignment loop. Work on the rig transfers directly to the gimbal and to the airframe, which is also why the <a href="aeropendulum.html">aeropendulum</a> came first — same loop, fewer ways to get hurt.
+                </p>
+
+                <h2>Where it actually is</h2>
+
+                <p class="status-line">Test Rig Mk0 &mdash; built 6 August 2026 &middot; sensors parked &middot; airframe not started</p>
+
+                <figure>
+                    <img src="../images/tvd/rig-ga.png" alt="Annotated side elevation of the TVD Test Rig Mk0, showing the pivot hub, motor and counterweight arms, servo yoke bracket, keel bob and base plate.">
+                    <figcaption>
+                        Test Rig Mk0, general arrangement. A teeter-totter beam on a pivot: a motor and vectoring servo at one end, trim masses at the other, and a keel bob hung on the pivot axis. The bob is the part worth noticing — sitting on the axis, it supplies stiffness with no trim contribution and no travel cost, because a point on the axis <em>rises</em> as the beam tilts.
+                    </figcaption>
+                </figure>
+
+                <p>
+                    One mechanism runs three experiments, changed in firmware alone. Lock the servo and drive throttle to angle and it is the aeropendulum analogue. Have the servo track minus theta and it is a one-dimensional attitude-hold gimbal — the tray problem. Have the servo vector the thrust and it is true thrust vectoring.
+                </p>
+
+                <figure>
+                    <img src="../images/tvd/rig-modes.gif" alt="Animation of the test rig cycling through its three operating modes.">
+                    <figcaption>The three modes. Same hardware each time; only the control law changes.</figcaption>
+                </figure>
+
+                <p>
+                    The rig also exists to characterise a sensor rather than merely to hold one. The shaft encoder is ground truth that a flying drone will never have, so the IMU is deliberately mounted where life is hard — out at the motor saddle, taking roughly seven percent of a gravity in lever-arm acceleration and the worst of the propeller vibration — and measured against the encoder while a fixed pivot still tells the truth.
+                </p>
+
+                <h2>Build log</h2>
+
+                <ul class="log">
+                    <li class="log__entry log__entry--open">
+                        <div class="log__date">Open</div>
+                        <p class="log__what">Three things block the next step</p>
+                        <p class="log__body">The shaft-to-hub lock is friction on a round rod, and a slipping shaft walks the encoder zero silently — a drift problem, not a strength one. The IMU board mounts on heat-staked posts whose diameter is still unmeasured. And nothing in the model yet hosts the speed controller or the flight controller, which matters because anything added to the beam changes its mass, inertia and trim.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">6 August 2026</div>
+                        <p class="log__what">Rig assembled; both sensor ends parked</p>
+                        <p class="log__body">Seven parts printed and assembled. Trim closed on two sliding carriages carrying a hundred grams each; the plant came out stable with a 2.63 second period at 944 grams. Travel is asymmetric — plus fifty degrees, minus forty-two — which was accepted rather than fixed, since the gimbal experiment does not use the last eight degrees.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">5 August 2026</div>
+                        <p class="log__what">Six tolerance classes validated on real parts</p>
+                        <p class="log__body">Every fit on the rig is now a measurement rather than a prediction, taken from printed coupons instead of from a datasheet. The one that cost a cycle to learn: flat and round features do not bloat by the same amount on this printer, and applying the round figure to a flat face over-opened a socket enough to hide a fifth of a degree of encoder-blind play.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">4 August 2026</div>
+                        <p class="log__what">A servo that did nothing for a day</p>
+                        <p class="log__body">Three swapped servos, four probe firmwares and a multi-pin sweep, against a part that measured correct at every point and would not move. The cause was the external supply's ground never being bonded to the circuit ground. Supply voltage was a red herring in both directions. When a servo does nothing, check the ground bond before anything else.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">2&ndash;3 August 2026</div>
+                        <p class="log__what">Parametric model, and three defects the checkers caught</p>
+                        <p class="log__body">The rig is driven by a single parameter sheet, so one cell edit propagates through every mating feature. Automated checks then found three real faults: travel is set by the counterweight rather than the beam; screw heads fouled a pocket that a parts-versus-parts check is structurally blind to; and the propeller struck the hub through the servo's sweep, which a rigid-body travel check can never see. Each blind spot had the same shape — the checker only sees what it is told to move.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">27 June 2026</div>
+                        <p class="log__what">Requirements written; project deliberately parked</p>
+                        <p class="log__body">The error budget put the design point at three millimetres of freeboard, giving about 5.7 degrees of spill tolerance, and a budget of no more than three degrees of residual liquid tilt — carried almost entirely by gimbal tracking error. Then the whole project was parked to finish the aeropendulum first, on the grounds that it is the same control loop and therefore the foundation rather than a detour.</p>
+                    </li>
+                </ul>
+
+                <p>
+                    Every number above is a measurement or a decision, not a projection. Where a figure is still a first-pass estimate — glass radius, fill freeboard, slosh frequency — it is marked as such in the requirements and is waiting to be replaced by a measurement.
+                </p>
+
+                <div class="cross-links">
+                    <h3>Related Work</h3>
+                    <div class="cross-links-grid">
+                        <div class="cross-link-card">
+                            <div class="label">Control</div>
+                            <a href="aeropendulum.html">Dynamic Control of an Aeropendulum</a>
+                            <p>The same one-degree-of-freedom loop, closed sim-to-real. This is the competency the drone is built on.</p>
+                        </div>
+                        <div class="cross-link-card">
+                            <div class="label">Hardware</div>
+                            <a href="co2-rockets.html">3D-Printed CO&#8322; Rockets</a>
+                            <p>The same habit of printing a thing, flying it, and letting the measurement correct the model.</p>
+                        </div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+        </article>
+    </main>
+
+    <script src="../js/cinematic.js"></script>
+</body>
+</html>

@@ -331,6 +331,17 @@
     }
     const STATUS_LABEL = { active: 'Active', completed: 'Completed', inactive: 'On Hold' };
     const TYPE_LABEL = { simulator: 'Simulator', application: 'Application', study: 'Study' };
+    /* WORK STATE is a second, optional axis. `status` describes the ARTIFACT
+       (is it shipped); `work` describes the ENGAGEMENT (am I still pushing on
+       it). They usually agree, so `work` is only present on the few records
+       where it says something new — a shipped seminar whose thinking is still
+       running, or an "On Hold" entry that is coming back versus one that is
+       not. Absent field renders nothing. */
+    const WORK_LABEL = {
+      'back-burner': 'Back burner',   // set down deliberately; returning to it
+      'retired': 'Retired',           // done with it, kept for the record
+      'ongoing': 'Ongoing',           // artifact shipped, work continues
+    };
 
     fetch('projects.json')
       .then(r => r.json())
@@ -360,10 +371,13 @@
           // Applications are homogeneous enough to not need sub-labels).
           const typeText = (TYPE_LABEL[type] || type)
             + (p.subtype ? ' · ' + p.subtype : '');
-          return '<a class="quest-card" data-status="' + esc(status) + '" data-type="' + esc(type) + '" href="' + esc(p.link) + '">' +
+          return '<a class="quest-card" data-status="' + esc(status) + '" data-type="' + esc(type) + '"' +
+            (p.work ? ' data-work="' + esc(p.work) + '"' : '') +
+            ' href="' + esc(p.link) + '">' +
             '<div class="quest-card__body">' +
               '<div class="quest-card__meta">' +
                 '<span class="quest-status quest-status--' + esc(status) + '">' + esc(STATUS_LABEL[status] || status) + '</span>' +
+                (p.work ? '<span class="quest-work quest-work--' + esc(p.work) + '">' + esc(WORK_LABEL[p.work] || p.work) + '</span>' : '') +
                 '<span class="quest-type">' + esc(typeText) + '</span>' +
                 '<span class="quest-card__date">' + esc(p.published || '') + '</span>' +
               '</div>' +

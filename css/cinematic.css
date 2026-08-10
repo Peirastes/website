@@ -1095,6 +1095,57 @@ body.is-ready .page-body { opacity: 1; transform: translateY(0); }
   background: transparent;
 }
 
+/* ── WORK STATE — the second axis ──────────────────────────────────────────
+   `status` is the ARTIFACT (shipped?); `work` is the ENGAGEMENT (still
+   pushing?). Only the handful of records where the two diverge carry it, so
+   this must read as an ANNOTATION on the status beside it, never as a rival
+   to it: one step smaller, no glow, no pulse. */
+.quest-work {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  opacity: 0.85;
+}
+.quest-work::before {
+  content: '';
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-left: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+}
+
+/* BACK BURNER — set down on purpose, and coming back. The pause bars are the
+   whole point: it is the one work state that promises a return. */
+.quest-work--back-burner { color: var(--gold-dim, var(--text-dim)); opacity: 1; }
+
+/* RETIRED — done with it, kept for the record. The quietest thing on the
+   card; the marker collapses to a single closed bar. */
+.quest-work--retired { opacity: 0.6; }
+.quest-work--retired::before {
+  border-right: none;
+  border-left: 2px solid currentColor;
+  width: 4px;
+}
+
+/* ONGOING — artifact shipped, work continues. The only work state that may
+   take the accent, because it is the only one describing live movement — and
+   the only one whose marker must NOT be the pause bars, which would say the
+   opposite of the word next to them. A play triangle instead. */
+.quest-work--ongoing { color: var(--accent); opacity: 1; }
+.quest-work--ongoing::before {
+  border: none;
+  width: 0; height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
 @keyframes statusPulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent), 0 0 16px var(--accent-dim); }
   50%      { opacity: 0.55; box-shadow: 0 0 3px var(--accent); }
