@@ -1,8 +1,8 @@
 {
-  "generated": "2026-08-09T03:01:39.195Z",
+  "generated": "2026-08-15T03:12:12.830Z",
   "stats": {
-    "nodes": 543,
-    "links": 1193,
+    "nodes": 547,
+    "links": 1212,
     "claims": 83,
     "established": 60,
     "hypothesized": 17,
@@ -11,9 +11,9 @@
     "tesConcepts": 146,
     "sources": 18,
     "humanSkills": 19,
-    "sops": 41,
-    "skills": 54,
-    "tools": 31,
+    "sops": 42,
+    "skills": 55,
+    "tools": 33,
     "interfaces": 15
   },
   "nodes": [
@@ -135,7 +135,7 @@
       "source": "Debriefing §7.3",
       "domain": "foundation",
       "layer": "shared",
-      "fanOut": 63
+      "fanOut": 64
     },
     {
       "id": "FP-013",
@@ -7930,13 +7930,16 @@
       "status": "Active",
       "owner": "PROF",
       "contributors": "PROF",
-      "version": "1.0",
-      "lastUpdated": "2026-02-23",
+      "version": "2.0",
+      "lastUpdated": "2026-08-11",
       "dependencies": [
         "SKL-PROF-001",
         "SKL-PROF-002",
         "SKL-PROF-005",
-        "TOOL-008"
+        "SKL-PROF-007",
+        "TOOL-003",
+        "TOOL-008",
+        "TOOL-017"
       ],
       "requiresKnowledge": [
         "DA-PED-001",
@@ -7944,11 +7947,40 @@
         "FP-007"
       ],
       "triggers": "Instructor requests exam covering specified chapters/topics",
-      "outputs": "Exam .md and answer key .md",
+      "outputs": "Blueprint .md (signed off first) → exam .md/.docx/.pdf + answer key + figure generator + build script",
       "interfaces": [],
-      "description": "Create exam with appropriate time pressure, concept coverage, and clear formatting including name line pattern.",
-      "steps": "1. Gather information (chapters covered, exam duration, point distribution, format preferences)\n2. Execute (create problems, balanced concept coverage, appropriate difficulty for timed exam, name line pattern)\n3. Validate (concept coverage balanced, timing realistic, answer key complete, formatting correct)\n4. Deliver (exam .md + key .md, compile, run post-processor)",
-      "qualityCriteria": "- Balanced concept coverage\n- Timing realistic for exam duration\n- Name line pattern correct (OpenXML tab stops)\n- Complete answer key\n\n---",
+      "description": "Design and build a timed exam whose coverage is driven by the course SLO, whose settings avoid work the students already hold, and whose parts are tiered T1→T2→T3 with a stated point profile.",
+      "steps": "1. **Read the SLO for the unit first.** Tabulate its clauses and check the previous exam, and any colleague's exam, against them. Coverage slots come from the SLO; collisions only constrain the *settings* inside those slots.\n2. **Take the previous semester's exam as the baseline.** Replace only the problems whose settings the current cohort already owns. A sound exam is usually right on coverage and stale on settings — rewriting coverage to dodge collisions is the failure mode.\n3. **Read every homework and drill to the end**, plus the lecture notes *as they currently stand*. Tier-2 problems sit at the back of an assignment; a blueprint written against first pages will collide.\n4. **State this exam's PSCPR profile explicitly** and record it in its own blueprint. Profiles are **per exam** — never inherit one from another without a decision.\n5. Write the blueprint, present it, and **pause for sign-off before writing problems** (SOP shares the outline-checkpoint rule).\n6. Generate figures (SKL-PROF-003) — exam figures must show setup only, never a resultant or a field expression.\n7. Write exam + key. The key carries per-part rubrics with point breakdowns, named common errors and their deductions, a cascading-error policy, the PSCPR scoring table, and a summary-of-answers table.\n8. Build via the exam build script (SKL-PROF-007) and **verify structure from the built PDF** — extract part letters and point values per problem and assert the expected pattern.",
+      "qualityCriteria": "- Every SLO clause for the unit is examined\n- Point profile stated, and the **all-T1 score computed** — if it falls below the pass line, that is a deliberate accepted risk with curving planned, not an oversight\n- No setting reused from the current cohort's HW, drills or lecture worked examples\n- ≥1 raw-calculus problem; ≥1 prior-knowledge link; a T1 on-ramp in every problem\n- Later parts survive a failed earlier part\n- Structure verified from the PDF, not the source\n- Prompts use **describe**, not explain\n\n---",
+      "fanOut": 0
+    },
+    {
+      "id": "SOP-PROF-008",
+      "type": "sop",
+      "title": "Publish a Chapter to Web and PDF",
+      "domain": "PROF",
+      "layer": "ai",
+      "status": "Active",
+      "owner": "PROF",
+      "contributors": "PROF, WEB",
+      "version": "1.0",
+      "lastUpdated": "2026-08-11",
+      "dependencies": [
+        "SKL-PROF-004",
+        "SKL-PROF-007",
+        "TOOL-008",
+        "TOOL-032",
+        "TOOL-033"
+      ],
+      "requiresKnowledge": [
+        "FP-012"
+      ],
+      "triggers": "A chapter's markdown is content-complete, or an existing chapter needs the house style applied",
+      "outputs": "`Website/courses/pseii/chNN.html` + `Lecture/PSEII_Notes_Chapter_NN_v2.pdf`",
+      "interfaces": [],
+      "description": "Convert a chapter to the semantic house style and publish it through the single-source pipeline. **The web edition is upstream; the PDF is a print view of that page, not a parallel build.**",
+      "steps": "1. **Dialect repair first, and in this order** — convert pandoc *simple* tables to pipe tables **before** touching dashes. Simple-table rulers are runs of hyphens, so an em-dash pass run first destroys them and the tables then fail to match. Then `\\lbrack`/`\\rbrack`, `{^\\circ}`, en-dashes; skip structural lines.\n2. Validate every table row's cell count against its separator — a mis-aligned source table can split a cell mid-token.\n3. Add the four semantic fenced divs — `.example`, `.connection`, `.result`, `.check` — then verify they balance and nest.\n4. `build_chapter_web.py NN` → chNN.html.\n5. Serve the site over HTTP and print with a tall viewport (TOOL-033). Check the PDF file size as a smoke test for missing figures.\n6. Look at the rendered pages.",
+      "qualityCriteria": "- Semantic block density comparable to the reference chapter (~14–16 per 4,000–4,700 words)\n- No orphaned list items or figures stranded from their discussion\n- Figure captions render math, not raw LaTeX\n- PDF output filed alongside the previous edition, versioned so the semesters do not mix\n\n---",
       "fanOut": 0
     },
     {
@@ -8089,14 +8121,40 @@
       "dependencies": [
         "TOOL-008",
         "TOOL-009",
-        "TOOL-017"
+        "TOOL-017",
+        "TOOL-032",
+        "TOOL-033"
       ],
       "appliedIn": [
         "SOP-PROF-001",
         "SOP-PROF-002",
-        "SOP-PROF-007"
+        "SOP-PROF-007",
+        "SOP-PROF-008"
       ],
-      "description": "Pandoc markdown-to-docx/PDF pipeline. LaTeX headers, post-processing, reference styles, margin control.",
+      "description": "Pandoc markdown-to-docx/PDF pipeline. LaTeX headers, post-processing, reference styles, margin control. **Two distinct routes that must not be crossed:** assessments (exam/HW/drill) are genuine **docx** deliverables via pandoc → reference doc → python-docx → Word COM; **lecture notes** go markdown → `build_chapter_web.py` → HTML, with the PDF printed from that page (SOP-PROF-008). Non-ASCII in headers is born inside Python, never passed as a shell argument. Dropbox/AV transiently locks a freshly written docx — wrap in-place rewrites in a retry.",
+      "fanOut": 8
+    },
+    {
+      "id": "SKL-PROF-007",
+      "type": "skl",
+      "title": "Print Typography and Fragmentation Control",
+      "domain": "PROF",
+      "layer": "ai",
+      "status": "Active",
+      "owner": "PROF",
+      "proficiency": "Expert",
+      "dependencies": [
+        "TOOL-008",
+        "TOOL-017",
+        "TOOL-033"
+      ],
+      "appliedIn": [
+        "SOP-PROF-003",
+        "SOP-PROF-004",
+        "SOP-PROF-005",
+        "SOP-PROF-008"
+      ],
+      "description": "Controlling how a document actually lands on the page, in both the docx and print-CSS routes.\n\n- **Type scale must be monotonic and explicit.** Any heading level not declared in the print block silently inherits its screen `rem` value — that is how an h4 came to render *larger* than the h3 above it. Set every level; measure the result with PyMuPDF rather than trusting the CSS.\n- **Density knobs, in order:** base size (a ratio-preserving scale keeps the heading hierarchy), then leading, then measure. A caption capped at `52ch` inside a 5.5in figure wastes a third of the figure's vertical budget.\n- **Fragmentation:** `break-inside:avoid` belongs only on **small, bounded** blocks (checks, boxed results, lists, tables, figures). Applied to anything that can approach a page's height it is all-or-nothing — the block moves *entire* and the gap it leaves is worse than the split it prevented. Use a per-block `.keep` opt-in for the specific exception.\n- **Grep for an existing rule before adding one.** A later duplicate silently wins; dead declarations that look effective are worse than none.\n- **Word indentation:** a hanging indent governs only *wrapped* lines. To align a numbered item's first line with the rest, a literal **tab** after the number is required. Pandoc emits lettered parts as real Word lists — the marker lives in `numPr`, so matching them by paragraph text never works.\n- **Verify from the built artifact.** Display math inside a lettered list item breaks the list and restarts the lettering; that shipped silently through several builds because only page counts were being checked.",
       "fanOut": 6
     },
     {
@@ -8934,7 +8992,7 @@
       "contributors": "ENG, PROF, SCI",
       "usedBy": "ENG, PROF, SCI",
       "purpose": "Simulations (NumPy/SciPy), data processing, figure generation (matplotlib), scripting.",
-      "fanOut": 8
+      "fanOut": 9
     },
     {
       "id": "TOOL-002",
@@ -9090,7 +9148,7 @@
       "contributors": "ENG, PROF",
       "usedBy": "PROF",
       "purpose": "Document conversion (Markdown to Word/PDF). Custom LaTeX headers, reference styles.",
-      "fanOut": 8
+      "fanOut": 10
     },
     {
       "id": "TOOL-009",
@@ -9114,7 +9172,7 @@
       "contributors": "ENG",
       "usedBy": "PROF",
       "purpose": "Post-processor for Pandoc Word output. Updates document headers. Mandatory after every build.",
-      "fanOut": 1
+      "fanOut": 3
     },
     {
       "id": "TOOL-018",
@@ -9283,6 +9341,30 @@
       "usedBy": "ENG",
       "purpose": "Mesh VPN for remote access. Mobile Copilot server accessible from phone via Tailscale network.",
       "fanOut": 1
+    },
+    {
+      "id": "TOOL-032",
+      "type": "tool",
+      "title": "build_chapter_web.py",
+      "domain": "ai_shared",
+      "layer": "ai",
+      "category": "Instrument",
+      "contributors": "PROF, WEB",
+      "usedBy": "PROF, WEB",
+      "purpose": "PSEII webbook chapter builder. Single-source markdown → `Website/courses/pseii/chNN.html` via pandoc + a cinematic template, embedding real figures and optional sim iframes. Carries the `@media print` block, so **the distributable PDF is a print view of the generated page — never a parallel pandoc→docx build.**",
+      "fanOut": 2
+    },
+    {
+      "id": "TOOL-033",
+      "type": "tool",
+      "title": "Playwright print-to-PDF (headless Edge)",
+      "domain": "ai_shared",
+      "layer": "ai",
+      "category": "Instrument",
+      "contributors": "PROF, WEB",
+      "usedBy": "PROF, WEB, ART",
+      "purpose": "`npx playwright pdf --channel=msedge` renders a served page to PDF. Two non-obvious requirements: the page must be **served over HTTP** (absolute `/courses/...` asset paths break under `file://`) and needs a **tall viewport** (`--viewport-size=1280,24000`) or `loading=\"lazy\"` images below the fold never load. File size is the tell for a silent failure.",
+      "fanOut": 3
     },
     {
       "id": "IFC-PM-ENG-001",
@@ -14057,8 +14139,48 @@
       "type": "ai-dependency"
     },
     {
+      "source": "SKL-PROF-007",
+      "target": "SOP-PROF-005",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-003",
+      "target": "SOP-PROF-005",
+      "type": "ai-dependency"
+    },
+    {
       "source": "TOOL-008",
       "target": "SOP-PROF-005",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-017",
+      "target": "SOP-PROF-005",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "SKL-PROF-004",
+      "target": "SOP-PROF-008",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "SKL-PROF-007",
+      "target": "SOP-PROF-008",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-008",
+      "target": "SOP-PROF-008",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-032",
+      "target": "SOP-PROF-008",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-033",
+      "target": "SOP-PROF-008",
       "type": "ai-dependency"
     },
     {
@@ -14217,6 +14339,16 @@
       "type": "ai-dependency"
     },
     {
+      "source": "TOOL-032",
+      "target": "SKL-PROF-004",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-033",
+      "target": "SKL-PROF-004",
+      "type": "ai-dependency"
+    },
+    {
       "source": "SKL-PROF-004",
       "target": "SOP-PROF-001",
       "type": "ai-supports"
@@ -14229,6 +14361,46 @@
     {
       "source": "SKL-PROF-004",
       "target": "SOP-PROF-007",
+      "type": "ai-supports"
+    },
+    {
+      "source": "SKL-PROF-004",
+      "target": "SOP-PROF-008",
+      "type": "ai-supports"
+    },
+    {
+      "source": "TOOL-008",
+      "target": "SKL-PROF-007",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-017",
+      "target": "SKL-PROF-007",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "TOOL-033",
+      "target": "SKL-PROF-007",
+      "type": "ai-dependency"
+    },
+    {
+      "source": "SKL-PROF-007",
+      "target": "SOP-PROF-003",
+      "type": "ai-supports"
+    },
+    {
+      "source": "SKL-PROF-007",
+      "target": "SOP-PROF-004",
+      "type": "ai-supports"
+    },
+    {
+      "source": "SKL-PROF-007",
+      "target": "SOP-PROF-005",
+      "type": "ai-supports"
+    },
+    {
+      "source": "SKL-PROF-007",
+      "target": "SOP-PROF-008",
       "type": "ai-supports"
     },
     {
@@ -15034,6 +15206,11 @@
     {
       "source": "FP-007",
       "target": "SOP-PROF-005",
+      "type": "requires-knowledge"
+    },
+    {
+      "source": "FP-012",
+      "target": "SOP-PROF-008",
       "type": "requires-knowledge"
     },
     {
