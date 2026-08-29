@@ -105,14 +105,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +140,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +159,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -161,9 +188,23 @@
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -443,44 +484,71 @@
 <p>where <span class="math inline">\(\vec{F}_{21}\)</span> is the force on charge 1 due to charge 2, etc.</p>
 <section id="example-electric-field-from-two-charges" class="example">
 <h3>Example: Electric Field from Two Charges</h3>
-<p>A charge <span class="math inline">\(q_1 = +4.00\)</span> nC sits at <span class="math inline">\(x = -5.00\)</span> cm and a charge <span class="math inline">\(q_2 = -2.00\)</span> nC sits at <span class="math inline">\(x = +9.00\)</span> cm. Find the electric field at point P located at <span class="math inline">\((0,\ 12.0\ \text{cm})\)</span> on the y-axis.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_5_superposition.png" alt="Figure 22.5: Superposition — the net electric field at P is the vector sum of individual fields" loading="lazy" style="max-width:min(4.2in,100%)" /><figcaption>Figure 22.5: Superposition — the net electric field at P is the vector sum of individual fields</figcaption></figure>
-<p><strong>Step 1 — Distances.</strong> From each charge to P:</p>
-<p><span class="math display">\[r_1 = \sqrt{(5.00)^2 + (12.0)^2} = 13.0\ \text{cm}, \qquad r_2 = \sqrt{(9.00)^2 + (12.0)^2} = 15.0\ \text{cm}\]</span></p>
-<p><strong>Step 2 — Magnitudes.</strong> Use <span class="math inline">\(E = k_e|q|/r^2\)</span> for each charge separately:</p>
-<p><span class="math display">\[E_1 = \frac{(8.988\times10^9)(4.00\times10^{-9})}{(0.130)^2} = 2.13\times10^{3}\ \text{N/C}\]</span></p>
-<p><span class="math display">\[E_2 = \frac{(8.988\times10^9)(2.00\times10^{-9})}{(0.150)^2} = 7.99\times10^{2}\ \text{N/C}\]</span></p>
-<p><strong>Step 3 — Directions.</strong> This is where sign matters, and it is the step students most often skip. <span class="math inline">\(q_1\)</span> is <strong>positive</strong>, so <span class="math inline">\(\vec{E}_1\)</span> points <em>away</em> from it — along the unit vector from <span class="math inline">\(q_1\)</span> to P, which is <span class="math inline">\((5, 12)/13\)</span>. <span class="math inline">\(q_2\)</span> is <strong>negative</strong>, so <span class="math inline">\(\vec{E}_2\)</span> points <em>toward</em> it — along the unit vector from P to <span class="math inline">\(q_2\)</span>, which is <span class="math inline">\((9, -12)/15\)</span>.</p>
-<p><span class="math display">\[\vec{E}_1 = 2.13\times10^{3}\left(\tfrac{5}{13},\ \tfrac{12}{13}\right) = (818,\ 1964)\ \text{N/C}\]</span></p>
-<p><span class="math display">\[\vec{E}_2 = 7.99\times10^{2}\left(0.600,\ -0.800\right) = (479,\ -639)\ \text{N/C}\]</span></p>
-<p><strong>Step 4 — Add componentwise, then convert back:</strong></p>
-<p><span class="math display">\[E_x = 818 + 479 = 1.30\times10^{3}\ \text{N/C}, \qquad E_y = 1964 - 639 = 1.32\times10^{3}\ \text{N/C}\]</span></p>
+<p>Geometry (as in the figure): <span class="math inline">\(q_{1}\)</span> sits a distance <span class="math inline">\(x_{1}\)</span> to the <strong>left</strong> of the <span class="math inline">\(y\)</span>-axis and <span class="math inline">\(q_{2}\)</span> a distance <span class="math inline">\(x_{2}\)</span> to the <strong>right</strong>, both on the <span class="math inline">\(x\)</span>-axis, with the field point P at <span class="math inline">\((0,\ y)\)</span>. Let <span class="math inline">\(\theta\)</span> be the angle <span class="math inline">\(\vec{E}_{1}\)</span> makes with the horizontal and <span class="math inline">\(\phi\)</span> the angle <span class="math inline">\(\vec{E}_{2}\)</span> makes with it.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_5_geometry.png" alt="Figure 22.5: The two-charge problem with every quantity named. \theta and \phi appear twice — at the charges, where they are angles of the two right triangles, and at P, where they are the directions of the two fields. They are the same angles. Component arrows are drawn dashed with open heads to distinguish them from the fields themselves. \gamma is the angle a law-of-cosines attack would need; it sits at the head of \vec{E}_{1}, where \vec{E}_{2} has been carried over tip-to-tail, and it is not needed by the component route at all." loading="lazy" style="max-width:min(5.2in,100%)" /><figcaption>Figure 22.5: The two-charge problem with every quantity named. <span class="math inline">\(\theta\)</span> and <span class="math inline">\(\phi\)</span> appear twice — at the charges, where they are angles of the two right triangles, and at P, where they are the directions of the two fields. They are the same angles. Component arrows are drawn dashed with open heads to distinguish them from the fields themselves. <span class="math inline">\(\gamma\)</span> is the angle a law-of-cosines attack would need; it sits at the head of <span class="math inline">\(\vec{E}_{1}\)</span>, where <span class="math inline">\(\vec{E}_{2}\)</span> has been carried over tip-to-tail, and it is not needed by the component route at all.</figcaption></figure>
+<p><span class="math display">\[\vec{E} = \vec{E}_{1} + \vec{E}_{2}\]</span></p>
+<p><span class="math display">\[\vec{E}_{1} = E_{1x}\widehat{i} + E_{1y}\widehat{j}, \qquad \vec{E}_{2} = E_{2x}\widehat{i} + E_{2y}\widehat{j}\]</span></p>
+<p>Both charges are positive, so each field points <em>away</em> from its own source: <span class="math inline">\(\vec{E}_{1}\)</span> up and to the right, <span class="math inline">\(\vec{E}_{2}\)</span> up and to the left. That one reading of the picture fixes all four signs.</p>
+<p><span class="math display">\[E_{1x} = E_{1}\cos\theta, \quad E_{1y} = E_{1}\sin\theta, \qquad E_{2x} = -E_{2}\cos\phi, \quad E_{2y} = E_{2}\sin\phi\]</span></p>
+<p><span class="math display">\[\vec{E} = \left( E_{1}\cos\theta - E_{2}\cos\phi \right)\widehat{i} + \left( E_{1}\sin\theta + E_{2}\sin\phi \right)\widehat{j}\]</span></p>
+<p>Now the magnitudes, <span class="math inline">\(E = k_{e}q/r^{2}\)</span> taken one charge at a time:</p>
+<p><span class="math display">\[\vec{E} = \left( \frac{k_{e}q_{1}}{r_{1}^{2}}\cos\theta - \frac{k_{e}q_{2}}{r_{2}^{2}}\cos\phi \right)\widehat{i} + \left( \frac{k_{e}q_{1}}{r_{1}^{2}}\sin\theta + \frac{k_{e}q_{2}}{r_{2}^{2}}\sin\phi \right)\widehat{j}\]</span></p>
+<p>and then the angles — which are not independent information at all, but ratios of sides of triangles the coordinates already gave you:</p>
+<p><span class="math display">\[\cos\theta = \frac{x_{1}}{r_{1}}, \quad \sin\theta = \frac{y}{r_{1}}, \qquad \cos\phi = \frac{x_{2}}{r_{2}}, \quad \sin\phi = \frac{y}{r_{2}}\]</span></p>
+<p><span class="math display">\[\vec{E} = k_{e}\left[ \left( \frac{q_{1}x_{1}}{r_{1}^{3}} - \frac{q_{2}x_{2}}{r_{2}^{3}} \right)\widehat{i} + \left( \frac{q_{1}y}{r_{1}^{3}} + \frac{q_{2}y}{r_{2}^{3}} \right)\widehat{j} \right]\]</span></p>
+<p><strong>Watch what just happened to <span class="math inline">\(\theta\)</span> and <span class="math inline">\(\phi\)</span>: they are gone.</strong> Substituting the ratios removed every trace of them, and what remains depends only on <span class="math inline">\(q_{1}\)</span>, <span class="math inline">\(q_{2}\)</span>, <span class="math inline">\(x_{1}\)</span>, <span class="math inline">\(x_{2}\)</span> and <span class="math inline">\(y\)</span> — the numbers the problem handed you. The angles were bookkeeping, never inputs. With <span class="math inline">\(r_{1} = \sqrt{x_{1}^{2} + y^{2}}\)</span> and <span class="math inline">\(r_{2} = \sqrt{x_{2}^{2} + y^{2}}\)</span>:</p>
+<p><span class="math display">\[\vec{E} = k_{e}\left[ \left( \frac{q_{1}x_{1}}{\left( x_{1}^{2}+y^{2} \right)^{3/2}} - \frac{q_{2}x_{2}}{\left( x_{2}^{2}+y^{2} \right)^{3/2}} \right)\widehat{i} + \left( \frac{q_{1}y}{\left( x_{1}^{2}+y^{2} \right)^{3/2}} + \frac{q_{2}y}{\left( x_{2}^{2}+y^{2} \right)^{3/2}} \right)\widehat{j} \right]\]</span></p>
+<p>Place the charges symmetrically, <span class="math inline">\(x_{1} = x_{2} = x\)</span>, so that <span class="math inline">\(\theta = \phi\)</span> and <span class="math inline">\(r_{1} = r_{2}\)</span>:</p>
 <div class="result">
-<p><span class="math display">\[\boxed{\;E = \sqrt{E_x^2 + E_y^2} = 1.85\times10^{3}\ \text{N/C}, \qquad \theta = \tan^{-1}\!\left(\frac{E_y}{E_x}\right) = 45.6°\;}\]</span></p>
+<p><span class="math display">\[\boxed{\;\vec{E} = \frac{k_{e}}{\left( x^{2} + y^{2} \right)^{3/2}}\left[\, x\left( q_{1} - q_{2} \right)\widehat{i} + y\left( q_{1} + q_{2} \right)\widehat{j} \,\right]\;}\]</span></p>
 </div>
-<p><strong>Interpretation:</strong> the net field points up and to the right at almost exactly 45°. That is not a coincidence worth trusting — it happens because the larger, nearer positive charge pushes P upward and away while the smaller, farther negative charge pulls P down and to the right, and the two vertical contributions nearly, but not quite, cancel. Change either charge and that near-45° result disappears immediately. <strong>Superposition is a vector sum, not a magnitude sum:</strong> note that <span class="math inline">\(E \neq E_1 + E_2 = 2.93\times10^3\)</span> N/C.</p>
+<p>The <span class="math inline">\(\widehat{i}\)</span> term is carried by the <strong>difference</strong> of the charges and the <span class="math inline">\(\widehat{j}\)</span> term by their <strong>sum</strong>. Notice immediately what that means: <strong>if <span class="math inline">\(q_{2}\)</span> is negative, the field stacks in <span class="math inline">\(x\)</span> and cancels in <span class="math inline">\(y\)</span></strong> — the two behaviours trade places, and you can see it before computing anything.</p>
+<p><span class="math display">\[q_{1} = q_{2} = q: \qquad \boxed{\;\vec{E} = \frac{2k_{e}q\, y}{\left( x^{2} + y^{2} \right)^{3/2}}\,\widehat{j}\;} \qquad \text{and for } y \gg x, \quad \vec{E} \approx \frac{k_{e}(2q)}{y^{2}}\,\widehat{j}\]</span></p>
+<p><span class="math display">\[q_{1} = q,\ q_{2} = -q: \qquad \boxed{\;\vec{E} = \frac{2k_{e}q\, x}{\left( x^{2} + y^{2} \right)^{3/2}}\,\widehat{i}\;} \qquad \text{and for } y \gg x, \quad \vec{E} \approx \frac{2k_{e}q x}{y^{3}}\,\widehat{i}\]</span></p>
+<p>Far away, the <strong>sum</strong> survives as <span class="math inline">\(1/y^{2}\)</span> and is indistinguishable from a single charge <span class="math inline">\(2q\)</span> — which is exactly what should happen. The <strong>difference</strong> survives as <span class="math inline">\(1/y^{3}\)</span>, faster than any point charge, because what is left is only the residue after a near-cancellation. Recognizing a vanishing component <em>before</em> computing anything is the most valuable habit in this chapter, and it is the same move that makes the continuous distributions in §22.5 tractable.</p>
 </section>
-<div class="example">
-<h3 id="special-case-two-equal-charges-symmetry-does-the-work">Special Case: Two Equal Charges — Symmetry Does the Work</h3>
-<p>Now let both charges be <strong>identical</strong>, <span class="math inline">\(q_1 = q_2 = +q\)</span>, placed symmetrically at <span class="math inline">\(x = \pm a\)</span>, with P again at <span class="math inline">\((0, y)\)</span>.</p>
-<p>Each field has the same magnitude <span class="math inline">\(k_e q/(a^2+y^2)\)</span>, and their <span class="math inline">\(x\)</span>-components point in opposite directions. They cancel exactly:</p>
-<p><span class="math display">\[E_x = 0\]</span></p>
-<p>Only the <span class="math inline">\(y\)</span>-components survive, each contributing a factor <span class="math inline">\(\cos\theta = y/\sqrt{a^2+y^2}\)</span>:</p>
+<h3 id="magnitude-and-direction">Magnitude and Direction</h3>
+<p>The components are the answer, but the answer is usually asked for as a size and a heading. Reserve a <strong>new</strong> symbol for that heading — <span class="math inline">\(\alpha\)</span>, measured from the <span class="math inline">\(+x\)</span>-axis — because it is an <strong>output</strong> of the calculation, not one of the angles that went in.</p>
+<p><span class="math display">\[E = \sqrt{E_{x}^{2} + E_{y}^{2}}, \qquad \tan\alpha = \frac{E_{y}}{E_{x}}\]</span></p>
+<p>In full generality this is unlovely, but it is explicit and it is finished:</p>
+<p><span class="math display">\[E = \sqrt{\left[ k_{e}\left( \frac{q_{1}x_{1}}{\left( x_{1}^{2}+y^{2} \right)^{3/2}} - \frac{q_{2}x_{2}}{\left( x_{2}^{2}+y^{2} \right)^{3/2}} \right) \right]^{2} + \left[ k_{e}\left( \frac{q_{1}y}{\left( x_{1}^{2}+y^{2} \right)^{3/2}} + \frac{q_{2}y}{\left( x_{2}^{2}+y^{2} \right)^{3/2}} \right) \right]^{2}}\]</span></p>
+<p><span class="math display">\[\alpha = \arctan\left[ \frac{\dfrac{q_{1}y}{\left( x_{1}^{2}+y^{2} \right)^{3/2}} + \dfrac{q_{2}y}{\left( x_{2}^{2}+y^{2} \right)^{3/2}}}{\dfrac{q_{1}x_{1}}{\left( x_{1}^{2}+y^{2} \right)^{3/2}} - \dfrac{q_{2}x_{2}}{\left( x_{2}^{2}+y^{2} \right)^{3/2}}} \right]\]</span></p>
+<p>In the symmetric case the common factor comes out and the whole thing collapses:</p>
 <div class="result">
-<p><span class="math display">\[\boxed{\;E_y = \frac{2k_e q\, y}{(a^2 + y^2)^{3/2}}\;}\]</span></p>
+<p><span class="math display">\[E = \frac{k_{e}}{\left( x^{2} + y^{2} \right)^{3/2}}\sqrt{\left[ x\left( q_{1} - q_{2} \right) \right]^{2} + \left[ y\left( q_{1} + q_{2} \right) \right]^{2}}, \qquad \alpha = \arctan\left[ \frac{y}{x}\,\frac{q_{1} + q_{2}}{q_{1} - q_{2}} \right]\]</span></p>
 </div>
+<p>And now the direction of each limiting case falls out with no arithmetic at all:</p>
+<p><span class="math display">\[q_{1} = q_{2} = q: \quad \alpha = \arctan\left[ \text{undefined} \right] = 90° \qquad\qquad q_{1} = q,\ q_{2} = -q: \quad \alpha = \arctan\left[ 0 \right] = 0°\]</span></p>
 <div class="check">
-<p><strong>Check the limit.</strong> Far away (<span class="math inline">\(y \gg a\)</span>), the denominator becomes <span class="math inline">\(y^3\)</span> and</p>
-<p><span class="math display">\[E_y \to \frac{2k_e q}{y^2} = k_e\frac{(2q)}{y^2}\]</span></p>
+<p><strong>Read those two against the pictures.</strong> Equal charges put P on a line of symmetry, so the field there can only point straight up the <span class="math inline">\(y\)</span>-axis — <span class="math inline">\(\alpha = 90°\)</span>, and the arctangent tells you so by dividing by zero. Equal and opposite charges cancel the vertical entirely, leaving a field straight along <span class="math inline">\(x\)</span> — <span class="math inline">\(\alpha = 0°\)</span>. <strong>Neither required evaluating a single number.</strong> The structure of the boxed result decided both.</p>
 </div>
-<p>From a distance, two charges <span class="math inline">\(q\)</span> separated by a small gap are indistinguishable from a single charge <span class="math inline">\(2q\)</span> — which is exactly what should happen. Recognizing a cancelling component <em>before</em> computing anything is the most valuable habit in this chapter, and it is the same move that makes the continuous distributions in §22.5 tractable.</p>
-<h3 id="special-case-electric-dipole">Special Case: Electric Dipole</h3>
-<p>An <strong>electric dipole</strong> consists of two equal and opposite charges (<span class="math inline">\(+q\)</span> and <span class="math inline">\(-q\)</span>) separated by a distance <span class="math inline">\(2a\)</span>.</p>
+<section id="putting-numbers-in" class="example">
+<h3>Putting Numbers In</h3>
+<p><span class="math inline">\(q_{1} = +4.00\)</span> nC at <span class="math inline">\(x_{1} = -5.00\)</span> cm and <span class="math inline">\(q_{2} = +2.00\)</span> nC at <span class="math inline">\(x_{2} = +9.00\)</span> cm, with P at <span class="math inline">\((0,\ 12.0)\)</span> cm. The arrangement is <strong>not</strong> symmetric, so the general line applies rather than either boxed limit.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_5_superposition.png" alt="Figure 22.5b: Superposition — the net electric field at P is the vector sum of the individual fields" loading="lazy" style="max-width:min(3.9in,100%)" /><figcaption>Figure 22.5b: Superposition — the net electric field at P is the vector sum of the individual fields</figcaption></figure>
+<p><span class="math display">\[\vec{r}_{1} = 5.00\,\widehat{i} + 12.0\,\widehat{j}\ \text{cm}, \quad r_{1} = 13.0\ \text{cm} \qquad\qquad \vec{r}_{2} = -9.00\,\widehat{i} + 12.0\,\widehat{j}\ \text{cm}, \quad r_{2} = 15.0\ \text{cm}\]</span></p>
+<p><span class="math display">\[\vec{E} = (16364)\left( 0.0500\,\widehat{i} + 0.120\,\widehat{j} \right) + (5326)\left( -0.0900\,\widehat{i} + 0.120\,\widehat{j} \right)\]</span></p>
+<p><span class="math display">\[\vec{E} = \left( 818\,\widehat{i} + 1964\,\widehat{j} \right) + \left( -479\,\widehat{i} + 639\,\widehat{j} \right)\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec{E} = 339\,\widehat{i} + 2603\,\widehat{j}\ \ \text{N/C}, \qquad E = 2.62\times10^{3}\ \text{N/C}, \qquad \alpha = 82.6°\;}\]</span></p>
+</div>
+<p>The horizontal parts oppose and very nearly spend each other; the vertical parts add outright. That is the <span class="math inline">\(\left( q_{1} - q_{2} \right)\)</span> and <span class="math inline">\(\left( q_{1} + q_{2} \right)\)</span> structure of the boxed result showing up before the arrangement was made symmetric. Note also that <span class="math inline">\(\alpha\)</span> is an <strong>output</strong> — the direction of the answer, measured from the <span class="math inline">\(+x\)</span>-axis. No angle was supplied to get here.</p>
+<p><strong>The same geometry, one sign flipped.</strong> Let <span class="math inline">\(q_{2} = -2.00\)</span> nC instead. Every distance is unchanged and both magnitudes are exactly what they were; only the second term changes sign, so <span class="math inline">\(\left( -479\,\widehat{i} + 639\,\widehat{j} \right)\)</span> becomes <span class="math inline">\(\left( 479\,\widehat{i} - 639\,\widehat{j} \right)\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_5b_superposition_flipped.png" alt="Figure 22.5c: The same two charges with q_2 negative — the same magnitudes, a different sum" loading="lazy" style="max-width:min(3.9in,100%)" /><figcaption>Figure 22.5c: The same two charges with <span class="math inline">\(q_2\)</span> negative — the same magnitudes, a different sum</figcaption></figure>
+<p><span class="math display">\[\vec{E} = 1297\,\widehat{i} + 1325\,\widehat{j}\ \ \text{N/C}, \qquad E = 1.85\times10^{3}\ \text{N/C}, \qquad \alpha = 45.6°\]</span></p>
+<p>Not one distance and not one magnitude changed, yet the answer swung from <span class="math inline">\(82.6°\)</span> to <span class="math inline">\(45.6°\)</span> and lost nearly a third of its size. Every bit of that came from direction alone, and the roles of the components swapped: the horizontal parts now add while the vertical parts oppose. The near-<span class="math inline">\(45°\)</span> is a coincidence — <span class="math inline">\(E_x\)</span> and <span class="math inline">\(E_y\)</span> simply happen to land close together — and it disappears the moment either charge changes.</p>
+</section>
+<h3 id="a-check-the-law-of-cosines">A Check: the Law of Cosines</h3>
+<p><span class="math inline">\(\vec{E}_{1}\)</span>, <span class="math inline">\(\vec{E}_{2}\)</span> and their sum form a triangle, so the magnitude can also be had from the law of cosines — provided you can name the angle it wants:</p>
+<p><span class="math display">\[E^{2} = E_{1}^{2} + E_{2}^{2} - 2E_{1}E_{2}\cos\gamma\]</span></p>
+<p>That angle is <span class="math inline">\(\gamma\)</span> in Figure 22.5: the interior angle where <span class="math inline">\(\vec{E}_{2}\)</span> is carried over tip-to-tail from the head of <span class="math inline">\(\vec{E}_{1}\)</span>. It is not a new quantity — it is the sum of the two angles the fields already make with the horizontal.</p>
+<p><span class="math display">\[\gamma = \theta + \phi = 67.4° + 53.1° = 120.5°\]</span></p>
+<p><span class="math display">\[E = \sqrt{\left( 2127 \right)^{2} + \left( 799 \right)^{2} - 2\left( 2127 \right)\left( 799 \right)\cos 120.5°} = 2.62 \times 10^{3}\ \text{N/C}\]</span></p>
+<p>the same number the components gave. Note what it does <strong>not</strong> give you: the direction. <span class="math inline">\(\alpha\)</span> still has to come from <span class="math inline">\(E_{x}\)</span> and <span class="math inline">\(E_{y}\)</span>, or from a second application of the law of sines. That is the reason to learn the component route rather than this one — <strong>it finishes the problem in a single pass</strong>, and this does not.</p>
+<h3 id="the-electric-dipole">The Electric Dipole</h3>
+<p>An <strong>electric dipole</strong> is the second boxed limit above: equal and opposite charges, <span class="math inline">\(+q\)</span> and <span class="math inline">\(-q\)</span>, separated by <span class="math inline">\(2a\)</span>. It is worth its own name because it is the leading behaviour of any neutral object with separated charge — a water molecule, an antenna, a polarized atom.</p>
 <figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_6_dipole.png" alt="Figure 22.6: Electric dipole with field lines curving from positive to negative charge" loading="lazy" style="max-width:min(4.2in,100%)" /><figcaption>Figure 22.6: Electric dipole with field lines curving from positive to negative charge</figcaption></figure>
-<p>For points far from the dipole (<span class="math inline">\(y &gt;&gt; a\)</span>), the electric field along the perpendicular bisector falls off as:</p>
-<p><span class="math display">\[E \propto \frac{1}{y^3}\]</span></p>
-<p>This is faster than the <span class="math inline">\(1/r^2\)</span> falloff of a single charge! The fields from the two charges partially cancel.</p>
-</div>
+<p>Along the perpendicular bisector the field falls off as <span class="math inline">\(1/y^{3}\)</span> rather than <span class="math inline">\(1/y^{2}\)</span>. A dipole is neutral, so from far enough away it must look like nothing at all; the <span class="math inline">\(1/y^{3}\)</span> is how fast “nearly nothing” arrives.</p>
 <hr />
 <h2 id="electric-field-from-continuous-charge-distributions-calculus-extension">22.5 — Electric Field from Continuous Charge Distributions (Calculus Extension)</h2>
 <h3 id="from-discrete-to-continuous">From Discrete to Continuous</h3>
@@ -495,25 +563,49 @@
 <p><strong>Linear charge density</strong> (charge per unit length): <span class="math display">\[\lambda = \frac{dq}{dx} \quad \Rightarrow \quad dq = \lambda\, dx\]</span> Units: C/m</p>
 <p><strong>Surface charge density</strong> (charge per unit area): <span class="math display">\[\sigma = \frac{dq}{dA} \quad \Rightarrow \quad dq = \sigma\, dA\]</span> Units: C/m²</p>
 <p><strong>Volume charge density</strong> (charge per unit volume): <span class="math display">\[\rho = \frac{dq}{dV} \quad \Rightarrow \quad dq = \rho\, dV\]</span> Units: C/m³</p>
-<section id="example-electric-field-from-a-semicircular-arc" class="example">
-<h3>Example: Electric Field from a Semicircular Arc</h3>
+<div class="example">
+<h3 id="example-electric-field-from-a-semicircular-arc">Example: Electric Field from a Semicircular Arc</h3>
 <p>A thin wire is bent into a <strong>semicircle of radius <span class="math inline">\(R\)</span></strong> carrying total charge <span class="math inline">\(Q\)</span> spread uniformly along its length. Find the electric field at the center of the circle.</p>
-<p><strong>Step 1 — Symmetry first, before any integral.</strong> Put the arc in the upper half-plane with its center at the origin. For every charge element on the left half there is a mirror element on the right. Their horizontal contributions point in opposite directions and cancel exactly; their vertical contributions both point the same way and add.</p>
-<p><span class="math display">\[E_x = 0 \quad \text{(by symmetry)}\]</span></p>
-<p>Identifying the component that <em>dies</em> — before writing anything down — is the whole skill. It turns a vector problem into a scalar one.</p>
-<p><strong>Step 2 — One element.</strong> The arc has length <span class="math inline">\(\pi R\)</span>, so <span class="math inline">\(\lambda = Q/\pi R\)</span>. An element subtending angle <span class="math inline">\(d\theta\)</span> carries <span class="math inline">\(dq = \lambda R\, d\theta\)</span>, and — this is what makes the arc easy — <strong>every element sits the same distance <span class="math inline">\(R\)</span> from the center.</strong> So each contributes the same magnitude:</p>
-<p><span class="math display">\[dE = k_e\frac{dq}{R^2} = \frac{k_e \lambda\, d\theta}{R}\]</span></p>
-<p><strong>Step 3 — Keep only what survives, and integrate.</strong> The vertical fraction of each contribution is <span class="math inline">\(\sin\theta\)</span>:</p>
-<p><span class="math display">\[E_y = \frac{k_e\lambda}{R}\int_0^{\pi}\sin\theta\, d\theta = \frac{k_e\lambda}{R}\Big[-\cos\theta\Big]_0^{\pi} = \frac{2k_e\lambda}{R}\]</span></p>
+<p>Put the arc in the upper half-plane with its centre at the origin, and let <span class="math inline">\(\theta\)</span> measure position along it from the <span class="math inline">\(+x\)</span>-axis. Let <span class="math inline">\(\lambda = Q/\pi R\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_23_arc_element.png" alt="Figure 22.9: One element of the arc, and the field it produces at the centre. Both components are written before any of them is discarded." loading="lazy" style="max-width:min(4.1in,100%)" /><figcaption>Figure 22.9: One element of the arc, and the field it produces at the centre. Both components are written before any of them is discarded.</figcaption></figure>
+<p><span class="math display">\[\vec{E} = \int \frac{k_e\, dq}{R^{2}}\,\widehat{r}\]</span></p>
+<p><span class="math display">\[dq = \lambda R\, d\theta\]</span></p>
+<p>Every element sits the <strong>same distance <span class="math inline">\(R\)</span></strong> from the centre, so <span class="math inline">\(R\)</span> never varies and comes straight out of the integral:</p>
+<p><span class="math display">\[dE = \frac{k_e\, dq}{R^{2}} = \frac{k_e \lambda\, d\theta}{R}\]</span></p>
+<p>Resist the temptation to declare a component zero on sight. Take <strong>one</strong> element, at angle <span class="math inline">\(\theta\)</span>, and write <strong>both</strong> of its components. The element sits at <span class="math inline">\(R\left( \cos\theta,\ \sin\theta \right)\)</span>, and for <span class="math inline">\(\lambda &gt; 0\)</span> the field it makes at the centre points <em>away</em> from it, along <span class="math inline">\(-\left( \cos\theta,\ \sin\theta \right)\)</span>:</p>
+<p><span class="math display">\[d\vec{E} = -\frac{k_e\lambda\, d\theta}{R}\left( \cos\theta\, \widehat{i} + \sin\theta\, \widehat{j} \right)\]</span></p>
+<p><span class="math display">\[E_x = -\frac{k_e\lambda}{R}\int \cos\theta\, d\theta, \qquad\qquad E_y = -\frac{k_e\lambda}{R}\int \sin\theta\, d\theta\]</span></p>
+<p>Nothing has been thrown away and no symmetry has been claimed. The physics is finished; what remains is a question about <strong>limits</strong>. For the semicircle they run from <span class="math inline">\(0\)</span> to <span class="math inline">\(\pi\)</span>:</p>
+<p><span class="math display">\[E_x = -\frac{k_e\lambda}{R}\Big[\sin\theta\Big]_{0}^{\pi} = -\frac{k_e\lambda}{R}\left( 0 - 0 \right) = 0, \qquad E_y = -\frac{k_e\lambda}{R}\Big[-\cos\theta\Big]_{0}^{\pi} = -\frac{2k_e\lambda}{R}\]</span></p>
+<p><strong>The zero was computed, not asserted.</strong> <span class="math inline">\(\sin\pi - \sin 0 = 0\)</span> — that <em>is</em> the symmetry argument, performed by the integral rather than substituted for it. It is the same event as <span class="math inline">\(\left( q_{1} - q_{2} \right)\)</span> vanishing in §22.4: write both components, then read which one the structure kills.</p>
 <div class="result">
-<p><span class="math display">\[\boxed{\;E = \frac{2k_e\lambda}{R} = \frac{2k_e Q}{\pi R^2}\;}\]</span></p>
+<p><span class="math display">\[\boxed{\;\vec{E} = -\frac{2k_e\lambda}{R}\,\widehat{j}, \qquad E = \frac{2k_e\lambda}{R} = \frac{2k_e Q}{\pi R^2}\;}\]</span></p>
 </div>
 <p>directed along the arc’s axis of symmetry, away from the arc for positive <span class="math inline">\(Q\)</span>.</p>
 <div class="check">
 <p><strong>Is that reasonable?</strong> Collapse the same charge <span class="math inline">\(Q\)</span> into a single point at the same distance <span class="math inline">\(R\)</span> and you would get <span class="math inline">\(k_eQ/R^2\)</span>. The arc delivers <span class="math inline">\(2/\pi \approx 64\%\)</span> of that. <strong>Spreading charge out always costs you field strength</strong> relative to concentrating it at the same distance — the off-axis parts of each contribution cancel against each other and are simply lost. That ratio, <span class="math inline">\(2/\pi\)</span>, is the price of the spreading.</p>
 </div>
-<p><em>*Notice what actually did the work here. Not the integral — that was one line. The symmetry argument, which told us which component was worth computing at all. Every continuous distribution you will meet, whether a rod, a ring, a disk, or an infinite sheet, is the same five moves: choose <span class="math inline">\(dq\)</span>, write <span class="math inline">\(r\)</span>, kill a component by symmetry, integrate what is left, then check a limit. Chapter 23 promotes this instinct to a law.</em></p>
-</section>
+<h3 id="change-one-limit-the-quarter-arc">Change One Limit: the Quarter Arc</h3>
+<p>Nothing in the setup above was special to a half-circle. Bend the same wire into a <strong>quarter</strong> in the first quadrant, keeping <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(R\)</span>, and every line up to the integrals is unchanged. Only the upper limit moves, from <span class="math inline">\(\pi\)</span> to <span class="math inline">\(\pi/2\)</span>:</p>
+<p><span class="math display">\[E_x = -\frac{k_e\lambda}{R}\Big[\sin\theta\Big]_{0}^{\pi/2} = -\frac{k_e\lambda}{R}\left( 1 - 0 \right) = -\frac{k_e\lambda}{R}\]</span></p>
+<p><span class="math display">\[E_y = -\frac{k_e\lambda}{R}\Big[-\cos\theta\Big]_{0}^{\pi/2} = -\frac{k_e\lambda}{R}\left( 0 + 1 \right) = -\frac{k_e\lambda}{R}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec{E} = -\frac{k_e\lambda}{R}\left( \widehat{i} + \widehat{j} \right), \qquad E = \frac{\sqrt{2}\,k_e\lambda}{R}\;}\]</span></p>
+</div>
+<p>directed at <span class="math inline">\(45°\)</span> below the <span class="math inline">\(-x\)</span> axis. <strong>This time nothing vanished.</strong> The same cosine integral that returned zero across a full half-turn returns <span class="math inline">\(1\)</span> across a quarter, so both components survive — and the quarter arc’s field is <em>not</em> along either axis.</p>
+<div class="check">
+<p><strong>Why are the two components equal?</strong> Because the quarter arc is symmetric about the <span class="math inline">\(45°\)</span> line, so it cannot prefer <span class="math inline">\(x\)</span> over <span class="math inline">\(y\)</span>. Notice what that symmetry did and did not do: it <strong>predicted</strong> that the two answers would match, which is a useful check, but it <strong>removed no work</strong>. Compare that with the half-circle, where the symmetry genuinely killed an integral. Symmetry is a gift when you get one; it is not a method.</p>
+</div>
+<h3 id="one-formula-for-any-arc">One Formula for Any Arc</h3>
+<p>Both results above are cases of a single statement. Put <span class="math inline">\(\theta\)</span> on the arc’s <strong>own</strong> axis of symmetry rather than the <span class="math inline">\(x\)</span>-axis, letting it run from <span class="math inline">\(-\theta_{0}\)</span> to <span class="math inline">\(+\theta_{0}\)</span>, so the arc has opening angle <span class="math inline">\(2\theta_{0}\)</span>. The perpendicular component then vanishes for <em>every</em> arc at once — its integrand is odd and the limits are symmetric — and with total charge <span class="math inline">\(Q = 2\lambda R\theta_{0}\)</span> the survivor is</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{k_e Q}{R^{2}} \cdot \frac{\sin\theta_{0}}{\theta_{0}}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Shrink the arc and watch Coulomb’s law come back.</strong> As <span class="math inline">\(\theta_{0} \rightarrow 0\)</span> the charge <span class="math inline">\(Q\)</span> crowds onto a single point at distance <span class="math inline">\(R\)</span>, and <span class="math inline">\(\sin\theta_{0}/\theta_{0} \rightarrow 1\)</span>, leaving <span class="math inline">\(E \rightarrow k_{e}Q/R^{2}\)</span>. The integral did not replace Coulomb’s law — it generalised it, and this is the proof. The whole factor <span class="math inline">\(\sin\theta_{0}/\theta_{0}\)</span> <strong>is</strong> the price of spreading: exactly <span class="math inline">\(1\)</span> for a point, and falling as the charge is smeared around the circle. At <span class="math inline">\(\theta_{0} = \pi/2\)</span> it is <span class="math inline">\(2/\pi\)</span>, which is the <span class="math inline">\(64\%\)</span> found above; at <span class="math inline">\(\theta_{0} = \pi\)</span> the arc closes into a full ring, <span class="math inline">\(\sin\pi = 0\)</span>, and the field at the centre is zero — as it must be.</p>
+</div>
+<p><em>*Notice what actually did the work here. Not the integral — that was one line. It was <strong>writing both components before deciding anything</strong>, which let the limits report which one survives instead of you guessing. Every continuous distribution you will meet, whether a rod, a ring, a disk, or an infinite sheet, is the same five moves: choose <span class="math inline">\(dq\)</span>, write <span class="math inline">\(r\)</span>, write both components, integrate, then check a limit. Chapter 23 promotes this instinct to a law.</em></p>
+</div>
 <hr />
 <h2 id="electric-field-lines">22.6 — Electric Field Lines</h2>
 <h3 id="visualizing-the-electric-field">Visualizing the Electric Field</h3>
@@ -536,6 +628,15 @@
 <h3 id="field-lines-and-flux">Field Lines and Flux</h3>
 <p>The <strong>density of field lines</strong> (number of lines per unit area) is proportional to the electric field magnitude. This concept will be formalized as <strong>electric flux</strong> in Chapter 23 when we introduce Gauss’s Law.</p>
 <figure class="chap-fig"><img src="/courses/pseii/ch22_figures/fig_22_8_parallel_plates.png" alt="Figure 22.8: Uniform electric field between parallel plates" loading="lazy" style="max-width:min(4.6in,100%)" /><figcaption>Figure 22.8: Uniform electric field between parallel plates</figcaption></figure>
+<h3 id="equipotentials-what-the-lab-actually-measures">Equipotentials: What the Lab Actually Measures</h3>
+<p>In lab (<strong>Experiment 203, Electric Field Mapping</strong>) you will not measure field lines. A voltmeter probe reads <strong>electric potential</strong>, so what you can actually map are the curves along which that reading does not change. These are called <strong>equipotentials</strong>: surfaces on which no work is required to move a charge from one point to another.</p>
+<p>The two pictures are linked by a single geometric fact:</p>
+<blockquote>
+<p><strong>Equipotentials always cross electric field lines at right angles.</strong></p>
+</blockquote>
+<p>That is what makes the experiment work. You map the equipotentials, draw the perpendiculars, and you have recovered the field lines you could not measure directly.</p>
+<p>Rule 5 above is this same statement in disguise. The surface of a conductor in electrostatic equilibrium is an equipotential — every point on it sits at the same potential — which is exactly why field lines must meet it square.</p>
+<p>We are not defining potential yet; that is <strong>Chapter 24</strong>. For now, the word and the perpendicularity are enough to make sense of what appears on your plotting paper.</p>
 <hr />
 <h2 id="motion-of-a-charged-particle-in-a-uniform-electric-field">22.7 — Motion of a Charged Particle in a Uniform Electric Field</h2>
 <section id="projectile-motion-analogy" class="connection">
@@ -558,7 +659,7 @@
 <p><strong>(C) Find the velocity components after traveling 5.00 cm horizontally.</strong></p>
 <p><span class="math display">\[v_x = 4.50 \times 10^5\ \text{m/s}\]</span> (unchanged)</p>
 <p><span class="math display">\[v_y = a_y t = (9.19 \times 10^{11})(1.11 \times 10^{-7}) = 1.02 \times 10^5\ \text{m/s}\]</span></p>
-<p><span class="math display">\[\vec{v} = (4.50 \times 10^5\ \hat{i} + 1.02 \times 10^5\ \hat{j})\ \text{m/s}\]</span></p>
+<p><span class="math display">\[\vec{v} = \left( 4.50 \times 10^5\ \widehat{i} + 1.02 \times 10^5\ \widehat{j} \right)\ \text{m/s}\]</span></p>
 </section>
 <h3 id="energy-considerations">Energy Considerations</h3>
 <p>We can also analyze motion using energy methods. The work done by the electric field on a charge is:</p>
