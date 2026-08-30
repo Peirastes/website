@@ -105,14 +105,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +140,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +159,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -161,9 +188,23 @@
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -187,8 +228,9 @@
 
 <h2 id="a-more-elegant-approach">23.0 — A More Elegant Approach</h2>
 <p>In Chapter 22, we developed the tools to calculate electric fields from charge distributions using Coulomb’s Law and the superposition principle. For continuous charge distributions, this required setting up integrals that could become mathematically challenging — especially for three-dimensional distributions.</p>
-<p>In 1835, <strong>Carl Friedrich Gauss</strong> (1777–1855), one of the greatest mathematicians in history, published a theorem that would revolutionize how we calculate electric fields. Gauss had already made profound contributions to mathematics, astronomy, and physics, including the development of non-Euclidean geometry and the method of least squares.</p>
+<p>In 1835, <strong>Carl Friedrich Gauss</strong> (1777–1855), one of the greatest mathematicians in history, wrote down a theorem that would revolutionize how we calculate electric fields — and then did not publish it. It appeared in 1867, thirty-two years after he set it down and twelve years after his death. Gauss had already made profound contributions to mathematics, astronomy, and physics, including the development of non-Euclidean geometry and the method of least squares; this result sat in a drawer among them.</p>
 <p><strong>Gauss’s Law</strong> provides an alternative approach to finding electric fields that is remarkably powerful when the charge distribution has <strong>symmetry</strong>. Rather than summing up contributions from every bit of charge, Gauss’s Law relates the <em>total electric flux</em> through a closed surface to the <em>total charge enclosed</em> within that surface.</p>
+<p>Chapter 22 closed by promising that the instinct you built there — <em>look for the symmetry before you set up the integral</em> — would be promoted to a law. This is that law.</p>
 <blockquote>
 <p>“Mathematics is the queen of the sciences and number theory is the queen of mathematics.” — Carl Friedrich Gauss</p>
 </blockquote>
@@ -205,46 +247,55 @@
 <table>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Distribution Type</th>
-<th style="text-align: left;">Charge Density</th>
-<th style="text-align: left;">Infinitesimal Charge</th>
-<th style="text-align: left;">Units</th>
+<th>Distribution Type</th>
+<th>Charge Density</th>
+<th>Infinitesimal Charge</th>
+<th>Units</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Line (1D)</td>
-<td style="text-align: left;"><span class="math inline">\(\lambda\)</span> = charge/length</td>
-<td style="text-align: left;"><span class="math inline">\(dq = \lambda\, d\ell\)</span></td>
-<td style="text-align: left;">C/m</td>
+<td>Line (1D)</td>
+<td><span class="math inline">\(\lambda\)</span> = charge/length</td>
+<td><span class="math inline">\(dq = \lambda\, d\ell\)</span></td>
+<td>C/m</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Surface (2D)</td>
-<td style="text-align: left;"><span class="math inline">\(\sigma\)</span> = charge/area</td>
-<td style="text-align: left;"><span class="math inline">\(dq = \sigma\, dA\)</span></td>
-<td style="text-align: left;">C/m²</td>
+<td>Surface (2D)</td>
+<td><span class="math inline">\(\sigma\)</span> = charge/area</td>
+<td><span class="math inline">\(dq = \sigma\, dA\)</span></td>
+<td>C/m²</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Volume (3D)</td>
-<td style="text-align: left;"><span class="math inline">\(\rho\)</span> = charge/volume</td>
-<td style="text-align: left;"><span class="math inline">\(dq = \rho\, dV\)</span></td>
-<td style="text-align: left;">C/m³</td>
+<td>Volume (3D)</td>
+<td><span class="math inline">\(\rho\)</span> = charge/volume</td>
+<td><span class="math inline">\(dq = \rho\, dV\)</span></td>
+<td>C/m³</td>
 </tr>
 </tbody>
 </table>
-<h3 id="example-electric-field-of-a-uniformly-charged-ring">Example: Electric Field of a Uniformly Charged Ring</h3>
-<p>Consider a ring of radius <span class="math inline">\(a\)</span> carrying total charge <span class="math inline">\(Q\)</span>, uniformly distributed. We wish to find the electric field at a point P on the axis of the ring, a distance <span class="math inline">\(x\)</span> from the center.</p>
-<p><strong>Setup:</strong> By symmetry, the components of the electric field perpendicular to the axis cancel in pairs. Only the axial component survives.</p>
-<p><strong>Analysis:</strong> Every charge element <span class="math inline">\(dq\)</span> is at the same distance <span class="math inline">\(r = \sqrt{a^{2} + x^{2}}\)</span> from point P. The axial component of the field from each element is:</p>
-<p><span class="math display">\[dE_{x} = k_{e}\frac{dq}{r^{2}}\cos\theta = k_{e}\frac{dq}{a^{2} + x^{2}} \cdot \frac{x}{\sqrt{a^{2} + x^{2}}}\]</span></p>
-<p>Integrating around the ring:</p>
-<p><span class="math display">\[E_{x} = k_{e}\frac{x}{\left( a^{2} + x^{2} \right)^{3/2}}\int dq = \frac{k_{e}Qx}{\left( a^{2} + x^{2} \right)^{3/2}}\]</span></p>
-<p><strong>Limiting Cases:</strong></p>
+<h3 id="the-ring-on-its-axis">The Ring on Its Axis</h3>
+<p>One geometry we will lean on immediately is the <strong>uniformly charged ring</strong> of radius <span class="math inline">\(a\)</span> carrying total charge <span class="math inline">\(Q\)</span>, with P on the axis a distance <span class="math inline">\(x\)</span> from the centre. It is worth deriving rather than quoting, because it is the semicircular arc of §22.5 with one extra dimension and nothing else new.</p>
+<p>The move that made the arc easy applies again: <strong>every charge element sits the same distance from P.</strong></p>
+<p><span class="math display">\[r = \sqrt{a^{2} + x^{2}} \qquad \text{for every element on the ring}\]</span></p>
+<p>The symmetry is stronger here than it was for the arc. For any element there is a diametrically opposite one, and their components perpendicular to the axis are equal and opposite. Summed around the ring, everything off-axis cancels; only the axial component survives, and the axial fraction of each contribution is <span class="math inline">\(\cos\theta = x/r\)</span>.</p>
+<p><span class="math display">\[dE_{x} = \frac{k_{e}\, dq}{r^{2}}\cos\theta = \frac{k_{e}\, dq}{r^{2}}\frac{x}{r} = \frac{k_{e}x\, dq}{r^{3}}\]</span></p>
+<p>Because <span class="math inline">\(r\)</span> is the same for every element, the entire prefactor is constant and comes straight out of the integral. What is left is just the total charge.</p>
+<p><span class="math display">\[E_{x} = \frac{k_{e}x}{r^{3}}\int dq = \frac{k_{e}Qx}{r^{3}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E_{x} = \frac{k_{e}Qx}{\left( a^{2} + x^{2} \right)^{3/2}}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Interrogate it along the axis.</strong> Three things should be true, and all three are.</p>
 <ul>
-<li>When <span class="math inline">\(x \gg a\)</span>: <span class="math inline">\(E \approx k_{e}Q/x^{2}\)</span> (point charge behavior)</li>
-<li>When <span class="math inline">\(x = 0\)</span>: <span class="math inline">\(E = 0\)</span> (by symmetry, at the center of the ring)</li>
+<li><strong>At the centre</strong>, <span class="math inline">\(x = 0\)</span> gives <span class="math inline">\(E = 0\)</span>. Nothing else is possible: every element is matched by one directly across the ring, so the cancellation is total.</li>
+<li><strong>Far away</strong>, <span class="math inline">\(x \gg a\)</span> makes the denominator <span class="math inline">\(x^{3}\)</span> and <span class="math inline">\(E \rightarrow k_{e}Q/x^{2}\)</span> — a point charge, which is what a ring must look like from far enough off.</li>
+<li><strong>In between</strong>, therefore, <span class="math inline">\(E\)</span> has to rise from zero and fall back, so it peaks somewhere. Setting <span class="math inline">\(dE_{x}/dx = 0\)</span> gives <span class="math inline">\(a^{2} - 2x^{2} = 0\)</span>, so the field is strongest at <span class="math inline">\(x = a/\sqrt{2}\)</span>.</li>
 </ul>
-<h3 id="example-electric-field-of-a-uniformly-charged-disk">Example: Electric Field of a Uniformly Charged Disk</h3>
+</div>
+<p>That is the whole toolkit from §22.5 reused: choose <span class="math inline">\(dq\)</span>, write <span class="math inline">\(r\)</span>, kill a component by symmetry, integrate what is left, check a limit. <strong>We derived it here for one purpose — to build something larger out of it.</strong></p>
+<section id="example-electric-field-of-a-uniformly-charged-disk" class="example">
+<h3>Example: Electric Field of a Uniformly Charged Disk</h3>
 <p>A disk of radius <span class="math inline">\(R\)</span> has uniform surface charge density <span class="math inline">\(\sigma\)</span>. Find the electric field at a point P on the axis, a distance <span class="math inline">\(x\)</span> from the center.</p>
 <p><strong>Strategy:</strong> Treat the disk as a collection of concentric rings. Each ring of radius <span class="math inline">\(r\)</span> and thickness <span class="math inline">\(dr\)</span> has area <span class="math inline">\(dA = 2\pi r\, dr\)</span> and charge <span class="math inline">\(dq = \sigma\left( 2\pi r\, dr \right)\)</span>.</p>
 <p>Using our ring result with <span class="math inline">\(a \rightarrow r\)</span> and <span class="math inline">\(Q \rightarrow dq\)</span>:</p>
@@ -252,32 +303,37 @@
 <p>Integrating from <span class="math inline">\(r = 0\)</span> to <span class="math inline">\(r = R\)</span>:</p>
 <p><span class="math display">\[E_{x} = 2\pi k_{e}\sigma x\int_{0}^{R}\frac{r\, dr}{\left( r^{2} + x^{2} \right)^{3/2}}\]</span></p>
 <p>Using the substitution <span class="math inline">\(u = r^{2} + x^{2}\)</span>:</p>
-<p><span class="math display">\[E_{x} = 2\pi k_{e}\sigma\left\lbrack 1 - \frac{x}{\sqrt{R^{2} + x^{2}}} \right\rbrack\]</span></p>
+<p><span class="math display">\[E_{x} = 2\pi k_{e}\sigma\left[ 1 - \frac{x}{\sqrt{R^{2} + x^{2}}} \right]\]</span></p>
 <p>This can be written as:</p>
-<p><span class="math display">\[E = \frac{\sigma}{2\varepsilon_{0}}\left\lbrack 1 - \frac{x}{\sqrt{R^{2} + x^{2}}} \right\rbrack\]</span></p>
-<p><strong>Limiting Cases:</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{\sigma}{2\varepsilon_{0}}\left[ 1 - \frac{x}{\sqrt{R^{2} + x^{2}}} \right]\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
 <ul>
 <li>When <span class="math inline">\(x \ll R\)</span> (near-field): <span class="math inline">\(E \approx \sigma/\left( 2\varepsilon_{0} \right)\)</span> — uniform field!</li>
 <li>When <span class="math inline">\(R \rightarrow \infty\)</span> (infinite plane): <span class="math inline">\(E = \sigma/\left( 2\varepsilon_{0} \right)\)</span> — independent of distance!</li>
 </ul>
+</div>
+</section>
 <p><em>*This last result is remarkable: an infinite plane of charge creates a uniform electric field that does not depend on how far you are from the plane. We will derive this same result much more simply using Gauss’s Law.</em></p>
 <h2 id="electric-flux">23.2 — Electric Flux</h2>
 <p>To understand Gauss’s Law, we must first define a new quantity: <strong>electric flux</strong>. The concept of flux was introduced by Faraday as part of his “lines of force” visualization.</p>
 <h3 id="definition-of-electric-flux">Definition of Electric Flux</h3>
 <p>Consider a flat surface of area <span class="math inline">\(A\)</span> in a uniform electric field <span class="math inline">\(\vec{E}\)</span>. If the surface is perpendicular to the field, the <strong>electric flux</strong> through the surface is defined as:</p>
 <p><span class="math display">\[\Phi_{E} = EA\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_1_flux_perpendicular.png" alt="Figure 23.1: Electric flux through a surface perpendicular to the field — the area vector \vec{A} points normal to the surface, so \Phi_E = EA." loading="lazy" style="max-width:min(3.8in,100%)" /><figcaption>Figure 23.1: Electric flux through a surface perpendicular to the field — the area vector \vec{A} points normal to the surface, so \Phi_E = EA.</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_1_flux_perpendicular.png" alt="Figure 23.1: Electric flux through a surface perpendicular to the field — the area vector \vec{A} points normal to the surface, so \Phi_E = EA." loading="lazy" style="max-width:min(3.8in,100%)" /><figcaption>Figure 23.1: Electric flux through a surface perpendicular to the field — the area vector <span class="math inline">\(\vec{A}\)</span> points normal to the surface, so <span class="math inline">\(\Phi_E = EA\)</span>.</figcaption></figure>
 <p>The flux represents the “amount of electric field” passing through the surface. In Faraday’s picture, flux counts the number of field lines passing through the surface.</p>
 <p><strong>Units:</strong> The SI unit of electric flux is N·m²/C, or equivalently, V·m.</p>
 <h3 id="flux-through-a-tilted-surface">Flux Through a Tilted Surface</h3>
 <p>If the surface makes an angle <span class="math inline">\(\theta\)</span> with the field (specifically, <span class="math inline">\(\theta\)</span> is the angle between the field and the <em>normal</em> to the surface), then:</p>
 <p><span class="math display">\[\Phi_{E} = EA\cos\theta = \vec{E} \cdot \vec{A}\]</span></p>
 <p>where <span class="math inline">\(\vec{A}\)</span> is the <strong>area vector</strong> — a vector perpendicular to the surface with magnitude equal to the area.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_2_flux_tilted.png" alt="Figure 23.2: Flux through a tilted surface: \Phi_E = EA\cos\theta. Flux is maximum when the surface is perpendicular to the field (\theta=0) and zero when parallel (\theta=90^\circ)." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 23.2: Flux through a tilted surface: \Phi_E = EA\cos\theta. Flux is maximum when the surface is perpendicular to the field (\theta=0) and zero when parallel (\theta=90^\circ).</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_2_flux_tilted.png" alt="Figure 23.2: Flux through a tilted surface: \Phi_E = EA\cos\theta. Flux is maximum when the surface is perpendicular to the field (\theta=0) and zero when parallel (\theta=90^\circ)." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 23.2: Flux through a tilted surface: <span class="math inline">\(\Phi_E = EA\cos\theta\)</span>. Flux is maximum when the surface is perpendicular to the field (<span class="math inline">\(\theta=0\)</span>) and zero when parallel (<span class="math inline">\(\theta=90^\circ\)</span>).</figcaption></figure>
 <p><strong>Key observations:</strong></p>
 <ul>
-<li>Maximum flux when surface is perpendicular to field (<span class="math inline">\(\theta = 0{^\circ}\)</span>): <span class="math inline">\(\Phi_{E} = EA\)</span></li>
-<li>Zero flux when surface is parallel to field (<span class="math inline">\(\theta = 90{^\circ}\)</span>): <span class="math inline">\(\Phi_{E} = 0\)</span></li>
+<li>Maximum flux when surface is perpendicular to field (<span class="math inline">\(\theta = 0^\circ\)</span>): <span class="math inline">\(\Phi_{E} = EA\)</span></li>
+<li>Zero flux when surface is parallel to field (<span class="math inline">\(\theta = 90^\circ\)</span>): <span class="math inline">\(\Phi_{E} = 0\)</span></li>
 <li>Flux can be positive or negative depending on orientation</li>
 </ul>
 <h3 id="general-definition-non-uniform-fields">General Definition: Non-uniform Fields</h3>
@@ -319,7 +375,7 @@
 </ol>
 <h3 id="derivation-for-a-point-charge">Derivation for a Point Charge</h3>
 <p>Consider a point charge <span class="math inline">\(q\)</span> at the center of a spherical Gaussian surface of radius <span class="math inline">\(r\)</span>.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_3_sphere_gaussian.png" alt="Figure 23.3: A spherical Gaussian surface centered on a point charge. Left: 2D cross-section, with \vec{E} radial and parallel to d\vec{A} everywhere. Right: 3D view with radial field vectors piercing the surface." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 23.3: A spherical Gaussian surface centered on a point charge. Left: 2D cross-section, with \vec{E} radial and parallel to d\vec{A} everywhere. Right: 3D view with radial field vectors piercing the surface.</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_3_sphere_gaussian.png" alt="Figure 23.3: A spherical Gaussian surface centered on a point charge. Left: 2D cross-section, with \vec{E} radial and parallel to d\vec{A} everywhere. Right: 3D view with radial field vectors piercing the surface." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 23.3: A spherical Gaussian surface centered on a point charge. Left: 2D cross-section, with <span class="math inline">\(\vec{E}\)</span> radial and parallel to <span class="math inline">\(d\vec{A}\)</span> everywhere. Right: 3D view with radial field vectors piercing the surface.</figcaption></figure>
 <p><strong>By symmetry:</strong></p>
 <ul>
 <li><span class="math inline">\(\vec{E}\)</span> is radial and has constant magnitude <span class="math inline">\(E\)</span> on the sphere</li>
@@ -331,34 +387,42 @@
 <p>Substituting:</p>
 <p><span class="math display">\[\oint\vec{E} \cdot d\vec{A} = \frac{q}{4\pi\varepsilon_{0}r^{2}} \cdot 4\pi r^{2} = \frac{q}{\varepsilon_{0}}\]</span></p>
 <p>The <span class="math inline">\(r^{2}\)</span> terms cancel! This shows why Gauss’s Law works: the <span class="math inline">\(1/r^{2}\)</span> dependence of the electric field exactly compensates for the <span class="math inline">\(r^{2}\)</span> growth of the spherical surface area.</p>
-<h3 id="gausss-law-and-coulombs-law">Gauss’s Law and Coulomb’s Law</h3>
+<p><em>*That cancellation is not a coincidence, and it is worth a moment. It works because the surface area of a sphere grows as <span class="math inline">\(r^{2}\)</span> — precisely as fast as an inverse-square field falls off — and the surface of a sphere grows as <span class="math inline">\(r^{2}\)</span> because we live in <strong>three</strong> spatial dimensions. In a two-dimensional universe the field of a point charge would fall as <span class="math inline">\(1/r\)</span>, and in four dimensions as <span class="math inline">\(1/r^{3}\)</span>. Gauss’s Law would still hold in either, but the inverse-square law you memorized would not. The exponent in Coulomb’s Law is a statement about the dimensionality of space.</em></p>
+<section id="gausss-law-and-coulombs-law" class="connection">
+<h3>Gauss’s Law and Coulomb’s Law</h3>
 <p>Gauss’s Law and Coulomb’s Law are equivalent — each can be derived from the other. They represent the same physics in different mathematical forms:</p>
 <table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Coulomb’s Law</th>
-<th style="text-align: left;">Gauss’s Law</th>
+<th>Coulomb’s Law</th>
+<th>Gauss’s Law</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Describes force between charges</td>
-<td style="text-align: left;">Describes flux through surfaces</td>
+<td>Describes force between charges</td>
+<td>Describes flux through surfaces</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Directly gives <span class="math inline">\(\vec{E}\)</span> for point charges Gives $</td>
-<td style="text-align: left;">{E}$ for symmetric distributions</td>
+<td>Directly gives <span class="math inline">\(\vec{E}\)</span> for point charges</td>
+<td>Gives <span class="math inline">\(\vec{E}\)</span> for symmetric distributions</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Requires integration for distributions</td>
-<td style="text-align: left;">Reduces to algebra with symmetry</td>
+<td>Requires integration for distributions</td>
+<td>Reduces to algebra with symmetry</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Always applicable</td>
-<td style="text-align: left;">Most useful with symmetry</td>
+<td>Always applicable</td>
+<td>Most useful with symmetry</td>
 </tr>
 </tbody>
 </table>
+<p>The equivalence has a boundary worth naming. Coulomb’s Law is a statement about charges <em>at rest</em>; Gauss’s Law survives into the time-dependent theory and becomes one of <strong>Maxwell’s four equations</strong>. That is the specific reason Gauss’s Law outlives its origin, and why we meet it again at the end of the course.</p>
+</section>
 <h2 id="applying-gausss-law-strategy-and-symmetry">23.4 — Applying Gauss’s Law: Strategy and Symmetry</h2>
 <p>Gauss’s Law is always <em>true</em>, but it is only <em>useful</em> for calculating electric fields when the charge distribution has sufficient <strong>symmetry</strong>.</p>
 <h3 id="requirements-for-using-gausss-law">Requirements for Using Gauss’s Law</h3>
@@ -401,9 +465,10 @@
 <li><strong>Apply Gauss’s Law</strong> and solve for <span class="math inline">\(E\)</span></li>
 </ol>
 <h2 id="applications-of-gausss-law">23.5 — Applications of Gauss’s Law</h2>
-<h3 id="application-1-uniformly-charged-solid-sphere">Application 1: Uniformly Charged Solid Sphere</h3>
+<section id="application-1-uniformly-charged-solid-sphere" class="example">
+<h3>Application 1: Uniformly Charged Solid Sphere</h3>
 <p>An insulating sphere of radius <span class="math inline">\(R\)</span> has total charge <span class="math inline">\(Q\)</span> distributed uniformly throughout its volume. Find the electric field at all points.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_4_uniform_sphere.png" alt="Figure 23.4: Uniformly charged solid sphere. Left: field magnitude E vs r — rising linearly inside the sphere, then falling as 1/r^2 outside. Right: 3D view with a Gaussian surface inside and one outside the charged sphere." loading="lazy" style="max-width:min(5.5in,100%)" /><figcaption>Figure 23.4: Uniformly charged solid sphere. Left: field magnitude E vs r — rising linearly inside the sphere, then falling as 1/r^2 outside. Right: 3D view with a Gaussian surface inside and one outside the charged sphere.</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_4_uniform_sphere.png" alt="Figure 23.4: Uniformly charged solid sphere. Left: field magnitude E vs r — rising linearly inside the sphere, then falling as 1/r^2 outside. Right: 3D view with a Gaussian surface inside and one outside the charged sphere." loading="lazy" style="max-width:min(5.5in,100%)" /><figcaption>Figure 23.4: Uniformly charged solid sphere. Left: field magnitude <span class="math inline">\(E\)</span> vs <span class="math inline">\(r\)</span> — rising linearly inside the sphere, then falling as <span class="math inline">\(1/r^2\)</span> outside. Right: 3D view with a Gaussian surface inside and one outside the charged sphere.</figcaption></figure>
 <p><strong>Volume charge density:</strong> <span class="math inline">\(\rho = Q/\left( \frac{4}{3}\pi R^{3} \right) = 3Q/\left( 4\pi R^{3} \right)\)</span></p>
 <h4 id="case-a-outside-the-sphere-r-r">Case A: Outside the sphere (<span class="math inline">\(r &gt; R\)</span>)</h4>
 <p><strong>Gaussian surface:</strong> Sphere of radius <span class="math inline">\(r &gt; R\)</span>, centered at the center of the charged sphere</p>
@@ -411,8 +476,9 @@
 <p><strong>By symmetry:</strong> <span class="math inline">\(\vec{E}\)</span> is radial with constant magnitude <span class="math inline">\(E\)</span> on the Gaussian surface</p>
 <p><strong>Gauss’s Law:</strong></p>
 <p><span class="math display">\[E\left( 4\pi r^{2} \right) = \frac{Q}{\varepsilon_{0}}\]</span></p>
-<p><strong>Result:</strong></p>
-<p><span class="math display">\[E = \frac{Q}{4\pi\varepsilon_{0}r^{2}} = \frac{k_{e}Q}{r^{2}}\quad\left( r &gt; R \right)\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{Q}{4\pi\varepsilon_{0}r^{2}} = \frac{k_{e}Q}{r^{2}}\quad\left( r &gt; R \right)\;}\]</span></p>
+</div>
 <p>This is identical to the field of a point charge! Outside a uniformly charged sphere, the field behaves as if all the charge were concentrated at the center.</p>
 <h4 id="case-b-inside-the-sphere-r-r">Case B: Inside the sphere (<span class="math inline">\(r &lt; R\)</span>)</h4>
 <p><strong>Gaussian surface:</strong> Sphere of radius <span class="math inline">\(r &lt; R\)</span></p>
@@ -420,8 +486,9 @@
 <p><span class="math display">\[q_{\text{enc}} = \rho \cdot \frac{4}{3}\pi r^{3} = Q \cdot \frac{r^{3}}{R^{3}}\]</span></p>
 <p><strong>Gauss’s Law:</strong></p>
 <p><span class="math display">\[E\left( 4\pi r^{2} \right) = \frac{Qr^{3}}{\varepsilon_{0}R^{3}}\]</span></p>
-<p><strong>Result:</strong></p>
-<p><span class="math display">\[E = \frac{Qr}{4\pi\varepsilon_{0}R^{3}} = \frac{k_{e}Q}{R^{3}}r\quad\left( r &lt; R \right)\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{Qr}{4\pi\varepsilon_{0}R^{3}} = \frac{k_{e}Q}{R^{3}}r\quad\left( r &lt; R \right)\;}\]</span></p>
+</div>
 <p>Inside the sphere, the field <strong>increases linearly</strong> with <span class="math inline">\(r\)</span>!</p>
 <h4 id="summary-uniformly-charged-sphere">Summary: Uniformly Charged Sphere</h4>
 <p><span class="math display">\[E\left( r \right) = \left\{ \begin{matrix}
@@ -436,9 +503,60 @@
 <li><span class="math inline">\(E\)</span> is continuous at <span class="math inline">\(r = R\)</span></li>
 <li><span class="math inline">\(E\)</span> decreases as <span class="math inline">\(1/r^{2}\)</span> outside the sphere</li>
 </ul>
-<h3 id="application-2-infinite-line-of-charge">Application 2: Infinite Line of Charge</h3>
+</section>
+<section id="putting-numbers-on-it" class="example">
+<h4>Putting Numbers on It</h4>
+<p>Symbolic results are easy to nod at. Let us give the graph a vertical scale. Take a sphere of radius <span class="math inline">\(R = 5.0\ \text{cm}\)</span> carrying <span class="math inline">\(Q = + 40\ \text{nC}\)</span> spread uniformly through its volume, and evaluate <span class="math inline">\(E\)</span> at four radii — two inside, two outside.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Location</th>
+<th>Formula</th>
+<th><span class="math inline">\(E\)</span> (N/C)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(r = R/2\)</span></td>
+<td><span class="math inline">\(k_{e}Qr/R^{3}\)</span></td>
+<td><span class="math inline">\(7.19 \times 10^{4}\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(r = R\)</span> (inside)</td>
+<td><span class="math inline">\(k_{e}Qr/R^{3}\)</span></td>
+<td><span class="math inline">\(1.44 \times 10^{5}\)</span></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(r = R\)</span> (outside)</td>
+<td><span class="math inline">\(k_{e}Q/r^{2}\)</span></td>
+<td><span class="math inline">\(1.44 \times 10^{5}\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(r = 2R\)</span></td>
+<td><span class="math inline">\(k_{e}Q/r^{2}\)</span></td>
+<td><span class="math inline">\(3.60 \times 10^{4}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>Read the middle two rows together. Two different formulas, derived from two different Gaussian surfaces enclosing two different amounts of charge, hand back <strong>the same number</strong> at the boundary. That is what “<span class="math inline">\(E\)</span> is continuous at <span class="math inline">\(r = R\)</span>” means, and it is the check worth running on any piecewise result you derive: if the two branches disagree at the seam, one of them is wrong.</p>
+<p>The outer two rows carry the scaling. Halving the radius from <span class="math inline">\(R\)</span> to <span class="math inline">\(R/2\)</span> halves the field — linear. Doubling it from <span class="math inline">\(R\)</span> to <span class="math inline">\(2R\)</span> cuts the field to a <em>quarter</em> — inverse square. Same charge, same sphere; the geometry of where you stand changes the law you are subject to.</p>
+<p><em>*Is <span class="math inline">\(1.44 \times 10^{5}\ \text{N/C}\)</span> a big field? Air breaks down and sparks at roughly <span class="math inline">\(3 \times 10^{6}\ \text{N/C}\)</span>, so this sphere sits about a factor of twenty below the threshold — charged enough to be worth respecting, not enough to arc. Forty nanocoulombs sounds like nothing. It is not nothing.</em></p>
+</section>
+<section id="contrast-a-thin-spherical-shell" class="connection">
+<h4>Contrast: a Thin Spherical <em>Shell</em></h4>
+<p>Now move all of that charge onto the surface. A thin shell of radius <span class="math inline">\(R\)</span> carries total charge <span class="math inline">\(Q\)</span> spread uniformly over its surface, with nothing inside.</p>
+<p><strong>Outside</strong> (<span class="math inline">\(r &gt; R\)</span>): the Gaussian sphere still encloses all of <span class="math inline">\(Q\)</span>, so nothing changes:</p>
+<p><span class="math display">\[E = \frac{k_{e}Q}{r^{2}} \quad (r &gt; R)\]</span></p>
+<p><strong>Inside</strong> (<span class="math inline">\(r &lt; R\)</span>): a Gaussian sphere of radius <span class="math inline">\(r &lt; R\)</span> encloses <strong>no charge at all</strong>. Gauss’s Law then gives the result immediately:</p>
+<p><span class="math display">\[E\left( 4\pi r^{2} \right) = \frac{0}{\varepsilon_{0}} \quad \Rightarrow \quad E = 0 \quad (r &lt; R)\]</span></p>
+<p>Not “small.” Exactly zero, everywhere inside, no matter where you stand.</p>
+<p><strong>Compare the two cases.</strong> The solid sphere’s field climbs linearly from the centre and joins smoothly onto <span class="math inline">\(k_{e}Q/r^{2}\)</span> at the surface. The shell’s field is zero right up to the surface and then <em>jumps discontinuously</em> to <span class="math inline">\(k_{e}Q/R^{2}\)</span>. Same total charge, same outside field, completely different interior — and Gauss’s Law delivers both in two lines because only the <strong>enclosed</strong> charge ever mattered.</p>
+<p><em>*This is the electrostatic twin of Newton’s <strong>shell theorem</strong>, which you met in PSE-I: a uniform spherical shell of mass exerts no gravitational force on anything inside it, and pulls on anything outside as though all its mass sat at the centre. Newton needed pages of geometry to prove it. Gauss’s Law gives you the electrical version in one step, because the same inverse-square structure underlies both. It is also why the interior of a closed conductor is a safe place to stand — a point we return to in §23.6.</em></p>
+</section>
+<section id="application-2-infinite-line-of-charge" class="example">
+<h3>Application 2: Infinite Line of Charge</h3>
 <p>An infinitely long line carries uniform charge per unit length <span class="math inline">\(\lambda\)</span>. Find the electric field at distance <span class="math inline">\(r\)</span> from the line.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_5_cylinder_line.png" alt="Figure 23.5: A cylindrical Gaussian surface coaxial with an infinite line charge. Left: 2D cross-section. Right: 3D view — radial \vec{E} pierces the curved wall only; there is no flux through the flat end caps." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 23.5: A cylindrical Gaussian surface coaxial with an infinite line charge. Left: 2D cross-section. Right: 3D view — radial \vec{E} pierces the curved wall only; there is no flux through the flat end caps.</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_5_cylinder_line.png" alt="Figure 23.5: A cylindrical Gaussian surface coaxial with an infinite line charge. Left: 2D cross-section. Right: 3D view — radial \vec{E} pierces the curved wall only; there is no flux through the flat end caps." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 23.5: A cylindrical Gaussian surface coaxial with an infinite line charge. Left: 2D cross-section. Right: 3D view — radial <span class="math inline">\(\vec{E}\)</span> pierces the curved wall only; there is no flux through the flat end caps.</figcaption></figure>
 <p><strong>Gaussian surface:</strong> Cylinder of radius <span class="math inline">\(r\)</span> and length <span class="math inline">\(L\)</span>, coaxial with the line</p>
 <p><strong>Symmetry argument:</strong> By symmetry, <span class="math inline">\(\vec{E}\)</span> points radially outward (or inward if <span class="math inline">\(\lambda &lt; 0\)</span>) and has constant magnitude at fixed <span class="math inline">\(r\)</span>.</p>
 <p><strong>Flux calculation:</strong></p>
@@ -449,12 +567,47 @@
 <p><strong>Enclosed charge:</strong> <span class="math inline">\(q_{\text{enc}} = \lambda L\)</span></p>
 <p><strong>Gauss’s Law:</strong></p>
 <p><span class="math display">\[E\left( 2\pi rL \right) = \frac{\lambda L}{\varepsilon_{0}}\]</span></p>
-<p><strong>Result:</strong></p>
-<p><span class="math display">\[E = \frac{\lambda}{2\pi\varepsilon_{0}r} = \frac{2k_{e}\lambda}{r}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{\lambda}{2\pi\varepsilon_{0}r} = \frac{2k_{e}\lambda}{r}\;}\]</span></p>
+</div>
 <p>The field from an infinite line charge decreases as <span class="math inline">\(1/r\)</span>, not <span class="math inline">\(1/r^{2}\)</span>!</p>
-<h3 id="application-3-infinite-plane-of-charge">Application 3: Infinite Plane of Charge</h3>
+</section>
+<section id="application-3-uniformly-charged-solid-cylinder" class="example">
+<h3>Application 3: Uniformly Charged Solid Cylinder</h3>
+<p>A very long solid cylinder of radius <span class="math inline">\(R\)</span> carries a uniform <strong>volume</strong> charge density <span class="math inline">\(\rho\)</span>. Find the electric field both outside and inside it.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_11_solid_cylinder.png" alt="Figure 23.6: Uniformly charged solid cylinder. Left: field magnitude E vs r — rising linearly inside, then falling as 1/r outside. Right: the charged cylinder with a coaxial Gaussian surface inside it and another outside." loading="lazy" style="max-width:min(5.5in,100%)" /><figcaption>Figure 23.6: Uniformly charged solid cylinder. Left: field magnitude <span class="math inline">\(E\)</span> vs <span class="math inline">\(r\)</span> — rising linearly inside, then falling as <span class="math inline">\(1/r\)</span> outside. Right: the charged cylinder with a coaxial Gaussian surface inside it and another outside.</figcaption></figure>
+<p>This application is worth working carefully because it is the first one that asks for <strong>two ideas at once</strong>: the <em>cylindrical</em> Gaussian surface of Application 2, and the <em>interior</em> reasoning of Application 1. Neither is new. Only the combination is.</p>
+<p><strong>Symmetry:</strong> the same as the infinite line — <span class="math inline">\(\vec{E}\)</span> points radially outward and its magnitude depends only on <span class="math inline">\(r\)</span>. <strong>Gaussian surface:</strong> a coaxial cylinder of radius <span class="math inline">\(r\)</span> and length <span class="math inline">\(\ell\)</span>. As before, the end caps contribute no flux, and the curved wall gives <span class="math inline">\(\Phi = E\left( 2\pi r\ell \right)\)</span>.</p>
+<h4 id="case-a-outside-the-cylinder-r-r">Case A: Outside the cylinder (<span class="math inline">\(r &gt; R\)</span>)</h4>
+<p><strong>Enclosed charge:</strong> the Gaussian surface encloses a length <span class="math inline">\(\ell\)</span> of the <em>whole</em> cylinder:</p>
+<p><span class="math display">\[q_{\text{enc}} = \rho \cdot \pi R^{2}\ell\]</span></p>
+<p><strong>Gauss’s Law:</strong></p>
+<p><span class="math display">\[E\left( 2\pi r\ell \right) = \frac{\rho\pi R^{2}\ell}{\varepsilon_{0}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{\rho R^{2}}{2\varepsilon_{0}r}\quad\left( r &gt; R \right)\;}\]</span></p>
+</div>
+<h4 id="case-b-inside-the-cylinder-r-r">Case B: Inside the cylinder (<span class="math inline">\(r &lt; R\)</span>)</h4>
+<p><strong>Enclosed charge:</strong> only the charge inside radius <span class="math inline">\(r\)</span> counts, so the volume is that of the <em>inner</em> cylinder:</p>
+<p><span class="math display">\[q_{\text{enc}} = \rho \cdot \pi r^{2}\ell\]</span></p>
+<p><strong>Gauss’s Law:</strong></p>
+<p><span class="math display">\[E\left( 2\pi r\ell \right) = \frac{\rho\pi r^{2}\ell}{\varepsilon_{0}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{\rho r}{2\varepsilon_{0}}\quad\left( r &lt; R \right)\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Three things to check, and all three hold.</strong></p>
+<ul>
+<li><strong><span class="math inline">\(\ell\)</span> cancelled in both cases.</strong> It had to — you invented it. If a dimension you chose yourself survives into the answer, the surface was chosen badly.</li>
+<li><strong>The field is continuous at <span class="math inline">\(r = R\)</span>.</strong> Setting <span class="math inline">\(r = R\)</span> in either expression gives <span class="math inline">\(E = \rho R/2\varepsilon_{0}\)</span>. The two derivations were independent, so this agreement is a genuine check, not a restatement.</li>
+<li><strong>From far away it is a line.</strong> Write the charge per unit length as <span class="math inline">\(\lambda = \rho\pi R^{2}\)</span> and the outside field becomes <span class="math inline">\(E = \lambda/\left( 2\pi\varepsilon_{0}r \right) = 2k_{e}\lambda/r\)</span> — exactly Application 2. <strong>Outside any cylindrically symmetric distribution, only the total charge per length matters</strong>, which is the same statement one dimension down as “outside a sphere it looks like a point charge.”</li>
+</ul>
+</div>
+<p><strong>Contrast with a thin shell.</strong> If the same total charge sat on the cylinder’s <em>surface</em> instead of throughout its volume, the outside field would be unchanged, but inside there would be no enclosed charge at all and <span class="math inline">\(E = 0\)</span> everywhere for <span class="math inline">\(r &lt; R\)</span> — so the field would jump discontinuously at <span class="math inline">\(r = R\)</span> rather than rising to meet it. <strong>Where the charge sits changes the interior completely and the exterior not at all.</strong></p>
+</section>
+<section id="application-4-infinite-plane-of-charge" class="example">
+<h3>Application 4: Infinite Plane of Charge</h3>
 <p>An infinite plane carries uniform surface charge density <span class="math inline">\(\sigma\)</span>. Find the electric field everywhere.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_6_pillbox_plane.png" alt="Figure 23.6: A Gaussian “pillbox” straddling an infinite plane of charge. Left: 2D cross-section. Right: 3D view — flux passes through both end faces (perpendicular to the plane) and none through the curved wall." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 23.6: A Gaussian “pillbox” straddling an infinite plane of charge. Left: 2D cross-section. Right: 3D view — flux passes through both end faces (perpendicular to the plane) and none through the curved wall.</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_6_pillbox_plane.png" alt="Figure 23.7: A Gaussian “pillbox” straddling an infinite plane of charge. Left: 2D cross-section. Right: 3D view — flux passes through both end faces (perpendicular to the plane) and none through the curved wall." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 23.7: A Gaussian “pillbox” straddling an infinite plane of charge. Left: 2D cross-section. Right: 3D view — flux passes through both end faces (perpendicular to the plane) and none through the curved wall.</figcaption></figure>
 <p><strong>Gaussian surface:</strong> A “pillbox” cylinder with faces parallel to the plane, each of area <span class="math inline">\(A\)</span></p>
 <p><strong>Symmetry argument:</strong> By symmetry, <span class="math inline">\(\vec{E}\)</span> is perpendicular to the plane and has constant magnitude at fixed distance.</p>
 <p><strong>Flux calculation:</strong></p>
@@ -466,44 +619,62 @@
 <p><strong>Enclosed charge:</strong> <span class="math inline">\(q_{\text{enc}} = \sigma A\)</span></p>
 <p><strong>Gauss’s Law:</strong></p>
 <p><span class="math display">\[2EA = \frac{\sigma A}{\varepsilon_{0}}\]</span></p>
-<p><strong>Result:</strong></p>
-<p><span class="math display">\[E = \frac{\sigma}{2\varepsilon_{0}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;E = \frac{\sigma}{2\varepsilon_{0}}\;}\]</span></p>
+</div>
 <p>This remarkable result shows that the field from an infinite plane is <strong>uniform</strong> — it does not depend on distance from the plane! This is consistent with the limiting case of the charged disk when we let <span class="math inline">\(R \rightarrow \infty\)</span>.</p>
+</section>
 <h3 id="summary-table-gausss-law-results">Summary Table: Gauss’s Law Results</h3>
 <table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Charge Distribution</th>
-<th style="text-align: left;">Electric Field</th>
-<th style="text-align: left;">Dependence on Distance</th>
+<th>Charge Distribution</th>
+<th>Electric Field</th>
+<th>Dependence on Distance</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Point charge (or outside sphere)</td>
-<td style="text-align: left;"><span class="math inline">\(E = k_{e}Q/r^{2}\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(1/r^{2}\)</span></td>
+<td>Point charge (or outside sphere)</td>
+<td><span class="math inline">\(E = k_{e}Q/r^{2}\)</span></td>
+<td><span class="math inline">\(1/r^{2}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Inside uniform sphere</td>
-<td style="text-align: left;"><span class="math inline">\(E = k_{e}Qr/R^{3}\)</span></td>
-<td style="text-align: left;">Linear in <span class="math inline">\(r\)</span></td>
+<td>Inside uniform sphere</td>
+<td><span class="math inline">\(E = k_{e}Qr/R^{3}\)</span></td>
+<td>Linear in <span class="math inline">\(r\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Infinite line charge</td>
-<td style="text-align: left;"><span class="math inline">\(E = 2k_{e}\lambda/r\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(1/r\)</span></td>
+<td>Infinite line charge</td>
+<td><span class="math inline">\(E = 2k_{e}\lambda/r\)</span></td>
+<td><span class="math inline">\(1/r\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Infinite plane</td>
-<td style="text-align: left;"><span class="math inline">\(E = \sigma/\left( 2\varepsilon_{0} \right)\)</span></td>
-<td style="text-align: left;">Constant</td>
+<td>Outside uniform solid cylinder</td>
+<td><span class="math inline">\(E = \rho R^{2}/\left( 2\varepsilon_{0}r \right)\)</span></td>
+<td><span class="math inline">\(1/r\)</span></td>
+</tr>
+<tr class="odd">
+<td>Inside uniform solid cylinder</td>
+<td><span class="math inline">\(E = \rho r/\left( 2\varepsilon_{0} \right)\)</span></td>
+<td>Linear in <span class="math inline">\(r\)</span></td>
+</tr>
+<tr class="even">
+<td>Infinite plane</td>
+<td><span class="math inline">\(E = \sigma/\left( 2\varepsilon_{0} \right)\)</span></td>
+<td>Constant</td>
 </tr>
 </tbody>
 </table>
+<p>Read the table by <strong>how much the charge is spread out</strong>, not by name. A point gives <span class="math inline">\(1/r^{2}\)</span>; spreading it along a line gives <span class="math inline">\(1/r\)</span>; spreading it over a plane gives a constant. And in every case with an interior — sphere or cylinder — the field <strong>rises linearly from zero at the centre</strong>, because <span class="math inline">\(q_{\text{enc}}\)</span> grows faster than the surface area does.</p>
 <h2 id="conductors-in-electrostatic-equilibrium">23.6 — Conductors in Electrostatic Equilibrium</h2>
 <p>Gauss’s Law provides powerful insights into the behavior of conductors.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_7_conductor.png" alt="Figure 23.7: A conductor in electrostatic equilibrium: \vec{E}=0 inside, all excess charge resides on the surface, and the external field meets the surface perpendicularly." loading="lazy" style="max-width:min(3.8in,100%)" /><figcaption>Figure 23.7: A conductor in electrostatic equilibrium: \vec{E}=0 inside, all excess charge resides on the surface, and the external field meets the surface perpendicularly.</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_7_conductor.png" alt="Figure 23.8: A conductor in electrostatic equilibrium: \vec{E}=0 inside, all excess charge resides on the surface, and the external field meets the surface perpendicularly." loading="lazy" style="max-width:min(3.8in,100%)" /><figcaption>Figure 23.8: A conductor in electrostatic equilibrium: <span class="math inline">\(\vec{E}=0\)</span> inside, all excess charge resides on the surface, and the external field meets the surface perpendicularly.</figcaption></figure>
 <h3 id="properties-of-conductors-in-equilibrium">Properties of Conductors in Equilibrium</h3>
 <p>A conductor in <strong>electrostatic equilibrium</strong> (no charges moving) has the following properties:</p>
 <p><strong>1. The electric field inside a conductor is zero.</strong></p>
@@ -525,6 +696,19 @@
 <p><span class="math display">\[EA = \frac{\sigma A}{\varepsilon_{0}}\]</span></p>
 <p><span class="math display">\[E = \frac{\sigma}{\varepsilon_{0}}\]</span></p>
 <p>Note this is <em>twice</em> the field from an infinite plane of charge with the same <span class="math inline">\(\sigma\)</span>. The factor of 2 arises because charge on a conductor only produces field on one side (outward), not both sides.</p>
+<section id="a-charge-inside-a-cavity" class="example keep">
+<h3>A Charge Inside a Cavity</h3>
+<p>Hollow out a cavity inside a solid neutral conductor and suspend a charge <span class="math inline">\(+q\)</span> inside it, touching nothing. The conductor is forced to respond, and Gauss’s Law tells us exactly how.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch23_figures/fig_23_8_cavity.png" alt="Figure 23.9: A charge +q suspended in a cavity inside a neutral conductor. A Gaussian surface drawn entirely within the metal encloses zero net charge, forcing -q onto the cavity wall and +q onto the outer surface. The exterior field is radial and symmetric regardless of where the charge sits inside the cavity." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 23.9: A charge <span class="math inline">\(+q\)</span> suspended in a cavity inside a neutral conductor. A Gaussian surface drawn entirely within the metal encloses zero net charge, forcing <span class="math inline">\(-q\)</span> onto the cavity wall and <span class="math inline">\(+q\)</span> onto the outer surface. The exterior field is radial and symmetric regardless of where the charge sits inside the cavity.</figcaption></figure>
+<p>Draw a Gaussian surface that lies <strong>entirely within the metal</strong> and completely surrounds the cavity. Every point of that surface is inside a conductor in equilibrium, so <span class="math inline">\(\vec{E} = 0\)</span> there, and the flux through it is zero. Gauss’s Law then demands:</p>
+<p><span class="math display">\[q_{\text{enc}} = \varepsilon_{0}\Phi_{E} = 0\]</span></p>
+<p>But the surface encloses both the cavity charge and the cavity wall. For the total to vanish, the wall must carry an induced charge of exactly <span class="math inline">\(q_{\text{wall}} = - q\)</span>. The conductor began neutral and nothing was added to it, so conservation of charge drives the balance to the <strong>outer</strong> surface:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;q_{\text{wall}} = -q, \qquad q_{\text{outer}} = +q\;}\]</span></p>
+</div>
+<p><strong>Physical interpretation.</strong> The conductor does not screen the charge — it <em>relays</em> it. An outside observer sees <span class="math inline">\(+q\)</span> and cannot tell whether it sits in a cavity or is smeared over the surface. More strikingly, <strong>moving the charge within the cavity changes nothing outside</strong>: the wall redistributes to keep the metal field-free, but the outer surface never learns. If that surface is a sphere of radius <span class="math inline">\(R\)</span>, the exterior field is exactly <span class="math inline">\(E = k_{e}q/r^{2}\)</span> for <span class="math inline">\(r &gt; R\)</span> — symmetric however lopsided the cavity or off-center the charge.</p>
+<p><em>*Notice that shielding runs in only one direction. A conducting shell protects its contents from the outside world, but it does not hide its contents from the outside world — the charge inside announces itself through the outer surface regardless. A Faraday cage is a one-way mirror, and Gauss’s Law is the reason.</em></p>
+</section>
 <h3 id="electrostatic-shielding">Electrostatic Shielding</h3>
 <p>Because <span class="math inline">\(\vec{E} = 0\)</span> inside a conductor, a closed conducting shell <strong>shields</strong> its interior from external electric fields. This is the principle behind:</p>
 <ul>
@@ -546,15 +730,16 @@
 <li>You need the field at an arbitrary point</li>
 <li>You want to verify a Gauss’s Law result</li>
 </ul>
-<h3 id="comparison-ring-of-charge">Comparison: Ring of Charge</h3>
-<p>For a uniformly charged ring, Gauss’s Law is <strong>not useful</strong> for finding the field on the axis because:</p>
+<h3 id="comparison-a-rod-of-finite-length">Comparison: A Rod of Finite Length</h3>
+<p>Take a straight rod of length <span class="math inline">\(L\)</span> carrying uniform <span class="math inline">\(\lambda\)</span>, and ask for the field at a point off to one side. In §23.5 we found the field of an <em>infinite</em> line in three lines of algebra, using a coaxial cylinder. Chop that same line down to a finite length and Gauss’s Law is <strong>useless</strong>:</p>
 <ul>
-<li>No Gaussian surface has constant <span class="math inline">\(E\)</span> over it</li>
-<li>The field direction varies over any surface we might choose</li>
+<li>The field is no longer perpendicular to the cylinder’s wall — near the ends it tilts inward, so <span class="math inline">\(\vec{E} \cdot d\vec{A}\)</span> varies over the surface</li>
+<li><span class="math inline">\(E\)</span> is not constant over any surface we can draw, so it cannot come out of the integral</li>
+<li>Flux leaks through the end caps, and we have no way to evaluate it</li>
 </ul>
-<p>Direct integration is required, giving:</p>
-<p><span class="math display">\[E_{x} = \frac{k_{e}Qx}{\left( a^{2} + x^{2} \right)^{3/2}}\]</span></p>
-<p><em>*Gauss’s Law is still true — the flux through any closed surface equals</em> <span class="math inline">\(Q/\varepsilon_{0}\)</span> <em>if it encloses the ring. But we can’t use this to find</em> <span class="math inline">\(\vec{E}\)</span> <em>because we can’t factor</em> <span class="math inline">\(E\)</span> <em>out of the integral.</em></p>
+<p>Direct integration is required — which is exactly the calculation you ran in Chapter 22, and in Homework 1.</p>
+<p><strong>Notice what changed and what didn’t.</strong> The charge density is identical. The geometry is the same straight line. All that vanished is the <em>translational symmetry</em> — the ends broke it — and with it went the entire method. Symmetry is not a convenience here; it is the whole of the tool’s power.</p>
+<p><em>*Gauss’s Law is still true for the finite rod — the flux through any closed surface enclosing it equals</em> <span class="math inline">\(Q/\varepsilon_{0}\)</span><em>. What fails is not the law but our ability to</em> <strong>use</strong> <em>it: we cannot factor</em> <span class="math inline">\(E\)</span> <em>out of the integral, so the equation is correct and useless at the same time. Knowing which of your tools is about to be useless, before you commit an hour to it, is a large part of what separates a physicist from a calculator.</em></p>
 <h2 id="summary">23.8 — Summary</h2>
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
@@ -568,73 +753,89 @@
 <ol start="3" type="1">
 <li><p>Gauss’s Law is most useful when the charge distribution has <strong>spherical</strong>, <strong>cylindrical</strong>, or <strong>planar</strong> symmetry.</p></li>
 <li><p>Inside a <strong>conductor</strong> in equilibrium: <span class="math inline">\(\vec{E} = 0\)</span>, excess charge resides on the surface, and the field outside is perpendicular to the surface.</p></li>
+<li><p>A charge <span class="math inline">\(+ q\)</span> in a <strong>cavity</strong> induces <span class="math inline">\(- q\)</span> on the cavity wall and drives <span class="math inline">\(+ q\)</span> to the outer surface. The exterior field is unchanged by moving the charge within the cavity — a conductor shields its contents <em>from</em> the outside, but not <em>from being seen by</em> it.</p></li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Quantity</th>
-<th style="text-align: left;">Equation</th>
+<th>Quantity</th>
+<th>Equation</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Electric flux (uniform field, perpendicular)</td>
-<td style="text-align: left;"><span class="math inline">\(\Phi_{E} = EA\)</span></td>
+<td>Electric flux (uniform field, perpendicular)</td>
+<td><span class="math inline">\(\Phi_{E} = EA\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Electric flux (general)</td>
-<td style="text-align: left;"><span class="math inline">\(\Phi_{E} = \int\vec{E} \cdot d\vec{A}\)</span></td>
+<td>Electric flux (general)</td>
+<td><span class="math inline">\(\Phi_{E} = \int\vec{E} \cdot d\vec{A}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Gauss’s Law</td>
-<td style="text-align: left;"><span class="math inline">\(\oint\vec{E} \cdot d\vec{A} = \frac{q_{\text{enc}}}{\varepsilon_{0}}\)</span></td>
+<td>Gauss’s Law</td>
+<td><span class="math inline">\(\oint\vec{E} \cdot d\vec{A} = \frac{q_{\text{enc}}}{\varepsilon_{0}}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Field outside charged sphere</td>
-<td style="text-align: left;"><span class="math inline">\(E = \frac{k_{e}Q}{r^{2}}\)</span></td>
+<td>Field outside charged sphere</td>
+<td><span class="math inline">\(E = \frac{k_{e}Q}{r^{2}}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Field inside uniformly charged sphere</td>
-<td style="text-align: left;"><span class="math inline">\(E = \frac{k_{e}Qr}{R^{3}}\)</span></td>
+<td>Field inside uniformly charged sphere</td>
+<td><span class="math inline">\(E = \frac{k_{e}Qr}{R^{3}}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Field from infinite line charge</td>
-<td style="text-align: left;"><span class="math inline">\(E = \frac{2k_{e}\lambda}{r} = \frac{\lambda}{2\pi\varepsilon_{0}r}\)</span></td>
+<td>Field from infinite line charge</td>
+<td><span class="math inline">\(E = \frac{2k_{e}\lambda}{r} = \frac{\lambda}{2\pi\varepsilon_{0}r}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Field from infinite plane</td>
-<td style="text-align: left;"><span class="math inline">\(E = \frac{\sigma}{2\varepsilon_{0}}\)</span></td>
+<td>Field outside uniform solid cylinder</td>
+<td><span class="math inline">\(E = \frac{\rho R^{2}}{2\varepsilon_{0}r}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Field just outside conductor</td>
-<td style="text-align: left;"><span class="math inline">\(E = \frac{\sigma}{\varepsilon_{0}}\)</span></td>
+<td>Field inside uniform solid cylinder</td>
+<td><span class="math inline">\(E = \frac{\rho r}{2\varepsilon_{0}}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Field from infinite plane</td>
+<td><span class="math inline">\(E = \frac{\sigma}{2\varepsilon_{0}}\)</span></td>
+</tr>
+<tr class="even">
+<td>Field just outside conductor</td>
+<td><span class="math inline">\(E = \frac{\sigma}{\varepsilon_{0}}\)</span></td>
 </tr>
 </tbody>
 </table>
-<h3 id="connections-to-physics-i">Connections to Physics I</h3>
+<section id="connections-to-physics-i" class="connection">
+<h3>Connections to Physics I</h3>
 <table>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Mechanics Concept</th>
-<th style="text-align: left;">Electrostatics Analog</th>
+<th>Mechanics Concept</th>
+<th>Electrostatics Analog</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Gravitational flux</td>
-<td style="text-align: left;">Electric flux</td>
+<td>Gravitational flux</td>
+<td>Electric flux</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Shell theorem (gravity)</td>
-<td style="text-align: left;">Gauss’s Law for spheres</td>
+<td>Shell theorem (gravity)</td>
+<td>Gauss’s Law for spheres</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Conservation laws</td>
-<td style="text-align: left;">Gauss’s Law relates flux to enclosed charge</td>
+<td>Conservation laws</td>
+<td>Gauss’s Law relates flux to enclosed charge</td>
 </tr>
 </tbody>
 </table>
+<p>The middle row is the one to hold onto. You proved the shell theorem in PSE-I with a page of geometry; §23.5 gets the electrostatic version in three lines, and the <span class="math inline">\(r &lt; R\)</span> linear result has the same gravitational twin. Both follow from the same inverse-square structure.</p>
+</section>
 <h2 id="looking-ahead">Looking Ahead</h2>
 <p>In Chapter 24, we will introduce <strong>electric potential</strong> — a scalar quantity related to electric potential energy. Just as we found that energy methods often simplified mechanics problems in Physics I, electric potential will provide an alternative (and often simpler) approach to electrostatics problems.</p>
 <p>The electric field and electric potential are closely related:</p>
