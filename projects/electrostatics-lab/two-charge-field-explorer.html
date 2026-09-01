@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-Charge Field Explorer</title>
+<style>
+  :root{
+    --stage:#0e1322;
+    --stage-edge:#070a13;
+    --paper:#e9ebef;
+    --paper-2:#dfe2e8;
+    --ink:#161c2a;
+    --ink-soft:#5b6577;
+    --rule:#c6cbd6;
+    --pos:#e2523b;
+    --neg:#3a6ff0;
+    --p1:#ffd166;
+    --p2:#5fe0a8;
+    --p3:#7cc4ff;
+  }
+  *{box-sizing:border-box}
+  html{height:100%}
+  body{
+    margin:0;min-height:100%;
+    background:var(--paper);
+    color:var(--ink);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{display:flex;flex-direction:column;height:100%}
+  header{
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding:14px 20px 12px;border-bottom:1px solid var(--rule);
+  }
+  header h1{
+    font-family:Georgia,"Iowan Old Style","Times New Roman",serif;
+    font-weight:600;font-size:21px;margin:0;letter-spacing:.1px;
+  }
+  header p{margin:0;color:var(--ink-soft);font-size:13.5px}
+  main{display:flex;flex:1;min-height:0}
+  .stage{
+    position:relative;flex:1;min-width:0;
+    background:radial-gradient(120% 120% at 50% 40%,var(--stage) 0%,var(--stage-edge) 100%);
+  }
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair;
+    -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  .legend{
+    position:absolute;left:14px;bottom:14px;
+    background:rgba(8,11,20,.72);border:1px solid rgba(255,255,255,.14);
+    border-radius:6px;padding:8px 10px;color:#dfe4f0;
+    font-size:11.5px;line-height:1.35;backdrop-filter:blur(3px);pointer-events:none;
+  }
+  .legend .bar{height:8px;width:172px;border-radius:2px;margin:5px 0 4px}
+  .legend .ends{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:#aab4c8}
+  .hintbar{
+    position:absolute;left:14px;top:14px;color:#98a3ba;font-size:12px;
+    background:rgba(8,11,20,.6);border-radius:5px;padding:5px 9px;pointer-events:none;
+  }
+  aside{
+    width:316px;flex:none;overflow-y:auto;
+    background:var(--paper-2);border-left:1px solid var(--rule);
+    padding:4px 16px 28px;
+  }
+  section{padding:14px 0;border-bottom:1px solid var(--rule)}
+  section:last-child{border-bottom:0}
+  h2{font-size:12.5px;font-weight:600;margin:0 0 10px;color:var(--ink);letter-spacing:.2px}
+  h2 .hint{font-weight:400;color:var(--ink-soft);font-size:11.5px;margin-left:6px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 3px}
+  .row:first-of-type{margin-top:2px}
+  .row label{font-size:13px;color:var(--ink-soft)}
+  .val{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:13px;font-variant-numeric:tabular-nums;
+  }
+  .val.pos{color:var(--pos)}.val.neg{color:var(--neg)}
+  input[type=range]{width:100%;margin:0;accent-color:#2b3648;height:22px}
+  .btnrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  button{
+    font:inherit;font-size:12.5px;padding:5px 10px;border-radius:5px;
+    border:1px solid var(--rule);background:#f5f6f9;color:var(--ink);cursor:pointer;
+  }
+  button:hover{background:#fff;border-color:#a9b0be}
+  button:active{background:#e6e9ef}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #2f5fe0;outline-offset:2px}
+  select{font:inherit;font-size:13px;padding:4px 6px;border:1px solid var(--rule);border-radius:5px;background:#f5f6f9;width:100%}
+  .check{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:13px}
+  .check input{accent-color:#2b3648;width:15px;height:15px}
+  .probe{
+    border-left:4px solid var(--p1);background:#f5f6f9;border-radius:4px;
+    padding:8px 10px;margin-bottom:8px;position:relative;
+  }
+  .probe h3{margin:0 0 5px;font-size:12.5px;font-weight:600}
+  .probe dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:1px 10px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;font-variant-numeric:tabular-nums}
+  .probe dt{color:var(--ink-soft)}
+  .probe dd{margin:0;text-align:right}
+  .probe .x{position:absolute;top:6px;right:6px;padding:1px 6px;font-size:12px;line-height:1.3}
+  .empty{color:var(--ink-soft);font-size:13px;margin:2px 0 0}
+  /* Touch input: everything needs to be thumb-sized */
+  @media (pointer:coarse){
+    button{min-height:42px;padding:9px 14px;font-size:14px}
+    .btnrow{gap:8px}
+    .probe{padding:10px 12px}
+    .probe .x{min-width:38px;min-height:34px;top:4px;right:4px;font-size:16px}
+    .probe dl{font-size:13px;gap:3px 10px}
+    input[type=range]{height:40px}
+    select{font-size:16px;padding:9px 8px}
+    .check{margin:14px 0;font-size:14.5px}
+    .check input{width:20px;height:20px}
+    .row{margin:16px 0 2px}
+  }
+  /* Portrait phones and tablets: stack, and pin the field above the controls
+     so a slider change is visible while you drag it */
+  @media (max-width:860px) and (orientation:portrait){
+    .app{display:block;height:auto}
+    header{padding:11px 16px 10px;gap:4px}
+    header h1{font-size:18px}
+    header p{font-size:12.5px;flex-basis:100%}
+    main{display:block}
+    .stage{
+      position:sticky;top:0;z-index:5;flex:none;
+      height:46vh;min-height:264px;
+      box-shadow:0 8px 18px rgba(10,14,25,.3);
+    }
+    aside{
+      width:auto;overflow:visible;border-left:0;border-top:1px solid var(--rule);
+      padding:4px 16px calc(30px + env(safe-area-inset-bottom));
+    }
+    .legend{left:10px;bottom:10px;padding:6px 8px;font-size:10.5px}
+    .legend .bar{width:116px;height:7px;margin:4px 0 3px}
+    .legend .ends{font-size:10px}
+    .hintbar{left:10px;top:10px;padding:4px 8px;font-size:11.5px;max-width:calc(100% - 20px)}
+  }
+  /* Landscape phones: keep both panes, trim the chrome */
+  @media (max-height:560px) and (orientation:landscape){
+    header{padding:8px 14px 7px}
+    header h1{font-size:17px}
+    header p{display:none}
+    aside{width:274px;padding-top:0}
+    section{padding:11px 0}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Two-Charge Field Explorer</h1>
+    <p>Drag the charges. Click anywhere in the field to drop a probe.</p>
+  </header>
+
+  <main>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="hintbar" id="hintbar">Click the field to place a probe (up to 3)</div>
+      <div class="legend" id="legend">
+        <div id="legTitle">Field magnitude |E|</div>
+        <div class="bar" id="legBar"></div>
+        <div class="ends"><span id="legLo">—</span><span id="legHi">—</span></div>
+      </div>
+    </div>
+
+    <aside>
+      <section>
+        <h2>Charges</h2>
+        <div class="row"><label for="q1">Charge 1</label><span class="val pos" id="q1v">+4.0 nC</span></div>
+        <input type="range" id="q1" min="-10" max="10" step="0.1" value="4">
+        <div class="row"><label for="q2">Charge 2</label><span class="val neg" id="q2v">−4.0 nC</span></div>
+        <input type="range" id="q2" min="-10" max="10" step="0.1" value="-4">
+        <div class="btnrow">
+          <button data-preset="dipole">Dipole</button>
+          <button data-preset="like">Like charges</button>
+          <button data-preset="unequal">Unequal pair</button>
+          <button data-preset="single">Single charge</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Geometry</h2>
+        <div class="row"><label for="sep">Separation</label><span class="val" id="sepv">10.0 cm</span></div>
+        <input type="range" id="sep" min="1" max="26" step="0.1" value="10">
+        <div class="row"><label for="zoom">View width</label><span class="val" id="zoomv">32 cm</span></div>
+        <input type="range" id="zoom" min="10" max="70" step="1" value="32">
+        <div class="btnrow"><button id="align">Align on horizontal axis</button></div>
+      </section>
+
+      <section>
+        <h2>Display</h2>
+        <label class="check" for="bg" style="display:block">Background map</label>
+        <select id="bg">
+          <option value="emag" selected>Field magnitude |E|</option>
+          <option value="pot">Potential V</option>
+          <option value="none">Plain</option>
+        </select>
+        <label class="check"><input type="checkbox" id="cLines" checked> Field lines</label>
+        <label class="check"><input type="checkbox" id="cEquip"> Equipotential contours</label>
+        <label class="check"><input type="checkbox" id="cVec"> Direction grid</label>
+      </section>
+
+      <section>
+        <h2>Probes <span class="hint">max 3</span></h2>
+        <div id="probeList"></div>
+        <div class="btnrow"><button id="clearProbes">Remove all probes</button></div>
+      </section>
+
+      <section>
+        <div class="btnrow">
+          <button id="png">Save image</button>
+          <button id="reset">Reset everything</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- constants
+const K = 8.9875517923e9;          // N m^2 / C^2
+const NC = 1e-9;                   // nC -> C
+const PROBE_COLORS = ["#ffd166", "#5fe0a8", "#7cc4ff"];
+const TOUCH = window.matchMedia("(pointer: coarse)").matches;
+
+// ---------------------------------------------------------------- state
+const state = {
+  q:   [4, -4],                                     // nC
+  pos: [{x:-0.05, y:0}, {x:0.05, y:0}],             // metres
+  viewW: 0.32,                                      // metres across the canvas
+  bg: "emag",
+  lines: true,
+  equip: false,
+  vectors: false,
+  probes: [],                                       // {x, y} in metres
+  fast: false                                       // draft quality while dragging
+};
+
+const cv  = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const stage = document.getElementById("stage");
+let W = 800, H = 520, dpr = 1;
+
+// ---------------------------------------------------------------- physics
+function fieldAt(x, y){
+  let ex = 0, ey = 0;
+  for (let i = 0; i < 2; i++){
+    const q = state.q[i] * NC;
+    if (q === 0) continue;
+    const dx = x - state.pos[i].x, dy = y - state.pos[i].y;
+    const r2 = dx*dx + dy*dy;
+    if (r2 < 1e-14) continue;
+    const c = K * q / (r2 * Math.sqrt(r2));
+    ex += c*dx; ey += c*dy;
+  }
+  return [ex, ey];
+}
+function potentialAt(x, y){
+  let v = 0;
+  for (let i = 0; i < 2; i++){
+    const q = state.q[i] * NC;
+    if (q === 0) continue;
+    const dx = x - state.pos[i].x, dy = y - state.pos[i].y;
+    const r = Math.max(Math.sqrt(dx*dx + dy*dy), 0.0015);
+    v += K * q / r;
+  }
+  return v;
+}
+// Reference scale: field of the larger charge at 6 mm (high) and 16 cm (low).
+function refs(){
+  const qm = Math.max(Math.abs(state.q[0]), Math.abs(state.q[1]), 0.1) * NC;
+  return {
+    Ehi: K*qm/(0.006*0.006), Elo: K*qm/(0.16*0.16),
+    Vhi: K*qm/0.006,         Vlo: K*qm/0.16
+  };
+}
+
+// ---------------------------------------------------------------- geometry helpers
+const scale = () => W / state.viewW;                 // px per metre
+const w2s = (x, y) => [W/2 + x*scale(), H/2 - y*scale()];
+const s2w = (sx, sy) => [(sx - W/2)/scale(), (H/2 - sy)/scale()];
+function separation(){
+  const dx = state.pos[1].x - state.pos[0].x, dy = state.pos[1].y - state.pos[0].y;
+  return Math.hypot(dx, dy);
+}
+function setSeparation(d){
+  const c  = {x:(state.pos[0].x+state.pos[1].x)/2, y:(state.pos[0].y+state.pos[1].y)/2};
+  let dx = state.pos[1].x - state.pos[0].x, dy = state.pos[1].y - state.pos[0].y;
+  let L = Math.hypot(dx, dy);
+  if (L < 1e-6){ dx = 1; dy = 0; L = 1; }
+  const ux = dx/L, uy = dy/L;
+  state.pos[0] = {x:c.x - ux*d/2, y:c.y - uy*d/2};
+  state.pos[1] = {x:c.x + ux*d/2, y:c.y + uy*d/2};
+}
+
+// ---------------------------------------------------------------- formatting
+function fmt(v, unit){
+  if (!isFinite(v)) return "off scale";
+  const a = Math.abs(v);
+  if (a === 0) return "0 " + unit;
+  const steps = [[1e9,"G"],[1e6,"M"],[1e3,"k"],[1,""],[1e-3,"m"],[1e-6,"\u00b5"]];
+  for (const [f, p] of steps){
+    if (a >= f){
+      const m = v/f, am = Math.abs(m);
+      return m.toFixed(am >= 100 ? 0 : am >= 10 ? 1 : 2) + " " + p + unit;
+    }
+  }
+  return v.toExponential(2) + " " + unit;
+}
+const sgn = v => (v < 0 ? "\u2212" : "+") + Math.abs(v).toFixed(1);
+
+// ---------------------------------------------------------------- colour ramps
+function lerp3(a, b, t){ return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
+const E_STOPS = [[12,16,30],[28,44,96],[36,96,150],[52,158,150],[168,196,110],[248,238,206]];
+function rampE(t){
+  t = Math.min(1, Math.max(0, t)) * (E_STOPS.length - 1);
+  const i = Math.min(E_STOPS.length - 2, Math.floor(t));
+  return lerp3(E_STOPS[i], E_STOPS[i+1], t - i);
+}
+function rampV(s){                              // s in [-1, 1]
+  const mid = [14,18,30], hot = [226,82,59], cold = [58,111,240];
+  return s >= 0 ? lerp3(mid, hot, s) : lerp3(mid, cold, -s);
+}
+
+// ---------------------------------------------------------------- background map
+const off = document.createElement("canvas");
+const offCtx = off.getContext("2d");
+function drawBackground(){
+  if (state.bg === "none") return;
+  const cell = state.fast ? 7 : 4;
+  const cols = Math.max(2, Math.ceil(W/cell)), rows = Math.max(2, Math.ceil(H/cell));
+  off.width = cols; off.height = rows;
+  const img = offCtx.createImageData(cols, rows);
+  const d = img.data;
+  const {Ehi, Elo, Vhi, Vlo} = refs();
+  const lE = Math.log10(Elo), dE = Math.log10(Ehi) - lE;
+  const lV = Math.log10(Vlo), dV = Math.log10(Vhi) - lV;
+
+  for (let j = 0; j < rows; j++){
+    for (let i = 0; i < cols; i++){
+      const [x, y] = s2w((i + 0.5)*cell, (j + 0.5)*cell);
+      let rgb;
+      if (state.bg === "emag"){
+        const [ex, ey] = fieldAt(x, y);
+        const m = Math.hypot(ex, ey);
+        rgb = rampE(m > 0 ? (Math.log10(m) - lE)/dE : 0);
+      } else {
+        const v = potentialAt(x, y);
+        const a = Math.abs(v);
+        let t = a > 0 ? (Math.log10(a) - lV)/dV : 0;
+        t = Math.min(1, Math.max(0, t));
+        rgb = rampV(Math.sign(v) * t);
+      }
+      const k = (j*cols + i) * 4;
+      d[k] = rgb[0]; d[k+1] = rgb[1]; d[k+2] = rgb[2]; d[k+3] = 255;
+    }
+  }
+  offCtx.putImageData(img, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(off, 0, 0, W, H);
+}
+
+// ---------------------------------------------------------------- equipotentials
+function drawEquipotentials(){
+  const step = state.fast ? 15 : 9;
+  const cols = Math.ceil(W/step), rows = Math.ceil(H/step);
+  const g = new Float64Array((cols+1)*(rows+1));
+  for (let j = 0; j <= rows; j++)
+    for (let i = 0; i <= cols; i++){
+      const [x, y] = s2w(i*step, j*step);
+      g[j*(cols+1)+i] = potentialAt(x, y);
+    }
+  const {Vhi, Vlo} = refs();
+  const lV = Math.log10(Vlo), dV = Math.log10(Vhi) - lV;
+  const levels = [];
+  for (const f of [0.12, 0.3, 0.48, 0.66, 0.84]){
+    const mag = Math.pow(10, lV + f*dV);
+    levels.push(mag, -mag);
+  }
+  ctx.save();
+  ctx.lineWidth = 1;
+  for (const lev of levels){
+    ctx.strokeStyle = lev > 0 ? "rgba(255,190,170,.5)" : "rgba(170,200,255,.5)";
+    ctx.beginPath();
+    for (let j = 0; j < rows; j++){
+      for (let i = 0; i < cols; i++){
+        const a = g[j*(cols+1)+i],     b = g[j*(cols+1)+i+1];
+        const c = g[(j+1)*(cols+1)+i+1], dd = g[(j+1)*(cols+1)+i];
+        const idx = (a>lev?8:0)|(b>lev?4:0)|(c>lev?2:0)|(dd>lev?1:0);
+        if (idx === 0 || idx === 15) continue;
+        const px = i*step, py = j*step;
+        const ip = (v1, v2) => (lev - v1)/(v2 - v1);
+        const T = [px + step*ip(a,b), py];
+        const R = [px + step, py + step*ip(b,c)];
+        const B = [px + step*ip(dd,c), py + step];
+        const L = [px, py + step*ip(a,dd)];
+        const seg = (p, q) => { ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); };
+        switch (idx){
+          case 1: case 14: seg(L,B); break;
+          case 2: case 13: seg(B,R); break;
+          case 3: case 12: seg(L,R); break;
+          case 4: case 11: seg(T,R); break;
+          case 6: case 9:  seg(T,B); break;
+          case 7: case 8:  seg(L,T); break;
+          case 5:  seg(L,T); seg(B,R); break;
+          case 10: seg(L,B); seg(T,R); break;
+        }
+      }
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- field lines
+function unitField(x, y, dir){
+  const [ex, ey] = fieldAt(x, y);
+  const m = Math.hypot(ex, ey);
+  if (!isFinite(m) || m < 1e-6) return null;
+  return [dir*ex/m, dir*ey/m];
+}
+function trace(x0, y0, dir){
+  const pts = [[x0, y0]];
+  const xMax = state.viewW*0.56, yMax = (H/scale())*0.56;
+  let x = x0, y = y0, ended = -1;
+  const maxSteps = state.fast ? 1100 : 2200;
+  for (let s = 0; s < maxSteps; s++){
+    let dmin = Infinity, near = -1;
+    for (let i = 0; i < 2; i++){
+      if (state.q[i] === 0) continue;
+      const d = Math.hypot(x - state.pos[i].x, y - state.pos[i].y);
+      if (d < dmin){ dmin = d; near = i; }
+    }
+    if (dmin < 0.0035){ pts.push([state.pos[near].x, state.pos[near].y]); ended = near; break; }
+    if (Math.abs(x) > xMax || Math.abs(y) > yMax) break;
+    const h = Math.min(0.0038, Math.max(0.0007, 0.16*dmin));
+    const k1 = unitField(x, y, dir);                                   if (!k1) break;
+    const k2 = unitField(x + h/2*k1[0], y + h/2*k1[1], dir);           if (!k2) break;
+    const k3 = unitField(x + h/2*k2[0], y + h/2*k2[1], dir);           if (!k3) break;
+    const k4 = unitField(x + h*k3[0],   y + h*k3[1],   dir);           if (!k4) break;
+    x += h/6*(k1[0] + 2*k2[0] + 2*k3[0] + k4[0]);
+    y += h/6*(k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+    pts.push([x, y]);
+  }
+  return {pts, ended};
+}
+function strokeLine(pts, dir){
+  if (pts.length < 2) return;
+  ctx.beginPath();
+  let [sx, sy] = w2s(pts[0][0], pts[0][1]);
+  ctx.moveTo(sx, sy);
+  for (let i = 1; i < pts.length; i++){
+    const p = w2s(pts[i][0], pts[i][1]);
+    ctx.lineTo(p[0], p[1]);
+  }
+  ctx.stroke();
+
+  // arrowheads at regular arclength, pointing along the field
+  const spacing = 0.030 * scale();                    // ~3 cm of world path
+  let acc = spacing * 0.55;
+  for (let i = 1; i < pts.length; i++){
+    const a = w2s(pts[i-1][0], pts[i-1][1]), b = w2s(pts[i][0], pts[i][1]);
+    const dx = b[0]-a[0], dy = b[1]-a[1], len = Math.hypot(dx, dy);
+    if (len < 1e-6) continue;
+    acc += len;
+    if (acc < spacing) continue;
+    acc = 0;
+    const ux = dir*dx/len, uy = dir*dy/len;
+    const s = 5.2;
+    ctx.beginPath();
+    ctx.moveTo(b[0] + ux*s, b[1] + uy*s);
+    ctx.lineTo(b[0] - ux*s + uy*s*0.62, b[1] - uy*s - ux*s*0.62);
+    ctx.lineTo(b[0] - ux*s - uy*s*0.62, b[1] - uy*s + ux*s*0.62);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+function drawFieldLines(){
+  ctx.save();
+  ctx.strokeStyle = "rgba(232,238,250,.78)";
+  ctx.fillStyle   = "rgba(232,238,250,.85)";
+  ctx.lineWidth = 1.35;
+  ctx.lineJoin = "round";
+  const r0 = 0.0045;
+
+  for (let i = 0; i < 2; i++){
+    const q = state.q[i];
+    if (Math.abs(q) < 0.05) continue;
+    const cap = W < 560 ? 18 : 26;          // fewer lines on a phone-width canvas
+    const n = Math.min(cap, Math.max(4, Math.round(2.2*Math.abs(q))));
+    const tilt = i * Math.PI / n;
+    for (let j = 0; j < n; j++){
+      const th = 2*Math.PI*(j + 0.5)/n + tilt;
+      const sx = state.pos[i].x + r0*Math.cos(th);
+      const sy = state.pos[i].y + r0*Math.sin(th);
+      const dir = q > 0 ? 1 : -1;
+      const res = trace(sx, sy, dir);
+      // Lines traced backward from a negative charge that land on a positive
+      // charge were already drawn from the positive side — skip the duplicate.
+      if (dir < 0 && res.ended >= 0 && state.q[res.ended] > 0) continue;
+      strokeLine(res.pts, dir);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- direction grid
+function drawVectorGrid(){
+  const spacing = 46;
+  const {Ehi, Elo} = refs();
+  const lE = Math.log10(Elo), dE = Math.log10(Ehi) - lE;
+  ctx.save();
+  ctx.lineWidth = 1.1;
+  for (let sy = spacing/2; sy < H; sy += spacing){
+    for (let sx = spacing/2; sx < W; sx += spacing){
+      const [x, y] = s2w(sx, sy);
+      let tooClose = false;
+      for (let i = 0; i < 2; i++)
+        if (Math.hypot(x-state.pos[i].x, y-state.pos[i].y)*scale() < 18) tooClose = true;
+      if (tooClose) continue;
+      const [ex, ey] = fieldAt(x, y);
+      const m = Math.hypot(ex, ey);
+      if (m < 1e-9) continue;
+      const t = Math.min(1, Math.max(0, (Math.log10(m) - lE)/dE));
+      const ux = ex/m, uy = -ey/m, L = 15;
+      ctx.strokeStyle = `rgba(226,234,250,${0.18 + 0.55*t})`;
+      ctx.fillStyle   = `rgba(226,234,250,${0.18 + 0.55*t})`;
+      ctx.beginPath();
+      ctx.moveTo(sx - ux*L/2, sy - uy*L/2);
+      ctx.lineTo(sx + ux*L/2, sy + uy*L/2);
+      ctx.stroke();
+      const hx = sx + ux*L/2, hy = sy + uy*L/2, s = 3.6;
+      ctx.beginPath();
+      ctx.moveTo(hx + ux*s, hy + uy*s);
+      ctx.lineTo(hx - ux*s + uy*s*0.7, hy - uy*s - ux*s*0.7);
+      ctx.lineTo(hx - ux*s - uy*s*0.7, hy - uy*s + ux*s*0.7);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- charges & probes
+function drawCharges(){
+  for (let i = 0; i < 2; i++){
+    const q = state.q[i];
+    const [sx, sy] = w2s(state.pos[i].x, state.pos[i].y);
+    const r = 11 + Math.min(9, Math.abs(q) * 0.8);
+    const col = Math.abs(q) < 0.05 ? "#8b93a6" : (q > 0 ? "#e2523b" : "#3a6ff0");
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, 2*Math.PI);
+    ctx.fillStyle = col; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke();
+    // + / − glyph
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+    const a = r*0.45;
+    if (Math.abs(q) >= 0.05){
+      ctx.beginPath(); ctx.moveTo(sx-a, sy); ctx.lineTo(sx+a, sy);
+      if (q > 0){ ctx.moveTo(sx, sy-a); ctx.lineTo(sx, sy+a); }
+      ctx.stroke();
+    }
+    ctx.font = "600 12px ui-monospace,SFMono-Regular,Menlo,monospace";
+    ctx.fillStyle = "rgba(235,240,250,.92)";
+    ctx.textAlign = "center";
+    ctx.fillText(`q${i+1} = ${sgn(q)} nC`, sx, sy + r + 15);
+    ctx.restore();
+  }
+}
+function probeVectorLength(m){
+  const {Ehi, Elo} = refs();
+  const lE = Math.log10(Elo), dE = Math.log10(Ehi) - lE;
+  const t = Math.min(1, Math.max(0, (Math.log10(m) - lE)/dE));
+  return 16 + 74*t;
+}
+function drawProbes(){
+  state.probes.forEach((p, i) => {
+    const col = PROBE_COLORS[i];
+    const [sx, sy] = w2s(p.x, p.y);
+    const [ex, ey] = fieldAt(p.x, p.y);
+    const m = Math.hypot(ex, ey);
+    ctx.save();
+    if (m > 1e-9 && isFinite(m)){
+      const ux = ex/m, uy = -ey/m;
+      const L = probeVectorLength(m);
+      ctx.strokeStyle = col; ctx.fillStyle = col;
+      ctx.lineWidth = 2.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + ux*L, sy + uy*L); ctx.stroke();
+      const hx = sx + ux*L, hy = sy + uy*L, s = 8;
+      ctx.beginPath();
+      ctx.moveTo(hx + ux*s, hy + uy*s);
+      ctx.lineTo(hx - ux*s*0.35 + uy*s*0.55, hy - uy*s*0.35 - ux*s*0.55);
+      ctx.lineTo(hx - ux*s*0.35 - uy*s*0.55, hy - uy*s*0.35 + ux*s*0.55);
+      ctx.closePath(); ctx.fill();
+      ctx.font = "600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace";
+      ctx.textAlign = ux >= 0 ? "left" : "right";
+      ctx.shadowColor = "rgba(0,0,0,.85)"; ctx.shadowBlur = 4;
+      ctx.fillText(fmt(m, "N/C"), hx + ux*11, hy + uy*11 + 4);
+      ctx.shadowBlur = 0;
+    }
+    ctx.beginPath(); ctx.arc(sx, sy, 6.5, 0, 2*Math.PI);
+    ctx.fillStyle = "rgba(12,16,26,.9)"; ctx.fill();
+    ctx.lineWidth = 2.2; ctx.strokeStyle = col; ctx.stroke();
+    ctx.restore();
+  });
+}
+function drawScaleBar(){
+  // pick a round length that is 12–30 % of the view
+  const candidates = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2];
+  let L = candidates[0];
+  for (const c of candidates) if (c*scale() < W*0.3) L = c;
+  const px = L*scale(), x1 = W - 24 - px, y = H - 26;
+  ctx.save();
+  ctx.strokeStyle = "rgba(226,234,250,.8)"; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(x1, y - 5); ctx.lineTo(x1, y + 5);
+  ctx.moveTo(x1, y); ctx.lineTo(x1 + px, y);
+  ctx.moveTo(x1 + px, y - 5); ctx.lineTo(x1 + px, y + 5);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(226,234,250,.85)";
+  ctx.font = "11.5px ui-monospace,SFMono-Regular,Menlo,monospace";
+  ctx.textAlign = "center";
+  ctx.fillText((L*100).toFixed(L < 0.01 ? 1 : 0) + " cm", x1 + px/2, y - 9);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- render
+function render(){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  if (state.equip)   drawEquipotentials();
+  if (state.lines)   drawFieldLines();
+  if (state.vectors) drawVectorGrid();
+  drawCharges();
+  drawProbes();
+  drawScaleBar();
+  updatePanel();
+}
+
+// Coalesce rapid input (drags, slider sweeps) into one frame, drawing a draft
+// while the finger is down and a full-quality pass once it settles.
+let framePending = false, settleTimer = null;
+function requestRender(draft){
+  if (draft){
+    state.fast = true;
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => { state.fast = false; render(); }, 180);
+  }
+  if (framePending) return;
+  framePending = true;
+  requestAnimationFrame(() => { framePending = false; render(); });
+}
+
+// ---------------------------------------------------------------- readouts
+function updatePanel(){
+  const q1v = document.getElementById("q1v"), q2v = document.getElementById("q2v");
+  q1v.textContent = sgn(state.q[0]) + " nC";
+  q2v.textContent = sgn(state.q[1]) + " nC";
+  q1v.className = "val " + (state.q[0] >= 0 ? "pos" : "neg");
+  q2v.className = "val " + (state.q[1] >= 0 ? "pos" : "neg");
+  document.getElementById("sepv").textContent  = (separation()*100).toFixed(1) + " cm";
+  document.getElementById("zoomv").textContent = Math.round(state.viewW*100) + " cm";
+  document.getElementById("sep").value  = (separation()*100).toFixed(1);
+  document.getElementById("zoom").value = Math.round(state.viewW*100);
+
+  // legend
+  const legend = document.getElementById("legend");
+  const {Ehi, Elo, Vhi, Vlo} = refs();
+  if (state.bg === "none"){ legend.style.display = "none"; }
+  else {
+    legend.style.display = "block";
+    const bar = document.getElementById("legBar");
+    if (state.bg === "emag"){
+      document.getElementById("legTitle").textContent = "Field magnitude |E| (log scale)";
+      const s = E_STOPS.map((c, i) =>
+        `rgb(${c[0]},${c[1]},${c[2]}) ${(100*i/(E_STOPS.length-1)).toFixed(0)}%`).join(",");
+      bar.style.background = `linear-gradient(90deg,${s})`;
+      document.getElementById("legLo").textContent = fmt(Elo, "N/C");
+      document.getElementById("legHi").textContent = fmt(Ehi, "N/C");
+    } else {
+      document.getElementById("legTitle").textContent = "Potential V (log scale)";
+      bar.style.background =
+        "linear-gradient(90deg,rgb(58,111,240),rgb(14,18,30),rgb(226,82,59))";
+      document.getElementById("legLo").textContent = "\u2212" + fmt(Vhi, "V");
+      document.getElementById("legHi").textContent = "+" + fmt(Vhi, "V");
+    }
+  }
+
+  // probe hint
+  const hint = document.getElementById("hintbar");
+  const left = 3 - state.probes.length;
+  if (left <= 0) hint.style.display = "none";
+  else {
+    hint.style.display = "block";
+    hint.textContent = (TOUCH ? "Tap" : "Click") + " the field to place a probe"
+      + (state.probes.length ? ` \u2014 ${left} left` : " (up to 3)");
+  }
+
+  // probes
+  const list = document.getElementById("probeList");
+  if (state.probes.length === 0){
+    list.innerHTML = '<p class="empty">No probes yet. Click anywhere in the field to place one.</p>';
+    return;
+  }
+  list.innerHTML = "";
+  state.probes.forEach((p, i) => {
+    const [ex, ey] = fieldAt(p.x, p.y);
+    const m = Math.hypot(ex, ey);
+    const ang = Math.atan2(ey, ex)*180/Math.PI;
+    const v = potentialAt(p.x, p.y);
+    const el = document.createElement("div");
+    el.className = "probe";
+    el.style.borderLeftColor = PROBE_COLORS[i];
+    el.innerHTML = `
+      <h3>Probe ${i+1}</h3>
+      <button class="x" data-remove="${i}" title="Remove this probe">\u00d7</button>
+      <dl>
+        <dt>|E|</dt><dd>${fmt(m, "N/C")}</dd>
+        <dt>angle</dt><dd>${ang.toFixed(1)}\u00b0</dd>
+        <dt>E<sub>x</sub></dt><dd>${fmt(ex, "N/C")}</dd>
+        <dt>E<sub>y</sub></dt><dd>${fmt(ey, "N/C")}</dd>
+        <dt>V</dt><dd>${fmt(v, "V")}</dd>
+        <dt>position</dt><dd>(${(p.x*100).toFixed(1)}, ${(p.y*100).toFixed(1)}) cm</dd>
+      </dl>`;
+    list.appendChild(el);
+  });
+  list.querySelectorAll("[data-remove]").forEach(b => {
+    b.addEventListener("click", e => {
+      state.probes.splice(+e.currentTarget.dataset.remove, 1);
+      render();
+    });
+  });
+}
+
+// ---------------------------------------------------------------- interaction
+let drag = null, downAt = null, moved = false;
+
+function localPos(e){
+  const r = cv.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+function hitTest(sx, sy){
+  const pad = TOUCH ? 14 : 3;                       // finger-sized slop
+  for (let i = state.probes.length - 1; i >= 0; i--){
+    const p = w2s(state.probes[i].x, state.probes[i].y);
+    if (Math.hypot(p[0]-sx, p[1]-sy) < 13 + pad) return {kind:"probe", i};
+  }
+  for (let i = 0; i < 2; i++){
+    const p = w2s(state.pos[i].x, state.pos[i].y);
+    const r = 13 + Math.min(9, Math.abs(state.q[i])*0.8);
+    if (Math.hypot(p[0]-sx, p[1]-sy) < r + pad + 2) return {kind:"charge", i};
+  }
+  return null;
+}
+cv.addEventListener("pointerdown", e => {
+  const [sx, sy] = localPos(e);
+  downAt = [sx, sy]; moved = false;
+  const hit = hitTest(sx, sy);
+  if (hit){
+    // Keep the grab point fixed relative to the object, so nothing snaps to
+    // the centre of a finger that is already covering it.
+    const [px, py] = s2w(sx, sy);
+    const t = hit.kind === "probe" ? state.probes[hit.i] : state.pos[hit.i];
+    drag = {kind:hit.kind, i:hit.i, ox:t.x - px, oy:t.y - py};
+    cv.setPointerCapture(e.pointerId);
+    cv.style.cursor = "grabbing";
+  }
+});
+cv.addEventListener("pointermove", e => {
+  const [sx, sy] = localPos(e);
+  if (downAt && Math.hypot(sx-downAt[0], sy-downAt[1]) > (TOUCH ? 9 : 4)) moved = true;
+  if (!drag){
+    if (!TOUCH) cv.style.cursor = hitTest(sx, sy) ? "grab" : "crosshair";
+    return;
+  }
+  const [px, py] = s2w(sx, sy);
+  const x = px + drag.ox, y = py + drag.oy;
+  const lim = state.viewW*0.48, limY = (H/scale())*0.48;
+  const cx = Math.max(-lim, Math.min(lim, x)), cy = Math.max(-limY, Math.min(limY, y));
+  if (drag.kind === "probe") state.probes[drag.i] = {x:cx, y:cy};
+  else                       state.pos[drag.i]    = {x:cx, y:cy};
+  requestRender(true);
+});
+function endDrag(e){
+  const [sx, sy] = localPos(e);
+  if (drag){
+    drag = null; cv.style.cursor = "crosshair";
+    clearTimeout(settleTimer); state.fast = false; render();
+  }
+  else if (downAt && !moved && state.probes.length < 3){
+    const [x, y] = s2w(sx, sy);
+    state.probes.push({x, y});
+    render();
+  }
+  downAt = null;
+}
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", () => { drag = null; downAt = null; });
+cv.addEventListener("dblclick", e => {
+  const [sx, sy] = localPos(e);
+  const hit = hitTest(sx, sy);
+  if (hit && hit.kind === "probe"){ state.probes.splice(hit.i, 1); render(); }
+});
+
+// ---------------------------------------------------------------- controls
+const $ = id => document.getElementById(id);
+$("q1").addEventListener("input", e => { state.q[0] = +e.target.value; requestRender(true); });
+$("q2").addEventListener("input", e => { state.q[1] = +e.target.value; requestRender(true); });
+$("sep").addEventListener("input", e => { setSeparation(+e.target.value/100); requestRender(true); });
+$("zoom").addEventListener("input", e => { state.viewW = +e.target.value/100; requestRender(true); });
+$("bg").addEventListener("change", e => { state.bg = e.target.value; render(); });
+$("cLines").addEventListener("change", e => { state.lines = e.target.checked; render(); });
+$("cEquip").addEventListener("change", e => { state.equip = e.target.checked; render(); });
+$("cVec").addEventListener("change", e => { state.vectors = e.target.checked; render(); });
+$("align").addEventListener("click", () => {
+  const d = separation();
+  state.pos[0] = {x:-d/2, y:0}; state.pos[1] = {x:d/2, y:0};
+  render();
+});
+$("clearProbes").addEventListener("click", () => { state.probes = []; render(); });
+$("reset").addEventListener("click", () => {
+  state.q = [4, -4];
+  state.pos = [{x:-0.05,y:0},{x:0.05,y:0}];
+  state.viewW = 0.32; state.probes = [];
+  state.bg = "emag"; state.lines = true; state.equip = false; state.vectors = false;
+  $("q1").value = 4; $("q2").value = -4; $("bg").value = "emag";
+  $("cLines").checked = true; $("cEquip").checked = false; $("cVec").checked = false;
+  render();
+});
+document.querySelectorAll("[data-preset]").forEach(b => {
+  b.addEventListener("click", () => {
+    const p = b.dataset.preset;
+    if (p === "dipole")  state.q = [5, -5];
+    if (p === "like")    state.q = [5, 5];
+    if (p === "unequal") state.q = [6, -2];
+    if (p === "single")  state.q = [6, 0];
+    $("q1").value = state.q[0]; $("q2").value = state.q[1];
+    render();
+  });
+});
+$("png").addEventListener("click", () => {
+  cv.toBlob(blob => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `field_q1=${state.q[0]}nC_q2=${state.q[1]}nC_d=${(separation()*100).toFixed(1)}cm.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+});
+
+// ---------------------------------------------------------------- sizing
+function resize(){
+  const r = stage.getBoundingClientRect();
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = Math.max(240, Math.round(r.width));
+  H = Math.max(240, Math.round(r.height));
+  cv.width = Math.round(W*dpr);
+  cv.height = Math.round(H*dpr);
+  requestRender(false);
+}
+new ResizeObserver(resize).observe(stage);
+window.addEventListener("orientationchange", () => setTimeout(resize, 250));
+
+if (TOUCH){
+  document.querySelector("header p").textContent =
+    "Drag the charges. Tap the field to drop a probe.";
+}
+resize();
+</script>
+</body>
+</html>
