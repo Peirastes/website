@@ -105,14 +105,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +140,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +159,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -161,9 +188,23 @@
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -186,372 +227,667 @@
         <div class="content-body">
 
 <h2 id="energy-joins-the-story">24.0 — Energy Joins the Story</h2>
-<p>In Physics I, we discovered that <strong>energy methods</strong> often provide simpler solutions than force methods. Instead of tracking forces and accelerations through complex paths, we could use conservation of energy to relate initial and final states directly.</p>
-<p>The same insight applies to electromagnetism. While Coulomb’s Law and Gauss’s Law give us the electric <em>force</em> and <em>field</em>, we can also develop an energy-based approach using <strong>electric potential energy</strong> and <strong>electric potential</strong>.</p>
-<p>The concept of electric potential is intimately connected to our everyday experience with electricity. When we speak of a “12-volt battery” or a “120-volt outlet,” we are describing potential differences. The <strong>volt</strong> — named after <strong>Alessandro Volta</strong> (1745–1827), inventor of the first battery — measures electric potential.</p>
+<p>Chapter 22 asked <strong>how strong</strong> — and answered with a vector at every point in space. Chapter 23 asked <strong>how much charge</strong> — and answered by counting field lines through a closed surface. Both answers are vectors or fluxes: objects with direction, or objects that need a surface before they mean anything.</p>
+<p>This chapter asks a third question — <strong>how much work</strong> — and the answer is a single number at every point. No components. No direction. One number.</p>
+<p>That is not a small convenience. In Physics I you learned that energy methods often beat force methods: instead of tracking forces and accelerations through a complicated path, you relate the initial and final states directly and let the path take care of itself. The same trade is available here, and for the same reason: the electric force is conservative.</p>
+<p>The concept is also the one you already use without naming. A “12-volt battery,” a “120-volt outlet” — these are statements about potential difference. The <strong>volt</strong>, named for <strong>Alessandro Volta</strong> (1745–1827), is the unit we are about to define properly.</p>
 <blockquote>
 <p>“The language of experiment is more authoritative than any reasoning: facts can destroy our ratiocination — not vice versa.” — Alessandro Volta</p>
 </blockquote>
-<p>Understanding electric potential answers the question posed in the chapter storyline: <em>What exactly is a volt?</em> By the end of this chapter, we’ll understand not only what a volt is, but why the potential difference in lightning strikes can reach hundreds of millions of volts — and why that makes lightning so dangerous.</p>
-<h3 id="gravitational-analogy-preview">Gravitational Analogy Preview</h3>
+<section id="the-quantity-instruments-actually-read" class="connection">
+<h3>The quantity instruments actually read</h3>
+<p>There is a practical reason this chapter matters as much as a conceptual one. <strong>No instrument measures an electric field directly.</strong> A voltmeter has two leads and returns one number: the potential difference between them. Field-mapping apparatus works the same way — a probe reads potential at a point, and the field is reconstructed afterwards from how that reading varies across the region.</p>
+<p>So potential is not merely a convenient scalar stand-in for the field. It is the thing laboratory work produces, and the field is the thing inferred from it. §24.3 and §24.5 supply the two halves of that inference.</p>
+</section>
+<h3 id="the-gravitational-analogy">The Gravitational Analogy</h3>
+<p>Every result in this chapter has a gravitational twin you already know. The analogy is not decoration — it is the fastest available check on whether a result is sensible.</p>
 <table>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Gravitational System</th>
-<th style="text-align: left;">Electrical System</th>
+<th>Gravitational system</th>
+<th>Electrical system</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Gravitational potential energy <span class="math inline">\(U_{g} = mgh\)</span></td>
-<td style="text-align: left;">Electric potential energy <span class="math inline">\(U_{E}\)</span></td>
+<td>Gravitational field <span class="math inline">\(\vec{g}\)</span></td>
+<td>Electric field <span class="math inline">\(\vec{E}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Gravitational potential <span class="math inline">\(V_{g} = gh = U_{g}/m\)</span></td>
-<td style="text-align: left;">Electric potential <span class="math inline">\(V = U_{E}/q\)</span></td>
+<td>Mass <span class="math inline">\(m\)</span> feels <span class="math inline">\(\vec{F} = m\vec{g}\)</span></td>
+<td>Charge <span class="math inline">\(q\)</span> feels <span class="math inline">\(\vec{F} = q\vec{E}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;"><span class="math inline">\(g\)</span> = gravitational field</td>
-<td style="text-align: left;"><span class="math inline">\(E\)</span> = electric field</td>
+<td>Potential energy <span class="math inline">\(U_g = mgh\)</span></td>
+<td>Potential energy <span class="math inline">\(U_E\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Mass <span class="math inline">\(m\)</span> feels force <span class="math inline">\(\vec{F} = m\vec{g}\)</span> Charge <span class="math inline">\(q\)</span> feels force</td>
-<td style="text-align: left;"><span class="math inline">\(\vec{F} = q\vec{E}\)</span></td>
+<td>Potential <span class="math inline">\(V_g = gh = U_g/m\)</span></td>
+<td>Potential <span class="math inline">\(V = U_E/q\)</span></td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\vec{g} = -\nabla V_g\)</span></td>
+<td><span class="math inline">\(\vec{E} = -\nabla V\)</span></td>
 </tr>
 </tbody>
 </table>
-<p><em>*Just as gravitational potential (</em><span class="math inline">\(gh\)</span><em>) is potential energy per unit mass, electric potential (</em><span class="math inline">\(V\)</span><em>) is potential energy per unit charge. This analogy will guide our development throughout the chapter.</em></p>
+<p>Just as gravitational potential <span class="math inline">\(gh\)</span> is potential energy <em>per unit mass</em>, electric potential <span class="math inline">\(V\)</span> is potential energy <em>per unit charge</em>. The one place the analogy breaks is sign: gravity only attracts, so <span class="math inline">\(U_g\)</span> is always negative, while charges do both.</p>
+<hr />
 <h2 id="electric-potential-energy">24.1 — Electric Potential Energy</h2>
+<h3 id="why-potential-energy-exists-at-all">Why potential energy exists at all</h3>
+<p>Potential energy is only definable for a <strong>conservative force</strong> — one whose work depends on the endpoints and not on the path. The electric force qualifies for the same reason gravity does: it is central and depends only on position. Take any closed path in an electrostatic field and the net work is zero.</p>
+<p>That fact is what licenses everything below. If the work depended on the route, “the potential energy at point P” would not be a number, and there would be no chapter.</p>
 <h3 id="potential-energy-in-a-uniform-field">Potential Energy in a Uniform Field</h3>
-<p>Recall from Physics I that potential energy is associated with <strong>conservative forces</strong> — forces for which the work done depends only on the initial and final positions, not on the path taken. The electric force is conservative because it depends only on position (like gravity) and satisfies curl conditions.</p>
 <figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_1_charge_uniform_field.png" alt="Figure 24.1: A positive charge moves from A (high potential) to B (low potential) in a uniform field. The field does positive work on it, so its potential energy decreases." loading="lazy" style="max-width:min(3.6in,100%)" /><figcaption>Figure 24.1: A positive charge moves from A (high potential) to B (low potential) in a uniform field. The field does positive work on it, so its potential energy decreases.</figcaption></figure>
-<p>Consider a positive charge <span class="math inline">\(q\)</span> in a uniform electric field <span class="math inline">\(\vec{E}\)</span> pointing in the <span class="math inline">\(- y\)</span> direction (downward). If the charge moves from point A to point B through a displacement <span class="math inline">\(\vec{d}\)</span>, the work done <strong>by the electric field</strong> on the charge is:</p>
-<p><span class="math display">\[W = \vec{F} \cdot \vec{d} = q\vec{E} \cdot \vec{d}\]</span></p>
-<p>For a displacement in the direction of the field:</p>
-<p><span class="math display">\[W = qEd\]</span></p>
-<p>The change in <strong>electric potential energy</strong> is defined as the negative of this work:</p>
-<p><span class="math display">\[\Delta U_{E} = - W = - qEd\]</span></p>
-<p>This sign convention matches gravity: when an object falls, gravity does positive work and potential energy decreases.</p>
-<h3 id="potential-energy-of-point-charges">Potential Energy of Point Charges</h3>
-<p>For two point charges <span class="math inline">\(q_{1}\)</span> and <span class="math inline">\(q_{2}\)</span> separated by distance <span class="math inline">\(r\)</span>, the electric potential energy of the system is:</p>
-<p><span class="math display">\[U_{E} = k_{e}\frac{q_{1}q_{2}}{r}\]</span></p>
-<p><strong>Important features:</strong></p>
+<p>Take a uniform field <span class="math inline">\(\vec{E}\)</span> and move a charge <span class="math inline">\(q\)</span> through a displacement <span class="math inline">\(\vec{d}\)</span>. The force is constant, so the work done <strong>by the field</strong> is</p>
+<p><span class="math display">\[W = \vec{F}\cdot\vec{d} = q\vec{E}\cdot\vec{d}\]</span></p>
+<p>and for motion straight along the field, <span class="math inline">\(W = qEd\)</span>. The change in potential energy is defined as the negative of that work:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Delta U_E = -W = -qEd\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Does the sign behave?</strong> Release a positive charge in a field. It accelerates along <span class="math inline">\(\vec{E}\)</span>, the field does positive work, and <span class="math inline">\(\Delta U_E\)</span> is negative — potential energy falls, kinetic energy rises. That is a ball rolling downhill, and it should feel identical, because <span class="math inline">\(-qEd\)</span> and <span class="math inline">\(-mgh\)</span> are the same statement with the same structure.</p>
+<p>Now release a <em>negative</em> charge in the same field. It accelerates <strong>against</strong> <span class="math inline">\(\vec{E}\)</span>. The field still does positive work on it and <span class="math inline">\(U_E\)</span> still falls — but “downhill” now points the other way. <strong>Potential energy always decreases along the direction the particle actually moves; it is the direction that flips, not the energy bookkeeping.</strong></p>
+</div>
+<h3 id="potential-energy-of-a-pair-of-point-charges">Potential Energy of a Pair of Point Charges</h3>
+<p>For two point charges separated by <span class="math inline">\(r\)</span>, integrating the work needed to bring one in from infinity against the other’s Coulomb force gives</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U_E = k_e\frac{q_1 q_2}{r}\;}\]</span></p>
+</div>
+<p>Three features carry the physics:</p>
 <ul>
-<li>If both charges have the <strong>same sign</strong>: <span class="math inline">\(U_{E} &gt; 0\)</span> (positive work required to bring them together)</li>
-<li>If charges have <strong>opposite signs</strong>: <span class="math inline">\(U_{E} &lt; 0\)</span> (negative work required — they attract)</li>
-<li><span class="math inline">\(U_{E} \rightarrow 0\)</span> as <span class="math inline">\(r \rightarrow \infty\)</span> (conventional reference point)</li>
+<li><strong>Same sign</strong> → <span class="math inline">\(U_E &gt; 0\)</span>. You had to do work to push them together, and that work is stored, waiting to be released if you let go.</li>
+<li><strong>Opposite signs</strong> → <span class="math inline">\(U_E &lt; 0\)</span>. They pulled themselves together; you would have to do work to separate them.</li>
+<li><span class="math inline">\(U_E \rightarrow 0\)</span> as <span class="math inline">\(r \rightarrow \infty\)</span>. This is a <strong>choice of reference</strong>, not a derived fact. Infinity is convenient because it makes <span class="math inline">\(U_E\)</span> measure “the work to assemble this from scattered pieces.”</li>
 </ul>
-<h3 id="comparison-with-gravitational-potential-energy">Comparison with Gravitational Potential Energy</h3>
+<p>Note the exponent. The <em>force</em> between two charges goes as <span class="math inline">\(1/r^2\)</span>; the <em>energy</em> goes as <span class="math inline">\(1/r\)</span>. The energy is the integral of the force over distance, so it must carry one fewer power of <span class="math inline">\(r\)</span>. Any time you see those two exponents together, that is the relationship you are looking at.</p>
+<section id="against-the-gravitational-case" class="connection">
+<h4>Against the gravitational case</h4>
 <table>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Gravitational PE</th>
-<th style="text-align: left;">Electric PE</th>
+<th></th>
+<th>Gravitational</th>
+<th>Electric</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;"><span class="math inline">\(U_{g} = - G\frac{m_{1}m_{2}}{r}\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(U_{E} = k_{e}\frac{q_{1}q_{2}}{r}\)</span></td>
+<td>Expression</td>
+<td><span class="math inline">\(U_g = -G\dfrac{m_1m_2}{r}\)</span></td>
+<td><span class="math inline">\(U_E = k_e\dfrac{q_1q_2}{r}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Always negative (masses attract)</td>
-<td style="text-align: left;">Can be positive or negative</td>
+<td>Sign</td>
+<td>always negative</td>
+<td>either sign</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Reference: <span class="math inline">\(U_{g} = 0\)</span> at <span class="math inline">\(r = \infty\)</span></td>
-<td style="text-align: left;">Reference: <span class="math inline">\(U_{E} = 0\)</span> at <span class="math inline">\(r = \infty\)</span></td>
+<td>Reference</td>
+<td><span class="math inline">\(U_g = 0\)</span> at <span class="math inline">\(r = \infty\)</span></td>
+<td><span class="math inline">\(U_E = 0\)</span> at <span class="math inline">\(r = \infty\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>The key difference is the sign: gravitational forces are always attractive (negative PE), while electric forces can be attractive or repulsive.</p>
-<h3 id="systems-of-multiple-charges">Systems of Multiple Charges</h3>
-<p>For a system of multiple point charges, the total potential energy is the sum of potential energies for all pairs:</p>
-<p><span class="math display">\[U_{E} = k_{e}\sum_{i &lt; j}^{}\frac{q_{i}q_{j}}{r_{ij}}\]</span></p>
-<p>For three charges:</p>
-<p><span class="math display">\[U_{E} = k_{e}\left( \frac{q_{1}q_{2}}{r_{12}} + \frac{q_{1}q_{3}}{r_{13}} + \frac{q_{2}q_{3}}{r_{23}} \right)\]</span></p>
-<p><strong>Important:</strong> We count each pair once! The notation <span class="math inline">\(i &lt; j\)</span> ensures we don’t double-count.</p>
+<p>The explicit minus sign in the gravitational form is doing the work that the charges’ signs do in the electric form. Masses only attract, so the sign is baked in; charges do both, so it is carried by <span class="math inline">\(q_1q_2\)</span>.</p>
+</section>
+<h3 id="systems-of-more-than-two-charges">Systems of More Than Two Charges</h3>
+<p>Potential energy belongs to a <strong>system</strong>, not to a particle. For several charges, total up every <em>pair</em> exactly once:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U_E = k_e\sum_{i&lt;j}\frac{q_i q_j}{r_{ij}}\;}\]</span></p>
+</div>
+<p>For three charges that is</p>
+<p><span class="math display">\[U_E = k_e\left(\frac{q_1q_2}{r_{12}} + \frac{q_1q_3}{r_{13}} + \frac{q_2q_3}{r_{23}}\right)\]</span></p>
+<p>The <span class="math inline">\(i&lt;j\)</span> condition is not bookkeeping fussiness. Writing <span class="math inline">\(q_1q_2/r_{12}\)</span> <em>and</em> <span class="math inline">\(q_2q_1/r_{21}\)</span> counts the same physical interaction twice and doubles the answer. Three charges have three pairs, four charges have six, five have ten — the count is <span class="math inline">\(\binom{n}{2}\)</span>, and it grows faster than the number of charges.</p>
+<section id="putting-numbers-on-it" class="example">
+<h4>Putting Numbers on It</h4>
+<p>Three charges sit at the corners of an equilateral triangle of side <span class="math inline">\(a = 0.30\ \text{m}\)</span>: <span class="math inline">\(q_1 = +2.0\ \mu\text{C}\)</span>, <span class="math inline">\(q_2 = +2.0\ \mu\text{C}\)</span>, <span class="math inline">\(q_3 = -3.0\ \mu\text{C}\)</span>. Every separation is the same <span class="math inline">\(a\)</span>, so the geometry factors out and only the charge products differ.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Pair</th>
+<th><span class="math inline">\(q_iq_j\)</span> (<span class="math inline">\(\mu\text{C}^2\)</span>)</th>
+<th><span class="math inline">\(U\)</span> (J)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1–2</td>
+<td><span class="math inline">\(+4.0\)</span></td>
+<td><span class="math inline">\(+0.120\)</span></td>
+</tr>
+<tr class="even">
+<td>1–3</td>
+<td><span class="math inline">\(-6.0\)</span></td>
+<td><span class="math inline">\(-0.180\)</span></td>
+</tr>
+<tr class="odd">
+<td>2–3</td>
+<td><span class="math inline">\(-6.0\)</span></td>
+<td><span class="math inline">\(-0.180\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>total</strong></td>
+<td></td>
+<td><span class="math inline">\(\mathbf{-0.240}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>The total is <strong>negative</strong>, and that is the whole story of the configuration: the two attractive pairs outweigh the single repulsive one. Negative assembly energy means the system is <strong>bound</strong> — it took net <em>negative</em> work to build, so you would have to supply <span class="math inline">\(+0.240\)</span> J to scatter these three back to infinity.</p>
+<p>Change <span class="math inline">\(q_3\)</span> to <span class="math inline">\(+3.0\ \mu\text{C}\)</span> and every term flips positive, giving <span class="math inline">\(+0.480\)</span> J: the same geometry, now an unbound configuration that will fly apart the instant it is released. <strong>The sign of <span class="math inline">\(U_E\)</span> is a stability statement, not a bookkeeping detail.</strong></p>
+</section>
+<hr />
 <h2 id="electric-potential">24.2 — Electric Potential</h2>
-<h3 id="definition">Definition</h3>
-<p>Just as we defined the electric <em>field</em> as force per unit charge (<span class="math inline">\(\vec{E} = \vec{F}/q\)</span>), we define <strong>electric potential</strong> as potential energy per unit charge:</p>
-<p><span class="math display">\[V = \frac{U_{E}}{q}\]</span></p>
-<p>The <strong>potential difference</strong> (or <strong>voltage</strong>) between points A and B is:</p>
-<p><span class="math display">\[\Delta V = V_{B} - V_{A} = \frac{\Delta U_{E}}{q} = - \frac{W_{A \rightarrow B}}{q}\]</span></p>
-<p>where <span class="math inline">\(W_{A \rightarrow B}\)</span> is the work done by the electric field in moving charge <span class="math inline">\(q\)</span> from A to B.</p>
+<h3 id="dividing-out-the-test-charge">Dividing out the test charge</h3>
+<p>In Chapter 22 we did not stop at the force between two charges — we divided by the test charge to get a field, <span class="math inline">\(\vec{E} = \vec{F}/q\)</span>, which describes what the <em>source</em> does to space regardless of what you put there. Do the same thing to energy:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = \frac{U_E}{q}\;}\]</span></p>
+</div>
+<p>The <strong>potential difference</strong> between two points is what you almost always actually use:</p>
+<p><span class="math display">\[\Delta V = V_B - V_A = \frac{\Delta U_E}{q} = -\frac{W_{A\rightarrow B}}{q}\]</span></p>
+<p>This is the single most important move in the chapter. <span class="math inline">\(U_E\)</span> needs two objects — the source <em>and</em> the charge you brought. <span class="math inline">\(V\)</span> needs only the source. It is a property of the space, sitting there whether or not anyone comes to measure it.</p>
 <h3 id="the-volt">The Volt</h3>
-<p>The SI unit of electric potential is the <strong>volt</strong> (V):</p>
 <p><span class="math display">\[1\ \text{V} = 1\ \frac{\text{J}}{\text{C}}\]</span></p>
-<p>One volt means one joule of potential energy per coulomb of charge.</p>
-<p><strong>Important consequence:</strong> The electric field can be expressed in volts per meter:</p>
+<p>One volt is one joule of potential energy for every coulomb of charge you place there. A 12 V battery does 12 joules of work on every coulomb it drives around the circuit.</p>
+<div class="check">
+<p><strong>The unit identity that is secretly a physical law.</strong> Since <span class="math inline">\(1\ \text{J} = 1\ \text{N}\cdot\text{m}\)</span>,</p>
 <p><span class="math display">\[1\ \frac{\text{N}}{\text{C}} = 1\ \frac{\text{V}}{\text{m}}\]</span></p>
-<p>This gives us a new interpretation of the electric field: <strong>E is the rate at which potential changes with position</strong>.</p>
+<p>Read the right-hand side out loud: <strong>volts per metre</strong>. The electric field is the <em>rate at which potential changes with position</em>. That is not a unit conversion — it is the whole content of §24.5 arriving three sections early, hidden inside a dimensional check. If the field is strong, the potential is falling steeply; if the potential is flat, there is no field.</p>
+<p>This is why dimensional analysis is not a formality. The units of a quantity frequently tell you what it <em>is</em>.</p>
+</div>
 <h3 id="the-electron-volt">The Electron Volt</h3>
-<p>In atomic and nuclear physics, the joule is inconveniently large. The <strong>electron volt</strong> (eV) is defined as the energy gained by an electron accelerated through a potential difference of 1 volt:</p>
-<p><span class="math display">\[1\ \text{eV} = \left( 1.602 \times 10^{- 19}\ \text{C} \right)\left( 1\ \text{V} \right) = 1.602 \times 10^{- 19}\ \text{J}\]</span></p>
-<p><strong>Examples:</strong> - Visible light photons: 1.8 – 3.1 eV - Chemical bond energies: ~1 – 10 eV - Medical X-rays: ~10 – 100 keV - Nuclear binding energies: ~1 – 10 MeV</p>
-<h3 id="potential-vs.-potential-energy">Potential vs. Potential Energy</h3>
-<p>Don’t confuse potential <span class="math inline">\(V\)</span> with potential energy <span class="math inline">\(U_{E}\)</span>:</p>
+<p>The joule is absurdly oversized for one particle. Define the <strong>electron volt</strong> as the energy one elementary charge gains crossing one volt:</p>
+<p><span class="math display">\[1\ \text{eV} = \left(1.602\times10^{-19}\ \text{C}\right)\left(1\ \text{V}\right) = 1.602\times10^{-19}\ \text{J}\]</span></p>
 <table>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Electric Potential <span class="math inline">\(V\)</span></th>
-<th style="text-align: left;">Electric Potential Energy <span class="math inline">\(U_{E}\)</span></th>
+<th>Process</th>
+<th>Energy scale</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Property of the field (source charges)</td>
-<td style="text-align: left;">Property of a system (source + test charge)</td>
+<td>Visible-light photon</td>
+<td>1.8–3.1 eV</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Exists even without test charge</td>
-<td style="text-align: left;">Requires a test charge to exist</td>
+<td>Chemical bond</td>
+<td>~1–10 eV</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Scalar (units: volts)</td>
-<td style="text-align: left;">Scalar (units: joules)</td>
+<td>Medical X-ray</td>
+<td>~10–100 keV</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><span class="math inline">\(V = U_{E}/q\)</span></td>
-<td style="text-align: left;"><span class="math inline">\(U_{E} = qV\)</span></td>
+<td>Nuclear binding</td>
+<td>~1–10 MeV</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Analogy:</strong> Electric potential is like the “height” in a gravitational field. A location has a definite height whether or not a mass is there. But gravitational PE requires both a height <em>and</em> a mass.</p>
+<p>The eV is not a new physical idea — it is a unit chosen so the numbers you write down are of order one. Notice that the table spans six orders of magnitude, and that chemistry and visible light sit at the same scale. That is not a coincidence: chemistry <em>is</em> the physics of a few eV.</p>
+<h3 id="potential-versus-potential-energy">Potential versus Potential Energy</h3>
+<p>These are confused constantly, and the confusion is expensive. Keep them apart:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Electric potential <span class="math inline">\(V\)</span></th>
+<th>Electric potential energy <span class="math inline">\(U_E\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Belongs to</td>
+<td>the field, i.e. the source charges</td>
+<td>the system: source <strong>and</strong> test charge</td>
+</tr>
+<tr class="even">
+<td>Exists without a test charge?</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>Units</td>
+<td>volts (J/C)</td>
+<td>joules</td>
+</tr>
+<tr class="even">
+<td>Relation</td>
+<td><span class="math inline">\(V = U_E/q\)</span></td>
+<td><span class="math inline">\(U_E = qV\)</span></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The analogy that works:</strong> potential is <em>height</em>. A point on a hillside has a definite height whether or not anyone is standing there. Gravitational potential energy needs both the height and a hiker.</p>
+<hr />
 <h2 id="potential-difference-in-a-uniform-field">24.3 — Potential Difference in a Uniform Field</h2>
-<h3 id="basic-relationship">Basic Relationship</h3>
-<p>In a uniform electric field <span class="math inline">\(\vec{E}\)</span>, the potential difference between two points A and B is:</p>
-<p><span class="math display">\[V_{B} - V_{A} = - \int_{A}^{B}\vec{E} \cdot d\vec{s}\]</span></p>
-<p>For a uniform field and a straight path:</p>
-<p><span class="math display">\[\Delta V = - Ed\]</span></p>
-<p>where <span class="math inline">\(d\)</span> is the distance moved in the direction of the field.</p>
-<p><strong>Key insight:</strong> Electric potential <strong>decreases</strong> in the direction of the electric field. Field lines point from high potential to low potential — just as gravitational field lines point “downhill” from high gravitational potential to low.</p>
+<h3 id="the-general-relation-and-the-uniform-case">The general relation, and the uniform case</h3>
+<p>For any field, potential difference is the line integral of the field:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V_B - V_A = -\int_A^B \vec{E}\cdot d\vec{s}\;}\]</span></p>
+</div>
+<p>If the field is uniform and the path runs straight along it, <span class="math inline">\(\vec{E}\)</span> comes out of the integral and this collapses to</p>
+<p><span class="math display">\[\Delta V = -Ed\]</span></p>
+<p>where <span class="math inline">\(d\)</span> is the displacement <strong>along the field direction</strong>.</p>
+<div class="check">
+<p><strong>Which way does potential decrease?</strong> The minus sign says: moving <em>along</em> <span class="math inline">\(\vec{E}\)</span>, potential drops. Field lines point downhill.</p>
+<p>Two consequences worth holding onto:</p>
+<ul>
+<li>A <strong>positive</strong> charge released from rest moves toward <strong>lower</strong> potential — it falls downhill, like a ball.</li>
+<li>A <strong>negative</strong> charge released from rest moves toward <strong>higher</strong> potential — it falls <em>uphill</em> in potential, because for it <span class="math inline">\(U_E = qV\)</span> decreases as <span class="math inline">\(V\)</span> rises.</li>
+</ul>
+<p>Both are the same statement: every charge moves so as to reduce <strong>its own potential energy</strong>. Only the map from <span class="math inline">\(V\)</span> to <span class="math inline">\(U_E\)</span> carries the sign.</p>
+</div>
 <h3 id="equipotential-surfaces">Equipotential Surfaces</h3>
-<p>An <strong>equipotential surface</strong> is a surface on which all points have the same electric potential.</p>
 <figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_2_equipotentials.png" alt="Figure 24.2: Equipotential surfaces are everywhere perpendicular to the field lines. Left: a point charge’s radial field with circular equipotentials. Right: the equipotentials as 3D nested spheres." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 24.2: Equipotential surfaces are everywhere perpendicular to the field lines. Left: a point charge’s radial field with circular equipotentials. Right: the equipotentials as 3D nested spheres.</figcaption></figure>
-<p><strong>Properties of equipotential surfaces:</strong></p>
+<p>An <strong>equipotential surface</strong> is a surface on which <span class="math inline">\(V\)</span> is constant. Four properties, and each one is derivable rather than memorisable:</p>
 <ol type="1">
-<li><p><strong>No work is done</strong> moving a charge along an equipotential surface (since <span class="math inline">\(\Delta V = 0\)</span>, we have <span class="math inline">\(W = - q\Delta V = 0\)</span>)</p></li>
-<li><p>Equipotential surfaces are <strong>perpendicular to electric field lines</strong></p></li>
-<li><p>Equipotential surfaces <strong>never cross</strong> each other</p></li>
-<li><p>The <strong>spacing</strong> of equipotential surfaces indicates field strength — closer spacing means stronger field</p></li>
+<li><strong>No work is done moving a charge along one.</strong> <span class="math inline">\(\Delta V = 0\)</span>, so <span class="math inline">\(W = -q\Delta V = 0\)</span>.</li>
+<li><strong>They are perpendicular to field lines, everywhere.</strong> If <span class="math inline">\(\vec{E}\)</span> had any component <em>along</em> the surface, moving a charge that way would do work — which property 1 forbids. So the field must be entirely perpendicular.</li>
+<li><strong>They never cross.</strong> A crossing point would have two different potentials.</li>
+<li><strong>Their spacing measures field strength.</strong> Closely packed equipotentials mean <span class="math inline">\(V\)</span> changes rapidly with position, and by §24.2’s unit identity that <em>is</em> a strong field.</li>
 </ol>
+<section id="how-a-field-is-mapped-in-practice" class="connection">
+<h4>How a field is mapped in practice</h4>
+<p>Properties 1 and 2 together are the basis of every experimental field map. A probe reads potential, so what it traces are curves of <strong>constant reading</strong> — equipotentials, by property 1. No field line is ever measured.</p>
+<p>Property 2 then supplies the field for nothing: draw the equipotentials, draw perpendiculars to them, and those perpendiculars are the field lines. Their spacing, by property 4, gives the magnitude. <strong>The measurement yields a scalar and geometry converts it into a vector field</strong> — which is the practical answer to why potential is worth defining at all.</p>
+<p>Rule 5 of Chapter 22 — field lines meet a conductor’s surface at right angles — is the same statement in a special case, because a conductor’s surface <em>is</em> an equipotential (§24.7).</p>
+</section>
 <h3 id="uniform-field-equipotentials">Uniform Field Equipotentials</h3>
-<p>In a uniform field, equipotential surfaces are <strong>parallel planes</strong> perpendicular to the field.</p>
 <figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_5_parallel_plate.png" alt="Figure 24.5: A parallel-plate capacitor sets up a uniform field between the plates; the potential falls linearly from the positive plate to the negative plate." loading="lazy" style="max-width:min(3.9in,100%)" /><figcaption>Figure 24.5: A parallel-plate capacitor sets up a uniform field between the plates; the potential falls linearly from the positive plate to the negative plate.</figcaption></figure>
-<p><strong>Example:</strong> Between parallel plate capacitor plates with potential difference <span class="math inline">\(\Delta V\)</span> and separation <span class="math inline">\(d\)</span>:</p>
+<p>In a uniform field the equipotentials are <strong>parallel planes</strong> perpendicular to <span class="math inline">\(\vec{E}\)</span>, evenly spaced — even spacing being the geometric signature of a constant field. Between capacitor plates held at potential difference <span class="math inline">\(\Delta V\)</span> and separation <span class="math inline">\(d\)</span>:</p>
 <p><span class="math display">\[E = \frac{\Delta V}{d}\]</span></p>
-<p>If <span class="math inline">\(\Delta V = 12\)</span> V and <span class="math inline">\(d = 0.30\)</span> cm:</p>
-<p><span class="math display">\[E = \frac{12\ \text{V}}{0.0030\ \text{m}} = 4000\ \text{V/m}\]</span></p>
+<section id="putting-numbers-on-it-1" class="example">
+<h4>Putting Numbers on It</h4>
+<p>A 12 V battery across plates <span class="math inline">\(d = 0.30\ \text{cm} = 3.0\times10^{-3}\ \text{m}\)</span> apart:</p>
+<p><span class="math display">\[E = \frac{12\ \text{V}}{3.0\times10^{-3}\ \text{m}} = 4.0\times10^{3}\ \text{V/m}\]</span></p>
+<p>Is that a lot? Dry air breaks down at about <span class="math inline">\(3\times10^{6}\ \text{V/m}\)</span>, so this is roughly a factor of 750 below sparking — safe, and nowhere near the limit.</p>
+<p>Now run it backwards. To reach breakdown with the same 12 V battery you would need <span class="math inline">\(d = 12/(3\times10^6) = 4\ \mu\text{m}\)</span>: a gap about a twentieth the width of a human hair. <strong>Ordinary voltages make extraordinary fields once the gap gets small enough</strong>, which is the entire operating principle of every microelectronic device you own, and the reason they fail when a dust particle bridges a gap.</p>
+</section>
+<h3 id="a-charge-released-from-rest">A Charge Released from Rest</h3>
+<p>Because the electric force is conservative, mechanical energy is conserved, and the whole apparatus of Physics I applies unchanged:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;K_i + qV_i = K_f + qV_f\;}\]</span></p>
+</div>
+<p>Equivalently <span class="math inline">\(\Delta K = -q\Delta V\)</span>. This is the fastest route to any “released from rest, how fast is it going” question, and it never requires you to find the acceleration or the time.</p>
+<section id="a-proton-across-100-v" class="example">
+<h4>A proton across 100 V</h4>
+<p>A proton starts at rest at the positive plate of a capacitor with <span class="math inline">\(\Delta V = 100\ \text{V}\)</span> and crosses to the negative plate.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_8_energy_conservation.png" alt="Figure 24.8: Energy conservation for a charged particle. A proton accelerated through a potential difference converts electric potential energy into kinetic energy: q\,\Delta V = \frac{1}{2}mv^2." loading="lazy" style="max-width:min(3.6in,100%)" /><figcaption>Figure 24.8: Energy conservation for a charged particle. A proton accelerated through a potential difference converts electric potential energy into kinetic energy: <span class="math inline">\(q\,\Delta V = \frac{1}{2}mv^2\)</span>.</figcaption></figure>
+<p>Starting from <span class="math inline">\(K_i + qV_i = K_f + qV_f\)</span> with <span class="math inline">\(K_i = 0\)</span>:</p>
+<p><span class="math display">\[q\left(V_i - V_f\right) = \tfrac12 mv_f^2 \quad\Longrightarrow\quad v_f = \sqrt{\frac{2q\,\Delta V}{m}}\]</span></p>
+<p><span class="math display">\[v_f = \sqrt{\frac{2\left(1.602\times10^{-19}\right)\left(100\right)}{1.673\times10^{-27}}} = 1.38\times10^{5}\ \text{m/s}\]</span></p>
+<div class="check">
+<p><strong>Three checks, all cheap.</strong></p>
+<ul>
+<li><strong>Dimensions.</strong> <span class="math inline">\(\sqrt{\text{C}\cdot\text{V}/\text{kg}} = \sqrt{\text{J}/\text{kg}} = \text{m/s}\)</span>. ✓</li>
+<li><strong>Scaling.</strong> <span class="math inline">\(v_f \propto \sqrt{\Delta V}\)</span> — quadrupling the voltage only doubles the speed. Energy is what the voltage buys, and speed is the square root of energy.</li>
+<li><strong>Magnitude.</strong> <span class="math inline">\(1.38\times10^{5}\)</span> m/s is about 0.05% of light speed, so non-relativistic treatment was justified. Had we used an <em>electron</em>, the same 100 V would give <span class="math inline">\(5.9\times10^{6}\)</span> m/s — 1836 times lighter, so <span class="math inline">\(\sqrt{1836} \approx 43\)</span> times faster. Still safe, but you can see how quickly electrons get fast, which is why the eV exists as a unit.</li>
+</ul>
+</div>
+</section>
+<hr />
 <h2 id="electric-potential-due-to-point-charges">24.4 — Electric Potential Due to Point Charges</h2>
-<h3 id="single-point-charge">Single Point Charge</h3>
-<p>The electric potential at distance <span class="math inline">\(r\)</span> from a point charge <span class="math inline">\(q\)</span> is:</p>
-<p><span class="math display">\[V = k_{e}\frac{q}{r}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_3_potential_vs_distance.png" alt="Figure 24.3: Electric potential vs distance from a point charge, V = k_e q/r. A positive charge gives a positive potential and a negative charge a negative one; both fall off as 1/r." loading="lazy" style="max-width:min(3.7in,100%)" /><figcaption>Figure 24.3: Electric potential vs distance from a point charge, V = k_e q/r. A positive charge gives a positive potential and a negative charge a negative one; both fall off as 1/r.</figcaption></figure>
-<p><strong>Derivation:</strong> Starting from <span class="math inline">\(\Delta V = - \int\vec{E} \cdot d\vec{s}\)</span> with <span class="math inline">\(\vec{E} = k_{e}q/r^{2}\ \hat{r}\)</span> and taking the reference <span class="math inline">\(V = 0\)</span> at <span class="math inline">\(r = \infty\)</span>:</p>
-<p><span class="math display">\[V = - \int_{\infty}^{r}k_{e}\frac{q}{r\prime^{2}}dr\prime = k_{e}\frac{q}{r}\]</span></p>
-<p><strong>Key features:</strong></p>
+<h3 id="the-potential-of-a-single-point-charge">The potential of a single point charge</h3>
+<p>Start from the definition and integrate in from infinity along a radial path, where <span class="math inline">\(\vec{E} = k_e q/r^2\,\hat{r}\)</span> is parallel to <span class="math inline">\(d\vec{s}\)</span>:</p>
+<p><span class="math display">\[V = -\int_\infty^r k_e\frac{q}{r&#39;^2}\,dr&#39; = k_e q\left[\frac{1}{r&#39;}\right]_\infty^r\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = k_e\frac{q}{r}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_3_potential_vs_distance.png" alt="Figure 24.3: Electric potential vs distance from a point charge, V = k_e q/r. A positive charge gives a positive potential and a negative charge a negative one; both fall off as 1/r." loading="lazy" style="max-width:min(3.7in,100%)" /><figcaption>Figure 24.3: Electric potential vs distance from a point charge, <span class="math inline">\(V = k_e q/r\)</span>. A positive charge gives a positive potential and a negative charge a negative one; both fall off as <span class="math inline">\(1/r\)</span>.</figcaption></figure>
 <ul>
-<li><span class="math inline">\(V &gt; 0\)</span> for positive charge (potential hills)</li>
-<li><span class="math inline">\(V &lt; 0\)</span> for negative charge (potential wells)</li>
-<li><span class="math inline">\(V \rightarrow 0\)</span> as <span class="math inline">\(r \rightarrow \infty\)</span></li>
-<li><span class="math inline">\(V \rightarrow \pm \infty\)</span> as <span class="math inline">\(r \rightarrow 0\)</span> (singularity at point charge location)</li>
+<li><span class="math inline">\(V &gt; 0\)</span> around a positive charge — a <strong>potential hill</strong>.</li>
+<li><span class="math inline">\(V &lt; 0\)</span> around a negative charge — a <strong>potential well</strong>.</li>
+<li><span class="math inline">\(V \rightarrow 0\)</span> as <span class="math inline">\(r \rightarrow \infty\)</span>, matching the reference chosen in §24.1.</li>
+<li><span class="math inline">\(V \rightarrow \pm\infty\)</span> as <span class="math inline">\(r \rightarrow 0\)</span>. The divergence is an artefact of the point-charge idealisation; real charge distributions have finite size.</li>
 </ul>
-<h3 id="multiple-point-charges">Multiple Point Charges</h3>
-<p>Because electric potential is a <strong>scalar</strong>, the total potential from multiple charges is simply the algebraic sum:</p>
-<p><span class="math display">\[V = k_{e}\sum_{i}^{}\frac{q_{i}}{r_{i}}\]</span></p>
-<p>No vector addition required! This is a major computational advantage of working with potential rather than field.</p>
-<h3 id="example-electric-dipole">Example: Electric Dipole</h3>
-<p>An electric dipole consists of charges <span class="math inline">\(+ q\)</span> and <span class="math inline">\(- q\)</span> separated by distance <span class="math inline">\(2a\)</span>, located along the x-axis centered at the origin.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_4_dipole.png" alt="Figure 24.4: An electric dipole. Field lines run from the + charge to the - charge, and the equipotential surfaces — including the V=0 plane midway between the charges — meet them at right angles." loading="lazy" style="max-width:min(3.7in,100%)" /><figcaption>Figure 24.4: An electric dipole. Field lines run from the + charge to the - charge, and the equipotential surfaces — including the V=0 plane midway between the charges — meet them at right angles.</figcaption></figure>
-<p><strong>At point P on the y-axis</strong> at height <span class="math inline">\(y\)</span>:</p>
-<p>Each charge is at distance <span class="math inline">\(r = \sqrt{a^{2} + y^{2}}\)</span> from P.</p>
-<p><span class="math display">\[V = k_{e}\frac{+ q}{r} + k_{e}\frac{- q}{r} = 0\]</span></p>
-<p>The potential is zero everywhere on the perpendicular bisector of the dipole!</p>
-<p><strong>At point R on the positive x-axis</strong> at <span class="math inline">\(x &gt; a\)</span>:</p>
-<p><span class="math display">\[V = k_{e}\left( \frac{q}{x - a} + \frac{- q}{x + a} \right) = k_{e}q\frac{- 2a}{x^{2} - a^{2}}\]</span></p>
-<p>For <span class="math inline">\(x \gg a\)</span>:</p>
-<p><span class="math display">\[V \approx - \frac{2k_{e}qa}{x^{2}} = - \frac{k_{e}p}{x^{2}}\]</span></p>
-<p>where <span class="math inline">\(p = 2qa\)</span> is the dipole moment. The potential falls off as <span class="math inline">\(1/r^{2}\)</span> far from a dipole (faster than <span class="math inline">\(1/r\)</span> for a point charge).</p>
-<h2 id="obtaining-electric-field-from-potential">24.5 — Obtaining Electric Field from Potential</h2>
-<h3 id="the-gradient-relationship">The Gradient Relationship</h3>
-<p>The electric field and electric potential are intimately related. Given <span class="math inline">\(V\)</span>, we can find <span class="math inline">\(\vec{E}\)</span>:</p>
-<p><span class="math display">\[\vec{E} = - \nabla V = - \left( \frac{\partial V}{\partial x}\hat{i} + \frac{\partial V}{\partial y}\hat{j} + \frac{\partial V}{\partial z}\hat{k} \right)\]</span></p>
-<p>In one dimension:</p>
-<p><span class="math display">\[E_{x} = - \frac{dV}{dx}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_6_e_from_v.png" alt="Figure 24.6: The field is the negative slope of the potential. Where V(x) drops steeply, E_x = -dV/dx is large; where V is flat, the field is zero." loading="lazy" style="max-width:min(3.7in,100%)" /><figcaption>Figure 24.6: The field is the negative slope of the potential. Where V(x) drops steeply, E_x = -dV/dx is large; where V is flat, the field is zero.</figcaption></figure>
-<p><strong>Physical interpretation:</strong> The electric field points in the direction of <strong>steepest decrease</strong> of potential, with magnitude equal to the rate of decrease.</p>
-<h3 id="graphical-interpretation">Graphical Interpretation</h3>
-<p>If you have a graph of <span class="math inline">\(V\)</span> vs. <span class="math inline">\(x\)</span>:</p>
-<ul>
-<li>The slope at any point gives <span class="math inline">\(-E_{x}\)</span></li>
-<li>Steeper slopes mean stronger fields</li>
-<li>Where <span class="math inline">\(V\)</span> is flat (slope <span class="math inline">\(=0\)</span>), the field is zero</li>
-</ul>
-<h3 id="example-checking-the-point-charge-result">Example: Checking the Point Charge Result</h3>
-<p>For a point charge: <span class="math inline">\(V = k_{e}q/r\)</span></p>
-<p>In spherical coordinates:</p>
-<p><span class="math display">\[E_{r} = - \frac{dV}{dr} = - \frac{d}{dr}\left( k_{e}\frac{q}{r} \right) = k_{e}\frac{q}{r^{2}}\]</span></p>
-<p>This matches Coulomb’s Law! The derivative method gives the same result as direct application of Coulomb’s Law.</p>
-<h3 id="why-use-potential">Why Use Potential?</h3>
-<p>Since <span class="math inline">\(\vec{E}\)</span> and <span class="math inline">\(V\)</span> contain the same information, why work with potential?</p>
+<div class="check">
+<p><strong>Why <span class="math inline">\(1/r\)</span> when the field goes as <span class="math inline">\(1/r^2\)</span>?</strong></p>
+<p>Because potential is the <em>integral</em> of field over distance, and integrating <span class="math inline">\(r^{-2}\)</span> gives <span class="math inline">\(r^{-1}\)</span>. One power of <span class="math inline">\(r\)</span> is spent in the integration.</p>
+<p>This is worth more than it looks. It means potential <strong>falls off more slowly than field</strong>, so a charge distribution’s influence on potential reaches further than its influence on field. It also gives you a free consistency test on anything you derive: if you find a potential going as <span class="math inline">\(1/r^2\)</span>, the field it came from had better go as <span class="math inline">\(1/r^3\)</span> — as it does for a dipole, below.</p>
+</div>
+<h3 id="superposition-and-why-this-is-the-payoff">Superposition — and why this is the payoff</h3>
+<p>Potential is a <strong>scalar</strong>. For several charges, add the numbers:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = k_e\sum_i \frac{q_i}{r_i}\;}\]</span></p>
+</div>
+<section id="compare-this-with-what-chapter-22-cost" class="connection">
+<h4>Compare this with what Chapter 22 cost</h4>
+<p>In Chapter 22 you found the field of two charges on the <span class="math inline">\(y\)</span>-axis. That required: resolving each contribution into components, tracking two signs and two directions, finding a common denominator, and recombining. The result filled a line and needed care at every step.</p>
+<p>The <strong>potential</strong> of the same two charges is <span class="math inline">\(k_e q_1/r_1 + k_e q_2/r_2\)</span>. Two divisions and an addition. No components, no directions, no unit vectors.</p>
+<p><strong>This is the trade the chapter is built on.</strong> You give up direction information in exchange for arithmetic that is a fraction of the work — and §24.5 shows you can get the direction back whenever you want it, by differentiating. Potential is not a different physics; it is the same physics stored in a cheaper format.</p>
+</section>
+<section id="putting-numbers-on-it-2" class="example">
+<h4>Putting Numbers on It</h4>
+<p><span class="math inline">\(q_1 = +3.0\ \mu\text{C}\)</span> sits at the origin; <span class="math inline">\(q_2 = -1.0\ \mu\text{C}\)</span> sits at <span class="math inline">\(x = 0.40\ \text{m}\)</span>. Find <span class="math inline">\(V\)</span> at point A on the <span class="math inline">\(x\)</span>-axis at <span class="math inline">\(x = 0.20\)</span> m, and at point B at <span class="math inline">\(x = 0.60\)</span> m.</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(r_1\)</span> (m)</th>
+<th><span class="math inline">\(r_2\)</span> (m)</th>
+<th><span class="math inline">\(k_eq_1/r_1\)</span> (V)</th>
+<th><span class="math inline">\(k_eq_2/r_2\)</span> (V)</th>
+<th><span class="math inline">\(V\)</span> (V)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>A</strong> (<span class="math inline">\(x=0.20\)</span>)</td>
+<td>0.20</td>
+<td>0.20</td>
+<td><span class="math inline">\(+1.35\times10^{5}\)</span></td>
+<td><span class="math inline">\(-4.49\times10^{4}\)</span></td>
+<td><span class="math inline">\(+8.99\times10^{4}\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>B</strong> (<span class="math inline">\(x=0.60\)</span>)</td>
+<td>0.60</td>
+<td>0.20</td>
+<td><span class="math inline">\(+4.49\times10^{4}\)</span></td>
+<td><span class="math inline">\(-4.49\times10^{4}\)</span></td>
+<td><span class="math inline">\(\mathbf{0}\)</span></td>
+</tr>
+</tbody>
+</table>
+<p><span class="math display">\[\Delta V = V_B - V_A = -8.99\times10^{4}\ \text{V}\]</span></p>
+<p>Two things to notice, and the second is the important one.</p>
+<p><strong>At B the potential is exactly zero</strong> — because B is three times as far from the <span class="math inline">\(+3\ \mu\)</span>C as from the <span class="math inline">\(-1\ \mu\)</span>C, and the charge ratio is exactly 3. Whenever <span class="math inline">\(|q_1|/r_1 = |q_2|/r_2\)</span> for opposite signs, the contributions cancel.</p>
+<p><strong>But the field at B is not zero.</strong> Potential is a scalar and the two contributions cancelled as numbers; the two <em>field</em> vectors at B both point in the <span class="math inline">\(+x\)</span> direction and add. <strong><span class="math inline">\(V = 0\)</span> does not mean <span class="math inline">\(E = 0\)</span></strong>, and confusing the two is the single most common error in this chapter. A zero of potential is a statement about the <em>work</em> to bring a charge in from infinity — and there are paths in from infinity along which the work done in one region is undone in another.</p>
+</section>
+<h3 id="worked-case-the-electric-dipole">Worked Case: The Electric Dipole</h3>
+<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_4_dipole.png" alt="Figure 24.4: An electric dipole. Field lines run from the + charge to the - charge, and the equipotential surfaces — including the V=0 plane midway between the charges — meet them at right angles." loading="lazy" style="max-width:min(3.7in,100%)" /><figcaption>Figure 24.4: An electric dipole. Field lines run from the <span class="math inline">\(+\)</span> charge to the <span class="math inline">\(-\)</span> charge, and the equipotential surfaces — including the <span class="math inline">\(V=0\)</span> plane midway between the charges — meet them at right angles.</figcaption></figure>
+<p>A dipole is <span class="math inline">\(+q\)</span> and <span class="math inline">\(-q\)</span> separated by <span class="math inline">\(2a\)</span>, centred at the origin on the <span class="math inline">\(x\)</span>-axis.</p>
+<p><strong>On the perpendicular bisector</strong> (the <span class="math inline">\(y\)</span>-axis, height <span class="math inline">\(y\)</span>), both charges are the same distance <span class="math inline">\(r = \sqrt{a^2+y^2}\)</span> away, so</p>
+<p><span class="math display">\[V = k_e\frac{+q}{r} + k_e\frac{-q}{r} = 0\]</span></p>
+<p>The potential vanishes on the entire bisecting plane — for <em>any</em> <span class="math inline">\(y\)</span>, near or far. It is exactly the situation of point B above, made into a whole surface.</p>
+<p><strong>On the axis</strong> at <span class="math inline">\(x &gt; a\)</span>:</p>
+<p><span class="math display">\[V = k_e q\left(\frac{1}{x-a} - \frac{1}{x+a}\right) = k_e q\,\frac{2a}{x^2-a^2}\]</span></p>
+<div class="check">
+<p><strong>Far from the dipole</strong>, <span class="math inline">\(x \gg a\)</span>, so <span class="math inline">\(x^2 - a^2 \rightarrow x^2\)</span> and</p>
+<p><span class="math display">\[V \approx \frac{2k_e qa}{x^2} = \frac{k_e p}{x^2},\qquad p \equiv 2qa\]</span></p>
+<p>The potential of a dipole falls as <span class="math inline">\(1/r^2\)</span> — <strong>faster than a point charge’s <span class="math inline">\(1/r\)</span></strong>. It must: from far away the dipole is electrically neutral, so its leading <span class="math inline">\(1/r\)</span> term has to cancel, leaving the next one.</p>
+<p>Cross-check it against §24.4’s rule. If <span class="math inline">\(V \sim 1/r^2\)</span>, then <span class="math inline">\(E = -dV/dr \sim 1/r^3\)</span> — which is exactly the dipole field you found in Chapter 22 with vectors and a great deal more effort. <strong>Same answer, one derivative, no components.</strong></p>
+</div>
+<hr />
+<h2 id="obtaining-the-electric-field-from-the-potential">24.5 — Obtaining the Electric Field from the Potential</h2>
+<h3 id="the-gradient-relationship">The gradient relationship</h3>
+<p>Potential difference is the integral of field. Run it backwards and the field is the derivative of potential:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec{E} = -\nabla V = -\left(\frac{\partial V}{\partial x}\hat{i} + \frac{\partial V}{\partial y}\hat{j} + \frac{\partial V}{\partial z}\hat{k}\right)\;}\]</span></p>
+</div>
+<p>In one dimension, <span class="math inline">\(E_x = -dV/dx\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_6_e_from_v.png" alt="Figure 24.6: The field is the negative slope of the potential. Where V(x) drops steeply, E_x = -dV/dx is large; where V is flat, the field is zero." loading="lazy" style="max-width:min(3.7in,100%)" /><figcaption>Figure 24.6: The field is the negative slope of the potential. Where <span class="math inline">\(V(x)\)</span> drops steeply, <span class="math inline">\(E_x = -dV/dx\)</span> is large; where <span class="math inline">\(V\)</span> is flat, the field is zero.</figcaption></figure>
+<p>The field points in the direction of <strong>steepest decrease</strong> of potential, with magnitude equal to that rate of decrease. Reading a <span class="math inline">\(V\)</span>-versus-<span class="math inline">\(x\)</span> graph: the slope gives <span class="math inline">\(-E_x\)</span>, steep means strong, flat means zero.</p>
+<p>The three components are <strong>independent partial derivatives</strong>. This is why one scalar function can carry a three-component vector field: the direction information was never lost, only folded into how <span class="math inline">\(V\)</span> varies from place to place.</p>
+<div class="check">
+<p><strong>Recover Coulomb’s Law.</strong> For a point charge, <span class="math inline">\(V = k_e q/r\)</span>, so</p>
+<p><span class="math display">\[E_r = -\frac{dV}{dr} = -\frac{d}{dr}\left(k_e\frac{q}{r}\right) = k_e\frac{q}{r^2}\]</span></p>
+<p>Coulomb’s Law walks back out. The potential formulation did not replace the field formulation — it stores the same content in one function instead of three, and differentiation is the key that unlocks it.</p>
+</div>
+<h3 id="reading-the-field-without-computing-it">Reading the field without computing it</h3>
+<p>The gradient is a formula, but most of what it tells you can be had without evaluating anything. <span class="math inline">\(\vec{E} = -\nabla V\)</span> says the field points <strong>downhill in potential</strong>, steepest-first. That is enough to answer a large class of questions from the <em>behaviour</em> of <span class="math inline">\(V\)</span> near a point, with no derivative taken.</p>
+<p>The procedure is three steps:</p>
 <ol type="1">
-<li><p><strong>Scalars are simpler.</strong> Adding potentials is easier than adding vectors.</p></li>
-<li><p><strong>Energy calculations are direct.</strong> <span class="math inline">\(\Delta U_{E} = q\Delta V\)</span> — no integration needed once you have <span class="math inline">\(V\)</span>.</p></li>
-<li><p><strong>Experimental accessibility.</strong> Voltmeters directly measure potential differences.</p></li>
-<li><p><strong>Connection to circuits.</strong> Circuit analysis is built on voltage (potential difference).</p></li>
+<li>Establish whether <span class="math inline">\(V\)</span> is rising or falling as you move through the point, and in which direction.</li>
+<li>The field points the way <span class="math inline">\(V\)</span> <strong>falls</strong> fastest.</li>
+<li>A positive charge accelerates along <span class="math inline">\(\vec{E}\)</span>; a negative charge accelerates against it. Either way it moves toward lower <strong>potential energy</strong> <span class="math inline">\(qV\)</span>.</li>
 </ol>
+<section id="direction-from-behaviour-alone" class="example">
+<h4>Direction from behaviour alone</h4>
+<p>Suppose along the <span class="math inline">\(x\)</span>-axis you know only three facts: <span class="math inline">\(V\)</span> is positive a short distance to the left of point B, <span class="math inline">\(V = 0\)</span> at B, and <span class="math inline">\(V \rightarrow -\infty\)</span> some distance to the right of B, where a negative charge sits.</p>
+<p>You have computed nothing. But <span class="math inline">\(V\)</span> is <strong>decreasing</strong> left-to-right through B, so <span class="math inline">\(dV/dx &lt; 0\)</span> there, so <span class="math inline">\(E_x = -dV/dx\)</span> is <strong>positive</strong> — the field at B points in <span class="math inline">\(+x\)</span>, toward the negative charge. A proton released at B accelerates in <span class="math inline">\(+x\)</span>; an electron released at B accelerates in <span class="math inline">\(-x\)</span>.</p>
+<div class="check">
+<p><strong>Why this is not a shortcut but the actual content.</strong> The magnitude of <span class="math inline">\(E\)</span> at B requires the derivative. The <em>direction</em> does not — it requires only the sign of a slope, and a sign can be read off three sampled values, a sketch, or a physical argument about which charge dominates nearby.</p>
+<p>Notice also that the argument never needed <span class="math inline">\(V\)</span> at B to be zero. <strong>A zero of potential carries no information about the field</strong>; it was the <em>slope</em> through B that mattered, and a function can pass through zero with any slope at all. This is the §24.4 warning in its most useful form: do not reason from the value of <span class="math inline">\(V\)</span>, reason from how <span class="math inline">\(V\)</span> changes.</p>
+</div>
+</section>
+<h3 id="why-bother-with-potential-at-all">Why bother with potential at all?</h3>
+<ol type="1">
+<li><strong>Scalars add.</strong> Compare §24.4’s superposition against Chapter 22’s.</li>
+<li><strong>Energy is immediate.</strong> <span class="math inline">\(\Delta U_E = q\Delta V\)</span> — no integration once <span class="math inline">\(V\)</span> is known.</li>
+<li><strong>It is what instruments read.</strong> A voltmeter measures potential difference. There is no such thing as a field-meter you clip onto two points.</li>
+<li><strong>Circuits are built on it.</strong> Every result in Chapters 26–27 is a statement about potential difference.</li>
+</ol>
+<hr />
 <h2 id="electric-potential-due-to-continuous-charge-distributions">24.6 — Electric Potential Due to Continuous Charge Distributions</h2>
-<p>For continuous charge distributions, we integrate:</p>
-<p><span class="math display">\[V = k_{e}\int\frac{dq}{r}\]</span></p>
-<p>This is often easier than the corresponding integral for <span class="math inline">\(\vec{E}\)</span> because:</p>
-<ul>
-<li><span class="math inline">\(V\)</span> is a scalar — no components to track</li>
-<li>No direction cosines or unit vectors needed</li>
-</ul>
-<h3 id="example-uniformly-charged-ring">Example: Uniformly Charged Ring</h3>
-<p>A ring of radius <span class="math inline">\(a\)</span> carries total charge <span class="math inline">\(Q\)</span>. Find the potential at point P on the axis, distance <span class="math inline">\(x\)</span> from the center.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_7_charged_ring.png" alt="Figure 24.7: Electric potential on the axis of a uniformly charged ring. Every element dq lies the same distance \sqrt{a^2 + x^2} from the axial point P. Left: on-axis geometry. Right: 3D view of the ring." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 24.7: Electric potential on the axis of a uniformly charged ring. Every element dq lies the same distance \sqrt{a^2 + x^2} from the axial point P. Left: on-axis geometry. Right: 3D view of the ring.</figcaption></figure>
-<p><strong>Setup:</strong> Every element <span class="math inline">\(dq\)</span> is the same distance <span class="math inline">\(r = \sqrt{a^{2} + x^{2}}\)</span> from P.</p>
-<p><span class="math display">\[V = k_{e}\int\frac{dq}{\sqrt{a^{2} + x^{2}}} = \frac{k_{e}}{\sqrt{a^{2} + x^{2}}}\int dq = \frac{k_{e}Q}{\sqrt{a^{2} + x^{2}}}\]</span></p>
-<p><strong>Finding the field:</strong> Using <span class="math inline">\(E_{x} = - dV/dx\)</span>:</p>
-<p><span class="math display">\[E_{x} = - \frac{d}{dx}\left( \frac{k_{e}Q}{\sqrt{a^{2} + x^{2}}} \right) = \frac{k_{e}Qx}{\left( a^{2} + x^{2} \right)^{3/2}}\]</span></p>
-<p>This matches our Chapter 23 result from direct integration!</p>
-<h3 id="example-uniformly-charged-disk">Example: Uniformly Charged Disk</h3>
-<p>A disk of radius <span class="math inline">\(R\)</span> has uniform surface charge density <span class="math inline">\(\sigma\)</span>. Find the potential on the axis at distance <span class="math inline">\(x\)</span> from the center.</p>
-<p><strong>Strategy:</strong> Build the disk from rings of radius <span class="math inline">\(r\)</span>, thickness <span class="math inline">\(dr\)</span>:</p>
-<p><span class="math display">\[dq = \sigma\left( 2\pi r\, dr \right)\]</span></p>
-<p>Each ring contributes:</p>
-<p><span class="math display">\[dV = \frac{k_{e}\left( 2\pi\sigma r\, dr \right)}{\sqrt{r^{2} + x^{2}}}\]</span></p>
-<p>Integrating:</p>
-<p><span class="math display">\[V = 2\pi k_{e}\sigma\int_{0}^{R}\frac{r\, dr}{\sqrt{r^{2} + x^{2}}} = 2\pi k_{e}\sigma\left\lbrack \sqrt{R^{2} + x^{2}} - x \right\rbrack\]</span></p>
-<p>Or equivalently:</p>
-<p><span class="math display">\[V = \frac{\sigma}{2\varepsilon_{0}}\left( \sqrt{R^{2} + x^{2}} - x \right)\]</span></p>
-<h3 id="example-finite-line-of-charge">Example: Finite Line of Charge</h3>
-<p>A rod of length <span class="math inline">\(\ell\)</span> carries total charge <span class="math inline">\(Q\)</span> with uniform linear charge density <span class="math inline">\(\lambda = Q/\ell\)</span>. Find the potential at point P located distance <span class="math inline">\(a\)</span> above one end.</p>
-<p><strong>Setup:</strong> Let the rod lie along the x-axis from <span class="math inline">\(x = 0\)</span> to <span class="math inline">\(x = \ell\)</span>, with P at the origin of the y-axis at height <span class="math inline">\(a\)</span>.</p>
-<p><span class="math display">\[r = \sqrt{x^{2} + a^{2}}\]</span></p>
-<p><span class="math display">\[V = k_{e}\int_{0}^{\ell}\frac{\lambda\, dx}{\sqrt{x^{2} + a^{2}}}\]</span></p>
-<p>Using the standard integral <span class="math inline">\(\int dx/\sqrt{x^{2} + a^{2}} = \ln\left( x + \sqrt{x^{2} + a^{2}} \right)\)</span>:</p>
-<p><span class="math display">\[V = k_{e}\lambda\left\lbrack \ln\left( \ell + \sqrt{\ell^{2} + a^{2}} \right) - \ln\left( a \right) \right\rbrack\]</span></p>
-<p><span class="math display">\[V = k_{e}\frac{Q}{\ell}\ln\left( \frac{\ell + \sqrt{\ell^{2} + a^{2}}}{a} \right)\]</span></p>
-<p><strong>Limiting case:</strong> When <span class="math inline">\(a \gg \ell\)</span>, series expansion gives <span class="math inline">\(V \approx k_{e}Q/a\)</span> — the potential of a point charge, as expected.</p>
+<p>There are <strong>two routes</strong> to the potential of an extended distribution, and they are good for different things.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Route</th>
+<th>Use it when</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(V = k_e\displaystyle\int\frac{dq}{r}\)</span> — sum contributions</td>
+<td>the geometry is simple and you have no field yet</td>
+<td>§24.6, below</td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\Delta V = -\displaystyle\int\vec{E}\cdot d\vec{s}\)</span> — integrate a known field</td>
+<td>Gauss’s Law already gave you <span class="math inline">\(\vec{E}\)</span></td>
+<td>§24.6, “the other route”</td>
+</tr>
+</tbody>
+</table>
+<p>The first builds <span class="math inline">\(V\)</span> from charge. The second builds <span class="math inline">\(V\)</span> from a field you already did the work to find. Recognising which one is cheaper is most of the skill.</p>
+<h3 id="route-1-summing-contributions">Route 1 — Summing Contributions</h3>
+<p>Chop the distribution into elements <span class="math inline">\(dq\)</span>, each contributing <span class="math inline">\(k_e\,dq/r\)</span>, and add:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = k_e\int\frac{dq}{r}\;}\]</span></p>
+</div>
+<p>Compare this with the corresponding field integral, which needs components and unit vectors. Here there is one scalar integrand and no directions to track — often the difference between a problem you can do and one you cannot.</p>
+<section id="uniformly-charged-ring" class="example">
+<h3>Uniformly Charged Ring</h3>
+<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_7_charged_ring.png" alt="Figure 24.7: Electric potential on the axis of a uniformly charged ring. Every element dq lies the same distance \sqrt{a^2 + x^2} from the axial point P. Left: on-axis geometry. Right: 3D view of the ring." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 24.7: Electric potential on the axis of a uniformly charged ring. Every element <span class="math inline">\(dq\)</span> lies the same distance <span class="math inline">\(\sqrt{a^2 + x^2}\)</span> from the axial point P. Left: on-axis geometry. Right: 3D view of the ring.</figcaption></figure>
+<p>Ring of radius <span class="math inline">\(a\)</span>, total charge <span class="math inline">\(Q\)</span>, field point P on the axis at distance <span class="math inline">\(x\)</span>.</p>
+<p><strong>Every element is the same distance from P</strong>, <span class="math inline">\(r = \sqrt{a^2+x^2}\)</span>. That constant comes straight out of the integral:</p>
+<p><span class="math display">\[V = k_e\int\frac{dq}{\sqrt{a^2+x^2}} = \frac{k_e}{\sqrt{a^2+x^2}}\int dq\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = \frac{k_e Q}{\sqrt{a^2+x^2}}\;}\]</span></p>
+</div>
+<p>There was no integral to <em>do</em>. The geometry did the work — which is the payoff of choosing a distribution whose every element sits at one distance.</p>
+<div class="check">
+<p><strong>Get the field by differentiating.</strong></p>
+<p><span class="math display">\[E_x = -\frac{dV}{dx} = -\frac{d}{dx}\left(k_eQ\left(a^2+x^2\right)^{-1/2}\right) = \frac{k_eQx}{\left(a^2+x^2\right)^{3/2}}\]</span></p>
+<p>This is exactly the ring field from Chapter 23, which took a vector setup, a symmetry argument to kill the perpendicular component, and an integral. Here it is one derivative of a result that required no integration at all.</p>
+<p>Check the limits as before: at <span class="math inline">\(x=0\)</span> the numerator vanishes, so <span class="math inline">\(E = 0\)</span> at the centre — but note <span class="math inline">\(V = k_eQ/a\)</span> there, its <em>maximum</em>. <strong>The potential is largest exactly where the field is zero</strong>, because zero field means zero slope, and a smooth function with zero slope is at a turning point. For <span class="math inline">\(x \gg a\)</span>, <span class="math inline">\(E \rightarrow k_eQ/x^2\)</span> and <span class="math inline">\(V \rightarrow k_eQ/x\)</span>: a point charge, as it must be.</p>
+</div>
+</section>
+<section id="uniformly-charged-disk" class="example">
+<h3>Uniformly Charged Disk</h3>
+<p>Radius <span class="math inline">\(R\)</span>, uniform surface density <span class="math inline">\(\sigma\)</span>, field point on the axis at <span class="math inline">\(x\)</span>. Build the disk out of rings — each of radius <span class="math inline">\(r\)</span> and thickness <span class="math inline">\(dr\)</span> carries <span class="math inline">\(dq = \sigma\left(2\pi r\,dr\right)\)</span> and we already know a ring’s potential:</p>
+<p><span class="math display">\[V = \int_0^R \frac{k_e\left(2\pi\sigma r\,dr\right)}{\sqrt{r^2+x^2}} = 2\pi k_e\sigma\int_0^R\frac{r\,dr}{\sqrt{r^2+x^2}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = 2\pi k_e\sigma\left(\sqrt{R^2+x^2}-x\right) = \frac{\sigma}{2\varepsilon_0}\left(\sqrt{R^2+x^2}-x\right)\;}\]</span></p>
+</div>
+<p>Note the method: <strong>the ring was not an end in itself.</strong> It was built to be the element of the disk, exactly as the disk will be the element of other things. This is the same escalation you used in Chapter 23.</p>
+<div class="check">
+<p><strong>The infinite-sheet limit.</strong> Let <span class="math inline">\(R \gg x\)</span> — stand very close to a very large disk. Then <span class="math inline">\(\sqrt{R^2+x^2}\rightarrow R\)</span>, and</p>
+<p><span class="math display">\[V \rightarrow \frac{\sigma}{2\varepsilon_0}\left(R - x\right)\]</span></p>
+<p>so <span class="math inline">\(E_x = -dV/dx = \sigma/2\varepsilon_0\)</span>: <strong>constant, independent of distance</strong>, which is precisely the infinite-plane result from Gauss’s Law in §23.5. Two completely different routes — a flux argument and an axial integral — meeting at the same number is the strongest kind of check available.</p>
+</div>
+</section>
+<section id="finite-line-of-charge" class="example">
+<h3>Finite Line of Charge</h3>
+<p>A rod of length <span class="math inline">\(\ell\)</span> carries <span class="math inline">\(Q\)</span> uniformly, <span class="math inline">\(\lambda = Q/\ell\)</span>, lying along the <span class="math inline">\(x\)</span>-axis from <span class="math inline">\(0\)</span> to <span class="math inline">\(\ell\)</span>; P sits at height <span class="math inline">\(a\)</span> above the near end.</p>
+<p><span class="math display">\[V = k_e\lambda\int_0^\ell\frac{dx}{\sqrt{x^2+a^2}} = k_e\lambda\Big[\ln\left(x+\sqrt{x^2+a^2}\right)\Big]_0^\ell\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;V = k_e\frac{Q}{\ell}\ln\left(\frac{\ell+\sqrt{\ell^2+a^2}}{a}\right)\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Far away</strong>, <span class="math inline">\(a \gg \ell\)</span>: expanding the logarithm gives <span class="math inline">\(V \approx k_eQ/a\)</span> — a point charge again, as any bounded distribution must be from far enough off.</p>
+<p><strong>The logarithm is the signature of a line.</strong> You met it in Chapter 23 as the <span class="math inline">\(1/r\)</span> field of a line charge; integrate <span class="math inline">\(1/r\)</span> and you get <span class="math inline">\(\ln r\)</span>. Whenever a logarithm appears in an electrostatics answer, look for a one-dimensional source.</p>
+</div>
+</section>
+<h3 id="route-2-integrating-a-known-field">Route 2 — Integrating a Known Field</h3>
+<p>When Gauss’s Law has already handed you <span class="math inline">\(\vec{E}\)</span>, do not go back to the charge. Integrate the field you have:</p>
+<p><span class="math display">\[V_B - V_A = -\int_A^B \vec{E}\cdot d\vec{s}\]</span></p>
+<p>This is the same relation used in §24.3, but nothing now requires <span class="math inline">\(\vec{E}\)</span> to be uniform. Whatever <span class="math inline">\(r\)</span>-dependence the field carries goes straight into the integral.</p>
+<section id="between-two-coaxial-conductors" class="example">
+<h4>Between Two Coaxial Conductors</h4>
+<p>An inner conductor of radius <span class="math inline">\(a\)</span> and a concentric outer shell of radius <span class="math inline">\(b\)</span>, both of length <span class="math inline">\(\ell\)</span>, carry <span class="math inline">\(+Q\)</span> and <span class="math inline">\(-Q\)</span>. Find the potential difference between them.</p>
+<p><strong>Step 1 — get the field from Gauss’s Law.</strong> A coaxial cylindrical surface of radius <span class="math inline">\(r\)</span>, with <span class="math inline">\(a&lt;r&lt;b\)</span> and length <span class="math inline">\(\ell\)</span>, encloses <span class="math inline">\(Q\)</span>. By cylindrical symmetry <span class="math inline">\(\vec{E}\)</span> is radial and constant on that surface, and the end caps carry no flux:</p>
+<p><span class="math display">\[E\left(2\pi r\ell\right) = \frac{Q}{\varepsilon_0} \quad\Longrightarrow\quad E(r) = \frac{Q}{2\pi\varepsilon_0 \ell\, r} = \frac{2k_e\lambda}{r}\]</span></p>
+<p>with <span class="math inline">\(\lambda = Q/\ell\)</span>. The field falls as <span class="math inline">\(1/r\)</span> — the infinite-line result of §23.5, which is what a long coaxial cable looks like from inside the gap.</p>
+<p><strong>Step 2 — integrate it inward.</strong> Walk radially from <span class="math inline">\(b\)</span> to <span class="math inline">\(a\)</span>, so <span class="math inline">\(d\vec{s} = dr\,\hat{r}\)</span> and <span class="math inline">\(\vec{E}\cdot d\vec{s} = E\,dr\)</span>:</p>
+<p><span class="math display">\[V_a - V_b = -\int_b^a \frac{2k_e\lambda}{r}\,dr = 2k_e\lambda\int_a^b\frac{dr}{r}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Delta V = V_a - V_b = 2k_e\lambda\ln\!\left(\frac{b}{a}\right)\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Where the logarithm came from, and why it had to.</strong> Nothing was integrated by brute force — <span class="math inline">\(\int dr/r = \ln r\)</span>, and that is the <em>only</em> place a logarithm can enter. Trace it back: the log is here because the field went as <span class="math inline">\(1/r\)</span>, and the field went as <span class="math inline">\(1/r\)</span> because the source is effectively one-dimensional.</p>
+<p>Contrast a spherical geometry, where <span class="math inline">\(E \sim 1/r^2\)</span> integrates to <span class="math inline">\(1/a - 1/b\)</span> — a difference of reciprocals, no logarithm anywhere. <strong>The functional form of a potential difference is a fingerprint of the source’s dimensionality</strong>, and you can predict which form you will get before doing the integral.</p>
+<p><strong>Sign check.</strong> <span class="math inline">\(b&gt;a\)</span> makes <span class="math inline">\(\ln(b/a)&gt;0\)</span>, so <span class="math inline">\(V_a &gt; V_b\)</span>: the inner conductor, carrying the positive charge, sits at the higher potential. Correct — and note the check cost nothing but reading the sign of a logarithm.</p>
+<p><strong>Limiting case.</strong> As <span class="math inline">\(b \rightarrow a\)</span> the gap closes, <span class="math inline">\(\ln(b/a)\rightarrow 0\)</span>, and <span class="math inline">\(\Delta V \rightarrow 0\)</span>. Two conductors pressed together cannot hold a potential difference, which is what a short circuit is.</p>
+</div>
+<p><strong>Why this one matters.</strong> <span class="math inline">\(\Delta V\)</span> is proportional to <span class="math inline">\(Q\)</span> — double the charge and you double the potential difference, because <span class="math inline">\(\lambda\)</span> appears linearly and the geometry factor <span class="math inline">\(\ln(b/a)\)</span> does not care about charge at all. That fixed ratio <span class="math inline">\(Q/\Delta V\)</span> depends only on the geometry, and in Chapter 25 it is given a name: <strong>capacitance</strong>.</p>
+</section>
+<hr />
 <h2 id="potential-of-a-charged-conductor">24.7 — Potential of a Charged Conductor</h2>
-<h3 id="conductors-are-equipotentials">Conductors are Equipotentials</h3>
-<p>Because <span class="math inline">\(\vec{E} = 0\)</span> inside a conductor in equilibrium (Chapter 23), and <span class="math inline">\(\vec{E} = - \nabla V\)</span>, the potential must be <strong>constant</strong> throughout a conductor.</p>
-<p><strong>Every point on and inside a conductor has the same potential.</strong></p>
-<p>This has important practical implications:</p>
+<h3 id="a-conductor-is-an-equipotential">A conductor is an equipotential</h3>
+<p>Chapter 23 established that <span class="math inline">\(\vec{E} = 0\)</span> everywhere inside a conductor in electrostatic equilibrium. Combine that with <span class="math inline">\(\vec{E} = -\nabla V\)</span>: if the gradient is zero throughout a region, <span class="math inline">\(V\)</span> is <strong>constant</strong> throughout it.</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\text{Every point on and inside a conductor in equilibrium is at the same potential.}\;}\]</span></p>
+</div>
+<p>This single sentence carries three of Chapter 23’s separate results:</p>
 <ul>
-<li>The entire surface of a conductor is an equipotential surface</li>
-<li>Field lines meet conductor surfaces perpendicularly</li>
-<li>Charge redistributes itself to maintain constant potential</li>
+<li>The surface is an equipotential, so field lines meet it perpendicularly — Chapter 22’s rule 5, now derived rather than asserted.</li>
+<li>Charge redistributes until the potential is uniform; that redistribution <em>is</em> the approach to equilibrium.</li>
+<li>Two conductors connected by a wire become one conductor, hence one potential — which is why “ground” is a single number and why circuit nodes have voltages.</li>
 </ul>
-<h3 id="potential-of-a-charged-sphere">Potential of a Charged Sphere</h3>
-<p>A conducting sphere of radius <span class="math inline">\(R\)</span> carrying total charge <span class="math inline">\(Q\)</span>:</p>
-<p><strong>Outside the sphere (</strong><span class="math inline">\(r &gt; R\)</span><strong>):</strong></p>
-<p><span class="math display">\[V = \frac{k_{e}Q}{r}\]</span></p>
-<p><strong>On the surface and inside (</strong><span class="math inline">\(r \leq R\)</span><strong>):</strong></p>
-<p><span class="math display">\[V = \frac{k_{e}Q}{R} = \text{constant}\]</span></p>
-<p>The potential is continuous at <span class="math inline">\(r = R\)</span>, but notice:</p>
+<h3 id="a-charged-conducting-sphere">A Charged Conducting Sphere</h3>
+<p>Radius <span class="math inline">\(R\)</span>, total charge <span class="math inline">\(Q\)</span>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Region</th>
+<th><span class="math inline">\(V\)</span></th>
+<th><span class="math inline">\(E\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(r \geq R\)</span></td>
+<td><span class="math inline">\(k_eQ/r\)</span></td>
+<td><span class="math inline">\(k_eQ/r^2\)</span></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(r \leq R\)</span></td>
+<td><span class="math inline">\(k_eQ/R\)</span> (constant)</td>
+<td><span class="math inline">\(0\)</span></td>
+</tr>
+</tbody>
+</table>
+<div class="check">
+<p><strong>The two must agree at the surface</strong>, and they do: setting <span class="math inline">\(r = R\)</span> in the outside expression gives <span class="math inline">\(k_eQ/R\)</span>, the inside value. <span class="math inline">\(V\)</span> is continuous.</p>
+<p>But <span class="math inline">\(E\)</span> is <strong>not</strong> continuous — it jumps from <span class="math inline">\(0\)</span> to <span class="math inline">\(k_eQ/R^2\)</span> across the surface. There is no contradiction: <span class="math inline">\(E\)</span> is the <em>slope</em> of <span class="math inline">\(V\)</span>, and a function can be continuous while its slope jumps. <span class="math inline">\(V(r)\)</span> has a kink at <span class="math inline">\(r=R\)</span> — flat inside, falling outside. <strong>The field discontinuity is the kink.</strong></p>
+</div>
+<h3 id="sharp-points">Sharp Points</h3>
+<p>On an irregular conductor, charge piles up where the curvature is high. High <span class="math inline">\(\sigma\)</span> means high local field, <span class="math inline">\(E = \sigma/\varepsilon_0\)</span> just outside — even though the whole surface sits at one potential. Potential is uniform; field is not.</p>
 <ul>
-<li><span class="math inline">\(V\)</span> is constant inside (flat)</li>
-<li><span class="math inline">\(V\)</span> decreases as <span class="math inline">\(1/r\)</span> outside</li>
+<li><strong>Lightning rods</strong> exploit it: the intense field at the tip ionises air and gives the strike a preferred path.</li>
+<li><strong>Van de Graaff domes</strong> avoid it: smooth and large, to hold charge without leaking it into the air.</li>
+<li><strong>Corona discharge</strong> is the visible version — the glow at a sharp electrode.</li>
 </ul>
-<p>The electric field is the negative derivative:</p>
-<ul>
-<li>Inside: <span class="math inline">\(E = 0\)</span> (as expected)</li>
-<li>Outside: <span class="math inline">\(E = k_{e}Q/r^{2}\)</span> (point-charge behavior)</li>
-</ul>
-<h3 id="sharp-points-on-conductors">Sharp Points on Conductors</h3>
-<p>On an irregularly shaped conductor, charge accumulates at regions of high curvature (sharp points). This creates high surface charge density <span class="math inline">\(\sigma\)</span> and high electric field <span class="math inline">\(E = \sigma/\varepsilon_{0}\)</span> near the points.</p>
-<p><strong>Applications:</strong></p>
-<ul>
-<li>Lightning rods: sharp points create intense fields that ionize air</li>
-<li>Van de Graaff generators: smooth dome minimizes corona discharge</li>
-<li>Corona discharge: visible glow at sharp points due to ionized air</li>
-</ul>
-<h2 id="energy-stored-in-the-electric-field">24.8 — Energy Stored in the Electric Field</h2>
-<p>When we assemble a system of charges, work must be done against (or by) electric forces. This work is stored as <strong>electric potential energy</strong>.</p>
-<h3 id="energy-of-two-point-charges">Energy of Two Point Charges</h3>
-<p>To bring charge <span class="math inline">\(q_{2}\)</span> from infinity to distance <span class="math inline">\(r\)</span> from charge <span class="math inline">\(q_{1}\)</span>:</p>
-<p><span class="math display">\[U_{E} = q_{2}V_{1} = q_{2} \cdot k_{e}\frac{q_{1}}{r} = k_{e}\frac{q_{1}q_{2}}{r}\]</span></p>
-<h3 id="energy-of-three-charges">Energy of Three Charges</h3>
-<p>For three charges at the vertices of a triangle:</p>
-<p><span class="math display">\[U_{E} = k_{e}\left( \frac{q_{1}q_{2}}{r_{12}} + \frac{q_{1}q_{3}}{r_{13}} + \frac{q_{2}q_{3}}{r_{23}} \right)\]</span></p>
-<p>The energy can be positive (work required to assemble) or negative (energy released).</p>
-<h3 id="application-motion-of-charged-particles">Application: Motion of Charged Particles</h3>
-<p>Conservation of energy provides a powerful tool for analyzing charged particle motion:</p>
-<p><span class="math display">\[K_{i} + U_{i} = K_{f} + U_{f}\]</span></p>
-<p><span class="math display">\[\frac{1}{2}mv_{i}^{2} + qV_{i} = \frac{1}{2}mv_{f}^{2} + qV_{f}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch24_figures/fig_24_8_energy_conservation.png" alt="Figure 24.8: Energy conservation for a charged particle. A proton accelerated through a potential difference converts electric potential energy into kinetic energy: q\,\Delta V = \frac{1}{2}mv^2." loading="lazy" style="max-width:min(3.6in,100%)" /><figcaption>Figure 24.8: Energy conservation for a charged particle. A proton accelerated through a potential difference converts electric potential energy into kinetic energy: q\,\Delta V = \frac{1}{2}mv^2.</figcaption></figure>
-<p><strong>Example:</strong> A proton is released from rest near the positive plate of a parallel plate capacitor with <span class="math inline">\(\Delta V = 100\)</span> V. Find its speed when it reaches the negative plate.</p>
-<p>Using energy conservation:</p>
-<p><span class="math display">\[0 + qV_{i} = \frac{1}{2}mv_{f}^{2} + qV_{f}\]</span></p>
-<p><span class="math display">\[q\left( V_{i} - V_{f} \right) = \frac{1}{2}mv_{f}^{2}\]</span></p>
-<p><span class="math display">\[q\Delta V = \frac{1}{2}mv_{f}^{2}\]</span></p>
-<p><span class="math display">\[v_{f} = \sqrt{\frac{2q\Delta V}{m}} = \sqrt{\frac{2\left( 1.602 \times 10^{- 19} \right)\left( 100 \right)}{1.673 \times 10^{- 27}}}\]</span></p>
-<p><span class="math display">\[v_{f} = 1.38 \times 10^{5}\ \text{m/s}\]</span></p>
+<hr />
+<h2 id="assembling-a-charge-distribution">24.8 — Assembling a Charge Distribution</h2>
+<p>§24.1 asked what the potential energy of an existing configuration <em>is</em>. This section asks what it cost to <strong>build</strong> — the same number, approached as a process, which is the view Chapter 25 needs for capacitors.</p>
+<p><em>(For a charge already in place and set moving — released from rest, gaining speed as it falls through a potential difference — the tool is energy conservation, <span class="math inline">\(K_i + qV_i = K_f + qV_f\)</span>, developed in §24.3.)</em></p>
+<p>Bring charges in one at a time from infinity. The first is free — there is no field yet to work against. The second costs <span class="math inline">\(q_2V_1\)</span>, where <span class="math inline">\(V_1\)</span> is the first charge’s potential at the second’s destination. The third costs <span class="math inline">\(q_3\left(V_1+V_2\right)\)</span>, and so on:</p>
+<p><span class="math display">\[U_E = \sum_i q_i V_i^{\,\text{(due to those already placed)}} = k_e\sum_{i&lt;j}\frac{q_iq_j}{r_{ij}}\]</span></p>
+<p>which recovers §24.1’s result — as it must, since potential energy depends on configuration and not on the order of assembly.</p>
+<div class="check">
+<p><strong>Order-independence is a real constraint, not an observation.</strong> If assembling in a different order gave a different total, <span class="math inline">\(U_E\)</span> would not be a state function and the conservative-force argument of §24.1 would collapse. Try it on the triangle from §24.1: bring in <span class="math inline">\(q_3\)</span> first instead of last, and the three pair terms arrive in a different sequence but sum to the same <span class="math inline">\(-0.240\)</span> J.</p>
+</div>
+<p><strong>Looking ahead:</strong> in Chapter 25 this same assembly cost, applied to charge piling up on capacitor plates, becomes <span class="math inline">\(U = Q^2/2C\)</span> — and then gets reinterpreted once more as energy stored <em>in the field itself</em>, at a density <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span>.</p>
+<hr />
 <h2 id="summary">24.9 — Summary</h2>
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
-<li><p><strong>Electric potential</strong> <span class="math inline">\(V\)</span> is potential energy per unit charge: <span class="math inline">\(V = U_{E}/q\)</span></p></li>
-<li><p><strong>Potential difference</strong> (voltage) between two points: <span class="math inline">\(\Delta V = - \int\vec{E} \cdot d\vec{s}\)</span></p></li>
-<li><p>The <strong>volt</strong> is defined as 1 joule per coulomb: 1 V = 1 J/C</p></li>
-<li><p>Electric field points from <strong>high</strong> to <strong>low</strong> potential (like “downhill”)</p></li>
-<li><p><strong>Equipotential surfaces</strong> are perpendicular to field lines</p></li>
-<li><p>Potential due to a point charge: <span class="math inline">\(V = k_{e}q/r\)</span></p></li>
-<li><p>For multiple charges, <strong>add potentials algebraically</strong> (scalar addition)</p></li>
-<li><p>Electric field from potential: <span class="math inline">\(\vec{E} = - \nabla V\)</span></p></li>
-<li><p>A conductor in equilibrium is an <strong>equipotential</strong></p></li>
+<li><strong>Potential is potential energy per unit charge</strong>, <span class="math inline">\(V = U_E/q\)</span> — a property of the space, not of what you put in it.</li>
+<li><strong>Potential difference</strong> is the line integral of the field: <span class="math inline">\(\Delta V = -\int\vec{E}\cdot d\vec{s}\)</span>.</li>
+<li><strong>One volt is one joule per coulomb</strong>, and <span class="math inline">\(1\ \text{N/C} = 1\ \text{V/m}\)</span> says the field is the rate of change of potential with position.</li>
+<li><strong>Field lines point downhill in potential.</strong> Every charge moves so as to lower its own potential energy.</li>
+<li><strong>Equipotentials are perpendicular to field lines</strong>, everywhere, and their spacing measures field strength.</li>
+<li><strong>Potential superposes as a scalar</strong> — this is the chapter’s central advantage.</li>
+<li><strong><span class="math inline">\(V = 0\)</span> does not imply <span class="math inline">\(E = 0\)</span></strong>, and <span class="math inline">\(E = 0\)</span> does not imply <span class="math inline">\(V = 0\)</span>.</li>
+<li><strong>The field is recoverable</strong>, <span class="math inline">\(\vec{E} = -\nabla V\)</span> — nothing was lost.</li>
+<li><strong>A conductor in equilibrium is an equipotential</strong>, inside and on its surface.</li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Quantity</th>
-<th style="text-align: left;">Equation</th>
+<th>Quantity</th>
+<th>Equation</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Electric potential energy (point charges)</td>
-<td style="text-align: left;"><span class="math inline">\(U_{E} = k_{e}\frac{q_{1}q_{2}}{r}\)</span></td>
+<td>Potential energy, two point charges</td>
+<td><span class="math inline">\(U_E = k_e\dfrac{q_1q_2}{r}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Electric potential (definition)</td>
-<td style="text-align: left;"><span class="math inline">\(V = \frac{U_{E}}{q}\)</span></td>
+<td>Potential energy, many charges</td>
+<td><span class="math inline">\(U_E = k_e\sum_{i&lt;j}\dfrac{q_iq_j}{r_{ij}}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Potential difference</td>
-<td style="text-align: left;"><span class="math inline">\(\Delta V = V_{B} - V_{A} = - \int_{A}^{B}\vec{E} \cdot d\vec{s}\)</span></td>
+<td>Electric potential (definition)</td>
+<td><span class="math inline">\(V = \dfrac{U_E}{q}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Potential (point charge)</td>
-<td style="text-align: left;"><span class="math inline">\(V = k_{e}\frac{q}{r}\)</span></td>
+<td>Potential difference</td>
+<td><span class="math inline">\(\Delta V = -\displaystyle\int_A^B\vec{E}\cdot d\vec{s}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Potential (multiple charges)</td>
-<td style="text-align: left;"><span class="math inline">\(V = k_{e}\sum_{i}^{}\frac{q_{i}}{r_{i}}\)</span></td>
+<td>Uniform field</td>
+<td><span class="math inline">\(\Delta V = -Ed\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Potential (continuous distribution)</td>
-<td style="text-align: left;"><span class="math inline">\(V = k_{e}\int\frac{dq}{r}\)</span></td>
+<td>Point charge</td>
+<td><span class="math inline">\(V = k_e\dfrac{q}{r}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Field from potential</td>
-<td style="text-align: left;"><span class="math inline">\(\vec{E} = - \nabla V = - \frac{\partial V}{\partial x}\hat{i} - \frac{\partial V}{\partial y}\hat{j} - \frac{\partial V}{\partial z}\hat{k}\)</span></td>
+<td>Several point charges</td>
+<td><span class="math inline">\(V = k_e\sum_i\dfrac{q_i}{r_i}\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Uniform field</td>
-<td style="text-align: left;"><span class="math inline">\(\Delta V = - Ed\)</span></td>
+<td>Continuous distribution</td>
+<td><span class="math inline">\(V = k_e\displaystyle\int\dfrac{dq}{r}\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Energy conservation</td>
-<td style="text-align: left;"><span class="math inline">\(K_{i} + qV_{i} = K_{f} + qV_{f}\)</span></td>
+<td>Field from potential</td>
+<td><span class="math inline">\(\vec{E} = -\nabla V\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Electron volt</td>
-<td style="text-align: left;"><span class="math inline">\(1\ \text{eV} = 1.602 \times 10^{- 19}\ \text{J}\)</span></td>
+<td>Between coaxial conductors</td>
+<td><span class="math inline">\(\Delta V = 2k_e\lambda\ln\left(b/a\right)\)</span></td>
+</tr>
+<tr class="odd">
+<td>Energy conservation</td>
+<td><span class="math inline">\(K_i + qV_i = K_f + qV_f\)</span></td>
+</tr>
+<tr class="even">
+<td>Electron volt</td>
+<td><span class="math inline">\(1\ \text{eV} = 1.602\times10^{-19}\ \text{J}\)</span></td>
 </tr>
 </tbody>
 </table>
@@ -559,43 +895,43 @@
 <table>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Mechanics Concept</th>
-<th style="text-align: left;">Electrostatics Analog</th>
+<th>Mechanics</th>
+<th>Electrostatics</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Gravitational PE: <span class="math inline">\(U_{g} = mgh\)</span></td>
-<td style="text-align: left;">Electric PE: <span class="math inline">\(U_{E} = qV\)</span></td>
+<td>Gravitational PE <span class="math inline">\(U_g = mgh\)</span></td>
+<td>Electric PE <span class="math inline">\(U_E = qV\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Height <span class="math inline">\(h\)</span></td>
-<td style="text-align: left;">Electric potential <span class="math inline">\(V\)</span></td>
+<td>Height <span class="math inline">\(h\)</span></td>
+<td>Potential <span class="math inline">\(V\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Gravitational potential: <span class="math inline">\(V_{g} = gh\)</span></td>
-<td style="text-align: left;">Electric potential: <span class="math inline">\(V = U_{E}/q\)</span></td>
+<td>Gravitational potential <span class="math inline">\(V_g = gh\)</span></td>
+<td>Electric potential <span class="math inline">\(V = U_E/q\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;"><span class="math inline">\(\vec{g} = - \nabla V_{g}\)</span> $ =</td>
-<td style="text-align: left;">- V$</td>
+<td><span class="math inline">\(\vec{g} = -\nabla V_g\)</span></td>
+<td><span class="math inline">\(\vec{E} = -\nabla V\)</span></td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Equipotential = constant height</td>
-<td style="text-align: left;">Equipotential = constant <span class="math inline">\(V\)</span></td>
+<td>Equipotential = constant height</td>
+<td>Equipotential = constant <span class="math inline">\(V\)</span></td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Conservation: <span class="math inline">\(K + U_{g} = \text{const}\)</span></td>
-<td style="text-align: left;">Conservation: <span class="math inline">\(K + U_{E} = \text{const}\)</span></td>
+<td><span class="math inline">\(K + U_g\)</span> conserved</td>
+<td><span class="math inline">\(K + U_E\)</span> conserved</td>
 </tr>
 </tbody>
 </table>
+<hr />
 <h2 id="looking-ahead">Looking Ahead</h2>
-<p>In Chapter 25, we will study <strong>capacitance</strong> — the ability of a system of conductors to store charge and energy. Capacitors are fundamental components in electrical circuits, storing energy in the electric field between their plates.</p>
-<p>The relationship between charge, potential, and capacitance will be:</p>
+<p>Chapter 25 takes the last idea of this chapter — that separating charge costs energy — and builds a device around it. A <strong>capacitor</strong> is two conductors, each an equipotential by §24.7, held at a potential difference. Its capacitance is</p>
 <p><span class="math display">\[C = \frac{Q}{\Delta V}\]</span></p>
-<p>We will find that the energy stored in a capacitor can be expressed as <span class="math inline">\(U = \frac{1}{2}CV^{2}\)</span>, or equivalently as energy stored in the electric field itself with an energy density <span class="math inline">\(u = \frac{1}{2}\varepsilon_{0}E^{2}\)</span>.</p>
-<p><em>*The development from Coulomb’s Law through Gauss’s Law to Electric Potential represents three complementary ways of describing electrostatic phenomena: forces, fields, and energy. Each perspective offers different insights and computational advantages. The skilled physicist knows when to use each approach — and that wisdom comes from practice!</em></p>
+<p>and the energy you stored getting the charge there is <span class="math inline">\(U = \tfrac12 C\left(\Delta V\right)^2\)</span>. Chapter 25 then makes the move this chapter has been setting up: that energy is not really “in the charges” at all, but distributed through the field between the plates at a density <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span>.</p>
+<p>Coulomb’s Law, Gauss’s Law, and electric potential are three descriptions of one phenomenon — forces, fields, and energy. Each makes a different class of problem easy. Knowing which to reach for is the skill; it comes from having done all three.</p>
 
         </div>
       </div>
