@@ -105,14 +105,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +140,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +159,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -161,9 +188,23 @@
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -186,100 +227,171 @@
         <div class="content-body">
 
 <h2 id="storing-the-electric-field">25.0 — Storing the Electric Field</h2>
-<p>In the preceding three chapters, we built a powerful framework for electrostatics. We learned how charges create electric fields (Chapter 22), how Gauss’s Law relates fields to enclosed charge (Chapter 23), and how electric potential provides a scalar energy landscape (Chapter 24). We even found that the energy stored in a configuration of charges can be expressed as energy residing <em>in the electric field itself</em>, with a density <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span>.</p>
-<p>Now we turn to a practical question: <em>Can we build a device that deliberately creates and stores an electric field — and the energy it contains?</em></p>
-<p>The answer is the <strong>capacitor</strong>, one of the most fundamental components in electrical engineering. Capacitors store energy, filter signals, smooth power supplies, trigger camera flashes, restart hearts with defibrillators, and enable the touchscreen you may be reading this on. The physics reduces to one elegant idea: two conductors, separated by a gap, with equal and opposite charges.</p>
-<p>The earliest capacitor — the <strong>Leyden jar</strong> — was independently invented in 1745 by <strong>Ewald Georg von Kleist</strong> (1700–1748) and <strong>Pieter van Musschenbroek</strong> (1692–1761) in Leiden, Netherlands. It was simply a glass jar coated inside and outside with metal foil, yet its ability to store a powerful shock astonished the scientific world. <strong>Benjamin Franklin</strong> (1706–1790) later concluded that the charge resided not in the water inside the jar, but on the glass surfaces — shifting attention to the geometry of the conductors and the material between them.</p>
+<p>Chapters 22 through 24 built a complete framework for electrostatics. Charges create fields (Ch 22). Gauss’s Law relates a field to the charge enclosed (Ch 23). Potential turns the vector field into a scalar landscape, and the energy of a configuration turns out to reside <em>in the field itself</em>, at a density <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> (Ch 24).</p>
+<p>That framework was descriptive: given charges, find the field. This chapter asks the engineering question in the other direction. <strong>Can we build a device that deliberately creates a field, and stores the energy in it?</strong></p>
+<p>The answer is the <strong>capacitor</strong>, and the physics reduces to one idea: two conductors separated by a gap, carrying equal and opposite charge. From that single arrangement come camera flashes, defibrillators, the smoothing in every power supply, and the touchscreen this may be displayed on.</p>
+<div class="connection">
+<p><strong>This chapter was already opened at the end of Chapter 24.</strong> Working the coaxial cable in §24.6 produced</p>
+<p><span class="math display">\[\Delta V = \frac{2k_eQ}{\ell}\ln\!\left(\frac{b}{a}\right)
+\qquad\Longrightarrow\qquad
+\frac{Q}{\Delta V} = \frac{\ell}{2k_e\ln(b/a)}\]</span></p>
+<p>and the right-hand side contains <strong>only lengths</strong> — no charge, no voltage. Double <span class="math inline">\(Q\)</span> and <span class="math inline">\(\Delta V\)</span> doubles with it, leaving the ratio untouched. A fixed number, set by geometry alone, saying how much charge the pair holds per volt.</p>
+<p>That number is what this chapter is about. Chapter 24 found it; Chapter 25 names it, computes it for the geometries that matter, and asks what it costs to fill.</p>
+</div>
+<p>The earliest capacitor — the <strong>Leyden jar</strong> — was invented independently in 1745 by <strong>Ewald Georg von Kleist</strong> (1700–1748) and <strong>Pieter van Musschenbroek</strong> (1692–1761) in Leiden. A glass jar coated inside and out with metal foil; its capacity to store a shock astonished everyone who touched one.</p>
 <blockquote>
 <p>“I would like to tell you about a new but terrible experiment, which I advise you never to try yourself… I felt myself struck in my arms, shoulders, and breast so that I lost my breath, and it was two days before I recovered from the effects of the blow and the terror.” — Pieter van Musschenbroek, 1746</p>
 </blockquote>
-<p><em>*Personal note: Capacitance unites the three pillars we’ve built: Gauss’s Law gives the field, integrating gives the potential, and the stored energy is the field energy over the volume. This chapter bridges “field theory” and “circuit theory.”</em></p>
+<p><strong>Benjamin Franklin</strong> (1706–1790) later established that the charge sat not in the water inside the jar but on the glass surfaces — moving attention to the <em>geometry</em> of the conductors and the <em>material</em> between them. Those are exactly the two things capacitance depends on.</p>
+<p><em>*Capacitance is where field theory becomes circuit theory. Gauss’s Law gives the field, integration gives the potential, and the ratio of charge to potential is a number you can print on a component and solder into a board.</em></p>
+<hr />
 <h2 id="definition-of-capacitance">25.1 — Definition of Capacitance</h2>
-<p>A <strong>capacitor</strong> consists of two conductors (called <strong>plates</strong>) carrying charges of equal magnitude and opposite sign. When we say a capacitor “has charge <span class="math inline">\(Q\)</span>,” we mean one plate carries <span class="math inline">\(+Q\)</span> and the other carries <span class="math inline">\(-Q\)</span>. The net charge is zero — what matters is the <em>separation</em> of charge. When connected to a battery, electrons flow until an electric field is established between the plates.</p>
+<p>A <strong>capacitor</strong> is two conductors — its <strong>plates</strong> — carrying charges of equal magnitude and opposite sign. When we say a capacitor “holds charge <span class="math inline">\(Q\)</span>,” we mean one plate carries <span class="math inline">\(+Q\)</span> and the other <span class="math inline">\(-Q\)</span>. The <strong>net</strong> charge is zero. What is stored is the <em>separation</em> of charge, and the field that separation creates.</p>
 <h3 id="the-definition">The Definition</h3>
-<p><strong>Capacitance</strong> <span class="math inline">\(C\)</span> is defined as the ratio of the magnitude of the charge on either conductor to the magnitude of the potential difference between them:</p>
-<p><span class="math display">\[C \equiv \frac{Q}{\Delta V} \qquad \text{or equivalently} \qquad Q = C\Delta V\]</span></p>
-<p>where <span class="math inline">\(Q\)</span> is the charge on either plate (C), <span class="math inline">\(\Delta V\)</span> is the potential difference (V), and <span class="math inline">\(C\)</span> is the capacitance (F). The SI unit is the <strong>farad</strong> (F), named after <strong>Michael Faraday</strong>: <span class="math inline">\(1\ \text{F} = 1\ \text{C/V}\)</span>.</p>
-<p>A farad is enormous. Typical capacitors are measured in picofarads (<span class="math inline">\(\text{pF} = 10^{-12}\ \text{F}\)</span>), nanofarads (<span class="math inline">\(\text{nF} = 10^{-9}\ \text{F}\)</span>), or microfarads (<span class="math inline">\(\mu\text{F} = 10^{-6}\ \text{F}\)</span>). A 1 F capacitor charged to 1 V stores <span class="math inline">\(6.24 \times 10^{18}\)</span> electrons. Supercapacitors in hybrid vehicles can reach thousands of farads.</p>
-<p><strong>Capacitance depends only on the geometry of the conductors and the material between them</strong> — not on <span class="math inline">\(Q\)</span> or <span class="math inline">\(\Delta V\)</span>. Doubling the voltage doubles the charge, but the ratio <span class="math inline">\(Q/\Delta V\)</span> stays the same. Capacitance is a property of the <em>device</em>, not of the charge stored on it.</p>
-<p><em>*Personal note: Students often confuse capacitance with charge. A large capacitance means lots of charge</em> per volt<em>. A swimming pool and a drinking glass can both be full, but the pool holds more water per inch of depth.</em></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C \equiv \frac{Q}{\Delta V}\;} \qquad\text{equivalently}\qquad Q = C\,\Delta V\]</span></p>
+</div>
+<p>Here <span class="math inline">\(Q\)</span> is the magnitude of the charge on <em>either</em> plate, <span class="math inline">\(\Delta V\)</span> the magnitude of the potential difference between them, and <span class="math inline">\(C\)</span> the <strong>capacitance</strong>. The unit is the <strong>farad</strong> (F), after Michael Faraday: <span class="math inline">\(1\ \text{F} = 1\ \text{C/V}\)</span>.</p>
+<p><strong>Capacitance depends only on geometry and on the material between the plates — never on <span class="math inline">\(Q\)</span> or <span class="math inline">\(\Delta V\)</span>.</strong> That is not an approximation; it follows from the definition. Every capacitance formula in this chapter will be built by assuming a charge <span class="math inline">\(Q\)</span>, computing the <span class="math inline">\(\Delta V\)</span> it produces, and dividing — and <span class="math inline">\(Q\)</span> will cancel every single time.</p>
+<div class="check">
+<p><strong>Why the ratio is the useful quantity.</strong> Put twice the charge on a capacitor and the field everywhere doubles, so <span class="math inline">\(\Delta V\)</span> doubles too. The ratio does not move. That is what makes <span class="math inline">\(C\)</span> a property of the <em>device</em> rather than of its present state — you can stamp it on the component before knowing what circuit it will sit in.</p>
+</div>
+<h3 id="a-farad-is-enormous">A Farad Is Enormous</h3>
+<p>Practical capacitors are measured in picofarads (<span class="math inline">\(10^{-12}\)</span> F), nanofarads (<span class="math inline">\(10^{-9}\)</span> F), or microfarads (<span class="math inline">\(10^{-6}\)</span> F). A one-farad capacitor charged to one volt has separated <span class="math inline">\(6.24\times10^{18}\)</span> electrons. The supercapacitors in hybrid vehicles reach thousands of farads and are a genuine engineering achievement; §25.3 will show that even the <em>Earth</em>, treated as an isolated conductor, comes in under a millifarad.</p>
+<p><em>*Students routinely confuse capacitance with charge. A large capacitance means a lot of charge</em> per volt<em>. A swimming pool and a drinking glass can both be full; the pool holds far more water per inch of depth.</em></p>
+<hr />
 <h2 id="calculating-capacitance-the-parallel-plate-capacitor">25.2 — Calculating Capacitance: The Parallel-Plate Capacitor</h2>
-<h3 id="general-strategy">General Strategy</h3>
-<p>To find the capacitance of any conductor geometry: (1) assume charge <span class="math inline">\(\pm Q\)</span> on the conductors, (2) find <span class="math inline">\(\vec{E}\)</span> via Gauss’s Law, (3) integrate for <span class="math inline">\(\Delta V = -\int \vec{E} \cdot d\vec{s}\)</span>, and (4) divide: <span class="math inline">\(C = Q/\Delta V\)</span>. The charge <span class="math inline">\(Q\)</span> always cancels, confirming capacitance depends only on geometry.</p>
+<h3 id="the-general-strategy">The General Strategy</h3>
+<p>Every capacitance calculation in this chapter follows four steps, and they are the tools of the last two chapters used in sequence:</p>
+<ol type="1">
+<li><strong>Assume</strong> charges <span class="math inline">\(\pm Q\)</span> on the two conductors.</li>
+<li><strong>Find <span class="math inline">\(\vec E\)</span></strong> between them, using Gauss’s Law (Ch 23).</li>
+<li><strong>Integrate</strong> for the potential difference, <span class="math inline">\(\Delta V = -\int\vec E\cdot d\vec s\)</span> (Ch 24).</li>
+<li><strong>Divide</strong>: <span class="math inline">\(C = Q/\Delta V\)</span>.</li>
+</ol>
+<div class="connection">
+<p><strong>Steps 2 and 3 are not new work.</strong> They are precisely the two routes of Chapter 24 — Gauss’s Law for the field, then Route 2 to integrate it. Chapter 25 adds only step 4, and step 4 is a division. <strong>The whole of this chapter’s machinery was assembled last chapter</strong>; what is new is the interpretation of the result as a property of a manufactured object.</p>
+</div>
 <h3 id="the-parallel-plate-capacitor">The Parallel-Plate Capacitor</h3>
-<p>The simplest and most important capacitor consists of two parallel conducting plates, each with area <span class="math inline">\(A\)</span>, separated by a distance <span class="math inline">\(d\)</span>.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_1_parallel_plate_capacitor.png" alt="Figure 25.1: A parallel-plate capacitor with plate area A and separation d" loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 25.1: A parallel-plate capacitor with plate area A and separation d</figcaption></figure>
-<p><strong>Step 1:</strong> Surface charge density: <span class="math inline">\(\sigma = Q/A\)</span>.</p>
-<p><strong>Step 2:</strong> From Gauss’s Law (Ch. 23), the uniform field between the plates: <span class="math inline">\(E = \sigma/\varepsilon_0 = Q/(\varepsilon_0 A)\)</span></p>
-<p><strong>Step 3:</strong> Potential difference: <span class="math inline">\(\Delta V = Ed = Qd/(\varepsilon_0 A)\)</span></p>
-<p><strong>Step 4:</strong> Capacitance:</p>
-<p><span class="math display">\[\boxed{C = \frac{\varepsilon_0 A}{d}}\]</span></p>
-<p><strong>Physical interpretation:</strong> Capacitance increases with plate area <span class="math inline">\(A\)</span> (more room for charges) and increases as plates get closer (each plate’s field more strongly attracts charge onto the opposing plate).</p>
-<h3 id="example-a-typical-parallel-plate-capacitor">Example: A Typical Parallel-Plate Capacitor</h3>
-<p>Square plates with <span class="math inline">\(\ell = 10.0\)</span> cm, separation <span class="math inline">\(d = 1.00\)</span> mm:</p>
-<p><span class="math display">\[C = \frac{(8.854 \times 10^{-12})(0.100)^2}{1.00 \times 10^{-3}} = 88.5\ \text{pF}\]</span></p>
-<p>Only 88.5 pF despite 4-inch-square plates at 1 mm spacing — this is why practical capacitors use dielectrics and rolled-up plates.</p>
+<p>Two parallel conducting plates, each of area <span class="math inline">\(A\)</span>, separated by <span class="math inline">\(d\)</span>, with <span class="math inline">\(d\)</span> small enough that the field between them is uniform and edge effects are negligible.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_1_parallel_plate_capacitor.png" alt="Figure 25.1: A parallel-plate capacitor. The plates carry \pm Q, the field between them is uniform, and \Delta V = Ed." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 25.1: A parallel-plate capacitor. The plates carry <span class="math inline">\(\pm Q\)</span>, the field between them is uniform, and <span class="math inline">\(\Delta V = Ed\)</span>.</figcaption></figure>
+<p><strong>Step 1 — assume the charge.</strong> Surface charge density <span class="math inline">\(\sigma = Q/A\)</span>.</p>
+<p><strong>Step 2 — the field.</strong> Ch 23’s pillbox result for a conducting surface gives a uniform field between the plates:</p>
+<p><span class="math display">\[E = \frac{\sigma}{\varepsilon_0} = \frac{Q}{\varepsilon_0 A}\]</span></p>
+<p><strong>Step 3 — the potential difference.</strong> The field is uniform and the path is along it, so the integral is trivial:</p>
+<p><span class="math display">\[\Delta V = Ed = \frac{Qd}{\varepsilon_0 A}\]</span></p>
+<p><strong>Step 4 — divide.</strong> The <span class="math inline">\(Q\)</span> cancels, as promised:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C = \frac{\varepsilon_0 A}{d}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the limits, and read the physics off them.</strong></p>
+<ul>
+<li><strong>Larger <span class="math inline">\(A\)</span> <span class="math inline">\(\Rightarrow\)</span> larger <span class="math inline">\(C\)</span>.</strong> More plate area is more room to park charge at a given voltage.</li>
+<li><strong>Smaller <span class="math inline">\(d\)</span> <span class="math inline">\(\Rightarrow\)</span> larger <span class="math inline">\(C\)</span>.</strong> Bring the plates closer and each plate’s field holds the opposite charge more tightly, so more charge sits there for the same <span class="math inline">\(\Delta V\)</span>.</li>
+<li><strong><span class="math inline">\(d \to 0\)</span> <span class="math inline">\(\Rightarrow\)</span> <span class="math inline">\(C \to \infty\)</span>.</strong> Correct in the idealisation, and the reason it does not happen in practice is §25.6: every real insulator breaks down at a finite field.</li>
+<li><strong>Nothing about <span class="math inline">\(Q\)</span> or <span class="math inline">\(\Delta V\)</span> survives</strong> — the promise of §25.1, kept.</li>
+</ul>
+</div>
+<section id="a-typical-parallel-plate-capacitor" class="example">
+<h4>A Typical Parallel-Plate Capacitor</h4>
+<p>Square plates <span class="math inline">\(10.0\)</span> cm on a side, separated by <span class="math inline">\(d = 1.00\)</span> mm. Find <span class="math inline">\(C\)</span>.</p>
+<p><span class="math display">\[C = \frac{\varepsilon_0 A}{d}
+= \frac{(8.854\times10^{-12})(0.100)^2}{1.00\times10^{-3}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C = 88.5\ \text{pF}\;}\]</span></p>
+</div>
+<p><strong>That number is worth pausing on.</strong> Plates the size of a coffee-table book, held a millimetre apart, give <strong>88.5 picofarads</strong> — about one ten-billionth of a farad. Every practical capacitor therefore does two things this one does not: it fills the gap with a <strong>dielectric</strong> (§25.6), which multiplies <span class="math inline">\(C\)</span> by a factor of a few to a few hundred, and it <strong>rolls the plates up</strong> so that a large area occupies a small volume.</p>
+</section>
+<hr />
 <h2 id="capacitance-of-other-geometries">25.3 — Capacitance of Other Geometries</h2>
-<p>The same strategy — Gauss’s Law for <span class="math inline">\(\vec{E}\)</span>, integrate for <span class="math inline">\(\Delta V\)</span>, divide — works for any geometry with sufficient symmetry. We already applied Gauss’s Law to cylindrical and spherical geometries in Chapter 23 and integrated those fields in Chapter 24. Here we collect the results.</p>
-<p><strong>The cylindrical capacitor</strong> (inner radius <span class="math inline">\(a\)</span>, outer radius <span class="math inline">\(b\)</span>, length <span class="math inline">\(\ell\)</span>) describes every <strong>coaxial cable</strong> used for TV, internet, and RF signals:</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_2_cylindrical_capacitor.png" alt="Figure 25.2: Cross-section of a cylindrical capacitor with inner radius a and outer radius b" loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.2: Cross-section of a cylindrical capacitor with inner radius a and outer radius b</figcaption></figure>
-<p><span class="math display">\[\boxed{C = \frac{\ell}{2k_e \ln(b/a)}} \qquad \frac{C}{\ell} = \frac{2\pi\varepsilon_0}{\ln(b/a)}\]</span></p>
-<p><strong>The spherical capacitor</strong> (inner sphere radius <span class="math inline">\(a\)</span>, outer shell radius <span class="math inline">\(b\)</span>):</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_3_spherical_capacitor.png" alt="Figure 25.3: Cross-section of a spherical capacitor with inner radius a and outer radius b" loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.3: Cross-section of a spherical capacitor with inner radius a and outer radius b</figcaption></figure>
-<p><span class="math display">\[\boxed{C = \frac{ab}{k_e(b - a)}}\]</span></p>
-<p><strong>Limiting case — the isolated sphere:</strong> As <span class="math inline">\(b \to \infty\)</span>: <span class="math inline">\(C = 4\pi\varepsilon_0 a\)</span>. For Earth (<span class="math inline">\(a = 6.37 \times 10^6\)</span> m): <span class="math inline">\(C = 710\ \mu\text{F}\)</span> — even a planet has less than a millifarad!</p>
+<p>The same four steps work wherever the symmetry is good enough for Gauss’s Law. Both of the cases below were <em>already worked</em> in Chapters 23 and 24 — Gauss’s Law supplied the field, and §24.6 integrated it. Only step 4 is new.</p>
+<h3 id="the-cylindrical-capacitor">The Cylindrical Capacitor</h3>
+<p>An inner conductor of radius <span class="math inline">\(a\)</span> inside a coaxial shell of radius <span class="math inline">\(b\)</span>, both of length <span class="math inline">\(\ell\)</span>. This is every <strong>coaxial cable</strong> ever made.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_2_cylindrical_capacitor.png" alt="Figure 25.2: Cross-section of a cylindrical capacitor, inner radius a, outer radius b." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.2: Cross-section of a cylindrical capacitor, inner radius <span class="math inline">\(a\)</span>, outer radius <span class="math inline">\(b\)</span>.</figcaption></figure>
+<p>From §24.6, <span class="math inline">\(\Delta V = 2k_e\lambda\ln(b/a)\)</span> with <span class="math inline">\(\lambda = Q/\ell\)</span>. Divide:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C = \frac{\ell}{2k_e\ln(b/a)}\;}
+\qquad\text{or per unit length}\qquad
+\frac{C}{\ell} = \frac{2\pi\varepsilon_0}{\ln(b/a)}\]</span></p>
+</div>
+<h3 id="the-spherical-capacitor">The Spherical Capacitor</h3>
+<p>An inner sphere of radius <span class="math inline">\(a\)</span> inside a concentric shell of radius <span class="math inline">\(b\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_3_spherical_capacitor.png" alt="Figure 25.3: Cross-section of a spherical capacitor, inner radius a, outer radius b." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.3: Cross-section of a spherical capacitor, inner radius <span class="math inline">\(a\)</span>, outer radius <span class="math inline">\(b\)</span>.</figcaption></figure>
+<p>From §24.6, <span class="math inline">\(\Delta V = k_eQ\left(\tfrac1a - \tfrac1b\right)\)</span>. Divide:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C = \frac{ab}{k_e(b-a)}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>The limit that matters: let the outer conductor go away.</strong> Take <span class="math inline">\(b\to\infty\)</span> in the spherical result. Write it as <span class="math inline">\(C = a/[k_e(1 - a/b)]\)</span>; as <span class="math inline">\(b\to\infty\)</span> the correction dies and</p>
+<p><span class="math display">\[C \;\longrightarrow\; \frac{a}{k_e} = 4\pi\varepsilon_0 a\]</span></p>
+<p><strong>A single isolated sphere has a capacitance</strong>, with no second conductor in sight. That is not a trick — the “other plate” is infinity, where the potential is zero, and the sphere still holds a definite charge per volt.</p>
+<p>Put the Earth in: <span class="math inline">\(a = 6.37\times10^6\)</span> m gives <span class="math inline">\(C = 710\ \mu\)</span>F. <strong>A planet comes in under a millifarad.</strong> It is the sharpest possible statement of how large the farad is.</p>
+<p>Note also that the <em>cylindrical</em> result has no such limit — <span class="math inline">\(\ln(b/a)\)</span> diverges as <span class="math inline">\(b\to\infty\)</span>, so <span class="math inline">\(C\to 0\)</span>. An infinite line has no finite capacitance to infinity, for the same reason it had no finite potential there (§24.6).</p>
+</div>
 <table>
 <thead>
 <tr class="header">
 <th>Geometry</th>
 <th>Capacitance</th>
-<th>Key Parameter</th>
+<th>Set by</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Parallel Plate</td>
+<td>Parallel plate</td>
 <td><span class="math inline">\(C = \varepsilon_0 A/d\)</span></td>
-<td>Area <span class="math inline">\(A\)</span>, separation <span class="math inline">\(d\)</span></td>
+<td>area <span class="math inline">\(A\)</span>, separation <span class="math inline">\(d\)</span></td>
 </tr>
 <tr class="even">
 <td>Cylindrical</td>
-<td><span class="math inline">\(C = \ell/[2k_e \ln(b/a)]\)</span></td>
-<td>Length <span class="math inline">\(\ell\)</span>, radii <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span></td>
+<td><span class="math inline">\(C = \ell/[2k_e\ln(b/a)]\)</span></td>
+<td>length <span class="math inline">\(\ell\)</span>, radii <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span></td>
 </tr>
 <tr class="odd">
 <td>Spherical</td>
 <td><span class="math inline">\(C = ab/[k_e(b-a)]\)</span></td>
-<td>Radii <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span></td>
+<td>radii <span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span></td>
 </tr>
 <tr class="even">
-<td>Isolated Sphere</td>
+<td>Isolated sphere</td>
 <td><span class="math inline">\(C = 4\pi\varepsilon_0 a\)</span></td>
-<td>Radius <span class="math inline">\(a\)</span></td>
+<td>radius <span class="math inline">\(a\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>In every case, capacitance depends only on <strong>geometry</strong> and <strong><span class="math inline">\(\varepsilon_0\)</span></strong> — never on <span class="math inline">\(Q\)</span> or <span class="math inline">\(\Delta V\)</span>.</p>
+<p>In every row: <strong>geometry and <span class="math inline">\(\varepsilon_0\)</span>, nothing else.</strong></p>
+<hr />
 <h2 id="combinations-of-capacitors">25.4 — Combinations of Capacitors</h2>
-<p>In practical circuits, capacitors are combined in <strong>series</strong> and <strong>parallel</strong> to achieve desired capacitance values and voltage ratings. The combination rules follow the same pattern as springs in Physics I — not resistors (which combine the <em>opposite</em> way, as we’ll see in Chapter 27).</p>
+<p>Real circuits combine capacitors to reach values and voltage ratings that no single component provides. Two questions settle every combination: <strong>which quantity is shared</strong>, and <strong>which one adds</strong>.</p>
 <h3 id="parallel-combination">Parallel Combination</h3>
-<p>Two capacitors are in <strong>parallel</strong> when the same <span class="math inline">\(\Delta V\)</span> appears across both.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_4_parallel_combination.png" alt="Figure 25.4: Capacitors in parallel share the same voltage" loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.4: Capacitors in parallel share the same voltage</figcaption></figure>
-<p><strong>Same voltage, charges add:</strong> <span class="math inline">\(Q_\text{tot} = C_1 \Delta V + C_2 \Delta V = (C_1 + C_2)\Delta V\)</span></p>
-<p><span class="math display">\[\boxed{C_\text{eq} = C_1 + C_2 + C_3 + \cdots \quad (\text{parallel})}\]</span></p>
-<p>Parallel capacitors effectively increase total plate area. <span class="math inline">\(C_\text{eq}\)</span> is always <strong>larger</strong> than the largest individual.</p>
+<p>Capacitors are in <strong>parallel</strong> when the same <span class="math inline">\(\Delta V\)</span> appears across each. Both top plates connect to one node, both bottom plates to another, so each capacitor sees the same two potentials.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_4_parallel_combination.png" alt="Figure 25.4: Capacitors in parallel share the same potential difference." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.4: Capacitors in parallel share the same potential difference.</figcaption></figure>
+<p>Shared <span class="math inline">\(\Delta V\)</span>; the charges add:</p>
+<p><span class="math display">\[Q_{\text{tot}} = Q_1 + Q_2 = C_1\Delta V + C_2\Delta V = (C_1 + C_2)\Delta V\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C_{\text{eq}} = C_1 + C_2 + C_3 + \cdots \qquad (\text{parallel})\;}\]</span></p>
+</div>
+<p>Parallel capacitors behave as one capacitor with more plate area. <span class="math inline">\(C_{\text{eq}}\)</span> is always <strong>larger than the largest</strong> capacitor in the group.</p>
 <h3 id="series-combination">Series Combination</h3>
-<p>Two capacitors are in <strong>series</strong> when connected end-to-end, forcing the same charge <span class="math inline">\(Q\)</span> on both. (The isolated conductor between them has no path for charge to enter or leave.)</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_5_series_combination.png" alt="Figure 25.5: Capacitors in series share the same charge" loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.5: Capacitors in series share the same charge</figcaption></figure>
-<p><strong>Same charge, voltages add:</strong> <span class="math inline">\(\Delta V_\text{tot} = Q/C_1 + Q/C_2\)</span></p>
-<p><span class="math display">\[\boxed{\frac{1}{C_\text{eq}} = \frac{1}{C_1} + \frac{1}{C_2} + \frac{1}{C_3} + \cdots \quad (\text{series})}\]</span></p>
-<p>Series capacitors effectively increase plate separation. <span class="math inline">\(C_\text{eq}\)</span> is always <strong>smaller</strong> than the smallest individual.</p>
-<h3 id="series-vs.-parallel-at-a-glance">Series vs. Parallel at a Glance</h3>
+<p>Capacitors are in <strong>series</strong> when connected end to end, so that the same charge <span class="math inline">\(Q\)</span> appears on each.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_5_series_combination.png" alt="Figure 25.5: Capacitors in series carry the same charge." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.5: Capacitors in series carry the same charge.</figcaption></figure>
+<div class="check">
+<p><strong>Why series capacitors must carry equal charge, and it is not an assumption.</strong> The conductor between two series capacitors — the bottom plate of the first joined to the top plate of the second — is <strong>electrically isolated</strong>. No wire reaches it from the battery. Whatever charge the battery pushes onto the first capacitor’s top plate induces an equal and opposite charge on the plate facing it, and the charge displaced from <em>that</em> plate has nowhere to go but the next capacitor. The isolated middle conductor started neutral and must stay neutral, which forces <span class="math inline">\(Q\)</span> to be identical all the way along.</p>
+</div>
+<p>Shared <span class="math inline">\(Q\)</span>; the voltages add:</p>
+<p><span class="math display">\[\Delta V_{\text{tot}} = \Delta V_1 + \Delta V_2 = \frac{Q}{C_1} + \frac{Q}{C_2}
+= Q\left(\frac{1}{C_1} + \frac{1}{C_2}\right)\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\frac{1}{C_{\text{eq}}} = \frac{1}{C_1} + \frac{1}{C_2} + \frac{1}{C_3} + \cdots \qquad (\text{series})\;}\]</span></p>
+</div>
+<p>Series capacitors behave as one capacitor with a larger plate separation. <span class="math inline">\(C_{\text{eq}}\)</span> is always <strong>smaller than the smallest</strong> capacitor in the group.</p>
+<h3 id="series-and-parallel-at-a-glance">Series and Parallel at a Glance</h3>
 <table>
 <colgroup>
-<col style="width: 35%" />
-<col style="width: 35%" />
-<col style="width: 28%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -290,33 +402,59 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td>Same quantity</td>
+<td>Shared quantity</td>
 <td><span class="math inline">\(\Delta V\)</span></td>
 <td><span class="math inline">\(Q\)</span></td>
 </tr>
 <tr class="even">
 <td>Additive quantity</td>
-<td><span class="math inline">\(Q_\text{tot} = Q_1 + Q_2\)</span></td>
-<td><span class="math inline">\(\Delta V_\text{tot} = \Delta V_1 + \Delta V_2\)</span></td>
+<td><span class="math inline">\(Q_{\text{tot}} = Q_1 + Q_2\)</span></td>
+<td><span class="math inline">\(\Delta V_{\text{tot}} = \Delta V_1 + \Delta V_2\)</span></td>
 </tr>
 <tr class="odd">
-<td>Equivalent rule</td>
-<td><span class="math inline">\(C_\text{eq} = C_1 + C_2\)</span></td>
-<td><span class="math inline">\(1/C_\text{eq} = 1/C_1 + 1/C_2\)</span></td>
+<td>Combination rule</td>
+<td><span class="math inline">\(C_{\text{eq}} = C_1 + C_2\)</span></td>
+<td><span class="math inline">\(1/C_{\text{eq}} = 1/C_1 + 1/C_2\)</span></td>
 </tr>
 <tr class="even">
-<td>Effect on <span class="math inline">\(C_\text{eq}\)</span></td>
-<td>Larger than any individual</td>
-<td>Smaller than any individual</td>
+<td>Effect</td>
+<td>larger than any one</td>
+<td>smaller than any one</td>
+</tr>
+<tr class="odd">
+<td>Physical picture</td>
+<td>more area</td>
+<td>more separation</td>
 </tr>
 </tbody>
 </table>
-<h3 id="example-mixed-combination">Example: Mixed Combination</h3>
-<p><span class="math inline">\(C_1 = 4.00\ \mu\text{F}\)</span>, <span class="math inline">\(C_2 = 6.00\ \mu\text{F}\)</span>, <span class="math inline">\(C_3 = 2.00\ \mu\text{F}\)</span>, <span class="math inline">\(C_4 = 8.00\ \mu\text{F}\)</span>, <span class="math inline">\(\Delta V = 12.0\)</span> V. <span class="math inline">\(C_1\)</span> and <span class="math inline">\(C_2\)</span> in series; that pair in parallel with <span class="math inline">\(C_4\)</span>; the combination in series with <span class="math inline">\(C_3\)</span>.</p>
-<p><strong>Step 1:</strong> <span class="math inline">\(C_1\)</span>, <span class="math inline">\(C_2\)</span> in series: <span class="math inline">\(1/C_{12} = 1/4.00 + 1/6.00 = 5/12 \Rightarrow C_{12} = 2.40\ \mu\text{F}\)</span></p>
-<p><strong>Step 2:</strong> <span class="math inline">\(C_{12} \| C_4\)</span>: <span class="math inline">\(C_{124} = 2.40 + 8.00 = 10.4\ \mu\text{F}\)</span></p>
-<p><strong>Step 3:</strong> <span class="math inline">\(C_{124}\)</span> in series with <span class="math inline">\(C_3\)</span>: <span class="math inline">\(1/C_\text{eq} = 1/10.4 + 1/2.00 \Rightarrow C_\text{eq} = 1.68\ \mu\text{F}\)</span></p>
-<p><strong>Energy:</strong> <span class="math inline">\(U = \frac{1}{2}(1.68 \times 10^{-6})(12.0)^2 = 121\ \mu\text{J}\)</span></p>
+<div class="connection">
+<p><strong>These are the spring rules from Physics I, not the resistor rules.</strong> Springs in <em>parallel</em> share a displacement and their stiffnesses add, <span class="math inline">\(k_{\text{eq}} = k_1 + k_2\)</span> — exactly the parallel-capacitor rule. Springs in <em>series</em> share a force and their compliances add, <span class="math inline">\(1/k_{\text{eq}} = 1/k_1 + 1/k_2\)</span> — exactly the series-capacitor rule.</p>
+<p>The correspondence runs <span class="math inline">\(C \leftrightarrow k\)</span>, <span class="math inline">\(\Delta V \leftrightarrow x\)</span>, <span class="math inline">\(Q \leftrightarrow F\)</span>, and §25.5 will show it extends to the stored energy.</p>
+<p><strong>Resistors, in Chapter 27, combine the opposite way</strong> — series resistances add. That reversal catches people every term, and the reason is worth carrying: it is <span class="math inline">\(C\)</span> that adds in parallel because <span class="math inline">\(C\)</span> measures <em>capacity</em>, while <span class="math inline">\(R\)</span> measures <em>opposition</em>.</p>
+</div>
+<section id="a-mixed-combination" class="example">
+<h4>A Mixed Combination</h4>
+<p><span class="math inline">\(C_1 = 4.00\ \mu\)</span>F and <span class="math inline">\(C_2 = 6.00\ \mu\)</span>F in series; that pair in parallel with <span class="math inline">\(C_4 = 8.00\ \mu\)</span>F; the whole group in series with <span class="math inline">\(C_3 = 2.00\ \mu\)</span>F, across <span class="math inline">\(\Delta V = 12.0\)</span> V.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_7_mixed_combination.png" alt="Figure 25.7: A mixed series–parallel network." loading="lazy" style="max-width:min(4.4in,100%)" /><figcaption>Figure 25.7: A mixed series–parallel network.</figcaption></figure>
+<p><strong>Work from the inside out.</strong> There is no formula for a network; there is only repeated application of the two rules to the innermost group that is purely series or purely parallel.</p>
+<p><strong>Step 1 — <span class="math inline">\(C_1\)</span> and <span class="math inline">\(C_2\)</span> in series:</strong></p>
+<p><span class="math display">\[\frac{1}{C_{12}} = \frac{1}{4.00} + \frac{1}{6.00} = \frac{5}{12}
+\qquad\Longrightarrow\qquad C_{12} = 2.40\ \mu\text{F}\]</span></p>
+<p><strong>Step 2 — that pair in parallel with <span class="math inline">\(C_4\)</span>:</strong></p>
+<p><span class="math display">\[C_{124} = C_{12} + C_4 = 2.40 + 8.00 = 10.4\ \mu\text{F}\]</span></p>
+<p><strong>Step 3 — the group in series with <span class="math inline">\(C_3\)</span>:</strong></p>
+<p><span class="math display">\[\frac{1}{C_{\text{eq}}} = \frac{1}{10.4} + \frac{1}{2.00}
+\qquad\Longrightarrow\qquad C_{\text{eq}} = 1.68\ \mu\text{F}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C_{\text{eq}} = 1.68\ \mu\text{F}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check it against the bounds before trusting it.</strong> The last operation was a series combination with <span class="math inline">\(C_3 = 2.00\ \mu\)</span>F, so the answer must come out <strong>smaller than <span class="math inline">\(2.00\ \mu\)</span>F</strong> — and <span class="math inline">\(1.68\)</span> is. Step 2 was a parallel combination, so <span class="math inline">\(10.4\)</span> had to exceed <span class="math inline">\(8.00\)</span> — it does. Step 1 was series, so <span class="math inline">\(2.40\)</span> had to fall below <span class="math inline">\(4.00\)</span> — it does.</p>
+<p><strong>Every step of a network reduction has a one-line sanity check available.</strong> Using them catches the single most common error in this material: applying the series rule to a parallel pair, or the reverse.</p>
+</div>
+</section>
+<hr />
 <div class="sim-block">
   <div class="sim-lead">Interactive &middot; Capacitor Dielectric Lab</div>
   <div class="sim-embed">
@@ -329,79 +467,98 @@
   <p class="sim-print">Interactive &mdash; not reproducible in print. Open at <strong>peirastes.com/projects/electrostatics-lab/capacitor_lab.html</strong></p>
 </div>
 <h2 id="energy-stored-in-a-charged-capacitor">25.5 — Energy Stored in a Charged Capacitor</h2>
-<p>When we charge a capacitor, the battery does work against the growing field. At intermediate charge <span class="math inline">\(q\)</span>, the work to transfer <span class="math inline">\(dq\)</span> more is <span class="math inline">\(dW = (q/C)\, dq\)</span>. Integrating:</p>
-<p><span class="math display">\[U = \int_0^Q \frac{q}{C}\,dq = \frac{Q^2}{2C}\]</span></p>
-<p>Graphically, <span class="math inline">\(\Delta V\)</span> rises linearly with <span class="math inline">\(q\)</span> (slope <span class="math inline">\(1/C\)</span>), and the total work is the area of the triangle under the line:</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_6_energy_triangle.png" alt="Figure 25.6: The work to charge a capacitor equals the triangular area under the ΔV vs. q line" loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.6: The work to charge a capacitor equals the triangular area under the ΔV vs. q line</figcaption></figure>
-<p><span class="math display">\[\boxed{U = \frac{Q^2}{2C} = \frac{1}{2}C(\Delta V)^2 = \frac{1}{2}Q\Delta V}\]</span></p>
-<p>All three forms are equivalent via <span class="math inline">\(Q = C\Delta V\)</span>. The factor of <span class="math inline">\(\frac{1}{2}\)</span> arises because the average voltage during charging is <span class="math inline">\(\Delta V/2\)</span> — geometrically, a triangle has half the area of the enclosing rectangle. Use <span class="math inline">\(\frac{1}{2}C(\Delta V)^2\)</span> when voltage is known (battery connected); <span class="math inline">\(Q^2/(2C)\)</span> when charge is known (battery disconnected).</p>
-<h3 id="physics-i-analogy">Physics I Analogy</h3>
+<p>Charging a capacitor is not free, and the reason is that it gets harder as you go. Move the first <span class="math inline">\(dq\)</span> across and the plates are still neutral — no field, no opposition. But every charge delivered raises the potential difference, so the next one costs more.</p>
+<p>At the moment the capacitor holds charge <span class="math inline">\(q\)</span>, the potential difference is <span class="math inline">\(q/C\)</span>, and moving one more increment costs</p>
+<p><span class="math display">\[dW = \Delta V\,dq = \frac{q}{C}\,dq\]</span></p>
+<p>Integrate from empty to full:</p>
+<p><span class="math display">\[U = \int_0^Q \frac{q}{C}\,dq = \frac{1}{C}\left[\frac{q^2}{2}\right]_0^Q = \frac{Q^2}{2C}\]</span></p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_6_energy_triangle.png" alt="Figure 25.6: \Delta V rises linearly with q, so the work to charge the capacitor is the triangular area beneath the line." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 25.6: <span class="math inline">\(\Delta V\)</span> rises linearly with <span class="math inline">\(q\)</span>, so the work to charge the capacitor is the triangular area beneath the line.</figcaption></figure>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U = \frac{Q^2}{2C} = \frac{1}{2}C(\Delta V)^2 = \frac{1}{2}Q\,\Delta V\;}\]</span></p>
+</div>
+<p>All three forms are the same statement, converted between by <span class="math inline">\(Q = C\Delta V\)</span>. In practice: use <span class="math inline">\(\tfrac12 C(\Delta V)^2\)</span> when the <strong>battery stays connected</strong> and holds the voltage; use <span class="math inline">\(Q^2/2C\)</span> when the <strong>battery has been disconnected</strong> and the charge is what is fixed.</p>
+<div class="check">
+<p><strong>Where the factor of one half comes from.</strong> The final charge <span class="math inline">\(Q\)</span> sits at the final voltage <span class="math inline">\(\Delta V\)</span>, so a first guess of <span class="math inline">\(Q\Delta V\)</span> is natural — and wrong by a factor of two. Only the <em>last</em> increment of charge paid full voltage; the first paid nothing, and the average over the whole process was <span class="math inline">\(\Delta V/2\)</span>.</p>
+<p>The figure says the same thing geometrically: <span class="math inline">\(\Delta V = q/C\)</span> is a straight line through the origin, so the work — the area beneath it — is a <strong>triangle</strong>, and a triangle is half the enclosing rectangle.</p>
+</div>
+<div class="connection">
+<p><strong>A capacitor is the electrical analogue of a spring.</strong></p>
 <table>
 <thead>
 <tr class="header">
 <th>Spring (Physics I)</th>
-<th>Capacitor (This Chapter)</th>
+<th>Capacitor (here)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">\(U = \frac{1}{2}kx^2\)</span></td>
-<td><span class="math inline">\(U = \frac{1}{2}C(\Delta V)^2\)</span></td>
+<td><span class="math inline">\(U = \tfrac12 kx^2\)</span></td>
+<td><span class="math inline">\(U = \tfrac12 C(\Delta V)^2\)</span></td>
 </tr>
 <tr class="even">
-<td>Spring constant <span class="math inline">\(k\)</span></td>
-<td>Capacitance <span class="math inline">\(C\)</span></td>
+<td>stiffness <span class="math inline">\(k\)</span></td>
+<td>capacitance <span class="math inline">\(C\)</span></td>
 </tr>
 <tr class="odd">
-<td>Displacement <span class="math inline">\(x\)</span></td>
-<td>Voltage <span class="math inline">\(\Delta V\)</span></td>
+<td>displacement <span class="math inline">\(x\)</span></td>
+<td>voltage <span class="math inline">\(\Delta V\)</span></td>
 </tr>
 <tr class="even">
-<td>Force <span class="math inline">\(F = kx\)</span></td>
-<td>Charge <span class="math inline">\(Q = C\Delta V\)</span></td>
+<td><span class="math inline">\(F = kx\)</span></td>
+<td><span class="math inline">\(Q = C\Delta V\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>A capacitor is the electrical analog of a spring — energy proportional to the square of the “displacement.”</p>
-<h3 id="example-energy-in-a-defibrillator">Example: Energy in a Defibrillator</h3>
-<p>A defibrillator has <span class="math inline">\(C = 32.0\ \mu\text{F}\)</span> charged to <span class="math inline">\(5000\)</span> V: <span class="math inline">\(U = \frac{1}{2}(32.0 \times 10^{-6})(5000)^2 = 400\ \text{J}\)</span> — released in milliseconds, a power output of ~<span class="math inline">\(10^5\)</span> W.</p>
-<h3 id="energy-density">Energy Density</h3>
-<p>The energy resides in the <strong>electric field</strong> itself. For parallel plates (volume <span class="math inline">\(= Ad\)</span>), using <span class="math inline">\(C = \varepsilon_0 A/d\)</span> and <span class="math inline">\(\Delta V = Ed\)</span>:</p>
-<p><span class="math display">\[U = \frac{1}{2}\frac{\varepsilon_0 A}{d}(Ed)^2 = \frac{1}{2}\varepsilon_0 E^2 (Ad) \qquad \Longrightarrow \qquad \boxed{u_E = \frac{1}{2}\varepsilon_0 E^2}\]</span></p>
-<p>Although derived for parallel plates, this is <strong>completely general</strong> — wherever there is an electric field, there is stored energy.</p>
-<p><em>*Personal note: This confirms Chapter 24’s result — the field carries real energy. This becomes central when we study electromagnetic waves propagating through empty space.</em></p>
+<p>Energy quadratic in the “displacement,” force linear in it, and — as §25.4 showed — the same series and parallel combination rules. It is the same mathematical object wearing different units.</p>
+</div>
+<section id="energy-in-a-defibrillator" class="example">
+<h4>Energy in a Defibrillator</h4>
+<p>A defibrillator stores energy in a <span class="math inline">\(C = 32.0\ \mu\)</span>F capacitor charged to <span class="math inline">\(5000\)</span> V.</p>
+<p><span class="math display">\[U = \tfrac12 C(\Delta V)^2 = \tfrac12 (32.0\times10^{-6})(5000)^2\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U = 400\ \text{J}\;}\]</span></p>
+</div>
+<p><strong>Why a capacitor and not a battery.</strong> <span class="math inline">\(400\)</span> J is modest — a few seconds of a household light bulb. What matters is that a capacitor can deliver it in <strong>milliseconds</strong>, which is a power of order <span class="math inline">\(10^5\)</span> W. A battery stores far more total energy and cannot release it anywhere near that fast. <strong>Capacitors are not about how much energy; they are about how quickly.</strong></p>
+</section>
+<h3 id="energy-density-the-field-holds-the-energy">Energy Density: The Field Holds the Energy</h3>
+<p>Where is the energy? Not “on the plates” — <strong>in the field between them</strong>. Take the parallel-plate case, whose field fills a volume <span class="math inline">\(Ad\)</span>, and substitute <span class="math inline">\(C = \varepsilon_0A/d\)</span> and <span class="math inline">\(\Delta V = Ed\)</span>:</p>
+<p><span class="math display">\[U = \frac{1}{2}\left(\frac{\varepsilon_0 A}{d}\right)(Ed)^2
+= \frac{1}{2}\varepsilon_0 E^2 (Ad)\]</span></p>
+<p>The bracket <span class="math inline">\((Ad)\)</span> is exactly the volume occupied by the field, so the energy <strong>per unit volume</strong> is</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;u_E = \frac{1}{2}\varepsilon_0 E^2\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Derived from one geometry, true in all of them.</strong> Nothing in the final expression remembers plates, area, or separation — only the local field strength. That is the signature of a genuinely local statement: <strong>wherever there is an electric field, there is energy at this density</strong>, whether or not any capacitor is nearby.</p>
+<p>This is the same <span class="math inline">\(u_E\)</span> met in Chapter 24, arrived at from the opposite direction. There it came from the work of assembling charge; here from the work of charging a device. Two routes, one number.</p>
+</div>
+<p><em>*This result is the seed of a much larger idea. If energy lives in the field, then a field that detaches from its source carries energy away with it — which is what an electromagnetic wave is, and what Chapter 30 is about.</em></p>
+<hr />
 <h2 id="capacitors-with-dielectrics">25.6 — Capacitors with Dielectrics</h2>
-<p>In 1837, <strong>Michael Faraday</strong> discovered that inserting a nonconducting material — a <strong>dielectric</strong> — between capacitor plates <em>increases</em> the capacitance. Charge a capacitor to <span class="math inline">\(\Delta V_0\)</span>, disconnect the battery (fixing <span class="math inline">\(Q\)</span>), insert a dielectric: the voltage drops to <span class="math inline">\(\Delta V = \Delta V_0/\kappa\)</span>, where <span class="math inline">\(\kappa\)</span> is the <strong>dielectric constant</strong> (<span class="math inline">\(\kappa \geq 1\)</span>). Since <span class="math inline">\(Q\)</span> is unchanged:</p>
-<p><span class="math display">\[\boxed{C = \kappa C_0} \qquad \text{For parallel plates:} \qquad \boxed{C = \kappa \frac{\varepsilon_0 A}{d}}\]</span></p>
-<h3 id="dielectric-constants-of-common-materials">Dielectric Constants of Common Materials</h3>
+<p>In 1837 <strong>Michael Faraday</strong> found that sliding a nonconducting material — a <strong>dielectric</strong> — into the gap <em>increases</em> the capacitance. The experiment is worth stating precisely, because the bookkeeping depends on how it is done.</p>
+<p>Charge a capacitor to <span class="math inline">\(\Delta V_0\)</span>, <strong>disconnect the battery</strong> so that <span class="math inline">\(Q\)</span> is fixed, then insert the dielectric. The voltage <em>falls</em>, to <span class="math inline">\(\Delta V_0/\kappa\)</span>, where <span class="math inline">\(\kappa \ge 1\)</span> is the <strong>dielectric constant</strong> of the material. Since <span class="math inline">\(Q\)</span> did not change and <span class="math inline">\(\Delta V\)</span> fell by <span class="math inline">\(\kappa\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C = \kappa C_0\;} \qquad\text{and for parallel plates}\qquad
+\boxed{\;C = \frac{\kappa\varepsilon_0 A}{d}\;}\]</span></p>
+</div>
 <table>
 <thead>
 <tr class="header">
 <th>Material</th>
 <th><span class="math inline">\(\kappa\)</span></th>
-<th>Dielectric Strength (<span class="math inline">\(10^6\)</span> V/m)</th>
+<th>Dielectric strength (<span class="math inline">\(10^6\)</span> V/m)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Vacuum</td>
-<td>1.000 00</td>
+<td>1.00000</td>
 <td>—</td>
 </tr>
 <tr class="even">
 <td>Air</td>
-<td>1.000 59</td>
+<td>1.00059</td>
 <td>3</td>
-</tr>
-<tr class="odd">
-<td>Paper</td>
-<td>3.7</td>
-<td>16</td>
-</tr>
-<tr class="even">
-<td>Glass (Pyrex)</td>
-<td>5.6</td>
-<td>14</td>
 </tr>
 <tr class="odd">
 <td>Teflon</td>
@@ -409,86 +566,147 @@
 <td>60</td>
 </tr>
 <tr class="even">
-<td>Strontium titanate</td>
-<td>233</td>
-<td>8</td>
+<td>Paper</td>
+<td>3.7</td>
+<td>16</td>
 </tr>
 <tr class="odd">
+<td>Glass (Pyrex)</td>
+<td>5.6</td>
+<td>14</td>
+</tr>
+<tr class="even">
 <td>Water</td>
 <td>80</td>
 <td>—</td>
 </tr>
+<tr class="odd">
+<td>Strontium titanate</td>
+<td>233</td>
+<td>8</td>
+</tr>
 </tbody>
 </table>
-<h3 id="why-does-a-dielectric-increase-capacitance">Why Does a Dielectric Increase Capacitance?</h3>
-<p>The explanation is <strong>polarization</strong>. In an external field, <strong>polar molecules</strong> align their permanent dipoles and <strong>nonpolar molecules</strong> develop induced dipoles. The aligned dipoles create a field <strong>opposing</strong> the external field, reducing the net field to <span class="math inline">\(E = E_0/\kappa\)</span>. A weaker field means smaller <span class="math inline">\(\Delta V\)</span> for the same <span class="math inline">\(Q\)</span>, so <span class="math inline">\(C\)</span> increases. We define <strong>permittivity</strong> <span class="math inline">\(\varepsilon = \kappa\varepsilon_0\)</span> so that <span class="math inline">\(C = \varepsilon A/d\)</span>.</p>
-<h3 id="two-important-scenarios">Two Important Scenarios</h3>
+<h3 id="why-a-dielectric-increases-capacitance">Why a Dielectric Increases Capacitance</h3>
+<p>The mechanism is <strong>polarization</strong>. Place an insulator in a field and its charge cannot flow — but it can <em>shift</em>.</p>
+<ul>
+<li><strong>Polar molecules</strong> already carry a permanent dipole moment. The field exerts a torque that rotates them into alignment.</li>
+<li><strong>Nonpolar molecules</strong> have no permanent dipole, but the field pulls their electron clouds one way and nuclei the other, <strong>inducing</strong> one.</li>
+</ul>
+<p>Either way the material ends up with aligned dipoles: a layer of negative charge facing the positive plate, positive facing the negative plate. Those surface layers produce a field <strong>opposing</strong> the original, so the net field drops:</p>
+<p><span class="math display">\[E = \frac{E_0}{\kappa}\]</span></p>
+<p>A weaker field means a smaller <span class="math inline">\(\Delta V\)</span> across the same gap, and a smaller <span class="math inline">\(\Delta V\)</span> for the same <span class="math inline">\(Q\)</span> means a <strong>larger</strong> <span class="math inline">\(C\)</span>. It is convenient to fold <span class="math inline">\(\kappa\)</span> into a <strong>permittivity</strong> <span class="math inline">\(\varepsilon = \kappa\varepsilon_0\)</span>, so that <span class="math inline">\(C = \varepsilon A/d\)</span> and the vacuum case is just <span class="math inline">\(\kappa = 1\)</span>.</p>
+<h3 id="two-scenarios-and-they-differ">Two Scenarios, and They Differ</h3>
+<p><strong>Everything depends on whether the battery is still attached.</strong></p>
 <table>
-<colgroup>
-<col style="width: 11%" />
-<col style="width: 45%" />
-<col style="width: 42%" />
-</colgroup>
 <thead>
 <tr class="header">
 <th>Quantity</th>
-<th>Battery Connected (constant <span class="math inline">\(\Delta V\)</span>)</th>
-<th>Battery Disconnected (constant <span class="math inline">\(Q\)</span>)</th>
+<th>Battery connected (<span class="math inline">\(\Delta V\)</span> fixed)</th>
+<th>Battery disconnected (<span class="math inline">\(Q\)</span> fixed)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Capacitance <span class="math inline">\(C\)</span></td>
-<td>Increases by <span class="math inline">\(\kappa\)</span></td>
-<td>Increases by <span class="math inline">\(\kappa\)</span></td>
+<td><span class="math inline">\(\times\kappa\)</span></td>
+<td><span class="math inline">\(\times\kappa\)</span></td>
 </tr>
 <tr class="even">
 <td>Charge <span class="math inline">\(Q\)</span></td>
-<td>Increases by <span class="math inline">\(\kappa\)</span></td>
-<td>Same</td>
+<td><span class="math inline">\(\times\kappa\)</span></td>
+<td>unchanged</td>
 </tr>
 <tr class="odd">
 <td>Voltage <span class="math inline">\(\Delta V\)</span></td>
-<td>Same</td>
-<td>Decreases by <span class="math inline">\(\kappa\)</span></td>
+<td>unchanged</td>
+<td><span class="math inline">\(\div\kappa\)</span></td>
 </tr>
 <tr class="even">
 <td>Energy <span class="math inline">\(U\)</span></td>
-<td>Increases by <span class="math inline">\(\kappa\)</span></td>
-<td>Decreases by <span class="math inline">\(\kappa\)</span></td>
+<td><span class="math inline">\(\times\kappa\)</span></td>
+<td><span class="math inline">\(\div\kappa\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>When battery-connected, the battery supplies extra energy. When disconnected, the “missing” energy was converted to work pulling the dielectric into the gap.</p>
+<div class="check">
+<p><strong>The energy column is the one to think about, because it moves in opposite directions.</strong></p>
+<p><em>Battery connected:</em> <span class="math inline">\(U = \tfrac12 C(\Delta V)^2\)</span> with <span class="math inline">\(\Delta V\)</span> held fixed and <span class="math inline">\(C\)</span> up by <span class="math inline">\(\kappa\)</span>, so <span class="math inline">\(U\)</span> rises. <strong>The battery supplied the extra energy</strong> — it pushed additional charge onto the plates to maintain the voltage.</p>
+<p><em>Battery disconnected:</em> <span class="math inline">\(U = Q^2/2C\)</span> with <span class="math inline">\(Q\)</span> held fixed and <span class="math inline">\(C\)</span> up by <span class="math inline">\(\kappa\)</span>, so <span class="math inline">\(U\)</span> falls. Nothing is missing: <strong>the capacitor did work on the dielectric.</strong> The fringing field at the edge of the gap pulls the slab inward, and the energy lost from the field went into that mechanical work. Let go of a dielectric slab near a charged capacitor and it is drawn in — that is the same energy, visible.</p>
+</div>
 <h3 id="dielectric-strength-and-breakdown">Dielectric Strength and Breakdown</h3>
-<p>Every dielectric has a maximum field before <strong>dielectric breakdown</strong> — sudden conduction (sparks, lightning). <span class="math inline">\(\Delta V_\text{max} = E_\text{max} \cdot d\)</span>. Dielectrics serve a dual purpose: increase capacitance <em>and</em> raise maximum voltage.</p>
-<h3 id="example-inserting-a-dielectric">Example: Inserting a Dielectric</h3>
-<p><span class="math inline">\(C_0 = 100\ \text{pF}\)</span>, <span class="math inline">\(\Delta V_0 = 50.0\)</span> V, battery disconnected, <span class="math inline">\(\kappa = 5.0\)</span> inserted.</p>
-<p><strong>(A)</strong> <span class="math inline">\(C = \kappa C_0 = 500\ \text{pF}\)</span>. <strong>(B)</strong> <span class="math inline">\(Q = 5.00\ \text{nC}\)</span> (constant), <span class="math inline">\(\Delta V = Q/C = 10.0\ \text{V}\)</span>. <strong>(C)</strong> <span class="math inline">\(U_0 = 125\ \text{nJ}\)</span>, <span class="math inline">\(U = 25.0\ \text{nJ}\)</span>, <span class="math inline">\(U/U_0 = 1/\kappa\)</span>.</p>
-<h3 id="electric-dipoles-in-electric-fields">Electric Dipoles in Electric Fields</h3>
-<p>For a dipole <span class="math inline">\(\vec{p} = q\vec{d}\)</span> in a uniform field <span class="math inline">\(\vec{E}\)</span>, the forces create a <strong>torque</strong> aligning the dipole with the field, and an associated <strong>potential energy</strong>:</p>
-<p><span class="math display">\[\vec{\tau} = \vec{p} \times \vec{E} \qquad \qquad U = -\vec{p} \cdot \vec{E} = -pE\cos\theta\]</span></p>
-<p>Minimum energy (stable) when <span class="math inline">\(\vec{p} \parallel \vec{E}\)</span>; maximum when antiparallel. This is why dielectrics are pulled into strong-field regions.</p>
-<p><em>*These results reappear for magnetic dipoles — same math, different symbols.</em></p>
+<p>Every insulator fails at a large enough field. Beyond its <strong>dielectric strength</strong>, the material ionises and suddenly conducts — a spark, an arc, or on the largest scale, lightning. The maximum voltage a capacitor can hold is</p>
+<p><span class="math display">\[\Delta V_{\text{max}} = E_{\text{max}}\,d\]</span></p>
+<div class="check">
+<p><strong>A dielectric earns its place twice over.</strong> It multiplies <span class="math inline">\(C\)</span> by <span class="math inline">\(\kappa\)</span>, and because its dielectric strength usually exceeds air’s <span class="math inline">\(3\times10^6\)</span> V/m, it also raises <span class="math inline">\(\Delta V_{\text{max}}\)</span>. Teflon does both aggressively: <span class="math inline">\(\kappa = 2.1\)</span> with a strength of <span class="math inline">\(60\times10^6\)</span> V/m, twenty times air’s.</p>
+<p>This is also why <span class="math inline">\(d \to 0\)</span> does not really give <span class="math inline">\(C \to \infty\)</span> (§25.2). Shrinking the gap raises the field at fixed voltage, and the material breaks down first.</p>
+</div>
+<h3 id="partially-filled-gaps">Partially Filled Gaps</h3>
+<p>A slab that fills only part of the gap is not a special case needing new physics — it is <strong>two capacitors</strong>, and §25.4 already says how to combine them. The only question is <em>which</em> rule applies, and the answer is decided by how the slab is placed.</p>
+<p><strong>Stacked (one above the other).</strong> Each layer spans the full plate area <span class="math inline">\(A\)</span> but only part of the separation. They share the same charge, so they are in <strong>series</strong>:</p>
+<p><span class="math display">\[C_i = \frac{\kappa_i\varepsilon_0 A}{d_i}, \qquad
+\frac{1}{C_{\text{eq}}} = \frac{1}{C_1} + \frac{1}{C_2}\]</span></p>
+<figure class="chap-fig"><img src="/courses/pseii/ch25_figures/fig_25_8_partial_dielectric_breakdown.png" alt="Figure 25.8: A stacked dielectric puts two capacitors in series. Each layer is half the gap, so the voltage divides in proportion to 1/\kappa — the air takes 80 of the 100 V, and its field is four times the field in the slab." loading="lazy" style="max-width:min(4.6in,100%)" /><figcaption>Figure 25.8: A stacked dielectric puts two capacitors in series. Each layer is half the gap, so the voltage divides in proportion to <span class="math inline">\(1/\kappa\)</span> — the air takes <span class="math inline">\(80\)</span> of the <span class="math inline">\(100\)</span> V, and its field is four times the field in the slab.</figcaption></figure>
+<p><strong>Side by side (each covering part of the area).</strong> Each slab spans the full separation <span class="math inline">\(d\)</span> but only part of the area. They share the same voltage, so they are in <strong>parallel</strong>:</p>
+<p><span class="math display">\[C_i = \frac{\kappa_i\varepsilon_0 A_i}{d}, \qquad
+C_{\text{eq}} = C_1 + C_2\]</span></p>
+<div class="check">
+<p><strong>The stacked case is the dangerous one, and the figure shows why.</strong> With <span class="math inline">\(\kappa = 4.0\)</span> filling the lower half, the two layers carry the same charge, so the <em>smaller</em> capacitance takes the larger share of the voltage — and the air layer, with <span class="math inline">\(\kappa = 1\)</span>, is the smaller one. It absorbs <span class="math inline">\(80\)</span> of the <span class="math inline">\(100\)</span> V across half the gap, giving it <strong>four times</strong> the field inside the slab.</p>
+<p>So the air breaks down first, at a total voltage well below what the dielectric alone could withstand. <strong>A gap that is partly air is limited by the air</strong>, which is why capacitors are built with the dielectric filling the gap completely and why a trapped bubble is a manufacturing defect rather than a cosmetic one.</p>
+<p>Side by side, nothing of the sort happens: both halves see the same <span class="math inline">\(\Delta V\)</span> across the same <span class="math inline">\(d\)</span>, so both see the same field, and the one with the larger <span class="math inline">\(\kappa\)</span> simply stores proportionally more charge.</p>
+</div>
+<section id="inserting-a-dielectric" class="example">
+<h4>Inserting a Dielectric</h4>
+<p><span class="math inline">\(C_0 = 100\)</span> pF is charged to <span class="math inline">\(\Delta V_0 = 50.0\)</span> V. The <strong>battery is then disconnected</strong>, and a slab with <span class="math inline">\(\kappa = 5.0\)</span> is inserted.</p>
+<p><strong>Before insertion</strong>, the charge is fixed at</p>
+<p><span class="math display">\[Q = C_0\Delta V_0 = (100\times10^{-12})(50.0) = 5.00\ \text{nC}\]</span></p>
+<p><strong>(a) The new capacitance.</strong> <span class="math inline">\(C = \kappa C_0 = 5.0(100) = 500\)</span> pF.</p>
+<p><strong>(b) The new voltage.</strong> <span class="math inline">\(Q\)</span> is unchanged, so</p>
+<p><span class="math display">\[\Delta V = \frac{Q}{C} = \frac{5.00\times10^{-9}}{500\times10^{-12}} = 10.0\ \text{V}\]</span></p>
+<p><strong>(c) The energies.</strong></p>
+<p><span class="math display">\[U_0 = \frac{Q^2}{2C_0} = 125\ \text{nJ}, \qquad U = \frac{Q^2}{2C} = 25.0\ \text{nJ}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;C = 500\ \text{pF}, \qquad \Delta V = 10.0\ \text{V}, \qquad
+\frac{U}{U_0} = \frac{1}{\kappa} = \frac{1}{5}\;}\]</span></p>
+</div>
+<div class="check">
+<p>The voltage fell by exactly <span class="math inline">\(\kappa\)</span> and the energy by exactly <span class="math inline">\(\kappa\)</span>, both as the table predicts. The missing <span class="math inline">\(100\)</span> nJ is not lost — it is the work the fringing field did pulling the slab into the gap. Had the battery stayed connected instead, every entry in this example would differ, and the energy would have gone <em>up</em> by a factor of five.</p>
+</div>
+</section>
+<h3 id="electric-dipoles-in-a-field">Electric Dipoles in a Field</h3>
+<p>The polarization argument rests on dipoles turning, so it is worth writing down what a field does to one. For a dipole <span class="math inline">\(\vec p = q\vec d\)</span> in a uniform field, the two forces are equal and opposite — no net force — but they act at different points, so they produce a <strong>torque</strong>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec\tau = \vec p \times \vec E \qquad\qquad U = -\vec p\cdot\vec E = -pE\cos\theta\;}\]</span></p>
+</div>
+<p>The energy is <strong>minimum</strong> when <span class="math inline">\(\vec p\)</span> is parallel to <span class="math inline">\(\vec E\)</span> — the stable alignment — and maximum when antiparallel. In a <em>non</em>-uniform field the two forces no longer cancel, and the dipole is pulled toward the stronger field. That is the force that drags a dielectric slab into a capacitor gap.</p>
+<div class="connection">
+<p><strong>These two expressions return almost unchanged for magnetic dipoles</strong> in Chapter 28: <span class="math inline">\(\vec\tau = \vec\mu\times\vec B\)</span> and <span class="math inline">\(U = -\vec\mu\cdot\vec B\)</span>. Same mathematics, different letters — worth noticing now so that it costs nothing later.</p>
+</div>
+<hr />
 <h2 id="applications-of-capacitors">25.7 — Applications of Capacitors</h2>
-<p><strong>Energy storage:</strong> Capacitors release energy much faster than batteries — camera flashes, defibrillators, pulsed lasers, and particle accelerators all rely on capacitor banks.</p>
-<p><strong>Capacitive sensors:</strong> Since <span class="math inline">\(C = \kappa\varepsilon_0 A/d\)</span>, changes in <span class="math inline">\(d\)</span>, <span class="math inline">\(A\)</span>, or <span class="math inline">\(\kappa\)</span> change <span class="math inline">\(C\)</span>. Applications: keyboard buttons (pressing reduces <span class="math inline">\(d\)</span>), touchscreens (finger alters local <span class="math inline">\(C\)</span>), accelerometers (movable plate shifts under acceleration), humidity sensors (water has <span class="math inline">\(\kappa \approx 80\)</span>).</p>
-<p><strong>Filtering and timing:</strong> Capacitors smooth pulsating DC in power supplies and, combined with resistors, provide timing via <span class="math inline">\(\tau = RC\)</span>. <em>We will study RC circuits in Chapter 27.</em></p>
+<p><strong>Energy storage and fast release.</strong> Camera flashes, defibrillators, pulsed lasers, and the capacitor banks that drive particle accelerators all exploit the same property: modest stored energy, delivered in microseconds to milliseconds.</p>
+<p><strong>Capacitive sensing.</strong> Since <span class="math inline">\(C = \kappa\varepsilon_0A/d\)</span>, anything that changes <span class="math inline">\(d\)</span>, <span class="math inline">\(A\)</span>, or <span class="math inline">\(\kappa\)</span> changes <span class="math inline">\(C\)</span> measurably:</p>
+<ul>
+<li>a <strong>keyboard key</strong> presses one plate closer, reducing <span class="math inline">\(d\)</span>;</li>
+<li>a <strong>touchscreen</strong> registers a finger because tissue alters the local <span class="math inline">\(\kappa\)</span>;</li>
+<li>an <strong>accelerometer</strong> lets a small proof mass move a plate;</li>
+<li>a <strong>humidity sensor</strong> works because water’s <span class="math inline">\(\kappa \approx 80\)</span> dwarfs air’s.</li>
+</ul>
+<p><strong>Filtering and timing.</strong> Capacitors smooth the pulsating output of a rectifier into usable DC, and paired with a resistor they set a time constant <span class="math inline">\(\tau = RC\)</span> — the basis of every timing circuit. <em>RC circuits are Chapter 27.</em></p>
+<hr />
 <h2 id="summary">25.8 — Summary</h2>
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
-<li><p><strong>Capacitance</strong> <span class="math inline">\(C = Q/\Delta V\)</span> measures charge stored per volt — depends only on geometry and dielectric material. Unit: <strong>farad</strong> (F).</p></li>
-<li><p><strong>Parallel-plate:</strong> <span class="math inline">\(C = \varepsilon_0 A/d\)</span>. <strong>Cylindrical/spherical</strong> capacitances depend on radii (Ch. 23–24 tools).</p></li>
-<li><p><strong>Parallel:</strong> <span class="math inline">\(C_\text{eq} = C_1 + C_2 + \cdots\)</span> (same <span class="math inline">\(\Delta V\)</span>, charges add). <strong>Series:</strong> <span class="math inline">\(1/C_\text{eq} = 1/C_1 + 1/C_2 + \cdots\)</span> (same <span class="math inline">\(Q\)</span>, voltages add).</p></li>
-<li><p>Energy: <span class="math inline">\(U = \frac{1}{2}C(\Delta V)^2 = Q^2/(2C)\)</span>. Energy density: <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span>.</p></li>
-<li><p><strong>Dielectric</strong> increases <span class="math inline">\(C\)</span> by factor <span class="math inline">\(\kappa\)</span> via polarization. Dipole in field: <span class="math inline">\(\vec{\tau} = \vec{p} \times \vec{E}\)</span>, <span class="math inline">\(U = -\vec{p} \cdot \vec{E}\)</span>.</p></li>
+<li><strong>Capacitance</strong> <span class="math inline">\(C = Q/\Delta V\)</span> is the charge stored per volt. It depends only on <strong>geometry</strong> and the <strong>dielectric</strong>, never on <span class="math inline">\(Q\)</span> or <span class="math inline">\(\Delta V\)</span>. Unit: the <strong>farad</strong>, which is enormous.</li>
+<li>Every capacitance is computed the same way: assume <span class="math inline">\(\pm Q\)</span>, get <span class="math inline">\(\vec E\)</span> from <strong>Gauss’s Law</strong>, integrate for <span class="math inline">\(\Delta V\)</span>, divide. The <span class="math inline">\(Q\)</span> always cancels.</li>
+<li><strong>Parallel plates</strong> give <span class="math inline">\(C = \varepsilon_0A/d\)</span>; cylindrical and spherical geometries follow from Chapter 24’s integrals. An <strong>isolated sphere</strong> has <span class="math inline">\(C = 4\pi\varepsilon_0 a\)</span> — no second conductor required.</li>
+<li><strong>Parallel:</strong> shared <span class="math inline">\(\Delta V\)</span>, charges add, <span class="math inline">\(C_{\text{eq}} = \sum C_i\)</span>. <strong>Series:</strong> shared <span class="math inline">\(Q\)</span>, voltages add, <span class="math inline">\(1/C_{\text{eq}} = \sum 1/C_i\)</span>. These are the <strong>spring</strong> rules, not the resistor rules.</li>
+<li><strong>Stored energy</strong> <span class="math inline">\(U = Q^2/2C = \tfrac12 C(\Delta V)^2\)</span>. The factor of <span class="math inline">\(\tfrac12\)</span> is because the average charging voltage is half the final one.</li>
+<li><strong>The energy is in the field</strong>, at density <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> — the same result Chapter 24 reached from assembling charge.</li>
+<li>A <strong>dielectric</strong> multiplies <span class="math inline">\(C\)</span> by <span class="math inline">\(\kappa\)</span> through polarization, and raises the breakdown voltage. Whether <span class="math inline">\(U\)</span> rises or falls depends entirely on whether the <strong>battery is still connected</strong>.</li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
 <thead>
 <tr class="header">
 <th>Quantity</th>
@@ -506,7 +724,7 @@
 </tr>
 <tr class="odd">
 <td>Cylindrical</td>
-<td><span class="math inline">\(C = \ell/[2k_e \ln(b/a)]\)</span></td>
+<td><span class="math inline">\(C = \ell/[2k_e\ln(b/a)]\)</span></td>
 </tr>
 <tr class="even">
 <td>Spherical</td>
@@ -518,27 +736,31 @@
 </tr>
 <tr class="even">
 <td>Parallel combination</td>
-<td><span class="math inline">\(C_\text{eq} = C_1 + C_2 + \cdots\)</span></td>
+<td><span class="math inline">\(C_{\text{eq}} = C_1 + C_2 + \cdots\)</span></td>
 </tr>
 <tr class="odd">
 <td>Series combination</td>
-<td><span class="math inline">\(1/C_\text{eq} = 1/C_1 + 1/C_2 + \cdots\)</span></td>
+<td><span class="math inline">\(1/C_{\text{eq}} = 1/C_1 + 1/C_2 + \cdots\)</span></td>
 </tr>
 <tr class="even">
-<td>Energy stored</td>
-<td><span class="math inline">\(U = Q^2/(2C) = \frac{1}{2}C(\Delta V)^2 = \frac{1}{2}Q\Delta V\)</span></td>
+<td>Stored energy</td>
+<td><span class="math inline">\(U = Q^2/2C = \tfrac12C(\Delta V)^2 = \tfrac12Q\Delta V\)</span></td>
 </tr>
 <tr class="odd">
 <td>Energy density</td>
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
+<td><span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span></td>
 </tr>
 <tr class="even">
 <td>With dielectric</td>
-<td><span class="math inline">\(C = \kappa\varepsilon_0 A/d\)</span></td>
+<td><span class="math inline">\(C = \kappa\varepsilon_0A/d\)</span></td>
 </tr>
 <tr class="odd">
-<td>Dipole</td>
-<td><span class="math inline">\(\vec{\tau} = \vec{p} \times \vec{E}\)</span>; <span class="math inline">\(U = -\vec{p} \cdot \vec{E}\)</span></td>
+<td>Breakdown</td>
+<td><span class="math inline">\(\Delta V_{\text{max}} = E_{\text{max}}d\)</span></td>
+</tr>
+<tr class="even">
+<td>Dipole in a field</td>
+<td><span class="math inline">\(\vec\tau = \vec p\times\vec E\)</span>; <span class="math inline">\(U = -\vec p\cdot\vec E\)</span></td>
 </tr>
 </tbody>
 </table>
@@ -546,36 +768,42 @@
 <table>
 <thead>
 <tr class="header">
-<th>Prior Concept</th>
-<th>Chapter 25 Analog</th>
+<th>Prior result</th>
+<th>Its role here</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Gauss’s Law</td>
-<td>Used to find <span class="math inline">\(E\)</span> between capacitor plates</td>
+<td>Gauss’s Law (Ch 23)</td>
+<td>supplies <span class="math inline">\(\vec E\)</span> in step 2 of every capacitance</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(\Delta V = -\int \vec{E} \cdot d\vec{s}\)</span></td>
-<td>Used to find <span class="math inline">\(\Delta V\)</span> from <span class="math inline">\(E\)</span></td>
+<td><span class="math inline">\(\Delta V = -\int\vec E\cdot d\vec s\)</span> (Ch 24)</td>
+<td>supplies <span class="math inline">\(\Delta V\)</span> in step 3</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td>Energy stored in capacitor field</td>
+<td><span class="math inline">\(Q/\Delta V\)</span> is pure geometry (Ch 24 coax)</td>
+<td><em>is</em> the definition of capacitance</td>
 </tr>
 <tr class="even">
-<td>Spring: <span class="math inline">\(U = \frac{1}{2}kx^2\)</span></td>
-<td>Capacitor: <span class="math inline">\(U = \frac{1}{2}C(\Delta V)^2\)</span></td>
+<td><span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> (Ch 24)</td>
+<td>recovered here from charging work</td>
 </tr>
 <tr class="odd">
-<td>Springs in parallel/series</td>
-<td>Capacitors in parallel/series (same rules)</td>
+<td>Springs <span class="math inline">\(U = \tfrac12kx^2\)</span> (PSE-I)</td>
+<td><span class="math inline">\(U = \tfrac12C(\Delta V)^2\)</span>, same object</td>
+</tr>
+<tr class="even">
+<td>Springs in series/parallel (PSE-I)</td>
+<td>identical combination rules</td>
 </tr>
 </tbody>
 </table>
+<hr />
 <h2 id="looking-ahead">Looking Ahead</h2>
-<p>In Chapter 26, we introduce <strong>electric current</strong> and <strong>resistance</strong> — charges in <em>motion</em>. We will discover <strong>Ohm’s Law</strong> (<span class="math inline">\(V = IR\)</span>) and learn how resistance depends on material and geometry, much as capacitance does. Capacitor energy finds new purpose in <strong>RC circuits</strong>, where <span class="math inline">\(\tau = RC\)</span> governs exponential charge and discharge.</p>
-<p><em>*With capacitance, we complete electrostatics. Chapters 22–25 took us from charge to force to field to potential to energy storage. In Chapter 26, we set the charges in motion and enter the world of circuits.</em></p>
+<p>Chapter 26 sets the charges <strong>moving</strong>. Current, resistance, and Ohm’s Law (<span class="math inline">\(\Delta V = IR\)</span>) arrive, and resistance will turn out to depend on material and geometry much as capacitance does — though it combines by the opposite rules.</p>
+<p>Capacitors then return in Chapter 27, paired with resistors, where the stored energy drains through a resistance on a timescale <span class="math inline">\(\tau = RC\)</span>.</p>
+<p><em>*Chapters 22–25 form one arc: charge, to force, to field, to potential, to stored energy. Everything so far has been static. From Chapter 26 the charges move, and almost everything you will build is on the other side of that line.</em></p>
 
         </div>
       </div>
