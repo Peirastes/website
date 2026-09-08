@@ -47,6 +47,21 @@
   .muted{color:var(--text-mid)}
   footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--rule);
          font-family:var(--font-mono);font-size:.7rem;color:var(--text-dim);line-height:1.9}
+  /* Local instruments. These are services on this machine, not pages on the
+     site — they only resolve when the box is running them, so the strip says
+     whether it is up rather than offering a link that silently does nothing. */
+  .local{margin-top:1.4rem;padding:.75rem .9rem;border:1px solid var(--rule);border-radius:4px;
+         background:var(--surface);display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .9rem}
+  .local .lab{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.12em;
+              text-transform:uppercase;color:var(--text-dim)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--text-dim);flex:none;
+       transition:background .2s}
+  .local.up .dot{background:#5ddc7a} .local.down .dot{background:#e06c6c}
+  .local .state{font-family:var(--font-mono);font-size:.66rem;color:var(--text-dim)}
+  .local a{font-size:.84rem}
+  .local.down a{color:var(--text-dim);pointer-events:none;text-decoration:line-through}
+  .local .hint{font-family:var(--font-mono);font-size:.66rem;color:var(--text-dim);
+               flex-basis:100%;margin:0}
 </style>
 </head>
 <body>
@@ -55,6 +70,16 @@
   <h1>Full Project Index</h1>
   <p class="sub">Every entry in <span class="id">projects.json</span>, including the ones held back from the public projects page. Generated in the browser from the live file, so it cannot drift.</p>
   <div class="warn"><strong>Unlisted.</strong> This page is <span class="id">noindex, nofollow</span>, is not in the navigation, and is not in the sitemap. It is for your use — a link to it is a link to the hidden set.</div>
+
+  <div class="local" id="local">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="lab">KB views</span>
+    <a href="http://127.0.0.1:3002/kb-library.html">The library</a>
+    <a href="http://127.0.0.1:3002/kb3d.html">3D strata</a>
+    <a href="http://127.0.0.1:3002/app.html">Explorer</a>
+    <span class="state" id="localstate">checking…</span>
+    <p class="hint" id="localhint"></p>
+  </div>
 </header>
 
 <div class="bar" id="bar"></div>
@@ -127,6 +152,35 @@
     count.textContent = 'showing ' + list.length + ' of ' + data.length
       + '  ·  ' + h + ' hidden from the public projects page';
   }
+
+  /* The KB views live on a service on this machine (:3002, scheduled task
+     "KB Views"), not on the site. /health is the only route there that answers
+     a cross-origin request, and it returns nothing but liveness — this page is
+     usually opened off disk, so its origin is "null" and every other route is
+     correctly refused. */
+  (function localStrip() {
+    var box = document.getElementById('local'),
+        state = document.getElementById('localstate'),
+        hint = document.getElementById('localhint');
+    function check() {
+      fetch('http://127.0.0.1:3002/health', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); })
+        .then(function (h) {
+          box.className = 'local up';
+          state.textContent = 'up · ' + Math.round(h.uptime) + 's';
+          hint.textContent = '';
+        })
+        .catch(function () {
+          /* No paths or commands here: this page is unlisted but publicly
+             fetchable, so it must not describe the machine's layout. */
+          box.className = 'local down';
+          state.textContent = 'not running on this machine';
+          hint.textContent = '';
+        });
+    }
+    check();
+    setInterval(check, 15000);
+  })();
 
   fetch('projects.json')
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
