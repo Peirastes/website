@@ -130,7 +130,7 @@
 
                 <h2>Where it actually is</h2>
 
-                <p class="status-line">Test Rig Mk0 &mdash; built 6 August 2026 &middot; sensors parked &middot; airframe not started</p>
+                <p class="status-line">Test Rig Mk0 &mdash; built 6 August 2026 &middot; closed loop since 11 August &middot; plant measured 7&ndash;8 September &middot; airframe not started</p>
 
                 <figure>
                     <img src="../images/tvd/rig-ga.png" alt="Annotated side elevation of the TVD Test Rig Mk0, showing the pivot hub, motor and counterweight arms, servo yoke bracket, keel bob and base plate.">
@@ -157,8 +157,43 @@
                 <ul class="log">
                     <li class="log__entry log__entry--open">
                         <div class="log__date">Open</div>
-                        <p class="log__what">Three things block the next step</p>
-                        <p class="log__body">The shaft-to-hub lock is friction on a round rod, and a slipping shaft walks the encoder zero silently — a drift problem, not a strength one. The IMU board mounts on heat-staked posts whose diameter is still unmeasured. And nothing in the model yet hosts the speed controller or the flight controller, which matters because anything added to the beam changes its mass, inertia and trim.</p>
+                        <p class="log__what">What is still open, and none of it is a gain</p>
+                        <p class="log__body">The last two degrees of the twirl are phase lag. The proportional term governs that and has not been re-swept since the derivative filter was tightened; the integral term has never been swept at all. On the bench, the magnet collar still has no axial stop, the fasteners are not threadlocked, and trim can only be set to one side or the other of balance, because a single pin step is coarser than the window it has to land in. Nothing on the airframe or the gimbal has started.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">10 September 2026</div>
+                        <p class="log__what">Twirl tracking from 52 to 86 percent, and not one gain moved</p>
+                        <p class="log__body">The performance take's flourish had been tracking at half its commanded amplitude, and the script's own header blamed rate. The servo was using 22 degrees of a 96 degree range; it was never asked for more. The cause was a feedforward table measured a month earlier at a different thrust and trim, whose own comment carried the expiry date. Rebuilt from the measured plant it tracked to 63 percent, and the beam stopped at exactly the top entry of the table, which showed the remaining deficit was choreography written outside the seventeen degrees the rig can actually reach. Moving the routine into that band gave 86 percent. A calibration constant with a known expiry condition needs a check that fires, not a comment.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">8 September 2026</div>
+                        <p class="log__what">Phase B: the plant is fully measured, and the rig is provably better</p>
+                        <p class="log__body">With throttle pinned and the vector servo stepped through its range, control authority came out flat across the lower half and then fell off a cliff, a twelve-to-one spread; near the top a degree of servo buys a twentieth of a degree of beam. The same day, a scored benchmark against the earlier baseline showed the trim and filter changes had nearly halved hold error and cut the disturbance peak by a third. Opening the servo clamp to the full travel the model clears removed every saturation flag and changed the score not at all. The tempting move to the servo's mid-range, tested rather than argued, made things worse: loop gain moves with thrust, and the hard legs needed their headroom on the other side.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">7 September 2026</div>
+                        <p class="log__what">The rig was never trimmed, and that was the ceiling</p>
+                        <p class="log__body">Released with the motor off, the beam falls to its stop and stays there; the free hang, fitted from four ring-downs, is fifteen degrees below the stop. The stable 2.63 second plant of 6 August described a counterweight position that was never the one built. So the servo was spending almost all of its positive travel holding the rig level before it did any controlling, with under half a degree to spare, which is why every arrest saturated and why more damping made things worse. Moving one counterweight bracketed the imbalance to a single pin step in three minutes with no power on. The same session measured the plant properly for the first time: damping four to eight times higher than every design decision had assumed, and a natural frequency that varies by half across the operating range, so gains tuned at one throttle do not belong at another. The encoder fault that haunted August was diagnosed as the magnet collar creeping a few tenths of a millimetre along the shaft under shock: invisible, the angle unaffected, the field down a fifth. An earlier radial diagnosis, and the sleeve designed from it, were retracted.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">6 September 2026</div>
+                        <p class="log__what">Desk session: the benchmark was measuring the wrong thing</p>
+                        <p class="log__body">The step test scored settling by averaging over the whole dwell, which averaged the transient away; a quarter-second rise followed by a five second settle had never surfaced because the number could not show it. Rewritten to measure the transient. A second finding, from the archived data: the operating-throttle search re-trims every pass against a sagging battery, which is right for the controller and destroys the measurement, since a loop that rejects a disturbance also hides it from anything downstream that wanted to see it.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">12&ndash;13 August 2026</div>
+                        <p class="log__what">Teach by demonstration, then a pause</p>
+                        <p class="log__body">Move the beam by hand with the motors off, and the rig flies the path back. Iterative learning took the match from 1.55 to 0.87 degrees RMS over ten passes, and over the body of the routine the residual sat at the measured non-repeatable floor: no learnable error left, and the floor was mechanical. The first learning run diverged, and the cause was an unstable update law rather than noise, which the pass-to-pass correlation settled. Two fasteners worked loose in one evening, reframing a magnet problem as a rig-wide vibration problem. A fresh battery destabilised a loop tuned on a tired one, because loop gain scales with thrust. A fifteen-second performance take was approved. Then the project paused for the semester, and its logger, left pointed at a temporary filesystem, filled it and took down an unrelated service.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">11 August 2026</div>
+                        <p class="log__what">Closed loop flying; the encoder was failing all session</p>
+                        <p class="log__body">Sensors mounted, encoder alive, first plant measurement, and by night the rig held a commanded angle to two tenths of a degree, with the loop on the microcontroller rather than over the network, whose round trip would characterise the network instead of the rig. The air gap measured three millimetres against a modelled one and a half, because the collar's lid thickness had been read from another project's CAD rather than from the part. An angle guard referenced to wherever tare was last pressed, rather than to a physical datum, cut the motor ten degrees before level and cost an hour. And at ten in the evening the encoder's gain turned out to have been railed the entire session on a displaced magnet, reseated by hand while checking something else. Everything absolute from that day went back on the suspect list; the rankings within a run survived.</p>
+                    </li>
+                    <li class="log__entry">
+                        <div class="log__date">10 August 2026</div>
+                        <p class="log__what">Both sensor mounts done, on pegs</p>
+                        <p class="log__body">Both boards mount on printed pegs with no screws near either: the IMU on mushroomed pegs, permanently, and the encoder on pegs with a retainer ring, because ground truth has to come off the rig again. A new printer constant fell out: pegs at two to three millimetres print at their modelled diameter, which does not contradict the round-feature bloat measured earlier, since that was a caliper maximum catching the seam and a hole finds the narrow axis. The sensor bracket, when questioned, turned out to have no working fastening, both parts carrying clearance holes so the screw threaded into nothing.</p>
                     </li>
                     <li class="log__entry">
                         <div class="log__date">6 August 2026</div>
