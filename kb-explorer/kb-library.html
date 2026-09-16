@@ -1,0 +1,891 @@
+<!doctype html>
+<meta charset="utf-8"><title>KB — the library</title>
+<style>
+  :root{
+    --ground:#0b0d11; --ink:#e6edf3; --dim:#8b949e; --rule:#20262e;
+    --author:#f0b72f; --ex0:#58d3f7; --ex1:#c792ea; --anon:#9fb0c4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);
+    font:13px/1.5 "Segoe UI",system-ui,sans-serif;overflow:hidden}
+  canvas{display:block;position:fixed;inset:0}
+  .panel{position:fixed;z-index:3;background:rgba(11,13,17,.82);
+    border:1px solid var(--rule);border-radius:8px;padding:11px 13px;
+    backdrop-filter:blur(6px)}
+  #head{top:14px;left:14px;max-width:330px}
+  #head h1{margin:0 0 2px;font-size:15px;font-weight:600;letter-spacing:.2px}
+  #head p{margin:0;color:var(--dim);font-size:11.5px}
+  #legend{bottom:14px;left:14px}
+  #status{top:14px;right:14px;min-width:210px;font-variant-numeric:tabular-nums}
+  .row{display:flex;align-items:center;gap:7px;margin-top:5px}
+  .sw{width:9px;height:9px;border-radius:2px;flex:none}
+  .k{color:var(--dim)}
+  .v{margin-left:auto;font-weight:600}
+  #now{margin-top:8px;padding-top:8px;border-top:1px solid var(--rule);
+    color:var(--dim);font-size:11.5px;min-height:17px}
+  .live{color:#3fb950} .cold{color:#f85149}
+  #log{position:fixed;z-index:3;bottom:14px;right:14px;width:280px;max-height:34vh;
+    overflow:hidden;display:flex;flex-direction:column-reverse;gap:2px;
+    font-size:11.5px;font-variant-numeric:tabular-nums;pointer-events:none}
+  .le{background:rgba(11,13,17,.8);border:1px solid var(--rule);border-radius:5px;
+    padding:3px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .le b{font-weight:600}
+  label{cursor:pointer;user-select:none}
+  select,button.rp{font:11.5px/1.4 "Segoe UI",system-ui,sans-serif;color:var(--ink);
+    background:rgba(24,32,44,.9);border:1px solid var(--rule);border-radius:4px;
+    padding:3px 6px}
+  button.rp{cursor:pointer}
+  button.rp:disabled{opacity:.45;cursor:default}
+  button.rp:hover:not(:disabled){border-color:var(--anon)}
+  #tip{position:fixed;z-index:4;display:none;pointer-events:none;
+    background:rgba(11,13,17,.95);border:1px solid var(--rule);border-radius:6px;
+    padding:6px 9px;font-size:11.5px;max-width:250px}
+</style>
+
+<canvas id="c"></canvas>
+
+<div class="panel" id="head">
+  <h1>The library</h1>
+  <p>Floors are epistemic strata, shelves are dependency tiers, books are
+     entries. A book lights when an agent opens it.</p>
+  <div class="row" style="margin-top:8px">
+    <label><input type="checkbox" id="edges" checked> relations</label>
+    <label><input type="checkbox" id="spin"> turn</label>
+    <label><input type="checkbox" id="sectors" checked> sectors</label>
+    <label><input type="checkbox" id="canopy" checked> disciplines</label>
+    <label><input type="checkbox" id="districts" checked> projects</label>
+    <label><input type="checkbox" id="apps" checked> applications</label>
+    <label><input type="checkbox" id="demo"> demo</label>
+  </div>
+  <div class="row" style="margin-top:7px">
+    <select id="field"><option value="">no field selected</option></select>
+    <select id="district"><option value="">all projects</option></select>
+    <select id="sessions"><option value="">loading history…</option></select>
+    <button class="rp" id="play" disabled>replay</button>
+  </div>
+</div>
+
+<div class="panel" id="status">
+  <div class="row"><span class="k">trace</span><span class="v" id="conn">…</span></div>
+  <div class="row"><span class="k">books opened</span><span class="v" id="nreads">0</span></div>
+  <div class="row"><span class="k">edits landed</span><span class="v" id="nedits">0</span></div>
+  <div id="now">idle — the loop is not running</div>
+  <div id="axis" style="color:var(--dim);font-size:11.5px;margin-top:4px"></div>
+</div>
+
+<div class="panel" id="legend">
+  <div class="row"><span class="sw" style="background:var(--author)"></span>
+    <span class="k">eng</span><span style="color:var(--dim)">— author, drafts the change</span></div>
+  <div class="row"><span class="sw" style="background:var(--ex0)"></span>
+    <span class="k">sci</span><span style="color:var(--dim)">— first critic</span></div>
+  <div class="row"><span class="sw" style="background:var(--ex1)"></span>
+    <span class="k">web</span><span style="color:var(--dim)">— second critic</span></div>
+  <div class="row"><span class="sw" style="background:var(--anon)"></span>
+    <span class="k">unattributed</span><span style="color:var(--dim)">— read outside a run</span></div>
+</div>
+
+<div id="log"></div>
+<div id="tip"></div>
+
+<script>
+const D = {"DOMAIN_ANGLES":{"foundation":null,"PHIL":0,"PHYS":40,"DSL":80,"TF":120,"PED":160,"ai_shared":200,"ENG":240,"ECDO":280,"BIO":320},"STRATUM_LABEL":{"0":"First Principles","1":"Observation — known knowns","2":"Analysis — known unknowns","3":"Inference — unknown knowns","4":"Exploration — unknown unknowns","5":"Applied Capability","-1":"Instruments — equipment, not a stage"},"LEVELS":[-1,0,1,2,3,4,5],"nodes":[{"i":"FP-001","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":3,"f":28,"a":false,"sub":[]},{"i":"FP-002","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":2,"f":41,"a":false,"sub":[]},{"i":"FP-003","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":3,"f":46,"a":false,"sub":[]},{"i":"FP-004","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":2,"f":17,"a":false,"sub":[]},{"i":"FP-005","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":2,"f":48,"a":false,"sub":[]},{"i":"FP-006","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":35,"a":false,"sub":[]},{"i":"FP-007","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":2,"f":54,"a":false,"sub":[]},{"i":"FP-008","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":3,"f":18,"a":false,"sub":[]},{"i":"FP-009","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":13,"a":false,"sub":[]},{"i":"FP-010","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":32,"a":false,"sub":[]},{"i":"FP-011","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":2,"f":20,"a":false,"sub":[]},{"i":"FP-012","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":3,"f":64,"a":false,"sub":[]},{"i":"FP-013","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":29,"a":false,"sub":[]},{"i":"FP-014","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":4,"f":16,"a":false,"sub":[]},{"i":"FP-015","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":5,"f":8,"a":false,"sub":[]},{"i":"FP-016","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"FP-017","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":0,"a":false,"sub":[]},{"i":"FP-018","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":0,"a":false,"sub":[]},{"i":"FP-019","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":0,"a":false,"sub":[]},{"i":"FP-020","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":0,"a":false,"sub":[]},{"i":"FP-021","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":0,"a":false,"sub":[]},{"i":"FP-022","t":"fp","d":"foundation","l":"shared","z":0,"s":true,"r":0,"f":0,"a":false,"sub":[]},{"i":"DA-ECDO-001","t":"da","d":"ECDO","l":"human","z":2,"s":false,"r":0,"f":2,"a":true,"sub":[]},{"i":"DA-ECDO-002","t":"da","d":"ECDO","l":"human","z":2,"s":false,"r":0,"f":1,"a":true,"sub":[]},{"i":"DA-ECDO-003","t":"da","d":"ECDO","l":"human","z":2,"s":false,"r":0,"f":2,"a":true,"sub":[]},{"i":"DA-TF-001","t":"da","d":"TF","l":"human","z":2,"s":false,"r":0,"f":2,"a":true,"sub":[]},{"i":"DA-TF-002","t":"da","d":"TF","l":"human","z":2,"s":false,"r":0,"f":2,"a":true,"sub":[]},{"i":"DA-TF-003","t":"da","d":"TF","l":"human","z":2,"s":false,"r":0,"f":1,"a":true,"sub":[]},{"i":"DA-DSL-001","t":"da","d":"DSL","l":"human","z":2,"s":false,"r":0,"f":9,"a":true,"sub":[]},{"i":"DA-DSL-002","t":"da","d":"DSL","l":"human","z":2,"s":false,"r":0,"f":2,"a":true,"sub":[]},{"i":"DA-PED-001","t":"da","d":"PED","l":"human","z":2,"s":false,"r":0,"f":16,"a":true,"sub":[]},{"i":"DA-PED-002","t":"da","d":"PED","l":"human","z":2,"s":false,"r":0,"f":13,"a":true,"sub":[]},{"i":"DA-EPI-001","t":"da","d":"EPI","l":"human","z":2,"s":false,"r":0,"f":4,"a":false,"sub":[]},{"i":"DA-EPI-002","t":"da","d":"EPI","l":"human","z":2,"s":false,"r":0,"f":3,"a":false,"sub":[]},{"i":"EPI-001","t":"claim","d":"EPI","l":"human","z":2,"s":true,"r":4,"f":1,"a":false,"sub":[]},{"i":"EPI-002","t":"claim","d":"EPI","l":"human","z":1,"s":true,"r":3,"f":1,"a":false,"sub":[]},{"i":"EPI-003","t":"claim","d":"EPI","l":"human","z":2,"s":true,"r":4,"f":1,"a":false,"sub":[]},{"i":"EPI-004","t":"claim","d":"EPI","l":"human","z":2,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"EPI-005","t":"claim","d":"EPI","l":"human","z":3,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"EPI-006","t":"claim","d":"EPI","l":"human","z":2,"s":true,"r":4,"f":2,"a":false,"sub":[]},{"i":"EPI-007","t":"claim","d":"EPI","l":"human","z":3,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"EPI-008","t":"claim","d":"EPI","l":"human","z":4,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"EPI-009","t":"claim","d":"EPI","l":"human","z":3,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"ECDO-001","t":"claim","d":"ECDO","l":"human","z":2,"s":true,"r":3,"f":3,"a":true,"sub":[]},{"i":"ECDO-002","t":"claim","d":"ECDO","l":"human","z":1,"s":true,"r":3,"f":2,"a":true,"sub":[]},{"i":"ECDO-003","t":"claim","d":"ECDO","l":"human","z":1,"s":true,"r":5,"f":3,"a":true,"sub":[]},{"i":"ECDO-004","t":"claim","d":"ECDO","l":"human","z":4,"s":true,"r":4,"f":1,"a":true,"sub":[]},{"i":"ECDO-005","t":"claim","d":"ECDO","l":"human","z":3,"s":true,"r":4,"f":0,"a":true,"sub":[]},{"i":"ECDO-006","t":"claim","d":"ECDO","l":"human","z":4,"s":true,"r":5,"f":0,"a":true,"sub":[]},{"i":"ECDO-007","t":"claim","d":"ECDO","l":"human","z":1,"s":true,"r":4,"f":0,"a":true,"sub":[]},{"i":"TF-001","t":"claim","d":"TF","l":"human","z":1,"s":true,"r":1,"f":2,"a":true,"sub":[]},{"i":"TF-002","t":"claim","d":"TF","l":"human","z":1,"s":true,"r":1,"f":2,"a":true,"sub":[]},{"i":"TF-003","t":"claim","d":"TF","l":"human","z":2,"s":true,"r":2,"f":1,"a":true,"sub":[]},{"i":"TF-004","t":"claim","d":"TF","l":"human","z":2,"s":true,"r":3,"f":2,"a":true,"sub":[]},{"i":"TF-005","t":"claim","d":"TF","l":"human","z":4,"s":true,"r":2,"f":0,"a":true,"sub":[]},{"i":"DSL-001","t":"claim","d":"DSL","l":"human","z":2,"s":true,"r":4,"f":5,"a":true,"sub":[]},{"i":"DSL-002","t":"claim","d":"DSL","l":"human","z":2,"s":true,"r":1,"f":1,"a":true,"sub":[]},{"i":"DSL-003","t":"claim","d":"DSL","l":"human","z":4,"s":true,"r":5,"f":1,"a":true,"sub":[]},{"i":"DSL-004","t":"claim","d":"DSL","l":"human","z":4,"s":true,"r":6,"f":0,"a":true,"sub":[]},{"i":"DSL-005","t":"claim","d":"DSL","l":"human","z":2,"s":true,"r":5,"f":0,"a":true,"sub":[]},{"i":"DSL-006","t":"claim","d":"DSL","l":"human","z":2,"s":true,"r":5,"f":0,"a":true,"sub":[]},{"i":"DSL-007","t":"claim","d":"DSL","l":"human","z":3,"s":true,"r":1,"f":0,"a":true,"sub":[]},{"i":"DSL-008","t":"claim","d":"DSL","l":"human","z":2,"s":true,"r":5,"f":0,"a":true,"sub":[]},{"i":"DSL-009","t":"claim","d":"DSL","l":"human","z":2,"s":true,"r":1,"f":0,"a":true,"sub":[]},{"i":"PED-001","t":"claim","d":"PED","l":"human","z":2,"s":true,"r":3,"f":4,"a":true,"sub":[]},{"i":"PED-002","t":"claim","d":"PED","l":"human","z":2,"s":true,"r":4,"f":2,"a":true,"sub":[]},{"i":"PED-003","t":"claim","d":"PED","l":"human","z":3,"s":true,"r":5,"f":1,"a":true,"sub":[]},{"i":"PED-004","t":"claim","d":"PED","l":"human","z":4,"s":true,"r":5,"f":1,"a":true,"sub":[]},{"i":"PED-005","t":"claim","d":"PED","l":"human","z":4,"s":true,"r":6,"f":0,"a":true,"sub":[]},{"i":"PED-006","t":"claim","d":"PED","l":"human","z":3,"s":true,"r":4,"f":0,"a":true,"sub":[]},{"i":"PED-007","t":"claim","d":"PED","l":"human","z":3,"s":true,"r":6,"f":0,"a":true,"sub":[]},{"i":"ARCH-001","t":"claim","d":"ARCH","l":"human","z":1,"s":true,"r":6,"f":2,"a":false,"sub":[]},{"i":"ARCH-002","t":"claim","d":"ARCH","l":"human","z":2,"s":true,"r":4,"f":1,"a":false,"sub":[]},{"i":"ARCH-003","t":"claim","d":"ARCH","l":"human","z":3,"s":true,"r":7,"f":0,"a":false,"sub":[]},{"i":"ARCH-004","t":"claim","d":"ARCH","l":"human","z":2,"s":true,"r":7,"f":0,"a":false,"sub":[]},{"i":"ARCH-005","t":"claim","d":"ARCH","l":"human","z":2,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"ARCH-006","t":"claim","d":"ARCH","l":"human","z":2,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"PHYS-001","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":2,"f":3,"a":true,"sub":["PHYS"]},{"i":"PHYS-002","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":3,"f":2,"a":true,"sub":["PHYS","MATH"]},{"i":"PHYS-003","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":4,"f":1,"a":true,"sub":["PHYS"]},{"i":"PHYS-004","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":5,"f":0,"a":true,"sub":["PHYS"]},{"i":"PHYS-005","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":3,"f":2,"a":true,"sub":["PHYS"]},{"i":"PHYS-006","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":4,"f":1,"a":true,"sub":["PHYS","ENGR"]},{"i":"PHYS-007","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":5,"f":1,"a":true,"sub":["PHYS"]},{"i":"PHYS-008","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":6,"f":1,"a":true,"sub":["PHYS"]},{"i":"PHYS-009","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":7,"f":0,"a":true,"sub":["PHYS"]},{"i":"PHYS-010","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":2,"f":5,"a":true,"sub":["PHYS","MATH"]},{"i":"PHYS-011","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":3,"f":1,"a":true,"sub":["PHYS"]},{"i":"PHYS-012","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":3,"f":0,"a":true,"sub":["PHYS","ASTRO"]},{"i":"PHYS-013","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":3,"f":1,"a":true,"sub":["PHYS","MATH"]},{"i":"PHYS-014","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":3,"f":3,"a":true,"sub":["PHYS","MATH"]},{"i":"PHYS-015","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":4,"f":2,"a":true,"sub":["PHYS","MATH","OPS"]},{"i":"PHYS-016","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":5,"f":0,"a":true,"sub":["PHYS","ENGR","OPS"]},{"i":"PHYS-017","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":5,"f":0,"a":true,"sub":["PHYS","MATH"]},{"i":"PHYS-018","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":4,"f":0,"a":true,"sub":["PHYS"]},{"i":"PHYS-019","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":4,"f":0,"a":true,"sub":["PHYS","MATH"]},{"i":"PHYS-020","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":4,"f":0,"a":true,"sub":["CS","PHYS"]},{"i":"PHYS-021","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":0,"f":1,"a":true,"sub":["HIST","PHYS"]},{"i":"PHYS-022","t":"claim","d":"PHYS","l":"human","z":2,"s":true,"r":1,"f":2,"a":true,"sub":["HIST","PHYS"]},{"i":"PHYS-023","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":0,"f":1,"a":true,"sub":["HIST","PHYS"]},{"i":"PHYS-024","t":"claim","d":"PHYS","l":"human","z":1,"s":true,"r":2,"f":3,"a":true,"sub":["HIST","PHYS"]},{"i":"PHYS-025","t":"claim","d":"PHYS","l":"human","z":3,"s":true,"r":3,"f":1,"a":true,"sub":[]},{"i":"PHYS-026","t":"claim","d":"PHYS","l":"human","z":2,"s":true,"r":0,"f":2,"a":true,"sub":[]},{"i":"PHYS-027","t":"claim","d":"PHYS","l":"human","z":2,"s":true,"r":0,"f":5,"a":true,"sub":[]},{"i":"PHYS-028","t":"claim","d":"PHYS","l":"human","z":3,"s":true,"r":1,"f":2,"a":true,"sub":[]},{"i":"PHYS-029","t":"claim","d":"PHYS","l":"human","z":2,"s":true,"r":1,"f":1,"a":true,"sub":[]},{"i":"PHYS-030","t":"claim","d":"PHYS","l":"human","z":2,"s":true,"r":2,"f":1,"a":true,"sub":[]},{"i":"BIO-001","t":"claim","d":"BIO","l":"human","z":2,"s":false,"r":0,"f":4,"a":true,"sub":[]},{"i":"BIO-002","t":"claim","d":"BIO","l":"human","z":2,"s":false,"r":1,"f":0,"a":true,"sub":[]},{"i":"BIO-003","t":"claim","d":"BIO","l":"human","z":2,"s":false,"r":1,"f":0,"a":true,"sub":[]},{"i":"BIO-004","t":"claim","d":"BIO","l":"human","z":2,"s":false,"r":1,"f":0,"a":true,"sub":[]},{"i":"BIO-005","t":"claim","d":"BIO","l":"human","z":2,"s":false,"r":1,"f":0,"a":true,"sub":[]},{"i":"SFT-001","t":"claim","d":"SFT","l":"human","z":2,"s":false,"r":0,"f":4,"a":false,"sub":[]},{"i":"SFT-002","t":"claim","d":"SFT","l":"human","z":2,"s":false,"r":1,"f":0,"a":false,"sub":[]},{"i":"SFT-003","t":"claim","d":"SFT","l":"human","z":2,"s":false,"r":1,"f":0,"a":false,"sub":[]},{"i":"SFT-004","t":"claim","d":"SFT","l":"human","z":2,"s":false,"r":1,"f":0,"a":false,"sub":[]},{"i":"SFT-005","t":"claim","d":"SFT","l":"human","z":2,"s":false,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOK-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-TOK-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOK-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-TOK-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SAI-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-SAI-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SAI-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-SAI-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SAI-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-SAI-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SAI-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SAI-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-SAI-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-EXP-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-EXP-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-EXP-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-EXP-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-EXP-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-EXP-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-EXP-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":4,"f":1,"a":false,"sub":[]},{"i":"TES-EXP-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-EXP-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-EXP-10","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-HYP-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-HYP-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-HYP-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-HYP-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":3,"f":1,"a":false,"sub":[]},{"i":"TES-HYP-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-10","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-11","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-HYP-12","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CRT-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-CRT-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CRT-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CRT-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-CRT-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CRT-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CRT-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-CRT-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CRT-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CPT-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-CPT-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-CPT-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CPT-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CPT-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CPT-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-CPT-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CPT-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CPT-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-CPT-10","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CMP-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-CMP-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-CMP-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-CMP-10","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":3,"f":3,"a":false,"sub":[]},{"i":"TES-STR-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-STR-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-STR-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-STR-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-STR-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-STR-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-STR-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-AFE-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-AFE-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-AFE-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-AFE-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-AFE-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-AFE-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-AFE-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SCI-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":4,"a":false,"sub":[]},{"i":"TES-SCI-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":4,"a":false,"sub":[]},{"i":"TES-SCI-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-SCI-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-SCI-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":0,"a":false,"sub":[]},{"i":"TES-SCI-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-SCI-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-SCI-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-RSN-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-RSN-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-RSN-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-RSN-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-RSN-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-RSN-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-RSN-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-RSN-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-INT-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-INT-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-INT-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-INT-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-INT-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-INT-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-INT-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-TOR-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-TOR-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOR-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":4,"a":false,"sub":[]},{"i":"TES-TOR-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOR-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOR-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOR-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOR-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-TOR-09","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-TOR-10","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ECDO-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":1,"a":false,"sub":[]},{"i":"TES-ECDO-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ECDO-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-ECDO-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-ECDO-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-ECDO-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ECDO-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ECDO-08","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-EXO-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-EXO-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-EXO-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-EXO-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-EXO-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-EXO-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-EXO-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ACAN-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ACAN-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ACAN-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ACAN-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-ACAN-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-ACAN-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-ACAN-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-HPS-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-HPS-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":2,"f":2,"a":false,"sub":[]},{"i":"TES-HPS-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-HPS-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-HPS-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-HPS-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"TES-COH-01","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-COH-02","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-COH-03","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":3,"a":false,"sub":[]},{"i":"TES-COH-04","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"TES-COH-05","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-COH-06","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":1,"a":false,"sub":[]},{"i":"TES-COH-07","t":"tes","d":"tes","l":"human","z":1,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"SRC-TES-01","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":4,"a":false,"sub":[]},{"i":"SRC-TES-02","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":9,"a":false,"sub":[]},{"i":"SRC-TES-03","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":10,"a":false,"sub":[]},{"i":"SRC-TES-04","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":12,"a":false,"sub":[]},{"i":"SRC-TES-05","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":9,"a":false,"sub":[]},{"i":"SRC-TES-06","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":10,"a":false,"sub":[]},{"i":"SRC-TES-07","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":10,"a":false,"sub":[]},{"i":"SRC-TES-08","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"SRC-TES-09","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"SRC-TES-10","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":8,"a":false,"sub":[]},{"i":"SRC-TES-11","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":8,"a":false,"sub":[]},{"i":"SRC-TES-12","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"SRC-TES-13","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":10,"a":false,"sub":[]},{"i":"SRC-TES-14","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":8,"a":false,"sub":[]},{"i":"SRC-TES-15","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"SRC-TES-16","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"SRC-TES-17","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":6,"a":false,"sub":[]},{"i":"SRC-TES-18","t":"source","d":"tes","l":"human","z":1,"s":true,"r":0,"f":7,"a":false,"sub":[]},{"i":"Q-001","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"Q-002","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-003","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-004","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-005","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-006","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-007","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-008","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-009","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-010","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"Q-011","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-012","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"Q-013","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"Q-014","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-015","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-016","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-017","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-018","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-019","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-020","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-021","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-022","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-023","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"Q-024","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-025","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-026","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-027","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-028","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-029","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-030","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-031","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-032","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-033","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-034","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-035","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-036","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-037","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-038","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-039","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-040","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-041","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-042","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-043","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-044","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-045","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-046","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-047","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-048","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-049","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-050","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-051","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-052","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-053","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-054","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-055","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-056","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-057","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-058","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-059","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-060","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-061","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-062","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-063","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-064","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-065","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-066","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-067","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-068","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-069","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-070","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-071","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-072","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-073","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-074","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-075","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-076","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-077","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-078","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-079","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-080","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-081","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-082","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-083","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-084","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-085","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-086","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-087","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-088","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-089","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-090","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":6,"f":0,"a":false,"sub":[]},{"i":"Q-091","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"Q-092","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-093","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-094","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-095","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-096","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-097","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"Q-098","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"Q-099","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-100","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-101","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"Q-102","t":"quote","d":"quotes","l":"human","z":1,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-PHYS-001","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-PHYS-002","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"HSK-PHYS-003","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-ENG-001","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":1,"f":0,"a":false,"sub":[]},{"i":"HSK-ENG-002","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-001","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-002","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-003","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-RES-001","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"HSK-RES-002","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"HSK-BIZ-001","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":3,"f":1,"a":false,"sub":[]},{"i":"HSK-BIZ-002","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":1,"a":false,"sub":[]},{"i":"HSK-PED-001","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"HSK-PED-002","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-004","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":3,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-005","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-006","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-007","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":5,"f":0,"a":false,"sub":[]},{"i":"HSK-DEV-008","t":"hsk","d":"human_skills","l":"human","z":5,"s":true,"r":4,"f":0,"a":false,"sub":[]},{"i":"SOP-ART-001","t":"sop","d":"ART","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["RHET","PHIL"]},{"i":"SOP-ART-002","t":"sop","d":"ART","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["RHET"]},{"i":"SOP-ART-003","t":"sop","d":"ART","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY","PHIL"]},{"i":"SOP-ART-004","t":"sop","d":"ART","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY"]},{"i":"SOP-ART-005","t":"sop","d":"ART","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["SOC"]},{"i":"SOP-ART-006","t":"sop","d":"ART","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["RHET"]},{"i":"SKL-ART-001","t":"skl","d":"ART","l":"ai","z":5,"s":true,"r":4,"f":7,"a":false,"sub":["RHET"]},{"i":"SKL-ART-002","t":"skl","d":"ART","l":"ai","z":5,"s":true,"r":4,"f":4,"a":false,"sub":["RHET","PHIL"]},{"i":"SKL-ART-003","t":"skl","d":"ART","l":"ai","z":5,"s":true,"r":4,"f":2,"a":false,"sub":["RHET"]},{"i":"SKL-ART-004","t":"skl","d":"ART","l":"ai","z":5,"s":true,"r":3,"f":6,"a":false,"sub":["RHET"]},{"i":"SKL-ART-005","t":"skl","d":"ART","l":"ai","z":5,"s":true,"r":3,"f":4,"a":false,"sub":[]},{"i":"SKL-ART-006","t":"skl","d":"ART","l":"ai","z":5,"s":true,"r":4,"f":4,"a":false,"sub":["RHET"]},{"i":"SOP-ENG-001","t":"sop","d":"ENG","l":"ai","z":5,"s":true,"r":4,"f":0,"a":true,"sub":["CS"]},{"i":"SOP-ENG-002","t":"sop","d":"ENG","l":"ai","z":5,"s":true,"r":4,"f":0,"a":true,"sub":["CS","PHYS","MATH"]},{"i":"SOP-ENG-003","t":"sop","d":"ENG","l":"ai","z":5,"s":true,"r":3,"f":0,"a":true,"sub":["CS"]},{"i":"SOP-ENG-004","t":"sop","d":"ENG","l":"ai","z":5,"s":true,"r":4,"f":0,"a":true,"sub":["CS"]},{"i":"SOP-ENG-005","t":"sop","d":"ENG","l":"ai","z":5,"s":true,"r":2,"f":0,"a":true,"sub":["CS","PDGY"]},{"i":"SKL-ENG-001","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-002","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":4,"a":true,"sub":["CS"]},{"i":"SKL-ENG-003","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":6,"a":true,"sub":["CS"]},{"i":"SKL-ENG-004","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS","MATH","PHYS"]},{"i":"SKL-ENG-005","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":4,"a":true,"sub":["CS","PHYS","PDGY"]},{"i":"SKL-ENG-006","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-007","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-008","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-009","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":4,"a":true,"sub":["CS"]},{"i":"SKL-ENG-010","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-011","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS","MATH"]},{"i":"SKL-ENG-012","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-013","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS"]},{"i":"SKL-ENG-014","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":1,"a":true,"sub":["CS","GEO"]},{"i":"SKL-ENG-015","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":["CS","MATH","PHYS","PDGY"]},{"i":"SKL-ENG-016","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":1,"a":true,"sub":["CS"]},{"i":"SKL-ENG-017","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":1,"a":true,"sub":["CS"]},{"i":"SKL-ENG-018","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":1,"a":true,"sub":["CS"]},{"i":"SKL-ENG-019","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":1,"a":true,"sub":["CS"]},{"i":"SKL-ENG-020","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":1,"a":true,"sub":[]},{"i":"SKL-ENG-021","t":"skl","d":"ENG","l":"ai","z":5,"s":true,"r":1,"f":2,"a":true,"sub":[]},{"i":"SOP-SCI-001","t":"sop","d":"SCI","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["EPI"]},{"i":"SOP-SCI-002","t":"sop","d":"SCI","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["EPI"]},{"i":"SOP-SCI-003","t":"sop","d":"SCI","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PHIL","EPI"]},{"i":"SOP-SCI-004","t":"sop","d":"SCI","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["EPI"]},{"i":"SOP-SCI-005","t":"sop","d":"SCI","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["EPI","OPS"]},{"i":"SOP-SCI-006","t":"sop","d":"SCI","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["EPI"]},{"i":"SKL-SCI-001","t":"skl","d":"SCI","l":"ai","z":5,"s":true,"r":3,"f":10,"a":false,"sub":["EPI"]},{"i":"SKL-SCI-002","t":"skl","d":"SCI","l":"ai","z":5,"s":true,"r":4,"f":10,"a":false,"sub":["EPI"]},{"i":"SKL-SCI-003","t":"skl","d":"SCI","l":"ai","z":5,"s":true,"r":3,"f":4,"a":false,"sub":[]},{"i":"SKL-SCI-004","t":"skl","d":"SCI","l":"ai","z":5,"s":true,"r":4,"f":6,"a":false,"sub":[]},{"i":"SKL-SCI-005","t":"skl","d":"SCI","l":"ai","z":5,"s":true,"r":4,"f":4,"a":false,"sub":[]},{"i":"SKL-SCI-006","t":"skl","d":"SCI","l":"ai","z":5,"s":true,"r":3,"f":2,"a":false,"sub":[]},{"i":"SOP-PROF-001","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY","PHYS"]},{"i":"SOP-PROF-002","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["CS","PHYS"]},{"i":"SOP-PROF-003","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY","PHYS"]},{"i":"SOP-PROF-004","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY","PHYS"]},{"i":"SOP-PROF-005","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY","PHYS"]},{"i":"SOP-PROF-008","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["CS"]},{"i":"SOP-PROF-006","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["PDGY","PHYS"]},{"i":"SOP-PROF-007","t":"sop","d":"PROF","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["CS","PDGY","PHYS"]},{"i":"SKL-PROF-001","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":4,"f":12,"a":false,"sub":[]},{"i":"SKL-PROF-002","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":3,"f":12,"a":false,"sub":["PDGY","RHET"]},{"i":"SKL-PROF-003","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":1,"f":6,"a":false,"sub":[]},{"i":"SKL-PROF-004","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":1,"f":8,"a":false,"sub":[]},{"i":"SKL-PROF-007","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":1,"f":6,"a":false,"sub":[]},{"i":"SKL-PROF-005","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":3,"f":6,"a":false,"sub":[]},{"i":"SKL-PROF-006","t":"skl","d":"PROF","l":"ai","z":5,"s":true,"r":4,"f":2,"a":false,"sub":[]},{"i":"SOP-WEB-001","t":"sop","d":"WEB","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["SOC"]},{"i":"SOP-WEB-002","t":"sop","d":"WEB","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["SOC"]},{"i":"SOP-WEB-003","t":"sop","d":"WEB","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["CS"]},{"i":"SOP-WEB-004","t":"sop","d":"WEB","l":"ai","z":5,"s":true,"r":3,"f":0,"a":false,"sub":["SOC"]},{"i":"SOP-WEB-005","t":"sop","d":"WEB","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["CS","SOC"]},{"i":"SKL-WEB-001","t":"skl","d":"WEB","l":"ai","z":5,"s":true,"r":1,"f":4,"a":false,"sub":["CS"]},{"i":"SKL-WEB-002","t":"skl","d":"WEB","l":"ai","z":5,"s":true,"r":1,"f":6,"a":false,"sub":["CS","SOC"]},{"i":"SKL-WEB-003","t":"skl","d":"WEB","l":"ai","z":5,"s":true,"r":1,"f":2,"a":false,"sub":["SOC"]},{"i":"SKL-WEB-004","t":"skl","d":"WEB","l":"ai","z":5,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"SKL-WEB-005","t":"skl","d":"WEB","l":"ai","z":5,"s":true,"r":1,"f":4,"a":false,"sub":[]},{"i":"SKL-WEB-006","t":"skl","d":"WEB","l":"ai","z":5,"s":true,"r":1,"f":2,"a":false,"sub":[]},{"i":"SOP-PM-001","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PM-002","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PM-003","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PM-004","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PM-005","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PM-006","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PM-007","t":"sop","d":"PM","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["OPS"]},{"i":"SKL-PM-001","t":"skl","d":"PM","l":"ai","z":5,"s":true,"r":4,"f":8,"a":false,"sub":["EPI","OPS"]},{"i":"SKL-PM-002","t":"skl","d":"PM","l":"ai","z":5,"s":true,"r":4,"f":6,"a":false,"sub":[]},{"i":"SKL-PM-003","t":"skl","d":"PM","l":"ai","z":5,"s":true,"r":3,"f":6,"a":false,"sub":[]},{"i":"SKL-PM-004","t":"skl","d":"PM","l":"ai","z":5,"s":true,"r":3,"f":5,"a":false,"sub":[]},{"i":"SKL-PM-005","t":"skl","d":"PM","l":"ai","z":5,"s":true,"r":3,"f":4,"a":false,"sub":[]},{"i":"SOP-PA-001","t":"sop","d":"PA","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PA-002","t":"sop","d":"PA","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PA-003","t":"sop","d":"PA","l":"ai","z":5,"s":true,"r":5,"f":0,"a":false,"sub":["RHET"]},{"i":"SOP-PA-004","t":"sop","d":"PA","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["OPS"]},{"i":"SOP-PA-005","t":"sop","d":"PA","l":"ai","z":5,"s":true,"r":4,"f":0,"a":false,"sub":["OPS"]},{"i":"SKL-PA-001","t":"skl","d":"PA","l":"ai","z":5,"s":true,"r":3,"f":4,"a":false,"sub":["OPS"]},{"i":"SKL-PA-002","t":"skl","d":"PA","l":"ai","z":5,"s":true,"r":3,"f":2,"a":false,"sub":["OPS"]},{"i":"SKL-PA-003","t":"skl","d":"PA","l":"ai","z":5,"s":true,"r":3,"f":4,"a":false,"sub":["OPS"]},{"i":"SKL-PA-004","t":"skl","d":"PA","l":"ai","z":5,"s":true,"r":4,"f":3,"a":false,"sub":["RHET"]},{"i":"SKL-PA-005","t":"skl","d":"PA","l":"ai","z":5,"s":true,"r":3,"f":2,"a":false,"sub":[]},{"i":"TOOL-001","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":15,"a":true,"sub":["CS"]},{"i":"TOOL-003","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":9,"a":true,"sub":["CS"]},{"i":"TOOL-002","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":2,"a":true,"sub":["CS"]},{"i":"TOOL-006","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":3,"a":true,"sub":["CS","PHYS"]},{"i":"TOOL-010","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-011","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-016","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":2,"a":true,"sub":["CS","PHYS"]},{"i":"TOOL-004","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":4,"a":true,"sub":["CS"]},{"i":"TOOL-005","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":4,"a":true,"sub":["CS"]},{"i":"TOOL-007","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":2,"a":true,"sub":["CS"]},{"i":"TOOL-012","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":3,"a":true,"sub":["SOC"]},{"i":"TOOL-013","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":3,"a":true,"sub":["SOC"]},{"i":"TOOL-014","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":3,"a":true,"sub":["CS"]},{"i":"TOOL-015","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":[]},{"i":"TOOL-008","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":10,"a":true,"sub":["CS"]},{"i":"TOOL-009","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":2,"a":true,"sub":["CS","PDGY"]},{"i":"TOOL-017","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":3,"a":true,"sub":["CS"]},{"i":"TOOL-018","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":0,"a":true,"sub":["CS","ENGR"]},{"i":"TOOL-019","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-020","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-021","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS","MATH"]},{"i":"TOOL-022","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-024","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS","GEO"]},{"i":"TOOL-025","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS","MATH","PHYS","PDGY"]},{"i":"TOOL-026","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-028","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-029","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-030","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":0,"a":true,"sub":["CS"]},{"i":"TOOL-031","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-023","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-027","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":1,"a":true,"sub":["CS"]},{"i":"TOOL-032","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":2,"a":true,"sub":["CS","PDGY"]},{"i":"TOOL-033","t":"tool","d":"ai_shared","l":"ai","z":-1,"s":true,"r":0,"f":3,"a":true,"sub":["CS"]},{"i":"IFC-PM-ENG-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":2,"a":true,"sub":["OPS"]},{"i":"IFC-PM-ART-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":["OPS"]},{"i":"IFC-PM-SCI-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":["OPS"]},{"i":"IFC-PM-WEB-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":["OPS"]},{"i":"IFC-PM-PROF-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":["OPS","PDGY"]},{"i":"IFC-SCI-ART-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":2,"a":true,"sub":["PHIL"]},{"i":"IFC-SCI-ART-002","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":2,"a":true,"sub":[]},{"i":"IFC-ART-WEB-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":3,"a":true,"sub":["SOC"]},{"i":"IFC-ENG-PROF-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":2,"a":true,"sub":[]},{"i":"IFC-PROF-ENG-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":[]},{"i":"IFC-PROF-ART-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":[]},{"i":"IFC-SCI-KB-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":0,"a":true,"sub":[]},{"i":"IFC-PM-PA-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":[]},{"i":"IFC-PA-PM-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":[]},{"i":"IFC-PA-ROUTE-001","t":"ifc","d":"ai_shared","l":"ai","z":5,"s":true,"r":0,"f":1,"a":true,"sub":[]}],"links":[[32,34],[12,34],[180,34],[196,34],[33,35],[4,35],[15,35],[140,35],[166,35],[195,35],[7,36],[8,36],[204,36],[205,36],[220,36],[13,37],[11,37],[152,37],[153,37],[154,37],[157,37],[12,38],[34,38],[117,38],[120,38],[218,38],[251,38],[6,39],[7,39],[130,39],[139,39],[138,39],[249,39],[1,40],[2,40],[211,40],[217,40],[35,41],[36,41],[195,41],[196,41],[198,41],[258,41],[260,41],[259,41],[202,41],[143,41],[3,42],[9,42],[256,42],[257,42],[262,42],[22,43],[4,43],[15,43],[140,43],[228,43],[235,43],[23,44],[4,44],[24,45],[13,45],[195,45],[43,46],[232,46],[231,46],[235,46],[43,47],[236,47],[237,47],[238,47],[239,47],[240,47],[140,47],[46,48],[235,48],[251,48],[253,48],[254,48],[22,49],[24,49],[43,49],[25,50],[26,51],[27,52],[51,52],[50,53],[51,53],[52,53],[25,54],[26,54],[50,54],[28,55],[53,55],[29,56],[28,56],[55,57],[55,58],[57,58],[55,59],[56,59],[53,59],[28,60],[55,60],[28,61],[29,61],[28,62],[55,62],[28,63],[30,64],[6,64],[138,64],[31,65],[10,65],[11,65],[64,66],[65,66],[5,66],[64,67],[39,67],[130,67],[139,67],[66,68],[65,68],[121,68],[127,68],[30,69],[31,69],[64,69],[30,70],[64,70],[67,70],[45,71],[13,71],[44,72],[4,72],[71,73],[45,73],[71,74],[72,74],[44,75],[45,75],[4,75],[39,76],[13,76],[220,76],[98,77],[77,78],[78,79],[77,80],[79,80],[77,81],[100,81],[81,82],[100,82],[81,83],[82,83],[101,83],[83,84],[102,84],[84,85],[102,85],[103,86],[104,86],[86,87],[105,87],[86,88],[103,88],[86,89],[86,90],[89,91],[90,91],[106,91],[91,92],[91,93],[86,94],[87,94],[90,95],[78,96],[90,96],[97,98],[98,100],[99,100],[100,101],[103,104],[103,105],[103,106],[104,106],[107,108],[107,109],[107,110],[107,111],[112,113],[112,114],[112,115],[112,116],[10,281],[11,281],[12,281],[2,281],[13,281],[0,281],[9,281],[0,282],[9,282],[0,283],[9,283],[0,284],[9,284],[4,284],[7,284],[0,285],[9,285],[2,286],[6,286],[0,287],[9,287],[2,287],[6,287],[10,288],[11,288],[12,288],[0,288],[9,288],[10,289],[11,289],[12,289],[0,289],[9,289],[5,289],[10,290],[11,290],[12,290],[2,290],[13,290],[0,290],[9,290],[10,291],[11,291],[12,291],[0,291],[9,291],[2,291],[6,291],[2,292],[13,292],[0,292],[9,292],[2,293],[13,293],[6,293],[2,294],[6,294],[5,294],[11,294],[2,295],[6,295],[9,295],[2,296],[1,296],[9,297],[14,297],[0,297],[2,298],[1,298],[2,299],[6,299],[0,300],[9,300],[2,300],[1,300],[2,301],[6,301],[2,302],[6,302],[5,303],[12,303],[2,304],[6,304],[4,304],[7,304],[9,304],[0,305],[9,305],[4,305],[7,305],[8,306],[3,306],[1,306],[5,306],[12,306],[8,307],[3,307],[1,307],[8,308],[3,308],[1,308],[0,309],[9,309],[8,310],[3,310],[1,310],[5,311],[11,311],[12,311],[8,312],[3,312],[1,312],[8,313],[3,313],[1,313],[8,314],[3,314],[1,314],[8,315],[3,315],[1,315],[9,316],[14,316],[6,316],[8,317],[3,317],[1,317],[2,317],[9,318],[14,318],[2,318],[1,318],[2,319],[6,319],[2,320],[1,320],[9,321],[6,321],[2,321],[1,321],[2,322],[1,322],[2,323],[1,323],[2,324],[1,324],[2,325],[1,325],[2,326],[1,326],[2,327],[1,327],[2,328],[1,328],[12,328],[2,329],[1,329],[2,330],[1,330],[2,331],[1,331],[0,332],[9,332],[2,332],[1,332],[2,333],[1,333],[1,334],[12,334],[2,334],[1,335],[12,335],[1,336],[12,336],[1,337],[12,337],[1,338],[12,338],[0,339],[9,339],[5,339],[12,339],[8,340],[3,340],[1,340],[8,341],[3,341],[1,341],[5,341],[12,341],[2,342],[1,342],[10,343],[11,343],[12,343],[0,343],[9,343],[2,344],[1,344],[5,345],[11,345],[5,346],[11,346],[9,346],[6,346],[5,347],[11,347],[5,348],[11,348],[9,349],[6,349],[5,350],[11,350],[2,351],[6,351],[5,351],[11,351],[5,352],[11,352],[5,353],[11,353],[5,354],[2,354],[11,354],[5,355],[11,355],[5,356],[11,356],[12,356],[5,357],[12,357],[11,357],[5,358],[11,358],[5,359],[11,359],[5,360],[11,360],[5,361],[11,361],[2,361],[6,361],[5,362],[11,362],[12,362],[5,363],[12,363],[2,363],[1,363],[14,364],[15,364],[8,364],[3,364],[1,364],[14,365],[15,365],[2,365],[1,365],[9,366],[6,366],[14,367],[15,367],[5,367],[12,367],[5,368],[12,368],[2,368],[6,368],[14,369],[15,369],[2,369],[1,369],[9,370],[14,370],[15,370],[5,371],[12,371],[5,372],[12,372],[11,372],[5,373],[11,373],[5,374],[12,374],[11,374],[0,375],[9,375],[9,376],[6,376],[5,377],[12,377],[9,378],[6,378],[0,379],[9,379],[2,380],[6,380],[5,381],[11,381],[2,382],[6,382],[5,382],[11,382],[263,117],[263,118],[263,119],[263,120],[264,121],[264,122],[264,123],[264,124],[264,125],[264,126],[264,127],[264,128],[264,129],[265,130],[265,131],[265,132],[265,133],[265,134],[265,135],[265,136],[265,137],[265,138],[265,139],[266,140],[266,141],[266,142],[266,143],[266,144],[266,145],[266,146],[266,147],[266,148],[266,149],[266,150],[266,151],[267,152],[267,153],[267,154],[267,155],[267,156],[267,157],[267,158],[267,159],[267,160],[268,161],[268,162],[268,163],[268,164],[268,165],[268,166],[268,167],[268,168],[268,169],[268,170],[269,171],[269,172],[269,173],[269,174],[269,175],[269,176],[269,177],[269,178],[269,179],[269,180],[270,181],[270,182],[270,183],[270,184],[270,185],[270,186],[270,187],[271,188],[271,189],[271,190],[271,191],[271,192],[271,193],[271,194],[272,195],[272,196],[272,197],[272,198],[272,199],[272,200],[272,201],[272,202],[273,203],[273,204],[273,205],[273,206],[273,207],[273,208],[273,209],[273,210],[274,211],[274,212],[274,213],[274,214],[274,215],[274,216],[274,217],[275,218],[275,219],[275,220],[275,221],[275,222],[275,223],[275,224],[275,225],[275,226],[275,227],[276,228],[276,229],[276,230],[276,231],[276,232],[276,233],[276,234],[276,235],[277,236],[277,237],[277,238],[277,239],[277,240],[277,241],[277,242],[278,243],[278,244],[278,245],[278,246],[278,247],[278,248],[278,249],[279,250],[279,251],[279,252],[279,253],[279,254],[279,255],[280,256],[280,257],[280,258],[280,259],[280,260],[280,261],[280,262],[119,2],[122,1],[124,2],[126,117],[135,2],[136,14],[138,6],[144,14],[146,13],[152,13],[156,133],[158,11],[160,10],[163,142],[166,141],[166,142],[169,11],[169,158],[172,7],[173,14],[177,0],[180,14],[180,136],[181,161],[185,133],[188,121],[189,129],[190,133],[190,200],[191,184],[192,128],[194,133],[195,141],[196,14],[196,180],[200,14],[201,155],[202,132],[202,135],[203,7],[205,220],[207,132],[208,141],[208,195],[214,125],[214,2],[216,1],[218,135],[220,7],[220,146],[225,199],[230,162],[230,220],[238,150],[238,4],[240,14],[246,6],[247,187],[249,133],[250,228],[252,0],[252,177],[258,143],[258,196],[259,198],[261,251],[262,3],[408,402],[409,402],[410,402],[538,402],[540,402],[408,403],[411,403],[539,403],[408,404],[409,404],[412,404],[539,404],[408,405],[411,405],[412,405],[543,405],[411,406],[413,406],[540,406],[413,407],[6,408],[11,408],[408,402],[408,403],[408,404],[0,409],[7,409],[409,402],[409,404],[7,410],[410,402],[10,411],[411,403],[411,405],[411,406],[6,412],[412,404],[412,405],[0,413],[413,406],[413,407],[419,414],[420,414],[421,414],[425,414],[426,414],[427,414],[428,414],[429,414],[430,414],[431,414],[500,414],[502,414],[507,414],[508,414],[533,414],[421,415],[422,415],[423,415],[501,415],[503,415],[542,415],[424,416],[509,416],[420,417],[421,417],[427,417],[500,417],[507,417],[423,418],[501,418],[514,418],[515,418],[541,418],[500,419],[502,419],[419,414],[500,420],[507,420],[420,414],[420,417],[508,421],[421,414],[421,415],[421,417],[501,422],[503,422],[422,415],[501,423],[503,423],[423,415],[423,418],[509,424],[424,416],[500,425],[504,425],[425,414],[500,426],[505,426],[426,414],[518,427],[500,427],[427,414],[427,417],[519,428],[500,428],[428,414],[520,429],[500,429],[429,414],[521,430],[500,430],[430,414],[529,431],[514,431],[431,414],[522,432],[500,432],[432,414],[523,433],[501,433],[433,415],[433,418],[524,434],[500,434],[434,414],[530,435],[435,416],[525,436],[500,436],[436,414],[528,437],[500,437],[437,414],[526,438],[500,438],[438,414],[507,439],[439,414],[439,417],[446,440],[447,440],[448,440],[446,441],[447,441],[449,441],[449,442],[450,442],[538,442],[446,443],[447,443],[451,443],[446,444],[447,444],[448,444],[446,445],[447,445],[449,445],[450,445],[4,446],[3,446],[446,440],[446,441],[446,443],[446,444],[446,445],[0,447],[3,447],[7,447],[447,440],[447,441],[447,443],[447,444],[447,445],[4,448],[448,440],[448,444],[4,449],[6,449],[7,449],[449,441],[449,442],[449,445],[0,450],[7,450],[10,450],[450,442],[450,445],[4,451],[10,451],[451,443],[460,452],[461,452],[462,452],[463,452],[514,452],[501,452],[462,453],[463,453],[501,453],[506,453],[460,454],[461,454],[465,454],[514,454],[460,455],[461,455],[465,455],[462,455],[514,455],[541,455],[460,456],[461,456],[465,456],[464,456],[501,456],[514,456],[516,456],[463,457],[464,457],[514,457],[531,457],[532,457],[460,458],[461,458],[466,458],[460,459],[461,459],[463,459],[514,459],[6,460],[11,460],[460,452],[460,454],[460,455],[460,456],[460,458],[460,459],[6,461],[10,461],[461,452],[461,454],[461,455],[461,456],[461,458],[461,459],[501,462],[506,462],[462,452],[462,453],[462,455],[514,463],[515,463],[516,463],[531,463],[532,463],[463,452],[463,453],[463,459],[463,457],[514,464],[516,464],[532,464],[464,454],[464,455],[464,456],[464,457],[6,465],[10,465],[465,454],[465,455],[465,456],[4,466],[11,466],[466,458],[472,467],[473,467],[510,467],[540,467],[474,468],[475,468],[511,468],[472,469],[476,469],[508,469],[512,469],[473,470],[477,470],[473,471],[476,471],[508,472],[512,472],[472,467],[472,469],[510,473],[473,467],[473,470],[473,471],[511,474],[474,468],[511,475],[513,475],[475,468],[512,476],[476,469],[476,471],[510,477],[477,470],[485,478],[486,478],[485,479],[487,479],[485,480],[486,480],[485,481],[486,481],[487,481],[488,482],[489,482],[533,482],[534,482],[535,482],[536,482],[537,482],[488,483],[489,483],[487,484],[488,484],[4,485],[11,485],[485,478],[485,479],[485,480],[485,481],[11,486],[486,478],[486,479],[486,480],[4,487],[6,487],[487,479],[487,481],[487,484],[6,488],[488,482],[488,483],[4,489],[10,489],[489,482],[489,483],[496,490],[547,490],[497,491],[545,491],[546,491],[498,492],[499,493],[495,494],[497,494],[4,495],[495,490],[495,492],[495,494],[4,496],[496,490],[4,497],[497,491],[497,494],[11,498],[498,490],[498,492],[4,499],[499,493],[0,402],[7,402],[3,402],[11,403],[6,403],[6,404],[10,404],[30,404],[31,404],[30,405],[11,406],[0,407],[11,414],[6,414],[4,415],[7,415],[28,415],[4,416],[11,417],[4,417],[30,418],[31,418],[4,440],[13,440],[7,440],[4,441],[7,441],[13,441],[0,442],[7,442],[3,442],[4,443],[10,443],[4,444],[13,444],[4,445],[6,445],[7,445],[13,445],[32,445],[33,445],[30,452],[31,452],[6,452],[11,452],[11,453],[30,454],[31,454],[6,454],[30,455],[31,455],[11,455],[30,456],[31,456],[6,456],[11,457],[4,458],[11,458],[30,459],[31,459],[11,467],[11,468],[11,469],[4,470],[4,471],[13,471],[4,478],[11,478],[4,479],[11,479],[4,480],[4,481],[6,481],[6,482],[10,482],[11,483],[4,484],[6,484],[4,490],[11,490],[4,491],[11,492],[4,493],[4,494],[30,383],[31,383],[6,383],[10,383],[11,383],[30,384],[31,384],[6,384],[30,385],[31,385],[6,385],[11,385],[28,386],[4,387],[11,388],[4,389],[4,390],[6,390],[11,390],[4,391],[6,391],[7,391],[13,391],[32,391],[0,392],[4,392],[6,392],[7,392],[13,392],[32,392],[33,392],[6,393],[10,393],[393,478],[6,394],[10,394],[11,394],[394,478],[30,395],[31,395],[6,395],[10,395],[30,396],[6,396],[11,396],[4,397],[28,397],[11,398],[6,398],[11,399],[4,400],[13,400],[11,401],[4,401]]};
+const STRATA_USED = [-1,0,1,2,3,4,5];
+const DOMAIN_NAMES = {"foundation":"Foundation","PHIL":"Philosophy & Epistemology","EPI":"Philosophy & Epistemology","ECDO":"Earth & Space Science","ARCH":"Earth & Space Science","TF":"Thermofluidic Finance","DSL":"On Dynamical Systems","PED":"Education & Pedagogy","PHYS":"Physics","ENG":"Engineering","BIO":"Life Sciences & Biology","tes":"TES Concepts","quotes":"Quotes","unknown":"Unknown","ai_shared":"Computer Science","human_skills":"Human Skills","ART":"Artist","SCI":"Scientist","PROF":"Professor","WEB":"Web Admin","PM":"Project Management","PA":"Personal Assistant"};
+const SUBJECT_ANGLES = {"RHET":0,"PHIL":24,"HIST":48,"EPI":72,"MATH":96,"PHYS":120,"ASTRO":144,"GEO":168,"BIO":192,"ANTH":216,"SOC":240,"PDGY":264,"PSY":null,"CS":288,"ENGR":312,"OPS":336};
+const APP_LINKS = {"ARCH-005":["ECDO Watch"],"DSL-008":["Propendulum"],"ECDO-002":["ECDO Watch"],"ECDO-003":["ECDO Watch"],"ECDO-006":["ECDO Watch"],"ECDO-007":["ECDO Watch"],"PED-003":["PSCPR"],"PHYS-001":["Physics Simulations"],"PHYS-011":["Thermofluidic Finance"],"PHYS-013":["Propendulum"],"PHYS-015":["On Dynamical Systems"],"PHYS-017":["Thermofluidic Finance","On Dynamical Systems"],"PHYS-018":["Thermofluidic Finance"],"PHYS-020":["Physics Simulations"],"PHYS-029":["Thermofluidic Finance"],"PHYS-030":["On Dynamical Systems"]};
+const DISTRICTS = [{"name":"On Dynamical Systems","domains":["DSL","PHYS"],"color":"#c084fc"},{"name":"Thermofluidic Finance","domains":["TF","DSL"],"color":"#50c878"},{"name":"Eisenhower Task Manager","domains":["ai_shared"],"color":"#7a8a9a"},{"name":"Propendulum","nodes":["PHYS-013","PHYS-016","DSL-008","PHYS-030","PHYS-027"],"color":"#ff8866"},{"name":"ECDO Watch","domains":["ECDO"],"color":"#e07050"},{"name":"PSCPR","domains":["PHIL","PED"],"color":"#6ea8fe"},{"name":"Inferential Dynamics","domains":["DSL","PHIL","PHYS"],"color":"#e0a050"},{"name":"Agent Pipeline IDE","domains":["ai_shared","PED"],"color":"#00d4aa"},{"name":"Physics Simulations","domains":["PHYS"],"color":"#3fb8d8"}];
+
+const C = document.getElementById('c'), X = C.getContext('2d');
+const TYPE_COLOR = {fp:'#f0b72f',claim:'#58a6ff',da:'#79c0ff',tes:'#3b5568',quote:'#2f4858',
+  source:'#4a5568',skl:'#3fb950',sop:'#56d364',tool:'#d29922',ifc:'#db6d28',hsk:'#bc8cff'};
+// Keyed by HAT, because that is what an agent calls itself. The pipeline's slot
+// names (author / examiner-0 / examiner-1) are kept as aliases so reads logged
+// before the briefs were corrected still colour correctly on replay.
+const THREAD_COLOR = {
+  eng:'#f0b72f', sci:'#58d3f7', web:'#c792ea', anon:'#9fb0c4',
+  author:'#f0b72f', 'examiner-0':'#58d3f7', 'examiner-1':'#c792ea',
+};
+const THREAD_ROLE = { eng:'author', sci:'first critic', web:'second critic' };
+
+// ── camera: lifted from kb3d so the two views are the same building ─────────
+let rotX = -0.94, rotY = 0.52, zoom = 0.72, dragging = false, lx = 0, ly = 0;
+const RING = 30, LIFT = 172, R_OUT = 74 + 7.4 * RING;
+
+// The angular-centroid placement lived here and was REMOVED on 2026-09-12.
+// Keeping the note because the idea is attractive and will be proposed again:
+// it put 13 of 21 multi-tag entries into a wedge they were not tagged with,
+// because position is single-valued and Subjects are not. Affiliation lines to
+// the canopy replaced it. Do not bring it back.
+
+// A book is SHELVED in one genre and CATALOGUED in several - that is how a real
+// library resolves this, and it is why the wedges can be genres without lying.
+//
+//   shelf     = primary genre = sub[0]        single-valued, so placeable
+//   catalogue = every other tag              drawn as cross-reference lines
+//
+// The earlier attempt placed a book at the angular CENTROID of all its genres,
+// which put 13 of 21 multi-genre entries into a wedge they were not tagged with
+// (five PED+PHYS lecture SOPs landed in BIO). Averaging positions is not how a
+// catalogue works: a librarian picks a shelf and writes cross-references.
+const primaryGenre = n => {
+  for (const s of (n.sub || [])) {
+    const v = SUBJECT_ANGLES[String(s).toUpperCase()];
+    if (v !== null && v !== undefined) return String(s).toUpperCase();
+  }
+  return null;
+};
+
+function place(n, i) {
+  // height = epistemic stratum, radius = dependency tier, angle = PRIMARY GENRE.
+  // Each axis still carries exactly one single-valued fact; the multi-valued
+  // part left position entirely and became lines.
+  const j = ((i * 2654435761) % 1000) / 1000;
+  const g = primaryGenre(n);
+
+  let deg, rad;
+  if (!g) {
+    // Uncatalogued. The centre is the one place no genre claims - an acquisition
+    // not yet shelved. It drains as the classification loop works.
+    deg = (i * 37) % 360;
+    rad = 10 + j * 46;
+  } else {
+    deg = SUBJECT_ANGLES[g];
+    rad = 74 + n.r * RING + j * 30;
+  }
+
+  const a = deg * Math.PI / 180;
+  return { x: Math.cos(a + (j - .5) * .22) * rad, y: Math.sin(a + (j - .5) * .22) * rad,
+           z: (5 - n.z) * LIFT, j };
+}
+
+
+// Disciplines are the default axis. Domains were the default until 2026-09-12,
+// which meant the building's wedges were Cole's PROJECT namespaces (TF, DSL,
+// ECDO) sitting alongside genuine fields (PHYS, PED, BIO) - the same conflation
+// the Subjects vocabulary exists to undo. A project is a DISTRICT drawn over the
+// wedges it spans, never a wedge. Unchecking the box restores the old view.
+const BY_SUBJECT = true;    // wedges are ALWAYS genres now; projects never get one
+let P = D.nodes.map(place);
+function relayout() { P = D.nodes.map(place); }
+
+// index by entry id so a read can find its book
+// n.i is the entry id (SOP-ENG-002). n.l is the LAYER (shared/ai/human), not
+// a label — there is no display name in the payload, the id IS the name.
+// (No backticks in here: this whole page is a template literal.)
+const BY_ID = {};
+D.nodes.forEach((n, k) => { if (n.i) BY_ID[String(n.i).toUpperCase()] = k; });
+
+function project(p, w, h) {
+  const cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+  const x1 = p.x * cy - p.y * sy, y1 = p.x * sy + p.y * cy;
+  const y2 = y1 * cx - p.z * sx, z2 = y1 * sx + p.z * cx;
+  const s = zoom * 1.05;
+  return { x: w / 2 + x1 * s, y: h / 2 + (y2 - 2.5 * LIFT * Math.sin(-rotX)) * s * .86, depth: z2 };
+}
+
+// ── live state ──────────────────────────────────────────────────────────────
+// A read is an EVENT with a decay, not a state. Each one owns its own clock so
+// several can burn at once without interfering — which is the whole point when
+// three agents read in parallel.
+const flares = [];    // {i, t0, thread}
+const arcs = [];      // {a, b, t0, thread}  attention travelling between books
+const newEdges = [];  // {a, b, t0}          an edit landing
+const lastByThread = {};
+let nReads = 0, nEdits = 0;
+const FLARE_MS = 2600, ARC_MS = 1800, EDGE_MS = 1400;
+
+function logLine(html) {
+  const el = document.createElement('div');
+  el.className = 'le'; el.innerHTML = html;
+  const box = document.getElementById('log');
+  box.appendChild(el);
+  while (box.children.length > 14) box.removeChild(box.firstChild);
+}
+
+function openBook(id, thread, at) {
+  const i = BY_ID[String(id).toUpperCase()];
+  const col = THREAD_COLOR[thread] || THREAD_COLOR.anon;
+  nReads++;
+  document.getElementById('nreads').textContent = nReads;
+  const hhmm = new Date(at).toLocaleTimeString([], {hour12:false});
+  if (i === undefined) {
+    // A miss is a real event: the system reached for a book that is not on the
+    // shelf. Worth showing, and it has nowhere to flare.
+    logLine('<span style="color:#f85149">' + hhmm + ' ✕ ' + id + '</span> not shelved');
+    return;
+  }
+  flares.push({ i, t0: performance.now(), thread });
+  const prev = lastByThread[thread];
+  if (prev !== undefined && prev !== i) arcs.push({ a: prev, b: i, t0: performance.now(), thread });
+  lastByThread[thread] = i;
+  const role = THREAD_ROLE[thread] ? ' (' + THREAD_ROLE[thread] + ')' : '';
+  logLine('<span style="color:' + col + '">' + hhmm + ' ▸ <b>' + id + '</b></span> '
+    + '<span style="color:#8b949e">' + (D.STRATUM_LABEL[D.nodes[i].z] || '').split(/[^a-zA-Z ]/)[0].trim()
+    + (thread && thread !== 'anon' ? '  · ' + thread + role : '') + '</span>');
+}
+
+function landEdit(fromId, toId) {
+  const a = BY_ID[String(fromId).toUpperCase()], b = BY_ID[String(toId).toUpperCase()];
+  nEdits++;
+  document.getElementById('nedits').textContent = nEdits;
+  logLine('<span style="color:#3fb950">✚ <b>' + fromId + '</b> → ' + toId + '</span>');
+  if (a === undefined || b === undefined) return;
+  newEdges.push({ a, b, t0: performance.now() });
+  D.links.push([a, b]);
+}
+
+// ── domain sectors ─────────────────────────────────────────────────
+// Angle already IS domain — make-kb3d sites every node by DOMAIN_ANGLES. These
+// wedges do not move anything; they draw the division that was always there, so
+// the cylinder reads as a building with wings rather than one round room.
+//
+// ⚠ Sectors are DOMAIN (which shelf an entry lives on), not SUBJECT (what it is
+// about). The two vocabularies nearly coincide — PHYS, ENG, PED, DSL, TF, ECDO,
+// BIO, PHIL appear in both — which makes them easy to conflate, but a tool on
+// the ai_shared shelf can be ABOUT physics. Subjects cut across these wedges by
+// design and must never be drawn as them.
+const DOMAIN_TINT = {
+  PHIL:'#bc8cff', PHYS:'#58a6ff', DSL:'#79c0ff', TF:'#56d364', PED:'#f0b72f',
+  ai_shared:'#8b949e', ENG:'#d29922', ECDO:'#db6d28', BIO:'#3fb950',
+};
+// Halfway to each neighbour. The spacing is a uniform 40 degrees, so a 40-wide
+// wedge tiles the disc with no gap and no overlap.
+const SECTOR_HALF = 20 * Math.PI / 180;
+const SUBJECT_TINT = {
+  RHET:'#e9d5ff', PHIL:'#bc8cff', HIST:'#d8b4fe', EPI:'#a78bfa', MATH:'#c084fc', PHYS:'#58a6ff', ASTRO:'#7dd3fc',
+  GEO:'#34d399', BIO:'#3fb950', ANTH:'#a3a380', SOC:'#f0b72f', PDGY:'#fbbf24',
+  CS:'#8b949e', ENGR:'#d29922', OPS:'#db6d28',
+};
+// The wedges are the genres of the library. A project is a COLLECTION of books
+// scattered across genres, never a genre itself, so DOMAIN_SECTORS is gone.
+const SECTORS = Object.entries(SUBJECT_ANGLES)
+  .filter(([, v]) => v !== null && v !== undefined)
+  .map(([k, v]) => ({ k, a: v * Math.PI / 180 }));
+
+function sectorPath(w, h, z, s, rIn, rOut) {
+  const N = 10;
+  X.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const a = s.a - SECTOR_HALF + (2 * SECTOR_HALF) * i / N;
+    const q = project({ x: Math.cos(a) * rOut, y: Math.sin(a) * rOut, z: (5 - z) * LIFT }, w, h);
+    i ? X.lineTo(q.x, q.y) : X.moveTo(q.x, q.y);
+  }
+  for (let i = N; i >= 0; i--) {
+    const a = s.a - SECTOR_HALF + (2 * SECTOR_HALF) * i / N;
+    const q = project({ x: Math.cos(a) * rIn, y: Math.sin(a) * rIn, z: (5 - z) * LIFT }, w, h);
+    X.lineTo(q.x, q.y);
+  }
+  X.closePath();
+}
+
+function drawSectors(w, h, z) {
+  if (!document.getElementById('sectors').checked) return;
+  for (const s of SECTORS) {
+    sectorPath(w, h, z, s, 74, R_OUT);
+    X.fillStyle = (BY_SUBJECT ? SUBJECT_TINT : DOMAIN_TINT)[s.k] + '14';          // ~8% — a tint, never a block
+    X.fill();
+    X.strokeStyle = (BY_SUBJECT ? SUBJECT_TINT : DOMAIN_TINT)[s.k] + '2e';
+    X.lineWidth = 1; X.stroke();
+  }
+}
+
+// Labels go on the BASE floor only, and outside the rim. Repeating nine names on
+// seven floors is 63 labels for nine facts; and the base is the one height where
+// nothing stands, so a label cannot land in front of a shelf of books.
+function drawSectorLabels(w, h) {
+  if (!document.getElementById('sectors').checked) return;
+  const zBase = STRATA_USED[STRATA_USED.length - 1];
+  X.font = '10px Segoe UI';
+  for (const s of SECTORS) {
+    const q = project({ x: Math.cos(s.a) * (R_OUT + 44), y: Math.sin(s.a) * (R_OUT + 44),
+                        z: (5 - zBase) * LIFT }, w, h);
+    const txt = BY_SUBJECT ? s.k : (DOMAIN_NAMES[s.k] || s.k);
+    const tw = X.measureText(txt).width;
+    X.fillStyle = 'rgba(11,13,17,.82)';
+    X.fillRect(q.x - tw / 2 - 4, q.y - 8, tw + 8, 14);
+    X.fillStyle = (BY_SUBJECT ? SUBJECT_TINT : DOMAIN_TINT)[s.k];
+    X.fillText(txt, q.x - tw / 2, q.y + 2);
+  }
+}
+
+// ── cross-references ───────────────────────────────────────────────
+// A book shelved under one genre and catalogued under others gets a line out to
+// each of the others, on its own floor, ending at that genre's rim. Four genres
+// read as three cross-references plus a shelf - all four legible, none averaged.
+//
+// Drawn only for the SELECTED genre. Every cross-reference at once is a
+// hairball, and the question a catalogue answers is "what is filed under X",
+// asked one X at a time.
+const GENRE_COUNT = {};
+for (const n of D.nodes)
+  for (const s of (n.sub || [])) {
+    const k = String(s).toUpperCase();
+    if (SUBJECT_ANGLES[k] != null) GENRE_COUNT[k] = (GENRE_COUNT[k] || 0) + 1;
+  }
+
+function drawCrossRefs(w, h, pts) {
+  const g = document.getElementById('field').value;
+  if (!g || !document.getElementById('canopy').checked) return;
+  const col = SUBJECT_TINT[g] || '#8b949e';
+  const ga = SUBJECT_ANGLES[g] * Math.PI / 180;
+
+  for (let i = 0; i < D.nodes.length; i++) {
+    const n = D.nodes[i];
+    const tags = (n.sub || []).map(s => String(s).toUpperCase());
+    if (!tags.includes(g)) continue;
+    const shelved = primaryGenre(n) === g;
+    const p = pts[i];
+    if (shelved) {
+      // Already on this shelf - mark it, no line needed.
+      X.strokeStyle = col; X.lineWidth = 1.6;
+      X.beginPath(); X.arc(p.x, p.y, 6, 0, 7); X.stroke();
+    } else {
+      // Catalogued here but shelved elsewhere: draw the cross-reference to this
+      // genre's rim, at the book's own floor.
+      const q = project({ x: Math.cos(ga) * R_OUT, y: Math.sin(ga) * R_OUT,
+                          z: (5 - n.z) * LIFT }, w, h);
+      X.strokeStyle = col + '66'; X.lineWidth = 1;
+      X.beginPath(); X.moveTo(p.x, p.y); X.lineTo(q.x, q.y); X.stroke();
+      X.fillStyle = col;
+      X.beginPath(); X.arc(p.x, p.y, 3.4, 0, 7); X.fill();
+    }
+  }
+  X.lineWidth = 1;
+}
+
+// ── application links (PROTOTYPE) ──────────────────────────────────
+// A SECOND relation, drawn differently from a genre cross-reference on purpose.
+//
+//   genre cross-reference  solid line, book -> its genre's rim, same floor
+//   application            dashed line, book -> the PROJECT band above
+//
+// The two answer different questions. A cross-reference says "this also belongs
+// to mathematics". An application says "this feeds Thermofluidic Finance" - not
+// a field of study at all, which is exactly why forcing it into Subjects kept
+// producing tags Cole rejected.
+//
+// Drawn from Notes prose today. A real Applications: field would replace the
+// keyword matching with a declaration.
+function drawAppLinks(w, h, pts) {
+  if (!document.getElementById('apps').checked) return;
+  const zTop = (5 - STRATA_USED[STRATA_USED.length - 1]) * LIFT;
+  for (let i = 0; i < D.nodes.length; i++) {
+    const projs = APP_LINKS[D.nodes[i].i];
+    if (!projs) continue;
+    for (const name of projs) {
+      const di = DISTRICTS.findIndex(d => d.name === name);
+      if (di === -1) continue;
+      const dist = DISTRICTS[di];
+      const doms = (dist.domains || []).map(k => SECTORS.find(s => s.k === k)).filter(Boolean);
+      // Aim at the district's band. For a domain-based district use its first
+      // wing; the band is where the project actually lives in this view.
+      const a = doms.length ? doms[0].a
+        : ((D.DOMAIN_ANGLES[D.nodes[i].d] || 0) * Math.PI / 180);
+      const q = project({ x: Math.cos(a) * (R_OUT + 20), y: Math.sin(a) * (R_OUT + 20), z: zTop }, w, h);
+      const p = pts[i];
+      const col = dist.color || '#8b949e';
+      X.setLineDash([3, 4]);
+      X.strokeStyle = col + '99'; X.lineWidth = 1.3;
+      X.beginPath(); X.moveTo(p.x, p.y); X.lineTo(q.x, q.y); X.stroke();
+      X.setLineDash([]);
+      X.fillStyle = col;
+      X.beginPath(); X.arc(p.x, p.y, 3.6, 0, 7); X.fill();
+    }
+  }
+  X.lineWidth = 1;
+}
+
+// ── project districts ────────────────────────────────────────────
+// A district is a PROJECT drawn over the domain wedges it occupies. Two kinds:
+//
+//   domains: ['DSL','PHYS']   a set of wings
+//   nodes:   ['PHYS-013',...] named books, scattered
+//
+// ⚠ A multi-domain district is drawn as ONE ARC PER DOMAIN, never as a single
+// sweep between its first and last. PSCPR is PHIL (0deg) and PED (160deg); a
+// single sweep would silently annex PHYS, DSL and TF, claiming four wings for a
+// project that occupies two. Non-adjacent is the normal case, not the exception.
+const DIST_R0 = R_OUT + 10, DIST_R1 = R_OUT + 30;
+
+function districtArc(w, h, z, a0, a1, r0, r1) {
+  const N = 12;
+  X.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const a = a0 + (a1 - a0) * i / N;
+    const q = project({ x: Math.cos(a) * r1, y: Math.sin(a) * r1, z: (5 - z) * LIFT }, w, h);
+    i ? X.lineTo(q.x, q.y) : X.moveTo(q.x, q.y);
+  }
+  for (let i = N; i >= 0; i--) {
+    const a = a0 + (a1 - a0) * i / N;
+    const q = project({ x: Math.cos(a) * r0, y: Math.sin(a) * r0, z: (5 - z) * LIFT }, w, h);
+    X.lineTo(q.x, q.y);
+  }
+  X.closePath();
+}
+
+// Screen-space convex hull (monotone chain) for node-listed districts. Recomputed
+// each frame because the hull of a rotating point cloud is not rotation-invariant.
+function hull(pts) {
+  if (pts.length < 3) return pts;
+  const p = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length-2], lo[lo.length-1], q) <= 0) lo.pop(); lo.push(q); }
+  for (let i = p.length - 1; i >= 0; i--) { const q = p[i];
+    while (up.length >= 2 && cross(up[up.length-2], up[up.length-1], q) <= 0) up.pop(); up.push(q); }
+  lo.pop(); up.pop();
+  return lo.concat(up);
+}
+
+function drawDistricts(w, h, pts) {
+  if (!document.getElementById('districts').checked) return;
+  const focus = document.getElementById('district').value;
+  const zBase = STRATA_USED[STRATA_USED.length - 1];
+  X.font = '10px Segoe UI';
+
+  DISTRICTS.forEach((dist, di) => {
+    const on = focus === '' || focus === String(di);
+    const col = dist.color || '#8b949e';
+    X.globalAlpha = on ? 1 : 0.22;
+
+    if (dist.domains && dist.domains.length) {
+      let label = null;
+      for (const dom of dist.domains) {
+        const s = SECTORS.find(x => x.k === dom);
+        if (!s) continue;                       // a domain with no angle has no wing
+        districtArc(w, h, zBase, s.a - SECTOR_HALF, s.a + SECTOR_HALF, DIST_R0, DIST_R1);
+        X.fillStyle = col + (on ? '3a' : '18'); X.fill();
+        X.strokeStyle = col + (on ? 'cc' : '44'); X.lineWidth = on ? 1.4 : 1; X.stroke();
+        if (!label) label = { a: s.a };
+      }
+      // Named once, at its first wing — a project has one name however many
+      // wings it spans. Names only when ONE project is picked: nine labels on a
+      // ring of nine bands collide into unreadable mush, and the bands already
+      // show the shape. The dropdown is what asks "which one is this?".
+      if (label && on && focus !== '') {
+        const q = project({ x: Math.cos(label.a) * (DIST_R1 + 30), y: Math.sin(label.a) * (DIST_R1 + 30),
+                            z: (5 - zBase) * LIFT }, w, h);
+        const tw = X.measureText(dist.name).width;
+        X.fillStyle = 'rgba(11,13,17,.9)';
+        X.fillRect(q.x - tw / 2 - 5, q.y - 8, tw + 10, 15);
+        X.fillStyle = col;
+        X.fillText(dist.name, q.x - tw / 2, q.y + 3);
+      }
+    }
+
+    if (dist.nodes && dist.nodes.length) {
+      // A district of named books: ring each one, then draw the region that
+      // contains them. Scattered members are the point, so no wedge would do.
+      const mem = dist.nodes.map(id => BY_ID[String(id).toUpperCase()])
+        .filter(i => i !== undefined).map(i => pts[i]);
+      if (!mem.length) return;
+      for (const m of mem) {
+        X.strokeStyle = col + (on ? 'dd' : '55'); X.lineWidth = 1.4;
+        X.beginPath(); X.arc(m.x, m.y, 7, 0, 7); X.stroke();
+      }
+      const hp = hull(mem);
+      if (hp.length >= 3) {
+        X.beginPath(); hp.forEach((q, i) => i ? X.lineTo(q.x, q.y) : X.moveTo(q.x, q.y)); X.closePath();
+        X.fillStyle = col + (on ? '1e' : '0c'); X.fill();
+        X.setLineDash([4, 3]);
+        X.strokeStyle = col + (on ? 'aa' : '33'); X.lineWidth = 1.2; X.stroke();
+        X.setLineDash([]);
+      }
+      if (on && focus !== '') {
+        const c = mem.reduce((a, m) => ({ x: a.x + m.x / mem.length, y: a.y + m.y / mem.length }), { x: 0, y: 0 });
+        const tw = X.measureText(dist.name).width;
+        X.fillStyle = 'rgba(11,13,17,.9)';
+        X.fillRect(c.x - tw / 2 - 5, c.y - 30, tw + 10, 15);
+        X.fillStyle = col;
+        X.fillText(dist.name, c.x - tw / 2, c.y - 19);
+      }
+    }
+    X.globalAlpha = 1; X.lineWidth = 1;
+  });
+}
+
+// ── the draw ────────────────────────────────────────────────────────────────
+function floorPath(w, h, z, R) {
+  X.beginPath();
+  for (let k = 0; k <= 64; k++) {
+    const a = k / 64 * Math.PI * 2;
+    const q = project({ x: Math.cos(a) * R, y: Math.sin(a) * R, z: (5 - z) * LIFT }, w, h);
+    k ? X.lineTo(q.x, q.y) : X.moveTo(q.x, q.y);
+  }
+  X.closePath();
+}
+
+function draw() {
+  const now = performance.now();
+  const w = C.width = innerWidth, h = C.height = innerHeight;
+  X.fillStyle = '#0b0d11'; X.fillRect(0, 0, w, h);
+  if (document.getElementById('spin').checked) rotY += .0022;
+
+  const pts = P.map(p => project(p, w, h));
+
+  // how hot is each floor right now — a floor glows under the book being read
+  const heat = {};
+  for (const f of flares) {
+    const k = 1 - (now - f.t0) / FLARE_MS;
+    if (k <= 0) continue;
+    const z = D.nodes[f.i].z;
+    heat[z] = Math.max(heat[z] || 0, k);
+  }
+
+  // floors, back to front, so near floors occlude far ones
+  const order = STRATA_USED.slice().sort((a, b) =>
+    project({x:0,y:0,z:(5-a)*LIFT}, w, h).depth - project({x:0,y:0,z:(5-b)*LIFT}, w, h).depth);
+
+  for (const s of order) {
+    const hot = heat[s] || 0;
+    // the slab. Filled, faintly, so it reads as a floor rather than a wire ring
+    floorPath(w, h, s, R_OUT);
+    X.fillStyle = 'rgba(24,32,44,' + (0.50 + hot * 0.30) + ')';
+    X.fill();
+    // shelves — the dependency tiers, ruled on the floor
+    for (let t = 1; t <= 7; t++) {
+      floorPath(w, h, s, 74 + t * RING);
+      X.strokeStyle = 'rgba(88,166,255,' + (0.045 + hot * 0.05) + ')';
+      X.lineWidth = 1; X.stroke();
+    }
+    drawSectors(w, h, s);
+    // rim
+    floorPath(w, h, s, R_OUT);
+    X.strokeStyle = 'rgba(88,166,255,' + (0.16 + hot * 0.44) + ')';
+    X.lineWidth = hot > 0 ? 1.8 : 1.1; X.stroke(); X.lineWidth = 1;
+
+    // Edge label, opaque ink, never sitting on what it labels — house rule.
+    const lab = project({ x: -R_OUT - 58, y: 0, z: (5 - s) * LIFT }, w, h);
+    X.font = '11px Segoe UI';
+    const txt = D.STRATUM_LABEL[s] || ('stratum ' + s), tw = X.measureText(txt).width;
+    X.fillStyle = 'rgba(11,13,17,.88)';
+    X.fillRect(lab.x - tw - 8, lab.y - 10, tw + 10, 15);
+    X.fillStyle = hot > 0.15 ? '#e6edf3' : '#8b949e';
+    X.fillText(txt, lab.x - tw - 3, lab.y + 1);
+  }
+
+  drawSectorLabels(w, h);
+
+  // relations
+  if (document.getElementById('edges').checked) {
+    for (const [a, b] of D.links) {
+      if (!D.nodes[a] || !D.nodes[b]) continue;
+      const crosses = D.nodes[a].z !== D.nodes[b].z;
+      // Much fainter than kb3d's. There are 1217 of these and the books have to
+      // read through them — relations are the room's structure, not its subject.
+      X.strokeStyle = crosses ? 'rgba(240,183,47,.055)' : 'rgba(120,140,170,.022)';
+      X.beginPath(); X.moveTo(pts[a].x, pts[a].y); X.lineTo(pts[b].x, pts[b].y); X.stroke();
+    }
+  }
+
+  // an edit drawing itself in
+  for (let k = newEdges.length - 1; k >= 0; k--) {
+    const e = newEdges[k], u = (now - e.t0) / EDGE_MS;
+    if (u > 1) { newEdges.splice(k, 1); continue; }
+    const A = pts[e.a], B = pts[e.b];
+    X.strokeStyle = 'rgba(63,185,80,' + (1 - u * 0.4) + ')'; X.lineWidth = 2;
+    X.beginPath(); X.moveTo(A.x, A.y);
+    X.lineTo(A.x + (B.x - A.x) * Math.min(1, u * 1.4), A.y + (B.y - A.y) * Math.min(1, u * 1.4));
+    X.stroke(); X.lineWidth = 1;
+  }
+
+  // ── the books ─────────────────────────────────────────────────────────────
+  // Upright spines, not dots. Height from fan-in: a much-depended-on entry is a
+  // thick volume. Drawn far-to-near.
+  const flareOf = {};
+  for (const f of flares) {
+    const k = 1 - (now - f.t0) / FLARE_MS;
+    if (k > (flareOf[f.i]?.k || 0)) flareOf[f.i] = { k, thread: f.thread };
+  }
+
+  const ord = D.nodes.map((_, i) => i).sort((a, b) => pts[a].depth - pts[b].depth);
+  for (const i of ord) {
+    const n = D.nodes[i], p = pts[i], q = P[i];
+    const fl = flareOf[i];
+    const k = fl ? fl.k : 0;
+    // spine height, in world units, then projected so it foreshortens correctly
+    const hgt = 16 + Math.min(30, Math.sqrt(n.f || 0) * 9);
+    const top = project({ x: q.x, y: q.y, z: q.z + hgt * (1 + k * 0.55) }, w, h);
+    const wide = Math.max(1.6, 1.6 + Math.sqrt(n.f || 0) * 0.55) * zoom * 1.4;
+    const col = TYPE_COLOR[n.t] || '#8b949e';
+
+    if (k > 0) {
+      // the floor rings under a book being opened
+      const R = Math.hypot(q.x, q.y);
+      const glow = X.createRadialGradient(p.x, p.y, 0, p.x, p.y, 46 * k * zoom * 1.6 + 10);
+      const tc = THREAD_COLOR[fl.thread] || THREAD_COLOR.anon;
+      glow.addColorStop(0, tc + 'aa'); glow.addColorStop(1, tc + '00');
+      X.fillStyle = glow;
+      X.beginPath(); X.arc(p.x, p.y, 46 * k * zoom * 1.6 + 10, 0, 7); X.fill();
+    }
+
+    // the spine
+    X.globalAlpha = n.a ? (0.62 + k * 0.38) : 0.28;
+    X.strokeStyle = k > 0 ? (THREAD_COLOR[fl.thread] || '#fff') : col;
+    X.lineWidth = wide;
+    X.beginPath(); X.moveTo(p.x, p.y); X.lineTo(top.x, top.y); X.stroke();
+    // the top edge catches light
+    X.fillStyle = k > 0 ? '#ffffff' : col;
+    X.globalAlpha = n.a ? (0.75 + k * 0.25) : 0.3;
+    X.beginPath(); X.arc(top.x, top.y, wide * 0.5, 0, 7); X.fill();
+    X.globalAlpha = 1; X.lineWidth = 1;
+  }
+
+  drawDistricts(w, h, pts);
+  drawCrossRefs(w, h, pts);
+  drawAppLinks(w, h, pts);
+
+  // ── attention moving between books ────────────────────────────────────────
+  for (let k = arcs.length - 1; k >= 0; k--) {
+    const a = arcs[k], u = (now - a.t0) / ARC_MS;
+    if (u > 1) { arcs.splice(k, 1); continue; }
+    const A = pts[a.a], B = pts[a.b];
+    const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2 - Math.hypot(B.x - A.x, B.y - A.y) * 0.22;
+    const tc = THREAD_COLOR[a.thread] || THREAD_COLOR.anon;
+    // the trail
+    X.strokeStyle = tc + '44'; X.lineWidth = 1.2;
+    X.beginPath(); X.moveTo(A.x, A.y); X.quadraticCurveTo(mx, my, B.x, B.y); X.stroke();
+    // the head, travelling
+    const t = Math.min(1, u * 1.25), it = 1 - t;
+    const hx = it*it*A.x + 2*it*t*mx + t*t*B.x, hy = it*it*A.y + 2*it*t*my + t*t*B.y;
+    X.fillStyle = tc; X.globalAlpha = 1 - u * 0.7;
+    X.beginPath(); X.arc(hx, hy, 3.4, 0, 7); X.fill();
+    X.globalAlpha = 1; X.lineWidth = 1;
+  }
+
+  // expire flares
+  for (let k = flares.length - 1; k >= 0; k--)
+    if (now - flares[k].t0 > FLARE_MS) flares.splice(k, 1);
+
+  requestAnimationFrame(draw);
+}
+
+// ── the feed ────────────────────────────────────────────────────────────────
+// Two polls. Reads are the pulse; runs tell us WHOSE pulse it is, by the same
+// time-join the Room card uses to match an ask to its ledger record: a read at
+// time t belongs to whichever node was executing at t.
+const API = location.origin.startsWith('http') ? location.origin : 'http://localhost:3001';
+let since = 0, windows = [], live = null;
+
+function threadAt(t) {
+  for (const w of windows) if (t >= w.from && (w.to === null || t <= w.to)) return w.node;
+  return 'anon';
+}
+
+async function pollRuns() {
+  try {
+    const r = await fetch(API + '/api/room/runs');
+    const j = await r.json();
+    const runs = j.runs || j || [];
+    const wins = [];
+    let active = null;
+    for (const run of runs) {
+      const nodes = run.nodes || run.state || {};
+      for (const [id, st] of Object.entries(nodes)) {
+        if (!['author', 'examiner-0', 'examiner-1'].includes(id)) continue;
+        const at = st.startedAt || st.at || st.started || null;
+        if (!at) continue;
+        const done = st.status === 'complete' ? (st.finishedAt || st.at || null) : null;
+        wins.push({ node: id, from: new Date(at).getTime(), to: done ? new Date(done).getTime() : null });
+        if (st.status === 'executing') active = id;
+      }
+    }
+    windows = wins;
+    const el = document.getElementById('now');
+    if (active) { el.innerHTML = '<span class="live">● ' + active + ' is reading</span>'; }
+    else if (runs.length) { el.textContent = runs.length + ' run(s) known — none executing'; }
+    else { el.textContent = 'idle — no runs in memory'; }
+  } catch (e) { /* leave the last known state */ }
+}
+
+async function pollReads() {
+  try {
+    const r = await fetch(API + '/api/room/kb/reads?since=' + since);
+    const j = await r.json();
+    if (live !== true) {
+      live = true;
+      document.getElementById('conn').innerHTML = '<span class="live">live</span>';
+    }
+    for (const rd of (j.reads || [])) {
+      if (rd.at <= since) continue;
+      since = Math.max(since, rd.at);
+      // rd.by is the agent naming itself (?by= in the brief). threadAt is the
+      // fallback for reads with no ?by: hand-run curls, and anything from
+      // before the brief carried it. It cannot separate the two examiners,
+      // which is exactly why ?by exists.
+      openBook(rd.id, rd.by || threadAt(rd.at), rd.at);
+    }
+  } catch (e) {
+    if (live !== false) {
+      live = false;
+      document.getElementById('conn').innerHTML = '<span class="cold">offline</span>';
+    }
+  }
+}
+
+// A demo, clearly labelled as one, so the page is legible before the loop next
+// runs. It invents nothing about the KB — it walks real entries along real
+// dependency edges, which is what a real read sequence looks like.
+let demoTimer = null;
+function demoStep() {
+  const threads = ['author', 'examiner-0', 'examiner-1'];
+  const th = threads[Math.floor(Math.random() * 3)];
+  const prev = lastByThread[th];
+  let next;
+  if (prev !== undefined) {
+    const nbrs = D.links.filter(([a, b]) => a === prev || b === prev)
+      .map(([a, b]) => a === prev ? b : a);
+    if (nbrs.length) next = nbrs[Math.floor(Math.random() * nbrs.length)];
+  }
+  if (next === undefined) next = Math.floor(Math.random() * D.nodes.length);
+  const n = D.nodes[next];
+  if (n && n.i) openBook(n.i, th, Date.now());
+  demoTimer = setTimeout(demoStep, 380 + Math.random() * 900);
+}
+document.getElementById('demo').addEventListener('change', e => {
+  if (e.target.checked) demoStep();
+  else { clearTimeout(demoTimer); demoTimer = null; }
+});
+if (location.hash.includes('demo')) {
+  document.getElementById('demo').checked = true;
+  demoStep();
+}
+
+// ── replay ──────────────────────────────────────────────────────────────────
+// The trace is persisted now, so a run that happened at 02:00 can be watched
+// afterwards. A dump of the whole history would flare everything at once, which
+// shows what was read but not the READING — so this re-emits the events with
+// their real gaps.
+//
+// Long gaps are compressed. An agent thinks for tens of seconds between fetches
+// and a faithful replay would be mostly empty screen; the cap is stated in the
+// UI rather than hidden, because a silently re-timed replay is a lie about how
+// the system worked.
+const GAP_CAP_MS = 1600;
+let sessions = [], replaying = false;
+
+function splitSessions(reads) {
+  // A gap over five minutes is a different sitting, not a pause for thought.
+  const out = [];
+  let cur = null;
+  for (const r of reads) {
+    if (!cur || r.at - cur[cur.length - 1].at > 5 * 60 * 1000) { cur = []; out.push(cur); }
+    cur.push(r);
+  }
+  return out.filter(s => s.length > 1);
+}
+
+async function loadSessions() {
+  const sel = document.getElementById('sessions'), btn = document.getElementById('play');
+  try {
+    const j = await (await fetch(API + '/api/room/kb/reads?since=0')).json();
+    sessions = splitSessions((j.reads || []).slice().sort((a, b) => a.at - b.at));
+    if (!sessions.length) { sel.innerHTML = '<option value="">no history yet</option>'; return; }
+    sel.innerHTML = sessions.map((s, i) => {
+      const t0 = new Date(s[0].at);
+      const who = [...new Set(s.map(r => r.by).filter(Boolean))];
+      const span = Math.round((s[s.length - 1].at - s[0].at) / 1000);
+      return '<option value="' + i + '">'
+        + t0.toLocaleDateString([], {month:'short', day:'numeric'}) + ' '
+        + t0.toLocaleTimeString([], {hour12:false})
+        + '  ·  ' + s.length + ' reads, ' + span + 's'
+        + (who.length ? '  ·  ' + who.length + ' agent' + (who.length > 1 ? 's' : '') : '')
+        + '</option>';
+    }).reverse().join('');
+    sel.value = String(sessions.length - 1);
+    btn.disabled = false;
+  } catch (e) { sel.innerHTML = '<option value="">history unavailable</option>'; }
+}
+
+async function playSession(i) {
+  const s = sessions[i]; if (!s || replaying) return;
+  replaying = true;
+  const btn = document.getElementById('play');
+  btn.disabled = true; btn.textContent = 'replaying…';
+  logLine('<span style="color:#8b949e">— replay of ' + new Date(s[0].at).toLocaleString() + ' —</span>');
+  for (let k = 0; k < s.length; k++) {
+    const r = s[k];
+    openBook(r.id, r.by || 'anon', r.at);
+    const gap = k + 1 < s.length ? s[k + 1].at - r.at : 0;
+    if (gap > 0) await new Promise(res => setTimeout(res, Math.min(gap, GAP_CAP_MS)));
+  }
+  btn.disabled = false; btn.textContent = 'replay';
+  replaying = false;
+}
+
+document.getElementById('play').addEventListener('click', () => {
+  const v = document.getElementById('sessions').value;
+  if (v !== '') playSession(Number(v));
+});
+// Selecting a field asks a QUESTION of the library rather than rearranging it:
+// every book affiliated with that discipline lights and draws its line to the
+// anchor. Nothing moves, so nothing can be mis-placed by the act of asking.
+const fieldSel = document.getElementById('field');
+fieldSel.innerHTML = '<option value="">all genres</option>'
+  + SECTORS.map(s => '<option value="' + s.k + '">' + s.k
+      + '  · ' + (GENRE_COUNT[s.k] || 0) + '</option>').join('');
+fieldSel.addEventListener('change', () => {
+  const f = fieldSel.value;
+  document.getElementById('axis').textContent = f
+    ? (GENRE_COUNT[f] || 0) + ' catalogued under ' + f
+    : (D.nodes.filter(n => (n.sub || []).length).length) + ' of ' + D.nodes.length + ' classified';
+});
+fieldSel.dispatchEvent(new Event('change'));
+
+// Only after the listener above exists. The first cut put this earlier in the
+// file and the dispatched event had nobody to hear it: the checkbox showed
+// ticked and nothing moved, which looks exactly like a broken toggle.
+document.getElementById('district').innerHTML =
+  '<option value="">all projects</option>'
+  + DISTRICTS.map((d, i) => '<option value="' + i + '">' + d.name + '</option>').join('');
+
+loadSessions();
+setInterval(loadSessions, 60000);
+
+// The live trace only exists on Cole's machine. Published to peirastes.com this
+// page is a static map of the building, so polling would be a 404 every 1.1s
+// against GitHub Pages forever. Say "local only" rather than "offline": offline
+// implies something is broken, and nothing is.
+const LOCAL = /^(localhost|127.0.0.1)$/.test(location.hostname) || location.protocol === 'file:';
+if (LOCAL) {
+  setInterval(pollReads, 1100);
+  setInterval(pollRuns, 3000);
+  pollReads(); pollRuns();
+} else {
+  document.getElementById('conn').textContent = 'local only';
+  document.getElementById('now').textContent = 'the reading trace runs on the local machine';
+  const rp = document.getElementById('play'); if (rp) rp.disabled = true;
+  const ss = document.getElementById('sessions');
+  if (ss) ss.innerHTML = '<option value="">no history here</option>';
+}
+
+// ── interaction ─────────────────────────────────────────────────────────────
+C.addEventListener('mousedown', e => { dragging = true; lx = e.clientX; ly = e.clientY; });
+addEventListener('mouseup', () => dragging = false);
+addEventListener('wheel', e => { zoom = Math.max(.25, Math.min(2.2, zoom * (e.deltaY > 0 ? .93 : 1.075))); }, {passive:true});
+addEventListener('mousemove', e => {
+  if (dragging) {
+    rotY += (e.clientX - lx) * .006; rotX += (e.clientY - ly) * .006;
+    lx = e.clientX; ly = e.clientY; return;
+  }
+  const w = innerWidth, h = innerHeight;
+  let best = -1, bd = 100;
+  for (let i = 0; i < P.length; i++) {
+    const p = project(P[i], w, h);
+    const d = Math.hypot(p.x - e.clientX, p.y - e.clientY);
+    if (d < 11 && d < bd) { bd = d; best = i; }
+  }
+  const tip = document.getElementById('tip');
+  if (best >= 0) {
+    const n = D.nodes[best];
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX + 13) + 'px'; tip.style.top = (e.clientY + 13) + 'px';
+    tip.innerHTML = '<b>' + (n.i || '?') + '</b>'
+      + '<br><span style="color:#8b949e">' + (D.STRATUM_LABEL[n.z] || '')
+      + '<br>' + (n.d || '?') + ' · ' + (n.l || '?') + ' layer'
+      + '<br>' + (n.f || 0) + ' depend on it</span>';
+  } else tip.style.display = 'none';
+});
+
+draw();
+</script>
