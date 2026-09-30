@@ -105,14 +105,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +140,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +159,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -161,9 +188,23 @@
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -186,110 +227,155 @@
         <div class="content-body">
 
 <h2 id="setting-the-charges-in-motion">26.0 — Setting the Charges in Motion</h2>
-<p>In Chapters 22 through 25, we built a powerful framework for <strong>electrostatics</strong> — charges at rest. We learned how charges create electric fields, how Gauss’s Law relates fields to enclosed charge, how electric potential provides a scalar energy landscape, and how capacitors store energy in the field itself. In every case, the charges were stationary.</p>
-<p>Now we set the charges in motion.</p>
-<p>When a potential difference is maintained across a conductor — by a battery, for example — the electric field inside drives free charges through the material, producing a continuous flow called <strong>electric current</strong>. This chapter introduces the vocabulary of circuits: current, resistance, resistivity, and electrical power.</p>
-<p>The story begins with <strong>Alessandro Volta</strong> (1745–1827), whose voltaic pile first provided a steady source of potential difference. Before Volta, experiments with static electricity produced spectacular sparks but no sustained flow. With the battery, sustained current became possible, and <strong>André-Marie Ampère</strong> (1775–1836) quickly developed a mathematical framework for the magnetic effects of current — work we will encounter in later chapters.</p>
-<p>But it was <strong>Georg Simon Ohm</strong> (1789–1854) who made the crucial connection between current and voltage: the current through a conductor is proportional to the potential difference across it. His law, published in 1827, was initially rejected — critics thought it “too simple” to be fundamental. Ohm lost his teaching position and spent years in obscurity before vindication.</p>
+<p>Chapters 22 through 25 built a complete framework for <strong>electrostatics</strong> — charges at rest. Charges create fields (Ch 22); Gauss’s Law relates a field to the charge it encloses (Ch 23); potential turns the field into a scalar energy landscape (Ch 24); and a capacitor stores energy in the field between two conductors (Ch 25). In every case the charges, once placed, stayed put.</p>
+<p>Chapter 25 ended with a loose end. Connect a charged capacitor to an empty one and the charge is shared, but <strong>half the stored energy disappears</strong> “to the wires.” That phrase assumed something electrostatics never described: that a wire <em>resists</em> the charge moving through it, and that the resistance turns energy into heat. This chapter makes that precise.</p>
+<p>When a potential difference is maintained across a conductor — by a battery, for example — the field inside drives free charges through the material and produces a continuous flow called <strong>electric current</strong>. This chapter builds the vocabulary of circuits: current, resistance, resistivity, and power.</p>
+<p>The story begins with <strong>Alessandro Volta</strong> (1745–1827), whose voltaic pile first provided a steady potential difference. Before Volta, static electricity gave sparks but no sustained flow. <strong>André-Marie Ampère</strong> (1775–1836) quickly developed the mathematics of current’s magnetic effects, which return in later chapters. It was <strong>Georg Simon Ohm</strong> (1789–1854) who connected current to voltage: the current through a conductor is proportional to the potential difference across it. His law, published in 1827, was dismissed as “too simple” to be fundamental, and Ohm lost his teaching position before it was accepted.</p>
 <blockquote>
 <p>“The force of the current in a galvanic circuit is directly as the sum of all the tensions, and inversely as the entire length of the circuit.” — Georg Ohm, <em>Die galvanische Kette</em> (1827)</p>
 </blockquote>
 <p><em>*Personal note: Ohm’s story is a reminder that simplicity in physics is a feature, not a flaw. His law is one of the most used equations in all of engineering, and it was nearly lost because it seemed “too obvious.”</em></p>
+<hr />
 <h2 id="electric-current">26.1 — Electric Current</h2>
 <h3 id="definition-of-current">Definition of Current</h3>
-<p>When charges flow through a conductor, we define the <strong>electric current</strong> <span class="math inline">\(I\)</span> as the rate at which charge passes through a cross-sectional area. If a net charge <span class="math inline">\(\Delta Q\)</span> passes through in time <span class="math inline">\(\Delta t\)</span>, the <strong>average current</strong> is <span class="math inline">\(I_\text{avg} = \Delta Q/\Delta t\)</span>. The <strong>instantaneous current</strong> is:</p>
-<p><span class="math display">\[\boxed{I \equiv \frac{dQ}{dt}}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_1_current_cross_section.png" alt="Figure 26.1: Positive charges flowing through a cross-sectional area A, with current direction indicated" loading="lazy" style="max-width:min(3.5in,100%)" /><figcaption>Figure 26.1: Positive charges flowing through a cross-sectional area A, with current direction indicated</figcaption></figure>
-<p>The SI unit of current is the <strong>ampere</strong> (A), named after <strong>André-Marie Ampère</strong>: <span class="math inline">\(1\ \text{A} = 1\ \text{C/s}\)</span>. The ampere is an SI base unit — the coulomb is <em>defined</em> as the charge transported by 1 A in 1 second.</p>
+<p>The <strong>electric current</strong> <span class="math inline">\(I\)</span> is the rate at which charge passes through a cross-section of a conductor. If a net charge <span class="math inline">\(\Delta Q\)</span> crosses in time <span class="math inline">\(\Delta t\)</span>, the average current is <span class="math inline">\(I_\text{avg} = \Delta Q/\Delta t\)</span>, and the instantaneous current is</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I \equiv \frac{dQ}{dt}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_1_current_cross_section.png" alt="Figure 26.1: Positive charges crossing a cross-sectional area A; the current direction is the direction positive charge moves." loading="lazy" style="max-width:min(3.5in,100%)" /><figcaption>Figure 26.1: Positive charges crossing a cross-sectional area <span class="math inline">\(A\)</span>; the current direction is the direction positive charge moves.</figcaption></figure>
+<p>The SI unit is the <strong>ampere</strong>, <span class="math inline">\(1\ \text{A} = 1\ \text{C/s}\)</span>. The ampere is an SI base unit; the coulomb is <em>defined</em> as the charge carried by 1 A in 1 s.</p>
 <h3 id="direction-of-current">Direction of Current</h3>
-<p>By convention, <strong>conventional current</strong> flows in the direction <em>positive</em> charges would move — from high potential to low potential, in the direction of the electric field. In metals, the actual carriers are electrons moving opposite to the conventional current. Both descriptions produce the same physical effects, so we consistently use conventional current.</p>
-<p><em>*Personal note: This convention was established by Benjamin Franklin before the electron was discovered. By the time J.J. Thomson identified the electron in 1897, it was too deeply embedded to change. Every circuit diagram in the world still follows Franklin’s guess.</em></p>
-<h3 id="the-water-pipe-analogy">The Water-Pipe Analogy</h3>
-<p>Electric current is often compared to water flowing through pipes. The analogy is imperfect but useful for building intuition:</p>
+<p><strong>Conventional current</strong> points the way <em>positive</em> charge would move — from high potential to low, along <span class="math inline">\(\vec E\)</span>. In metals the actual carriers are electrons moving the opposite way. The two descriptions produce identical effects, so conventional current is used throughout.</p>
+<p><em>*Personal note: This convention was set by Benjamin Franklin before the electron was discovered. By the time J.J. Thomson identified the electron in 1897, it was too deeply embedded to change. Every circuit diagram in the world still follows Franklin’s guess.</em></p>
+<div class="check">
+<p><strong>The current is the same through every cross-section of a single wire.</strong> In a steady state, charge cannot pile up anywhere along the wire — if more entered a segment than left it, that segment’s charge would grow without limit and its field would push back until the flows matched. So a wire that narrows, bends or changes material still carries <strong>one</strong> current along its length. This is charge conservation, and §26.2 uses it immediately.</p>
+</div>
+<div class="connection">
+<p><strong>Current is a flow rate, and Physics I already had one.</strong> A fluid of density <span class="math inline">\(\rho_m\)</span> moving at speed <span class="math inline">\(v\)</span> through a pipe of area <span class="math inline">\(A\)</span> carries mass at the rate <span class="math inline">\(\dot m = \rho_m A v\)</span>, and steady flow means <span class="math inline">\(\rho_m A_1v_1 = \rho_m A_2v_2\)</span> — the continuity equation. The electrical version has the same shape, with charge density <span class="math inline">\(nq\)</span> in place of <span class="math inline">\(\rho_m\)</span>, and it is derived next.</p>
 <table>
 <thead>
 <tr class="header">
-<th>Water Analogy</th>
-<th>Electrical Quantity</th>
-<th>Symbol</th>
-<th>Unit</th>
+<th>Fluid flow (Physics I)</th>
+<th>Charge flow (Ch 26)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Flow rate (gallons/min)</td>
-<td>Current</td>
-<td><span class="math inline">\(I\)</span></td>
-<td>A (ampere)</td>
+<td>Mass flow rate <span class="math inline">\(\dot m\)</span> (kg/s)</td>
+<td>Current <span class="math inline">\(I\)</span> (A = C/s)</td>
 </tr>
 <tr class="even">
 <td>Pressure difference</td>
-<td>Potential difference</td>
-<td><span class="math inline">\(\Delta V\)</span></td>
-<td>V (volt)</td>
+<td>Potential difference <span class="math inline">\(\Delta V\)</span></td>
 </tr>
 <tr class="odd">
-<td>Pipe restriction/friction</td>
-<td>Resistance</td>
-<td><span class="math inline">\(R\)</span></td>
-<td><span class="math inline">\(\Omega\)</span> (ohm)</td>
+<td>Pipe friction</td>
+<td>Resistance <span class="math inline">\(R\)</span></td>
 </tr>
 <tr class="even">
 <td>Pump</td>
-<td>Battery (EMF source)</td>
-<td><span class="math inline">\(\mathcal{E}\)</span></td>
-<td>V</td>
+<td>Battery (EMF <span class="math inline">\(\mathcal{E}\)</span>)</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\dot m = \rho_m A v\)</span></td>
+<td><span class="math inline">\(I = nqv_dA\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>More pressure (voltage) drives more flow (current); a narrower or longer pipe (higher resistance) restricts flow.</p>
+</div>
+<hr />
 <h2 id="microscopic-model-drift-velocity">26.2 — Microscopic Model: Drift Velocity</h2>
 <h3 id="charge-carriers-in-a-conductor">Charge Carriers in a Conductor</h3>
-<p>What happens inside a wire when current flows? The wire contains an enormous number of free electrons — roughly one per atom in a metal like copper. We describe the conductor by:</p>
+<p>A metal wire holds an enormous number of free electrons — about one per atom in copper. Three quantities describe it:</p>
 <ul>
-<li><strong>Number density</strong> <span class="math inline">\(n\)</span>: the number of mobile charge carriers per unit volume (m<span class="math inline">\(^{-3}\)</span>)</li>
-<li><strong>Charge</strong> <span class="math inline">\(q\)</span>: the charge of each carrier (for electrons, <span class="math inline">\(q = e = 1.602 \times 10^{-19}\)</span> C)</li>
-<li><strong>Cross-sectional area</strong> <span class="math inline">\(A\)</span>: the wire’s cross-section (m<span class="math inline">\(^2\)</span>)</li>
+<li><strong>Number density</strong> <span class="math inline">\(n\)</span>: mobile carriers per unit volume (m<span class="math inline">\(^{-3}\)</span>)</li>
+<li><strong>Carrier charge</strong> <span class="math inline">\(q\)</span>: for electrons, <span class="math inline">\(|q| = e = 1.602 \times 10^{-19}\)</span> C</li>
+<li><strong>Cross-sectional area</strong> <span class="math inline">\(A\)</span> (m<span class="math inline">\(^2\)</span>)</li>
 </ul>
-<h3 id="derivation-of-current-from-drift-velocity">Derivation of Current from Drift Velocity</h3>
-<p>Consider a cylindrical segment of wire with cross-sectional area <span class="math inline">\(A\)</span>. In a time interval <span class="math inline">\(\Delta t\)</span>, carriers moving with drift velocity <span class="math inline">\(v_d\)</span> sweep out a cylinder of length <span class="math inline">\(\Delta x = v_d\Delta t\)</span>.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_2_drift_velocity.png" alt="Figure 26.2: Cylindrical wire segment showing drift velocity and charge carriers" loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 26.2: Cylindrical wire segment showing drift velocity and charge carriers</figcaption></figure>
-<p>The charge in this volume is <span class="math inline">\(\Delta Q = (nAv_d\Delta t)q\)</span>, so:</p>
-<p><span class="math display">\[\boxed{I = nqv_dA}\]</span></p>
-<p>The <strong>current density</strong> <span class="math inline">\(J\)</span> is the current per unit area:</p>
-<p><span class="math display">\[\boxed{J = \frac{I}{A} = nqv_d}\]</span></p>
+<h3 id="current-from-drift-velocity">Current from Drift Velocity</h3>
+<p>The carriers move along the wire with an average <strong>drift velocity</strong> <span class="math inline">\(v_d\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_2_drift_velocity.png" alt="Figure 26.2: In time \Delta t the carriers sweep out a cylinder of length v_d\Delta t; every carrier inside it crosses the shaded face." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 26.2: In time <span class="math inline">\(\Delta t\)</span> the carriers sweep out a cylinder of length <span class="math inline">\(v_d\Delta t\)</span>; every carrier inside it crosses the shaded face.</figcaption></figure>
+<p><strong>Step 1 — the swept volume.</strong> In time <span class="math inline">\(\Delta t\)</span> each carrier advances <span class="math inline">\(\Delta x = v_d\Delta t\)</span>, so every carrier within that distance of a cross-section crosses it. That region is a cylinder of volume <span class="math inline">\(Av_d\Delta t\)</span>.</p>
+<p><strong>Step 2 — count the carriers.</strong> At <span class="math inline">\(n\)</span> per unit volume, the cylinder holds <span class="math inline">\(N = nAv_d\Delta t\)</span> carriers.</p>
+<p><strong>Step 3 — the charge.</strong> Each carries <span class="math inline">\(q\)</span>: <span class="math inline">\(\Delta Q = Nq = nqAv_d\Delta t\)</span>.</p>
+<p><strong>Step 4 — divide by <span class="math inline">\(\Delta t\)</span>.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I = nqv_dA\;}\]</span></p>
+</div>
+<p>Dividing by the area gives the <strong>current density</strong>, the current per unit area:</p>
+<p><span class="math display">\[\vec J = nq\vec v_d, \qquad J = \frac{I}{A}\]</span></p>
+<p><span class="math inline">\(\vec J\)</span> is a vector that points along the flow of positive charge. For electrons <span class="math inline">\(q&lt;0\)</span>, so <span class="math inline">\(\vec v_d\)</span> and <span class="math inline">\(\vec J\)</span> point in opposite directions — the electrons drift against the current, as §26.1 said.</p>
 <h3 id="random-motion-vs.-drift">Random Motion vs. Drift</h3>
-<p>Without an applied electric field, the free electrons in a metal are not stationary — they zip around at enormous thermal speeds, on the order of <span class="math inline">\(10^6\)</span> m/s at room temperature. However, their motion is random in every direction, so the <em>average</em> velocity over all electrons is zero. No net charge transport occurs.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_3_random_vs_drift.png" alt="Figure 26.3: (a) Random thermal motion with no net displacement; (b) random motion with a small drift superimposed when an electric field is applied" loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 26.3: (a) Random thermal motion with no net displacement; (b) random motion with a small drift superimposed when an electric field is applied</figcaption></figure>
-<p>When an external electric field <span class="math inline">\(\vec{E}\)</span> is applied, each electron experiences a force <span class="math inline">\(\vec{F} = q\vec{E}\)</span> that gives it a slight bias in one direction between collisions with lattice ions. The result is a tiny net <strong>drift velocity</strong> <span class="math inline">\(\vec{v}_d\)</span> superimposed on the random thermal motion. The drift speed is <em>vastly</em> smaller than the thermal speed, as the following example shows.</p>
-<h3 id="example-drift-speed-in-a-copper-wire">Example: Drift Speed in a Copper Wire</h3>
-<p>A 12-gauge copper wire (<span class="math inline">\(A = 3.31 \times 10^{-6}\)</span> m<span class="math inline">\(^2\)</span>) carries <span class="math inline">\(I = 10.0\)</span> A. Copper: density <span class="math inline">\(\rho_m = 8920\)</span> kg/m<span class="math inline">\(^3\)</span>, molar mass <span class="math inline">\(M = 0.0635\)</span> kg/mol. One free electron per atom.</p>
-<p><strong>Number density:</strong> <span class="math inline">\(n = N_A\rho_m/M = (6.022 \times 10^{23})(8920)/0.0635 = 8.46 \times 10^{28}\)</span> m<span class="math inline">\(^{-3}\)</span></p>
-<p><strong>Drift speed:</strong></p>
+<p>With no applied field the free electrons are far from stationary. They move at thermal speeds of order <span class="math inline">\(10^6\)</span> m/s, but in random directions, so their <em>average</em> velocity is zero and no charge is transported. An applied field <span class="math inline">\(\vec E\)</span> exerts <span class="math inline">\(\vec F = q\vec E\)</span> on each electron, biasing its motion slightly between collisions with the lattice. The result is a small drift superimposed on the random motion.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_3_random_vs_drift.png" alt="Figure 26.3: (a) Random thermal motion with no net displacement. (b) With a field applied, a small drift is superimposed on the same random motion." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 26.3: (a) Random thermal motion with no net displacement. (b) With a field applied, a small drift is superimposed on the same random motion.</figcaption></figure>
+<section id="example-drift-speed-in-a-copper-wire" class="example">
+<h3>Example: Drift Speed in a Copper Wire</h3>
+<p>A 12-gauge copper wire (<span class="math inline">\(A = 3.31 \times 10^{-6}\)</span> m<span class="math inline">\(^2\)</span>) carries <span class="math inline">\(I = 10.0\)</span> A. Copper has mass density <span class="math inline">\(\rho_m = 8920\)</span> kg/m<span class="math inline">\(^3\)</span> and molar mass <span class="math inline">\(M = 0.0635\)</span> kg/mol, with one free electron per atom.</p>
+<p><strong>Step 1 — the carrier density.</strong> One electron per atom, so <span class="math inline">\(n\)</span> is the number density of atoms:</p>
+<p><span class="math display">\[n = \frac{N_A\rho_m}{M} = \frac{(6.022 \times 10^{23})(8920)}{0.0635} = 8.46 \times 10^{28}\ \text{m}^{-3}\]</span></p>
+<p><strong>Step 2 — solve <span class="math inline">\(I = nqv_dA\)</span> for the drift speed.</strong></p>
 <p><span class="math display">\[v_d = \frac{I}{nqA} = \frac{10.0}{(8.46 \times 10^{28})(1.602 \times 10^{-19})(3.31 \times 10^{-6})}\]</span></p>
-<p><span class="math display">\[\boxed{v_d = 2.23 \times 10^{-4}\ \text{m/s} \approx 0.223\ \text{mm/s}}\]</span></p>
-<p><strong>Interpretation:</strong> The drift speed is astonishingly slow — less than a quarter of a millimeter per second! At this rate, an electron would take about 4.5 hours to travel 1 meter through the wire. Yet when you flip a light switch, the light comes on almost instantly. How? The electric field propagates through the wire at nearly the speed of light, setting <em>all</em> electrons in motion almost simultaneously. It is the <em>signal</em> that travels fast, not the individual electrons.</p>
-<p><em>*Personal note: Think of a garden hose already full of water. When you open the nozzle, water comes out the far end immediately — not because any individual water molecule traveled the length of the hose, but because the pressure wave propagated quickly. Current works the same way.</em></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;v_d = 2.23 \times 10^{-4}\ \text{m/s} \approx 0.223\ \text{mm/s}\;}\]</span></p>
+</div>
+</section>
+<div class="check">
+<p><strong>Check the scale.</strong> That is billions of times slower than the thermal motion, and an electron would need about 75 minutes to drift the length of a 1 m wire. Yet a light comes on the instant the switch closes. <strong>What travels fast is the field, not the electrons</strong>: closing the switch establishes the field along the whole wire at nearly the speed of light, and every electron in the circuit starts drifting almost at once.</p>
+</div>
+<p><em>*Personal note: Think of a garden hose already full of water. Open the nozzle and water leaves the far end immediately — not because any molecule travelled the length of the hose, but because the pressure wave did.</em></p>
+<section id="example-a-wire-that-narrows" class="example">
+<h3>Example: A Wire That Narrows</h3>
+<p>A copper wire of diameter <span class="math inline">\(2.00\)</span> mm is joined to a section of diameter <span class="math inline">\(1.00\)</span> mm, and the pair carries <span class="math inline">\(I = 4.00\)</span> A. Find the drift speed and the current density in each section. (<span class="math inline">\(n = 8.46 \times 10^{28}\)</span> m<span class="math inline">\(^{-3}\)</span>.)</p>
+<p><strong>Step 1 — one current.</strong> By the check in §26.1, both sections carry the same <span class="math inline">\(I = 4.00\)</span> A. Only the area changes.</p>
+<p><strong>Step 2 — the areas.</strong> <span class="math inline">\(A_1 = \pi(1.00 \times 10^{-3})^2 = 3.14 \times 10^{-6}\)</span> m<span class="math inline">\(^2\)</span> and <span class="math inline">\(A_2 = \pi(0.500 \times 10^{-3})^2 = 7.85 \times 10^{-7}\)</span> m<span class="math inline">\(^2\)</span>.</p>
+<p><strong>Step 3 — drift speed and current density.</strong></p>
+<p><span class="math display">\[v_{d1} = \frac{I}{nqA_1} = \frac{4.00}{(8.46 \times 10^{28})(1.602 \times 10^{-19})(3.14 \times 10^{-6})} = 9.39 \times 10^{-5}\ \text{m/s}\]</span></p>
+<p><span class="math display">\[J_1 = \frac{I}{A_1} = 1.27 \times 10^{6}\ \text{A/m}^2\]</span></p>
+<p>Halving the diameter quarters the area, so without recomputing:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;v_{d2} = 4v_{d1} = 3.76 \times 10^{-4}\ \text{m/s}, \qquad J_2 = 4J_1 = 5.09 \times 10^{6}\ \text{A/m}^2\;}\]</span></p>
+</div>
+</section>
+<div class="check">
+<p><strong>Check against continuity.</strong> <span class="math inline">\(A_1v_{d1} = A_2v_{d2}\)</span>, exactly the fluid result <span class="math inline">\(A_1v_1 = A_2v_2\)</span> — the electrons speed up through the narrow section the way water speeds up through a nozzle. <strong>The narrow section needs four times the current density, so it will also need four times the field</strong>; §26.3 shows why, and why that section is where a wire heats first.</p>
+</div>
+<hr />
 <h2 id="resistance-ohms-law-and-resistivity">26.3 — Resistance, Ohm’s Law, and Resistivity</h2>
 <h3 id="microscopic-ohms-law">Microscopic Ohm’s Law</h3>
-<p>For many materials, the current density is proportional to the electric field:</p>
-<p><span class="math display">\[\vec{J} = \sigma\vec{E}\]</span></p>
-<p>where <span class="math inline">\(\sigma\)</span> is the <strong>conductivity</strong> of the material (units: S/m). This is <strong>Ohm’s Law in microscopic form</strong>.</p>
-<h3 id="deriving-macroscopic-ohms-law">Deriving Macroscopic Ohm’s Law</h3>
-<p>For a uniform conductor of length <span class="math inline">\(\ell\)</span> and cross-sectional area <span class="math inline">\(A\)</span>, with potential difference <span class="math inline">\(\Delta V\)</span>:</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_4_resistance_wire.png" alt="Figure 26.4: A uniform conductor of length l and area A with an electric field E and current I" loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 26.4: A uniform conductor of length l and area A with an electric field E and current I</figcaption></figure>
-<p>The uniform field is <span class="math inline">\(E = \Delta V/\ell\)</span> and <span class="math inline">\(J = I/A\)</span>. Substituting into <span class="math inline">\(J = \sigma E\)</span>:</p>
-<p><span class="math display">\[\frac{I}{A} = \sigma\frac{\Delta V}{\ell} \qquad \Longrightarrow \qquad \Delta V = \frac{\ell}{\sigma A}I = RI\]</span></p>
-<p>We define <strong>resistance</strong>:</p>
-<p><span class="math display">\[\boxed{R \equiv \frac{\Delta V}{I}} \qquad \text{units: ohm}\ (\Omega) = \text{V/A}\]</span></p>
-<p>This gives <strong>Ohm’s Law</strong> in its most familiar form:</p>
-<p><span class="math display">\[\boxed{\Delta V = IR}\]</span></p>
-<p>A material is <strong>ohmic</strong> if <span class="math inline">\(R\)</span> is constant (linear <span class="math inline">\(I\)</span>-<span class="math inline">\(\Delta V\)</span> curve). Most metals are ohmic. <strong>Non-ohmic</strong> devices — diodes, semiconductors, heated filaments — have resistance that varies with voltage or temperature.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_8_ohmic_nonohmic.png" alt="Figure 26.8: I vs. ΔV for ohmic (linear) and non-ohmic (curved) materials" loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 26.8: I vs. ΔV for ohmic (linear) and non-ohmic (curved) materials</figcaption></figure>
-<h3 id="resistance-from-geometry-and-resistivity">Resistance from Geometry and Resistivity</h3>
-<p>Since <span class="math inline">\(R = \ell/(\sigma A)\)</span>, we write resistance in terms of <strong>resistivity</strong> <span class="math inline">\(\rho = 1/\sigma\)</span> (<span class="math inline">\(\Omega \cdot \text{m}\)</span>):</p>
-<p><span class="math display">\[\boxed{R = \rho\frac{\ell}{A}}\]</span></p>
-<p>Resistance depends on three things: the material (<span class="math inline">\(\rho\)</span>), the length (<span class="math inline">\(\ell\)</span>), and the cross-sectional area (<span class="math inline">\(A\)</span>). Longer conductors have more resistance; thicker conductors have less.</p>
+<p>For many materials the current density is proportional to the field that drives it:</p>
+<p><span class="math display">\[\vec J = \sigma\vec E\]</span></p>
+<p>The constant <span class="math inline">\(\sigma\)</span> is the <strong>conductivity</strong> of the material (S/m). This is <strong>Ohm’s Law in microscopic form</strong> — a statement about a material at a point, not about a device.</p>
+<h3 id="from-the-material-to-the-device">From the Material to the Device</h3>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_4_resistance_wire.png" alt="Figure 26.4: A uniform conductor of length \ell and cross-sectional area A with a potential difference \Delta V across its ends." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 26.4: A uniform conductor of length <span class="math inline">\(\ell\)</span> and cross-sectional area <span class="math inline">\(A\)</span> with a potential difference <span class="math inline">\(\Delta V\)</span> across its ends.</figcaption></figure>
+<p>Take a uniform conductor of length <span class="math inline">\(\ell\)</span> and area <span class="math inline">\(A\)</span> with <span class="math inline">\(\Delta V\)</span> across its ends.</p>
+<p><strong>Step 1 — start at a point.</strong> <span class="math inline">\(J = \sigma E\)</span> holds everywhere inside.</p>
+<p><strong>Step 2 — the bridging step: trade <span class="math inline">\(J\)</span> and <span class="math inline">\(E\)</span> for device quantities.</strong> The current spreads uniformly over the cross-section, so <span class="math inline">\(J = I/A\)</span>. The wire is uniform, so the field is uniform along it, and Chapter 24’s <span class="math inline">\(\Delta V = -\int\vec E\cdot d\vec s\)</span> collapses to <span class="math inline">\(\Delta V = E\ell\)</span>, giving <span class="math inline">\(E = \Delta V/\ell\)</span>. <em>This is the step that turns a statement about a point into a statement about a component.</em></p>
+<p><strong>Step 3 — substitute.</strong></p>
+<p><span class="math display">\[\frac{I}{A} = \sigma\,\frac{\Delta V}{\ell} \qquad\Longrightarrow\qquad \Delta V = \left(\frac{\ell}{\sigma A}\right) I\]</span></p>
+<p><strong>Step 4 — name the bracket.</strong> Everything in it is fixed by the material and the geometry, so it is a property of the device, the <strong>resistance</strong>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;R \equiv \frac{\Delta V}{I}, \qquad \Delta V = IR\;}\]</span></p>
+</div>
+<p>The unit is the <strong>ohm</strong>, <span class="math inline">\(1\ \Omega = 1\)</span> V/A. Writing the material factor as the <strong>resistivity</strong> <span class="math inline">\(\rho = 1/\sigma\)</span> (<span class="math inline">\(\Omega\cdot\)</span>m):</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;R = \rho\,\frac{\ell}{A}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the limits, and read the physics off them.</strong></p>
+<ul>
+<li><strong>Longer <span class="math inline">\(\ell\)</span> <span class="math inline">\(\Rightarrow\)</span> larger <span class="math inline">\(R\)</span>.</strong> The same <span class="math inline">\(\Delta V\)</span> is spread over a longer path, so the field — and with it the current density — is smaller.</li>
+<li><strong>Larger <span class="math inline">\(A\)</span> <span class="math inline">\(\Rightarrow\)</span> smaller <span class="math inline">\(R\)</span>.</strong> More parallel paths for the same field; the current density is unchanged but there is more area to carry it.</li>
+<li><strong><span class="math inline">\(\ell \to 0\)</span> <span class="math inline">\(\Rightarrow\)</span> <span class="math inline">\(R \to 0\)</span>.</strong> A conductor of zero length drops no voltage — which is why connecting wires are drawn as ideal in circuit diagrams: their <span class="math inline">\(\ell/A\)</span> is tiny compared with a resistor’s.</li>
+<li><strong>Back to the narrow wire.</strong> At fixed <span class="math inline">\(I\)</span>, the field is <span class="math inline">\(E = \rho J\)</span>, so four times <span class="math inline">\(J\)</span> needs four times <span class="math inline">\(E\)</span> — the promise of §26.2, kept.</li>
+</ul>
+</div>
+<div class="connection">
+<p><strong>Area helps a capacitor and hurts a resistor.</strong> <span class="math inline">\(C = \varepsilon_0A/d\)</span> and <span class="math inline">\(R = \rho\ell/A\)</span> are built the same way — a material constant times a ratio of geometry — but <span class="math inline">\(A\)</span> sits on opposite sides. More plate area stores more charge per volt; more wire area passes more current per volt, which means <em>less</em> resistance. The same inversion reappears when the two are combined (§26.6).</p>
+</div>
+<h3 id="ohmic-and-non-ohmic-devices">Ohmic and Non-Ohmic Devices</h3>
+<p>A device is <strong>ohmic</strong> if <span class="math inline">\(R\)</span> is constant — a straight line through the origin on an <span class="math inline">\(I\)</span> vs. <span class="math inline">\(\Delta V\)</span> graph. Most metals at fixed temperature are ohmic. <strong>Non-ohmic</strong> devices — diodes, semiconductors, heated filaments — have a resistance that depends on the voltage or current.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_8_ohmic_nonohmic.png" alt="Figure 26.5: I vs. \Delta V for an ohmic resistor (straight line) and a non-ohmic device (curve)." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 26.5: <span class="math inline">\(I\)</span> vs. <span class="math inline">\(\Delta V\)</span> for an ohmic resistor (straight line) and a non-ohmic device (curve).</figcaption></figure>
+<p><span class="math inline">\(\Delta V = IR\)</span> can still <em>define</em> <span class="math inline">\(R\)</span> at any single point on a non-ohmic curve; what fails is the claim that the same <span class="math inline">\(R\)</span> holds at every point.</p>
 <h3 id="resistivities-of-common-materials">Resistivities of Common Materials</h3>
 <table>
 <thead>
@@ -352,24 +438,48 @@
 </tr>
 </tbody>
 </table>
-<p>All values at <span class="math inline">\(20°\text{C}\)</span>. The range spans roughly <strong>24 orders of magnitude</strong> — no other material property varies so widely.</p>
-<h3 id="example-the-resistance-of-nichrome-wire">Example: The Resistance of Nichrome Wire</h3>
-<p>The radius of 22-gauge Nichrome wire is 0.32 mm. <strong>(A)</strong> Resistance per unit length:</p>
-<p><span class="math display">\[\frac{R}{\ell} = \frac{\rho}{\pi r^2} = \frac{1.00 \times 10^{-6}}{\pi(0.32 \times 10^{-3})^2} = \boxed{3.1\ \Omega/\text{m}}\]</span></p>
-<p><strong>(B)</strong> Current when 10 V is applied across 1.0 m: <span class="math inline">\(R = 3.1\ \Omega\)</span>, so <span class="math inline">\(I = \Delta V/R = 10/3.1 = \boxed{3.2\ \text{A}}\)</span>.</p>
-<p>Nichrome’s resistivity is ~60 times that of copper, which is why it is used in heating elements.</p>
+<p>All values at <span class="math inline">\(20\,^\circ\text{C}\)</span>. The range spans roughly <strong>24 orders of magnitude</strong> — no other everyday material property varies so widely.</p>
+<section id="example-the-resistance-of-nichrome-wire" class="example">
+<h3>Example: The Resistance of Nichrome Wire</h3>
+<p>The radius of 22-gauge Nichrome wire is <span class="math inline">\(0.32\)</span> mm.</p>
+<p><strong>(A) Resistance per unit length.</strong> Divide <span class="math inline">\(R = \rho\ell/A\)</span> by <span class="math inline">\(\ell\)</span>:</p>
+<p><span class="math display">\[\frac{R}{\ell} = \frac{\rho}{\pi r^2} = \frac{1.00 \times 10^{-6}}{\pi(0.32 \times 10^{-3})^2}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\frac{R}{\ell} = 3.1\ \Omega/\text{m}\;}\]</span></p>
+</div>
+<p><strong>(B) Current with 10 V across 1.0 m.</strong> <span class="math inline">\(R = 3.1\ \Omega\)</span>, so</p>
+<p><span class="math display">\[I = \frac{\Delta V}{R} = \frac{10}{3.1} = 3.2\ \text{A}\]</span></p>
+</section>
+<p>Nichrome’s resistivity is about sixty times copper’s, which is why it is the wire inside heating elements: it turns a modest length into a useful resistance.</p>
+<section id="example-stretching-a-wire" class="example">
+<h3>Example: Stretching a Wire</h3>
+<p>A wire of resistance <span class="math inline">\(R_0\)</span> is drawn through a die until it is twice as long. The volume of metal does not change. Find the new resistance.</p>
+<p><strong>Step 1 — what is conserved.</strong> The volume <span class="math inline">\(A\ell\)</span> is fixed, so doubling <span class="math inline">\(\ell\)</span> halves <span class="math inline">\(A\)</span>.</p>
+<p><strong>Step 2 — scale each factor of <span class="math inline">\(R = \rho\ell/A\)</span>.</strong> The material is unchanged, the length is multiplied by 2, and the area by <span class="math inline">\(\tfrac12\)</span>:</p>
+<p><span class="math display">\[R = \rho\,\frac{2\ell_0}{A_0/2} = 4\,\rho\frac{\ell_0}{A_0}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;R = 4R_0\;}\]</span></p>
+</div>
+<p><strong>Generalise.</strong> Stretching by any factor <span class="math inline">\(s\)</span> at constant volume gives <span class="math inline">\(\ell = s\ell_0\)</span> and <span class="math inline">\(A = A_0/s\)</span>, so <span class="math inline">\(R = s^2R_0\)</span>.</p>
+</section>
+<div class="check">
+<p><strong>Check the limit, and why it is not <span class="math inline">\(2R_0\)</span>.</strong> At <span class="math inline">\(s = 1\)</span> the wire is unchanged and <span class="math inline">\(R = R_0\)</span>, as it must be. The factor is <span class="math inline">\(s^2\)</span>, not <span class="math inline">\(s\)</span>, because stretching attacks <span class="math inline">\(R\)</span> <strong>twice</strong> — once through the longer path and again through the thinner one. Reasoning that tracks only the length gets <span class="math inline">\(2R_0\)</span> and is off by a factor of two.</p>
+</div>
+<hr />
 <h2 id="temperature-dependence-and-the-drude-model">26.4 — Temperature Dependence and the Drude Model</h2>
 <h3 id="temperature-dependence-of-resistivity">Temperature Dependence of Resistivity</h3>
-<p>For most metals, resistivity increases approximately linearly with temperature:</p>
-<p><span class="math display">\[\boxed{\rho = \rho_0[1 + \alpha(T - T_0)]} \qquad \text{equivalently,} \qquad R = R_0[1 + \alpha(T - T_0)]\]</span></p>
-<p>where <span class="math inline">\(\alpha\)</span> is the <strong>temperature coefficient of resistivity</strong> (units: <span class="math inline">\(°\text{C}^{-1}\)</span>).</p>
+<p>For most metals, resistivity rises approximately linearly with temperature:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\rho = \rho_0\left[1 + \alpha(T - T_0)\right]\;} \qquad \text{and equivalently} \qquad R = R_0\left[1 + \alpha(T - T_0)\right]\]</span></p>
+</div>
+<p>where <span class="math inline">\(\alpha\)</span> is the <strong>temperature coefficient of resistivity</strong> (<span class="math inline">\(^\circ\text{C}^{-1}\)</span>). The <span class="math inline">\(R\)</span> form follows because <span class="math inline">\(\ell\)</span> and <span class="math inline">\(A\)</span> change far less with temperature than <span class="math inline">\(\rho\)</span> does.</p>
 <table>
 <thead>
 <tr class="header">
 <th>Material</th>
-<th><span class="math inline">\(\alpha\)</span> (<span class="math inline">\(°\text{C}^{-1}\)</span>)</th>
+<th><span class="math inline">\(\alpha\)</span> (<span class="math inline">\(^\circ\text{C}^{-1}\)</span>)</th>
 <th>Material</th>
-<th><span class="math inline">\(\alpha\)</span> (<span class="math inline">\(°\text{C}^{-1}\)</span>)</th>
+<th><span class="math inline">\(\alpha\)</span> (<span class="math inline">\(^\circ\text{C}^{-1}\)</span>)</th>
 </tr>
 </thead>
 <tbody>
@@ -393,42 +503,112 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Metals</strong> (positive <span class="math inline">\(\alpha\)</span>): higher temperature means more lattice vibrations, more electron scattering, higher resistivity. <strong>Semiconductors</strong> (negative <span class="math inline">\(\alpha\)</span>): higher temperature frees more carriers, which outweighs increased scattering.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_5_resistivity_temperature.png" alt="Figure 26.5: Resistivity vs. temperature for a typical metal, showing linear behavior at moderate T and nonlinear behavior near T = 0" loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 26.5: Resistivity vs. temperature for a typical metal, showing linear behavior at moderate T and nonlinear behavior near T = 0</figcaption></figure>
-<p><em>*Personal note: This is why incandescent bulbs draw a surge of current at turn-on. A cold tungsten filament has much lower resistance; at operating temperature (~<span class="math inline">\(2800°\text{C}\)</span>), its resistance is ~10 times the room-temperature value. The inrush current is why bulbs most often burn out at the moment you flip the switch.</em></p>
+<p><strong>Metals</strong> (positive <span class="math inline">\(\alpha\)</span>): higher temperature means stronger lattice vibrations, more scattering, and higher resistivity. <strong>Semiconductors</strong> (negative <span class="math inline">\(\alpha\)</span>): higher temperature frees more carriers, which outweighs the extra scattering.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_5_resistivity_temperature.png" alt="Figure 26.6: Resistivity vs. temperature for a typical metal — linear at ordinary temperatures, levelling off near T = 0 to a residual value set by impurities." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 26.6: Resistivity vs. temperature for a typical metal — linear at ordinary temperatures, levelling off near <span class="math inline">\(T = 0\)</span> to a residual value set by impurities.</figcaption></figure>
+<p><em>*Personal note: This is why incandescent bulbs draw a surge of current at turn-on. A cold tungsten filament has far lower resistance than a hot one, and the inrush is why bulbs most often burn out the moment you flip the switch.</em></p>
+<section id="example-a-motor-winding-as-its-own-thermometer" class="example">
+<h3>Example: A Motor Winding as Its Own Thermometer</h3>
+<p>The copper winding of an electric motor measures <span class="math inline">\(R_0 = 1.20\ \Omega\)</span> at <span class="math inline">\(T_0 = 20\,^\circ\text{C}\)</span> before it is switched on. After an hour of running it measures <span class="math inline">\(1.46\ \Omega\)</span>. How hot is the winding?</p>
+<p><strong>Step 1 — solve the linear model for <span class="math inline">\(T\)</span>.</strong></p>
+<p><span class="math display">\[\frac{R}{R_0} = 1 + \alpha(T - T_0) \qquad\Longrightarrow\qquad T = T_0 + \frac{1}{\alpha}\left(\frac{R}{R_0} - 1\right)\]</span></p>
+<p><strong>Step 2 — substitute</strong> (<span class="math inline">\(\alpha_\text{Cu} = 3.9 \times 10^{-3}\ ^\circ\text{C}^{-1}\)</span>):</p>
+<p><span class="math display">\[T = 20 + \frac{1}{3.9 \times 10^{-3}}\left(\frac{1.46}{1.20} - 1\right) = 20 + \frac{0.217}{3.9 \times 10^{-3}}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;T \approx 76\,^\circ\text{C}\;}\]</span></p>
+</div>
+<p>This is how the temperature <em>inside</em> a sealed winding is measured in practice — no thermometer can reach it, but the winding reports its own temperature through its resistance.</p>
+</section>
+<div class="check">
+<p><strong>Check the sign and the sensitivity.</strong> <span class="math inline">\(R\)</span> rose, and copper’s <span class="math inline">\(\alpha\)</span> is positive, so <span class="math inline">\(T\)</span> must rise — it did. A 22% change in resistance bought a 56 °C change in temperature: because <span class="math inline">\(\alpha\)</span> is small, <strong>modest temperature swings produce small resistance changes</strong>, which is why a precision measurement is needed to use a metal this way. A material with a larger <span class="math inline">\(|\alpha|\)</span> would make a more sensitive thermometer.</p>
+</div>
 <h3 id="the-drude-model">The Drude Model</h3>
-<p>In 1900, <strong>Paul Drude</strong> modeled conduction electrons as a classical gas accelerated by <span class="math inline">\(\vec{E}\)</span> and scattered by lattice ions. If the mean time between collisions is <span class="math inline">\(\tau\)</span>, each electron acquires drift velocity <span class="math inline">\(v_d = (qE/m_e)\tau\)</span>. Substituting into <span class="math inline">\(J = nqv_d\)</span> and comparing with <span class="math inline">\(J = \sigma E\)</span> gives:</p>
-<p><span class="math display">\[\boxed{\sigma = \frac{nq^2\tau}{m_e}}\]</span></p>
-<p>This connects measurable conductivity to microscopic quantities — carrier density <span class="math inline">\(n\)</span>, charge <span class="math inline">\(q\)</span>, mass <span class="math inline">\(m_e\)</span>, and scattering time <span class="math inline">\(\tau\)</span>. The Drude model is classical and incomplete, but it correctly predicts Ohm’s Law and gives the right order of magnitude for <span class="math inline">\(\sigma\)</span>.</p>
+<p>In 1900 <strong>Paul Drude</strong> modelled the conduction electrons as a classical gas, accelerated by <span class="math inline">\(\vec E\)</span> and scattered by the lattice ions. The model derives <span class="math inline">\(\vec J = \sigma\vec E\)</span> rather than assuming it.</p>
+<p><strong>Step 1 — between collisions.</strong> Each electron feels <span class="math inline">\(\vec F = q\vec E\)</span> and accelerates at <span class="math inline">\(\vec a = q\vec E/m_e\)</span>.</p>
+<p><strong>Step 2 — the bridging step: collisions reset the drift.</strong> After each collision an electron’s velocity points in a random direction, so on average it starts from zero drift and gains <span class="math inline">\(\vec a\,t\)</span> until the next collision. With a mean time <span class="math inline">\(\tau\)</span> between collisions, the average drift is</p>
+<p><span class="math display">\[\vec v_d = \vec a\,\tau = \frac{q\vec E}{m_e}\,\tau\]</span></p>
+<p><em>This is the step that turns a steadily accelerating particle into a steady flow: the collisions stop the acceleration from accumulating.</em></p>
+<p><strong>Step 3 — substitute into <span class="math inline">\(\vec J = nq\vec v_d\)</span>.</strong></p>
+<p><span class="math display">\[\vec J = nq\left(\frac{q\tau}{m_e}\right)\vec E = \left(\frac{nq^2\tau}{m_e}\right)\vec E\]</span></p>
+<p><strong>Step 4 — compare with <span class="math inline">\(\vec J = \sigma\vec E\)</span>.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\sigma = \frac{nq^2\tau}{m_e}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check what it predicts.</strong> The conductivity is independent of <span class="math inline">\(E\)</span>, so <span class="math inline">\(J\)</span> is proportional to <span class="math inline">\(E\)</span> — <strong>Ohm’s Law follows</strong> instead of being assumed. More carriers or longer times between collisions raise <span class="math inline">\(\sigma\)</span>; a heavier carrier lowers it. Rising temperature shortens <span class="math inline">\(\tau\)</span> through stronger lattice vibration, so a metal’s resistivity rises with <span class="math inline">\(T\)</span> — the positive <span class="math inline">\(\alpha\)</span> of the table above.</p>
+<p><strong>Check the scale.</strong> Solving for <span class="math inline">\(\tau = m_e/(nq^2\rho)\)</span> with aluminum’s <span class="math inline">\(\rho = 2.82 \times 10^{-8}\ \Omega\cdot\)</span>m and <span class="math inline">\(n = 1.81 \times 10^{29}\)</span> m<span class="math inline">\(^{-3}\)</span> (three free electrons per atom) gives <span class="math inline">\(\tau \approx 7 \times 10^{-15}\)</span> s: some <span class="math inline">\(10^{14}\)</span> collisions every second. The model is classical and incomplete — quantum mechanics revises the electrons’ speeds — but it gets the form of Ohm’s Law and the order of magnitude of <span class="math inline">\(\sigma\)</span> right.</p>
+</div>
+<div class="connection">
+<p><strong>Drift is terminal velocity.</strong> A constant force opposed by a resistive interaction gives a steady speed proportional to the force — the terminal velocity of Physics I, where drag balances gravity. Here the “drag” is the collisions, and <span class="math inline">\(v_d \propto E\)</span> is the electrical terminal velocity. That proportionality <em>is</em> Ohm’s Law.</p>
+</div>
 <h3 id="superconductors">Superconductors</h3>
-<p>In 1911, <strong>Heike Kamerlingh Onnes</strong> discovered that mercury cooled below <span class="math inline">\(T_c = 4.15\)</span> K has exactly <strong>zero</strong> resistance — a phenomenon called <strong>superconductivity</strong>. A current in a superconducting loop flows indefinitely. The discovery of high-temperature cuprate superconductors in the 1980s (YBa<span class="math inline">\(_2\)</span>Cu<span class="math inline">\(_3\)</span>O<span class="math inline">\(_7\)</span> at 92 K, cooled with liquid nitrogen rather than liquid helium) was revolutionary. The current record is 134 K — still far below room temperature, and raising <span class="math inline">\(T_c\)</span> remains a great open problem.</p>
+<p>In 1911 <strong>Heike Kamerlingh Onnes</strong> found that mercury cooled below <span class="math inline">\(T_c = 4.15\)</span> K has exactly <strong>zero</strong> resistance — <strong>superconductivity</strong>. A current set up in a superconducting loop flows indefinitely. The high-temperature cuprate superconductors of the 1980s (YBa<span class="math inline">\(_2\)</span>Cu<span class="math inline">\(_3\)</span>O<span class="math inline">\(_7\)</span> at 92 K, cooled by liquid nitrogen rather than liquid helium) were a revolution. The record at ordinary pressure is 134 K — still far below room temperature, and raising <span class="math inline">\(T_c\)</span> remains a great open problem.</p>
+<hr />
 <h2 id="electrical-power">26.5 — Electrical Power</h2>
 <h3 id="power-delivered-to-a-circuit-element">Power Delivered to a Circuit Element</h3>
-<p>Consider a battery (<span class="math inline">\(\Delta V\)</span>) connected to a resistor (<span class="math inline">\(R\)</span>).</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_7_simple_circuit.png" alt="Figure 26.7: A battery (ΔV) and resistor (R) in a simple loop circuit with current I" loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 26.7: A battery (ΔV) and resistor (R) in a simple loop circuit with current I</figcaption></figure>
-<p>As charge <span class="math inline">\(dQ\)</span> moves through the battery, it gains energy <span class="math inline">\(dU = dQ \cdot \Delta V\)</span>. The rate of energy delivery is:</p>
-<p><span class="math display">\[P = \frac{dU}{dt} = \frac{dQ}{dt}\Delta V\]</span></p>
-<p><span class="math display">\[\boxed{P = I\Delta V}\]</span></p>
-<p>For an ohmic resistor (<span class="math inline">\(\Delta V = IR\)</span>):</p>
-<p><span class="math display">\[\boxed{P = I^2R = \frac{(\Delta V)^2}{R}}\]</span></p>
-<p>All three forms give power in watts (W = J/s). Use <span class="math inline">\(P = I^2R\)</span> when current is known; use <span class="math inline">\(P = (\Delta V)^2/R\)</span> when voltage is known.</p>
-<h3 id="example-power-in-an-electric-heater">Example: Power in an Electric Heater</h3>
-<p>A heater applies 120 V across Nichrome wire with <span class="math inline">\(R = 8.00\ \Omega\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch26_figures/fig_26_7_simple_circuit.png" alt="Figure 26.7: A battery maintaining \Delta V across a resistor R, with current I around the loop." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 26.7: A battery maintaining <span class="math inline">\(\Delta V\)</span> across a resistor <span class="math inline">\(R\)</span>, with current <span class="math inline">\(I\)</span> around the loop.</figcaption></figure>
+<p><strong>Step 1 — energy per charge.</strong> A charge <span class="math inline">\(dQ\)</span> that moves through a potential difference <span class="math inline">\(\Delta V\)</span> changes its potential energy by <span class="math inline">\(dU = dQ\,\Delta V\)</span> (Ch 24). Across a resistor that energy leaves the charge and goes into the material.</p>
+<p><strong>Step 2 — divide by <span class="math inline">\(dt\)</span>.</strong> The rate at which energy is delivered is</p>
+<p><span class="math display">\[P = \frac{dU}{dt} = \frac{dQ}{dt}\,\Delta V\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;P = I\,\Delta V\;}\]</span></p>
+</div>
+<p>This holds for <strong>any</strong> element — a resistor, a motor, a battery being charged.</p>
+<p><strong>Step 3 — for a resistor, substitute Ohm’s Law.</strong> With <span class="math inline">\(\Delta V = IR\)</span>, or <span class="math inline">\(I = \Delta V/R\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;P = I^2R = \frac{(\Delta V)^2}{R}\;}\]</span></p>
+</div>
+<p>All three forms give watts (W = J/s). In a resistor the delivered energy becomes internal energy — the resistor warms — which is called <strong>Joule heating</strong>.</p>
+<div class="check">
+<p><strong>Which form? The one whose variable is held fixed.</strong> The two ohmic forms seem to disagree about whether a larger <span class="math inline">\(R\)</span> means more or less power. They do not; they describe different circuits.</p>
+<ul>
+<li><strong>Fixed <span class="math inline">\(\Delta V\)</span></strong> — a household outlet: <span class="math inline">\(P = (\Delta V)^2/R\)</span>, so a <strong>smaller</strong> <span class="math inline">\(R\)</span> draws more power. A 1500 W appliance has less resistance than a 60 W one.</li>
+<li><strong>Fixed <span class="math inline">\(I\)</span></strong> — elements in a single loop share one current: <span class="math inline">\(P = I^2R\)</span>, so the <strong>larger</strong> <span class="math inline">\(R\)</span> dissipates more. The thin, high-resistance section of a wire is where it heats first.</li>
+</ul>
+</div>
+<div class="connection">
+<p><strong>This is where Chapter 25’s missing energy went.</strong> When two capacitors share charge, a surge of current flows through the connecting wires, and the wires dissipate <span class="math inline">\(I^2R\)</span> for as long as it flows. The lost energy is the integral of that power over the brief surge. <strong>Remarkably, the total does not depend on <span class="math inline">\(R\)</span></strong>: a smaller resistance gives a larger, shorter surge, and the energy lost is the same — set only by the charge-sharing, exactly as §25.5 found.</p>
+<p>In Physics I, power was <span class="math inline">\(P = Fv\)</span>: force times the rate of motion. <span class="math inline">\(P = I\Delta V\)</span> has the same structure — the electrical “push” per charge, times the rate at which charge moves.</p>
+</div>
+<section id="example-power-in-an-electric-heater" class="example">
+<h3>Example: Power in an Electric Heater</h3>
+<p>A heater applies <span class="math inline">\(120\)</span> V across Nichrome wire with <span class="math inline">\(R = 8.00\ \Omega\)</span>.</p>
+<p><strong>Step 1 — the current.</strong></p>
 <p><span class="math display">\[I = \frac{\Delta V}{R} = \frac{120}{8.00} = 15.0\ \text{A}\]</span></p>
-<p><span class="math display">\[P = I^2R = (15.0)^2(8.00) = \boxed{1.80\ \text{kW}}\]</span></p>
-<p>A typical space heater — 1.8 kW of electrical power, all converted to thermal energy.</p>
-<h3 id="the-kilowatt-hour-and-power-transmission">The Kilowatt-Hour and Power Transmission</h3>
-<p>The <strong>kilowatt-hour</strong> (kWh) is the energy unit on electric bills: <span class="math inline">\(1\ \text{kWh} = 3.6 \times 10^6\ \text{J}\)</span>. Despite its name, it is an <em>energy</em> unit (power <span class="math inline">\(\times\)</span> time).</p>
-<p>Power lost in transmission lines goes as <span class="math inline">\(P_\text{loss} = I^2R_\text{wire}\)</span>. Since <span class="math inline">\(P = I\Delta V\)</span>, transmitting at high voltage reduces <span class="math inline">\(I\)</span> and dramatically cuts <span class="math inline">\(I^2R\)</span> losses — this is why power lines operate at hundreds of thousands of volts and transformers step the voltage down near your home.</p>
+<p><strong>Step 2 — the power.</strong></p>
+<p><span class="math display">\[P = I^2R = (15.0)^2(8.00)\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;P = 1.80\ \text{kW}\;}\]</span></p>
+</div>
+<p><strong>Check with the other form:</strong> <span class="math inline">\((\Delta V)^2/R = (120)^2/8.00 = 1.80\)</span> kW. A typical space heater — all of it converted to internal energy.</p>
+</section>
+<h3 id="the-kilowatt-hour">The Kilowatt-Hour</h3>
+<p>The <strong>kilowatt-hour</strong> is the energy unit on electricity bills: <span class="math inline">\(1\ \text{kWh} = (1000\ \text{W})(3600\ \text{s}) = 3.6 \times 10^6\)</span> J. Despite its name it is a unit of <em>energy</em> — power multiplied by time.</p>
+<section id="example-why-power-lines-run-at-high-voltage" class="example">
+<h3>Example: Why Power Lines Run at High Voltage</h3>
+<p>A power station delivers <span class="math inline">\(P = 10.0\)</span> MW through transmission lines of total resistance <span class="math inline">\(R_\text{line} = 5.00\ \Omega\)</span>. Compare the power lost in the lines when it transmits at <span class="math inline">\(10.0\)</span> kV and at <span class="math inline">\(100\)</span> kV.</p>
+<p><strong>Step 1 — the current is set by the delivered power.</strong> <span class="math inline">\(P = I\Delta V\)</span>, so <span class="math inline">\(I = P/\Delta V\)</span>.</p>
+<p><span class="math display">\[I_{10} = \frac{10.0 \times 10^6}{10.0 \times 10^3} = 1000\ \text{A} \qquad I_{100} = \frac{10.0 \times 10^6}{100 \times 10^3} = 100\ \text{A}\]</span></p>
+<p><strong>Step 2 — the loss is <span class="math inline">\(I^2R\)</span> in the lines.</strong></p>
+<p><span class="math display">\[P_{\text{loss},10} = (1000)^2(5.00) = 5.00\ \text{MW} \qquad P_{\text{loss},100} = (100)^2(5.00) = 50.0\ \text{kW}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\text{Ten times the voltage} \;\Rightarrow\; \text{one hundredth the line loss: } 50\% \to 0.5\%\;}\]</span></p>
+</div>
+</section>
+<div class="check">
+<p><strong>Check the scaling.</strong> <span class="math inline">\(P_\text{loss} = I^2R_\text{line} = (P/\Delta V)^2R_\text{line}\)</span>, so at fixed delivered power the loss goes as <span class="math inline">\(1/(\Delta V)^2\)</span>. The line resistance did not change; the <em>current</em> did. This is why transmission lines operate at hundreds of kilovolts and transformers step the voltage down near where the power is used.</p>
+<p>Note which voltage appears here: the <strong>transmission</strong> voltage fixes the current. It is <em>not</em> the voltage drop across the line — using <span class="math inline">\((\Delta V)^2/R_\text{line}\)</span> with 100 kV would predict a loss far larger than the power delivered.</p>
+</div>
+<hr />
 <h2 id="summary">26.6 — Summary</h2>
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
-<li><p><strong>Electric current</strong> <span class="math inline">\(I = dQ/dt\)</span> is the rate of charge flow. Unit: ampere (A = C/s). Conventional current flows in the direction positive charges would move.</p></li>
-<li><p><strong>Drift velocity:</strong> <span class="math inline">\(I = nqv_dA\)</span>. Drift speeds are tiny (~0.2 mm/s in copper); the electric field signal propagates at nearly <span class="math inline">\(c\)</span>.</p></li>
-<li><p><strong>Ohm’s Law:</strong> <span class="math inline">\(\Delta V = IR\)</span>. Resistance <span class="math inline">\(R = \Delta V/I\)</span> is constant for ohmic materials.</p></li>
-<li><p><strong>Resistivity:</strong> <span class="math inline">\(R = \rho\ell/A\)</span>. Resistivity is a material property spanning 24 orders of magnitude.</p></li>
-<li><p><strong>Temperature dependence:</strong> <span class="math inline">\(\rho = \rho_0[1 + \alpha(T - T_0)]\)</span>. Metals: positive <span class="math inline">\(\alpha\)</span>; semiconductors: negative <span class="math inline">\(\alpha\)</span>.</p></li>
-<li><p><strong>Power:</strong> <span class="math inline">\(P = I\Delta V = I^2R = (\Delta V)^2/R\)</span>.</p></li>
+<li><p><strong>Electric current</strong> <span class="math inline">\(I = dQ/dt\)</span> is the rate of charge flow, in amperes (A = C/s). Conventional current points the way positive charge moves. In a steady state the current is the same through every cross-section of a wire.</p></li>
+<li><p><strong>Drift velocity:</strong> <span class="math inline">\(I = nqv_dA\)</span>, <span class="math inline">\(\vec J = nq\vec v_d\)</span>. Drift speeds are tiny (a fraction of a mm/s in copper); the field that drives them is established at nearly the speed of light.</p></li>
+<li><p><strong>Ohm’s Law:</strong> microscopically <span class="math inline">\(\vec J = \sigma\vec E\)</span>; for a device <span class="math inline">\(\Delta V = IR\)</span>. A device is ohmic when <span class="math inline">\(R\)</span> is constant.</p></li>
+<li><p><strong>Resistivity:</strong> <span class="math inline">\(R = \rho\ell/A\)</span>. Resistivity is a material property that spans 24 orders of magnitude. Stretching a wire at constant volume scales <span class="math inline">\(R\)</span> by the square of the stretch.</p></li>
+<li><p><strong>Temperature:</strong> <span class="math inline">\(\rho = \rho_0[1 + \alpha(T - T_0)]\)</span>. Metals have positive <span class="math inline">\(\alpha\)</span>; semiconductors negative.</p></li>
+<li><p><strong>Drude model:</strong> <span class="math inline">\(\sigma = nq^2\tau/m_e\)</span>. Collisions turn a steady force into a steady drift, which is why Ohm’s Law holds.</p></li>
+<li><p><strong>Power:</strong> <span class="math inline">\(P = I\Delta V\)</span> for any element; <span class="math inline">\(P = I^2R = (\Delta V)^2/R\)</span> for a resistor. Use the form whose variable is held fixed. Transmission losses fall as <span class="math inline">\(1/(\Delta V)^2\)</span>.</p></li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
@@ -445,14 +625,14 @@
 </tr>
 <tr class="even">
 <td>Drift velocity relation</td>
-<td><span class="math inline">\(I = nqv_dA\)</span></td>
+<td><span class="math inline">\(I = nqv_dA\)</span>, <span class="math inline">\(\ \vec J = nq\vec v_d\)</span></td>
 </tr>
 <tr class="odd">
 <td>Ohm’s Law (microscopic)</td>
-<td><span class="math inline">\(\vec{J} = \sigma\vec{E}\)</span></td>
+<td><span class="math inline">\(\vec J = \sigma\vec E\)</span></td>
 </tr>
 <tr class="even">
-<td>Ohm’s Law (macroscopic)</td>
+<td>Ohm’s Law (device)</td>
 <td><span class="math inline">\(\Delta V = IR\)</span></td>
 </tr>
 <tr class="odd">
@@ -464,13 +644,22 @@
 <td><span class="math inline">\(\rho = \rho_0[1 + \alpha(T - T_0)]\)</span></td>
 </tr>
 <tr class="odd">
+<td>Drude conductivity</td>
+<td><span class="math inline">\(\sigma = nq^2\tau/m_e\)</span></td>
+</tr>
+<tr class="even">
 <td>Power</td>
 <td><span class="math inline">\(P = I\Delta V = I^2R = (\Delta V)^2/R\)</span></td>
 </tr>
 </tbody>
 </table>
-<h3 id="connections-capacitance-ch-25-resistance-ch-26">Connections: Capacitance (Ch 25) ↔︎ Resistance (Ch 26)</h3>
+<section id="connections-to-prior-chapters-and-physics-i" class="connection">
+<h3>Connections to Prior Chapters and Physics I</h3>
 <table>
+<colgroup>
+<col style="width: 51%" />
+<col style="width: 48%" />
+</colgroup>
 <thead>
 <tr class="header">
 <th>Capacitance (Ch 25)</th>
@@ -495,17 +684,48 @@
 <td>Larger area → smaller <span class="math inline">\(R\)</span></td>
 </tr>
 <tr class="odd">
-<td>Series: <span class="math inline">\(1/C_\text{eq} = \sum 1/C_i\)</span></td>
-<td>Series: <span class="math inline">\(R_\text{eq} = \sum R_i\)</span></td>
+<td>Stores energy: <span class="math inline">\(U = \tfrac12 C(\Delta V)^2\)</span></td>
+<td>Dissipates energy: <span class="math inline">\(P = I^2R\)</span></td>
 </tr>
 <tr class="even">
+<td>Series: <span class="math inline">\(1/C_\text{eq} = \sum 1/C_i\)</span></td>
+<td>Series: <span class="math inline">\(R_\text{eq} = \sum R_i\)</span> (Ch 27)</td>
+</tr>
+<tr class="odd">
 <td>Parallel: <span class="math inline">\(C_\text{eq} = \sum C_i\)</span></td>
-<td>Parallel: <span class="math inline">\(1/R_\text{eq} = \sum 1/R_i\)</span></td>
+<td>Parallel: <span class="math inline">\(1/R_\text{eq} = \sum 1/R_i\)</span> (Ch 27)</td>
 </tr>
 </tbody>
 </table>
+<table>
+<thead>
+<tr class="header">
+<th>Physics I</th>
+<th>Ch 26</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Mass flow <span class="math inline">\(\dot m = \rho_m Av\)</span></td>
+<td>Current <span class="math inline">\(I = nqv_dA\)</span></td>
+</tr>
+<tr class="even">
+<td>Continuity <span class="math inline">\(A_1v_1 = A_2v_2\)</span></td>
+<td>Same <span class="math inline">\(I\)</span> through every cross-section</td>
+</tr>
+<tr class="odd">
+<td>Terminal velocity <span class="math inline">\(\propto\)</span> force</td>
+<td>Drift velocity <span class="math inline">\(\propto E\)</span> (Ohm’s Law)</td>
+</tr>
+<tr class="even">
+<td>Power <span class="math inline">\(P = Fv\)</span></td>
+<td>Power <span class="math inline">\(P = I\Delta V\)</span></td>
+</tr>
+</tbody>
+</table>
+</section>
 <h2 id="looking-ahead">Looking Ahead</h2>
-<p>In Chapter 27, we introduce <strong>DC circuits</strong> — networks of resistors and batteries analyzed using <strong>Kirchhoff’s rules</strong>. We will derive the series and parallel combination rules for resistors and bring capacitors and resistors together in <strong>RC circuits</strong>, where the time constant <span class="math inline">\(\tau = RC\)</span> governs exponential charge and discharge.</p>
+<p>Chapter 27 introduces <strong>DC circuits</strong> — networks of resistors and batteries, analysed with <strong>Kirchhoff’s rules</strong>, which are charge conservation and energy conservation written for a circuit. It derives the series and parallel rules for resistors (and shows why they are the reverse of the capacitor rules) and then brings capacitors and resistors together in <strong>RC circuits</strong>, where the time constant <span class="math inline">\(\tau = RC\)</span> governs exponential charging and discharging.</p>
 <p><em>*With current and resistance in hand, we now have the vocabulary to read a circuit diagram. Kirchhoff’s rules will give us the grammar.</em></p>
 
         </div>
