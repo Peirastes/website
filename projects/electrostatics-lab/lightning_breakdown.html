@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Breakdown — PSE-II</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" onload="window._katexReady=true;if(window.renderAll)renderAll()"></script>
+<style>
+/* Shell, chrome, buffers and embed mode cloned from capacitor_lab.html (canon
+   clone parent) via dielectric_two_circuits.html. Physics-specific CSS starts
+   at "readouts". */
+:root{
+  --gold:#ffae20;--gold-soft:rgba(255,174,32,.72);--gold-faint:rgba(255,174,32,.28);--gold-glow:rgba(255,174,32,.45);
+  --cyan:#7dd6ff;--cyan-soft:rgba(125,214,255,.65);--cyan-faint:rgba(125,214,255,.22);--cyan-glow:rgba(125,214,255,.30);
+  --green:#40d870;--green-glow:rgba(64,216,112,.35);--red:#e05040;
+  --void:#06080c;
+  --glass-bg:rgba(10,14,22,.42);--glass-border:rgba(255,255,255,.10);--glass-blur:blur(22px) saturate(1.4);
+  --glass-shadow:0 10px 28px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
+  --card-bg:rgba(6,10,18,.62);--card-border:rgba(255,255,255,.07);
+  --text:#e8e8e8;--text-dim:#8a8a8a;
+  --cE:#7dd6ff;--cTh:#ff9a4a;--cV:#ffcc44;--cQ:#40d870;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--void);color:var(--text);font-family:'Inter',system-ui,sans-serif;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;z-index:-2;background-image:url('../../images/PeirastesBanner.jpg');background-size:cover;background-position:center;filter:saturate(.55) brightness(.32) contrast(1.05);opacity:.85}
+body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 25%,rgba(6,8,12,.65) 95%),linear-gradient(180deg,rgba(0,0,0,.35) 0%,transparent 30%,rgba(0,0,0,.55) 100%)}
+.cin-grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.04;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");mix-blend-mode:overlay}
+.peirastes-home{position:fixed;top:8px;left:12px;font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:rgba(224,224,224,.3);text-decoration:none;letter-spacing:.08em;z-index:9999;transition:color .2s}
+.peirastes-home:hover{color:#e07050}
+
+/* ── cinematic chrome ── */
+.cin-flank{position:fixed;top:max(1.6rem,env(safe-area-inset-top,0px) + .6rem);z-index:100;display:flex;flex-direction:column;gap:.4rem;opacity:0;transform:translateY(-8px);animation:cin-fi 700ms ease 250ms forwards}
+.cin-flank--left{left:max(1.6rem,env(safe-area-inset-left,0px) + .6rem);align-items:flex-start}
+.cin-wordmark{font-family:'Cinzel',serif;font-size:.78rem;font-weight:600;letter-spacing:.28em;color:var(--gold-soft);text-decoration:none;text-shadow:0 0 8px var(--gold-glow);line-height:1}
+.cin-wordmark:hover{color:var(--gold);text-shadow:0 0 14px var(--gold-glow)}
+.cin-version{font-family:'Inter',sans-serif;font-size:.56rem;font-weight:500;color:rgba(125,214,255,.55);letter-spacing:.2em;text-transform:uppercase}
+.cin-title{position:fixed;top:max(1.6rem,env(safe-area-inset-top,0px) + .6rem);left:50%;transform:translateX(-50%);text-align:center;z-index:100;pointer-events:none;opacity:0;animation:cin-fic 700ms ease 350ms forwards}
+.cin-title__name{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.24em;text-transform:uppercase;text-shadow:0 0 14px var(--gold-glow),0 0 32px rgba(255,174,32,.18);margin-bottom:4px;line-height:1}
+.cin-title__sub{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;color:var(--cyan-soft);letter-spacing:.22em;text-transform:uppercase}
+.cin-tick{position:fixed;width:16px;height:16px;z-index:99;pointer-events:none;opacity:0;animation:cin-fi 800ms ease 600ms forwards}
+.cin-tick::before,.cin-tick::after{content:'';position:absolute;background:rgba(125,214,255,.45)}
+.cin-tick--tl{top:max(.9rem,env(safe-area-inset-top,0px) + .3rem);left:max(.9rem,env(safe-area-inset-left,0px) + .3rem)}
+.cin-tick--tr{top:max(.9rem,env(safe-area-inset-top,0px) + .3rem);right:max(.9rem,env(safe-area-inset-right,0px) + .3rem)}
+.cin-tick--bl{bottom:max(.9rem,env(safe-area-inset-bottom,0px) + .3rem);left:max(.9rem,env(safe-area-inset-left,0px) + .3rem)}
+.cin-tick--br{bottom:max(.9rem,env(safe-area-inset-bottom,0px) + .3rem);right:max(.9rem,env(safe-area-inset-right,0px) + .3rem)}
+.cin-tick--tl::before{top:0;left:0;width:12px;height:1px}.cin-tick--tl::after{top:0;left:0;width:1px;height:12px}
+.cin-tick--tr::before{top:0;right:0;width:12px;height:1px}.cin-tick--tr::after{top:0;right:0;width:1px;height:12px}
+.cin-tick--bl::before{bottom:0;left:0;width:12px;height:1px}.cin-tick--bl::after{bottom:0;left:0;width:1px;height:12px}
+.cin-tick--br::before{bottom:0;right:0;width:12px;height:1px}.cin-tick--br::after{bottom:0;right:0;width:1px;height:12px}
+.cin-hints{position:fixed;bottom:max(1.6rem,env(safe-area-inset-bottom,0px) + .6rem);left:max(1.6rem,env(safe-area-inset-left,0px) + .6rem);z-index:100;display:flex;gap:.35rem;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.1em;color:rgba(180,180,180,.45);text-transform:uppercase;opacity:0;animation:cin-fi 800ms ease 750ms forwards}
+.cin-hints kbd{background:rgba(125,214,255,.06);border:1px solid var(--cyan-faint);border-radius:2px;padding:1px 5px;margin-right:.4rem;color:var(--cyan);font-size:.58rem}
+@keyframes cin-fi{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes cin-fic{0%{opacity:0;transform:translate(-50%,-8px)}100%{opacity:1;transform:translate(-50%,0)}}
+
+/* ── layout ── */
+.main-grid{position:fixed;top:5.5rem;left:1.6rem;right:1.6rem;bottom:1.6rem;animation:appfade 1100ms ease 200ms backwards}
+@keyframes appfade{0%{opacity:0}100%{opacity:1}}
+.cap-rail{position:absolute;top:16px;right:16px;max-height:calc(100% - 32px);width:300px;display:flex;flex-direction:column;gap:8px;z-index:10}
+.control-panel{position:relative;width:100%;flex:0 0 auto;max-height:70%;min-height:0;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:8px;box-shadow:var(--glass-shadow);padding:14px 16px;overflow-y:auto}
+.info-frame{flex:0 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:8px;box-shadow:var(--glass-shadow);padding:13px 15px 14px}
+.mode-desc{padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--glass-border)}
+.md-title{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow);margin-bottom:6px}
+.md-text{font-family:'Inter',sans-serif;font-size:12px;line-height:1.5;color:rgba(230,230,230,.72)}
+.md-text p+p{margin-top:6px}
+.display-area{position:absolute;top:0;right:0;bottom:0;left:0;padding:9px calc(300px + 2rem) 12px 9px;display:flex;flex-direction:column;gap:12px;overflow:hidden;background:radial-gradient(ellipse at 45% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%)}
+#cv{position:absolute;left:0;top:0;width:100%;height:100%;z-index:0;touch-action:none;display:block}
+
+.app-title{position:relative;z-index:8;flex:0 0 auto;margin-top:-3px;margin-bottom:2px;pointer-events:none;align-self:flex-start}
+.app-title__name{font-family:'Orbitron',sans-serif;font-size:23px;font-weight:700;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;text-shadow:0 0 14px var(--gold-glow),0 0 34px rgba(255,174,32,.18);line-height:1}
+.app-title__mode{font-family:'Orbitron',sans-serif;font-size:11.5px;font-weight:600;color:var(--cyan);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 8px var(--cyan-glow);margin-top:7px}
+.app-title__scope{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--text-dim);letter-spacing:.18em;text-transform:uppercase;margin-top:5px}
+.world-spacer{flex:1 1 auto;min-height:0}
+
+.section-label{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow);display:flex;align-items:center;gap:10px}
+.eq-strip{display:flex;flex-direction:column;gap:8px}
+.eq-card{padding:1px 0 2px;text-align:center;overflow-x:auto;overflow-y:hidden}
+.eq-l{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);text-shadow:0 0 6px var(--gold-glow);margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--gold-faint);text-align:left}
+.eq-card .katex{font-size:15px}.eq-card .katex-display{margin:0;overflow:visible}
+
+/* embed: chrome hidden, fill the notes frame */
+html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints,html.embed .peirastes-home{display:none !important}
+html.embed .main-grid{top:1.6rem !important}
+html.embed .display-area{background:transparent}
+html.embed body{background:radial-gradient(ellipse at 45% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%)}
+
+/* Acrylic-glass scrollbar (canon) */
+.control-panel::-webkit-scrollbar,.info-frame::-webkit-scrollbar{width:8px;height:8px}
+.control-panel::-webkit-scrollbar-track,.info-frame::-webkit-scrollbar-track{
+  background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(4,6,10,.65) 25%,rgba(4,6,10,.65) 75%,rgba(0,0,0,.45) 100%);
+  border-radius:4px;
+  box-shadow:inset 1px 0 3px rgba(0,0,0,.55),inset -1px 0 3px rgba(0,0,0,.55),inset 0 2px 4px rgba(0,0,0,.35);
+  margin:4px 0}
+.control-panel::-webkit-scrollbar-thumb,.info-frame::-webkit-scrollbar-thumb{
+  border-radius:4px;background:rgba(40,52,68,.6);
+  border-left:1px solid rgba(125,214,255,.10);border-right:1px solid rgba(255,174,32,.22);
+  border-top:1px solid rgba(255,255,255,.14);border-bottom:.5px solid rgba(0,0,0,.22);
+  box-shadow:0 1px 4px rgba(0,0,0,.4),inset 2px 0 4px rgba(125,214,255,.04),inset -2px 0 4px rgba(255,174,32,.08),inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.15)}
+.control-panel::-webkit-scrollbar-thumb:hover,.info-frame::-webkit-scrollbar-thumb:hover{
+  background:rgba(50,64,82,.7);
+  border-left-color:rgba(125,214,255,.18);border-right-color:rgba(255,174,32,.38);border-top-color:rgba(255,255,255,.22)}
+@supports (-moz-appearance:none){.control-panel,.info-frame{scrollbar-width:thin;scrollbar-color:rgba(125,214,255,.45) rgba(4,6,10,.6)}}
+html.embed body::before,html.embed body::after{opacity:.6}
+
+/* ── readouts ── */
+.readout-band{position:relative;z-index:8;flex:0 0 auto;display:flex;flex-direction:column;gap:6px}
+.rule{font-family:'Share Tech Mono',monospace;font-size:12.5px;color:var(--cyan);text-shadow:0 0 6px var(--cyan-glow);letter-spacing:.02em;min-height:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:6px}
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);padding:7px 10px 8px;min-width:0}
+.card-h{font-family:'Orbitron',sans-serif;font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px}
+.ln{display:flex;align-items:center;gap:6px;min-height:21px}
+.eqx{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;color:#dfe6ee}
+.eqx .katex{font-size:13.5px}
+.nt{font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--text-dim);line-height:1.4;margin-top:2px}
+.src{flex:0 0 auto;font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1;color:#9aa4ae;border:1px solid rgba(255,255,255,.14);border-radius:2px;padding:2px 3px;cursor:help;white-space:nowrap}
+.src:hover{color:var(--cyan);border-color:var(--cyan-faint)}
+.bar{height:9px;background:rgba(4,6,10,.85);border:1px solid rgba(255,255,255,.12);border-radius:2px;position:relative;margin:7px 0 6px}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--cyan);box-shadow:0 0 6px var(--cyan-glow)}
+.bar i.hot{background:#ff7a3a;box-shadow:0 0 8px rgba(255,122,58,.6)}
+.bar b{position:absolute;top:-4px;bottom:-4px;width:2px;background:#e8e8e8}
+.big{font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--cyan)}
+.big.hot{color:#ff9a4a;text-shadow:0 0 6px rgba(255,154,74,.5)}
+.openp{border:1px solid var(--gold-faint);border-radius:4px;background:rgba(255,174,32,.05);padding:6px 11px 7px;font-family:'Inter',sans-serif;font-size:11.5px;line-height:1.45;color:rgba(232,232,232,.82)}
+.openp b{font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-right:8px}
+.openp .src{vertical-align:1px;margin-left:3px}
+
+/* ── controls ── */
+.seg{display:flex;gap:5px;margin-bottom:12px}
+.seg-btn{flex:1;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:7px 4px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(20,26,36,.78),rgba(8,12,18,.88));color:rgba(220,220,220,.55);transition:all .14s}
+.seg-btn:hover{color:var(--cyan)}
+.seg-btn.on{border-color:var(--gold-faint);color:var(--gold);text-shadow:0 0 6px var(--gold-glow);background:linear-gradient(180deg,rgba(255,174,32,.18),rgba(160,104,32,.08))}
+.sec{display:none}.sec.on{display:block}
+.sl-lab{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-top:11px;display:flex;justify-content:space-between;align-items:center}
+.sl-row{display:flex;align-items:center;gap:10px;margin-top:5px}
+.sl-row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;background:rgba(4,6,10,.85);border:1px solid rgba(255,174,32,.20);border-radius:2px;outline:none}
+.sl-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--gold);border:1px solid #ffd080;box-shadow:0 0 6px var(--gold-glow);cursor:pointer}
+.sl-row input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--gold);border:1px solid #ffd080;box-shadow:0 0 6px var(--gold-glow);cursor:pointer}
+.sl-val{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--cyan);min-width:74px;text-align:right}
+.nav{display:flex;gap:6px;margin-top:10px}
+.btn{flex:1;font-family:'Orbitron',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:8px 4px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(20,26,36,.78),rgba(8,12,18,.88));color:rgba(220,220,220,.6);transition:all .14s}
+.btn:hover:not([disabled]){color:var(--cyan);border-color:var(--cyan-faint);text-shadow:0 0 6px var(--cyan-glow)}
+.btn[disabled]{opacity:.35;cursor:not-allowed}
+.hint{font-family:'Share Tech Mono',monospace;font-size:10.5px;color:var(--text-dim);line-height:1.5;margin-top:9px}
+.hint kbd{border:1px solid var(--cyan-faint);border-radius:2px;padding:0 4px;color:var(--cyan);font-family:inherit}
+.tog{display:flex;align-items:center;gap:8px;cursor:pointer;font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-top:11px}
+.tog input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 auto;width:34px;height:18px;border-radius:9px;background:rgba(4,6,10,.85);border:1px solid rgba(255,174,32,.25);cursor:pointer;margin:0;transition:background .15s,border-color .15s}
+.tog input::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#8a8a8a;box-shadow:0 1px 2px rgba(0,0,0,.5);transition:transform .15s,background .15s,box-shadow .15s}
+.tog input:checked{background:linear-gradient(180deg,rgba(255,174,32,.35),rgba(160,104,32,.20));border-color:rgba(255,174,32,.28)}
+.tog input:checked::after{transform:translateX(16px);background:#ffae20;box-shadow:0 0 6px rgba(255,174,32,.45)}
+.log{margin-top:10px;border-top:1px solid var(--glass-border);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.lg{display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:11.5px;color:#cfd8e2}
+.lg span.t{flex:1 1 auto;min-width:0}
+.lg.dim{color:#5c6670}
+.lg.hot{color:#ffd6a0}
+.info-eq .katex{font-size:14.5px}
+/* Narrow (~900px standalone): equation lines collapse to "symbol = value"
+   (see COMPACT in ln()); the embed itself renders at 1200px and scales. */
+@media (max-width:1100px){
+  .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .eqx .katex{font-size:12.5px}
+  .card{padding:6px 8px 7px}
+  .openp{font-size:10.5px;line-height:1.35;padding:5px 9px 6px}
+  .rule{font-size:11.5px}
+}
+</style>
+<script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
+</head>
+<body>
+<a href="https://peirastes.com" class="peirastes-home" title="Back to Peirastes">Peirastes</a>
+<div class="cin-grain" aria-hidden="true"></div>
+<div class="cin-flank cin-flank--left"><a class="cin-wordmark" href="/" title="Back to Peirastes">PEIRASTES</a><span class="cin-version">v3.5</span></div>
+<div class="cin-title" aria-label="Breakdown"><div class="cin-title__name">Breakdown</div><div class="cin-title__sub">Lightning &amp; the E&middot;d shortcut &middot; PSE-II</div></div>
+<div class="cin-tick cin-tick--tl"></div><div class="cin-tick cin-tick--tr"></div><div class="cin-tick cin-tick--bl"></div><div class="cin-tick cin-tick--br"></div>
+<div class="cin-hints"><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Scene</span><span><kbd>Space</kbd> Play</span></div>
+
+<div class="main-grid">
+  <div class="display-area" id="da">
+    <canvas id="cv"></canvas>
+    <div class="app-title" id="ttl">
+      <div class="app-title__name">Breakdown</div>
+      <div class="app-title__mode" id="modeLine">Storm</div>
+      <div class="app-title__scope">PSE-II &middot; Ch 24&ndash;25 &middot; &Delta;V = &minus;&int;E&middot;dl</div>
+    </div>
+    <div class="world-spacer"></div>
+    <div class="readout-band" id="band">
+      <div class="section-label" id="bandH">Readouts</div>
+      <div class="rule" id="rule"></div>
+      <div class="cards" id="cards"></div>
+      <div class="openp" id="openp"></div>
+    </div>
+  </div>
+  <div class="cap-rail" id="rail">
+    <div class="control-panel">
+      <div class="seg" id="seg">
+        <button class="seg-btn" data-m="gap" title="Scene 1: a lab air gap">Gap</button>
+        <button class="seg-btn" data-m="storm" title="Scene 2: a thunderstorm">Storm</button>
+        <button class="seg-btn" data-m="earth" title="Scene 3: the Earth as a capacitor">Earth</button>
+      </div>
+
+      <div class="sec" id="sec-gap">
+        <div class="section-label">Air gap</div>
+        <div class="sl-lab">Gap d <span style="font-family:Share Tech Mono,monospace;letter-spacing:0;text-transform:none">log scale</span></div>
+        <div class="sl-row"><input type="range" id="slD" min="0" max="1000" step="1"><span class="sl-val" id="vD"></span></div>
+        <div class="sl-lab">Voltage &Delta;V <span style="font-family:Share Tech Mono,monospace;letter-spacing:0;text-transform:none">log scale</span></div>
+        <div class="sl-row"><input type="range" id="slV" min="0" max="1000" step="1"><span class="sl-val" id="vV"></span></div>
+        <div class="sl-lab">Altitude h</div>
+        <div class="sl-row"><input type="range" id="slH" min="0" max="10" step="0.1"><span class="sl-val" id="vH"></span></div>
+        <div class="nav"><button class="btn" id="bSpark" title="Set ΔV to E_th × d for the current gap and altitude">ΔV to spark</button><button class="btn" id="bGapReset">Reset</button></div>
+        <div class="hint">Below about a millimetre the real breakdown field rises above this constant-E<sub>th</sub> model (Paschen&rsquo;s law). The trend with density holds.</div>
+      </div>
+
+      <div class="sec" id="sec-storm">
+        <div class="section-label">Stepped leader</div>
+        <div class="nav">
+          <button class="btn" id="bPlay">Play</button>
+          <button class="btn" id="bStep" title="Advance one 50 µs step">Step</button>
+          <button class="btn" id="bReset" title="Same strike, from the start">Reset</button>
+          <button class="btn" id="bNew" title="A different random walk">New</button>
+        </div>
+        <div class="sl-lab">Slow motion <span id="vSpdX" style="font-family:Share Tech Mono,monospace;letter-spacing:0;text-transform:none;color:var(--cyan)"></span></div>
+        <div class="sl-row"><input type="range" id="slSpd" min="0" max="1000" step="1"><span class="sl-val" id="vSpd"></span></div>
+        <label class="tog"><input type="checkbox" id="tgFollow">Probe rides the leader tip</label>
+        <div class="log" id="slog"></div>
+        <div class="hint">Drag the ruler&rsquo;s top handle or its line; drag the probe. <kbd>Space</kbd> play/pause.</div>
+      </div>
+
+      <div class="sec" id="sec-earth">
+        <div class="section-label">Fair-weather circuit</div>
+        <div class="sl-lab"><span>Surface field E₀</span><span><span class="src" id="srcE0"></span></span></div>
+        <div class="sl-row"><input type="range" id="slE0" min="100" max="300" step="5"><span class="sl-val" id="vE0"></span></div>
+        <div class="sl-lab"><span>Ionospheric potential V<span style="font-size:8px">I</span></span><span><span class="src" id="srcVI"></span></span></div>
+        <div class="sl-row"><input type="range" id="slVI" min="150" max="600" step="10"><span class="sl-val" id="vVI"></span></div>
+        <div class="nav"><button class="btn" id="bEarthReset">Typical values</button></div>
+        <div class="hint">Slider ranges are the measured spreads (100&ndash;300 V/m, 150&ndash;600 kV). Typical: 120 V/m, 250 kV.</div>
+      </div>
+    </div>
+    <div class="info-frame">
+      <div class="mode-desc"><div class="md-title">Overview</div><div class="md-text" id="ovText"></div></div>
+      <div class="eq-strip" id="eqStrip"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   Sourced numbers (Lightning_Breakdown_Sim_Spec.md, "Sourced numbers").
+   Everything on screen is one of these or computed from them.
+   ════════════════════════════════════════════════════════════════════ */
+var EPS0=8.854e-12, KC=8.988e9;
+var ETH0=3e6;          // conventional breakdown, dry air, sea level        [D&U]
+var ECLOUD=4e5;        // max measured in-cloud field (sea-level equiv.)    [Marshall, D&U]
+var ERUN=2.84e5;       // runaway-breakdown threshold (sea-level equiv.)    [Dwyer05]
+var VCLOUD=100e6;      // leader / cloud potential relative to ground       [NOAA]
+var ZMAIN=6000;        // main negative charge height                       [Williams]
+var STEP=50, DT=50e-6; // stepped leader: 50 m steps, 50 µs apart          [NOAA]
+var IRS=30e3, QRS=5;   // return stroke: 30 kA peak, ~1 µs rise, ~5 C        [NOAA]
+var E0T=120, VIT=250e3, SIG0=20e-15, JHAR=3e-12, IHAR=1800, RT=230, RCOL=120e15; // [Harrison Table 1]
+var AE=6.371e6;        // Earth radius (standard value)
+/* Modelling choices (stated in the Overviews) */
+var HRHO=8500;         // density scale height: rho/rho0 = exp(-h/8.5 km)
+var ZTOP=60e3;         // upper "plate" of the naive capacitor
+var LAM=QRS/ZMAIN;     // leader line charge estimate: 5 C over ~6 km
+var EAVG=VCLOUD/ZMAIN; // average field, main charge to ground
+function rho(z){return Math.exp(-z/HRHO)}
+
+var CITE={
+  DU:['D&U','Dwyer & Uman (2014), "The physics of lightning", Physics Reports 534, 147–241'],
+  MAR:['Marshall','Marshall et al. (1995) balloon soundings; via Dwyer & Uman (2014). Fields rarely above ~4×10⁵ V/m (sea-level equivalent)'],
+  DW05:['Dwyer05','Dwyer (2005), Geophys. Res. Lett.; Dwyer & Uman (2014). Runaway threshold ~284 kV/m, sea-level equivalent'],
+  NOAA:['NOAA','NOAA JetStream, lightning: "Keeping in step" (leader potential ~100 MV; ~50 m steps ~50 µs apart; return stroke ~30 kA peak, ~1 µs rise, ~5 C)'],
+  ATMO:['ATMO','University of Arizona ATMO 589 lecture notes: global electric circuit (Jan 14 2015) and lecture 14 (stepped leader, striking distance)'],
+  WIL:['Williams','Tripole literature (Williams 1989): main negative charge at the −20 to −10 °C level; one sounding 5.4–6.6 km ASL. From a search summary; primary source not re-read'],
+  HAR:['Harrison','Harrison, "The global atmospheric electrical circuit and climate", Univ. of Reading, arXiv physics/0506077, Table 1'],
+  JASTP:['JASTP 25','"The global circuit capacitor and two new ways of deriving the time constant…", J. Atmos. Sol.-Terr. Phys. (2025), S1364682625001294. From a search summary; abstract not read directly'],
+  FEY:['Feynman','Feynman Lectures on Physics II, §9-1 ("about 100 volts per meter")'],
+  MOD:['model','A modelling choice made for this sim; stated in the Overview'],
+  EST:['estimate','Order-of-magnitude estimate built from tagged numbers; stated in the Overview'],
+  CALC:['calc','Computed on screen from the tagged inputs']
+};
+function esc(s){return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function src(){var h='';for(var i=0;i<arguments.length;i++){var c=CITE[arguments[i]];h+='<span class="src" title="'+esc(c[1])+'">'+esc(c[0])+'</span>'}return h}
+
+/* ── number formatting ── */
+var PFX={'-15':'f','-12':'p','-9':'n','-6':'µ','-3':'m','0':'','3':'k','6':'M','9':'G','12':'T','15':'P'};
+function sig(m){var a=Math.abs(m);return a>=99.95?m.toFixed(0):a>=9.995?m.toFixed(1):m.toFixed(2)}
+function si(v){if(v===0)return{m:'0',p:''};var e=Math.floor(Math.log10(Math.abs(v))/3)*3;e=Math.max(-15,Math.min(15,e));var m=v/Math.pow(10,e);if(Math.abs(m)>=999.5&&e<15){e+=3;m/=1000}return{m:sig(m),p:PFX[e]}}
+function fs(v,u){var s=si(v);return s.m+' '+s.p+u}                       // plain text
+function T(v,u,post){var s=si(v);var p=s.p==='µ'?'\\mu\\text{'+u+'}':'\\text{'+s.p+u+'}';return s.m+'\\,'+p+(post||'')} // TeX
+function sci(v,dig){var e=Math.floor(Math.log10(Math.abs(v)));var m=v/Math.pow(10,e);return m.toFixed(dig==null?2:dig)+'\\times10^{'+e+'}'}
+function km(z,d){return (z/1000).toFixed(d==null?2:d)+' km'}
+function alt(z){return z<1000?Math.max(0,z).toFixed(0)+' m':km(z)}
+
+/* ── KaTeX helpers ── */
+function tex(s,disp){if(window._katexReady){try{return katex.renderToString(s,{throwOnError:false,displayMode:!!disp,strict:'ignore'})}catch(e){}}return '<span style="font-family:Share Tech Mono,monospace">'+s+'</span>'}
+function compactTeX(t){ // keep the first and last parts of a = b = c at top brace level
+  var parts=[],depth=0,last=0;for(var i=0;i<t.length;i++){var c=t[i];if(c==='{')depth++;else if(c==='}')depth--;else if(c==='='&&depth===0){parts.push(t.slice(last,i));last=i+1}}
+  parts.push(t.slice(last));var o=parts.length>2?parts[0]+'='+parts[parts.length-1]:t;return o.replace(/\\\s*\\text\{\([^}]*\)\}/g,'')}
+function ln(t){var tags=[].slice.call(arguments,1);if(window.innerWidth<=1100)t=compactTeX(t);return '<div class="ln"><span class="eqx">'+tex(t)+'</span>'+src.apply(null,tags)+'</div>'}
+function nln(t){var tags=[].slice.call(arguments,1);return '<div class="ln"><span class="nt" style="flex:1;margin:0">'+t+'</span>'+src.apply(null,tags)+'</div>'}
+function card(h,body){return '<div class="card"><div class="card-h">'+h+'</div>'+body+'</div>'}
+function fitEqs(){
+  document.querySelectorAll('#cards .eqx').forEach(function(el){
+    var k=el.querySelector('.katex');if(!k)return;k.style.fontSize='';
+    var sw=el.scrollWidth,cw=el.clientWidth;
+    var base=parseFloat(getComputedStyle(k).fontSize)||13.5;if(sw>cw+1)k.style.fontSize=Math.max(9.5,Math.floor(base*cw/sw*2)/2-0.5)+'px';
+  });
+}
+
+/* ── state ── */
+var qs=new URLSearchParams(location.search);
+var S={mode:({gap:1,storm:1,earth:1})[qs.get('mode')]?qs.get('mode'):'storm',
+  gap:{d:1e-3,V:2000,h:0},
+  earth:{E0:E0T,VI:VIT},
+  storm:{rulerX:-5000,rulerTop:6000,probe:{x:2200,z:3600},follow:false,speed:1e-3,playing:false,seed:7}};
+function $(id){return document.getElementById(id)}
+
+/* ── seeded RNG ── */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ════════════ Storm: the stepped-leader cartoon ════════════ */
+var L;
+function resetLeader(seed){
+  var r=mulberry(seed*7919+13);
+  L={rng:r,segs:[],tips:[{x:0,z:5400,main:true,life:1e9}],phase:'ready',t:0,n:0,
+     Ds:10+10*r(),            // striking distance, flat ground: 10–20 m [ATMO]
+     stream:null,tConnect:null,strokeReal:null,nBranch:0,launchZ:null};
+}
+function mainTip(){return L.tips[0]}
+function tick(){
+  if(L.phase!=='leader'&&L.phase!=='streamer')return;
+  L.n++;
+  var r=L.rng, m=mainTip();
+  if(L.phase==='leader'){
+    var newTips=[];
+    L.tips.forEach(function(tp){
+      if(tp.life<=0)return;
+      var th;
+      if(tp.main){ // biased random walk: within ±75° of straight down, nudged back toward the start column
+        th=(r()*2-1)*75*Math.PI/180 - Math.max(-0.5,Math.min(0.5,tp.x/4000));
+      }else{
+        th=tp.side*(15+r()*65)*Math.PI/180; tp.life--;
+      }
+      var dx=STEP*Math.sin(th), dz=-STEP*Math.cos(th);
+      var nx=tp.x+dx, nz=tp.z+dz;
+      if(tp.main&&nz<=L.Ds){ // final jump is cut at the striking distance
+        var f=(tp.z-L.Ds)/(tp.z-nz); nx=tp.x+dx*f; nz=L.Ds;
+        L.phase='streamer'; L.launchZ=nz; L.stream={x:nx,top:0};
+      }
+      if(!tp.main&&nz<L.Ds+60){tp.life=0;return}
+      L.segs.push({x1:tp.x,z1:tp.z,x2:nx,z2:nz,main:tp.main});
+      tp.x=nx;tp.z=nz;
+      if(tp.main&&L.phase==='leader'&&tp.z>400&&r()<0.07){
+        newTips.push({x:nx,z:nz,main:false,life:3+Math.floor(r()*12),side:r()<0.5?-1:1});L.nBranch++;
+      }
+    });
+    L.tips=L.tips.concat(newTips).filter(function(t){return t.main||t.life>0});
+  }else{ // upward connecting streamer closes the gap
+    L.stream.top=Math.min(m.z,L.stream.top+L.Ds*0.5);
+    if(L.stream.top>=m.z){
+      L.phase='stroke'; L.tConnect=L.n*DT; L.t=L.tConnect; L.strokeReal=performance.now();
+      S.storm.playing=false; syncPlay();
+    }
+  }
+}
+function stormAdvance(dt){
+  var st=S.storm;
+  if(!st.playing)return;
+  if(L.phase==='ready')L.phase='leader';
+  if(L.phase!=='leader'&&L.phase!=='streamer')return;
+  L.t+=st.speed*dt;
+  var guard=0;
+  while(L.t>=(L.n+1)*DT&&(L.phase==='leader'||L.phase==='streamer')&&guard++<400)tick();
+  bandDirty=true;
+}
+
+/* field of a straight line-charge segment (exact, 2D slice of 3D) */
+function segField(ax,az,bx,bz,lam,px,pz,out){
+  var ux=bx-ax,uz=bz-az,Ls=Math.hypot(ux,uz);if(Ls<1e-6)return;ux/=Ls;uz/=Ls;
+  var rx=px-ax,rz=pz-az,s=rx*ux+rz*uz,nx=rx-s*ux,nz=rz-s*uz,d=Math.hypot(nx,nz);
+  if(d<1e-9){nx=-uz;nz=ux;d=1}else{nx/=d;nz/=d}
+  d=Math.max(d,1);
+  var t1=-s,t2=Ls-s,r1=Math.sqrt(t1*t1+d*d),r2=Math.sqrt(t2*t2+d*d);
+  var Eu=KC*lam*(1/r2-1/r1), En=KC*lam/d*(t2/r2-t1/r1);
+  out.x+=Eu*ux+En*nx; out.z+=Eu*uz+En*nz;
+}
+function probeField(px,pz){
+  var o={x:0,z:0};
+  if(pz<ZMAIN)o.z+=EAVG;                          // average field, points up toward the negative charge
+  var leaderOn=L&&(L.phase==='leader'||L.phase==='streamer');
+  if(leaderOn)L.segs.forEach(function(s){
+    segField(s.x1,s.z1,s.x2,s.z2,-LAM,px,pz,o);     // negative leader channel
+    segField(s.x1,-s.z1,s.x2,-s.z2,+LAM,px,pz,o);   // its image in the conducting ground
+  });
+  return {E:Math.hypot(o.x,o.z),leader:leaderOn&&L.segs.length>0};
+}
+function followProbe(){
+  if(!S.storm.follow||!L||L.phase==='ready')return;
+  var m=mainTip();
+  if(m.z>80)S.storm.probe={x:m.x,z:m.z-30}; else S.storm.probe={x:m.x+30,z:Math.max(5,m.z)};
+}
+
+/* ════════════ Canvas ════════════ */
+var cv=$('cv'),ctx=cv.getContext('2d'),DPR=1,CW=0,CH=0,HIT=[],DRAG=null,bandDirty=true,lastBand=0;
+function setupCanvas(){
+  var r=$('da').getBoundingClientRect();DPR=window.devicePixelRatio||1;CW=r.width;CH=r.height;
+  cv.width=Math.round(CW*DPR);cv.height=Math.round(CH*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+function sceneRect(){
+  var da=$('da').getBoundingClientRect(),t=$('ttl').getBoundingClientRect(),b=$('band').getBoundingClientRect(),rl=$('rail').getBoundingClientRect();
+  var right=(rl.left>da.left+200&&rl.left<da.right)?rl.left-da.left-24:CW-24;
+  return {x0:9,y0:t.bottom-da.top+14,x1:right,y1:b.top-da.top-10};
+}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+var MONO='"Share Tech Mono",monospace';
+/* Opaque-backed label; y is the vertical centre. Returns its box. */
+function lab(t,x,y,o){
+  o=o||{};var f=o.fs||12;ctx.font=(o.bold?'600 ':'')+f+'px '+(o.ff||MONO);
+  var w=ctx.measureText(t).width,tw=0,tg=null;
+  if(o.tag){tg='['+CITE[o.tag][0]+']';ctx.font='9px '+MONO;tw=ctx.measureText(tg).width+5;ctx.font=(o.bold?'600 ':'')+f+'px '+(o.ff||MONO)}
+  var W=w+tw,a=o.a||'left',lx=a==='left'?x:a==='right'?x-W:x-W/2,h=f+6;
+  if(o.bg!==false){ctx.fillStyle=o.bgc||'rgba(6,8,12,.88)';rr(lx-4,y-h/2,W+8,h,3);ctx.fill()}
+  ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillStyle=o.c||'#cfd8e2';ctx.fillText(t,lx,y+0.5);
+  if(tg){ctx.font='9px '+MONO;ctx.fillStyle='#7f8a95';ctx.fillText(tg,lx+w+5,y+0.5);HIT.push({x:lx-4,y:y-h/2,w:W+8,h:h,cite:CITE[o.tag][1]})}
+  return {x:lx-4,y:y-h/2,w:W+8,h:h};
+}
+function arrow(x1,y1,x2,y2,c,w,hs){
+  ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=w||1.5;var a=Math.atan2(y2-y1,x2-x1);hs=hs||7;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-Math.cos(a)*hs*0.8,y2-Math.sin(a)*hs*0.8);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hs*Math.cos(a-0.4),y2-hs*Math.sin(a-0.4));ctx.lineTo(x2-hs*Math.cos(a+0.4),y2-hs*Math.sin(a+0.4));ctx.closePath();ctx.fill();
+}
+
+/* ── Scene 1: gap ── */
+var spark={pts:null,t:0};
+function drawGap(R,now){
+  var g=S.gap,r=rho(g.h),Eth=ETH0*r,E=g.V/g.d,ratio=E/Eth,on=ratio>=1;
+  var gaugeW=120,cx=(R.x0+R.x1-gaugeW)/2,cy=(R.y0+R.y1)/2-14;
+  var ph=Math.max(120,Math.min(260,R.y1-R.y0-150)),pt=16;
+  var gp=24+(Math.log10(g.d)+4)/2*236;
+  var xl=cx-gp/2,xr=cx+gp/2,top=cy-ph/2,bot=cy+ph/2;
+  // field lines
+  var n=7,al=0.25+0.7*Math.min(1,ratio);
+  for(var i=0;i<n;i++){var y=top+ph*(i+0.5)/n;if(gp>30)arrow(xl+4,y,xr-4,y,'rgba(125,214,255,'+al.toFixed(2)+')',1.4,Math.min(7,gp/5));else{ctx.strokeStyle='rgba(125,214,255,'+al.toFixed(2)+')';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(xl+2,y);ctx.lineTo(xr-2,y);ctx.stroke()}}
+  // spark
+  if(on){
+    if(!spark.pts||now-spark.t>110){spark.t=now;var pts=[],m=9,y0=cy+(Math.random()-0.5)*ph*0.5;for(var k=0;k<=m;k++){pts.push([xl+gp*k/m,y0+(k===0||k===m?0:(Math.random()-0.5)*Math.min(40,gp*0.6))])}spark.pts=pts}
+    var fl=0.55+0.45*Math.random();
+    ctx.save();ctx.shadowColor='rgba(170,200,255,1)';ctx.shadowBlur=26;
+    [[8,'rgba(150,180,255,'+(0.45*fl)+')'],[3,'rgba(255,255,255,'+fl+')']].forEach(function(s){ctx.lineWidth=s[0];ctx.strokeStyle=s[1];ctx.beginPath();spark.pts.forEach(function(p,j){j?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])});ctx.stroke()});
+    ctx.restore();
+  }
+  // plates
+  ctx.fillStyle='#b83a2c';ctx.strokeStyle='#5a5e62';ctx.lineWidth=1.2;ctx.fillRect(xl-pt,top,pt,ph);ctx.strokeRect(xl-pt,top,pt,ph);
+  ctx.fillStyle='#2c4fa8';ctx.fillRect(xr,top,pt,ph);ctx.strokeRect(xr,top,pt,ph);
+  ctx.font='bold 13px '+MONO;ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var q=0;q<6;q++){var yy=top+ph*(q+0.5)/6;ctx.fillStyle='#ffd0c8';ctx.fillText('+',xl-pt/2,yy);ctx.fillStyle='#d0dcff';ctx.fillText('−',xr+pt/2,yy)}
+  // labels: above the plates, outward from the gap
+  lab('ΔV = '+fs(g.V,'V'),xl,top-16,{a:'right',c:'#ffcc44',fs:13});
+  lab('0 V',xr,top-16,{c:'#8fb0ff',fs:13});
+  if(on)lab('E ≥ E_th: the gap breaks down',cx,top-44,{a:'center',c:'#ff9a4a',fs:13});
+  // dimension, label below the arrow
+  var dy=bot+18;ctx.strokeStyle='#9aa4ae';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xl,bot+8);ctx.lineTo(xl,dy+6);ctx.moveTo(xr,bot+8);ctx.lineTo(xr,dy+6);ctx.stroke();
+  if(gp>22){arrow(cx,dy,xl+1,dy,'#9aa4ae',1,5);arrow(cx,dy,xr-1,dy,'#9aa4ae',1,5)}
+  lab('d = '+(g.d*1e3).toFixed(g.d<1e-3?3:2)+' mm',cx,dy+20,{a:'center',fs:13,c:'#e8e8e8'});
+  lab('gap drawn on a log scale',cx,dy+40,{a:'center',fs:10.5,c:'#6f7a85',bg:false});
+  // altitude gauge
+  var gx=R.x1-gaugeW+40,gt=Math.max(R.y0+26,top-10),gb=Math.min(R.y1-10,bot+24),bw=14;
+  lab('altitude',gx+bw/2,gt-16,{a:'center',fs:10.5,c:'#8a96a3',bg:false});
+  var grd=ctx.createLinearGradient(0,gb,0,gt);grd.addColorStop(0,'rgba(125,214,255,.55)');grd.addColorStop(1,'rgba(125,214,255,'+(0.55*rho(10000)).toFixed(3)+')');
+  ctx.fillStyle=grd;ctx.fillRect(gx,gt,bw,gb-gt);ctx.strokeStyle='#3a4450';ctx.strokeRect(gx,gt,bw,gb-gt);
+  for(var hk=0;hk<=10;hk+=2){var yk=gb-(gb-gt)*hk/10;ctx.strokeStyle='#5c6670';ctx.beginPath();ctx.moveTo(gx-4,yk);ctx.lineTo(gx,yk);ctx.stroke();lab(hk+' km',gx-7,yk,{a:'right',fs:10,c:'#6f7a85',bg:false})}
+  var ym=gb-(gb-gt)*g.h/10;ctx.fillStyle='#ffae20';ctx.beginPath();ctx.moveTo(gx+bw+2,ym);ctx.lineTo(gx+bw+10,ym-5);ctx.lineTo(gx+bw+10,ym+5);ctx.closePath();ctx.fill();
+  lab('ρ/ρ₀',gx+bw+14,ym-8,{fs:10.5,c:'#ffae20',bg:false});
+  lab(r.toFixed(2),gx+bw+14,ym+7,{fs:11,c:'#ffae20',bg:false});
+}
+
+/* ── Scene 2: storm ── */
+function stormGeom(R){
+  var pad=14,axisW=46,Zmax=12000,h=R.y1-R.y0-pad-18,mpp=Zmax/h,gy=R.y1-18,x0=R.x0+axisW,wM=(R.x1-x0)*mpp,XL=0.40*wM;
+  return {mpp:mpp,gy:gy,x0:x0,R:R,X:function(x){return x0+(XL+x)/mpp},Y:function(z){return gy-z/mpp},
+          xm:function(px){return (px-x0)*mpp-XL},zm:function(py){return (gy-py)*mpp},xmin:-XL,xmax:wM-XL};
+}
+function inset(G){var iw=Math.min(210,(G.R.x1-G.R.x0)*0.25),ih=Math.min(150,(G.gy-G.R.y0)*0.38);return {x:G.R.x1-iw,y:G.gy-ih-6,w:iw,h:ih}}
+function cloudPath(G){
+  var p=new Path2D();
+  function addR(x1,z1,x2,z2,rad){var X1=G.X(x1),X2=G.X(x2),Y1=G.Y(z2),Y2=G.Y(z1);p.moveTo(X1+rad,Y1);p.arcTo(X2,Y1,X2,Y2,rad);p.arcTo(X2,Y2,X1,Y2,rad);p.arcTo(X1,Y2,X1,Y1,rad);p.arcTo(X1,Y1,X2,Y1,rad);p.closePath()}
+  function addC(x,z,r){var X=G.X(x),Y=G.Y(z),Rp=r/G.mpp;p.moveTo(X+Rp,Y);p.arc(X,Y,Rp,0,Math.PI*2)}
+  addR(-3700,1500,3700,9500,14);              // main column
+  addR(-6600,9300,6600,10700,22);             // anvil
+  [[-3600,2600,800],[-3900,3900,900],[-3700,5300,850],[-3900,6700,950],[-3500,8000,900],
+   [3600,2500,800],[3900,3800,900],[3800,5200,950],[3900,6600,850],[3500,7900,950],
+   [-2200,9200,1000],[0,9300,1150],[2300,9200,1000],[-5600,9900,700],[5600,9900,700],
+   [-3800,10500,700],[-1300,10650,650],[1400,10650,700],[3900,10500,650]].forEach(function(c){addC(c[0],c[1],c[2])});
+  return p;
+}
+var CLOUD=document.createElement('canvas'),cctx=CLOUD.getContext('2d');
+function drawCloud(G){
+  var p=cloudPath(G);
+  if(CLOUD.width!==cv.width||CLOUD.height!==cv.height){CLOUD.width=cv.width;CLOUD.height=cv.height}
+  cctx.setTransform(1,0,0,1,0,0);cctx.clearRect(0,0,CLOUD.width,CLOUD.height);cctx.setTransform(DPR,0,0,DPR,0,0);
+  cctx.strokeStyle='rgba(175,188,206,.45)';cctx.lineWidth=2.4;cctx.stroke(p);
+  cctx.globalCompositeOperation='destination-out';cctx.fillStyle='#000';cctx.fill(p);cctx.fill(p);cctx.fill(p);cctx.globalCompositeOperation='source-over';
+  cctx.fillStyle='rgba(120,134,155,.17)';cctx.fill(p);
+  ctx.save();ctx.beginPath();ctx.rect(0,0,CW,G.Y(1500));ctx.clip();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(CLOUD,0,0);ctx.restore();
+  ctx.strokeStyle='rgba(175,188,206,.45)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(G.X(-3700)+1,G.Y(1500));ctx.lineTo(G.X(3700)-1,G.Y(1500));ctx.stroke();
+}
+function drawStorm(R,now){
+  var G=stormGeom(R),st=S.storm;
+  // sky flash at return stroke
+  var fl=0;if(L.strokeReal){fl=Math.exp(-(now-L.strokeReal)/450)}
+  if(fl>0.01&&L.stream){var fx=G.X(L.stream.x),fy=G.Y(3000),rad=Math.min(300,(G.gy-G.Y(3000))+40),rg=ctx.createRadialGradient(fx,fy,10,fx,fy,rad);rg.addColorStop(0,'rgba(200,215,255,'+(0.30*fl).toFixed(3)+')');rg.addColorStop(1,'rgba(200,215,255,0)');ctx.fillStyle=rg;ctx.fillRect(fx-rad,fy-rad,2*rad,2*rad)}
+  // axis
+  ctx.strokeStyle='#3a4450';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(G.x0-8,G.Y(0));ctx.lineTo(G.x0-8,G.Y(12000));ctx.stroke();
+  for(var z=0;z<=12000;z+=2000){var y=G.Y(z);ctx.beginPath();ctx.moveTo(G.x0-12,y);ctx.lineTo(G.x0-8,y);ctx.stroke();lab((z/1000)+' km',G.x0-15,y,{a:'right',fs:10.5,c:'#6f7a85',bg:false})}
+  // ground
+  ctx.fillStyle='rgba(58,48,38,.75)';ctx.fillRect(G.x0-8,G.gy,R.x1-G.x0+8,18);ctx.strokeStyle='#6a5a48';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(G.x0-8,G.gy);ctx.lineTo(R.x1,G.gy);ctx.stroke();
+  ctx.font='bold 11px '+MONO;ctx.fillStyle='rgba(255,170,150,.55)';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var gx=-3500;gx<=3500;gx+=700)ctx.fillText('+',G.X(gx),G.gy+9);
+  lab('ground',G.x0,G.gy+9,{fs:10.5,c:'#a89880',bg:false});
+  // cloud
+  drawCloud(G);
+  // charge regions (tripole)
+  function blob(x,z,rx,rz,col,sign,nx,nz){ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(G.X(x),G.Y(z),rx/G.mpp,rz/G.mpp,0,0,Math.PI*2);ctx.fill();
+    ctx.font='bold 13px '+MONO;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=sign==='+'?'#ffb4a8':'#b8ccff';
+    for(var i=0;i<nx;i++)for(var j=0;j<nz;j++)ctx.fillText(sign,G.X(x-rx*0.7+rx*1.4*(i+0.5)/nx),G.Y(z-rz*0.5+rz*(j+0.5)/nz))}
+  blob(0,9500,3400,900,'rgba(255,90,70,.20)','+',6,2);
+  blob(0,ZMAIN,3300,600,'rgba(80,130,255,.30)','−',7,2);
+  blob(-300,2300,1100,380,'rgba(255,90,70,.20)','+',2,1);
+  // cloud labels, right of the cloud
+  var lx=G.X(4500),BOX=[],INB=insetOn()?inset(G):null;
+  function lab2(t,x,y,o){if(INB){ctx.font=(o.fs||12)+'px '+MONO;var w=ctx.measureText(t).width+(o.tag?60:0)+8,x0=o.a==='right'?x-w:x-4;if(x0<INB.x+INB.w&&x0+w>INB.x&&y+10>INB.y&&y-10<INB.y+INB.h)return {x:0,y:-99,w:0,h:0}}return lab(t,x,y,o)}
+  BOX.push(lab('upper +  (schematic)',G.X(6900),G.Y(9500)+2,{fs:11.5,c:'#ffb4a8'}));
+  BOX.push(lab('main − ≈ 6 km',lx,G.Y(ZMAIN)-8,{fs:11.5,c:'#b8ccff',tag:'WIL'}));
+  BOX.push(lab('(−10 to −20 °C level)',lx,G.Y(ZMAIN)+9,{fs:10.5,c:'#8a96a3'}));
+  BOX.push(lab2('lower +  (small)',lx,G.Y(2300),{fs:11.5,c:'#ffb4a8'}));
+  BOX.push(lab2('cloud base',lx,G.Y(1500),{fs:10.5,c:'#8a96a3'}));
+  // leader
+  var lit=L.phase==='stroke';
+  if(L.segs.length){
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    var glow=lit?Math.max(0.35,fl):0;
+    ctx.shadowColor=lit?'rgba(220,230,255,1)':'rgba(160,190,255,.8)';ctx.shadowBlur=lit?16+20*fl:6;
+    L.segs.forEach(function(s){if(s.main)return;ctx.strokeStyle=lit?'rgba(200,215,255,'+(0.25+0.4*glow)+')':'rgba(170,195,255,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(G.X(s.x1),G.Y(s.z1));ctx.lineTo(G.X(s.x2),G.Y(s.z2));ctx.stroke()});
+    ctx.strokeStyle=lit?'rgba(245,248,255,'+(0.55+0.45*glow)+')':'#d6e4ff';ctx.lineWidth=lit?2.6+2*fl:1.6;
+    ctx.beginPath();var first=true;L.segs.forEach(function(s){if(!s.main)return;if(first){ctx.moveTo(G.X(s.x1),G.Y(s.z1));first=false}ctx.lineTo(G.X(s.x2),G.Y(s.z2))});
+    if(lit&&L.stream)ctx.lineTo(G.X(L.stream.x),G.Y(0));
+    ctx.stroke();ctx.restore();
+    if(!lit){var m=mainTip();ctx.fillStyle='#ffffff';ctx.shadowColor='#aac4ff';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(G.X(m.x),G.Y(m.z),2.4,0,7);ctx.fill();ctx.shadowBlur=0}
+  }
+  if(L.phase!=='ready'){
+    lab('Leader: a cartoon of the stepping, not a physical model',R.x1,R.y0+6,{a:'right',fs:10.5,c:'#8a96a3'});
+    lab('(biased random walk; real step length and timing)',R.x1,R.y0+24,{a:'right',fs:10.5,c:'#6f7a85',bg:false});
+  }
+  // ruler
+  var rx=G.X(st.rulerX),ry0=G.Y(0),ry1=G.Y(st.rulerTop);
+  ctx.strokeStyle='#ffcc44';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(rx,ry0);ctx.lineTo(rx,ry1);ctx.stroke();
+  for(var t=1000;t<st.rulerTop;t+=1000){var yt=G.Y(t);ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(rx-4,yt);ctx.lineTo(rx+4,yt);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(rx-7,ry0);ctx.lineTo(rx+7,ry0);ctx.stroke();
+  ctx.fillStyle='#ffcc44';ctx.beginPath();ctx.arc(rx,ry1,6,0,7);ctx.fill();ctx.strokeStyle='#06080c';ctx.lineWidth=1.5;ctx.stroke();
+  BOX.push(lab('d = '+km(st.rulerTop),rx-12,(ry0+ry1)/2,{a:'right',fs:12.5,c:'#ffcc44'}));
+  BOX.push(lab('ruler',rx-12,(ry0+ry1)/2+18,{a:'right',fs:10,c:'#8a7a50',bg:false}));
+  // probe
+  var P=st.probe,px=G.X(P.x),py=G.Y(P.z),pf=probeField(P.x,P.z);
+  ctx.strokeStyle='#7dd6ff';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(px,py,7,0,7);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(px-11,py);ctx.lineTo(px-4,py);ctx.moveTo(px+4,py);ctx.lineTo(px+11,py);ctx.moveTo(px,py-11);ctx.lineTo(px,py-4);ctx.moveTo(px,py+4);ctx.lineTo(px,py+11);ctx.stroke();
+  var ptxt='probe: E ≈ '+fs(pf.E,'V/m');ctx.font='12px '+MONO;var pw=ctx.measureText(ptxt).width+10;
+  var IN=inset(G),bh=18,cands=[[px+16,py,'left'],[px-16,py,'right'],[px+16,py-22,'left'],[px-16,py-22,'right'],[px+16,py+22,'left'],[px-16,py+22,'right']];
+  if(insetOn())BOX.push({x:IN.x,y:IN.y,w:IN.w,h:IN.h});
+  function hits(c){var x=c[2]==='left'?c[0]-4:c[0]-pw-4,y=c[1]-bh/2;if(x<R.x0||x+pw+8>R.x1)return true;for(var i=0;i<BOX.length;i++){var b=BOX[i];if(x<b.x+b.w&&x+pw+8>b.x&&y<b.y+b.h&&y+bh>b.y)return true}return false}
+  var pick=cands[0];for(var ci=0;ci<cands.length;ci++){if(!hits(cands[ci])){pick=cands[ci];break}}
+  lab(ptxt,pick[0],pick[1],{a:pick[2],fs:12,c:'#7dd6ff'});
+  if(L.phase==='stroke'){
+    lab('Return stroke: ~30 kA peak, ~1 µs rise',R.x1,R.y0+44,{a:'right',fs:12,c:'#ffd6a0',tag:'NOAA'});
+    lab('~5 C brought to ground',R.x1,R.y0+63,{a:'right',fs:12,c:'#ffd6a0',tag:'NOAA'});}
+  // zoom inset
+  if(insetOn())drawInset(G,IN,lit,fl);
+}
+function insetOn(){return L.phase!=='ready'&&mainTip().z<900}
+function drawInset(G,B,lit,fl){
+  var m=mainTip(),Zi=200,sc=Zi/(B.h-22),cxm=L.stream?L.stream.x:m.x;
+  function X(x){return B.x+B.w/2+(x-cxm)/sc}function Y(z){return B.y+B.h-4-z/sc}
+  ctx.fillStyle='rgba(6,8,12,.94)';rr(B.x,B.y,B.w,B.h,4);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.stroke();
+  ctx.save();rr(B.x,B.y,B.w,B.h,4);ctx.clip();
+  ctx.fillStyle='rgba(58,48,38,.8)';ctx.fillRect(B.x,Y(0),B.w,8);
+  ctx.lineCap='round';
+  L.segs.forEach(function(s){if(Math.min(s.z1,s.z2)>Zi*1.2)return;ctx.strokeStyle=lit?'rgba(245,248,255,'+(0.6+0.4*fl)+')':(s.main?'#d6e4ff':'rgba(170,195,255,.55)');ctx.lineWidth=s.main?(lit?3:2):1;ctx.shadowColor='#aac4ff';ctx.shadowBlur=lit?14:5;ctx.beginPath();ctx.moveTo(X(s.x1),Y(s.z1));ctx.lineTo(X(s.x2),Y(s.z2));ctx.stroke()});
+  if(L.stream){ctx.strokeStyle=lit?'rgba(255,250,235,1)':'#ffcf8a';ctx.lineWidth=lit?3:2;ctx.shadowColor='#ffb060';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(X(L.stream.x),Y(0));ctx.lineTo(X(L.stream.x),Y(L.stream.top));ctx.stroke()}
+  ctx.shadowBlur=0;
+  if(!lit){ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(X(m.x),Y(m.z),2.5,0,7);ctx.fill()}
+  ctx.restore();
+  lab('zoom: lowest 200 m',B.x+8,B.y+11,{fs:10,c:'#8a96a3'});
+  // 50 m scale bar, top right
+  var sb=50/sc;ctx.strokeStyle='#9aa4ae';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(B.x+B.w-8-sb,B.y+10);ctx.lineTo(B.x+B.w-8,B.y+10);ctx.moveTo(B.x+B.w-8-sb,B.y+6);ctx.lineTo(B.x+B.w-8-sb,B.y+14);ctx.moveTo(B.x+B.w-8,B.y+6);ctx.lineTo(B.x+B.w-8,B.y+14);ctx.stroke();
+  lab('50 m',B.x+B.w-8-sb/2,B.y+22,{a:'center',fs:9.5,c:'#8a96a3',bg:false});
+  if(L.stream){var sx=X(L.stream.x),left=sx>B.x+B.w*0.55;lab(lit?'junction':'streamer',left?sx-8:sx+8,Y(Math.max(L.stream.top,8))-4,{a:left?'right':'left',fs:9.5,c:'#ffcf8a'})}
+}
+
+/* ── Scene 3: Earth ── */
+function niceStep(v){var e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e}
+function niceMax(v){var e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;return (f<=1.5?1.5:f<=2?2:f<=2.5?2.5:f<=3?3:f<=4?4:f<=5?5:f<=6?6:f<=8?8:10)*e}
+function drawEarth(R){
+  var e=S.earth,H=e.VI/e.E0,W=R.x1-R.x0;
+  // diagram
+  var narrow=W<640,dw=Math.min(290,W*(narrow?0.3:0.34)),Re=Math.max(20,Math.min(dw*0.3,(R.y1-R.y0-(narrow?110:150))/2-34)),cx=R.x0+dw/2,cy=R.y0+Re+34+34;
+  var Rp=Re+10,Ro=Re+34;
+  ctx.fillStyle='rgba(125,160,255,.06)';ctx.beginPath();ctx.arc(cx,cy,Ro,0,7);ctx.fill();
+  for(var i=0;i<16;i++){var a=i/16*Math.PI*2+0.1;arrow(cx+Math.cos(a)*(Ro-3),cy+Math.sin(a)*(Ro-3),cx+Math.cos(a)*(Re+3),cy+Math.sin(a)*(Re+3),'rgba(125,214,255,.55)',1.1,5)}
+  var eg=ctx.createRadialGradient(cx-Re*0.3,cy-Re*0.3,Re*0.1,cx,cy,Re);eg.addColorStop(0,'#2a5a6a');eg.addColorStop(1,'#122a38');
+  ctx.fillStyle=eg;ctx.beginPath();ctx.arc(cx,cy,Re,0,7);ctx.fill();ctx.strokeStyle='#8fb0ff';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.setLineDash([4,4]);ctx.strokeStyle='#ffcc44';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(cx,cy,Rp,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle='#c9a8ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,Ro,0,7);ctx.stroke();
+  ctx.font='bold 11px '+MONO;ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var k=0;k<12;k++){var b=k/12*Math.PI*2;ctx.fillStyle='#ffb4a8';ctx.fillText('+',cx+Math.cos(b)*(Ro+8),cy+Math.sin(b)*(Ro+8));ctx.fillStyle='#b8ccff';ctx.fillText('−',cx+Math.cos(b+0.26)*(Re-9),cy+Math.sin(b+0.26)*(Re-9))}
+  lab('Two concentric spheres',cx,R.y0+6,{a:'center',fs:11,c:'#cfd8e2',bg:false});
+  // legend below the diagram
+  var ly=cy+Ro+28,lx0=R.x0+6;
+  function leg(y,col,dash,txt,tag){ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash(dash?[4,4]:[]);ctx.beginPath();ctx.moveTo(lx0,y);ctx.lineTo(lx0+20,y);ctx.stroke();ctx.setLineDash([]);lab(txt,lx0+28,y,{fs:11,c:'#cfd8e2',bg:false,tag:tag})}
+  if(!narrow){leg(ly,'#8fb0ff',0,"Earth's surface, charge −Q");
+  leg(ly+19,'#ffcc44',1,'effective plate, h_eff = '+km(H,1),'CALC');
+  leg(ly+38,'#c9a8ff',0,'upper boundary, 60 km','MOD');
+  lab('Not to scale: 60 km is '+(ZTOP/AE*100).toFixed(1)+'% of a.',lx0,ly+60,{fs:10.5,c:'#8a96a3',bg:false});
+  lab('Fair-weather E points down (arrows).',lx0,ly+77,{fs:10.5,c:'#8a96a3',bg:false});}else{lab('not to scale',cx,ly-6,{a:'center',fs:10,c:'#8a96a3',bg:false})}
+  // plots
+  var px0=R.x0+dw+22,pw=(R.x1-px0-26)/2,pt=R.y0+30,pb=R.y1-40,Zp=20000;
+  function plot(x0,xmax,unit,div,title,fn,naive,mk){
+    var X=function(v){return x0+44+(pw-52)*v/xmax},Y=function(z){return pb-(pb-pt)*z/Zp};
+    lab(title,x0+44,pt-18,{fs:11.5,c:'#ffae20',bg:false});
+    ctx.strokeStyle='#3a4450';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(0),Y(Zp));ctx.lineTo(X(0),Y(0));ctx.lineTo(X(xmax),Y(0));ctx.stroke();
+    for(var z=0;z<=Zp;z+=5000){ctx.strokeStyle='rgba(255,255,255,.05)';ctx.beginPath();ctx.moveTo(X(0),Y(z));ctx.lineTo(X(xmax),Y(z));ctx.stroke();lab((z/1000)+' km',X(0)-6,Y(z),{a:'right',fs:10,c:'#6f7a85',bg:false})}
+    var stp=niceStep(xmax/4);for(var j=0;j*stp<=xmax*1.0001;j++){var v=j*stp,xx=X(v);ctx.strokeStyle='#3a4450';ctx.beginPath();ctx.moveTo(xx,Y(0));ctx.lineTo(xx,Y(0)+4);ctx.stroke();lab(String(Math.round(v/div)),xx,Y(0)+12,{a:'center',fs:10,c:'#6f7a85',bg:false})}
+    lab(unit,X(xmax/2),Y(0)+28,{a:'center',fs:10.5,c:'#8a96a3',bg:false});
+    mk(X,Y);
+    // model curve
+    ctx.strokeStyle='#7dd6ff';ctx.lineWidth=2;ctx.shadowColor='rgba(125,214,255,.5)';ctx.shadowBlur=5;ctx.beginPath();
+    for(var s=0;s<=300;s++){var zz=Zp*Math.pow(s/300,1.6);var xv=X(fn(zz));s?ctx.lineTo(xv,Y(zz)):ctx.moveTo(xv,Y(zz))}ctx.stroke();ctx.shadowBlur=0;
+    // uniform-field guess
+    ctx.save();ctx.beginPath();ctx.rect(X(0),Y(Zp),X(xmax)-X(0),Y(0)-Y(Zp));ctx.clip();
+    ctx.setLineDash([5,4]);ctx.strokeStyle='#ffae20';ctx.lineWidth=1.6;ctx.beginPath();for(var s2=0;s2<=200;s2++){var z2=Zp*s2/200;var x2=X(naive(z2));s2?ctx.lineTo(x2,Y(z2)):ctx.moveTo(x2,Y(z2))}ctx.stroke();ctx.setLineDash([]);ctx.restore();
+    // legend, top-left inside
+    if(!narrow){ctx.strokeStyle='#7dd6ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(0)+10,Y(Zp)+10);ctx.lineTo(X(0)+28,Y(Zp)+10);ctx.stroke();lab('model',X(0)+34,Y(Zp)+10,{fs:10.5,c:'#7dd6ff',bg:false});}
+    if(narrow)return {X:X,Y:Y};ctx.setLineDash([5,4]);ctx.strokeStyle='#ffae20';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(X(0)+10,Y(Zp)+27);ctx.lineTo(X(0)+28,Y(Zp)+27);ctx.stroke();ctx.setLineDash([]);lab('uniform E',X(0)+34,Y(Zp)+27,{fs:10.5,c:'#ffae20',bg:false});
+    return {X:X,Y:Y};
+  }
+  var Emax=niceMax(e.E0*1.12);
+  plot(px0,Emax,'E (V/m)',1,narrow?'E(z)':'E(z) = E₀ e^(−z/H)',function(z){return e.E0*Math.exp(-z/H)},function(){return e.E0},function(X,Y){
+    ctx.fillStyle='rgba(125,214,255,.16)';ctx.beginPath();ctx.moveTo(X(0),Y(0));for(var s=0;s<=200;s++){var z=Math.min(20000,H*8*s/200);ctx.lineTo(X(e.E0*Math.exp(-z/H)),Y(z))}ctx.lineTo(X(0),Y(Math.min(20000,H*8)));ctx.closePath();ctx.fill();
+    // label the shaded area off the curve, with a leader line
+    if(narrow)return;var tx=X(e.E0*0.55),ty=Y(7000);
+    ctx.strokeStyle='rgba(125,214,255,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tx-20,ty+17);ctx.lineTo(X(e.E0*0.12),Y(H*0.5));ctx.stroke();
+    lab('shaded area = ∫E dz',tx,ty-8,{a:'center',fs:10.5,c:'#7dd6ff'});
+    lab('= '+fs(e.VI,'V'),tx,ty+8,{a:'center',fs:10.5,c:'#7dd6ff',tag:'HAR'});
+  });
+  var Vmax=niceMax(e.VI*1.2);
+  plot(px0+pw+26,Vmax,'V (kV)',1000,narrow?'V(z); dot = h_eff':'V(z) = V_I (1 − e^(−z/H))',function(z){return e.VI*(1-Math.exp(-z/H))},function(z){return e.E0*z},function(X,Y){
+    var dx=X(e.VI),dy=Y(H);
+    ctx.setLineDash([2,3]);ctx.strokeStyle='#ffcc44';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(0),dy);ctx.lineTo(dx,dy);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#ffcc44';ctx.beginPath();ctx.arc(dx,dy,3.5,0,7);ctx.fill();
+    if(narrow)return;var hx=X(0)+10,hy=Y(8500);
+    ctx.strokeStyle='rgba(255,204,68,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(hx+30,hy+10);ctx.lineTo(dx-3,dy-3);ctx.stroke();
+    lab('h_eff = V_I/E₀',hx,hy-8,{fs:10.5,c:'#ffcc44'});
+    lab('= '+km(H),hx,hy+8,{fs:10.5,c:'#ffcc44'});
+    lab('uniform E keeps',X(0)+10,Y(Zp)+50,{fs:10,c:'#ffae20',bg:false});
+    lab('climbing: '+fs(e.E0*ZTOP,'V'),X(0)+10,Y(Zp)+64,{fs:10,c:'#ffae20',bg:false});
+    lab('at 60 km',X(0)+10,Y(Zp)+78,{fs:10,c:'#ffae20',bg:false});
+  });
+}
+
+function draw(now){
+  HIT=[];ctx.clearRect(0,0,CW,CH);var R=sceneRect();
+  if(R.y1-R.y0<60)return;
+  if(S.mode==='gap')drawGap(R,now);else if(S.mode==='storm'){followProbe();drawStorm(R,now)}else drawEarth(R);
+}
+
+/* ════════════ Readout band ════════════ */
+function renderBand(){
+  var h='',rule='',open='',mode='';
+  if(S.mode==='gap'){
+    var g=S.gap,r=rho(g.h),Eth=ETH0*r,E=g.V/g.d,ratio=E/Eth,Vmax=Eth*g.d,on=ratio>=1;
+    var dT=(g.d*1e3).toFixed(g.d<1e-3?3:2)+'\\,\\text{mm}';
+    h+=card('Field in the gap',ln('E=\\dfrac{\\Delta V}{d}=\\dfrac{'+T(g.V,'V')+'}{'+dT+'}','CALC')+ln('E='+T(E,'V/m'),'CALC'));
+    h+=card('Breakdown threshold',ln('\\rho/\\rho_0=e^{-h/8.5\\,\\text{km}}='+r.toFixed(3),'MOD')+ln('E_{\\text{th}}=(3\\,\\text{MV/m})\\,\\rho/\\rho_0','DU')+ln('E_{\\text{th}}='+T(Eth,'V/m'),'CALC'));
+    h+=card('Most this gap holds',ln('\\Delta V_{\\max}=E_{\\text{th}}\\,d='+T(Vmax,'V'),'CALC')+'<div class="nt">ΔV above this sparks</div>');
+    var w=Math.min(100,ratio/1.5*100);
+    h+=card('E / E<sub>th</sub>','<div class="ln"><span class="big'+(on?' hot':'')+'">'+ratio.toFixed(2)+'</span><span class="nt" style="margin:0 0 0 auto">'+(on?'breakdown':'holds')+'</span></div><div class="bar"><i class="'+(on?'hot':'')+'" style="width:'+w+'%"></i><b style="left:'+(100/1.5)+'%"></b></div><div class="nt">marker = 1 (bar runs 0 to 1.5)</div>');
+    rule=on?'E ≥ E_th: the air in the gap breaks down and conducts.':'E is '+(ratio*100).toFixed(0)+'% of the breakdown field. Raise ΔV, shrink d, or climb.';
+    mode='Gap · '+(on?'breakdown':'E/E_th = '+ratio.toFixed(2));
+  }else if(S.mode==='storm'){
+    var st=S.storm,d=st.rulerTop,Ed=ETH0*d,Eint=ETH0*HRHO*(1-Math.exp(-d/HRHO)),zp=st.probe.z,rp=rho(zp),Ethp=ETH0*rp,pf=probeField(st.probe.x,zp);
+    h+=card('E·d demands',ln('d='+T(d,'m')+'\\ \\text{(ruler)}','CALC')+ln('E_{\\text{th}}\\,d=(3\\,\\text{MV/m})('+T(d,'m')+')='+T(Ed,'V'),'DU')+ln('\\textstyle\\int_0^d E_{\\text{th}}(z)\\,dz='+T(Eint,'V'),'MOD'));
+    h+=card('Measured',ln('\\Delta V\\approx 100\\,\\text{MV}\\ \\text{(cloud to ground)}','NOAA')+ln('E_{\\text{avg}}=\\dfrac{100\\,\\text{MV}}{6\\,\\text{km}}='+T(EAVG,'V/m'),'CALC','WIL')+ln('E_{\\text{th}}d\\,/\\,\\Delta V='+(Ed/VCLOUD).toFixed(0)+'\\times','CALC'));
+    h+=card('Breakdown needs (probe, '+alt(zp)+')',ln('E_{\\text{th}}=(3\\,\\text{MV/m})\\,\\rho/\\rho_0='+T(Ethp,'V/m'),'DU','MOD')+ln(window.innerWidth<=1100?'\\text{cloud max}\\approx'+T(ECLOUD*rp,'V/m'):'\\text{cloud max}\\approx(400\\,\\text{kV/m})\\,\\rho/\\rho_0='+T(ECLOUD*rp,'V/m'),'MAR')+ln(window.innerWidth<=1100?'E_{\\text{probe}}\\approx'+T(pf.E,'V/m'):('\\text{probe: }E\\approx'+T(pf.E,'V/m')+'='+(pf.E/Ethp<0.01?(pf.E/Ethp).toExponential(1).replace('e','\\times10^{')+'}':(pf.E/Ethp).toFixed(2))+'\\,E_{\\text{th}}'),pf.leader?'EST':'CALC'));
+    open='<b>Open problem</b>Average field ≪ breakdown field, and the strongest fields measured inside clouds (~400 kV/m sea-level equivalent)'+src('MAR')+' are still below 3 MV/m'+src('DU')+'. How lightning starts is an open research problem. Leading ideas: field enhancement at ice and water particles, and runaway electron avalanches (threshold ~284 kV/m, sea-level equivalent)'+src('DW05')+'.';
+    var m=mainTip();
+    if(L.phase==='ready'){rule='E·d with the breakdown field: '+fs(Ed,'V').replace(' ','\u202f')+'. Measured: ~100 MV. Press Play for the stepped leader.';mode='Storm · average field '+fs(EAVG,'V/m')}
+    else if(L.phase==='stroke'){rule='Return stroke at t = '+(L.tConnect*1e3).toFixed(3)+' ms, after '+L.n+' steps: ~30 kA peak, ~5 C to ground. '+src('NOAA');mode='Storm · return stroke'}
+    else{rule='t = '+(L.t*1e3).toFixed(3)+' ms · step '+L.n+' · tip at '+alt(m.z)+' · slow motion ×1/'+Math.round(1/st.speed);mode='Storm · stepped leader · '+(L.t*1e3).toFixed(2)+' ms'}
+    renderLog();
+  }else{
+    var e=S.earth,A=4*Math.PI*AE*AE,H=e.VI/e.E0,Q=EPS0*e.E0*A,Vn=e.E0*ZTOP,Cn=4*Math.PI*EPS0*AE*(AE+ZTOP)/ZTOP,Ce=EPS0*A/H,J=SIG0*e.E0,I=J*A,I3=JHAR*A,tau=EPS0/SIG0,RC=RT*Ce;
+    h+=card('Surface charge (Gauss)',ln('Q=\\varepsilon_0E_0\\,4\\pi a^2','CALC')+ln('Q='+sci(Q)+'\\,\\text{C}','CALC')+'<div class="nt">a = 6371 km, E₀ = '+e.E0+' V/m</div>');
+    h+=card('Uniform-field guess',ln('E_0\\times 60\\,\\text{km}='+T(Vn,'V'),'MOD')+ln('V_I\\approx'+T(e.VI,'V'),'HAR')+ln('\\text{guess}/V_I='+(Vn/e.VI).toFixed(1)+'\\times','CALC'));
+    h+=card('Capacitor',ln('h_{\\text{eff}}=V_I/E_0='+T(H,'m'),'CALC')+ln('C_{60\\,\\text{km}}=\\frac{4\\pi\\varepsilon_0ab}{b-a}='+Cn.toFixed(3)+'\\,\\text{F}','MOD')+ln('C_{\\text{eff}}=\\varepsilon_0 4\\pi a^2/h_{\\text{eff}}='+T(Ce,'F'),'CALC')+nln('paper: 1.8–2.0 km','JASTP'));
+    h+=card('Leakage',ln('J=\\sigma_0E_0='+T(J,'A/m','^2'),'HAR')+ln('I=J\\,4\\pi a^2='+T(I,'A'),'CALC')+ln('\\tau=\\varepsilon_0/\\sigma_0='+(tau/60).toFixed(1)+'\\,\\text{min}','CALC')+ln('R_TC_{\\text{eff}}='+(RC/60).toFixed(1)+'\\,\\text{min}','HAR')+nln('J = 3 pA/m² → '+fs(I3,'A'),'HAR')+nln('table total: 1.8 kA','HAR')+nln('measured τ: 7–12 min','JASTP'));
+    rule='Who charges it? Thunderstorms worldwide act as the batteries, keeping about 1.8 kA flowing.';
+    mode='Earth · fair-weather capacitor';
+  }
+  $('cards').innerHTML=h;$('rule').innerHTML=rule+(S.mode==='earth'?' '+src('HAR'):'');
+  $('openp').innerHTML=open;$('openp').style.display=open?'':'none';
+  $('modeLine').textContent=mode;
+  $('bandH').textContent=S.mode==='gap'?'Gap readouts':S.mode==='storm'?'Three numbers for one cloud':'Fair-weather circuit';
+  fitEqs();
+}
+function renderLog(){
+  var m=mainTip(),ph=L.phase,rb=KC*LAM/(ETH0*rho(m.z));
+  function lg(t,tags,cls){return '<div class="lg '+(cls||'')+'"><span class="t">'+t+'</span>'+(tags?src.apply(null,tags):'')+'</div>'}
+  var h='';
+  h+=lg('step: 50 m every 50 µs',['NOAA']);
+  h+=lg('steps '+L.n+' · branches '+L.nBranch,null,ph==='ready'?'dim':'');
+  h+=lg('λ ≈ 5 C / 6 km = '+(LAM*1e3).toFixed(2)+' mC/m',['EST']);
+  h+=lg('tip: E > E_th within '+rb.toFixed(1)+' m',['EST'],ph==='ready'?'dim':'');
+  h+=lg(L.launchZ!=null?'streamer up at '+L.launchZ.toFixed(0)+' m (flat: 10–20 m)':'streamer: tip within 10–20 m',['ATMO'],L.launchZ!=null?'':'dim');
+  h+=lg('return stroke: 30 kA peak, ~1 µs rise',['NOAA'],ph==='stroke'?'hot':'dim');
+  h+=lg('charge lowered: ~5 C',['NOAA'],ph==='stroke'?'hot':'dim');
+  $('slog').innerHTML=h;
+}
+
+/* ════════════ Rail ════════════ */
+var OV={
+  gap:'<p>Two flat plates a distance d apart at potential difference ΔV. Between flat plates the field is uniform, so E = ΔV/d holds here, and only here.</p><p>Air breaks down near E<sub>th</sub> ≈ 3 MV/m at sea level '+src('DU')+', and E<sub>th</sub> scales linearly with air density. The density model is an isothermal scale height, ρ/ρ₀ = e<sup>−h/8.5 km</sup> '+src('MOD')+', not the full standard atmosphere. The same gap sparks at a lower ΔV on a mountain, and lower still inside a cloud.</p>',
+  storm:'<p>A thundercloud with the tripole charge structure: upper +, main − near the −10 to −20 °C level (≈ 6 km) '+src('WIL')+', small lower +. Only the main charge is placed from data; the other two are schematic. Charge separation (graupel–ice collisions) is named, not simulated.</p><p>The ruler applies the shortcut E·d. The probe reads the average field 100 MV / 6 km; once the leader exists it adds an <em>estimate</em> of the channel&rsquo;s field: a line charge λ ≈ 5 C / 6 km with its image in the ground '+src('EST')+'. Near the tip, λ/(4πε₀r) passes E<sub>th</sub> within a few metres, the outdoor version of charge crowding at sharp points.</p><p>The leader is a cartoon: a biased random walk with the real step (50 m) and pause (50 µs) '+src('NOAA')+'. Fixed 50 µs pauses bring it down in under 10 ms; real leaders take tens of ms '+src('ATMO')+'. E<sub>th</sub> also drops with precipitation (not modelled). At the ground under a storm the field is thousands of V/m '+src('ATMO')+'.</p>',
+  earth:'<p>Earth&rsquo;s surface (−) and the conducting upper atmosphere (+) as a leaky spherical capacitor. Model '+src('MOD')+': σ(z) = σ₀e<sup>z/H</sup> with σ₀ = 20 fS/m '+src('HAR')+'; the same J = σE flows through every layer, so E(z) = E₀e<sup>−z/H</sup>. Requiring ∫E dz = V<sub>I</sub> sets H = V<sub>I</sub>/E₀ (≈ 2.1 km at the typical values), so in this model the conductivity scale height <em>is</em> the effective plate height.</p><p>Check, at the typical values: columnar resistance H/σ₀ ≈ 104 PΩ·m², against 120 PΩ·m² in the table '+src('HAR')+'. A single exponential overstates σ far aloft; it is fitted to the voltage drop, not the profile. The plots stop at 20 km, where E ≈ 0.008 V/m.</p><p>Whether &ldquo;Earth–ionosphere capacitor&rdquo; is the right picture at all is debated '+src('JASTP')+'; the 2 km effective plate is part of that argument. The ionosphere proper (the Kennelly–Heaviside E layer) lies well above this model&rsquo;s 60 km boundary.</p>'
+};
+var EQS={
+  gap:[['Potential from field','\\Delta V=-\\int \\vec E\\cdot d\\vec l'],['Uniform field only','E=\\dfrac{\\Delta V}{d}'],['Largest voltage a gap holds','\\Delta V_{\\max}=E_{\\max}\\,d'],['Breakdown threshold','E_{\\text{th}}\\propto\\rho_{\\text{air}}']],
+  storm:[['Potential from field','\\Delta V=-\\int \\vec E\\cdot d\\vec l'],['Largest voltage a gap holds','\\Delta V_{\\max}=E_{\\max}\\,d'],['Breakdown threshold','E_{\\text{th}}\\propto\\rho_{\\text{air}}'],['Near the leader tip (estimate)','E\\approx\\dfrac{\\lambda}{4\\pi\\varepsilon_0 r}']],
+  earth:[['Potential from field','\\Delta V=-\\int \\vec E\\cdot d\\vec l'],['Leakage current','J=\\sigma E'],['Spherical capacitor','C=\\dfrac{4\\pi\\varepsilon_0\\,ab}{b-a}'],['Surface charge (Gauss)','Q=\\varepsilon_0E\\cdot4\\pi a^2']]
+};
+function renderInfo(){
+  $('ovText').innerHTML=OV[S.mode];
+  $('eqStrip').innerHTML=EQS[S.mode].map(function(q){return '<div class="eq-card"><div class="eq-l">'+q[0]+'</div><div class="info-eq">'+tex(q[1],true)+'</div></div>'}).join('');
+}
+function setMode(m){
+  S.mode=m;
+  document.querySelectorAll('.seg-btn').forEach(function(b){b.classList.toggle('on',b.dataset.m===m)});
+  ['gap','storm','earth'].forEach(function(k){$('sec-'+k).classList.toggle('on',k===m)});
+  renderInfo();renderBand();
+}
+/* gap sliders (log) */
+var DLO=-4,DHI=-2,VLO=2,VHI=Math.log10(4e4);
+function syncGap(){var g=S.gap;$('slD').value=Math.round((Math.log10(g.d)-DLO)/(DHI-DLO)*1000);$('slV').value=Math.round((Math.log10(g.V)-VLO)/(VHI-VLO)*1000);$('slH').value=g.h/1000;
+  $('vD').textContent=(g.d*1e3).toFixed(g.d<1e-3?3:2)+' mm';$('vV').textContent=fs(g.V,'V');$('vH').textContent=(g.h/1000).toFixed(1)+' km'}
+$('slD').oninput=function(){S.gap.d=Math.pow(10,DLO+(DHI-DLO)*this.value/1000);syncGap();renderBand()};
+$('slV').oninput=function(){S.gap.V=Math.pow(10,VLO+(VHI-VLO)*this.value/1000);syncGap();renderBand()};
+$('slH').oninput=function(){S.gap.h=parseFloat(this.value)*1000;syncGap();renderBand()};
+$('bSpark').onclick=function(){S.gap.V=Math.min(4e4,ETH0*rho(S.gap.h)*S.gap.d*1.001);syncGap();renderBand()};
+$('bGapReset').onclick=function(){S.gap={d:1e-3,V:2000,h:0};syncGap();renderBand()};
+/* storm */
+var SLO=-4,SHI=-2; // sim seconds per real second: 100 µs/s .. 10 ms/s
+function syncSpd(){var s=S.storm.speed;$('slSpd').value=Math.round((Math.log10(s)-SLO)/(SHI-SLO)*1000);$('vSpd').textContent=fs(s,'s')+'/s';$('vSpdX').textContent='×1/'+Math.round(1/s)}
+$('slSpd').oninput=function(){S.storm.speed=Math.pow(10,SLO+(SHI-SLO)*this.value/1000);syncSpd();bandDirty=true};
+function syncPlay(){$('bPlay').textContent=S.storm.playing?'Pause':(L&&L.phase==='stroke'?'Replay':'Play')}
+function play(){if(L.phase==='stroke'){resetLeader(S.storm.seed)}S.storm.playing=!S.storm.playing;syncPlay();bandDirty=true}
+$('bPlay').onclick=play;
+$('bStep').onclick=function(){if(L.phase==='stroke')return;if(L.phase==='ready')L.phase='leader';S.storm.playing=false;L.t=(L.n+1)*DT;tick();syncPlay();bandDirty=true};
+$('bReset').onclick=function(){S.storm.playing=false;resetLeader(S.storm.seed);syncPlay();bandDirty=true};
+$('bNew').onclick=function(){S.storm.playing=false;S.storm.seed++;resetLeader(S.storm.seed);syncPlay();bandDirty=true};
+$('tgFollow').onchange=function(){S.storm.follow=this.checked;bandDirty=true};
+/* earth */
+function syncEarth(){$('slE0').value=S.earth.E0;$('slVI').value=S.earth.VI/1000;$('vE0').textContent=S.earth.E0+' V/m';$('vVI').textContent=(S.earth.VI/1000)+' kV'}
+$('slE0').oninput=function(){S.earth.E0=+this.value;syncEarth();renderBand()};
+$('slVI').oninput=function(){S.earth.VI=this.value*1000;syncEarth();renderBand()};
+$('bEarthReset').onclick=function(){S.earth={E0:E0T,VI:VIT};syncEarth();renderBand()};
+$('srcE0').outerHTML=src('ATMO','FEY');$('srcVI').outerHTML=src('ATMO','HAR');
+$('seg').onclick=function(e){var b=e.target.closest('[data-m]');if(b)setMode(b.dataset.m)};
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||(e.key===' '&&e.target.tagName==='BUTTON'))return;
+  if(e.key==='1')setMode('gap');else if(e.key==='2')setMode('storm');else if(e.key==='3')setMode('earth');
+  else if(e.key===' '&&S.mode==='storm'){play();e.preventDefault()}
+});
+
+/* ── canvas pointer: drag ruler + probe, hover citations ── */
+function ptr(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}}
+function grab(p){
+  if(S.mode!=='storm')return null;var G=stormGeom(sceneRect()),st=S.storm;
+  var px=G.X(st.probe.x),py=G.Y(st.probe.z);if(Math.hypot(p.x-px,p.y-py)<14)return 'probe';
+  var rx=G.X(st.rulerX),ry=G.Y(st.rulerTop);if(Math.hypot(p.x-rx,p.y-ry)<12)return 'rtop';
+  if(Math.abs(p.x-rx)<8&&p.y>ry&&p.y<G.Y(0)+4)return 'rbody';
+  return null;
+}
+cv.addEventListener('pointerdown',function(e){var p=ptr(e),g=grab(p);if(!g)return;DRAG=g;cv.setPointerCapture(e.pointerId);if(g==='probe'){S.storm.follow=false;$('tgFollow').checked=false}e.preventDefault()});
+cv.addEventListener('pointermove',function(e){
+  var p=ptr(e);
+  if(DRAG){var G=stormGeom(sceneRect()),st=S.storm,xm=Math.max(G.xmin+200,Math.min(G.xmax-200,G.xm(p.x))),zm=G.zm(p.y);
+    if(DRAG==='probe')st.probe={x:xm,z:Math.max(5,Math.min(ZMAIN-10,zm))};
+    else if(DRAG==='rtop')st.rulerTop=Math.max(200,Math.min(11500,zm));
+    else st.rulerX=xm;
+    bandDirty=true;return}
+  var g=grab(p);cv.style.cursor=g?(g==='rbody'?'ew-resize':g==='rtop'?'ns-resize':'grab'):'default';
+  var t='';HIT.forEach(function(h){if(p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h)t=h.cite});cv.title=t;
+});
+cv.addEventListener('pointerup',function(){DRAG=null});
+
+/* ── loop ── */
+var last=performance.now();
+function loop(now){
+  var dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(S.mode==='storm')stormAdvance(dt);
+  draw(now);
+  if(bandDirty&&now-lastBand>110){bandDirty=false;lastBand=now;renderBand()}
+  requestAnimationFrame(loop);
+}
+function renderAll(){renderInfo();renderBand()}
+window.renderAll=renderAll;
+window.addEventListener('resize',function(){setupCanvas();renderBand()});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){fitEqs()});
+/* test/driver hook (harmless): run the leader to a given step or phase */
+window.__lb={S:S,setMode:setMode,leader:function(){return L},
+  runTo:function(n){resetLeader(S.storm.seed);L.phase='leader';while(L.n<n&&(L.phase==='leader'||L.phase==='streamer'))tick();L.t=L.n*DT;syncPlay();bandDirty=true;return L.phase},
+  runToStroke:function(){resetLeader(S.storm.seed);L.phase='leader';var g=0;while(L.phase!=='stroke'&&g++<5000)tick();L.strokeReal=performance.now();syncPlay();bandDirty=true;return L.n},
+  render:function(){renderBand()}};
+
+resetLeader(S.storm.seed);syncGap();syncSpd();syncEarth();syncPlay();setupCanvas();setMode(S.mode);
+requestAnimationFrame(function(){setupCanvas();requestAnimationFrame(loop)});
+</script>
+</body></html>
