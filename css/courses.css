@@ -135,3 +135,67 @@
   .course-columns { grid-template-columns: 1fr; }
   .course-columns--solo .course-column__list { column-count: 1; }
 }
+
+/* ---- Expandable chapters in a course's Contents (2026-10-04) ----
+   Each chapter row is a <details>: the summary is the chapter (same look as the old
+   link); opening it lists the overview, every section, and the one-page chapter, so
+   a section is one click from the course page. Built by Lecture/build_course_toc.py. */
+.course-chapter {
+  break-inside: avoid;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.course-chapter:last-child { border-bottom: none; }
+.course-chapter > summary.course-item {
+  list-style: none;
+  cursor: pointer;
+  border-bottom: none;
+  position: relative;
+  padding-right: 1.4rem;
+}
+.course-chapter > summary::-webkit-details-marker { display: none; }
+.course-chapter > summary::after {
+  content: "▸";
+  position: absolute;
+  right: 0.25rem;
+  top: 0.5rem;
+  color: var(--accent);
+  font-size: 0.8rem;
+  transition: transform 160ms ease;
+}
+.course-chapter[open] > summary { color: var(--gold); }
+.course-chapter[open] > summary::after { transform: rotate(90deg); }
+.course-chapter__sections {
+  list-style: none;
+  margin: 0 0 0.7rem;
+  padding: 0 0 0 1.55rem;
+}
+.course-chapter__sections a {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 0.28rem 0;
+  transition: color 160ms ease, padding-left 160ms ease;
+}
+.course-chapter__sections a:hover { color: var(--gold); padding-left: 0.25rem; }
+.course-chapter__sn {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  margin-right: 0.5rem;
+}
+.course-chapter__ov a, .course-chapter__whole a { font-style: italic; }
+.course-columns--solo .course-column__list--chapters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 2.25rem;
+  column-count: auto;
+  align-items: start;
+}
+@media (max-width: 700px) {
+  .course-columns--solo .course-column__list--chapters { grid-template-columns: 1fr; }
+}
+.course-chapter-col .course-chapter:last-child { border-bottom: none; }
