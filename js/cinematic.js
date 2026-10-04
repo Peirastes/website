@@ -29,6 +29,31 @@
     requestAnimationFrame(() => body.classList.add('is-ready'));
   });
 
+  // ─── SCROLL-AWAY CHROME (Rooms only, 2026-10-04) ───
+  // Scrolling down past the top floats the PEIRASTES wordmark and the profile chip up and
+  // out of the way; scrolling back up (or returning to the top) brings them back. They stay
+  // put while the sign-in panel is open. The landing page has no scroll, so it is skipped.
+  if (!isLanding) {
+    const SHOW_ZONE = 80;   // px from the top where the chrome is always shown
+    const NUDGE = 6;        // ignore scroll jitter smaller than this
+    let lastY = window.scrollY;
+    let ticking = false;
+    function updateChrome() {
+      ticking = false;
+      const y = window.scrollY;
+      const dy = y - lastY;
+      if (Math.abs(dy) < NUDGE && y > SHOW_ZONE) return;
+      body.classList.add('chrome-armed');      // after the entrance: no fade-in delays
+      const panelOpen = !!document.querySelector('.profile-panel.is-open');
+      const hide = y > SHOW_ZONE && dy > 0 && !panelOpen;
+      body.classList.toggle('chrome-hidden', hide);
+      lastY = y;
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(updateChrome); }
+    }, { passive: true });
+  }
+
   // ─── PROPYLAEA → ATRIUM (landing only) ───
   if (isLanding) {
     const items = Array.from(document.querySelectorAll('.menu__item'));
