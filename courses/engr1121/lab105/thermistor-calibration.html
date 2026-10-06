@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<!-- Source: Dropbox/Professional/Instructor/ENGR 1121 .../IRE Lab Manual v1/Lab 105 .../Lab 105 Thermistor Calibration.html. Edit there, then re-wrap. -->
+<script>if(/[?&]embed=1/.test(location.search)){var d=document.documentElement;d.classList.add("embed");d.setAttribute("data-theme","dark");}</script>
+<style>body{margin:0}html.embed .wrap>header{display:none}html.embed .wrap{padding-block:14px 16px}</style>
+<title>Lab 105 Thermistor Calibration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: bench instrument. Plotter (the Arduino Serial Plotter) is the hero; the LED, the live sketch
+   and the step guide sit beside it like the student's own breadboard and IDE. */
+:root {
+  --bg: #f3f5f4;          /* bench top, slightly green-grey */
+  --panel: #ffffff;
+  --ink: #18201d;
+  --muted: #5d6a65;
+  --line: #d7dedb;
+  --plot-bg: #fbfcfb;
+  --grid: #e5ebe8;
+  --signal: #0f7c8c;      /* thermistor trace: Arduino teal */
+  --bright: #d26a12;      /* brightness trace + LED: amber */
+  --max: #b0323a;
+  --min: #2c5fb3;
+  --thresh: #6b4fb8;
+  --good: #1f8a4c;
+  --code-bg: #f6f8f7;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --panel: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --line: #2b3632;
+    --plot-bg: #141b18; --grid: #222c28; --signal: #3fc4d4; --bright: #f29a45; --max: #ef6b72;
+    --min: #79a6f2; --thresh: #a993ef; --good: #52c785; --code-bg: #131a17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --panel: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --line: #2b3632;
+  --plot-bg: #141b18; --grid: #222c28; --signal: #3fc4d4; --bright: #f29a45; --max: #ef6b72;
+  --min: #79a6f2; --thresh: #a993ef; --good: #52c785; --code-bg: #131a17; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 40px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; }
+h1 { font: 700 clamp(1.6rem, 3vw, 2.2rem)/1.1 var(--font-display); margin: 0; text-wrap: balance; letter-spacing: .01em; }
+.sub { color: var(--muted); font-size: .95rem; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.label { font: 600 .72rem/1 var(--font-body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.plotwrap { display: grid; gap: 6px; }
+canvas { width: 100%; display: block; border-radius: 6px; background: var(--plot-bg); touch-action: none; }
+#plotSig { height: 300px; } #plotBri { height: 120px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: .8rem var(--font-mono); color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px; }
+button { font: 600 .92rem var(--font-body); border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 9px 14px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+#heatBtn { background: var(--bright); border-color: var(--bright); color: #fff; min-width: 210px; user-select: none; -webkit-user-select: none; }
+#heatBtn.on { filter: brightness(1.12); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bright) 30%, transparent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 8px 11px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.side { display: grid; gap: 16px; }
+.ledrow { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.led { width: 74px; height: 74px; border-radius: 50%; border: 2px solid var(--line); position: relative; background: var(--plot-bg); }
+.led::after { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: var(--bright); opacity: var(--glow, 0); box-shadow: 0 0 calc(var(--glow, 0) * 34px) calc(var(--glow, 0) * 10px) var(--bright); transition: opacity .05s linear; }
+.reads { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font: .9rem var(--font-mono); font-variant-numeric: tabular-nums; }
+.reads b { font-weight: 500; text-align: right; }
+.stop { font: .85rem var(--font-mono); color: var(--muted); margin-top: 6px; }
+.stop .ok { color: var(--good); font-weight: 500; }
+pre { margin: 8px 0 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: .8rem/1.55 var(--font-mono); overflow-x: auto; white-space: pre; }
+pre .v { font-weight: 500; padding: 0 2px; border-radius: 3px; }
+pre .vmax { color: var(--max); } pre .vmin { color: var(--min); } pre .vth { color: var(--thresh); }
+pre .live { background: color-mix(in srgb, var(--signal) 16%, transparent); display: inline-block; width: 100%; }
+pre .c { color: var(--muted); }
+.sliders { display: grid; gap: 10px; margin-top: 10px; }
+.sl { display: grid; grid-template-columns: 9.5em 1fr 3.4em; gap: 8px; align-items: center; font: .85rem var(--font-mono); }
+.sl input { width: 100%; }
+.sl output { text-align: right; font-variant-numeric: tabular-nums; }
+.sl[aria-disabled="true"] { opacity: .45; }
+.steps { display: grid; gap: 10px; }
+.stepnav { display: flex; flex-wrap: wrap; gap: 6px; }
+.stepnav button { padding: 6px 10px; font: 600 .8rem var(--font-mono); }
+.stepnav button[aria-current="step"] { background: var(--signal); border-color: var(--signal); color: #fff; }
+.stepnav button.done { border-color: var(--good); color: var(--good); }
+.step h2 { font: 600 1.25rem/1.2 var(--font-display); margin: 4px 0 2px; }
+.step .ref { font: .78rem var(--font-mono); color: var(--muted); }
+.step p { margin: 6px 0 0; max-width: 62ch; }
+.step .task { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--signal); background: var(--code-bg); border-radius: 0 6px 6px 0; }
+.step .task.met { border-left-color: var(--good); }
+.navrow { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.mapviz { height: 110px; }
+.note { font-size: .82rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .led::after { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lab 105 Thermistor Calibration</h1>
+    <div class="sub">Part 2 &middot; Sensor Activated Output Using Analog Logic &middot; steps 3&ndash;13</div>
+  </header>
+
+  <div class="grid">
+    <section class="panel plotwrap" aria-label="Serial Plotter">
+      <div class="label">Serial Plotter &middot; last 30 s</div>
+      <canvas id="plotSig" aria-label="Thermistor input signal over time"></canvas>
+      <div class="legend" id="legSig">
+        <span><i style="background:var(--signal)"></i>sensorValue (A0)</span>
+        <span data-show="max"><i style="background:var(--max)"></i>sensorMax</span>
+        <span data-show="min"><i style="background:var(--min)"></i>sensorMin</span>
+        <span data-show="th"><i style="background:var(--thresh)"></i>threshold</span>
+      </div>
+      <canvas id="plotBri" aria-label="LED brightness over time" data-show="map"></canvas>
+      <div class="legend" data-show="map"><span><i style="background:var(--bright)"></i>brightness = map(...) &rarr; analogWrite (0&ndash;255)</span></div>
+      <div class="controls">
+        <button id="heatBtn" type="button" aria-pressed="false">Hold to squeeze (apply heat)</button>
+        <button id="blowBtn" type="button" aria-pressed="false">Blow on it (cool faster)</button>
+        <span class="seg" role="group" aria-label="Playback speed">
+          <button type="button" data-speed="1" aria-pressed="true">1&times;</button>
+          <button type="button" data-speed="4" aria-pressed="false">4&times;</button>
+        </span>
+        <button id="resetBtn" type="button">Reset</button>
+      </div>
+      <div class="note">Spacebar also squeezes. In the Arduino IDE both traces share one axis; they are split here so the small change in the thermistor signal is easy to see.</div>
+    </section>
+
+    <div class="side">
+      <section class="panel">
+        <div class="label">LED on pin 9</div>
+        <div class="ledrow" style="margin-top:8px">
+          <div class="led" id="led" role="img" aria-label="LED"></div>
+          <div>
+            <div class="reads">
+              <span>sensorValue</span><b id="rSig">0</b>
+              <span>brightness</span><b id="rBri">&ndash;</b>
+              <span>LED</span><b id="rLed">off</b>
+            </div>
+            <div class="stop" id="stop">Squeeze the thermistor to start the stopwatch.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="label">Your sketch (live values)</div>
+<pre id="code" aria-live="off"></pre>
+        <div class="sliders">
+          <div class="sl" id="slTh"><label for="inTh">threshold</label><input id="inTh" type="range" min="460" max="640" step="5" value="500"><output id="oTh">500</output></div>
+          <div class="sl" id="slMin"><label for="inMin">sensorMin</label><input id="inMin" type="range" min="440" max="640" step="5" value="485"><output id="oMin">485</output></div>
+          <div class="sl" id="slMax"><label for="inMax">sensorMax</label><input id="inMax" type="range" min="480" max="680" step="5" value="610"><output id="oMax">610</output></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel steps" aria-label="Procedure">
+    <div class="stepnav" id="stepnav"></div>
+    <div class="step" id="step"></div>
+    <div class="mapviz" data-show="map"><canvas id="mapViz" class="mapviz" aria-label="map() from the sensor range to 0-255"></canvas></div>
+    <div class="navrow">
+      <button id="prevBtn" type="button">&larr; Back</button>
+      <button id="nextBtn" type="button">Next step &rarr;</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  // ---- thermistor model: first-order approach to ambient or to "finger" temperature ----
+  const AMB = 495, HOT = 602;               // ADC counts (the manual's example range is ~490-600)
+  const TAU_HEAT = 3.0, TAU_COOL = 22.0, TAU_BLOW = 7.0; // seconds
+  const WINDOW = 30;                        // plotter window, s
+  const SIG_LO = 460, SIG_HI = 640;
+
+  const st = {
+    t: 0, s: AMB, heat: false, blow: false, speed: 1,
+    hist: [],                       // {t, s, b, on}
+    recMax: null, recMin: null, seenHeat: false, heatMax: AMB,
+    sensorMax: 610, sensorMin: 485, threshold: 500,
+    heatStart: null, ledOnAt: null, lastDelay: null,
+    step: 0, done: new Set(),
+  };
+
+  // ---- DOM ----
+  const $ = id => document.getElementById(id);
+  const cvSig = $("plotSig"), cvBri = $("plotBri"), cvMap = $("mapViz");
+  const inTh = $("inTh"), inMin = $("inMin"), inMax = $("inMax");
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  // ---- the procedure (Lab 105, Part 2) ----
+  const STEPS = [
+    { ref: "Part 2.1-2.2", tab: "Raw signal", title: "Watch the raw signal",
+      text: "The thermistor sits in a voltage divider on A0, so the Arduino reads it as a number from 0 to 1023. At room temperature it settles near one value and only jitters a little.",
+      task: "Hold the squeeze button (or spacebar) and watch the signal climb. Let go and it falls back.",
+      show: [], sliders: [], met: () => st.seenHeat },
+    { ref: "Part 2.3", tab: "Maximum", title: "Find the maximum",
+      text: "Keep squeezing until the trace flattens out. That plateau is the hottest your fingers can make it: the top of the sensor's working range.",
+      task: "Hold the squeeze until the reading stops rising. The steady top value is recorded as your maximum.",
+      show: ["rec"], sliders: [], met: () => st.recMax !== null },
+    { ref: "Part 2.4-2.5", tab: "Minimum", title: "Find the minimum",
+      text: "Let go and watch it cool off. Cooling is much slower than heating (a minute or two on the bench). Blowing on it, or the 4× speed button, shortens the wait.",
+      task: "Release and wait until the reading settles at room temperature. That steady value is recorded as your minimum.",
+      show: ["rec"], sliders: [], met: () => st.recMin !== null },
+    { ref: "Part 2.6 i-iii", tab: "Range + buffer", title: "Set the range, with a buffer",
+      text: "Type the two readings into the sketch as sensorMax and sensorMin, with 10 counts of buffer on each end: sensorMax + 10 and sensorMin − 10. These two lines are the ends of the range the LED will use.",
+      task: "Nothing to do but look: the red and blue lines are your calibrated range.",
+      show: ["max", "min"], sliders: [], enter: () => { if (st.recMax !== null) setVal("max", st.recMax + 10); if (st.recMin !== null) setVal("min", st.recMin - 10); }, met: () => true },
+    { ref: "Part 2.6 iv", tab: "map()", title: "Map the range onto brightness",
+      text: "map(sensorValue, sensorMin, sensorMax, 0, 255) stretches your measured range across the LED's full 0–255 output, and constrain() keeps it from running past either end. Sensor values in between land proportionally in between.",
+      task: "Squeeze and watch the amber trace and the LED follow the signal. The diagram below shows the stretch.",
+      show: ["max", "min", "map"], sliders: [], gate: false, met: () => st.seenHeat },
+    { ref: "Part 2.6 v-2.8", tab: "Threshold", title: "Gate it with the threshold",
+      text: "Now the if-statement decides: above the threshold the LED gets the mapped brightness, below it the LED is off. With a threshold just above room temperature, the LED should come on almost as soon as you touch it.",
+      task: "Squeeze once and check the stopwatch: the LED should light within about a second.",
+      show: ["max", "min", "map", "th"], sliders: [], enter: () => setVal("th", Math.max(st.sensorMin + 15, (st.recMin ?? AMB) + 5)), met: () => st.lastDelay !== null },
+    { ref: "Part 2.9-2.10", tab: "Check the ends", title: "Check both ends of the output",
+      text: "If sensorMax is set below the real maximum, brightness hits 255 early and flatlines while the signal keeps rising, wasting part of the range. If sensorMin is below room temperature, the LED never fully dims. Move the sliders to see both, then put them back so the amber trace just reaches 255 at the plateau.",
+      task: "Try dragging sensorMax down to about 570 and squeeze: watch the amber trace flatline. Then set it back above your maximum.",
+      show: ["max", "min", "map", "th"], sliders: ["max", "min"], met: () => true },
+    { ref: "Part 2.12-2.14", tab: "3-second tune", title: "Tune for a 3-second delay",
+      text: "The goal: the LED should come on only after heat has been applied for about 3 seconds. A delay() would be cheating; instead raise the threshold (or sensorMin) so the signal has to climb further before the LED reacts. Change one variable at a time, in steps of 10–20, and leave sensorMax alone.",
+      task: "Adjust threshold, squeeze, and read the stopwatch. Aim for 3 s (anything from 2.5 to 3.5 s counts).",
+      show: ["max", "min", "map", "th"], sliders: ["th", "min"], met: () => st.lastDelay !== null && Math.abs(st.lastDelay - 3) <= 0.5 },
+  ];
+
+  function setVal(which, v) {
+    v = Math.round(v / 5) * 5;
+    if (which === "th") { st.threshold = v; inTh.value = v; $("oTh").textContent = v; }
+    if (which === "min") { st.sensorMin = v; inMin.value = v; $("oMin").textContent = v; }
+    if (which === "max") { st.sensorMax = v; inMax.value = v; $("oMax").textContent = v; }
+    renderCode();
+  }
+
+  function shown(key) {
+    const step = STEPS[st.step];
+    if (key === "rec") return true;
+    return step.show.includes(key) || (key === "rec");
+  }
+
+  function applyStep() {
+    const step = STEPS[st.step];
+    if (step.enter) step.enter();
+    document.querySelectorAll("[data-show]").forEach(el => {
+      el.hidden = !step.show.includes(el.dataset.show);
+    });
+    [["th", "slTh", inTh], ["min", "slMin", inMin], ["max", "slMax", inMax]].forEach(([k, id, inp]) => {
+      const on = step.sliders.includes(k);
+      $(id).setAttribute("aria-disabled", String(!on)); inp.disabled = !on;
+    });
+    $("step").innerHTML =
+      `<div class="ref">Lab 105 &middot; ${step.ref}</div><h2>${st.step + 1}. ${step.title}</h2>` +
+      `<p>${step.text}</p><div class="task" id="task">${step.task}</div>`;
+    $("prevBtn").disabled = st.step === 0;
+    $("nextBtn").textContent = st.step === STEPS.length - 1 ? "Start over" : "Next step →";
+    renderNav(); renderCode(); sizeCanvases();
+  }
+
+  function renderNav() {
+    $("stepnav").innerHTML = STEPS.map((s, i) =>
+      `<button type="button" data-i="${i}" ${i === st.step ? 'aria-current="step"' : ""} class="${st.done.has(i) ? "done" : ""}">${i + 1} ${s.tab}</button>`).join("");
+  }
+
+  function brightnessOf(s) {
+    const span = st.sensorMax - st.sensorMin || 1;
+    let b = Math.round((s - st.sensorMin) * 255 / span);
+    return Math.max(0, Math.min(255, b));
+  }
+
+  function renderCode(sNow) {
+    const step = STEPS[st.step];
+    const showMap = step.show.includes("map"), gate = step.show.includes("th");
+    const s = Math.round(sNow ?? st.s), b = brightnessOf(s), above = s > st.threshold;
+    const L = [];
+    L.push(`<span class="${gate ? "" : "c"}">int threshold = <span class="v vth">${st.threshold}</span>;</span>`);
+    L.push(`int sensorMax = <span class="v vmax">${step.show.includes("max") ? st.sensorMax : "###"}</span>;  <span class="c">// Part 2.3 (+10)</span>`);
+    L.push(`int sensorMin = <span class="v vmin">${step.show.includes("min") ? st.sensorMin : "###"}</span>;  <span class="c">// Part 2.5 (-10)</span>`);
+    L.push(``);
+    L.push(`int sensorValue = analogRead(A0);   <span class="c">// ${s}</span>`);
+    if (showMap) {
+      L.push(`int brightness = map(sensorValue, sensorMin, sensorMax, 0, 255);`);
+      L.push(`brightness = constrain(brightness, 0, 255);  <span class="c">// ${b}</span>`);
+    }
+    if (gate) {
+      L.push(`<span class="${above ? "live" : ""}">if (sensorValue &gt; threshold) {</span>`);
+      L.push(`<span class="${above ? "live" : ""}">  analogWrite(LED_PIN, brightness);   <span class="c">// It's warm</span></span>`);
+      L.push(`<span class="${!above ? "live" : ""}">} else {</span>`);
+      L.push(`<span class="${!above ? "live" : ""}">  digitalWrite(LED_PIN, LOW);         <span class="c">// It's cool</span></span>`);
+      L.push(`}`);
+    } else if (showMap) {
+      L.push(`analogWrite(LED_PIN, brightness);   <span class="c">// threshold added next step</span>`);
+    }
+    $("code").innerHTML = L.join("\n");
+  }
+
+  // ---- canvas helpers ----
+  function sizeCanvases() {
+    const dpr = window.devicePixelRatio || 1;
+    [cvSig, cvBri, cvMap].forEach(c => {
+      if (c.offsetParent === null && c !== cvSig) return;
+      const r = c.getBoundingClientRect();
+      if (!r.width) return;
+      c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+      c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
+    });
+  }
+  window.addEventListener("resize", sizeCanvases);
+
+  function drawPlot(cv, lo, hi, key, color, lines) {
+    const ctx = cv.getContext("2d"), W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    const padL = 42, padR = 10, padT = 10, padB = 18;
+    const x = t => padL + (t - (st.t - WINDOW)) / WINDOW * (W - padL - padR);
+    const y = v => padT + (hi - v) / (hi - lo) * (H - padT - padB);
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = "11px " + css("--font-mono"); ctx.fillStyle = css("--muted"); ctx.strokeStyle = css("--grid"); ctx.lineWidth = 1;
+    const stepV = (hi - lo) > 200 ? 64 : 20;
+    for (let v = Math.ceil(lo / stepV) * stepV; v <= hi; v += stepV) {
+      ctx.beginPath(); ctx.moveTo(padL, y(v)); ctx.lineTo(W - padR, y(v)); ctx.stroke();
+      ctx.fillText(String(v), 4, y(v) + 4);
+    }
+    for (let s = Math.ceil((st.t - WINDOW) / 5) * 5; s <= st.t; s += 5) {
+      ctx.beginPath(); ctx.moveTo(x(s), padT); ctx.lineTo(x(s), H - padB); ctx.stroke();
+    }
+    ctx.fillText("time (5 s grid)", W - padR - 92, H - 4);
+    (lines || []).forEach(([v, col, lab]) => {
+      if (v < lo || v > hi) return;
+      ctx.strokeStyle = col; ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(padL, y(v)); ctx.lineTo(W - padR, y(v)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col; ctx.fillText(`${lab} ${v}`, W - padR - 118, y(v) - 4);
+    });
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    let first = true;
+    for (const p of st.hist) {
+      if (p.t < st.t - WINDOW) continue;
+      const v = p[key]; if (v === null || v === undefined) { first = true; continue; }
+      const X = x(p.t), Y = y(Math.max(lo, Math.min(hi, v)));
+      if (first) { ctx.moveTo(X, Y); first = false; } else ctx.lineTo(X, Y);
+    }
+    ctx.stroke();
+  }
+
+  function drawMap() {
+    if (cvMap.offsetParent === null) return;
+    const ctx = cvMap.getContext("2d"), W = cvMap.clientWidth, H = cvMap.clientHeight;
+    if (!W) return;
+    ctx.clearRect(0, 0, W, H);
+    const yIn = 26, yOut = H - 28, x0 = 60, x1 = W - 20;
+    const inLo = SIG_LO, inHi = SIG_HI;
+    const xi = v => x0 + (v - inLo) / (inHi - inLo) * (x1 - x0);
+    const xo = v => x0 + v / 255 * (x1 - x0);
+    ctx.font = "11px " + css("--font-mono");
+    ctx.fillStyle = css("--muted"); ctx.fillText("input", 6, yIn + 4); ctx.fillText("output", 6, yOut + 4);
+    ctx.strokeStyle = css("--line"); ctx.lineWidth = 6; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x0, yIn); ctx.lineTo(x1, yIn); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0, yOut); ctx.lineTo(x1, yOut); ctx.stroke();
+    const a = xi(st.sensorMin), b = xi(st.sensorMax);
+    ctx.fillStyle = color_mix(css("--bright"), .18);
+    ctx.beginPath(); ctx.moveTo(a, yIn); ctx.lineTo(b, yIn); ctx.lineTo(xo(255), yOut); ctx.lineTo(xo(0), yOut); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = css("--min"); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a, yIn); ctx.lineTo(xo(0), yOut); ctx.stroke();
+    ctx.strokeStyle = css("--max"); ctx.beginPath(); ctx.moveTo(b, yIn); ctx.lineTo(xo(255), yOut); ctx.stroke();
+    ctx.fillStyle = css("--min"); ctx.fillText(`sensorMin ${st.sensorMin}`, Math.max(x0, a - 40), yIn - 9);
+    ctx.fillStyle = css("--max"); ctx.fillText(`sensorMax ${st.sensorMax}`, Math.min(x1 - 104, b - 30), yIn - 9);
+    ctx.fillStyle = css("--muted"); ctx.fillText("0", xo(0) - 3, yOut + 18); ctx.fillText("255", xo(255) - 12, yOut + 18);
+    const s = st.s, bri = brightnessOf(s);
+    ctx.fillStyle = css("--signal"); ctx.beginPath(); ctx.arc(xi(Math.max(inLo, Math.min(inHi, s))), yIn, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = css("--bright"); ctx.beginPath(); ctx.arc(xo(bri), yOut, 6, 0, 7); ctx.fill();
+  }
+  function color_mix(hex, a) {
+    const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    return m ? `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})` : hex;
+  }
+
+  // ---- simulation loop ----
+  let last = performance.now(), noise = 0;
+  function tick(now) {
+    const realDt = Math.min(0.1, (now - last) / 1000); last = now;
+    const dt = realDt * st.speed, step = STEPS[st.step];
+    const target = st.heat ? HOT : AMB;
+    const tau = st.heat ? TAU_HEAT : (st.blow ? TAU_BLOW : TAU_COOL);
+    st.s += (target - st.s) * (1 - Math.exp(-dt / tau));
+    st.t += dt;
+    noise = 0.7 * noise + 0.3 * (Math.random() - 0.5) * 3;
+    const read = Math.round(st.s + noise);
+
+    // recording the maximum (steady while heating) and the minimum (steady after cooling)
+    if (st.heat) { st.seenHeat = true; st.heatMax = Math.max(st.heatMax, read); if (HOT - st.s < 2.5) st.recMax = Math.round(HOT); }
+    if (!st.heat && st.recMax !== null && st.s - AMB < 1.5) st.recMin = AMB;
+
+    const gate = step.show.includes("th"), mapped = step.show.includes("map");
+    const bri = brightnessOf(read);
+    const on = mapped ? (gate ? read > st.threshold && bri > 0 : bri > 0) : false;
+    const outB = mapped ? (gate ? (read > st.threshold ? bri : 0) : bri) : null;
+
+    // stopwatch: from the moment heat is applied to the moment the LED lights
+    if (st.heatStart !== null && st.ledOnAt === null && on && gate) { st.ledOnAt = st.t; st.lastDelay = st.ledOnAt - st.heatStart; }
+
+    st.hist.push({ t: st.t, s: read, b: outB });
+    while (st.hist.length && st.hist[0].t < st.t - WINDOW - 1) st.hist.shift();
+
+    // ---- render ----
+    const lines = [];
+    if (step.show.includes("max")) lines.push([st.sensorMax, css("--max"), "sensorMax"]);
+    if (step.show.includes("min")) lines.push([st.sensorMin, css("--min"), "sensorMin"]);
+    if (gate) lines.push([st.threshold, css("--thresh"), "threshold"]);
+    if (!step.show.includes("max") && st.recMax !== null) lines.push([st.recMax, css("--max"), "max read"]);
+    if (!step.show.includes("min") && st.recMin !== null) lines.push([st.recMin, css("--min"), "min read"]);
+    drawPlot(cvSig, SIG_LO, SIG_HI, "s", css("--signal"), lines);
+    if (mapped) { drawPlot(cvBri, 0, 255, "b", css("--bright"), []); drawMap(); }
+
+    const glow = on ? (outB ?? 0) / 255 : 0;
+    $("led").style.setProperty("--glow", glow.toFixed(3));
+    $("rSig").textContent = read;
+    $("rBri").textContent = mapped ? String(outB) : "–";
+    $("rLed").textContent = on ? "on" : "off";
+    let sw;
+    if (!gate) sw = st.heat ? `Heat applied ${(st.t - (st.heatStart ?? st.t)).toFixed(1)} s` : "Squeeze the thermistor to start the stopwatch.";
+    else if (st.heatStart !== null && st.ledOnAt === null) sw = `Heat applied ${(st.t - st.heatStart).toFixed(1)} s … LED still off`;
+    else if (st.lastDelay !== null) {
+      const ok = Math.abs(st.lastDelay - 3) <= 0.5;
+      sw = `LED lit <b class="${ok ? "ok" : ""}">${st.lastDelay.toFixed(1)} s</b> after heat was applied${ok ? " ✓ on target" : (st.lastDelay < 2.5 ? " (too soon)" : " (too late)")}`;
+    } else sw = "Squeeze the thermistor to start the stopwatch.";
+    $("stop").innerHTML = sw;
+
+    if (step.met()) { if (!st.done.has(st.step)) { st.done.add(st.step); renderNav(); } const tk = $("task"); if (tk) tk.classList.add("met"); }
+    if ((Math.round(st.t * 10) % 3) === 0) renderCode(read);
+    requestAnimationFrame(tick);
+  }
+
+  // ---- input ----
+  const heatBtn = $("heatBtn");
+  const setHeat = on => { if (on && !st.heat) { st.heatStart = st.t; st.ledOnAt = null; } st.heat = on; heatBtn.classList.toggle("on", on); heatBtn.setAttribute("aria-pressed", String(on)); heatBtn.textContent = on ? "Squeezing… (release to cool)" : "Hold to squeeze (apply heat)"; if (on) { st.blow = false; $("blowBtn").setAttribute("aria-pressed", "false"); } };
+  heatBtn.addEventListener("pointerdown", e => { e.preventDefault(); try { heatBtn.setPointerCapture(e.pointerId); } catch (_) {} setHeat(true); });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => heatBtn.addEventListener(ev, () => setHeat(false)));
+  heatBtn.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); setHeat(!st.heat); } });
+  document.addEventListener("keydown", e => { if (e.code === "Space" && !e.repeat && e.target.tagName !== "INPUT") { e.preventDefault(); setHeat(true); } });
+  document.addEventListener("keyup", e => { if (e.code === "Space") setHeat(false); });
+  $("blowBtn").addEventListener("click", e => { st.blow = !st.blow; e.currentTarget.setAttribute("aria-pressed", String(st.blow)); e.currentTarget.textContent = st.blow ? "Blowing (click to stop)" : "Blow on it (cool faster)"; });
+  document.querySelectorAll("[data-speed]").forEach(b => b.addEventListener("click", () => {
+    st.speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  }));
+  $("resetBtn").addEventListener("click", () => { Object.assign(st, { t: 0, s: AMB, hist: [], recMax: null, recMin: null, seenHeat: false, heatStart: null, ledOnAt: null, lastDelay: null, step: 0, done: new Set() }); setVal("max", 610); setVal("min", 485); setVal("th", 500); setHeat(false); applyStep(); });
+  inTh.addEventListener("input", () => setVal("th", +inTh.value));
+  inMin.addEventListener("input", () => setVal("min", +inMin.value));
+  inMax.addEventListener("input", () => setVal("max", +inMax.value));
+  $("stepnav").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (b) { st.step = +b.dataset.i; applyStep(); } });
+  $("prevBtn").addEventListener("click", () => { if (st.step > 0) { st.step--; applyStep(); } });
+  $("nextBtn").addEventListener("click", () => { if (st.step < STEPS.length - 1) { st.step++; applyStep(); } else $("resetBtn").click(); });
+
+  // pre-fill a short ambient trace so the plotter opens with data on it
+  for (let i = 0; i < 300; i++) { st.t += 0.05; st.hist.push({ t: st.t, s: Math.round(AMB + (Math.random() - 0.5) * 3), b: null }); }
+  applyStep();
+  requestAnimationFrame(t => { last = t; sizeCanvases(); requestAnimationFrame(tick); });
+})();
+</script>
+</body>
+</html>
