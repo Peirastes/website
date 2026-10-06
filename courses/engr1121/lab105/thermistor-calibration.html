@@ -64,7 +64,7 @@ canvas { width: 100%; display: block; border-radius: 6px; background: var(--plot
 button { font: 600 .92rem var(--font-body); border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 9px 14px; cursor: pointer; }
 button:hover { border-color: var(--muted); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
-#heatBtn { background: var(--bright); border-color: var(--bright); color: #fff; min-width: 210px; user-select: none; -webkit-user-select: none; }
+#heatBtn { background: var(--bright); border-color: var(--bright); color: #fff; min-width: 210px; user-select: none; -webkit-user-select: none; touch-action: none; -webkit-touch-callout: none; }
 #heatBtn.on { filter: brightness(1.12); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bright) 30%, transparent); }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 8px 11px; }
@@ -77,6 +77,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); ou
 .reads b { font-weight: 500; text-align: right; }
 .stop { font: .85rem var(--font-mono); color: var(--muted); margin-top: 6px; }
 .stop .ok { color: var(--good); font-weight: 500; }
+.stop .warn { color: var(--bright); }
 pre { margin: 8px 0 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: .8rem/1.55 var(--font-mono); overflow-x: auto; white-space: pre; }
 pre .v { font-weight: 500; padding: 0 2px; border-radius: 3px; }
 pre .vmax { color: var(--max); } pre .vmin { color: var(--min); } pre .vth { color: var(--thresh); }
@@ -91,7 +92,7 @@ pre .c { color: var(--muted); }
 .stepnav { display: flex; flex-wrap: wrap; gap: 6px; }
 .stepnav button { padding: 6px 10px; font: 600 .8rem var(--font-mono); }
 .stepnav button[aria-current="step"] { background: var(--signal); border-color: var(--signal); color: #fff; }
-.stepnav button.done { border-color: var(--good); color: var(--good); }
+.stepnav button.done:not([aria-current]) { border-color: var(--good); color: var(--good); }
 .step h2 { font: 600 1.25rem/1.2 var(--font-display); margin: 4px 0 2px; }
 .step .ref { font: .78rem var(--font-mono); color: var(--muted); }
 .step p { margin: 6px 0 0; max-width: 62ch; }
@@ -121,17 +122,17 @@ pre .c { color: var(--muted); }
         <span data-show="th"><i style="background:var(--thresh)"></i>threshold</span>
       </div>
       <canvas id="plotBri" aria-label="LED brightness over time" data-show="map"></canvas>
-      <div class="legend" data-show="map"><span><i style="background:var(--bright)"></i>brightness = map(...) &rarr; analogWrite (0&ndash;255)</span></div>
+      <div class="legend" data-show="map"><span><i style="background:var(--bright)"></i>brightness = map(...) &middot; Serial.println(brightness)</span><span data-show="th">the LED only gets it above the threshold</span></div>
       <div class="controls">
         <button id="heatBtn" type="button" aria-pressed="false">Hold to squeeze (apply heat)</button>
-        <button id="blowBtn" type="button" aria-pressed="false">Blow on it (cool faster)</button>
+        <button id="fanBtn" type="button" aria-pressed="false">Waft air over it (cool faster)</button>
         <span class="seg" role="group" aria-label="Playback speed">
           <button type="button" data-speed="1" aria-pressed="true">1&times;</button>
           <button type="button" data-speed="4" aria-pressed="false">4&times;</button>
         </span>
         <button id="resetBtn" type="button">Reset</button>
       </div>
-      <div class="note">Spacebar also squeezes. In the Arduino IDE both traces share one axis; they are split here so the small change in the thermistor signal is easy to see.</div>
+      <div class="note">Spacebar also squeezes (click inside the simulator first). In the Arduino IDE both traces share one axis; they are split here so the small change in the thermistor signal is easy to see.</div>
     </section>
 
     <div class="side">
@@ -177,25 +178,31 @@ pre .c { color: var(--muted); }
 (() => {
   "use strict";
   // ---- thermistor model: first-order approach to ambient or to "finger" temperature ----
+  // 495 / 602 counts = about 23.6 / 33.3 C for a 10k NTC on the top leg of a divider with 10k to ground.
   const AMB = 495, HOT = 602;               // ADC counts (the manual's example range is ~490-600)
-  const TAU_HEAT = 3.0, TAU_COOL = 22.0, TAU_BLOW = 7.0; // seconds
+  const TAU_HEAT = 3.0, TAU_COOL = 22.0, TAU_FAN = 7.0; // seconds
   const WINDOW = 30;                        // plotter window, s
   const SIG_LO = 460, SIG_HI = 640;
+  const SUB = 1 / 60;                       // physics/stopwatch sub-step, s of sim time (keeps 4x as fine as 1x)
+  const COOL_TOL = 5;                       // a timed squeeze must start within this many counts of room temperature
+  const GAP = 10;                           // sensorMax stays at least this far above sensorMin
 
   const st = {
-    t: 0, s: AMB, heat: false, blow: false, speed: 1,
-    hist: [],                       // {t, s, b, on}
-    recMax: null, recMin: null, seenHeat: false, heatMax: AMB,
+    t: 0, s: AMB, heat: false, fan: false, speed: 1,
+    hist: [],                       // {t, s, b}
+    recMax: null, recMin: null, seenHeat: false, squeezedOn: new Set(),
     sensorMax: 610, sensorMin: 485, threshold: 500,
-    heatStart: null, ledOnAt: null, lastDelay: null,
-    step: 0, done: new Set(),
+    heatStart: null,                // press time (shown as "heat applied" on every step)
+    timing: false, ledOnAt: null, lastDelay: null, startedWarm: null, note: null,
+    step: 0, done: new Set(), entered: new Set(),
   };
 
   // ---- DOM ----
   const $ = id => document.getElementById(id);
   const cvSig = $("plotSig"), cvBri = $("plotBri"), cvMap = $("mapViz");
   const inTh = $("inTh"), inMin = $("inMin"), inMax = $("inMax");
-  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const CS = getComputedStyle(document.documentElement);   // live: follows theme changes
+  const css = name => CS.getPropertyValue(name).trim();
 
   // ---- the procedure (Lab 105, Part 2) ----
   const STEPS = [
@@ -204,52 +211,62 @@ pre .c { color: var(--muted); }
       task: "Hold the squeeze button (or spacebar) and watch the signal climb. Let go and it falls back.",
       show: [], sliders: [], met: () => st.seenHeat },
     { ref: "Part 2.3", tab: "Maximum", title: "Find the maximum",
-      text: "Keep squeezing until the trace flattens out. That plateau is the hottest your fingers can make it: the top of the sensor's working range.",
+      text: "Keep squeezing until the trace flattens out. That plateau is where the thermistor settles against your fingers: the top of the range for this experiment. It depends on grip and finger temperature, so keep the same person squeezing for the rest of Part 2.",
       task: "Hold the squeeze until the reading stops rising. The steady top value is recorded as your maximum.",
-      show: ["rec"], sliders: [], met: () => st.recMax !== null },
+      show: [], sliders: [], met: () => st.recMax !== null },
     { ref: "Part 2.4-2.5", tab: "Minimum", title: "Find the minimum",
-      text: "Let go and watch it cool off. Cooling is much slower than heating (a minute or two on the bench). Blowing on it, or the 4× speed button, shortens the wait.",
+      text: "Let go and watch it cool off. Cooling is much slower than heating (a minute or two on the bench). Wafting air over it, or the 4× speed button, shortens the wait.",
       task: "Release and wait until the reading settles at room temperature. That steady value is recorded as your minimum.",
-      show: ["rec"], sliders: [], met: () => st.recMin !== null },
+      show: [], sliders: [], met: () => st.recMin !== null },
     { ref: "Part 2.6 i-iii", tab: "Range + buffer", title: "Set the range, with a buffer",
       text: "Type the two readings into the sketch as sensorMax and sensorMin, with 10 counts of buffer on each end: sensorMax + 10 and sensorMin − 10. These two lines are the ends of the range the LED will use.",
       task: "Nothing to do but look: the red and blue lines are your calibrated range.",
-      show: ["max", "min"], sliders: [], enter: () => { if (st.recMax !== null) setVal("max", st.recMax + 10); if (st.recMin !== null) setVal("min", st.recMin - 10); }, met: () => true },
+      show: ["max", "min"], sliders: [],
+      // fills in once both readings exist; returns false (and retries on the next visit) until then
+      enter: () => { if (st.recMax === null || st.recMin === null) return false; setVal("max", st.recMax + 10); setVal("min", st.recMin - 10); return true; },
+      met: () => true },
     { ref: "Part 2.6 iv", tab: "map()", title: "Map the range onto brightness",
       text: "map(sensorValue, sensorMin, sensorMax, 0, 255) stretches your measured range across the LED's full 0–255 output, and constrain() keeps it from running past either end. Sensor values in between land proportionally in between.",
       task: "Squeeze and watch the amber trace and the LED follow the signal. The diagram below shows the stretch.",
-      show: ["max", "min", "map"], sliders: [], gate: false, met: () => st.seenHeat },
+      show: ["max", "min", "map"], sliders: [], met: () => st.squeezedOn.has(4) },
     { ref: "Part 2.6 v-2.8", tab: "Threshold", title: "Gate it with the threshold",
       text: "Now the if-statement decides: above the threshold the LED gets the mapped brightness, below it the LED is off. With a threshold just above room temperature, the LED should come on almost as soon as you touch it.",
-      task: "Squeeze once and check the stopwatch: the LED should light within about a second.",
-      show: ["max", "min", "map", "th"], sliders: [], enter: () => setVal("th", Math.max(st.sensorMin + 15, (st.recMin ?? AMB) + 5)), met: () => st.lastDelay !== null },
+      task: "Starting from room temperature, squeeze once and check the stopwatch: the LED should light within about a second.",
+      show: ["max", "min", "map", "th"], sliders: [],
+      enter: () => { setVal("th", Math.max(st.sensorMin + 15, (st.recMin ?? AMB) + 5)); return true; },
+      met: () => st.lastDelay !== null },
     { ref: "Part 2.9-2.10", tab: "Check the ends", title: "Check both ends of the output",
-      text: "If sensorMax is set below the real maximum, brightness hits 255 early and flatlines while the signal keeps rising, wasting part of the range. If sensorMin is below room temperature, the LED never fully dims. Move the sliders to see both, then put them back so the amber trace just reaches 255 at the plateau.",
-      task: "Try dragging sensorMax down to about 570 and squeeze: watch the amber trace flatline. Then set it back above your maximum.",
+      text: "If sensorMax is set below the real maximum, brightness hits 255 early and flatlines while the signal keeps rising, wasting part of the range. At the bottom, where sensorMin sits against the threshold decides how the LED comes on: with sensorMin below the threshold it snaps on at partial brightness and cuts off suddenly; with sensorMin at or above the threshold it fades up from dim.",
+      task: "Drag sensorMax down to about 570 and squeeze: watch the amber trace flatline. Set it back above your maximum, then try sensorMin below and above the threshold and watch how the LED comes on.",
       show: ["max", "min", "map", "th"], sliders: ["max", "min"], met: () => true },
     { ref: "Part 2.12-2.14", tab: "3-second tune", title: "Tune for a 3-second delay",
-      text: "The goal: the LED should come on only after heat has been applied for about 3 seconds. A delay() would be cheating; instead raise the threshold (or sensorMin) so the signal has to climb further before the LED reacts. Change one variable at a time, in steps of 10–20, and leave sensorMax alone.",
-      task: "Adjust threshold, squeeze, and read the stopwatch. Aim for 3 s (anything from 2.5 to 3.5 s counts).",
+      text: "The goal: the LED should come on only after heat has been applied for about 3 seconds. A delay() would be cheating; instead raise the threshold or sensorMin so the signal has to climb further before the LED reacts. Change one variable at a time, in steps of 10–20, and leave sensorMax alone. Let the reading cool back to room temperature before each timed squeeze, or the LED lights early.",
+      task: "Adjust threshold or sensorMin, squeeze, and read the stopwatch. Aim for 3 s (anything from 2.5 to 3.5 s counts).",
       show: ["max", "min", "map", "th"], sliders: ["th", "min"], met: () => st.lastDelay !== null && Math.abs(st.lastDelay - 3) <= 0.5 },
   ];
 
+  // Sliders snap to 5, stay inside their own range, and keep sensorMin < sensorMax (map() divides by the span).
   function setVal(which, v) {
+    const inp = { th: inTh, min: inMin, max: inMax }[which];
     v = Math.round(v / 5) * 5;
-    if (which === "th") { st.threshold = v; inTh.value = v; $("oTh").textContent = v; }
-    if (which === "min") { st.sensorMin = v; inMin.value = v; $("oMin").textContent = v; }
-    if (which === "max") { st.sensorMax = v; inMax.value = v; $("oMax").textContent = v; }
+    v = Math.max(+inp.min, Math.min(+inp.max, v));
+    if (which === "min") v = Math.min(v, st.sensorMax - GAP);
+    if (which === "max") v = Math.max(v, st.sensorMin + GAP);
+    if (which === "th") st.threshold = v;
+    if (which === "min") st.sensorMin = v;
+    if (which === "max") st.sensorMax = v;
+    inp.value = v; $({ th: "oTh", min: "oMin", max: "oMax" }[which]).textContent = v;
     renderCode();
   }
 
-  function shown(key) {
-    const step = STEPS[st.step];
-    if (key === "rec") return true;
-    return step.show.includes(key) || (key === "rec");
+  function clearStopwatch() {
+    Object.assign(st, { heatStart: st.heat ? st.t : null, timing: false, ledOnAt: null, lastDelay: null, startedWarm: null, note: null });
   }
 
   function applyStep() {
     const step = STEPS[st.step];
-    if (step.enter) step.enter();
+    if (step.enter && !st.entered.has(st.step) && step.enter() !== false) st.entered.add(st.step);
+    clearStopwatch();
     document.querySelectorAll("[data-show]").forEach(el => {
       el.hidden = !step.show.includes(el.dataset.show);
     });
@@ -270,12 +287,18 @@ pre .c { color: var(--muted); }
       `<button type="button" data-i="${i}" ${i === st.step ? 'aria-current="step"' : ""} class="${st.done.has(i) ? "done" : ""}">${i + 1} ${s.tab}</button>`).join("");
   }
 
+  // Arduino map(): long integer arithmetic, so the division truncates toward zero; then constrain().
   function brightnessOf(s) {
-    const span = st.sensorMax - st.sensorMin || 1;
-    let b = Math.round((s - st.sensorMin) * 255 / span);
+    const b = Math.trunc((s - st.sensorMin) * 255 / (st.sensorMax - st.sensorMin));
     return Math.max(0, Math.min(255, b));
   }
+  function ledOutput(read, step) {          // what analogWrite/digitalWrite puts on pin 9 (null before map)
+    if (!step.show.includes("map")) return null;
+    const b = brightnessOf(read);
+    return step.show.includes("th") ? (read > st.threshold ? b : 0) : b;
+  }
 
+  let lastCode = "";
   function renderCode(sNow) {
     const step = STEPS[st.step];
     const showMap = step.show.includes("map"), gate = step.show.includes("th");
@@ -285,7 +308,7 @@ pre .c { color: var(--muted); }
     L.push(`int sensorMax = <span class="v vmax">${step.show.includes("max") ? st.sensorMax : "###"}</span>;  <span class="c">// Part 2.3 (+10)</span>`);
     L.push(`int sensorMin = <span class="v vmin">${step.show.includes("min") ? st.sensorMin : "###"}</span>;  <span class="c">// Part 2.5 (-10)</span>`);
     L.push(``);
-    L.push(`int sensorValue = analogRead(A0);   <span class="c">// ${s}</span>`);
+    L.push(`int sensorValue = analogRead(SENSOR_PIN);  <span class="c">// ${s}</span>`);
     if (showMap) {
       L.push(`int brightness = map(sensorValue, sensorMin, sensorMax, 0, 255);`);
       L.push(`brightness = constrain(brightness, 0, 255);  <span class="c">// ${b}</span>`);
@@ -299,21 +322,28 @@ pre .c { color: var(--muted); }
     } else if (showMap) {
       L.push(`analogWrite(LED_PIN, brightness);   <span class="c">// threshold added next step</span>`);
     }
-    $("code").innerHTML = L.join("\n");
+    if (showMap) {
+      L.push(`Serial.print(sensorValue);`);
+      L.push(`Serial.print("\\t");`);
+      L.push(`Serial.println(brightness);`);
+    }
+    const html = L.join("\n");
+    if (html !== lastCode) { $("code").innerHTML = html; lastCode = html; }   // keeps a text selection alive between changes
   }
 
   // ---- canvas helpers ----
   function sizeCanvases() {
     const dpr = window.devicePixelRatio || 1;
     [cvSig, cvBri, cvMap].forEach(c => {
-      if (c.offsetParent === null && c !== cvSig) return;
-      const r = c.getBoundingClientRect();
-      if (!r.width) return;
-      c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+      const w = c.clientWidth, h = c.clientHeight;
+      if (!w || !h) return;                 // hidden for this step
+      const W = Math.round(w * dpr), H = Math.round(h * dpr);
+      if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
       c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0);
     });
   }
   window.addEventListener("resize", sizeCanvases);
+  if (window.ResizeObserver) { const ro = new ResizeObserver(sizeCanvases); [cvSig, cvBri, cvMap].forEach(c => ro.observe(c)); }
 
   function drawPlot(cv, lo, hi, key, color, lines) {
     const ctx = cv.getContext("2d"), W = cv.clientWidth, H = cv.clientHeight;
@@ -350,9 +380,8 @@ pre .c { color: var(--muted); }
   }
 
   function drawMap() {
-    if (cvMap.offsetParent === null) return;
     const ctx = cvMap.getContext("2d"), W = cvMap.clientWidth, H = cvMap.clientHeight;
-    if (!W) return;
+    if (!W || !H) return;
     ctx.clearRect(0, 0, W, H);
     const yIn = 26, yOut = H - 28, x0 = 60, x1 = W - 20;
     const inLo = SIG_LO, inHi = SIG_HI;
@@ -381,30 +410,37 @@ pre .c { color: var(--muted); }
   }
 
   // ---- simulation loop ----
-  let last = performance.now(), noise = 0;
+  let last = performance.now(), noise = 0, read = AMB;
+  const baseline = () => st.recMin ?? AMB;
   function tick(now) {
-    const realDt = Math.min(0.1, (now - last) / 1000); last = now;
-    const dt = realDt * st.speed, step = STEPS[st.step];
-    const target = st.heat ? HOT : AMB;
-    const tau = st.heat ? TAU_HEAT : (st.blow ? TAU_BLOW : TAU_COOL);
-    st.s += (target - st.s) * (1 - Math.exp(-dt / tau));
-    st.t += dt;
-    noise = 0.7 * noise + 0.3 * (Math.random() - 0.5) * 3;
-    const read = Math.round(st.s + noise);
+    const realDt = Math.min(0.1, (now - last) / 1000); last = now;   // a hidden tab pauses instead of jumping
+    const step = STEPS[st.step], gate = step.show.includes("th"), mapped = step.show.includes("map");
 
-    // recording the maximum (steady while heating) and the minimum (steady after cooling)
-    if (st.heat) { st.seenHeat = true; st.heatMax = Math.max(st.heatMax, read); if (HOT - st.s < 2.5) st.recMax = Math.round(HOT); }
-    if (!st.heat && st.recMax !== null && st.s - AMB < 1.5) st.recMin = AMB;
+    // physics + stopwatch in fixed sub-steps, so 4x resolves the LED moment as finely as 1x
+    let left = realDt * st.speed;
+    while (left > 1e-9) {
+      const dt = Math.min(SUB, left); left -= dt;
+      const target = st.heat ? HOT : AMB;
+      const tau = st.heat ? TAU_HEAT : (st.fan ? TAU_FAN : TAU_COOL);
+      st.s += (target - st.s) * (1 - Math.exp(-dt / tau));
+      st.t += dt;
+      noise = 0.7 * noise + 0.3 * (Math.random() - 0.5) * 3;
+      read = Math.round(st.s + noise);
 
-    const gate = step.show.includes("th"), mapped = step.show.includes("map");
-    const bri = brightnessOf(read);
-    const on = mapped ? (gate ? read > st.threshold && bri > 0 : bri > 0) : false;
-    const outB = mapped ? (gate ? (read > st.threshold ? bri : 0) : bri) : null;
+      // recording the maximum (steady while heating) and the minimum (steady after cooling)
+      if (st.heat) { st.seenHeat = true; if (HOT - st.s < 2.5) st.recMax = Math.round(HOT); }
+      if (!st.heat && st.recMax !== null && st.s - AMB < 1.5) st.recMin = AMB;
 
-    // stopwatch: from the moment heat is applied to the moment the LED lights
-    if (st.heatStart !== null && st.ledOnAt === null && on && gate) { st.ledOnAt = st.t; st.lastDelay = st.ledOnAt - st.heatStart; }
+      // stopwatch: from the moment heat is applied to the moment the LED lights
+      if (st.timing && st.ledOnAt === null && (ledOutput(read, step) ?? 0) > 0) {
+        st.ledOnAt = st.t; st.lastDelay = st.ledOnAt - st.heatStart; st.timing = false;
+      }
+    }
 
-    st.hist.push({ t: st.t, s: read, b: outB });
+    const bri = mapped ? brightnessOf(read) : null;      // the sketch's brightness variable (what Serial prints)
+    const out = ledOutput(read, step);                   // what pin 9 actually gets
+    const on = (out ?? 0) > 0;
+    st.hist.push({ t: st.t, s: read, b: bri });
     while (st.hist.length && st.hist[0].t < st.t - WINDOW - 1) st.hist.shift();
 
     // ---- render ----
@@ -417,44 +453,95 @@ pre .c { color: var(--muted); }
     drawPlot(cvSig, SIG_LO, SIG_HI, "s", css("--signal"), lines);
     if (mapped) { drawPlot(cvBri, 0, 255, "b", css("--bright"), []); drawMap(); }
 
-    const glow = on ? (outB ?? 0) / 255 : 0;
+    // a real LED at low PWM looks clearly lit: perceptual curve, not linear duty
+    const glow = on ? Math.pow(out / 255, 0.45) : 0;
     $("led").style.setProperty("--glow", glow.toFixed(3));
     $("rSig").textContent = read;
-    $("rBri").textContent = mapped ? String(outB) : "–";
-    $("rLed").textContent = on ? "on" : "off";
-    let sw;
-    if (!gate) sw = st.heat ? `Heat applied ${(st.t - (st.heatStart ?? st.t)).toFixed(1)} s` : "Squeeze the thermistor to start the stopwatch.";
-    else if (st.heatStart !== null && st.ledOnAt === null) sw = `Heat applied ${(st.t - st.heatStart).toFixed(1)} s … LED still off`;
-    else if (st.lastDelay !== null) {
-      const ok = Math.abs(st.lastDelay - 3) <= 0.5;
-      sw = `LED lit <b class="${ok ? "ok" : ""}">${st.lastDelay.toFixed(1)} s</b> after heat was applied${ok ? " ✓ on target" : (st.lastDelay < 2.5 ? " (too soon)" : " (too late)")}`;
-    } else sw = "Squeeze the thermistor to start the stopwatch.";
-    $("stop").innerHTML = sw;
+    $("rBri").textContent = mapped ? String(bri) : "–";
+    $("rLed").textContent = on ? (out === 255 ? "on" : `on (${out})`) : "off";
+    $("stop").innerHTML = stopwatchText(gate);
 
     if (step.met()) { if (!st.done.has(st.step)) { st.done.add(st.step); renderNav(); } const tk = $("task"); if (tk) tk.classList.add("met"); }
-    if ((Math.round(st.t * 10) % 3) === 0) renderCode(read);
+    renderCode(read);
     requestAnimationFrame(tick);
   }
 
+  function stopwatchText(gate) {
+    if (!gate) return st.heat && st.heatStart !== null ? `Heat applied ${(st.t - st.heatStart).toFixed(1)} s` : "Squeeze the thermistor to start the stopwatch.";
+    const lim = baseline() + COOL_TOL;
+    let main;
+    if (st.heat && st.timing) main = `Heat applied ${(st.t - st.heatStart).toFixed(1)} s … LED still off`;
+    else if (st.heat && st.startedWarm !== null) main = `<span class="warn">Not timed: the squeeze started warm (${st.startedWarm}). Let go and let it cool to ${lim} or below.</span>`;
+    else if (st.lastDelay !== null) {
+      // step 8 aims for 3 s; step 6 only checks that the LED comes on within about a second
+      const tune = st.step === STEPS.length - 1, d = st.lastDelay;
+      const ok = tune ? Math.abs(d - 3) <= 0.5 : d <= 1.5;
+      const verdict = tune ? (ok ? " ✓ on target" : (d < 2.5 ? " (too soon)" : " (too late)")) : (ok ? " ✓" : "");
+      main = `LED lit <b class="${ok ? "ok" : ""}">${d.toFixed(1)} s</b> after heat was applied${verdict}`;
+    } else if (st.note) main = st.note;
+    else main = "Squeeze the thermistor to start the stopwatch.";
+    if (!st.heat && read > lim) main += `<br><span class="warn">Cooling (${read}): wait for ${lim} or below before the next timed squeeze.</span>`;
+    return main;
+  }
+
   // ---- input ----
-  const heatBtn = $("heatBtn");
-  const setHeat = on => { if (on && !st.heat) { st.heatStart = st.t; st.ledOnAt = null; } st.heat = on; heatBtn.classList.toggle("on", on); heatBtn.setAttribute("aria-pressed", String(on)); heatBtn.textContent = on ? "Squeezing… (release to cool)" : "Hold to squeeze (apply heat)"; if (on) { st.blow = false; $("blowBtn").setAttribute("aria-pressed", "false"); } };
+  const heatBtn = $("heatBtn"), fanBtn = $("fanBtn");
+  const setFan = on => { st.fan = on; fanBtn.setAttribute("aria-pressed", String(on)); fanBtn.textContent = on ? "Wafting (click to stop)" : "Waft air over it (cool faster)"; };
+  const setHeat = on => {
+    if (on === st.heat) return;
+    if (on) {
+      st.squeezedOn.add(st.step);
+      st.heatStart = st.t; st.ledOnAt = null; st.startedWarm = null; st.note = null;
+      const step = STEPS[st.step];
+      if (step.show.includes("th")) {
+        // a fair timing starts from room temperature with the LED off
+        if (read > baseline() + COOL_TOL || (ledOutput(read, step) ?? 0) > 0) { st.timing = false; st.startedWarm = read; }
+        else { st.timing = true; st.lastDelay = null; }
+      }
+      setFan(false);
+    } else {
+      if (st.timing && st.ledOnAt === null) {
+        st.note = `Released after ${(st.t - st.heatStart).toFixed(1)} s; the LED never lit. Hold longer, or lower the threshold / sensorMin.`;
+        st.lastDelay = null;
+      }
+      st.timing = false; st.heatStart = null; st.startedWarm = null;
+    }
+    st.heat = on; heatBtn.classList.toggle("on", on); heatBtn.setAttribute("aria-pressed", String(on));
+    heatBtn.textContent = on ? "Squeezing… (release to cool)" : "Hold to squeeze (apply heat)";
+  };
   heatBtn.addEventListener("pointerdown", e => { e.preventDefault(); try { heatBtn.setPointerCapture(e.pointerId); } catch (_) {} setHeat(true); });
   ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => heatBtn.addEventListener(ev, () => setHeat(false)));
+  heatBtn.addEventListener("contextmenu", e => e.preventDefault());       // long-press on touch
   heatBtn.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); setHeat(!st.heat); } });
-  document.addEventListener("keydown", e => { if (e.code === "Space" && !e.repeat && e.target.tagName !== "INPUT") { e.preventDefault(); setHeat(true); } });
-  document.addEventListener("keyup", e => { if (e.code === "Space") setHeat(false); });
-  $("blowBtn").addEventListener("click", e => { st.blow = !st.blow; e.currentTarget.setAttribute("aria-pressed", String(st.blow)); e.currentTarget.textContent = st.blow ? "Blowing (click to stop)" : "Blow on it (cool faster)"; });
+  // Space squeezes from anywhere except a slider; preventDefault on both edges so a focused button never fires
+  const spaceTarget = e => e.code === "Space" && e.target.tagName !== "INPUT";
+  document.addEventListener("keydown", e => { if (spaceTarget(e)) { e.preventDefault(); if (!e.repeat) setHeat(true); } });
+  document.addEventListener("keyup", e => { if (spaceTarget(e)) { e.preventDefault(); setHeat(false); } });
+  // focus leaving the sim (alt-tab, a click in the parent page) would swallow the keyup: let go
+  window.addEventListener("blur", () => setHeat(false));
+  document.addEventListener("visibilitychange", () => { if (document.hidden) setHeat(false); });
+  fanBtn.addEventListener("click", () => setFan(!st.fan));
   document.querySelectorAll("[data-speed]").forEach(b => b.addEventListener("click", () => {
     st.speed = +b.dataset.speed; document.querySelectorAll("[data-speed]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   }));
-  $("resetBtn").addEventListener("click", () => { Object.assign(st, { t: 0, s: AMB, hist: [], recMax: null, recMin: null, seenHeat: false, heatStart: null, ledOnAt: null, lastDelay: null, step: 0, done: new Set() }); setVal("max", 610); setVal("min", 485); setVal("th", 500); setHeat(false); applyStep(); });
+  $("resetBtn").addEventListener("click", () => {
+    setHeat(false); setFan(false);
+    read = AMB; noise = 0;
+    Object.assign(st, { t: 0, s: AMB, hist: [], recMax: null, recMin: null, seenHeat: false, squeezedOn: new Set(), step: 0, done: new Set(), entered: new Set() });
+    st.sensorMin = 485; st.sensorMax = 610;           // reset the pair first so the GAP clamp can't bite
+    setVal("max", 610); setVal("min", 485); setVal("th", 500);
+    applyStep();
+  });
   inTh.addEventListener("input", () => setVal("th", +inTh.value));
   inMin.addEventListener("input", () => setVal("min", +inMin.value));
   inMax.addEventListener("input", () => setVal("max", +inMax.value));
   $("stepnav").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (b) { st.step = +b.dataset.i; applyStep(); } });
   $("prevBtn").addEventListener("click", () => { if (st.step > 0) { st.step--; applyStep(); } });
   $("nextBtn").addEventListener("click", () => { if (st.step < STEPS.length - 1) { st.step++; applyStep(); } else $("resetBtn").click(); });
+
+  // test hook (read-only snapshot) for automated checks
+  window.__lab105 = () => ({ t: st.t, s: st.s, read, heat: st.heat, fan: st.fan, step: st.step, threshold: st.threshold, sensorMin: st.sensorMin, sensorMax: st.sensorMax,
+    timing: st.timing, lastDelay: st.lastDelay, startedWarm: st.startedWarm, note: st.note, heatStart: st.heatStart, recMax: st.recMax, recMin: st.recMin, done: [...st.done] });
 
   // pre-fill a short ambient trace so the plotter opens with data on it
   for (let i = 0; i < 300; i++) { st.t += 0.05; st.hist.push({ t: st.t, s: Math.round(AMB + (Math.random() - 0.5) * 3), b: null }); }
