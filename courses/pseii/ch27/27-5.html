@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -307,10 +318,20 @@
         <div class="content-body">
 <div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 27</a><span class="sep">/</span><span>Section 27.5</span></div><div class="strip" aria-label="Sections"><a class="done" href="27-0.html" title="27.0 Reading the Circuit"><i></i>27.0</a><a class="done" href="27-1.html" title="27.1 EMF and Internal Resistance"><i></i>27.1</a><a class="done" href="27-2.html" title="27.2 Resistors in Series and Parallel"><i></i>27.2</a><a class="done" href="27-3.html" title="27.3 Kirchhoff’s Rules"><i></i>27.3</a><a class="done" href="27-4.html" title="27.4 RC Circuits: Charging and Discharging"><i></i>27.4</a><a class="here" href="27-5.html" title="27.5 Household Circuits and Electrical Safety"><i></i>27.5</a><a class="" href="27-6.html" title="27.6 Measuring Instruments"><i></i>27.6</a><a class="" href="27-7.html" title="27.7 Summary"><i></i>27.7</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 27.5 &middot; 6 of 8</summary><ol><li class=""><a href="27-0.html">27.0 &nbsp;Reading the Circuit</a></li><li class=""><a href="27-1.html">27.1 &nbsp;EMF and Internal Resistance</a></li><li class=""><a href="27-2.html">27.2 &nbsp;Resistors in Series and Parallel</a></li><li class=""><a href="27-3.html">27.3 &nbsp;Kirchhoff’s Rules</a></li><li class=""><a href="27-4.html">27.4 &nbsp;RC Circuits: Charging and Discharging</a></li><li class="here"><a href="27-5.html">27.5 &nbsp;Household Circuits and Electrical Safety</a></li><li class=""><a href="27-6.html">27.6 &nbsp;Measuring Instruments</a></li><li class=""><a href="27-7.html">27.7 &nbsp;Summary</a></li></ol></details>
 
-<p>Household appliances are wired in <strong>parallel</strong> across the 120 V supply. Each device gets the full voltage; the currents add at the breaker panel:</p>
+<p>Household outlets are wired in <strong>parallel</strong> across the 120 V supply, so every device gets the full voltage — §27.2’s shared <span class="math inline">\(\Delta V\)</span> — and the currents add at the breaker panel:</p>
 <p><span class="math display">\[I_\text{total} = \frac{P_1}{\Delta V} + \frac{P_2}{\Delta V} + \cdots\]</span></p>
-<p>A <strong>circuit breaker</strong> (15 A or 20 A) opens the circuit if <span class="math inline">\(I_\text{total}\)</span> exceeds the safe limit. For a 120 V / 15 A circuit: <span class="math inline">\(P_\text{max} = 1800\ \text{W}\)</span>. This is why you can’t run a 1500 W heater and a 1300 W microwave on the same circuit — their combined 23.3 A exceeds the breaker.</p>
-<p>A <strong>short circuit</strong> creates a near-zero resistance path, producing enormous current (<span class="math inline">\(I = \mathcal{E}/r_\text{wire}\)</span>) and heat. The breaker protects the wiring from fire. A <strong>ground-fault circuit interrupter</strong> (GFCI) detects current imbalances as small as 5 mA — indicating leakage through an unintended path (possibly a person) — and trips in milliseconds. The breaker protects the <em>wiring</em>; the GFCI protects <em>you</em>.</p>
+<p>A <strong>circuit breaker</strong> (15 A or 20 A) opens the circuit if <span class="math inline">\(I_\text{total}\)</span> exceeds the safe limit. A 120 V, 15 A circuit can supply at most <span class="math inline">\(P_\text{max} = (120)(15) = 1800\)</span> W.</p>
+<section id="example-why-the-breaker-trips" class="example">
+<h3>Example: Why the Breaker Trips</h3>
+<p>A 1500 W space heater and a 1300 W microwave are plugged into the same 15 A circuit. Each draws its own current at 120 V: <span class="math inline">\(1500/120 = 12.5\)</span> A and <span class="math inline">\(1300/120 = 10.8\)</span> A. In parallel the currents add:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I_\text{total} = 23.3\ \text{A} &gt; 15\ \text{A} \quad\Rightarrow\quad \text{the breaker trips}\;}\]</span></p>
+</div>
+</section>
+<div class="connection">
+<p><strong>Chapter 26’s space heater</strong> drew 15.0 A on its own — already at the limit of a 15 A circuit. The parallel rule is why a second appliance on the same circuit is the one that trips it: adding a branch lowers <span class="math inline">\(R_\text{eq}\)</span> and raises the total current.</p>
+</div>
+<p>A <strong>short circuit</strong> is a near-zero-resistance path across the supply. The current is limited only by the wiring’s own small resistance, so it is enormous, and so is the heat; the breaker protects the wiring from fire. A <strong>ground-fault circuit interrupter</strong> (GFCI) compares the current in the hot and neutral wires and trips in milliseconds if they differ by as little as 5 mA — current is leaking through an unintended path, possibly a person. <strong>The breaker protects the wiring; the GFCI protects you.</strong></p>
 <p><em>*Personal note: Both devices apply Kirchhoff’s junction rule to fault conditions. The breaker monitors total current; the GFCI monitors the difference between hot and neutral. Same physics, different failure modes.</em></p>
 <nav class="secnav"><a class="prev" href="27-4.html"><span class="lab">&larr; Previous section</span><span class="tt">27.4 &nbsp;RC Circuits: Charging and Discharging</span></a><a class="next" href="27-6.html"><span class="lab">Next section &rarr;</span><span class="tt">27.6 &nbsp;Measuring Instruments</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch27.html">Whole chapter on one page</a></p>
         </div>

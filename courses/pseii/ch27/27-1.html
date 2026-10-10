@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class="here"><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a><ul><li><a href="#the-electromotive-force">The Electromotive Force</a></li><li><a href="#real-batteries-and-terminal-voltage">Real Batteries and Terminal Voltage</a></li><li><a href="#the-compressed-air-analogy">The Compressed Air Analogy</a></li><li><a href="#ideal-vs.-real-batteries">Ideal vs. Real Batteries</a></li><li><a href="#example-terminal-voltage-under-load-and-aging">Example: Terminal Voltage Under Load and Aging</a></li></ul></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class=""><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a></li><li class=""><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class=""><a href="27-7.html"><b>27.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class="here"><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a><ul><li><a href="#the-electromotive-force">The Electromotive Force</a></li><li><a href="#real-batteries-and-terminal-voltage">Real Batteries and Terminal Voltage</a></li><li><a href="#the-power-budget">The Power Budget</a></li></ul></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class=""><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a></li><li class=""><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class=""><a href="27-7.html"><b>27.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -308,23 +319,42 @@
 <div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 27</a><span class="sep">/</span><span>Section 27.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="27-0.html" title="27.0 Reading the Circuit"><i></i>27.0</a><a class="here" href="27-1.html" title="27.1 EMF and Internal Resistance"><i></i>27.1</a><a class="" href="27-2.html" title="27.2 Resistors in Series and Parallel"><i></i>27.2</a><a class="" href="27-3.html" title="27.3 Kirchhoff’s Rules"><i></i>27.3</a><a class="" href="27-4.html" title="27.4 RC Circuits: Charging and Discharging"><i></i>27.4</a><a class="" href="27-5.html" title="27.5 Household Circuits and Electrical Safety"><i></i>27.5</a><a class="" href="27-6.html" title="27.6 Measuring Instruments"><i></i>27.6</a><a class="" href="27-7.html" title="27.7 Summary"><i></i>27.7</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 27.1 &middot; 2 of 8</summary><ol><li class=""><a href="27-0.html">27.0 &nbsp;Reading the Circuit</a></li><li class="here"><a href="27-1.html">27.1 &nbsp;EMF and Internal Resistance</a></li><li class=""><a href="27-2.html">27.2 &nbsp;Resistors in Series and Parallel</a></li><li class=""><a href="27-3.html">27.3 &nbsp;Kirchhoff’s Rules</a></li><li class=""><a href="27-4.html">27.4 &nbsp;RC Circuits: Charging and Discharging</a></li><li class=""><a href="27-5.html">27.5 &nbsp;Household Circuits and Electrical Safety</a></li><li class=""><a href="27-6.html">27.6 &nbsp;Measuring Instruments</a></li><li class=""><a href="27-7.html">27.7 &nbsp;Summary</a></li></ol></details>
 
 <h3 id="the-electromotive-force">The Electromotive Force</h3>
-<p>In Chapter 26, we treated batteries as ideal sources of constant potential difference. The <strong>electromotive force</strong> (EMF), denoted <span class="math inline">\(\mathcal{E}\)</span>, is the maximum potential difference a battery can maintain when no current flows. Despite its name, EMF is <em>not</em> a force — it is a voltage. The term is historical, inherited from a time before the distinction between force and energy was precise.</p>
+<p>Chapter 26 treated a battery as an ideal source of constant potential difference. The <strong>electromotive force</strong> (EMF), <span class="math inline">\(\mathcal{E}\)</span>, is the energy the battery gives each unit of charge that passes through it — the potential difference it maintains when <strong>no current flows</strong>. Despite its name, EMF is not a force; it is a voltage, measured in volts. The name is older than the distinction between force and energy.</p>
 <h3 id="real-batteries-and-terminal-voltage">Real Batteries and Terminal Voltage</h3>
-<p>A real battery has <strong>internal resistance</strong> <span class="math inline">\(r\)</span> — the resistance of the chemicals and electrodes through which the current must pass. We model a real battery as an ideal EMF source <span class="math inline">\(\mathcal{E}\)</span> in series with <span class="math inline">\(r\)</span>:</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_1_emf_internal_resistance.png" alt="Figure 27.1: A real battery modeled as an ideal EMF source in series with internal resistance r, connected to an external load R" loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 27.1: A real battery modeled as an ideal EMF source in series with internal resistance r, connected to an external load R</figcaption></figure>
-<p>When current <span class="math inline">\(I\)</span> flows, some EMF is “used up” driving current through the internal resistance. The <strong>terminal voltage</strong> is:</p>
-<p><span class="math display">\[\boxed{\Delta V = \mathcal{E} - Ir}\]</span></p>
-<p>Applying the loop rule to the full circuit gives the current:</p>
-<p><span class="math display">\[\boxed{I = \frac{\mathcal{E}}{R + r}}\]</span></p>
-<h3 id="the-compressed-air-analogy">The Compressed Air Analogy</h3>
-<p>A compressed air canister provides a useful physical picture. The canister’s internal pressure is the EMF (<span class="math inline">\(\mathcal{E}\)</span>) — the maximum driving force available. The nozzle restricts the flow: a narrow nozzle (high <span class="math inline">\(R\)</span>) lets little air escape and maintains nearly full pressure at the outlet. Opening the nozzle wider (decreasing <span class="math inline">\(R\)</span>) allows more flow but drops the outlet pressure because more of the canister’s pressure is “used up” pushing air through the canister’s own internal passages (the internal resistance <span class="math inline">\(r\)</span>). At maximum nozzle opening (<span class="math inline">\(R \to 0\)</span>), the flow rate is as high as the canister can sustain (<span class="math inline">\(I = \mathcal{E}/r\)</span>), but the outlet pressure drops to zero — all the pressure is lost internally. This is exactly the short-circuit condition: <span class="math inline">\(\Delta V = \mathcal{E} - Ir \to 0\)</span>.</p>
-<h3 id="ideal-vs.-real-batteries">Ideal vs. Real Batteries</h3>
+<p>A real battery has <strong>internal resistance</strong> <span class="math inline">\(r\)</span> — the resistance of the chemicals and electrodes the current must pass through. We model it as an ideal EMF <span class="math inline">\(\mathcal{E}\)</span> in series with <span class="math inline">\(r\)</span>, connected to an external load <span class="math inline">\(R\)</span>:</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_1_emf_internal_resistance.png" alt="Figure 27.1: A real battery modeled as an ideal EMF source in series with internal resistance r, connected to an external load R." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 27.1: A real battery modeled as an ideal EMF source in series with internal resistance <span class="math inline">\(r\)</span>, connected to an external load <span class="math inline">\(R\)</span>.</figcaption></figure>
+<p><strong>Step 1 — the energy supplied.</strong> Each coulomb that passes through the battery gains energy <span class="math inline">\(\mathcal{E}\)</span> (Chapter 24: a potential difference is energy per unit charge).</p>
+<p><strong>Step 2 — one current.</strong> The battery’s interior and the load are in one unbroken path, so by Chapter 26 they carry the same current <span class="math inline">\(I\)</span>.</p>
+<p><strong>Step 3 — the drops add.</strong> The coulomb gives up <span class="math inline">\(Ir\)</span> inside the battery and <span class="math inline">\(IR\)</span> in the load — the two-wires-end-to-end result of Chapter 26. It returns to where it started, so the energy gained equals the energy given up:</p>
+<p><span class="math display">\[\mathcal{E} = Ir + IR\]</span></p>
+<p><strong>Step 4 — solve.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I = \frac{\mathcal{E}}{R + r}\;}\]</span></p>
+</div>
+<p>The <strong>terminal voltage</strong> — what a voltmeter across the battery’s terminals reads — is the drop across the load, <span class="math inline">\(IR\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Delta V_\text{term} = \mathcal{E} - Ir\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong>Open circuit (<span class="math inline">\(R \to \infty\)</span>).</strong> <span class="math inline">\(I \to 0\)</span>, so <span class="math inline">\(\Delta V_\text{term} \to \mathcal{E}\)</span>. With no current there is no drop inside the battery — which is why the EMF is defined at zero current.</li>
+<li><strong>Short circuit (<span class="math inline">\(R \to 0\)</span>).</strong> <span class="math inline">\(I \to \mathcal{E}/r\)</span>, finite, and <span class="math inline">\(\Delta V_\text{term} \to 0\)</span>. A real battery cannot deliver infinite current, and <em>all</em> its power is dissipated inside it as heat. This is why short circuits are dangerous.</li>
+<li><strong>Ideal battery (<span class="math inline">\(r \to 0\)</span>).</strong> <span class="math inline">\(\Delta V_\text{term} = \mathcal{E}\)</span> at every current — the Chapter 26 model, recovered.</li>
+</ul>
+</div>
+<h3 id="the-power-budget">The Power Budget</h3>
+<p>Multiply Step 3 by <span class="math inline">\(I\)</span>:</p>
+<p><span class="math display">\[I\mathcal{E} = I^2R + I^2r\]</span></p>
+<p>The left side is the power the EMF delivers; the right side is where it goes — into the load and into the battery itself. This is Chapter 26’s <span class="math inline">\(P = I^2R\)</span>, applied to both resistances that share the current.</p>
+<div class="connection">
+<p><strong>The compressed-air canister.</strong> The canister’s internal pressure plays the EMF — the most driving pressure available. The nozzle is the load: a narrow nozzle (large <span class="math inline">\(R\)</span>) lets little air out and holds the outlet near full pressure. Open it wider (smaller <span class="math inline">\(R\)</span>) and more air flows, but the outlet pressure drops, because more of the canister’s pressure is spent pushing air through its own internal passages (the internal resistance <span class="math inline">\(r\)</span>). Fully open (<span class="math inline">\(R \to 0\)</span>), the flow is as large as the canister can sustain and the outlet pressure is zero — the short circuit.</p>
 <table>
 <thead>
 <tr class="header">
 <th>Property</th>
-<th>Ideal Battery</th>
-<th>Real Battery</th>
+<th>Ideal battery</th>
+<th>Real battery</th>
 </tr>
 </thead>
 <tbody>
@@ -344,20 +374,29 @@
 <td><span class="math inline">\(P = \mathcal{E}I - I^2r\)</span></td>
 </tr>
 <tr class="even">
-<td>Short-circuit current (<span class="math inline">\(R = 0\)</span>)</td>
+<td>Short-circuit current</td>
 <td><span class="math inline">\(\infty\)</span></td>
-<td><span class="math inline">\(\mathcal{E}/r\)</span> (finite)</td>
+<td><span class="math inline">\(\mathcal{E}/r\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>The short-circuit result is physically important: a real battery cannot deliver infinite current. If you connect a wire directly across its terminals, the maximum current is <span class="math inline">\(I_\text{max} = \mathcal{E}/r\)</span>, and <em>all</em> the battery’s power is dissipated internally as heat. This is why short circuits are dangerous.</p>
-<h3 id="example-terminal-voltage-under-load-and-aging">Example: Terminal Voltage Under Load and Aging</h3>
-<p>A battery has <span class="math inline">\(\mathcal{E} = 12.0\ \text{V}\)</span> and internal resistance <span class="math inline">\(r = 0.050\ \Omega\)</span>. It is connected to a load <span class="math inline">\(R = 3.00\ \Omega\)</span>.</p>
-<p><strong>Current:</strong> <span class="math inline">\(I = 12.0/(3.00 + 0.050) = 3.93\ \text{A}\)</span></p>
-<p><strong>Terminal voltage:</strong> <span class="math inline">\(\Delta V = 12.0 - (3.93)(0.050) = \boxed{11.8\ \text{V}}\)</span></p>
-<p><strong>Power budget:</strong> <span class="math inline">\(P_R = I^2R = 46.3\ \text{W}\)</span> (to load), <span class="math inline">\(P_r = I^2r = 0.77\ \text{W}\)</span> (internal). The battery is 98% efficient.</p>
-<p><strong>But if the battery ages</strong> and <span class="math inline">\(r\)</span> rises to <span class="math inline">\(2.00\ \Omega\)</span>: current drops to <span class="math inline">\(2.40\ \text{A}\)</span>, terminal voltage falls to <span class="math inline">\(7.2\ \text{V}\)</span>, and internal loss climbs to <span class="math inline">\(11.5\ \text{W}\)</span> — nearly 40% of the battery’s output is now wasted as heat. This is why old batteries “die” even though their EMF hasn’t changed much.</p>
-<p><em>*Personal note: This is why car batteries feel warm after cranking a starter motor. The starter draws hundreds of amps, and <span class="math inline">\(I^2r\)</span> losses are substantial. It’s also why jump-starting works — the second battery shares the current load, reducing <span class="math inline">\(I^2r\)</span> losses in each.</em></p>
+</div>
+<section id="example-terminal-voltage-under-load-and-an-aging-battery" class="example">
+<h3>Example: Terminal Voltage Under Load, and an Aging Battery</h3>
+<p>A battery has <span class="math inline">\(\mathcal{E} = 12.0\)</span> V and <span class="math inline">\(r = 0.050\ \Omega\)</span>. It is connected to a load <span class="math inline">\(R = 3.00\ \Omega\)</span>.</p>
+<p><strong>Step 1 — the current.</strong></p>
+<p><span class="math display">\[I = \frac{\mathcal{E}}{R + r} = \frac{12.0}{3.00 + 0.050} = 3.93\ \text{A}\]</span></p>
+<p><strong>Step 2 — the terminal voltage.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Delta V_\text{term} = 12.0 - (3.93)(0.050) = 11.8\ \text{V}\;}\]</span></p>
+</div>
+<p><strong>Step 3 — the power budget.</strong> To the load, <span class="math inline">\(I^2R = 46.4\)</span> W; inside the battery, <span class="math inline">\(I^2r = 0.77\)</span> W. The battery delivers 98% of its power to the load.</p>
+<p><strong>Step 4 — the same battery, aged.</strong> Its EMF barely changes, but <span class="math inline">\(r\)</span> rises to <span class="math inline">\(2.00\ \Omega\)</span>. Now <span class="math inline">\(I = 12.0/5.00 = 2.40\)</span> A, the terminal voltage falls to <span class="math inline">\(12.0 - (2.40)(2.00) = 7.2\)</span> V, and the internal loss is <span class="math inline">\(I^2r = 11.5\)</span> W — 40% of the <span class="math inline">\(28.8\)</span> W the EMF delivers.</p>
+</section>
+<div class="check">
+<p><strong>Check the budget.</strong> Aged: <span class="math inline">\(I^2R + I^2r = (2.40)^2(3.00) + 11.5 = 17.3 + 11.5 = 28.8\)</span> W <span class="math inline">\(= I\mathcal{E}\)</span>. An old battery “dies” not because its EMF is gone — a voltmeter on the bench still reads nearly 12 V — but because its internal resistance eats the terminal voltage as soon as a current is drawn.</p>
+</div>
+<p><em>*Personal note: This is why car batteries feel warm after cranking a starter motor. The starter draws hundreds of amps, and <span class="math inline">\(I^2r\)</span> losses are substantial.</em></p>
 <nav class="secnav"><a class="prev" href="27-0.html"><span class="lab">&larr; Previous section</span><span class="tt">27.0 &nbsp;Reading the Circuit</span></a><a class="next" href="27-2.html"><span class="lab">Next section &rarr;</span><span class="tt">27.2 &nbsp;Resistors in Series and Parallel</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch27.html">Whole chapter on one page</a></p>
         </div>
       </div>

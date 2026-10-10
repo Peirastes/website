@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class=""><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class=""><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a></li><li class=""><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class="here"><a href="27-7.html"><b>27.7</b><span>Summary</span></a><ul><li><a href="#key-concepts">Key Concepts</a></li><li><a href="#key-equations">Key Equations</a></li><li><a href="#connections-current-resistance-ch-26-dc-circuits-ch-27">Connections: Current &amp; Resistance (Ch 26) ↔︎ DC Circuits (Ch 27)</a></li><li><a href="#looking-ahead">Looking Ahead</a></li></ul></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class=""><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class=""><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a></li><li class=""><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class="here"><a href="27-7.html"><b>27.7</b><span>Summary</span></a><ul><li><a href="#key-concepts">Key Concepts</a></li><li><a href="#key-equations">Key Equations</a></li><li><a href="#looking-ahead">Looking Ahead</a></li></ul></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -309,13 +320,14 @@
 
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
-<li><p><strong>EMF and terminal voltage:</strong> A real battery has <span class="math inline">\(\Delta V = \mathcal{E} - Ir\)</span>, always less than <span class="math inline">\(\mathcal{E}\)</span> when current flows.</p></li>
-<li><p><strong>Series resistors:</strong> <span class="math inline">\(R_\text{eq} = \sum R_i\)</span>. Same current; voltages add. Equivalent is larger than the largest.</p></li>
-<li><p><strong>Parallel resistors:</strong> <span class="math inline">\(1/R_\text{eq} = \sum 1/R_i\)</span>. Same voltage; currents add. Equivalent is smaller than the smallest.</p></li>
-<li><p><strong>Kirchhoff’s Junction Rule (KCL):</strong> <span class="math inline">\(\sum I_\text{in} = \sum I_\text{out}\)</span> — charge conservation.</p></li>
-<li><p><strong>Kirchhoff’s Loop Rule (KVL):</strong> <span class="math inline">\(\sum \Delta V = 0\)</span> — energy conservation.</p></li>
-<li><p><strong>RC circuits:</strong> Time constant <span class="math inline">\(\tau = RC\)</span>. Charging: <span class="math inline">\(q = Q_\text{max}(1 - e^{-t/\tau})\)</span>, <span class="math inline">\(I = I_0\,e^{-t/\tau}\)</span>. Discharging: <span class="math inline">\(q = Q_0\,e^{-t/\tau}\)</span>. During charging, exactly half the battery’s energy is dissipated in the resistor.</p></li>
-<li><p><strong>Ammeters</strong> (series, low <span class="math inline">\(R\)</span>) and <strong>voltmeters</strong> (parallel, high <span class="math inline">\(R\)</span>) both perturb the circuit they measure.</p></li>
+<li><p><strong>EMF and terminal voltage:</strong> a real battery is an EMF <span class="math inline">\(\mathcal{E}\)</span> in series with internal resistance <span class="math inline">\(r\)</span>; <span class="math inline">\(\Delta V_\text{term} = \mathcal{E} - Ir\)</span>, less than <span class="math inline">\(\mathcal{E}\)</span> whenever current flows out of it.</p></li>
+<li><p><strong>Series resistors</strong> share one current, so their voltages add: <span class="math inline">\(R_\text{eq} = \sum R_i\)</span>, larger than the largest.</p></li>
+<li><p><strong>Parallel resistors</strong> share one voltage, so their currents add: <span class="math inline">\(1/R_\text{eq} = \sum 1/R_i\)</span>, smaller than the smallest. The rules are the reverse of the capacitor rules because <span class="math inline">\(\Delta V = IR\)</span> and <span class="math inline">\(\Delta V = Q/C\)</span> are built the opposite way round.</p></li>
+<li><p><strong>Junction rule:</strong> <span class="math inline">\(\sum I_\text{in} = \sum I_\text{out}\)</span> — charge conservation.</p></li>
+<li><p><strong>Loop rule:</strong> <span class="math inline">\(\sum \Delta V = 0\)</span> — potential is single-valued. A negative answer means only that the current flows opposite to the assumed direction. A battery driven backwards is being charged, and its terminal voltage exceeds its EMF.</p></li>
+<li><p><strong>RC circuits:</strong> <span class="math inline">\(\tau = RC\)</span>. Charging: <span class="math inline">\(q = Q_\text{max}(1 - e^{-t/\tau})\)</span>, <span class="math inline">\(I = I_0e^{-t/\tau}\)</span>. Discharging: <span class="math inline">\(q = Q_0e^{-t/\tau}\)</span>. Reaching 90% or falling to 10% both take <span class="math inline">\(t = \tau\ln 10 = 2.30\tau\)</span>.</p></li>
+<li><p><strong>The 50% result:</strong> charging a capacitor through any resistance dissipates exactly half the battery’s energy in that resistance.</p></li>
+<li><p><strong>Ammeters</strong> go in series with low resistance; <strong>voltmeters</strong> in parallel with high resistance. Both perturb the circuit they measure.</p></li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
@@ -331,48 +343,53 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td>Terminal voltage</td>
-<td><span class="math inline">\(\Delta V = \mathcal{E} - Ir\)</span></td>
+<td>Real battery</td>
+<td><span class="math inline">\(I = \mathcal{E}/(R + r)\)</span>, <span class="math inline">\(\ \Delta V_\text{term} = \mathcal{E} - Ir\)</span></td>
 </tr>
 <tr class="even">
-<td>Series resistance</td>
-<td><span class="math inline">\(R_\text{eq} = R_1 + R_2 + R_3 + \cdots\)</span></td>
+<td>Power budget</td>
+<td><span class="math inline">\(I\mathcal{E} = I^2R + I^2r\)</span></td>
 </tr>
 <tr class="odd">
-<td>Parallel resistance</td>
-<td><span class="math inline">\(1/R_\text{eq} = 1/R_1 + 1/R_2 + 1/R_3 + \cdots\)</span></td>
+<td>Series resistance</td>
+<td><span class="math inline">\(R_\text{eq} = R_1 + R_2 + \cdots\)</span></td>
 </tr>
 <tr class="even">
-<td>Junction rule (KCL)</td>
+<td>Parallel resistance</td>
+<td><span class="math inline">\(1/R_\text{eq} = 1/R_1 + 1/R_2 + \cdots\)</span></td>
+</tr>
+<tr class="odd">
+<td>Junction rule</td>
 <td><span class="math inline">\(\sum I_\text{in} = \sum I_\text{out}\)</span></td>
 </tr>
-<tr class="odd">
-<td>Loop rule (KVL)</td>
+<tr class="even">
+<td>Loop rule</td>
 <td><span class="math inline">\(\sum \Delta V = 0\)</span></td>
 </tr>
+<tr class="odd">
+<td>RC charging</td>
+<td><span class="math inline">\(q = C\mathcal{E}(1 - e^{-t/RC})\)</span>, <span class="math inline">\(\ I = (\mathcal{E}/R)\,e^{-t/RC}\)</span></td>
+</tr>
 <tr class="even">
-<td>RC charging: charge</td>
-<td><span class="math inline">\(q(t) = Q_\text{max}(1 - e^{-t/RC})\)</span>, where <span class="math inline">\(Q_\text{max} = C\mathcal{E}\)</span></td>
+<td>RC discharging</td>
+<td><span class="math inline">\(q = Q_0\,e^{-t/RC}\)</span>, <span class="math inline">\(\ I = (Q_0/RC)\,e^{-t/RC}\)</span></td>
 </tr>
 <tr class="odd">
-<td>RC charging: current</td>
-<td><span class="math inline">\(I(t) = I_0\,e^{-t/RC}\)</span>, where <span class="math inline">\(I_0 = \mathcal{E}/R\)</span></td>
-</tr>
-<tr class="even">
-<td>RC discharging: charge</td>
-<td><span class="math inline">\(q(t) = Q_0\,e^{-t/RC}\)</span></td>
-</tr>
-<tr class="odd">
-<td>RC discharging: current</td>
-<td><span class="math inline">\(I(t) = -(Q_0/RC)\,e^{-t/RC}\)</span></td>
-</tr>
-<tr class="even">
 <td>Time constant</td>
 <td><span class="math inline">\(\tau = RC\)</span></td>
 </tr>
+<tr class="even">
+<td>Time to a fraction</td>
+<td><span class="math inline">\(t = \tau\ln(1/f)\)</span> for <span class="math inline">\(e^{-t/\tau} = f\)</span></td>
+</tr>
+<tr class="odd">
+<td>Energy in RC charging</td>
+<td><span class="math inline">\(U_\text{battery} = C\mathcal{E}^2\)</span>, <span class="math inline">\(\ U_C = U_R = \tfrac12 C\mathcal{E}^2\)</span></td>
+</tr>
 </tbody>
 </table>
-<h3 id="connections-current-resistance-ch-26-dc-circuits-ch-27">Connections: Current &amp; Resistance (Ch 26) ↔︎ DC Circuits (Ch 27)</h3>
+<section id="connections-to-chapter-26-and-before" class="connection">
+<h3>Connections to Chapter 26 and Before</h3>
 <table>
 <colgroup>
 <col style="width: 58%" />
@@ -386,37 +403,60 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">\(\Delta V = IR\)</span> (single resistor)</td>
-<td><span class="math inline">\(\Delta V = \mathcal{E} - Ir\)</span> (real battery + load)</td>
+<td>One current along the whole wire</td>
+<td>Junction rule; series resistors share <span class="math inline">\(I\)</span></td>
 </tr>
 <tr class="even">
-<td>Single-loop circuits</td>
-<td>Multi-loop networks via Kirchhoff’s rules</td>
+<td>Two wires end to end: voltages add</td>
+<td>Series rule; the real battery’s <span class="math inline">\(\mathcal{E} = Ir + IR\)</span></td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\(P = I^2R\)</span> (single element)</td>
-<td>Power budget: <span class="math inline">\(I\mathcal{E} = I^2R + I^2r\)</span></td>
+<td><span class="math inline">\(\Delta V = IR\)</span> for one resistor</td>
+<td><span class="math inline">\(\Delta V_\text{term} = \mathcal{E} - Ir\)</span> for a real battery</td>
 </tr>
 <tr class="even">
-<td>Resistance <span class="math inline">\(R = \rho\ell/A\)</span></td>
-<td>Series/parallel combinations</td>
+<td><span class="math inline">\(P = I^2R\)</span></td>
+<td>Power budget <span class="math inline">\(I\mathcal{E} = I^2R + I^2r\)</span>; <span class="math inline">\(U_R = \int I^2R\,dt\)</span></td>
 </tr>
 <tr class="odd">
-<td>Steady-state current</td>
+<td>Steady current</td>
 <td>Time-dependent current in RC circuits</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(C = Q/\Delta V\)</span>, <span class="math inline">\(R = \Delta V/I\)</span></td>
-<td>Combination rules are <em>exactly reversed</em></td>
 </tr>
 </tbody>
 </table>
+<table>
+<colgroup>
+<col style="width: 72%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Earlier chapters</th>
+<th>Ch 27</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Potential is single-valued (Ch 24)</td>
+<td>Loop rule; parallel branches share <span class="math inline">\(\Delta V\)</span></td>
+</tr>
+<tr class="even">
+<td>Capacitors: what is shared? (Ch 25)</td>
+<td>Resistors: the same question, reversed rules</td>
+</tr>
+<tr class="odd">
+<td>Half the energy lost “to the wires” (Ch 25)</td>
+<td><span class="math inline">\(U_R = \tfrac12 C\mathcal{E}^2\)</span>, independent of <span class="math inline">\(R\)</span></td>
+</tr>
+</tbody>
+</table>
+</section>
 
 <h3 id="looking-ahead">Looking Ahead</h3>
 
-<p>In Chapter 28, we enter entirely new territory: <strong>magnetic fields and magnetic forces</strong>. We will discover that moving charges not only respond to electric fields but also create and respond to <em>magnetic</em> fields. The force on a moving charge in a magnetic field, <span class="math inline">\(\vec{F} = q\vec{v} \times \vec{B}\)</span>, has a remarkable property: it is always perpendicular to the velocity, so it changes the <em>direction</em> of motion without changing the <em>speed</em>. This leads to circular orbits, the deflection of current-carrying wires, and ultimately to electric motors.</p>
+<p>Chapter 28 enters new territory: <strong>magnetic fields and magnetic forces</strong>. Moving charges not only respond to electric fields but also create and respond to <em>magnetic</em> fields. The force on a moving charge in a magnetic field, <span class="math inline">\(\vec{F} = q\vec{v} \times \vec{B}\)</span>, is always perpendicular to the velocity, so it changes the <em>direction</em> of motion without changing the <em>speed</em>. This leads to circular orbits, the force on current-carrying wires, and ultimately to electric motors.</p>
 <p><em>*With Kirchhoff’s rules, we can analyze any circuit in steady state. But the most interesting phenomena in electromagnetism arise when things change — when currents vary, when charges accelerate, when fields evolve in time. The magnetic field is our gateway to that richer, dynamic world.</em></p>
-<nav class="secnav"><a class="prev" href="27-6.html"><span class="lab">&larr; Previous section</span><span class="tt">27.6 &nbsp;Measuring Instruments</span></a><a class="next" href="../ch28/index.html"><span class="lab">Next chapter &rarr;</span><span class="tt">Ch 28 &nbsp;Magnetic Fields</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch27.html">Whole chapter on one page</a></p>
+<nav class="secnav"><a class="prev" href="27-6.html"><span class="lab">&larr; Previous section</span><span class="tt">27.6 &nbsp;Measuring Instruments</span></a><a class="next" href="/courses/pseii/ch28.html"><span class="lab">Next chapter &rarr;</span><span class="tt">Ch 28 &nbsp;Magnetic Fields</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch27.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>

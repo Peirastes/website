@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class=""><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class="here"><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a><ul><li><a href="#when-series-and-parallel-arent-enough">When Series and Parallel Aren’t Enough</a></li><li><a href="#the-junction-rule-kirchhoffs-current-law-kcl">The Junction Rule (Kirchhoff’s Current Law — KCL)</a></li><li><a href="#the-loop-rule-kirchhoffs-voltage-law-kvl">The Loop Rule (Kirchhoff’s Voltage Law — KVL)</a></li><li><a href="#sign-conventions">Sign Conventions</a></li><li><a href="#problem-solving-strategy">Problem-Solving Strategy</a></li><li><a href="#example-a-two-battery-network">Example: A Two-Battery Network</a></li></ul></li><li class=""><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class=""><a href="27-7.html"><b>27.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class=""><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class="here"><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a><ul><li><a href="#when-series-and-parallel-arent-enough">When Series and Parallel Aren’t Enough</a></li><li><a href="#the-junction-rule">The Junction Rule</a></li><li><a href="#the-loop-rule">The Loop Rule</a></li><li><a href="#sign-conventions">Sign Conventions</a></li><li><a href="#problem-solving-strategy">Problem-Solving Strategy</a></li></ul></li><li class=""><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class=""><a href="27-7.html"><b>27.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -308,21 +319,25 @@
 <div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 27</a><span class="sep">/</span><span>Section 27.3</span></div><div class="strip" aria-label="Sections"><a class="done" href="27-0.html" title="27.0 Reading the Circuit"><i></i>27.0</a><a class="done" href="27-1.html" title="27.1 EMF and Internal Resistance"><i></i>27.1</a><a class="done" href="27-2.html" title="27.2 Resistors in Series and Parallel"><i></i>27.2</a><a class="here" href="27-3.html" title="27.3 Kirchhoff’s Rules"><i></i>27.3</a><a class="" href="27-4.html" title="27.4 RC Circuits: Charging and Discharging"><i></i>27.4</a><a class="" href="27-5.html" title="27.5 Household Circuits and Electrical Safety"><i></i>27.5</a><a class="" href="27-6.html" title="27.6 Measuring Instruments"><i></i>27.6</a><a class="" href="27-7.html" title="27.7 Summary"><i></i>27.7</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 27.3 &middot; 4 of 8</summary><ol><li class=""><a href="27-0.html">27.0 &nbsp;Reading the Circuit</a></li><li class=""><a href="27-1.html">27.1 &nbsp;EMF and Internal Resistance</a></li><li class=""><a href="27-2.html">27.2 &nbsp;Resistors in Series and Parallel</a></li><li class="here"><a href="27-3.html">27.3 &nbsp;Kirchhoff’s Rules</a></li><li class=""><a href="27-4.html">27.4 &nbsp;RC Circuits: Charging and Discharging</a></li><li class=""><a href="27-5.html">27.5 &nbsp;Household Circuits and Electrical Safety</a></li><li class=""><a href="27-6.html">27.6 &nbsp;Measuring Instruments</a></li><li class=""><a href="27-7.html">27.7 &nbsp;Summary</a></li></ol></details>
 
 <h3 id="when-series-and-parallel-arent-enough">When Series and Parallel Aren’t Enough</h3>
-<p>Many circuits cannot be decomposed into simple series and parallel combinations. A circuit with two batteries of different EMFs may drive current <em>into</em> one battery (charging it) while drawing current <em>from</em> the other. No amount of series/parallel reduction can handle this.</p>
-<h3 id="the-junction-rule-kirchhoffs-current-law-kcl">The Junction Rule (Kirchhoff’s Current Law — KCL)</h3>
-<p>At any junction in a circuit:</p>
-<p><span class="math display">\[\boxed{\sum I_\text{in} = \sum I_\text{out}}\]</span></p>
-<p>This is <strong>charge conservation</strong>. In steady state, charge does not accumulate at any point.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_4_junction_rule.png" alt="Figure 27.4a: The junction rule — current entering a node must equal current leaving" loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 27.4a: The junction rule — current entering a node must equal current leaving</figcaption></figure>
-<h3 id="the-loop-rule-kirchhoffs-voltage-law-kvl">The Loop Rule (Kirchhoff’s Voltage Law — KVL)</h3>
-<p>Around any closed loop:</p>
-<p><span class="math display">\[\boxed{\sum \Delta V = 0}\]</span></p>
-<p>This is <strong>energy conservation</strong>. Electric potential is single-valued: if you walk around any closed path and return to your starting point, the net change in potential must be zero.</p>
+<p>Many circuits cannot be reduced to series and parallel pieces. With two batteries in different branches, no pair of resistors shares a current <em>and</em> no pair shares a voltage; one battery may even drive current backwards through the other. Kirchhoff’s two rules handle every case.</p>
+<h3 id="the-junction-rule">The Junction Rule</h3>
+<p>At any junction,</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\sum I_\text{in} = \sum I_\text{out}\;}\]</span></p>
+</div>
+<p>This is <strong>charge conservation</strong> — Chapter 26’s “one current along the whole wire”, applied where the wire branches. In a steady state no charge piles up at a node.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_4_junction_rule.png" alt="Figure 27.4: The junction rule — the current entering a node equals the current leaving it." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 27.4: The junction rule — the current entering a node equals the current leaving it.</figcaption></figure>
+<h3 id="the-loop-rule">The Loop Rule</h3>
+<p>Around any closed loop,</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\sum \Delta V = 0\;}\]</span></p>
+</div>
+<p>This is Chapter 24’s statement that <strong>potential is single-valued</strong>: walk around any closed path and return to the start, and you are back at the same potential. In energy terms, a charge that goes around a loop gains in the batteries exactly what it gives up in the resistors — the same accounting as Step 3 of §27.1.</p>
 <h3 id="sign-conventions">Sign Conventions</h3>
 <table>
 <thead>
 <tr class="header">
-<th>Element Traversed</th>
+<th>Element traversed</th>
 <th>Direction</th>
 <th><span class="math inline">\(\Delta V\)</span></th>
 </tr>
@@ -330,48 +345,59 @@
 <tbody>
 <tr class="odd">
 <td>Resistor <span class="math inline">\(R\)</span></td>
-<td>With assumed current <span class="math inline">\(I\)</span></td>
+<td>with the assumed current <span class="math inline">\(I\)</span></td>
 <td><span class="math inline">\(-IR\)</span></td>
 </tr>
 <tr class="even">
 <td>Resistor <span class="math inline">\(R\)</span></td>
-<td>Against assumed current <span class="math inline">\(I\)</span></td>
+<td>against the assumed current <span class="math inline">\(I\)</span></td>
 <td><span class="math inline">\(+IR\)</span></td>
 </tr>
 <tr class="odd">
-<td>EMF source <span class="math inline">\(\mathcal{E}\)</span></td>
-<td>From <span class="math inline">\(-\)</span> to <span class="math inline">\(+\)</span> (through source)</td>
+<td>EMF <span class="math inline">\(\mathcal{E}\)</span></td>
+<td>from <span class="math inline">\(-\)</span> to <span class="math inline">\(+\)</span></td>
 <td><span class="math inline">\(+\mathcal{E}\)</span></td>
 </tr>
 <tr class="even">
-<td>EMF source <span class="math inline">\(\mathcal{E}\)</span></td>
-<td>From <span class="math inline">\(+\)</span> to <span class="math inline">\(-\)</span> (through source)</td>
+<td>EMF <span class="math inline">\(\mathcal{E}\)</span></td>
+<td>from <span class="math inline">\(+\)</span> to <span class="math inline">\(-\)</span></td>
 <td><span class="math inline">\(-\mathcal{E}\)</span></td>
 </tr>
 </tbody>
 </table>
-<p><strong>The sign convention is bookkeeping, not physics.</strong> You can assume any direction for any current. If your assumption is wrong, the algebra will return a negative value — which simply means the actual current flows opposite to your assumed direction.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_4_sign_conventions.png" alt="Figure 27.4: Sign conventions for traversing resistors and batteries in Kirchhoff’s loop rule" loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 27.4: Sign conventions for traversing resistors and batteries in Kirchhoff’s loop rule</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_4_sign_conventions.png" alt="Figure 27.5: Sign conventions for crossing resistors and batteries in the loop rule." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 27.5: Sign conventions for crossing resistors and batteries in the loop rule.</figcaption></figure>
+<p><strong>The sign convention is bookkeeping, not physics.</strong> Assume any direction for each current. If an assumption is wrong, the algebra returns a negative value — which means only that the current flows the other way.</p>
 <h3 id="problem-solving-strategy">Problem-Solving Strategy</h3>
 <ol type="1">
-<li><strong>Label branch currents</strong> with assumed directions. If wrong, the algebra returns a negative value.</li>
-<li><strong>Apply the junction rule</strong> at enough junctions. For <span class="math inline">\(J\)</span> junctions, you get <span class="math inline">\(J - 1\)</span> independent equations.</li>
-<li><strong>Apply the loop rule</strong> around independent loops. For <span class="math inline">\(B\)</span> branches and <span class="math inline">\(J\)</span> junctions, you need <span class="math inline">\(B - (J - 1)\)</span> loop equations.</li>
-<li><strong>Solve the system</strong> of linear equations. Verify with an unused loop.</li>
+<li><strong>Label each branch current</strong> with an assumed direction.</li>
+<li><strong>Apply the junction rule.</strong> <span class="math inline">\(J\)</span> junctions give <span class="math inline">\(J - 1\)</span> independent equations.</li>
+<li><strong>Apply the loop rule</strong> to independent loops. With <span class="math inline">\(B\)</span> branches you need <span class="math inline">\(B - (J - 1)\)</span> loop equations — one per unknown left over.</li>
+<li><strong>Solve</strong>, then <strong>verify with a loop you did not use</strong>.</li>
 </ol>
-<p><em>*Personal note: Kirchhoff’s rules reduce circuit analysis to linear algebra. The skill is choosing the most convenient junctions and loops, not in the physics itself. The physics is just charge conservation and energy conservation.</em></p>
-<h3 id="example-a-two-battery-network">Example: A Two-Battery Network</h3>
-<p><span class="math inline">\(\mathcal{E}_1 = 18.0\ \text{V}\)</span>, <span class="math inline">\(\mathcal{E}_2 = 12.0\ \text{V}\)</span>, <span class="math inline">\(R_1 = 4.0\ \Omega\)</span>, <span class="math inline">\(R_2 = 6.0\ \Omega\)</span>, <span class="math inline">\(R_3 = 8.0\ \Omega\)</span>. Find the current in each branch.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_4_kirchhoff_multiloop.png" alt="Figure 27.5: A two-battery, three-resistor Kirchhoff circuit with labeled branch currents" loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 27.5: A two-battery, three-resistor Kirchhoff circuit with labeled branch currents</figcaption></figure>
-<p><strong>Junction rule (top):</strong> <span class="math inline">\(I_1 = I_2 + I_3\)</span> — (Eq. 1)</p>
-<p><strong>Loop 1 (left, counterclockwise):</strong> <span class="math inline">\(+\mathcal{E}_1 - I_1 R_1 - I_3 R_3 = 0\)</span></p>
-<p><span class="math display">\[18.0 - 4.0\,I_1 - 8.0\,I_3 = 0 \qquad \text{(Eq. 2)}\]</span></p>
-<p><strong>Loop 2 (right, counterclockwise):</strong> <span class="math inline">\(-\mathcal{E}_2 - I_2 R_2 + I_3 R_3 = 0\)</span></p>
-<p><span class="math display">\[-12.0 - 6.0\,I_2 + 8.0\,I_3 = 0 \qquad \text{(Eq. 3)}\]</span></p>
-<p><strong>Solving:</strong> Substitute Eq. 1 into Eq. 2, then Eq. 3:</p>
-<p><span class="math display">\[\boxed{I_3 = 1.50\ \text{A}}, \quad \boxed{I_2 = 0.00\ \text{A}}, \quad \boxed{I_1 = 1.50\ \text{A}}\]</span></p>
-<p><strong>Interpretation:</strong> All currents are positive — our assumed directions were correct. The striking result is <span class="math inline">\(I_2 = 0\)</span>: no current flows through <span class="math inline">\(R_2\)</span>. The EMF difference <span class="math inline">\(\mathcal{E}_1 - \mathcal{E}_2 = 6.0\ \text{V}\)</span> exactly matches the voltage that the <span class="math inline">\(R_1\)</span>–<span class="math inline">\(R_3\)</span> path sustains. If <span class="math inline">\(\mathcal{E}_2\)</span> were even slightly different, current would flow through <span class="math inline">\(R_2\)</span> — and could go in either direction.</p>
-<p><strong>Verification (outer loop):</strong> <span class="math inline">\(+\mathcal{E}_1 - I_1 R_1 - I_2 R_2 - \mathcal{E}_2 = 18.0 - 6.0 - 0 - 12.0 = 0\)</span> ✓</p>
+<p><em>*Personal note: Kirchhoff’s rules reduce circuit analysis to linear algebra. The skill is in choosing convenient junctions and loops, not in the physics itself. The physics is just charge conservation and energy conservation.</em></p>
+<section id="example-a-strong-battery-charging-a-weak-one" class="example">
+<h3>Example: A Strong Battery Charging a Weak One</h3>
+<p><span class="math inline">\(\mathcal{E}_1 = 6.0\)</span> V, <span class="math inline">\(\mathcal{E}_2 = 12.0\)</span> V, <span class="math inline">\(R_1 = 2.0\ \Omega\)</span>, <span class="math inline">\(R_2 = 2.0\ \Omega\)</span>, <span class="math inline">\(R_3 = 8.0\ \Omega\)</span>, connected as shown. Find the current in each branch.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_4_kirchhoff_multiloop.png" alt="Figure 27.6: A two-battery, three-resistor network, with assumed branch currents I_1, I_2, I_3 and the two loops used." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 27.6: A two-battery, three-resistor network, with assumed branch currents <span class="math inline">\(I_1\)</span>, <span class="math inline">\(I_2\)</span>, <span class="math inline">\(I_3\)</span> and the two loops used.</figcaption></figure>
+<p><strong>Step 1 — the junction rule at B.</strong></p>
+<p><span class="math display">\[I_1 = I_2 + I_3 \qquad \text{(Eq. 1)}\]</span></p>
+<p><strong>Step 2 — loop 1</strong> (D → A → B → E → D, clockwise). Up through <span class="math inline">\(\mathcal{E}_1\)</span> from <span class="math inline">\(-\)</span> to <span class="math inline">\(+\)</span>, then with <span class="math inline">\(I_1\)</span> through <span class="math inline">\(R_1\)</span>, then with <span class="math inline">\(I_3\)</span> down through <span class="math inline">\(R_3\)</span>:</p>
+<p><span class="math display">\[+6.0 - 2.0\,I_1 - 8.0\,I_3 = 0 \qquad \text{(Eq. 2)}\]</span></p>
+<p><strong>Step 3 — loop 2</strong> (E → B → C → F → E). Up through <span class="math inline">\(R_3\)</span> <em>against</em> <span class="math inline">\(I_3\)</span>, then with <span class="math inline">\(I_2\)</span> through <span class="math inline">\(R_2\)</span>, then down through <span class="math inline">\(\mathcal{E}_2\)</span> from <span class="math inline">\(+\)</span> to <span class="math inline">\(-\)</span>:</p>
+<p><span class="math display">\[+8.0\,I_3 - 2.0\,I_2 - 12.0 = 0 \qquad \text{(Eq. 3)}\]</span></p>
+<p><strong>Step 4 — solve.</strong> Eq. 2 gives <span class="math inline">\(I_1 = 3.0 - 4.0\,I_3\)</span>; Eq. 3 gives <span class="math inline">\(I_2 = 4.0\,I_3 - 6.0\)</span>. Substituting both into Eq. 1: <span class="math inline">\(3.0 - 4.0\,I_3 = 5.0\,I_3 - 6.0\)</span>, so <span class="math inline">\(I_3 = 1.0\)</span> A.</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I_1 = -1.0\ \text{A}, \qquad I_2 = -2.0\ \text{A}, \qquad I_3 = 1.0\ \text{A}\;}\]</span></p>
+</div>
+<p><strong>Step 5 — read the signs.</strong> <span class="math inline">\(I_1\)</span> and <span class="math inline">\(I_2\)</span> came out negative, so both flow opposite to the arrows. The 12 V battery drives 2.0 A out of its <span class="math inline">\(+\)</span> terminal, toward B. There the current splits: 1.0 A down through <span class="math inline">\(R_3\)</span>, and 1.0 A backwards through <span class="math inline">\(R_1\)</span> <strong>into the <span class="math inline">\(+\)</span> terminal of the 6 V battery</strong> — the strong battery is charging the weak one.</p>
+</section>
+<div class="check">
+<p><strong>Check with the loop we did not use</strong> (D → A → B → C → F → D): <span class="math inline">\(+6.0 - (-1.0)(2.0) - (-2.0)(2.0) - 12.0 = 6.0 + 2.0 + 4.0 - 12.0 = 0\)</span>. ✓</p>
+<p><strong>Check the power.</strong> The 12 V battery delivers <span class="math inline">\((2.0)(12.0) = 24\)</span> W. It goes to <span class="math inline">\(R_1\)</span>, <span class="math inline">\(R_2\)</span>, <span class="math inline">\(R_3\)</span> — <span class="math inline">\(2.0 + 8.0 + 8.0 = 18\)</span> W — and <strong>6.0 W into the 6 V battery</strong>, stored as chemical energy. Total: 24 W. ✓</p>
+</div>
+<div class="connection">
+<p><strong>A terminal voltage larger than the EMF.</strong> Suppose <span class="math inline">\(R_1\)</span> is the weak battery’s own internal resistance. Its terminal voltage is the potential of B above E: <span class="math inline">\(\Delta V_{BE} = I_3R_3 = 8.0\)</span> V — <strong>more</strong> than its 6.0 V EMF. §27.1’s <span class="math inline">\(\Delta V_\text{term} = \mathcal{E} - Ir\)</span> still holds; the current now flows backwards through the battery, so <span class="math inline">\(I\)</span> is negative and the “drop” across <span class="math inline">\(r\)</span> adds: <span class="math inline">\(6.0 - (-1.0)(2.0) = 8.0\)</span> V. This is what charging looks like, and it is how a jump-start works.</p>
+</div>
 <nav class="secnav"><a class="prev" href="27-2.html"><span class="lab">&larr; Previous section</span><span class="tt">27.2 &nbsp;Resistors in Series and Parallel</span></a><a class="next" href="27-4.html"><span class="lab">Next section &rarr;</span><span class="tt">27.4 &nbsp;RC Circuits: Charging and Discharging</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch27.html">Whole chapter on one page</a></p>
         </div>
       </div>

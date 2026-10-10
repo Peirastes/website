@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class=""><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class=""><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a></li><li class="here"><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a><ul><li><a href="#a-new-kind-of-circuit">A New Kind of Circuit</a></li><li><a href="#charging-an-rc-circuit">Charging an RC Circuit</a></li><li><a href="#discharging-an-rc-circuit">Discharging an RC Circuit</a></li><li><a href="#the-time-constant">The Time Constant</a></li><li><a href="#charging-vs.-discharging-a-comparison">Charging vs. Discharging: A Comparison</a></li><li><a href="#energy-in-rc-charging-the-50-result">Energy in RC Charging: The 50% Result</a></li><li><a href="#example-an-rc-circuit">Example: An RC Circuit</a></li></ul></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class=""><a href="27-7.html"><b>27.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 27 sections"><h4><a href="index.html">Ch 27 &middot; Direct-Current Circuits</a></h4><ol><li class=""><a href="27-0.html"><b>27.0</b><span>Reading the Circuit</span></a></li><li class=""><a href="27-1.html"><b>27.1</b><span>EMF and Internal Resistance</span></a></li><li class=""><a href="27-2.html"><b>27.2</b><span>Resistors in Series and Parallel</span></a></li><li class=""><a href="27-3.html"><b>27.3</b><span>Kirchhoff’s Rules</span></a></li><li class="here"><a href="27-4.html"><b>27.4</b><span>RC Circuits: Charging and Discharging</span></a><ul><li><a href="#a-new-kind-of-circuit">A New Kind of Circuit</a></li><li><a href="#charging">Charging</a></li><li><a href="#discharging">Discharging</a></li><li><a href="#the-time-constant">The Time Constant</a></li><li><a href="#energy-in-rc-charging-the-50-result">Energy in RC Charging: The 50% Result</a></li></ul></li><li class=""><a href="27-5.html"><b>27.5</b><span>Household Circuits and Electrical Safety</span></a></li><li class=""><a href="27-6.html"><b>27.6</b><span>Measuring Instruments</span></a></li><li class=""><a href="27-7.html"><b>27.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 27 overview</a><a href="/courses/pseii/ch27.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -308,29 +319,44 @@
 <div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 27</a><span class="sep">/</span><span>Section 27.4</span></div><div class="strip" aria-label="Sections"><a class="done" href="27-0.html" title="27.0 Reading the Circuit"><i></i>27.0</a><a class="done" href="27-1.html" title="27.1 EMF and Internal Resistance"><i></i>27.1</a><a class="done" href="27-2.html" title="27.2 Resistors in Series and Parallel"><i></i>27.2</a><a class="done" href="27-3.html" title="27.3 Kirchhoff’s Rules"><i></i>27.3</a><a class="here" href="27-4.html" title="27.4 RC Circuits: Charging and Discharging"><i></i>27.4</a><a class="" href="27-5.html" title="27.5 Household Circuits and Electrical Safety"><i></i>27.5</a><a class="" href="27-6.html" title="27.6 Measuring Instruments"><i></i>27.6</a><a class="" href="27-7.html" title="27.7 Summary"><i></i>27.7</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 27.4 &middot; 5 of 8</summary><ol><li class=""><a href="27-0.html">27.0 &nbsp;Reading the Circuit</a></li><li class=""><a href="27-1.html">27.1 &nbsp;EMF and Internal Resistance</a></li><li class=""><a href="27-2.html">27.2 &nbsp;Resistors in Series and Parallel</a></li><li class=""><a href="27-3.html">27.3 &nbsp;Kirchhoff’s Rules</a></li><li class="here"><a href="27-4.html">27.4 &nbsp;RC Circuits: Charging and Discharging</a></li><li class=""><a href="27-5.html">27.5 &nbsp;Household Circuits and Electrical Safety</a></li><li class=""><a href="27-6.html">27.6 &nbsp;Measuring Instruments</a></li><li class=""><a href="27-7.html">27.7 &nbsp;Summary</a></li></ol></details>
 
 <h3 id="a-new-kind-of-circuit">A New Kind of Circuit</h3>
-<p>Every circuit so far has been in <strong>steady state</strong> — currents constant in time. When a resistor and capacitor share a loop, something qualitatively new occurs: the current changes with time. The resistor limits how quickly charge flows onto (or off of) the capacitor, producing an <strong>exponential</strong> approach to equilibrium.</p>
-<h3 id="charging-an-rc-circuit">Charging an RC Circuit</h3>
-<p>Consider an uncharged capacitor <span class="math inline">\(C\)</span> in series with resistor <span class="math inline">\(R\)</span> and battery <span class="math inline">\(\mathcal{E}\)</span>. At <span class="math inline">\(t = 0\)</span>, we close the switch:</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_6_rc_circuit.png" alt="Figure 27.6: An RC circuit with battery, switch, resistor, and capacitor" loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 27.6: An RC circuit with battery, switch, resistor, and capacitor</figcaption></figure>
-<p><strong>At <span class="math inline">\(t = 0\)</span>:</strong> The capacitor is uncharged (<span class="math inline">\(q = 0\)</span>), so it acts like a short circuit — all the battery voltage appears across the resistor, and the initial current is at its maximum value:</p>
-<p><span class="math display">\[I_0 = \frac{\mathcal{E}}{R}\]</span></p>
-<p><strong>As <span class="math inline">\(t\)</span> increases:</strong> Charge accumulates on the capacitor, building a voltage <span class="math inline">\(q/C\)</span> that opposes the battery. This back-voltage increasingly fights the current, so the charging rate slows down. <strong>As <span class="math inline">\(t \to \infty\)</span>:</strong> The capacitor voltage reaches <span class="math inline">\(\mathcal{E}\)</span>, the opposition is complete, and current stops — the fully charged capacitor acts like an open circuit.</p>
-<p>We can make this precise. Applying the loop rule at any time <span class="math inline">\(t\)</span>:</p>
+<p>Every circuit so far has been in a <strong>steady state</strong>, with currents constant in time. Put a resistor and a capacitor in the same loop and something new happens: the current changes with time. The resistor limits how fast charge can reach the capacitor, and the capacitor’s growing voltage pushes back, producing an <strong>exponential</strong> approach to equilibrium.</p>
+<h3 id="charging">Charging</h3>
+<p>An uncharged capacitor <span class="math inline">\(C\)</span> is in series with a resistor <span class="math inline">\(R\)</span> and a battery <span class="math inline">\(\mathcal{E}\)</span>. At <span class="math inline">\(t = 0\)</span> the switch closes.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_6_rc_circuit.png" alt="Figure 27.7: An RC circuit — battery, switch, resistor and capacitor in one loop." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 27.7: An RC circuit — battery, switch, resistor and capacitor in one loop.</figcaption></figure>
+<p><strong>Step 1 — the loop rule at time <span class="math inline">\(t\)</span>.</strong> With charge <span class="math inline">\(q\)</span> on the capacitor and current <span class="math inline">\(I\)</span> in the loop, the capacitor’s voltage is <span class="math inline">\(q/C\)</span> (Chapter 25):</p>
 <p><span class="math display">\[\mathcal{E} - IR - \frac{q}{C} = 0\]</span></p>
-<p>Since <span class="math inline">\(I = dq/dt\)</span>, this becomes a first-order differential equation whose solution (verified by substitution) is:</p>
-<p><span class="math display">\[\boxed{q(t) = Q_\text{max}\left(1 - e^{-t/RC}\right)}, \qquad \boxed{I(t) = I_0\,e^{-t/RC}}\]</span></p>
-<p>where <span class="math inline">\(Q_\text{max} = C\mathcal{E}\)</span> is the final charge and <span class="math inline">\(I_0 = \mathcal{E}/R\)</span> is the initial current. The solution confirms what the physics predicted: charge rises from zero toward <span class="math inline">\(Q_\text{max}\)</span>, current decays from <span class="math inline">\(I_0\)</span> toward zero, both on the same exponential timescale.</p>
-<h3 id="discharging-an-rc-circuit">Discharging an RC Circuit</h3>
-<p>Now suppose the capacitor is fully charged to <span class="math inline">\(Q_0\)</span> and the battery is removed. The capacitor discharges through <span class="math inline">\(R\)</span>. The loop rule gives <span class="math inline">\(dq/dt = -q/(RC)\)</span>, with solution:</p>
-<p><span class="math display">\[\boxed{q(t) = Q_0\,e^{-t/RC}}, \qquad \boxed{I(t) = -\frac{Q_0}{RC}\,e^{-t/RC}}\]</span></p>
-<p>The negative sign indicates current flows opposite to the charging direction — charge is leaving the capacitor.</p>
-<blockquote>
-<p><strong>TA note:</strong> Here <span class="math inline">\(Q_0\)</span> is the charge on the capacitor at the instant discharge begins. If the capacitor was fully charged, <span class="math inline">\(Q_0 = Q_\text{max} = C\mathcal{E}\)</span>; if charging was interrupted before completion, <span class="math inline">\(Q_0 &lt; Q_\text{max}\)</span>. The discharge equation is general — it does not assume the capacitor started fully charged.</p>
-</blockquote>
+<p><strong>Step 2 — the bridging step: <span class="math inline">\(I = dq/dt\)</span>.</strong> The current in the loop is the rate at which charge arrives on the capacitor plate. <em>This is the step that turns a loop equation into a differential equation in one unknown, <span class="math inline">\(q(t)\)</span>.</em></p>
+<p><span class="math display">\[R\,\frac{dq}{dt} = \mathcal{E} - \frac{q}{C} = \frac{C\mathcal{E} - q}{C}\]</span></p>
+<p><strong>Step 3 — separate the variables.</strong></p>
+<p><span class="math display">\[\frac{dq}{C\mathcal{E} - q} = \frac{dt}{RC}\]</span></p>
+<p><strong>Step 4 — integrate</strong> from <span class="math inline">\(q = 0\)</span> at <span class="math inline">\(t = 0\)</span> to <span class="math inline">\(q\)</span> at <span class="math inline">\(t\)</span>:</p>
+<p><span class="math display">\[-\ln\!\left(\frac{C\mathcal{E} - q}{C\mathcal{E}}\right) = \frac{t}{RC}
+\qquad\Longrightarrow\qquad C\mathcal{E} - q = C\mathcal{E}\,e^{-t/RC}\]</span></p>
+<p><strong>Step 5 — solve for <span class="math inline">\(q\)</span>, then differentiate for <span class="math inline">\(I\)</span>.</strong> Writing <span class="math inline">\(Q_\text{max} = C\mathcal{E}\)</span> and <span class="math inline">\(I_0 = \mathcal{E}/R\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;q(t) = Q_\text{max}\left(1 - e^{-t/RC}\right), \qquad I(t) = \frac{dq}{dt} = I_0\,e^{-t/RC}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong>At <span class="math inline">\(t = 0\)</span>:</strong> <span class="math inline">\(q = 0\)</span>, so the capacitor has no voltage and <span class="math inline">\(I = \mathcal{E}/R\)</span> — the whole EMF is across the resistor. <strong>An uncharged capacitor acts like a wire.</strong></li>
+<li><strong>As <span class="math inline">\(t \to \infty\)</span>:</strong> <span class="math inline">\(q \to C\mathcal{E}\)</span> and <span class="math inline">\(I \to 0\)</span> — the capacitor’s voltage matches the battery’s and nothing flows. <strong>A full capacitor acts like an open switch.</strong></li>
+<li><strong>Larger <span class="math inline">\(R\)</span> or larger <span class="math inline">\(C\)</span> means slower.</strong> Larger <span class="math inline">\(R\)</span> limits the current; larger <span class="math inline">\(C\)</span> needs more charge to reach the same voltage. Both lengthen the climb.</li>
+</ul>
+</div>
+<h3 id="discharging">Discharging</h3>
+<p>Now the capacitor starts with charge <span class="math inline">\(Q_0\)</span> and is connected across <span class="math inline">\(R\)</span> alone. The loop rule is <span class="math inline">\(q/C - IR = 0\)</span>, but the plate is <em>losing</em> charge, so the current that flows is <span class="math inline">\(I = -dq/dt\)</span>:</p>
+<p><span class="math display">\[\frac{dq}{dt} = -\frac{q}{RC} \qquad\Longrightarrow\qquad \frac{dq}{q} = -\frac{dt}{RC}\]</span></p>
+<p>Integrating from <span class="math inline">\(Q_0\)</span> at <span class="math inline">\(t = 0\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;q(t) = Q_0\,e^{-t/RC}, \qquad I(t) = \frac{Q_0}{RC}\,e^{-t/RC}\;}\]</span></p>
+</div>
+<p>The current flows out of the positive plate, opposite to the charging current. <span class="math inline">\(Q_0\)</span> is whatever charge the capacitor holds when discharge begins — <span class="math inline">\(C\mathcal{E}\)</span> if it was fully charged, less if charging was interrupted.</p>
 <h3 id="the-time-constant">The Time Constant</h3>
-<p><span class="math display">\[\boxed{\tau = RC}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\tau = RC\;}\]</span></p>
+</div>
 <p><em>*Personal note: The dimensional analysis is worth doing explicitly:</em> <span class="math inline">\([\Omega][\text{F}] = (\text{V/A})(\text{C/V}) = \text{C/A} = \text{s}\)</span><em>. Resistance slows the flow; capacitance sets how much charge must flow. Their product is a time.</em></p>
-<p>The time constant sets the characteristic timescale:</p>
 <table>
 <thead>
 <tr class="header">
@@ -362,53 +388,39 @@
 </tr>
 </tbody>
 </table>
-<h3 id="charging-vs.-discharging-a-comparison">Charging vs. Discharging: A Comparison</h3>
-<table>
-<thead>
-<tr class="header">
-<th>Quantity</th>
-<th>Charging</th>
-<th>Discharging</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(q(t)\)</span></td>
-<td><span class="math inline">\(Q_\text{max}(1 - e^{-t/\tau})\)</span></td>
-<td><span class="math inline">\(Q_0\,e^{-t/\tau}\)</span></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(I(t)\)</span></td>
-<td><span class="math inline">\(I_0\,e^{-t/\tau}\)</span></td>
-<td><span class="math inline">\(-(Q_0/RC)\,e^{-t/\tau}\)</span></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(q\)</span> at <span class="math inline">\(t = 0\)</span></td>
-<td><span class="math inline">\(0\)</span></td>
-<td><span class="math inline">\(Q_0\)</span></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(I\)</span> at <span class="math inline">\(t = 0\)</span></td>
-<td><span class="math inline">\(I_0 = \mathcal{E}/R\)</span></td>
-<td><span class="math inline">\(-Q_0/RC\)</span></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(q\)</span> at <span class="math inline">\(t \to \infty\)</span></td>
-<td><span class="math inline">\(Q_\text{max} = C\mathcal{E}\)</span></td>
-<td><span class="math inline">\(0\)</span></td>
-</tr>
-</tbody>
-</table>
-<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_5_rc_curves.png" alt="Figure 27.7: Charge and current vs. time during RC charging (left) and discharging (right)" loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 27.7: Charge and current vs. time during RC charging (left) and discharging (right)</figcaption></figure>
+<figure class="chap-fig"><img src="/courses/pseii/ch27_figures/fig_27_5_rc_curves.png" alt="Figure 27.8: Charge and current against time during RC charging (left) and discharging (right)." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 27.8: Charge and current against time during RC charging (left) and discharging (right).</figcaption></figure>
+<p>The table answers “how full after a given time.” The reverse question — <strong>how long to reach a given fraction</strong> — needs the exponential inverted with a logarithm.</p>
+<section id="example-an-rc-circuit-forwards-and-backwards" class="example">
+<h3>Example: An RC Circuit, Forwards and Backwards</h3>
+<p><span class="math inline">\(R = 8.00 \times 10^5\ \Omega\)</span>, <span class="math inline">\(C = 5.00\ \mu\)</span>F, <span class="math inline">\(\mathcal{E} = 12.0\)</span> V.</p>
+<p><strong>Step 1 — the scales.</strong></p>
+<p><span class="math display">\[\tau = RC = (8.00 \times 10^5)(5.00 \times 10^{-6}) = 4.00\ \text{s}, \qquad
+Q_\text{max} = C\mathcal{E} = 60.0\ \mu\text{C}, \qquad I_0 = \frac{\mathcal{E}}{R} = 15.0\ \mu\text{A}\]</span></p>
+<p><strong>Step 2 — forwards: the state at <span class="math inline">\(t = \tau\)</span>.</strong> <span class="math inline">\(q = 60.0(1 - e^{-1}) = 37.9\ \mu\)</span>C and <span class="math inline">\(I = 15.0\,e^{-1} = 5.52\ \mu\)</span>A.</p>
+<p><strong>Step 3 — backwards: how long to reach 90%?</strong> Set <span class="math inline">\(q/Q_\text{max} = 1 - e^{-t/\tau} = 0.900\)</span>, so <span class="math inline">\(e^{-t/\tau} = 0.100\)</span>. Take the natural log of both sides:</p>
+<p><span class="math display">\[-\frac{t}{\tau} = \ln(0.100) \qquad\Longrightarrow\qquad t = \tau\ln 10\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;t = 2.30\,\tau = 9.21\ \text{s}\;}\]</span></p>
+</div>
+</section>
+<div class="check">
+<p><strong>Check against the table.</strong> <span class="math inline">\(2.30\tau\)</span> sits between <span class="math inline">\(2\tau\)</span> (86.5%) and <span class="math inline">\(3\tau\)</span> (95.0%), as 90% should. <strong>And the discharge mirror:</strong> dropping to 10% of <span class="math inline">\(Q_0\)</span> means <span class="math inline">\(e^{-t/\tau} = 0.100\)</span> — the same equation, so the same <span class="math inline">\(t = 2.30\tau\)</span>. Charging to 90% and discharging to 10% take the same time.</p>
+</div>
 <h3 id="energy-in-rc-charging-the-50-result">Energy in RC Charging: The 50% Result</h3>
-<p>During charging, the battery delivers total energy <span class="math inline">\(U_\text{battery} = Q_\text{max}\,\mathcal{E} = C\mathcal{E}^2\)</span>. The energy stored in the fully charged capacitor is <span class="math inline">\(U_C = \frac{1}{2}C\mathcal{E}^2\)</span> — exactly half. The other half is dissipated as heat in the resistor. This 50% efficiency is a fundamental result, independent of <span class="math inline">\(R\)</span>, <span class="math inline">\(C\)</span>, and <span class="math inline">\(\mathcal{E}\)</span>.</p>
+<p>Chapter 25 left a loose end: when a charged capacitor shares its charge with an empty one, half the energy disappears “to the wires.” Chapter 26 said the wires turn it into heat at the rate <span class="math inline">\(I^2R\)</span>. Now there is a current to integrate.</p>
+<p><strong>Step 1 — the energy the battery delivers.</strong> The battery moves the whole charge <span class="math inline">\(Q_\text{max} = C\mathcal{E}\)</span> through its EMF: <span class="math inline">\(U_\text{battery} = Q_\text{max}\mathcal{E} = C\mathcal{E}^2\)</span>.</p>
+<p><strong>Step 2 — the energy stored.</strong> From Chapter 25, <span class="math inline">\(U_C = \tfrac{1}{2}C\mathcal{E}^2\)</span>.</p>
+<p><strong>Step 3 — the energy dissipated in <span class="math inline">\(R\)</span>.</strong> Sum <span class="math inline">\(P = I^2R\)</span> over the whole charge, using <span class="math inline">\(I = I_0e^{-t/\tau}\)</span>:</p>
+<p><span class="math display">\[U_R = \int_0^\infty I^2R\,dt = \frac{\mathcal{E}^2}{R}\int_0^\infty e^{-2t/RC}\,dt
+= \frac{\mathcal{E}^2}{R}\cdot\frac{RC}{2}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U_R = \tfrac{1}{2}C\mathcal{E}^2 = U_C\;}\]</span></p>
+</div>
+<p>The battery delivers <span class="math inline">\(C\mathcal{E}^2\)</span>; exactly half is stored and half is heat.</p>
+<div class="check">
+<p><strong>Check what cancelled.</strong> <span class="math inline">\(R\)</span> dropped out of the answer. A smaller resistance carries a larger current for a shorter time, and the two effects cancel exactly: the loss is half the energy whatever <span class="math inline">\(R\)</span> is — even for the “ideal” wires of Chapter 25’s charge-sharing problem. That is why that half could not be avoided by using better wire.</p>
+</div>
 <p><em>*Personal note: No matter how small you make <span class="math inline">\(R\)</span>, you still lose half the energy to heat. The only way to improve efficiency is to use an inductor instead of a resistor to limit the current — a topic for Chapter 31.</em></p>
-<h3 id="example-an-rc-circuit">Example: An RC Circuit</h3>
-<p><span class="math inline">\(R = 8.00 \times 10^5\ \Omega\)</span>, <span class="math inline">\(C = 5.00\ \mu\text{F}\)</span>, <span class="math inline">\(\mathcal{E} = 12.0\ \text{V}\)</span>.</p>
-<p><strong>Time constant:</strong> <span class="math inline">\(\tau = RC = (8.00 \times 10^5)(5.00 \times 10^{-6}) = \boxed{4.00\ \text{s}}\)</span></p>
-<p><strong>Maximum charge:</strong> <span class="math inline">\(Q_\text{max} = C\mathcal{E} = \boxed{60.0\ \mu\text{C}}\)</span></p>
-<p><strong>Initial current:</strong> <span class="math inline">\(I_0 = \mathcal{E}/R = 12.0/(8.00 \times 10^5) = \boxed{15.0\ \mu\text{A}}\)</span></p>
-<p><strong>At <span class="math inline">\(t = \tau\)</span>:</strong> <span class="math inline">\(q = 60.0(1 - e^{-1}) = \boxed{37.9\ \mu\text{C}}\)</span>, <span class="math inline">\(I = 15.0\,e^{-1} = \boxed{5.52\ \mu\text{A}}\)</span></p>
 <nav class="secnav"><a class="prev" href="27-3.html"><span class="lab">&larr; Previous section</span><span class="tt">27.3 &nbsp;Kirchhoff’s Rules</span></a><a class="next" href="27-5.html"><span class="lab">Next section &rarr;</span><span class="tt">27.5 &nbsp;Household Circuits and Electrical Safety</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch27.html">Whole chapter on one page</a></p>
         </div>
       </div>
