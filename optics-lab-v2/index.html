@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">   <!-- unlisted (Cole 2026-10-12): reached by link only, kept out of search results -->
+<title>Optics Bench</title>
+<link rel="icon" href="data:,">
+<link href="./vendor/fonts/fonts.css" rel="stylesheet">
+<script>if (new URLSearchParams(location.search).has("embed")) document.documentElement.classList.add("embed");</script>
+<script>
+window.__benchFail = (title, msg) => {
+  const show = () => {
+    const o = document.createElement("div"); o.className = "gl-overlay show"; o.style.cursor = "default";
+    o.innerHTML = '<div class="gl-box"><div class="ip-label"></div><p></p></div>';
+    o.querySelector(".ip-label").textContent = title; o.querySelector("p").textContent = msg; document.body.appendChild(o);
+  };
+  document.body ? show() : addEventListener("DOMContentLoaded", show);
+};
+window.__benchModuleFail = () => location.protocol === "file:"
+  ? __benchFail("Bench cannot start from a file", "Browsers block the bench's program files when the page is opened by double-click. Open it from its web address instead.")
+  : __benchFail("Bench files did not load", "One of the bench's program files is missing or the server is not serving the project folder. Check the server, then reload.");
+</script>
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+<style>
+
+  /* ── Peirastes instrument canon (shared with the Electrostatics Lab) ── */
+  :root { --canon-gold:#ffae20; --canon-cyan:#7dd6ff; --ink:#e8e8e8; --muted:#8a8a8a; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#06080c; color:var(--ink); font-family:'Inter',system-ui,sans-serif; }
+  /* the world is the backdrop: full-bleed, nothing insets it */
+  #stage { position:fixed; inset:0; }
+  canvas.webgl { display:block; width:100%; height:100%; }
+
+  /* three-tier title, top-left, floats over the world (top 32 / left 35) */
+  .es-title { position:absolute; top:32px; left:35px; z-index:20; pointer-events:none; }
+  .es-title__name { font-family:'Orbitron',sans-serif; font-size:23px; font-weight:700; color:var(--canon-gold); letter-spacing:.14em; text-transform:uppercase; text-shadow:0 0 14px rgba(255,174,32,.45),0 0 34px rgba(255,174,32,.18),0 1px 2px rgba(0,0,0,.95),0 0 10px rgba(0,0,0,.85); line-height:1; margin-top:-3px; }
+  /* legibility over a bright 3D world: the canon glow plus a dark halo (no frame - the void stays unframed) */
+  .es-title__mode { font-family:'Orbitron',sans-serif; font-size:11.5px; font-weight:600; color:var(--canon-cyan); letter-spacing:.16em; text-transform:uppercase; text-shadow:0 0 8px rgba(125,214,255,.30),0 1px 2px rgba(0,0,0,.95),0 0 8px rgba(0,0,0,.9); margin-top:7px; }
+  .es-title__scope { font-family:'Share Tech Mono',monospace; font-size:9.5px; color:rgba(255,255,255,.55); letter-spacing:.18em; text-transform:uppercase; margin-top:5px; text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.9); }
+
+  /* right rail: control panel (natural height, shrink-and-scroll only when capped) + ONE info frame */
+  .es-rail { position:absolute; top:42px; right:42px; bottom:42px; width:320px; display:flex; flex-direction:column; gap:8px; z-index:10; pointer-events:none; }
+  .es-rail > * { pointer-events:auto; }
+  .es-panel { position:relative; width:100%; flex:0 1 auto; min-height:0; display:flex; flex-direction:column;
+    background:rgba(10,14,22,.42); backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.10); border-radius:8px; box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    padding:16px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
+  /* acrylic-glass scrollbar (overflow:auto, never scroll) */
+  .es-panel::-webkit-scrollbar, .info-panel::-webkit-scrollbar { width:8px; height:8px; }
+  .es-panel::-webkit-scrollbar-track, .info-panel::-webkit-scrollbar-track { background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(4,6,10,.65) 25%,rgba(4,6,10,.65) 75%,rgba(0,0,0,.45) 100%); border-radius:4px;
+    box-shadow:inset 1px 0 3px rgba(0,0,0,.55), inset -1px 0 3px rgba(0,0,0,.55), inset 0 2px 4px rgba(0,0,0,.35); margin:4px 0; }
+  .es-panel::-webkit-scrollbar-thumb, .info-panel::-webkit-scrollbar-thumb { border-radius:4px; background:rgba(40,52,68,.6);
+    border-left:1px solid rgba(125,214,255,.10); border-right:1px solid rgba(255,174,32,.22); border-top:1px solid rgba(255,255,255,.14); border-bottom:.5px solid rgba(0,0,0,.22);
+    box-shadow:0 1px 4px rgba(0,0,0,.4), inset 2px 0 4px rgba(125,214,255,.04), inset -2px 0 4px rgba(255,174,32,.08), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.15); }
+  .es-panel::-webkit-scrollbar-thumb:hover, .info-panel::-webkit-scrollbar-thumb:hover { background:rgba(50,64,82,.7); border-left-color:rgba(125,214,255,.18); border-right-color:rgba(255,174,32,.38); border-top-color:rgba(255,255,255,.22); }
+  @supports (-moz-appearance:none) { .es-panel, .info-panel { scrollbar-width:thin; scrollbar-color:rgba(125,214,255,.45) rgba(4,6,10,.6); } }
+
+  .es-section { margin-bottom:16px; } .es-section:last-child { margin-bottom:2px; }
+  .es-section-label { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.22em; text-transform:uppercase; margin-bottom:11px; padding-bottom:5px; border-bottom:1px solid rgba(255,174,32,.28); text-shadow:0 0 6px rgba(255,174,32,.45); }
+  .es-input-label { font-size:10px; color:var(--muted); letter-spacing:.04em; margin-bottom:4px; font-weight:500; display:block; }
+  .es-select { background:rgba(4,6,10,.85); border:1px solid rgba(255,174,32,.30); border-radius:3px; color:var(--canon-cyan); font-family:'Share Tech Mono',monospace; font-size:12px; padding:6px 7px; outline:none; width:100%; cursor:pointer; text-shadow:0 0 4px rgba(125,214,255,.30); }
+  .es-select option { background:#0a0e14; color:var(--canon-cyan); }
+  .es-row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:9px; }
+  .es-chk-row { display:flex; align-items:center; gap:9px; padding:3px 0; margin-bottom:6px; cursor:pointer; }
+  .es-chk-row span { font-size:11px; color:var(--muted); letter-spacing:.04em; }
+  .es-chk-row input[type=checkbox] { appearance:none; -webkit-appearance:none; position:relative; flex:0 0 auto; width:34px; height:18px; border-radius:9px; background:rgba(4,6,10,.85); border:1px solid rgba(255,174,32,.25); cursor:pointer; margin:0; transition:background .15s, border-color .15s; }
+  .es-chk-row input[type=checkbox]::after { content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#8a8a8a; box-shadow:0 1px 2px rgba(0,0,0,.5); transition:transform .15s, background .15s; }
+  .es-chk-row input[type=checkbox]:checked { background:linear-gradient(180deg,rgba(255,174,32,.35),rgba(160,104,32,.20)); border-color:rgba(255,174,32,.28); }
+  .es-chk-row input[type=checkbox]:checked::after { transform:translateX(16px); background:var(--canon-gold); box-shadow:0 0 6px rgba(255,174,32,.45); }
+  .es-btn { width:100%; padding:8px; font-family:'Orbitron',sans-serif; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(220,220,220,.62);
+    background:linear-gradient(180deg,rgba(20,26,36,.78),rgba(8,12,18,.88)); border:1px solid rgba(255,255,255,.08); border-radius:4px; cursor:pointer; transition:all .14s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 1px 2px rgba(0,0,0,.3); }
+  .es-btn:hover { color:var(--canon-cyan); border-color:rgba(125,214,255,.30); box-shadow:inset 0 1px 0 rgba(125,214,255,.15), 0 0 8px rgba(125,214,255,.30); }
+  .es-btn.on { color:var(--canon-gold); border-color:rgba(255,174,32,.45); box-shadow:0 0 8px rgba(255,174,32,.25); }   /* active/selected state = amber */
+  .es-btn.rec { color:#ff8a80; border-color:rgba(255,90,80,.45); box-shadow:0 0 8px rgba(255,90,80,.25); }               /* semantic: recording */
+  .es-btn:disabled { opacity:.35; cursor:default; }
+  .es-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:8px; }
+  .es-btns.two { grid-template-columns:1fr 1fr; }
+  .es-btns.four { grid-template-columns:repeat(4,1fr); }
+  .es-btn.slim { padding:5px 8px; font-size:9px; margin:0 0 8px; }
+  .instr-group { border:1px solid rgba(255,174,32,.25); border-radius:4px; padding:8px 10px 2px; margin-bottom:10px; background:rgba(255,174,32,.04); }
+  .es-text { width:100%; background:rgba(4,6,10,.85); border:1px solid rgba(255,174,32,.30); border-radius:3px; color:var(--canon-cyan); font-family:'Share Tech Mono',monospace; font-size:12px; padding:6px 7px; outline:none; margin-bottom:8px; }
+
+  /* readouts = compact "symbol = value" chips, colour-coded, per-value glow */
+  .chips { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .chip { background:rgba(4,6,10,.55); border:1px solid rgba(255,255,255,.07); border-radius:4px; padding:4px 7px; font-family:'Share Tech Mono',monospace; font-size:12px; color:#cfd6de; white-space:nowrap; }
+  .chip i { font-family:'Times New Roman',serif; font-style:italic; font-size:13.5px; color:#dfe6ee; }
+  .chip sub { font-size:9px; }
+  .chip b { font-weight:400; text-shadow:0 0 6px currentColor; }
+  .c-p { color:#7dd6ff; } .c-t { color:#ffb36b; } .c-e { color:#ff8ec6; } .c-f { color:#ffd27d; } .c-g { color:#9ae6b4; }
+  .status { font-size:11px; color:#aab3bd; line-height:1.45; margin-top:8px; }
+  .status b { color:#e8e8e8; font-weight:600; }
+  .warn { margin-top:6px; padding:5px 8px; border-left:2px solid var(--canon-gold); background:rgba(255,174,32,.07); font-size:11px; color:#d9cdb8; border-radius:2px; }
+  .warn.bad { border-color:#ff6b6b; background:rgba(255,80,80,.09); color:#f0c8c8; }
+  .warn.halt { border-color:#ff6b6b; background:rgba(255,60,60,.16); color:#ffd6d6; font-weight:600; }
+  .truth td { font-size:11px; padding:1px 0; color:#aab3bd; } .truth td:last-child { text-align:right; font-family:'Share Tech Mono',monospace; color:var(--canon-cyan); }
+
+  /* info frame: ONE glass panel - "Overview" then equations as frameless titled sections */
+  .info-panel { position:relative; flex:0 0 auto; min-height:0; overflow-y:auto; overflow-x:hidden; background:rgba(10,14,22,.42); border:1px solid rgba(255,255,255,.10); border-radius:8px; padding:13px 15px 14px;
+    backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4); box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); }
+  .ip-label { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.16em; text-transform:uppercase; text-shadow:0 0 6px rgba(255,174,32,.4); margin-bottom:7px; }
+  .info-panel p { font-size:12px; line-height:1.5; color:rgba(255,255,255,.7); }
+  .ip-eq { margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.09); }
+  .ip-eq-title { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 6px rgba(255,174,32,.4); margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid rgba(255,174,32,.28); }
+  .formula { text-align:center; font-family:'Times New Roman',serif; font-style:italic; font-size:15px; color:var(--canon-cyan); text-shadow:0 0 6px rgba(125,214,255,.25); }
+  .formula .up { font-style:normal; } .formula sub { font-size:10px; } .formula .n { font-family:'Inter',sans-serif; font-style:normal; font-size:10.5px; color:rgba(255,255,255,.5); display:block; margin-top:3px; }
+
+  /* leader labels (on the void, small) */
+  #labels { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  .lbl { position:absolute; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:.06em; color:rgba(232,232,232,.9); white-space:nowrap; transform:translateY(-50%); text-shadow:0 1px 2px #000; background:rgba(6,8,12,.62); border:1px solid rgba(125,214,255,.18); border-radius:3px; padding:1px 5px; }   /* backing keeps text legible over parts in close-ups */
+  .lbl-dot { position:absolute; width:5px; height:5px; margin:-2.5px 0 0 -2.5px; border-radius:50%; background:var(--canon-cyan); box-shadow:0 0 5px var(--canon-cyan); }
+  #leaders { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+  .lbl-line { fill:none; stroke:rgba(125,214,255,.55); stroke-width:1; }
+
+  #tip { position:fixed; pointer-events:none; background:rgba(10,14,22,.86); border:1px solid rgba(255,255,255,.10); border-radius:6px; padding:6px 9px; font-size:11.5px; display:none; max-width:300px; z-index:30; backdrop-filter:blur(10px); }
+  #tip .h { font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--canon-gold); margin-bottom:3px; }
+  #tip .s { color:#cfd6de; }
+  .gl-overlay { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(6,8,12,.72); cursor:pointer; }
+  .gl-overlay.show { display:flex; }
+  .gl-box { max-width:380px; background:rgba(10,14,22,.85); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:16px 18px; box-shadow:0 10px 28px rgba(0,0,0,.6); }
+  .gl-box p { font-size:12px; line-height:1.5; color:rgba(255,255,255,.75); margin-top:6px; }
+  #perfHud { position:fixed; left:12px; top:110px; z-index:45; display:none; font:11px/1.45 Consolas, monospace; color:#cfe7ff; background:rgba(6,10,16,.82);
+    border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:8px 10px; white-space:pre; pointer-events:none; }
+  .hint { position:absolute; left:35px; bottom:35px; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:.1em; color:rgba(180,180,180,.45); text-transform:uppercase; pointer-events:none; z-index:5; }
+  html.embed .hint { display:none; }
+  /* the room view (R2): the bench controls step aside; the module + camera menus and Display stay */
+  body.in-room .mod-only { display:none !important; }
+  body.in-room .info-panel { margin-top:auto; }      /* the panel is short in the room: the info frame keeps its corner (bottom 42) */
+  body:not(.in-room) .room-only { display:none !important; }
+  .room-p { font-size:11.5px; color:var(--muted); margin:6px 0 0; line-height:1.4; } .room-p b { color:var(--canon-gold); font-weight:600; }
+  @media (max-width:920px) { .es-rail { position:static; width:auto; margin:12px; } }
+
+  .c-x { color:#cfd6de; }
+  .chip.hide { display:none; }
+  /* the readouts outrank the reference: on short windows the info frame caps at 28vh (31vh before Exp 213 added a row) and scrolls, so the panel keeps
+     the rail readings + image chips + status above its fold (checked by checks/m3_layout.cjs at 768 and embed 800) */
+  .info-panel { max-height:28vh; }
+  body.in-room .info-panel { max-height:46vh; }   /* the room panel is short (no readouts): the room info gets the room it needs (four tables) */
+  .chips.three { grid-template-columns:1fr 1fr 1fr; }
+  .chips.three .chip { padding:4px 6px; }
+  /* Exp 214: the view through the telescope, an inset at the lower left of the world */
+  #eyeBox { position:absolute; left:35px; bottom:58px; z-index:6; cursor:zoom-in; user-select:none; }
+  body.eye-big #eyeBox { cursor:zoom-out; }
+  #eyeBox canvas { display:block; border-radius:50%; box-shadow:0 8px 24px rgba(0,0,0,.6); }
+  .eye-h { font-family:'Orbitron',sans-serif; font-size:9.5px; font-weight:700; color:var(--canon-gold); letter-spacing:.18em; text-transform:uppercase; margin-bottom:5px; text-shadow:0 1px 2px #000; }
+  .lab-note { display:none; }
+  body.lab .lab-note { display:block; }
+
+  /* the lab notebook (2026-10-11): a tablet's data sheet at the left of the world; the world re-centres beside it */
+  #notebook { display:none; position:absolute; left:35px; top:108px; bottom:42px; width:clamp(470px, 39vw, 660px); z-index:12; flex-direction:column;
+    background:rgba(10,14,22,.62); backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.12); border-radius:10px; box-shadow:0 12px 32px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); padding:8px 10px 10px; }
+  body.nb-open:not(.in-room) #notebook { display:flex; }
+  .nb-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:2px 2px 8px; }
+  .nb-name { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 6px rgba(255,174,32,.4); }
+  .nb-tools { display:flex; gap:5px; } .nb-tools .es-btn { width:auto; padding:5px 9px; font-size:9px; }
+  .nb-page { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:auto; background:#f4f1ea; color:#1d2430; border-radius:5px; padding:16px 18px 20px; overscroll-behavior:contain; font-family:Inter, system-ui, sans-serif; }
+  .nb-page::-webkit-scrollbar { width:8px; height:8px; } .nb-page::-webkit-scrollbar-thumb { background:rgba(60,70,85,.35); border-radius:4px; }
+  .nb-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; border-bottom:1.5px solid #1d2430; padding-bottom:4px; margin-bottom:10px; flex-wrap:wrap; }
+  .nb-exp { font-family:'Times New Roman',serif; font-size:24px; } .nb-sub { font-family:'Times New Roman',serif; font-size:15px; }
+  .nb-sec { font-family:'Times New Roman',serif; font-weight:700; font-size:12.5px; text-transform:uppercase; letter-spacing:.02em; margin:14px 0 7px; }
+  .nb-tab { border-collapse:collapse; width:100%; table-layout:fixed; margin-top:4px; }
+  .nb-tab th { font-family:'Times New Roman',serif; font-weight:400; font-size:12px; line-height:1.2; border:1px solid #4a5260; padding:4px 2px; vertical-align:middle; }
+  .nb-tab th .u, .nb-page .u { color:#5a6170; font-size:11px; }
+  .nb-tab td { border:1px solid #4a5260; padding:0; position:relative; height:26px; }
+  .nb-tab td.nb-lead { text-align:center; font-family:'Times New Roman',serif; font-size:12.5px; width:auto; }
+  .nb-in { width:100%; height:100%; border:0; outline:0; background:transparent; color:#14306b; font-family:'Share Tech Mono',monospace; font-size:13px; text-align:center; padding:3px 2px; }
+  .nb-in:focus { background:rgba(68,114,196,.10); box-shadow:inset 0 0 0 1.5px rgba(68,114,196,.55); }
+  .nb-in.nb-txt { font-family:Inter, system-ui, sans-serif; font-size:12px; }
+  .nb-cap { text-align:center; font-family:'Times New Roman',serif; font-size:12.5px; margin:4px 0 6px; }
+  .der.ok::after, .der.bad::after { position:absolute; right:2px; top:1px; font-size:10px; font-weight:700; pointer-events:none; }
+  .nb-tab td.der.ok::after { content:'✓'; color:#2f8a4a; } .nb-tab td.der.bad::after { content:'!'; color:#c0392b; }
+  .nb-tab td.der.bad { background:rgba(192,57,43,.08); }
+  .nb-singles, .nb-concl { display:flex; flex-direction:column; gap:5px; }
+  .nb-singles { align-items:flex-end; margin-top:5px; }
+  .nb-singles label, .nb-concl label { display:flex; align-items:center; gap:8px; font-family:'Times New Roman',serif; font-size:13.5px; position:relative; }
+  .nb-concl label > span:first-child { flex:1 1 auto; }
+  .nb-singles .nb-in, .nb-concl .nb-in { width:110px; flex:0 0 110px; height:26px; border:1px solid #4a5260; background:#fffdf8; }
+  .nb-singles .u, .nb-concl .u { width:38px; flex:0 0 38px; }
+  .nb-singles label.der.ok::after, .nb-concl label.der.ok::after { content:'✓'; color:#2f8a4a; right:42px; top:5px; }
+  .nb-singles label.der.bad::after, .nb-concl label.der.bad::after { content:'!'; color:#c0392b; right:42px; top:5px; }
+  .nb-singles label.der.bad .nb-in, .nb-concl label.der.bad .nb-in { background:#fbe9e6; }
+  .nb-graph { display:block; width:100%; border:1px solid #c9ccd2; border-radius:3px; background:#fff; }
+  .nb-fit { font-family:'Share Tech Mono',monospace; font-size:12.5px; margin-top:6px; color:#14306b; }
+  .nb-namebox { margin-top:16px; border:2px solid #1d2430; padding:8px 10px; display:grid; grid-template-columns:1fr; gap:4px; max-width:340px; margin-left:auto; }
+  .nb-namebox label { display:flex; align-items:center; gap:8px; font-family:'Times New Roman',serif; font-size:12px; text-transform:uppercase; white-space:nowrap; }
+  .nb-namebox .nb-in { text-align:left; border-bottom:1px solid #4a5260; height:22px; }
+  .nb-foot { margin-top:12px; font-size:11px; color:#5a6170; line-height:1.45; }
+  .nb-ok { color:#2f8a4a; font-weight:700; } .nb-bad { color:#c0392b; font-weight:700; }
+  body.nb-open #eyeBox { left:calc(35px + clamp(470px, 39vw, 660px) + 16px); }
+  @media (max-width:920px) { #notebook { position:fixed; left:8px; right:8px; top:8px; bottom:8px; width:auto; z-index:35; } .nb-tab { min-width:560px; } }
+  @media print {
+    html, body { overflow:visible !important; height:auto !important; background:#fff !important; }
+    body > *:not(#notebook) { display:none !important; }
+    #notebook { display:block !important; position:static !important; width:auto !important; background:none !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; padding:0 !important; }
+    .nb-bar, .nb-foot { display:none !important; }
+    .nb-page { overflow:visible !important; background:#fff !important; padding:0 !important; }
+    .nb-tab, .nb-graph, .nb-concl { break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div class="es-title">
+  <div class="es-title__name">Optics Bench</div>
+  <div class="es-title__mode" id="mode">Thin lens</div>
+  <div class="es-title__scope" id="scope">PSE-II · Geometric optics · Thin lenses</div>
+</div>
+
+<div class="es-rail" id="rail">
+  <div class="es-panel" id="panel">
+    <div class="es-section">
+      <div class="es-section-label">Bench</div>
+      <div class="es-row2">
+        <div><label class="es-input-label">Module</label><select class="es-select" id="modSel"></select></div>
+        <div><label class="es-input-label">Camera</label><select class="es-select" id="view"></select></div>
+      </div>
+      <div class="es-row2" data-mod="snell">
+        <div><label class="es-input-label">On the table</label><select class="es-select" id="blockSel"></select></div>
+        <div><label class="es-input-label">Light</label><select class="es-select" id="lightSel"></select></div>
+      </div>
+      <div class="es-row2" data-mod="snell">
+        <div><label class="es-input-label">Ray box</label><select class="es-select" id="slitSel"></select></div>
+      </div>
+      <div class="es-row2" data-mod="wave">
+        <div><label class="es-input-label">Source</label><select class="es-select" id="sourceSel"></select></div>
+        <div><label class="es-input-label">Slide</label><select class="es-select" id="slideSel"></select></div>
+      </div>
+      <div class="es-row2" data-mod="wave" style="margin-bottom:2px">
+        <label class="es-chk-row" style="margin:0" title="Project onto a board across the room (long L, measured with a tape)"><input type="checkbox" id="tWall"><span>Wall screen</span></label>
+        <label class="es-chk-row" style="margin:0" title="Display aid: lifts faint orders so they show (does not change the physics)"><input type="checkbox" id="tStretch"><span>Lift faint orders</span></label>
+      </div>
+      <div class="es-row2" data-mod="spec">
+        <div><label class="es-input-label">Discharge tube</label><select class="es-select" id="tubeSel"></select></div>
+      </div>
+      <div class="es-row2" data-mod="lens">
+        <div><label class="es-input-label">Mounted lens</label><select class="es-select" id="lensSel"></select></div>
+        <div><label class="es-input-label">Lens model</label><select class="es-select" id="modelSel" title="A real lens is one piece of glass with spherical faces: its sharp image is curved, not flat">
+          <option value="real" selected>Real singlet</option><option value="ideal">Ideal thin lens</option></select></div>
+      </div>
+      <div class="es-row2" data-mod="lens" style="margin-bottom:2px">
+        <label class="es-chk-row" style="margin:0" title="Exp 213, Method 1: a lit arrow on the far wall, nearly at infinity (the light box comes off the rail)"><input type="checkbox" id="tFar"><span>Distant object</span></label>
+      </div>
+      <div class="mod-only" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <label class="es-chk-row" style="margin:0;white-space:nowrap" title="Hide every computed value: take the readings yourself"><input type="checkbox" id="tLab"><span>Lab mode</span></label>
+        <span style="display:flex;gap:6px">
+          <button class="es-btn" id="roomBtn" style="width:auto;padding:6px 10px;white-space:nowrap" title="Back to the room (Esc)">Room</button>
+          <button class="es-btn" id="resetBtn" style="width:auto;padding:6px 12px;white-space:nowrap" title="Put this bench back as it started">Reset</button>
+        </span>
+      </div>
+    </div>
+    <div class="es-section mod-only">
+      <div class="es-section-label">Readings</div>
+      <div class="chips three" id="railChips"></div>
+      <div class="chips" id="chips" style="margin-top:5px"></div>
+      <div class="status" id="status"></div>
+      <div class="warn lab-note" data-mod="snell">Lab mode (Exp 212). Set up the light source first. (1) Turn its knob until the filament stands vertical in the window: the ray is narrowest then. (2) Slide the source along the rail: closer is brighter, but the ray spreads more. (3) Click the slit mask to put it on the slit plate, and slide it over the centre slit so only one ray gets through. (4) Slide the slit plate across until, with nothing on the table at table 0, the ray runs along the NORMAL line through the centre. Then pick the mirror or the D-shaped lens up from its tray and set it on the platform: its face along the COMPONENT line, centred on the cross. Check it at table 0: the beam should go straight through the lens, or straight back off the mirror. Then read every angle on the ring. Critical angle: turn the table past 90° so the light enters the curved side, then keep turning until the beam leaving the flat face just disappears; read the incident angle where the incoming beam crosses the ring.</div>
+      <div class="warn lab-note" data-mod="spec">Lab mode (Exp 214): calibrate with helium. Swing the telescope to the slit image (straight through) and read θ<sub>0</sub>; then put the crosshair on the yellow 587.562 nm line on the right and on the left and read both. Change to the hydrogen tube (θ<sub>0</sub> stays) and read each of its lines on both sides.</div>
+      <div class="warn lab-note" data-mod="lens">Lab mode (Exp 213): the computed values are hidden. Method 1: switch on <b>Distant object</b>, slide the screen to the sharpest image, and take f ≈ d<sub>i</sub>. Then, with the light box: the arrow's base should image at 0 on the card's ruler; if it does not, the arrow is off the axis, so turn the height knob on the light box. For each d<sub>o</sub>, focus, read d<sub>i</sub> on the rail and h<sub>i</sub> on the ruler.</div>
+    </div>
+    <div class="es-section" data-mod="lens">
+      <div class="es-section-label">Rays</div>
+      <div class="es-row2" style="margin-bottom:0">
+        <label class="es-chk-row" title="Parallel, chief and focal rays from the arrow's tip"><input type="checkbox" id="tRays" checked><span>Principal rays</span></label>
+        <label class="es-chk-row" title="Rays to the rim of the lens: where they meet the screen is the blur disc"><input type="checkbox" id="tCone" checked><span>Light cone</span></label>
+        <label class="es-chk-row"><input type="checkbox" id="tFocal" checked><span>Focal points</span></label>
+        <label class="es-chk-row" title="Shown where a virtual image forms"><input type="checkbox" id="tGhost" checked><span>Virtual image</span></label>
+      </div>
+      <div class="status lab-note">Rays are off in lab mode: they would show where the image is.</div>
+    </div>
+    <div class="es-section mod-only">
+      <div class="es-section-label">Extended</div>
+      <div data-mod="wave">
+      <label class="es-chk-row" title="An exploration extra, not part of the lab procedure"><input type="checkbox" id="tCustom"><span>Custom slide (continuous a, d, N)</span></label>
+      <div id="customRows" style="display:none">
+        <label class="es-input-label">slit width a · <span id="caVal"></span></label><input type="range" id="ca" min="1" max="200" step="1" value="40" style="width:100%;accent-color:#ffae20">
+        <div id="cdRow"><label class="es-input-label">spacing d · <span id="cdVal"></span></label><input type="range" id="cd" min="5" max="1000" step="1" value="250" style="width:100%;accent-color:#ffae20"></div>
+        <div id="cNRow"><label class="es-input-label">slits lit N · <span id="cNVal"></span></label><input type="range" id="cN" min="1" max="2000" step="1" value="200" style="width:100%;accent-color:#ffae20"></div>
+      </div>
+      </div>
+      <div data-mod="snell">
+      <label class="es-chk-row" title="An exploration extra, not part of the lab procedure"><input type="checkbox" id="tWhite"><span>White light: dispersion</span></label>
+      <div class="status">Each wavelength has its own index of refraction, so white light fans into colours (violet bends most).</div>
+      </div>
+      <div data-mod="lens">
+      <label class="es-chk-row" title="An adjustable aperture stop at the lens. An exploration extra, not part of the lab procedure."><input type="checkbox" id="tIris"><span>Iris diaphragm on the lens</span></label>
+      <div id="irisRow" style="display:none">
+        <label class="es-input-label">Clear aperture D · <span id="irisVal"></span></label>
+        <input type="range" id="irisD" min="0.5" max="4" step="0.05" value="4" style="width:100%;accent-color:#ffae20">
+        <div class="status">Close the iris: spherical aberration falls as D<sup>3</sup>, defocus blur as D, and the picture dims as D<sup>2</sup>. Drag the lever on the lens holder, or scroll over it.</div>
+      </div>
+      </div>
+    </div>
+    <div class="es-section">
+      <div class="es-section-label">Display</div>
+      <div style="margin-bottom:6px"><label class="es-input-label">Performance</label><select class="es-select" id="perfMode">
+        <option value="high">High: full quality</option><option value="balanced" selected>Balanced (default)</option><option value="low">Low: lab PCs</option></select></div>
+      <label class="es-chk-row"><input type="checkbox" id="tLabels" checked><span>Part labels</span></label>
+      <label class="es-chk-row"><input type="checkbox" id="tGlow" checked><span>Glow (bloom)</span></label>
+      <div class="status" id="gpuNote"></div>
+    </div>
+  </div>
+  <div class="info-panel" id="info">
+    <div data-mod="room">
+    <div class="ip-label">The optics lab</div>
+    <p>Four tables, six labs. Click a table to go to it; <b>Room</b> (or Esc) brings you back.</p>
+    <p class="room-p"><b>Ray table</b> · Snell's law: ray box, protractor turntable, semicircular blocks.</p>
+    <p class="room-p"><b>Lens bench</b> · Thin lens: light box, lens and screen on a graduated rail.</p>
+    <p class="room-p"><b>Wave bench</b> · Double slit, single slit, grating: lasers and discharge tubes, a slide rack, a screen on the rail or the wall.</p>
+    <p class="room-p"><b>Spectrometer</b> · Exp 214: a grating spectrometer, helium and hydrogen tubes, a vernier circle.</p>
+    </div>
+    <div data-mod="wave">
+    <div class="ip-label">Overview</div>
+    <p>Pick a slide from the rack and slide the screen along the rail (or use the wall screen). Measure the pattern on the ruler; L is the slide-to-screen distance.</p>
+    <div class="ip-eq"><div class="ip-eq-title">Double slit · bright fringes</div>
+      <div class="formula"><i>d</i> sin <i>θ</i> = <i>mλ</i> &nbsp;·&nbsp; Δ<i>y</i> ≈ <i>λL</i>/<i>d</i></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Single slit · dark fringes</div>
+      <div class="formula"><i>a</i> sin <i>θ</i> = <i>mλ</i><span class="n">m = ±1, ±2, …</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Grating · principal maxima</div>
+      <div class="formula"><i>d</i> sin <i>θ</i> = <i>mλ</i><span class="n">exact sin θ = y/√(y² + L²): orders land far out</span></div></div>
+    </div>
+    <div data-mod="spec">
+    <div class="ip-label">Overview</div>
+    <p>Drag the telescope around the circle (scroll for 0.1°, ← → for 0.02°). The eyepiece, lower left, shows the lines against the crosshair; read the circle at the vernier (Camera → Vernier).</p>
+    <div class="ip-eq"><div class="ip-eq-title">Grating · principal maxima</div>
+      <div class="formula"><i>d</i> sin <i>θ</i> = <i>mλ</i><span class="n">θ = (|θ<sub>R</sub> − θ<sub>0</sub>| + |θ<sub>L</sub> − θ<sub>0</sub>|)/2 · calibrate d on He 587.562 nm</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Balmer formula</div>
+      <div class="formula">1/<i>λ</i> = <i>R</i> (1/2<sup>2</sup> − 1/<i>n</i><sup>2</sup>)<span class="n">n = 3, 4, 5, 6 · plot 1/λ against 1/n²: the slope is −R</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Reading a vernier</div>
+      <div class="formula">reading = main degree + 0.1 × (vernier line that lines up)<span class="n">10 vernier divisions span 9°</span></div></div>
+    </div>
+    <div data-mod="snell">
+    <div class="ip-label">Overview</div>
+    <p>Turn the protractor table (drag it, or scroll for 0.5°). Read each angle where its beam crosses the degree ring, from the normal.</p>
+    <div class="ip-eq"><div class="ip-eq-title">Law of reflection (plane mirror)</div>
+      <div class="formula"><i>θ</i><sub>r</sub> = <i>θ</i><sub>i</sub><span class="n">both from the normal, on opposite sides of it</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Curved mirror</div>
+      <div class="formula"><i>f</i> = <i>R</i>/2<span class="n">concave: f &gt; 0, a real focus in front · convex: f &lt; 0, a virtual focus behind</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Snell's law</div>
+      <div class="formula"><i>n</i><sub>1</sub> sin <i>θ</i><sub>1</sub> = <i>n</i><sub>2</sub> sin <i>θ</i><sub>2</sub></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Critical angle</div>
+      <div class="formula">sin <i>θ</i><sub>c</sub> = <i>n</i><sub>2</sub>/<i>n</i><sub>1</sub><span class="n">only going into a lower index · past it, total internal reflection</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Reflected fraction (Fresnel)</div>
+      <div class="formula"><i>R</i> = ((<i>n</i><sub>1</sub> − <i>n</i><sub>2</sub>)/(<i>n</i><sub>1</sub> + <i>n</i><sub>2</sub>))<sup>2</sup><span class="n">at normal incidence; rises toward 1 at grazing</span></div></div>
+    </div>
+    <div data-mod="lens">
+    <div class="ip-label">Overview</div>
+    <p>Drag a carrier along the rail (scroll over it for 1 mm). The screen shows the picture this lens actually forms.</p>
+    <div class="ip-eq"><div class="ip-eq-title">Thin lens</div>
+      <div class="formula">1/<i>d</i><sub>o</sub> + 1/<i>d</i><sub>i</sub> = 1/<i>f</i> &nbsp;·&nbsp; <i>M</i> = <i>h</i><sub>i</sub>/<i>h</i><sub>o</sub> = −<i>d</i><sub>i</sub>/<i>d</i><sub>o</sub></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Distant object (Method 1)</div>
+      <div class="formula"><i>d</i><sub>o</sub> ≫ <i>d</i><sub>i</sub> → 1/<i>d</i><sub>o</sub> ≈ 0 → <i>f</i> ≈ <i>d</i><sub>i</sub><span class="n">the far arrow is about 3.8 m away, so not quite infinite</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Blur on the screen</div>
+      <div class="formula"><i>b</i> = <i>D</i> |1 − <i>s</i>/<i>d</i><sub>i</sub>|<span class="n">ideal lens · D = clear aperture · s = lens to screen</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Real lens: a curved image</div>
+      <div class="formula"><i>z</i> = <i>d</i><sub>i</sub> − <i>k</i> <i>h</i><sub>i</sub><sup>2</sup>/2<i>f</i><span class="n">off-axis points focus nearer the lens</span></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="eyeBox" data-mod="spec" class="mod-only" title="The view through the telescope · click to enlarge or shrink"><div class="eye-h">Eyepiece</div><canvas id="eyeCanvas" width="230" height="230"></canvas></div>
+<div id="tip"></div>
+<div id="perfHud"></div>
+<div id="glOverlay" class="gl-overlay"><div class="gl-box"><div class="ip-label">3D view lost · click to restore</div><p id="glMsg"></p></div></div>
+<div class="hint"><span class="mod-only">drag · orbit &nbsp;|&nbsp; wheel · zoom &nbsp;|&nbsp; drag a carrier along the rail &nbsp;|&nbsp; scroll over a carrier · 1 mm &nbsp;|&nbsp; click a tray lens · mount it</span><span class="mod-only"> &nbsp;|&nbsp; N · lab notebook</span><span class="room-only">drag · orbit &nbsp;|&nbsp; wheel · zoom &nbsp;|&nbsp; click a table · go to it</span></div>
+
+<script type="module" src="./src/main.js" onerror="__benchModuleFail()"></script>
+</body>
+</html>
