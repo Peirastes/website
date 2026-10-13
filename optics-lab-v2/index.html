@@ -148,6 +148,30 @@ window.__benchModuleFail = () => location.protocol === "file:"
   body.eye-big #eyeBox { cursor:zoom-out; }
   #eyeBox canvas { display:block; border-radius:50%; box-shadow:0 8px 24px rgba(0,0,0,.6); }
   .eye-h { font-family:'Orbitron',sans-serif; font-size:9.5px; font-weight:700; color:var(--canon-gold); letter-spacing:.18em; text-transform:uppercase; margin-bottom:5px; text-shadow:0 1px 2px #000; }
+  /* the Guide (guide.js): a card at the bottom of the bench, a pulsing ring on the part to use, an outline on the cell */
+  #guide { display:none; position:fixed; bottom:40px; left:16px; width:min(440px, calc(100vw - 32px)); z-index:30; background:rgba(13,16,22,.94);
+    border:1px solid rgba(125,214,255,.45); border-radius:10px; padding:10px 14px 12px; color:var(--ink); font:13px/1.45 'Inter', system-ui, sans-serif; box-shadow:0 8px 28px rgba(0,0,0,.45); }
+  #guide .g-lab { font:600 11px 'Orbitron', sans-serif; letter-spacing:.12em; color:var(--canon-gold); }
+  #guide .g-tracker { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0 8px; }
+  #guide .g-ph { font-size:10.5px; padding:2px 7px; border-radius:9px; border:1px solid rgba(255,255,255,.14); color:var(--muted); }
+  #guide .g-ph.on { border-color:var(--canon-cyan); color:var(--canon-cyan); }
+  #guide .g-ph.done { color:#9fd59a; border-color:rgba(159,213,154,.35); }
+  #guide .g-step { font:11px 'Share Tech Mono', monospace; color:var(--muted); }
+  #guide .g-title { font-weight:600; font-size:14.5px; margin:2px 0 4px; color:#fff; }
+  #guide .g-why { color:#c9d2dc; }
+  #guide .g-watch { margin-top:5px; color:var(--canon-cyan); }
+  #guide .g-note { margin-top:5px; color:var(--canon-gold); }
+  #guide .g-btns { display:flex; gap:6px; justify-content:flex-end; margin-top:9px; }
+  #guide .g-btns .es-btn { width:auto; padding:5px 11px; }
+  #guide .g-btns .g-ok { border-color:var(--canon-cyan); color:var(--canon-cyan); }
+  #guideRing { display:none; position:fixed; width:34px; height:34px; margin:-17px 0 0 -17px; border:2px solid var(--canon-cyan); border-radius:50%;
+    pointer-events:none; z-index:25; animation:gpulse 1.2s ease-in-out infinite; }
+  @keyframes gpulse { 0%,100% { transform:scale(.8); opacity:.95; } 50% { transform:scale(1.25); opacity:.35; } }
+  .guide-target { outline:2px solid var(--canon-cyan) !important; outline-offset:1px; animation:gcell 1.2s ease-in-out infinite; }
+  @keyframes gcell { 0%,100% { outline-color:rgba(125,214,255,1); } 50% { outline-color:rgba(125,214,255,.25); } }
+  body.in-room #guide, body.in-room #guideRing { display:none !important; }
+  @media print { #guide, #guideRing { display:none !important; } }
+  #guideBtn.on { border-color:var(--canon-cyan); color:var(--canon-cyan); }
   .lab-note { display:none; }
   body.lab .lab-note { display:block; }
 
@@ -251,6 +275,7 @@ window.__benchModuleFail = () => location.protocol === "file:"
       <div class="mod-only" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <label class="es-chk-row" style="margin:0;white-space:nowrap" title="Hide every computed value: take the readings yourself"><input type="checkbox" id="tLab"><span>Lab mode</span></label>
         <span style="display:flex;gap:6px">
+          <button class="es-btn" id="guideBtn" data-mod="snell" style="width:auto;padding:6px 10px;white-space:nowrap" title="Step-by-step: the lab's procedure, one step at a time (turns lab mode on)">Guide</button>
           <button class="es-btn" id="roomBtn" style="width:auto;padding:6px 10px;white-space:nowrap" title="Back to the room (Esc)">Room</button>
           <button class="es-btn" id="resetBtn" style="width:auto;padding:6px 12px;white-space:nowrap" title="Put this bench back as it started">Reset</button>
         </span>
@@ -261,7 +286,7 @@ window.__benchModuleFail = () => location.protocol === "file:"
       <div class="chips three" id="railChips"></div>
       <div class="chips" id="chips" style="margin-top:5px"></div>
       <div class="status" id="status"></div>
-      <div class="warn lab-note" data-mod="snell">Lab mode (Exp 212). Set up the light source first. (1) Turn its knob until the filament stands vertical in the window: the ray is narrowest then. (2) Slide the source along the rail: closer is brighter, but the ray spreads more. (3) Click the slit mask to put it on the slit plate, and slide it over the centre slit so only one ray gets through. (4) Slide the slit plate across until, with nothing on the table at table 0, the ray runs along the NORMAL line through the centre. Then pick the mirror or the D-shaped lens up from its tray and set it on the platform: its face along the COMPONENT line, centred on the cross. Check it at table 0: the beam should go straight through the lens, or straight back off the mirror. Then read every angle on the ring. Critical angle: turn the table past 90° so the light enters the curved side, then keep turning until the beam leaving the flat face just disappears; read the incident angle where the incoming beam crosses the ring.</div>
+      <div class="warn lab-note" data-mod="snell">Lab mode (Exp 212): the readouts are hidden. <b>Guide</b> walks the procedure step by step. Calibrate the light source first: slide it back along the rail (the farther the better), turn its knob until the filament stands vertical, put the slit mask on and slide it until only the centre slit's ray gets through, then, with the table empty at 0°, slide the slit plate until the ray runs along the NORMAL line through the centre. Then set the plane mirror on the COMPONENT line, centred, and read the reflection angle for incident angles 0–80° in steps of 10°. Swap it for the acrylic half-circle (flat face toward the light) and read the refraction angles over the same range. Then turn the half-circle around (F) so the light enters its curved side, and turn the table until the ray leaving the flat face just disappears: that incident angle is the critical angle.</div>
       <div class="warn lab-note" data-mod="spec">Lab mode (Exp 214): calibrate with helium. Swing the telescope to the slit image (straight through) and read θ<sub>0</sub>; then put the crosshair on the yellow 587.562 nm line on the right and on the left and read both. Change to the hydrogen tube (θ<sub>0</sub> stays) and read each of its lines on both sides.</div>
       <div class="warn lab-note" data-mod="lens">Lab mode (Exp 213): the computed values are hidden. Method 1: switch on <b>Distant object</b>, slide the screen to the sharpest image, and take f ≈ d<sub>i</sub>. Then, with the light box: the arrow's base should image at 0 on the card's ruler; if it does not, the arrow is off the axis, so turn the height knob on the light box. For each d<sub>o</sub>, focus, read d<sub>i</sub> on the rail and h<sub>i</sub> on the ruler.</div>
     </div>
@@ -286,8 +311,9 @@ window.__benchModuleFail = () => location.protocol === "file:"
       </div>
       </div>
       <div data-mod="snell">
-      <label class="es-chk-row" title="An exploration extra, not part of the lab procedure"><input type="checkbox" id="tWhite"><span>White light: dispersion</span></label>
-      <div class="status">Each wavelength has its own index of refraction, so white light fans into colours (violet bends most).</div>
+      <label class="es-chk-row" title="An exploration extra, not part of the lab procedure: lasers and parallel beams (1, 3 or 5 slits), for the curved mirrors' focus"><input type="checkbox" id="tBox"><span>Laser ray box instead of the bulb</span></label>
+      <label class="es-chk-row" title="An exploration extra, not part of the lab procedure"><input type="checkbox" id="tWhite"><span>White light: dispersion (ray box)</span></label>
+      <div class="status">The bulb is white light: each wavelength has its own index of refraction, so near the critical angle the colours separate (violet bends most). The laser ray box gives one colour, or white with the dispersion toggle.</div>
       </div>
       <div data-mod="lens">
       <label class="es-chk-row" title="An adjustable aperture stop at the lens. An exploration extra, not part of the lab procedure."><input type="checkbox" id="tIris"><span>Iris diaphragm on the lens</span></label>

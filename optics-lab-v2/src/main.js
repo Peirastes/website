@@ -25,6 +25,8 @@ import { createSnellModule } from "./modules/snell.js";
 import { createWaveModules } from "./modules/wave.js";
 import { createSpecModule } from "./modules/spec.js";
 import { createNotebook } from "./notebook.js";
+import { createGuide } from "./guide.js";
+import { PROC_212 } from "./guide212.js";
 
 const $ = (id) => document.getElementById(id);
 const stage = $("stage");
@@ -116,21 +118,24 @@ composer.addPass(new RenderPass(scene, camera)); composer.addPass(mixPass); comp
 const BLACK = [THREE.FrontSide, THREE.BackSide, THREE.DoubleSide].map((side) => new THREE.MeshBasicMaterial({ color: 0x000000, side }));
 const BLACK_BG = new THREE.Color(0x000000), swapped = [];
 const glows = (m) => !Array.isArray(m) && m?.userData?.glow;
+// the glow pass's stand-ins: every non-glowing part black (with its own sidedness) or hidden; glowRestore() undoes it
+function glowSwap() {
+  scene.traverse((o) => {
+    if (!(o.isMesh || o.isLine || o.isPoints || o.isSprite) || glows(o.material)) return;
+    if (o.userData.glowAs) { swapped.push([o, o.material, null]); o.material = o.userData.glowAs; return; }   // a screen: only its light
+    if (o.isMesh && !Array.isArray(o.material) && !o.material.transparent) { swapped.push([o, o.material, null]); o.material = BLACK[o.material.side] || BLACK[0]; }
+    else if (o.visible) { swapped.push([o, null, true]); o.visible = false; }          // glass, decals, tags: out of the way
+  });
+}
+function glowRestore() { for (let i = swapped.length - 1; i >= 0; i--) { const [o, m, vis] = swapped[i]; if (m) o.material = m; else o.visible = vis; } swapped.length = 0; }
 function renderGlow() {
   const bg = scene.background, auto = renderer.shadowMap.autoUpdate;
   try {
-    scene.traverse((o) => {
-      if (!(o.isMesh || o.isLine || o.isPoints || o.isSprite) || glows(o.material)) return;
-      if (o.userData.glowAs) { swapped.push([o, o.material, null]); o.material = o.userData.glowAs; return; }   // a screen: only its light
-      if (o.isMesh && !Array.isArray(o.material) && !o.material.transparent) { swapped.push([o, o.material, null]); o.material = BLACK[o.material.side] || BLACK[0]; }
-      else if (o.visible) { swapped.push([o, null, true]); o.visible = false; }          // glass, decals, tags: out of the way
-    });
+    glowSwap();
     scene.background = BLACK_BG; renderer.shadowMap.autoUpdate = false;                // the shadow maps from the main pass stand
     bloomComposer.render();
   } finally {                                                                           // always put everything back, even if the render throws
-    scene.background = bg; renderer.shadowMap.autoUpdate = auto;
-    for (let i = swapped.length - 1; i >= 0; i--) { const [o, m, vis] = swapped[i]; if (m) o.material = m; else o.visible = vis; }
-    swapped.length = 0;
+    scene.background = bg; renderer.shadowMap.autoUpdate = auto; glowRestore();
   }
 }
 let glowOn = true;
@@ -209,7 +214,7 @@ const goStation = (id) => setModule(lastModule[id], { fly: true });
 // ---------------------------------------------------------------- camera views + fly-to (each module's views follow its parts)
 function fitPosition([p, t, [fw, fh]], v) {
   const W = window.innerWidth, H = window.innerHeight, railLeft = $("rail").getBoundingClientRect().left, nbRight = notebook.right();
-  const usableW = (railLeft > W * 0.4 ? railLeft : W) - nbRight - 70, usableH = H - 240;
+  const usableW = (railLeft > W * 0.4 ? railLeft : W) - nbRight - 70, usableH = Math.min(H - 240, H - guideBand - 120);   // the guide card's band stays clear
   const tanV = Math.tan((camera.fov * Math.PI) / 360);
   const dW = (fw / 2) / (tanV * (usableW / H)), dH = (fh / 2) / (tanV * (usableH / H));
   const dir = new THREE.Vector3(...p).sub(new THREE.Vector3(...t)); const d0 = dir.length(), d = Math.max(dW, dH) * 1.05;
@@ -257,17 +262,37 @@ window.addEventListener("keydown", (e) => {
 });
 $("view").addEventListener("change", (e) => flyTo(e.target.value));
 $("resetBtn").addEventListener("click", () => current.reset());
-$("tLab").addEventListener("change", (e) => { lab = e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab); });
+$("tLab").addEventListener("change", (e) => { lab = e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab); if (!lab && guide.isActive()) guide.stop(); });
+// ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212 for now)
+const GUIDES = { snell: PROC_212 };
+let guideProc = null;
+const screenXY = (obj, off = [0, 0, 0]) => { const v = obj.localToWorld(new THREE.Vector3(...off)).project(camera), R = renderer.domElement.getBoundingClientRect();
+  return v.z > 1 ? null : [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height]; };
+const guide = createGuide({ $, flyTo, screenPoint: screenXY, notebook, onExit: () => { guideProc = null; $("guideBtn").classList.remove("on"); } });
+// what a step's predicates see: the bench's api and state, the ray the readouts follow, and the notebook's cells
+function guideCtx() {
+  const M = modOf(guideProc.module).api, W = M.debug() && M.debug().wls, T = W && W.length ? W[Math.floor(W.length / 2)] : null, st = notebook.state(guideProc.id);
+  const nb = (path) => { const [k, a, b, c] = path.split("."); return k === "t" ? st.t[a]?.[+b]?.[c] : k === "c" ? st.c[a] : st.meta?.[a]; };
+  const filled = (path) => { const v = nb(path), t = v === undefined || v === null ? "" : String(v).trim().replace(/[−–]/g, "-"); return t !== "" && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(t); };
+  return { M, S: M.S, T, nb, filled };
+}
+$("guideBtn").addEventListener("click", () => {
+  if (guide.isActive()) { guide.stop(); return; }
+  const P = GUIDES[current.id]; if (!P) return;
+  if (!$("tLab").checked) { $("tLab").checked = true; $("tLab").dispatchEvent(new Event("change")); }   // the guide is the lab: lab mode on
+  guideProc = P; guide.start(P, guideCtx); $("guideBtn").classList.add("on");
+});
 $("tLabels").addEventListener("change", (e) => { labels.show = e.target.checked; });
 $("tGlow").addEventListener("change", (e) => { glowOn = e.target.checked; });
 
 // ---------------------------------------------------------------- view offset (bench centred left of the rail), resize
-let lastDx = null;
+let lastDx = null, guideBand = 0;          // guideBand: the guide card's height + margin, kept clear of the bench (px)
 function applyViewOffset() {
   const W = window.innerWidth, H = window.innerHeight, railLeft = $("rail").getBoundingClientRect().left, nbRight = notebook.right();
   const usable = railLeft > 0 ? railLeft : W, dx = usable < W * 0.4 ? 0 : Math.round(W / 2 - (usable + nbRight) / 2);
-  if (dx === lastDx) return; lastDx = dx;
-  if (dx === 0) camera.clearViewOffset(); else camera.setViewOffset(W, H, dx, 0, W, H);
+  const dy = Math.round(guideBand / 2), key = dx + "," + dy;               // and up, above the guide card
+  if (key === lastDx) return; lastDx = key;
+  if (dx === 0 && dy === 0) camera.clearViewOffset(); else camera.setViewOffset(W, H, dx, dy, W, H);
 }
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight; lastDx = null; applyViewOffset(); camera.updateProjectionMatrix();
@@ -333,6 +358,9 @@ function frame() {
   applyViewOffset(); orbit.update();
   labels.update(camera, renderer.domElement, dt); ix.refresh(); mark("labels");
   textT += dt; if (textT > 0.1) { textT = 0; if (!inRoom) current.text(); perf.firstText ??= performance.now() - T0; } mark("text");
+  if (guideProc) guide.update(!inRoom && current.id === guideProc.module);   // the guide shows at its own table only
+  { const g = $("guide"), band = g && g.style.display === "block" ? g.offsetHeight + 50 : 0;   // keep the bench above the card
+    if (Math.abs(band - guideBand) > 24) { guideBand = band; lastDx = null; applyViewOffset(); if (current && !inRoom) flyTo(viewName); } }
   if (!glLost && !document.hidden) { frames++; const t = performance.now(); renderAll(); perf.firstRender ??= performance.now() - t; }
   if (PERF > 1) renderer.getContext().finish();
   mark("render"); perf.firstFrame ??= performance.now() - T0;
@@ -365,7 +393,7 @@ requestAnimationFrame(frame);
 
 // test / automation hook (no effect on normal use). The thin-lens API stays at the top level (older checks use it).
 const lensApi = modOf("lens").api;
-window.__bench = { notebook, scene, camera, renderer, orbit, P: lensApi.P, stations, room, registry: MODULES.filter(firstOfRoot).flatMap((m) => m.registry), flyTo, frames: () => frames,
+window.__bench = { notebook, guide, scene, camera, renderer, orbit, P: lensApi.P, stations, room, registry: MODULES.filter(firstOfRoot).flatMap((m) => m.registry), flyTo, frames: () => frames,
   ...lensApi, get S() { return lensApi.S; },
   modules: Object.fromEntries(MODULES.map((m) => [m.id, m.api])), setModule, module: () => current.id, enterRoom, goStation, inRoom: () => inRoom, flying: () => !!fly,
   perf: () => ({ fps: perf.fps, frameMs: perf.frameMs, ms: { ...perf.ms }, firstFrame: perf.firstFrame, firstText: perf.firstText, boot: perf.boot, firstPaint: perf.firstPaint, firstRender: perf.firstRender, compile: perf.compile, pixelRatio: renderer.getPixelRatio(), mode: perfMode }),

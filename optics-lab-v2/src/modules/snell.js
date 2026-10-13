@@ -38,6 +38,12 @@ const D_MIN = 0.025, D_MAX = 0.15, YS_MAX = 0.01, MASK_MAX = 0.012;
 // lab mode starts as a student finds the bench: filament turned 70 deg from vertical, 5 cm from the slit, the slit plate
 // 3 mm off the axis, and the mask lying beside the holder
 const LAB_SRC = { d: 0.05, psi: 70 * D2R, ys: 0.003, mask: null };
+// explore mode uses the SAME bench (Cole 2026-10-12: "the preview/demo mode should not differ so significantly from the
+// actual lab"), set up well: source 10 cm back, filament vertical, the ray centred, the mask over the centre slit
+const EXPLORE_SRC = { d: 0.10, psi: 0, ys: 0, mask: 0 };
+const WHITE8 = [410, 450, 490, 530, 570, 610, 650, 690];
+// the bulb's colour filters (explore; lab mode is the bare white bulb)
+const FILTERS = [{ id: "white", tag: "white (no filter)" }, { id: 650, tag: "red filter" }, { id: 532, tag: "green filter" }, { id: 405, tag: "violet filter" }];
 const MASK_ON = 0.0032;                                     // where the mask lands when put on: over the next slit, not the centre
 const slitY = (k) => (k - (N_SLIT - 1) / 2) * SLIT_SP;     // slit k's place on the plate (m across, from its centre)
 export const BLOCKS = [
@@ -222,10 +228,27 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   const maskOff = new THREE.Group(); maskOff.position.set(X_SLIT - 0.005, 0.0006, C0.z + 0.05); labG.add(maskOff);   // lying beside the holder, inside the screen
   const maskFlat = box(0.03, 0.001, 0.044, MATERIALS.anod); maskOff.add(maskFlat);
   const maskHole = box(0.0302, 0.0012, MASK_OPEN, MATERIALS.black); maskOff.add(maskHole);
+  // fewer draw calls: fixed parts that share a material are folded into one mesh (each part is drawn in the main pass,
+  // the glow pass and the shadow pass; the bench's 26 parts had cost ~6 fps in the room flights, perf 2026-10-12)
+  function absorb(target, others) {
+    target.updateMatrixWorld(true); const inv = target.matrixWorld.clone().invert(), parts = [target.geometry.clone()];
+    for (const o of others) { o.updateMatrixWorld(true); parts.push(o.geometry.clone().applyMatrix4(inv.clone().multiply(o.matrixWorld))); }
+    const pos = [], nor = [], uv = [], idx = []; let off = 0;
+    for (const g of parts) { const gi = g.index ? g : g.toNonIndexed();
+      pos.push(...gi.attributes.position.array); nor.push(...gi.attributes.normal.array); uv.push(...gi.attributes.uv.array);
+      if (gi.index) for (const i of gi.index.array) idx.push(i + off); else for (let i = 0; i < gi.attributes.position.count; i++) idx.push(i + off);
+      off += gi.attributes.position.count; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
+    target.geometry.dispose(); target.geometry = geo; for (const o of others) o.parent.remove(o);
+  }
+  absorb(hBack, hsg.children.filter((m) => m !== hBack).concat([carrierM, idxTab]));   // the housing, its window frame, carrier and index tab
+  absorb(rail, [post, foot, clamp_]);                                                   // the rail and the slit holder's post, foot, clamp
+  absorb(slitLines[0], slitLines.slice(1));                                             // the five slit lines (one material)
   // the source's looks follow its state (positions, the filament's turn and glow, the mask's opening)
   function syncSource() {
-    rb.visible = !S.lab; labG.visible = S.lab;
-    if (!S.lab) return;
+    rb.visible = !bulbOn(); labG.visible = bulbOn();
+    if (!bulbOn()) return;
     srcG.position.x = X_SLIT - S.src.d; filG.rotation.x = S.src.psi; srcKnob.rotation.y = S.src.psi;
     plateG.position.z = C0.z + S.src.ys;
     const B = srcBright(); slitMat.emissiveIntensity = 0.6 + 0.8 * Math.min(1.5, B); filMat.emissiveIntensity = 3.0;
@@ -250,7 +273,9 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   const DEFAULTS = { phi: 30, block: "acrylic", wl: 650, white: false, slits: 1 };
   // pose: the part's reference point (the flat face's centre, or the mirror's vertex) and turn, in turntable coordinates
   // (m, rad; x toward the ray box's far side at table 0). placed: false = the table is empty. held: a part in the hand.
-  const S = { ...DEFAULTS, lab: false, pose: { x: 0, z: 0, psi: 0 }, placed: true, held: null, hand: null, src: { ...LAB_SRC } };
+  // box: the laser ray box instead of the bulb (EXTENDED, explore only); filter: the bulb's colour filter (null = white)
+  const S = { ...DEFAULTS, lab: false, pose: { x: 0, z: 0, psi: 0 }, placed: true, held: null, hand: null, src: { ...EXPLORE_SRC }, box: false, filter: null };
+  const bulbOn = () => S.lab || !S.box;                                  // the class light source is on the table
   const wrap = (a) => ((a + 180) % 360 + 360) % 360 - 180;
   function setPhi(a) { S.phi = Math.round(wrap(a) * 10) / 10; }
   let shownPart = "acrylic";          // the part the mesh is built as (built so at startup)
@@ -282,7 +307,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
       S.pose = { x: q.x, z: q.z, psi: S.hand.psi }; S.placed = true; S.held = null; traySlots();
     },
     turn(sign, shift) { S.hand.psi = wrapR(S.hand.psi + sign * (shift ? 5 : 0.5) * D2R); },
-    describe: () => `${BLOCKS.find((B) => B.id === S.held).tag}<br>click on the platform to set it down (off it: back to the tray)<br>scroll to turn it (Shift: 5°)`,
+    describe: () => `${BLOCKS.find((B) => B.id === S.held).tag}<br>click on the platform to set it down (off it: back to the tray)<br>scroll to turn it (Shift: 5°) · F half a turn`,
   };
   // slide the placed part: it keeps the offset between the cursor and its reference point from the moment it was grabbed
   let grabOff = { x: 0, z: 0 };
@@ -294,6 +319,8 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   // (Shift 1 deg); Esc puts a part in the hand back in its tray
   function onKey(e) {
     if (S.held && e.key === "Escape") { S.held = null; traySlots(); return true; }
+    if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey && !e.altKey && (S.held || S.placed)) {   // half a turn
+      if (S.held) S.hand.psi = wrapR(S.hand.psi + Math.PI); else nudge(0, 0, Math.PI); return true; }
     if (!S.placed) return false;
     const m = e.shiftKey ? 5 : 1;
     if (e.key === "," || e.key === "<" || e.key === "." || e.key === ">") { nudge(0, 0, (e.key === "," || e.key === "<" ? 1 : -1) * FINE.turn * (e.shiftKey ? 10 : 1)); return true; }
@@ -306,15 +333,21 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     nudge(v.x * FINE.step * m, v.z * FINE.step * m, 0); return true;
   }
   $("blockSel").innerHTML = BLOCKS.map((B) => `<option value="${B.id}">${B.tag}</option>`).join("");
-  $("lightSel").innerHTML = LIGHTS.map((L) => `<option value="${L.id}">${L.tag}</option>`).join("");
+  function lightMenu() {             // the bulb's filters, or the ray box's lasers
+    const box = !bulbOn(), list = box ? LIGHTS : FILTERS, val = box ? String(S.wl) : S.filter === null ? "white" : String(S.filter);
+    $("lightSel").innerHTML = list.map((L) => `<option value="${L.id}">${L.tag}</option>`).join(""); $("lightSel").value = val;
+    $("lightSel").disabled = S.lab || (box && S.white); $("slitSel").disabled = S.lab || !box; $("tWhite").disabled = S.lab || !box; $("tBox").disabled = S.lab;
+  }
   $("blockSel").addEventListener("change", (e) => mountBlock(e.target.value));
-  $("lightSel").addEventListener("change", (e) => { S.wl = +e.target.value; });
+  $("lightSel").addEventListener("change", (e) => { const v = e.target.value; if (bulbOn()) S.filter = v === "white" ? null : +v; else S.wl = +v; });
+  $("tBox").addEventListener("change", (e) => { S.box = e.target.checked; lightMenu(); });
   $("slitSel").innerHTML = SLITS.map((n) => `<option value="${n}">${n} slit${n > 1 ? "s" : ""}</option>`).join("");
   function setSlits(n) { S.slits = n; $("slitSel").value = n; const on = slitOffsets(n); for (const s of slitMeshes) s.m.visible = on.some((z) => Math.abs(z - s.z) < 1e-9); }
   $("slitSel").addEventListener("change", (e) => setSlits(+e.target.value));
   setSlits(S.slits);
+  lightMenu();
   // EXTENDED: white light, dispersion
-  $("tWhite").addEventListener("change", (e) => { S.white = e.target.checked; $("lightSel").disabled = S.white; });
+  $("tWhite").addEventListener("change", (e) => { S.white = e.target.checked; lightMenu(); });
   mountBlock(S.block);
 
   // ---------------------------------------------------------------- beams (a glowing ribbon on the protractor)
@@ -428,10 +461,10 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     const th1 = deg(fl.ci); return { ...base, th1, th2: fl.tir ? null : Math.asin(Math.min(1, n * Math.sin(th1 * D2R))) / D2R, from: "curved", entry };
   }
   function trace(wl) {
-    if (S.lab && !centreRay()) return darkTrace();                      // the mask covers every slit
+    if (bulbOn() && !centreRay()) return darkTrace();                   // the mask covers every slit
     if (!S.placed) return emptyTrace();
     if (isMirror(S.block)) return traceMirror();
-    if (!aligned() || S.lab) return traceGeneral(wl);              // lab: the source's own ray, wherever it goes
+    if (!aligned() || bulbOn()) return traceGeneral(wl);           // the bulb: its own ray, wherever it goes
     const n = indexAt(S.block, wl), phi = S.phi * D2R, O = [C0.x, C0.z];
     const nOut = [-Math.cos(phi), Math.sin(phi)];            // flat face's outward normal (away from the curved side), world xz
     const d = [1, 0], dn = d[0] * nOut[0] + d[1] * nOut[1], segs = [];
@@ -490,7 +523,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   // the ray the readouts follow: explore, the ray box's centre ray; lab, the filament's centre through the open slit (the
   // most open one, the centre one on a tie), or null when the mask covers every slit (no light reaches the table)
   function centreRay(off = 0) {
-    if (!S.lab) return { p: [BOX_X, C0.z + off], u: [1, 0], off };
+    if (!bulbOn()) return { p: [BOX_X, C0.z + off], u: [1, 0], off };
     let k = -1, best = 1e-3; for (let i = 0; i < N_SLIT; i++) { const w = slitPass(i); if (w > best + 1e-12 || (Math.abs(w - best) <= 1e-12 && k >= 0 && Math.abs(slitY(i)) < Math.abs(slitY(k)))) { best = w; k = i; } }
     if (k < 0) return null;
     const F = filament(), P = [X_SLIT, C0.z + S.src.ys + slitY(k)], v = [P[0] - F[0], P[1] - F[1]], L = Math.hypot(...v);
@@ -504,9 +537,9 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     const O = [C0.x, C0.z], w = [p[0] - O[0], p[1] - O[1]], Rin = R_SCR - 0.0015, bq = w[0] * u[0] + w[1] * u[1];
     const t = -bq + Math.sqrt(Math.max(0, bq * bq - (w[0] * w[0] + w[1] * w[1]) + Rin * Rin)), q = [p[0] + u[0] * Math.max(t, 0.002), p[1] + u[1] * Math.max(t, 0.002)];
     if (!inGap(q)) { q.scr = true; return q; }
-    const xStop = S.lab ? X_SLIT + 0.003 : BOX_X + 0.001;           // lab: the slit holder stops it; explore: the ray box's face
+    const xStop = bulbOn() ? X_SLIT + 0.003 : BOX_X + 0.001;        // the bulb: the slit holder stops it; the ray box: its face
     const tb = u[0] < -1e-9 ? (xStop - p[0]) / u[0] : -1;
-    const tt = S.lab ? (tb > 0 ? tb : t) : Math.max(tb, t);          // lab: the holder is inside the circle; explore: the box is outside it
+    const tt = bulbOn() ? (tb > 0 ? tb : t) : Math.max(tb, t);       // the holder is inside the circle; the box is outside it
     return [p[0] + u[0] * tt, p[1] + u[1] * tt];
   }
   // Imin: branches weaker than this are not followed (drawn below visibility; white light's colours are 1/8 each)
@@ -629,10 +662,10 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     // a part in the hand floats 12 mm up over the platform, 5 cm off it (lifted over the screen)
     block.position.set(P.x, DISC_Y + 0.0005 + (S.held ? (S.hand.off ? 0.05 : 0.012) : 0), P.z); block.rotation.y = P.psi;
     syncSource();
-    const k = `${S.phi}|${S.block}|${S.wl}|${S.white}|${S.slits}|${S.placed}|${S.pose.x}|${S.pose.z}|${S.pose.psi}|${S.lab}|${S.src.d}|${S.src.psi}|${S.src.ys}|${S.src.mask}`; if (k === key) return; key = k;
+    const k = `${S.phi}|${S.block}|${S.wl}|${S.white}|${S.slits}|${S.placed}|${S.pose.x}|${S.pose.z}|${S.pose.psi}|${S.lab}|${S.box}|${S.filter}|${S.src.d}|${S.src.psi}|${S.src.ys}|${S.src.mask}`; if (k === key) return; key = k;
     rpos = []; rcol = [];
-    const white = S.white || S.lab;                                     // lab: the bulb's white light
-    const wls = white ? [410, 450, 490, 530, 570, 610, 650, 690] : [S.wl];
+    const bulb = bulbOn(), white = bulb ? S.lab || S.filter === null : S.white;   // the bulb is white unless filtered (lab: bare)
+    const wls = white ? WHITE8 : [bulb ? S.filter : S.wl];
     dbg = { wls: [] };
     for (const wl of wls) {
       // white: 8 beams of 1/8 strength each (1.4/8 so the sum reads white), so their colours stay apart where they separate;
@@ -643,7 +676,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
       // one beam per slit; the centre slit's bundle is `bundle` (the readouts use it), every slit's in `bundles`.
       // Lab: the source's open slits (9 rays per colour per beam; 4 when several slits are open)
       let bundles;
-      if (S.lab) {
+      if (bulb) {
         const K = labBeams(1).length > 1 ? 4 : 9;
         bundles = labBeams(K).map((b) => { const Bd = traceBeam(wl, b.rays, 0.012 * b.rays[0].w); drawBundle(Bd.rays, rgb, scale, BEAM_W / K); return { ...Bd, off: b.off }; });   // cut-off relative to the beam's power
       } else {
@@ -653,9 +686,9 @@ export function createSnellModule({ $, clamp, setText, camera }) {
           const Bd = traceBeam(wl, boxBeam(K, off), white ? 0.012 : 0.002); drawBundle(Bd.rays, rgb, scale, BEAM_W / K); return { ...Bd, off };
         });
       }
-      const slitRays = isMirror(S.block) && !S.lab ? slitOffsets(S.slits).map((off) => traceMirror(off)) : null;   // each slit's centre ray (focus readout)
+      const slitRays = isMirror(S.block) && !bulb ? slitOffsets(S.slits).map((off) => traceMirror(off)) : null;   // each slit's centre ray (focus readout)
       const none = { segs: [], rays: [], trappedFrac: 0, leaveFrac: 0, off: 0 };
-      const cOff = S.lab ? (centreRay()?.off ?? 0) : 0;                  // the beam the readouts follow
+      const cOff = bulb ? (centreRay()?.off ?? 0) : 0;                   // the beam the readouts follow
       dbg.wls.push({ wl, ...T, bundle: bundles.find((b) => Math.abs(b.off - cOff) < 1e-12) || none, bundles, slitRays });
     }
     // reuse the buffers (grown when needed) instead of allocating new ones on every turn of the table (R3)
@@ -683,7 +716,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
       grab: (p) => { const q = toTable(p); grabOff = { x: S.pose.x - q.x, z: S.pose.z - q.z }; },
       moveTo: (p) => { const q = toTable(p); nudge(q.x + grabOff.x - S.pose.x, q.z + grabOff.z - S.pose.z, 0); },
       turn: (sign, shift) => nudge(0, 0, sign * (shift ? 5 : 0.5) * D2R),
-      describe: () => `${BLOCKS.find((B) => B.id === S.block).tag}<br>drag to slide it · scroll to turn it 0.5° (Shift 5°)<br>arrow keys 0.2 mm · , and . turn 0.1°` },
+      describe: () => `${BLOCKS.find((B) => B.id === S.block).tag}<br>drag to slide it · scroll to turn it 0.5° (Shift 5°) · F half a turn<br>arrow keys 0.2 mm · , and . turn 0.1°` },
     { id: "snell:table", name: "Protractor table", objects: [disc, rim, knob], centre: turn, kind: "rotary", wheelStep: 0.5 * D2R,
       rotate: (d) => setPhi(S.phi - d / D2R), describe: () => `Table turned to <b>${S.phi.toFixed(1)}°</b><br>drag the table around, or scroll (0.5° a notch)` },
     // the lab source (hidden in explore mode, so not pickable there)
@@ -707,10 +740,10 @@ export function createSnellModule({ $, clamp, setText, camera }) {
       click: () => (S.lab ? pickUp(s.B.id) : mountBlock(s.B.id)), describe: () => (S.held === s.B.id ? "in your hand" : S.placed && S.block === s.B.id ? "on the table" : S.lab ? `${s.B.tag} · click to pick it up` : `${s.B.mirror ? (s.B.curve ? `front-surface, R = ${(MIRROR_RC * 100).toFixed(0)} cm` : "front-surface mirror") : `n = ${MEDIA[s.B.id].n.toFixed(3)}`} · click to put it on the table`) })),
   ];
   const labels = [
-    { text: "ray box", obj: housing, off: [0, 0.035, 0], prio: 3, when: () => !S.lab },
-    { text: "light source", obj: hBack, off: [0, 0.04, 0], prio: 3, when: () => S.lab },
-    { text: "slit plate", obj: plate, off: [0, 0.025, 0], prio: 2, when: () => S.lab },
-    { text: "slit mask", obj: maskFlat, off: [0, 0.01, 0], prio: 2, when: () => S.lab && S.src.mask === null },
+    { text: "ray box", obj: housing, off: [0, 0.035, 0], prio: 3, when: () => !bulbOn() },
+    { text: "light source", obj: hBack, off: [0, 0.04, 0], prio: 3, when: () => bulbOn() },
+    { text: "slit plate", obj: plate, off: [0, 0.025, 0], prio: 2, when: () => bulbOn() },
+    { text: "slit mask", obj: maskFlat, off: [0, 0.01, 0], prio: 2, when: () => bulbOn() && S.src.mask === null },
     { text: "protractor table", obj: rim, off: [0, 0, R_TABLE], prio: 2 },
     { text: "block", obj: block, off: [0.03, 0.02, -0.0], prio: 3, when: () => !isMirror(S.block) },
     ...BLOCKS.filter((B) => B.mirror).map((B) => ({ text: B.tag, obj: block, off: [0.0, 0.02, 0.035], prio: 3, when: () => S.block === B.id })),
@@ -817,15 +850,15 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   }
   function setLab(on) {
     if (on && !S.lab) { clearTable(); S.src = { ...LAB_SRC }; }      // lab mode: the table empty, the source as a student finds it
-    if (!on && S.lab) mountBlock(S.block);                              // back to explore: the part mounted square, as explore always is
-    S.lab = on; $("blockSel").disabled = on; $("slitSel").disabled = on; $("lightSel").disabled = on || S.white; $("tWhite").disabled = on;
+    if (!on && S.lab) { mountBlock(S.block); S.src = { ...EXPLORE_SRC }; }   // back to explore: part square, source set up well
+    S.lab = on; $("blockSel").disabled = on; lightMenu();
   }   // turning lab mode on empties the table; parts go on by hand
-  function reset() { Object.assign(S, DEFAULTS); S.src = { ...LAB_SRC }; if (S.lab) { setPart(S.block); clearTable(); } else mountBlock(S.block); setSlits(S.slits); $("lightSel").value = S.wl; $("tWhite").checked = false; $("lightSel").disabled = S.lab; }
+  function reset() { Object.assign(S, DEFAULTS); S.src = { ...(S.lab ? LAB_SRC : EXPLORE_SRC) }; S.filter = null; if (S.lab) { setPart(S.block); clearTable(); } else mountBlock(S.block); setSlits(S.slits); $("tWhite").checked = false; lightMenu(); }
   return {
     id: "snell", name: "Snell's law", group: "Geometric optics", scope: "Geometric optics · Refraction",
     station: "ray", root: group, views, viewNames, defaultView: "overview", registry, labels, panel: "snell",
     frame, text, warm: frame, reset, setLab, carry, key: onKey, focus: [[disc, "protractor"], [block, "block"], [housing, "raybox"], [rail, "source"], [post, "source"], [tbase, "tray"], [mbase, "mirrors"]],
-    api: { S, setPhi, mountBlock, setSlits, focusOf, pickUp, carry, clearTable, nudge, partFrame, debug: () => dbg, turn, disc, block, frameNow: () => frame(),
+    api: { S, setPhi, mountBlock, setSlits, setBox: (on) => { $("tBox").checked = on; S.box = on; lightMenu(); }, bulbOn, knob, slotOf: (id) => slots.find((s) => s.B.id === id).g, focusOf, pickUp, carry, clearTable, nudge, partFrame, debug: () => dbg, turn, disc, block, frameNow: () => frame(),
       // the lab source (checks): its rays, the parts a mouse works, and its constants
       labBeams, centreRay, slitPass, srcBright, filHalf, src: { srcKnob, plate, maskFlat, maskTab, maskR, hBack, carrierM, labG, rb, slitLines, slitMat, idx },
       SRC: { X_SLIT, C0: [C0.x, C0.z], LAB_SRC, MASK_ON, FIL_L, FIL_D, SLIT_SP, SLIT_W, MASK_OPEN, D_MIN, D_MAX } },
