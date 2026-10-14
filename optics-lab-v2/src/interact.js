@@ -115,15 +115,18 @@ export function setupInteraction({ camera, dom, orbit, root, registry, focusOf, 
   });
   // scroll over a carrier moves it 1 mm per notch (Shift: 1 cm): fine focusing, and it doesn't zoom
   dom.addEventListener("wheel", (ev) => {
+    // Chrome/Edge on Windows send Shift+wheel as a SIDEWAYS scroll (deltaX, deltaY = 0): read whichever axis moved, or
+    // every "Shift: 5 deg / 1 mm" step would do nothing
+    const dY = ev.deltaY || ev.deltaX;
     const C = carry(), P = C || (hovered && hovered.kind === "plane" ? hovered : null);
-    if (P) { ev.preventDefault(); ev.stopImmediatePropagation(); P.turn(-Math.sign(ev.deltaY), ev.shiftKey); if (C) carryTip(ev, C); else showTip(ev, tipHtml(P), P); return; }
+    if (P) { ev.preventDefault(); ev.stopImmediatePropagation(); P.turn(-Math.sign(dY), ev.shiftKey); if (C) carryTip(ev, C); else showTip(ev, tipHtml(P), P); return; }
     if (hovered && hovered.kind === "rotary") {
-      ev.preventDefault(); ev.stopImmediatePropagation(); hovered.rotate(-Math.sign(ev.deltaY) * (ev.shiftKey && hovered.wheelStepShift ? hovered.wheelStepShift : hovered.wheelStep ?? Math.PI / 36));   /* per control: the iris 5 deg, the protractor table 0.5 deg, the spectrometer arm 0.1 deg (Shift 1) */
+      ev.preventDefault(); ev.stopImmediatePropagation(); hovered.rotate(-Math.sign(dY) * (ev.shiftKey && hovered.wheelStepShift ? hovered.wheelStepShift : hovered.wheelStep ?? Math.PI / 36));   /* per control: the iris 5 deg, the protractor table 0.5 deg, the spectrometer arm 0.1 deg (Shift 1) */
       showTip(ev, tipHtml(hovered), hovered); return;
     }
     if (hovered && hovered.kind === "slide") {
       ev.preventDefault(); ev.stopImmediatePropagation();
-      hovered.set(hovered.get() - Math.sign(ev.deltaY) * (ev.shiftKey ? 1 : 0.1));
+      hovered.set(hovered.get() - Math.sign(dY) * (ev.shiftKey ? 1 : 0.1));
       showTip(ev, tipHtml(hovered), hovered);
     }
   }, { capture: true, passive: false });

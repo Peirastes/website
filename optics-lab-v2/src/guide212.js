@@ -19,10 +19,10 @@ const rows = (table, phase, keys, what) => ANGLES.map((a, k) => ({
   title: `Turn the table to ${a}°, read the ${what}, and record it`,
   why: `Table ${table === "t1" ? 1 : 2}, row ${k + 1}: incident angle ${a}°.`,
   watch: table === "t1"
-    ? "Read where the reflected ray crosses the degree ring, counting from the NORMAL line. Type the incident angle and the reflection angle in the notebook."
-    : "Read where the refracted ray leaves the curved side and crosses the degree ring, counting from the NORMAL line. Type the incident angle and the refraction angle in the notebook.",
+    ? "Read where the reflected ray crosses the degree ring, counting from the NORMAL line. Type the incident angle and the reflection angle in the notebook, then press Enter or Tab."
+    : "Read where the refracted ray leaves the curved side and crosses the degree ring, counting from the NORMAL line. Type the incident angle and the refraction angle in the notebook, then press Enter or Tab.",
   view: "protractor", notebook: true,
-  target: () => ({ cell: `t.${table}.${k}.${keys[1]}` }),
+  target: () => ({ cell: `t.${table}.${k}.${keys[1]}` }), cells: () => keys.map((key) => `t.${table}.${k}.${key}`),
   done: (c) => c.filled(`t.${table}.${k}.${keys[0]}`) && c.filled(`t.${table}.${k}.${keys[1]}`),
 }));
 
@@ -54,9 +54,9 @@ export const PROC_212 = {
       view: "protractor", target: (c) => ({ obj: c.M.knob }), done: atZero },
     { id: "straight", phase: "cal", kind: "confirm", title: "Slide the slit plate until the ray runs along the NORMAL line, through the centre",
       why: "A ray off the centre, or tilted, shifts every angle you read: a systematic error in all your data.",
-      watch: "Drag the slit plate across (or scroll over it: 0.1 mm a notch). Follow the ray across the whole table.",
+      watch: "Grab the slit plate by an end, where it sticks out past the mask, and drag it across (or scroll over the end: 0.1 mm a notch). Follow the ray across the whole table.",
       confirm: "The ray runs along NORMAL", ready: (c) => atZero(c) && !c.S.placed && c.M.labBeams(1).length === 1,
-      notReady: "The table must be empty, at 0°, with one ray.", view: "protractor", target: (c) => ({ obj: c.M.src.plate }) },
+      notReady: "The table must be empty, at 0°, with one ray.", view: "protractor", target: (c) => ({ obj: c.M.src.plate, off: [0, 0, 0.029] }) },   // an end: the mask covers the middle
     // ------------------------------------------------ reflection (Table 1)
     { id: "mirror", phase: "refl", title: "Set the plane mirror on the COMPONENT line, centred on the cross",
       why: "Its face on the COMPONENT line puts the NORMAL line at right angles to it, through the centre.",
@@ -91,15 +91,16 @@ export const PROC_212 = {
       view: "protractor", notebook: true, target: () => ({ cell: "c.thc" }), done: (c) => c.filled("c.thc") },
     // ------------------------------------------------ analysis (the notebook)
     { id: "sines", phase: "an", title: "Work out sin φ and sin φ′ for every row of Table 2",
-      why: "The graph is sin φ against sin φ′: by Snell's law a straight line with slope n_g.",
+      why: "The graph is sin φ against sin φ′: by Snell's law a straight line with slope <i>n</i><sub>g</sub>.",
       watch: "A ✓ means the value follows from your own entries.", notebook: true, target: () => ({ cell: "t.t2.1.sphi" }),
+      cells: () => ANGLES.flatMap((a, k) => [`t.t2.${k}.sphi`, `t.t2.${k}.sphp`]),
       done: (c) => ANGLES.every((a, k) => c.filled(`t.t2.${k}.sphi`) && c.filled(`t.t2.${k}.sphp`)) },
-    { id: "ng2", phase: "an", title: "Read the slope of the graph: that is n_g",
-      why: "Snell's law with air n ≈ 1: sin φ = n_g sin φ′.", watch: "The graph and its trendline are below the tables.",
+    { id: "ng1", phase: "an", title: "Work out <i>n</i><sub>g</sub> from your critical angle",
+      why: "<i>n</i><sub>g</sub> = 1 / sin <i>θ</i><sub>c</sub> (air on the other side).", notebook: true, target: () => ({ cell: "c.ng1" }), done: (c) => c.filled("c.ng1") },
+    { id: "ng2", phase: "an", title: "Read the slope of the graph: that is <i>n</i><sub>g</sub>",
+      why: "Snell's law with air <i>n</i> ≈ 1: sin φ = <i>n</i><sub>g</sub> sin φ′.", watch: "The graph and its trendline are below the tables.",
       notebook: true, target: () => ({ cell: "c.ng2" }), done: (c) => c.filled("c.ng2") },
-    { id: "ng1", phase: "an", title: "Work out n_g from your critical angle",
-      why: "n_g = 1 / sin θc (air on the other side).", notebook: true, target: () => ({ cell: "c.ng1" }), done: (c) => c.filled("c.ng1") },
-    { id: "pd", phase: "an", title: "The % difference between your two values of n_g",
+    { id: "pd", phase: "an", title: "The % difference between your two values of <i>n</i><sub>g</sub>",
       why: "How well do the two methods agree? Think about where your systematic errors came from.",
       notebook: true, target: () => ({ cell: "c.pd" }), done: (c) => c.filled("c.pd") },
   ],

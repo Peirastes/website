@@ -708,7 +708,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     raybox: () => [[BOX_X + 0.12, TABLE_Y + 0.14, C0.z + 0.2], [BOX_X - 0.04, TABLE_Y + 0.03, C0.z], [0.18, 0.1]],
     tray: () => [[tray.position.x + 0.22, TABLE_Y + 0.24, tray.position.z + 0.14], [tray.position.x, TABLE_Y + 0.02, tray.position.z], [0.14, 0.38]],
     mirrors: () => [[mtray.position.x + 0.02, TABLE_Y + 0.22, mtray.position.z + 0.26], [mtray.position.x, TABLE_Y + 0.02, mtray.position.z], [0.32, 0.12]],
-    source: () => [[X_SLIT - 0.02, TABLE_Y + 0.17, C0.z + 0.22], [X_SLIT - 0.07, TABLE_Y + 0.035, C0.z], [0.24, 0.12]],   // lab: the light source and slit
+    source: () => [[X_SLIT - 0.02, TABLE_Y + 0.17, C0.z + 0.22], [X_SLIT - 0.07, TABLE_Y + 0.05, C0.z], [0.24, 0.15]],   // the light source and slit, its knob clear of the title
   };
   const viewNames = { overview: "Overview", protractor: "Protractor (top)", block: "Block", raybox: "Ray box", source: "Light source + slit (lab)", tray: "Block tray", mirrors: "Mirror tray" };
   const registry = [
@@ -742,7 +742,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   const labels = [
     { text: "ray box", obj: housing, off: [0, 0.035, 0], prio: 3, when: () => !bulbOn() },
     { text: "light source", obj: hBack, off: [0, 0.04, 0], prio: 3, when: () => bulbOn() },
-    { text: "slit plate", obj: plate, off: [0, 0.025, 0], prio: 2, when: () => bulbOn() },
+    { text: "slit plate", obj: plate, off: [0, 0.01, 0.029], prio: 2,   /* an end: the mask covers the middle */ when: () => bulbOn() },
     { text: "slit mask", obj: maskFlat, off: [0, 0.01, 0], prio: 2, when: () => bulbOn() && S.src.mask === null },
     { text: "protractor table", obj: rim, off: [0, 0, R_TABLE], prio: 2 },
     { text: "block", obj: block, off: [0.03, 0.02, -0.0], prio: 3, when: () => S.placed && !isMirror(S.block) },   // only a part on the table (lab: it starts empty)

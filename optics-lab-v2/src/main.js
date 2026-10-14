@@ -279,6 +279,10 @@ function guideCtx() {
   const filled = (path) => { const v = nb(path), t = v === undefined || v === null ? "" : String(v).trim().replace(/[−–]/g, "-"); return t !== "" && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(t); };
   return { M, S: M.S, T, nb, filled };
 }
+// scrolling the bench means the student is done typing: leave the notebook cell (a click does that by itself; a scroll
+// does not), so the guide's record step completes and the bench's keys reach the bench
+window.addEventListener("wheel", (e) => { const a = document.activeElement;
+  if (e.target === renderer.domElement && a && notebook.el.contains(a)) a.blur(); }, { capture: true, passive: true });
 $("guideBtn").addEventListener("click", () => {
   if (guide.isActive()) { guide.stop(); return; }
   const P = GUIDES[current.id]; if (!P) return;

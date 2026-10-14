@@ -8,7 +8,8 @@
 // step = { id, phase, title, why, watch?, view?, kind?: "do" | "confirm", confirm?: "button text",
 //          ready?(ctx) (confirm steps: the button is live only then), notReady?: "what to do first",
 //          done(ctx), target?(ctx) -> { obj, off } (a 3D part) | { cell: "t.t1.3.r" } (a notebook cell) | null,
-//          notebook?: true (open the lab notebook on this step) }
+//          notebook?: true (open the lab notebook on this step), cells?(ctx) -> [cell paths] (a record step's own cells;
+//          default: its target cell) }
 export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
   const card = document.createElement("div"); card.id = "guide"; document.body.appendChild(card);
   const ring = document.createElement("div"); ring.id = "guideRing"; document.body.appendChild(ring);
@@ -61,6 +62,14 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
     if (h !== html) { card.innerHTML = h; html = h; }
   }
 
+  // a record step waits while the student is still typing in one of its own cells: "41.5" is a number from its first
+  // digit, so the step would complete on the "4", the next (bench) step would take the focus, and the rest of the typing
+  // would land on the bench as keys ("." turns the part). It completes when they leave the cell: Tab, Enter, a click.
+  function typingIn(s, ctx) {
+    const a = document.activeElement; if (!s.notebook || !a || !a.dataset || !a.dataset.w || !notebook.el.contains(a)) return false;
+    const t = s.target ? s.target(ctx) : null, cells = s.cells ? s.cells(ctx) : t && t.cell ? [t.cell] : [];
+    return cells.includes(a.dataset.w);
+  }
   // called every frame by main.js; visible = the guide's station is the one on screen
   function update(visible) {
     if (!P) return;
@@ -71,7 +80,7 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
     if (s) {
       const ok = s.kind === "confirm" ? confirmed && (!s.ready || s.ready(ctx)) : s.done(ctx);
       if (revisit && !ok) undone = true;
-      if (ok && (!revisit || undone || confirmed) && performance.now() - enteredAt > 350) { enter(i + 1); return; }
+      if (ok && (!revisit || undone || confirmed) && performance.now() - enteredAt > 350 && !typingIn(s, ctx)) { enter(i + 1); return; }
     }
     render(ctx);
     // the card sits at the bottom, right of the notebook when it is open
