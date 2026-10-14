@@ -58,7 +58,7 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
         ${s.kind === "confirm" ? `<button class="es-btn g-ok" data-g="confirm"${ready ? "" : " disabled"}>${s.confirm || "Confirm"}</button>` : ""}
         <button class="es-btn" data-g="skip">Skip</button><button class="es-btn" data-g="close" title="Close the guide (your work stays)">✕</button></div>`;
     }
-    const h = `<div class="g-head"><span class="g-lab">GUIDE · ${P.title}</span></div><div class="g-tracker">${tracker}</div>${body}`;
+    const h = `<div class="g-tracker">${tracker}</div><div class="g-head"><span class="g-lab">Guide · ${P.title}</span></div>${body}`;   // as the Rankine stepper: phases, then the head
     if (h !== html) { card.innerHTML = h; html = h; }
   }
 
@@ -84,7 +84,7 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
     }
     render(ctx);
     // the card sits at the bottom, right of the notebook when it is open
-    card.style.left = Math.max(16, notebook.right() + 16) + "px";
+    card.style.left = Math.max(window.innerWidth <= 520 ? 16 : 35, notebook.right() + 16) + "px";   // the Rankine stepper's 35 px; right of an open notebook
     // the target: a ring on a 3D part, or an outline on a notebook cell
     const t = s && s.target ? s.target(ctx) : null;
     if (t && t.obj) {

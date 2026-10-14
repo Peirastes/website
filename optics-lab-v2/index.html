@@ -148,20 +148,23 @@ window.__benchModuleFail = () => location.protocol === "file:"
   body.eye-big #eyeBox { cursor:zoom-out; }
   #eyeBox canvas { display:block; border-radius:50%; box-shadow:0 8px 24px rgba(0,0,0,.6); }
   .eye-h { font-family:'Orbitron',sans-serif; font-size:9.5px; font-weight:700; color:var(--canon-gold); letter-spacing:.18em; text-transform:uppercase; margin-bottom:5px; text-shadow:0 1px 2px #000; }
-  /* the Guide (guide.js): a card at the bottom of the bench, a pulsing ring on the part to use, an outline on the cell */
-  #guide { display:none; position:fixed; bottom:40px; left:16px; width:min(440px, calc(100vw - 32px)); z-index:30; background:rgba(13,16,22,.94);
-    border:1px solid rgba(125,214,255,.45); border-radius:10px; padding:10px 14px 12px; color:var(--ink); font:13px/1.45 'Inter', system-ui, sans-serif; box-shadow:0 8px 28px rgba(0,0,0,.45); }
-  #guide .g-lab { font:600 11px 'Orbitron', sans-serif; letter-spacing:.12em; color:var(--canon-gold); }
-  #guide .g-tracker { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0 8px; }
-  #guide .g-ph { font-size:10.5px; padding:2px 7px; border-radius:9px; border:1px solid rgba(255,255,255,.14); color:var(--muted); }
-  #guide .g-ph.on { border-color:var(--canon-cyan); color:var(--canon-cyan); }
-  #guide .g-ph.done { color:#9fd59a; border-color:rgba(159,213,154,.35); }
-  #guide .g-step { font:11px 'Share Tech Mono', monospace; color:var(--muted); }
-  #guide .g-title { font-weight:600; font-size:14.5px; margin:2px 0 4px; color:#fff; }
-  #guide .g-why { color:#c9d2dc; }
-  #guide .g-watch { margin-top:5px; color:var(--canon-cyan); }
-  #guide .g-note { margin-top:5px; color:var(--canon-gold); }
-  #guide .g-btns { display:flex; gap:6px; justify-content:flex-end; margin-top:9px; }
+  /* the Guide (guide.js): the Rankine viewer's quest stepper look - a canon glass card at the lower left, above the hint
+     line; a pulsing ring on the part to use, an outline on the cell */
+  #guide { display:none; position:fixed; left:35px; bottom:60px; width:min(430px, calc(100vw - 32px)); z-index:30; background:rgba(10,14,22,.62);
+    border:1px solid rgba(255,255,255,.10); border-radius:8px; padding:12px 14px; color:var(--ink); font:13px/1.45 'Inter', system-ui, sans-serif;
+    backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4); box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); }
+  #guide .g-head { margin-bottom:6px; }
+  #guide .g-lab { font:700 10px 'Orbitron', sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--canon-gold); text-shadow:0 0 6px rgba(255,174,32,.4); }
+  #guide .g-tracker { display:flex; gap:4px; margin:0 0 8px; }
+  #guide .g-ph { flex:1; font:8.5px 'Share Tech Mono', monospace; letter-spacing:.06em; text-transform:uppercase; color:rgba(255,255,255,.35); border-top:2px solid rgba(255,255,255,.12); padding-top:4px; }
+  #guide .g-ph.done { color:rgba(125,214,255,.6); border-color:rgba(125,214,255,.5); }
+  #guide .g-ph.on { color:var(--canon-gold); border-color:var(--canon-gold); text-shadow:0 0 6px rgba(255,174,32,.4); }
+  #guide .g-step { font:11px 'Share Tech Mono', monospace; color:var(--canon-cyan); }
+  #guide .g-title { font-size:15px; font-weight:600; color:#f2f4f6; line-height:1.3; margin:2px 0 5px; }
+  #guide .g-why { font-size:11.5px; color:rgba(255,255,255,.68); margin-bottom:3px; }
+  #guide .g-watch { font-size:11.5px; color:var(--canon-cyan); margin-bottom:4px; }
+  #guide .g-note { font-size:11.5px; margin-top:4px; color:var(--canon-gold); }
+  #guide .g-btns { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
   #guide .g-btns .es-btn { width:auto; padding:5px 11px; }
   #guide .g-btns .g-ok { border-color:var(--canon-cyan); color:var(--canon-cyan); }
   #guideRing { display:none; position:fixed; width:34px; height:34px; margin:-17px 0 0 -17px; border:2px solid var(--canon-cyan); border-radius:50%;
@@ -275,7 +278,7 @@ window.__benchModuleFail = () => location.protocol === "file:"
       <div class="mod-only" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <label class="es-chk-row" style="margin:0;white-space:nowrap" title="Show the computed values and set each bench up as a demonstration (off: the bench as a student finds it at the start of the lab)"><input type="checkbox" id="tFree"><span>Free mode</span></label>
         <span style="display:flex;gap:6px">
-          <button class="es-btn" id="guideBtn" data-mod="snell" style="width:auto;padding:6px 10px;white-space:nowrap" title="Step-by-step: the lab's procedure, one step at a time (turns free mode off)">Guide</button>
+          <button class="es-btn" id="guideBtn" data-mod="snell" style="width:auto;padding:6px 10px;white-space:nowrap" title="Show or hide the step card: the lab's procedure, one step at a time (turns free mode off)">Guide</button>
           <button class="es-btn" id="roomBtn" style="width:auto;padding:6px 10px;white-space:nowrap" title="Back to the room (Esc)">Room</button>
           <button class="es-btn" id="resetBtn" style="width:auto;padding:6px 12px;white-space:nowrap" title="Put this bench back as it started">Reset</button>
         </span>
@@ -286,7 +289,7 @@ window.__benchModuleFail = () => location.protocol === "file:"
       <div class="chips three" id="railChips"></div>
       <div class="chips" id="chips" style="margin-top:5px"></div>
       <div class="status" id="status"></div>
-      <div class="warn lab-note" data-mod="snell">Exp 212: the readouts are hidden (Free mode shows them). <b>Guide</b> walks the procedure step by step. Calibrate the light source first: slide it back along the rail (the farther the better), turn its knob until the filament stands vertical, put the slit mask on and slide it until only the centre slit's ray gets through, then, with the table empty at 0°, slide the slit plate until the ray runs along the NORMAL line through the centre. Then set the plane mirror on the COMPONENT line, centred, and read the reflection angle for incident angles 0–80° in steps of 10°. Swap it for the acrylic half-circle (flat face toward the light) and read the refraction angles over the same range. Then turn the half-circle around (F) so the light enters its curved side, and turn the table until the ray leaving the flat face just disappears: that incident angle is the critical angle.</div>
+      <div class="warn lab-note" data-mod="snell">Exp 212: the readouts are hidden (Free mode shows them). The card at the lower left walks the procedure one step at a time; <b>Guide</b> hides or shows it.</div>
       <div class="warn lab-note" data-mod="spec">Exp 214: calibrate with helium. Swing the telescope to the slit image (straight through) and read θ<sub>0</sub>; then put the crosshair on the yellow 587.562 nm line on the right and on the left and read both. Change to the hydrogen tube (θ<sub>0</sub> stays) and read each of its lines on both sides.</div>
       <div class="warn lab-note" data-mod="lens">Exp 213: the computed values are hidden (Free mode shows them). Method 1: switch on <b>Distant object</b>, slide the screen to the sharpest image, and take f ≈ d<sub>i</sub>. Then, with the light box: the arrow's base should image at 0 on the card's ruler; if it does not, the arrow is off the axis, so turn the height knob on the light box. For each d<sub>o</sub>, focus, read d<sub>i</sub> on the rail and h<sub>i</sub> on the ruler.</div>
     </div>

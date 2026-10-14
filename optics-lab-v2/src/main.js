@@ -208,6 +208,7 @@ function setModule(id, { fly: animate = false } = {}) {
   $("view").innerHTML = Object.entries(m.viewNames).map(([v, n]) => `<option value="${v}">${n}</option>`).join("") + '<option value="room">Room (all tables)</option>';
   m.setLab?.(lab);
   flyTo(m.defaultView, !animate);
+  autoGuide();                                                             // (first called after the guide exists, below)
 }
 const goStation = (id) => setModule(lastModule[id], { fly: true });
 
@@ -265,13 +266,19 @@ window.addEventListener("keydown", (e) => {
 $("view").addEventListener("change", (e) => flyTo(e.target.value));
 $("resetBtn").addEventListener("click", () => current.reset());
 $("tFree").checked = !lab; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
-$("tFree").addEventListener("change", (e) => { lab = !e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab); if (!lab && guide.isActive()) guide.stop(); });
+$("tFree").addEventListener("change", (e) => { lab = !e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
+  if (!lab && guide.isActive()) { const keep = guideAuto; guide.stop(); guideAuto = keep; } autoGuide(); });
 // ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212 for now)
 const GUIDES = { snell: PROC_212 };
 let guideProc = null;
 const screenXY = (obj, off = [0, 0, 0]) => { const v = obj.localToWorld(new THREE.Vector3(...off)).project(camera), R = renderer.domElement.getBoundingClientRect();
   return v.z > 1 ? null : [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height]; };
-const guide = createGuide({ $, flyTo, screenPoint: screenXY, notebook, onExit: () => { guideProc = null; $("guideBtn").classList.remove("on"); } });
+// the lab's instructions ARE the guide (Cole 2026-10-14): at a station with a guide, in the lab, the card opens by itself;
+// closed (its x or the Guide button), it stays closed until Guide is pressed again
+let guideAuto = true;
+const guide = createGuide({ $, flyTo, screenPoint: screenXY, notebook, onExit: () => { guideProc = null; guideAuto = false; $("guideBtn").classList.remove("on"); } });
+function autoGuide() { if (guideAuto && lab && !inRoom && !guide.isActive() && GUIDES[current.id]) startGuide(GUIDES[current.id]); }
+function startGuide(P) { guideProc = P; guideAuto = true; guide.start(P, guideCtx); $("guideBtn").classList.add("on"); }
 // what a step's predicates see: the bench's api and state, the ray the readouts follow, and the notebook's cells
 function guideCtx() {
   const M = modOf(guideProc.module).api, W = M.debug() && M.debug().wls, T = W && W.length ? W[Math.floor(W.length / 2)] : null, st = notebook.state(guideProc.id);
@@ -287,7 +294,7 @@ $("guideBtn").addEventListener("click", () => {
   if (guide.isActive()) { guide.stop(); return; }
   const P = GUIDES[current.id]; if (!P) return;
   if ($("tFree").checked) { $("tFree").checked = false; $("tFree").dispatchEvent(new Event("change")); }   // the guide is the lab: free mode off
-  guideProc = P; guide.start(P, guideCtx); $("guideBtn").classList.add("on");
+  startGuide(P);
 });
 $("tLabels").addEventListener("change", (e) => { labels.show = e.target.checked; });
 $("tGlow").addEventListener("change", (e) => { glowOn = e.target.checked; });
