@@ -745,8 +745,8 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     { text: "slit plate", obj: plate, off: [0, 0.025, 0], prio: 2, when: () => bulbOn() },
     { text: "slit mask", obj: maskFlat, off: [0, 0.01, 0], prio: 2, when: () => bulbOn() && S.src.mask === null },
     { text: "protractor table", obj: rim, off: [0, 0, R_TABLE], prio: 2 },
-    { text: "block", obj: block, off: [0.03, 0.02, -0.0], prio: 3, when: () => !isMirror(S.block) },
-    ...BLOCKS.filter((B) => B.mirror).map((B) => ({ text: B.tag, obj: block, off: [0.0, 0.02, 0.035], prio: 3, when: () => S.block === B.id })),
+    { text: "block", obj: block, off: [0.03, 0.02, -0.0], prio: 3, when: () => S.placed && !isMirror(S.block) },   // only a part on the table (lab: it starts empty)
+    ...BLOCKS.filter((B) => B.mirror).map((B) => ({ text: B.tag, obj: block, off: [0.0, 0.02, 0.035], prio: 3, when: () => S.placed && S.block === B.id })),
     { text: "block tray", obj: tray, off: [0.17, 0.012, 0], prio: 1 },
     { text: "mirror tray", obj: mtray, off: [0.15, 0.012, 0], prio: 1 },
   ];
@@ -810,7 +810,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
         : trapped === dbg.wls.length ? " White light: every colour is totally reflected." : " White light: near the critical angle the colours spread wide (violet bends most). Turn a little further and violet is trapped first.") : " White light: each colour has its own n, so the beam fans out (violet bends most). The spread is small here; turn the curved face to the light and approach the critical angle to see it grow.";
     if (!h && T.general && T.from === "curved" && T.entry > 0.05) msg += ` The beam meets the curved face ${T.entry.toFixed(1)}° off its normal, so it already bends going in.`;
     msg += alignText(T);
-    setText({ chips, status: msg, mode: `${B.tag}` + (h ? " · lab mode" : T.th2 === null && !T.grazing ? " · total internal reflection" : inside ? " · block → air" : " · air → block") });
+    setText({ chips, status: msg, mode: `${B.tag}` + (h ? " · lab" : T.th2 === null && !T.grazing ? " · total internal reflection" : inside ? " · block → air" : " · air → block") });
   }
 
   // where the two outermost beams' reflected rays (or, for a convex mirror, their backward extensions) cross:
@@ -846,7 +846,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     else msg = `<b>Law of reflection:</b> the beam comes in at ${T.th1.toFixed(1)}° from the normal and leaves at ${T.th2.toFixed(1)}° on the other side: θ<sub>r</sub> = θ<sub>i</sub>. Turning the mirror by an angle turns the reflected beam by twice that.`;
     if (!h && S.white && !T.back && !T.edge && !T.grazing) msg += " White light: every colour reflects the same way, so the beams stay white (no dispersion in reflection).";
     msg += alignText(T);
-    setText({ chips, status: msg, mode: tag + (h ? " · lab mode" : T.back ? " · back of the mirror" : T.edge || T.grazing ? "" : sc > 0 && S.slits > 1 ? " · real focus" : sc < 0 && S.slits > 1 ? " · virtual focus" : " · reflection") });
+    setText({ chips, status: msg, mode: tag + (h ? " · lab" : T.back ? " · back of the mirror" : T.edge || T.grazing ? "" : sc > 0 && S.slits > 1 ? " · real focus" : sc < 0 && S.slits > 1 ? " · virtual focus" : " · reflection") });
   }
   function setLab(on) {
     if (on && !S.lab) { clearTable(); S.src = { ...LAB_SRC }; }      // lab mode: the table empty, the source as a student finds it

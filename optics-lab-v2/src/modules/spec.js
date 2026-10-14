@@ -205,7 +205,7 @@ export function createSpecModule({ $, clamp, setText }) {
     else if (on) msg = L.m === 0 ? `<b>Straight through</b>: every line of the tube at once, the zeroth order. The circle reads θ<sub>0</sub> = <b>${R.toFixed(2)}°</b> here.`
       : `Crosshair on <b>${L.w} nm</b>, ${ORD[Math.abs(L.m)]} order, ${SIDE(L.theta)} side: θ = ${Math.abs(L.theta).toFixed(2)}°, and d sin θ = ${(SPEC.d * Math.sin(Math.abs(L.theta) * rad)).toFixed(1)} nm = ${Math.abs(L.m)}λ.`;
     else msg = L ? `No line on the crosshair. Nearest: ${L.w} nm (${ORD[Math.abs(L.m)]} order), ${Math.abs(L.dx).toFixed(2)}° ${L.dx > 0 ? "to the right in the eyepiece" : "to the left in the eyepiece"}. The telescope inverts: turn the arm toward ${L.dx > 0 ? "→" : "←"} to bring it over.` : "";
-    setText({ rail: `<div class="chip c-x" title="the tube in the lamp">${SOURCES[S.tube].name.replace(" tube", "")}</div>`, chips, status: msg, mode: h ? "lab mode" : SOURCES[S.tube].name });
+    setText({ rail: `<div class="chip c-x" title="the tube in the lamp">${SOURCES[S.tube].name.replace(" tube", "")}</div>`, chips, status: msg, mode: h ? "lab" : SOURCES[S.tube].name });
   }
 
   // ---------------------------------------------------------------- per frame

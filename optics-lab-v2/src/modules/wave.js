@@ -234,7 +234,7 @@ export function createWaveModules({ renderer, $, clamp, setText }) {
         `d sin θ = mλ: the first order at <b>${th.toFixed(2)}°</b>, ${(y1 * 100).toFixed(2)} cm from the centre. ${ap.N > 12 ? `${ap.N} slits are lit, so each order arrives as a spot about the size of the beam.` : `Only ${ap.N} slits lit: broad orders with ${ap.N - 2} faint maxima between them.`}${srcS.kind !== "laser" ? " Each spectral line lands at its own angle: the tube's spectrum." : ""}`;
     }
     setText({ rail: rc("source", S.src) + rc("slide", S.hold) + (S.wall ? `<div class="chip c-x">wall <b>tape</b></div>` : rc("screen", S.screen)), chips, status: msg,
-      mode: `${S.custom ? "custom slide" : slideOf().tag} · ${srcS.name}` + (h ? " · lab mode" : "") });
+      mode: `${S.custom ? "custom slide" : slideOf().tag} · ${srcS.name}` + (h ? " · lab" : "") });
   }
   function reset() { Object.assign(S, JSON.parse(JSON.stringify(DEFAULTS))); S.kind = cur; for (const id of ["tWall", "tStretch", "tCustom"]) $(id).checked = false;
     $("customRows").style.display = "none"; $("slideSel").disabled = false; $("sourceSel").value = S.source; setKind(cur); }

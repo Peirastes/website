@@ -250,7 +250,9 @@ const labels = new Labels([...MODULES.filter(firstOfRoot).flatMap((m) => m.label
 labels.occluders = [root];
 
 // ---------------------------------------------------------------- rail panel (shared parts)
-let lab = false;
+// Cole 2026-10-14: every station opens READY FOR THE LAB (the bench as a student finds it, computed values hidden);
+// Free mode (the toggle, or ?free=1) shows the values and sets the benches up as demonstrations
+let lab = !new URLSearchParams(location.search).has("free");
 $("modSel").addEventListener("change", (e) => setModule(e.target.value, { fly: true }));
 $("roomBtn").addEventListener("click", () => enterRoom());
 window.addEventListener("keydown", (e) => {
@@ -262,7 +264,8 @@ window.addEventListener("keydown", (e) => {
 });
 $("view").addEventListener("change", (e) => flyTo(e.target.value));
 $("resetBtn").addEventListener("click", () => current.reset());
-$("tLab").addEventListener("change", (e) => { lab = e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab); if (!lab && guide.isActive()) guide.stop(); });
+$("tFree").checked = !lab; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
+$("tFree").addEventListener("change", (e) => { lab = !e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab); if (!lab && guide.isActive()) guide.stop(); });
 // ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212 for now)
 const GUIDES = { snell: PROC_212 };
 let guideProc = null;
@@ -279,7 +282,7 @@ function guideCtx() {
 $("guideBtn").addEventListener("click", () => {
   if (guide.isActive()) { guide.stop(); return; }
   const P = GUIDES[current.id]; if (!P) return;
-  if (!$("tLab").checked) { $("tLab").checked = true; $("tLab").dispatchEvent(new Event("change")); }   // the guide is the lab: lab mode on
+  if ($("tFree").checked) { $("tFree").checked = false; $("tFree").dispatchEvent(new Event("change")); }   // the guide is the lab: free mode off
   guideProc = P; guide.start(P, guideCtx); $("guideBtn").classList.add("on");
 });
 $("tLabels").addEventListener("change", (e) => { labels.show = e.target.checked; });
@@ -398,7 +401,7 @@ window.__bench = { notebook, guide, scene, camera, renderer, orbit, P: lensApi.P
   modules: Object.fromEntries(MODULES.map((m) => [m.id, m.api])), setModule, module: () => current.id, enterRoom, goStation, inRoom: () => inRoom, flying: () => !!fly,
   perf: () => ({ fps: perf.fps, frameMs: perf.frameMs, ms: { ...perf.ms }, firstFrame: perf.firstFrame, firstText: perf.firstText, boot: perf.boot, firstPaint: perf.firstPaint, firstRender: perf.firstRender, compile: perf.compile, pixelRatio: renderer.getPixelRatio(), mode: perfMode }),
   perfReset: () => { perf.ms = {}; perf.frameMs = 0; perf.last = 0; }, setPerfMode: (m) => { $("perfMode").value = m; $("perfMode").dispatchEvent(new Event("change")); },
-  setLab: (on) => { $("tLab").checked = on; $("tLab").dispatchEvent(new Event("change")); },
+  setLab: (on) => { $("tFree").checked = !on; $("tFree").dispatchEvent(new Event("change")); },
   // window coordinates of a point given in a part's local frame
   screenPoint: (obj, off = [0, 0, 0]) => { const v = obj.localToWorld(new THREE.Vector3(...off)).project(camera), R = renderer.domElement.getBoundingClientRect();
     return [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height]; } };

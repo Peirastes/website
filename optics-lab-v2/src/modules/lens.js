@@ -175,7 +175,7 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
     }
     if (!h) msg += farNote + offNote;
     setText({ rail: (S.far ? '<div class="chip c-x" title="the object: a lit arrow on the far wall">object <b>far wall</b></div>' : rc("box", S.obj)) + rc("lens", S.lens) + rc("screen", S.screen), chips, status: msg,
-      mode: `${L.f > 0 ? "converging" : "diverging"} f = ${L.tag}` + (h ? " · lab mode" : !Number.isFinite(s.dI) ? " · image at infinity" : !s.real ? " · virtual image"
+      mode: `${L.f > 0 ? "converging" : "diverging"} f = ${L.tag}` + (h ? " · lab" : !Number.isFinite(s.dI) ? " · image at infinity" : !s.real ? " · virtual image"
         : S.ideal ? (s.blur < SHARP ? " · image sharp" : " · image blurred") : focusWord) });
   }
 
