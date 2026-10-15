@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rowing Generator Bench</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link href="./vendor/fonts/fonts.css" rel="stylesheet">
+<script>if (new URLSearchParams(location.search).has("embed")) document.documentElement.classList.add("embed");</script>
+<script>
+// Load-failure panel. Plain script so it still works when the modules themselves fail to load.
+window.__benchFail = (title, msg) => {
+  const show = () => {
+    const o = document.createElement("div"); o.className = "gl-overlay show";
+    o.innerHTML = '<div class="gl-box"><div class="ip-label"></div><p></p></div>';
+    o.querySelector(".ip-label").textContent = title; o.querySelector("p").textContent = msg; document.body.appendChild(o);
+  };
+  document.body ? show() : addEventListener("DOMContentLoaded", show);
+};
+window.__benchModuleFail = () => location.protocol === "file:"
+  ? __benchFail("Bench cannot start from a file", "Browsers block the bench's program files when the page is opened by double-click. Run serve.bat and open http://localhost:8779/ instead.")
+  : __benchFail("Bench files did not load", "One of the bench's program files is missing or the server is not serving the bench folder. Check the server, then reload.");
+</script>
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+} }
+</script>
+<style>
+  /* ── Peirastes instrument canon (reference_instrument_app_canon.md; as the Rankine Cycler bench) ── */
+  :root { --canon-gold:#ffae20; --canon-cyan:#7dd6ff; --ink:#e8e8e8; --muted:#8a8a8a; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#06080c; color:var(--ink); font-family:'Inter',system-ui,sans-serif; }
+  #stage { position:fixed; inset:0; }
+  canvas.webgl { display:block; width:100%; height:100%; }
+
+  .es-title { position:absolute; top:32px; left:35px; z-index:20; pointer-events:none; }
+  .es-title__name { font-family:'Orbitron',sans-serif; font-size:23px; font-weight:700; color:var(--canon-gold); letter-spacing:.14em; text-transform:uppercase; text-shadow:0 0 14px rgba(255,174,32,.45),0 0 34px rgba(255,174,32,.18),0 1px 2px rgba(0,0,0,.95),0 0 10px rgba(0,0,0,.85); line-height:1; margin-top:-3px; }
+  .es-title__mode { font-family:'Orbitron',sans-serif; font-size:11.5px; font-weight:600; color:var(--canon-cyan); letter-spacing:.16em; text-transform:uppercase; text-shadow:0 0 8px rgba(125,214,255,.30),0 1px 2px rgba(0,0,0,.95),0 0 8px rgba(0,0,0,.9); margin-top:7px; }
+  .es-title__scope { font-family:'Share Tech Mono',monospace; font-size:9.5px; color:rgba(255,255,255,.55); letter-spacing:.18em; text-transform:uppercase; margin-top:5px; text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.9); }
+
+  .es-rail { position:absolute; top:42px; right:42px; bottom:42px; width:320px; display:flex; flex-direction:column; gap:8px; z-index:10; pointer-events:none; }
+  .es-rail > * { pointer-events:auto; }
+  .es-panel { position:relative; width:100%; flex:0 1 auto; min-height:0; display:flex; flex-direction:column;
+    background:rgba(10,14,22,.42); backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.10); border-radius:8px; box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    padding:16px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; }
+  .es-panel::-webkit-scrollbar, .info-panel::-webkit-scrollbar { width:8px; height:8px; }
+  .es-panel::-webkit-scrollbar-track, .info-panel::-webkit-scrollbar-track { background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(4,6,10,.65) 25%,rgba(4,6,10,.65) 75%,rgba(0,0,0,.45) 100%); border-radius:4px;
+    box-shadow:inset 1px 0 3px rgba(0,0,0,.55), inset -1px 0 3px rgba(0,0,0,.55), inset 0 2px 4px rgba(0,0,0,.35); margin:4px 0; }
+  .es-panel::-webkit-scrollbar-thumb, .info-panel::-webkit-scrollbar-thumb { border-radius:4px; background:rgba(40,52,68,.6);
+    border-left:1px solid rgba(125,214,255,.10); border-right:1px solid rgba(255,174,32,.22); border-top:1px solid rgba(255,255,255,.14); border-bottom:.5px solid rgba(0,0,0,.22);
+    box-shadow:0 1px 4px rgba(0,0,0,.4), inset 2px 0 4px rgba(125,214,255,.04), inset -2px 0 4px rgba(255,174,32,.08), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.15); }
+  .es-panel::-webkit-scrollbar-thumb:hover, .info-panel::-webkit-scrollbar-thumb:hover { background:rgba(50,64,82,.7); border-left-color:rgba(125,214,255,.18); border-right-color:rgba(255,174,32,.38); border-top-color:rgba(255,255,255,.22); }
+  @supports (-moz-appearance:none) { .es-panel, .info-panel { scrollbar-width:thin; scrollbar-color:rgba(125,214,255,.45) rgba(4,6,10,.6); } }
+
+  .es-section { margin-bottom:16px; } .es-section:last-child { margin-bottom:2px; }
+  .es-section-label { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.22em; text-transform:uppercase; margin-bottom:11px; padding-bottom:5px; border-bottom:1px solid rgba(255,174,32,.28); text-shadow:0 0 6px rgba(255,174,32,.45); }
+  .es-input-label { font-size:10px; color:var(--muted); letter-spacing:.04em; margin-bottom:4px; font-weight:500; display:flex; justify-content:space-between; }
+  .es-input-label b { font-family:'Share Tech Mono',monospace; font-weight:400; color:var(--canon-cyan); font-size:11px; letter-spacing:0; }
+  .es-select { background:rgba(4,6,10,.85); border:1px solid rgba(255,174,32,.30); border-radius:3px; color:var(--canon-cyan); font-family:'Share Tech Mono',monospace; font-size:12px; padding:6px 7px; outline:none; width:100%; cursor:pointer; text-shadow:0 0 4px rgba(125,214,255,.30); margin-bottom:9px; }
+  .es-select option { background:#0a0e14; color:var(--canon-cyan); }
+  .es-chk-row { display:flex; align-items:center; gap:9px; padding:3px 0; margin-bottom:6px; cursor:pointer; }
+  .es-chk-row span { font-size:11px; color:var(--muted); letter-spacing:.04em; }
+  .es-chk-row input[type=checkbox] { appearance:none; -webkit-appearance:none; position:relative; flex:0 0 auto; width:34px; height:18px; border-radius:9px; background:rgba(4,6,10,.85); border:1px solid rgba(255,174,32,.25); cursor:pointer; margin:0; transition:background .15s, border-color .15s; }
+  .es-chk-row input[type=checkbox]::after { content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#8a8a8a; box-shadow:0 1px 2px rgba(0,0,0,.5); transition:transform .15s, background .15s; }
+  .es-chk-row input[type=checkbox]:checked { background:linear-gradient(180deg,rgba(255,174,32,.35),rgba(160,104,32,.20)); border-color:rgba(255,174,32,.28); }
+  .es-chk-row input[type=checkbox]:checked::after { transform:translateX(16px); background:var(--canon-gold); box-shadow:0 0 6px rgba(255,174,32,.45); }
+  .es-btn { width:100%; padding:8px; font-family:'Orbitron',sans-serif; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(220,220,220,.62);
+    background:linear-gradient(180deg,rgba(20,26,36,.78),rgba(8,12,18,.88)); border:1px solid rgba(255,255,255,.08); border-radius:4px; cursor:pointer; transition:all .14s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 1px 2px rgba(0,0,0,.3); }
+  .es-btn:hover { color:var(--canon-cyan); border-color:rgba(125,214,255,.30); box-shadow:inset 0 1px 0 rgba(125,214,255,.15), 0 0 8px rgba(125,214,255,.30); }
+  .es-btn.on { color:var(--canon-gold); border-color:rgba(255,174,32,.45); box-shadow:0 0 8px rgba(255,174,32,.25); }
+  .es-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:9px; }
+  .es-btns.two { grid-template-columns:1fr 1fr; } .es-btns.four { grid-template-columns:repeat(4,1fr); }
+  .es-btn.mini { padding:5px 0; font-size:8.5px; letter-spacing:.06em; }
+  /* range slider: thin track, amber thumb */
+  .es-range { -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:2px; background:rgba(4,6,10,.85); border:1px solid rgba(255,174,32,.25); outline:none; margin:4px 0 11px; cursor:pointer; }
+  .es-range::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--canon-gold); box-shadow:0 0 6px rgba(255,174,32,.55); border:1px solid rgba(0,0,0,.4); }
+  .es-range::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:var(--canon-gold); border:none; }
+  .es-range:disabled { opacity:.35; }
+
+  .chips { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .chip { background:rgba(4,6,10,.55); border:1px solid rgba(255,255,255,.07); border-radius:4px; padding:4px 7px; font-family:'Share Tech Mono',monospace; font-size:12px; color:#cfd6de; white-space:nowrap; overflow:hidden; }
+  .chip i { font-family:'Times New Roman',serif; font-style:italic; font-size:13.5px; color:#dfe6ee; }
+  .chip sub { font-size:9px; }
+  .chip b { font-weight:400; text-shadow:0 0 6px currentColor; }
+  .c-m { color:#7dd6ff; } .c-f { color:#ffb36b; } .c-e { color:#9ab8ff; } .c-i { color:#9ae6b4; } .c-p { color:#ffd27d; } .c-s { color:#7ee8f0; }
+  .status { font-size:11px; color:#aab3bd; line-height:1.45; margin-top:8px; }
+  .status b { color:#e8e8e8; font-weight:600; }
+  #plots canvas.pl { display:block; width:100%; height:78px; margin-top:6px; border:1px solid rgba(255,255,255,.07); border-radius:4px; background:rgba(4,6,10,.35); }
+
+  .info-panel { position:relative; flex:0 0 auto; max-height:24%; min-height:0; overflow-y:auto; overflow-x:hidden; background:rgba(10,14,22,.42); border:1px solid rgba(255,255,255,.10); border-radius:8px; padding:13px 15px 14px;
+    backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4); box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); }
+  .ip-label { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.16em; text-transform:uppercase; text-shadow:0 0 6px rgba(255,174,32,.4); margin-bottom:7px; }
+  .info-panel p { font-size:12px; line-height:1.5; color:rgba(255,255,255,.7); }
+  .ip-eq { margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.09); }
+  .ip-eq-title { font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700; color:var(--canon-gold); letter-spacing:.18em; text-transform:uppercase; text-shadow:0 0 6px rgba(255,174,32,.4); margin-bottom:8px; padding-bottom:5px; border-bottom:1px solid rgba(255,174,32,.28); }
+  .formula { text-align:center; font-family:'Times New Roman',serif; font-style:italic; font-size:15px; color:var(--canon-cyan); text-shadow:0 0 6px rgba(125,214,255,.25); }
+  .formula .up { font-style:normal; } .formula sub { font-size:10px; } .formula .n { font-family:'Inter',sans-serif; font-style:normal; font-size:10.5px; color:rgba(255,255,255,.5); display:block; margin-top:3px; }
+
+  /* leader labels on the void */
+  #labels { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  .lbl { position:absolute; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:.06em; color:rgba(232,232,232,.9); white-space:nowrap; transform:translate(-50%,-50%); text-shadow:0 1px 2px #000; background:rgba(6,8,12,.62); border:1px solid rgba(125,214,255,.18); border-radius:3px; padding:1px 5px; }
+
+  /* circuit view: glass card, bottom-left over the world */
+  #circuit { position:fixed; left:35px; bottom:35px; width:470px; z-index:15; background:rgba(10,14,22,.62); border:1px solid rgba(255,255,255,.10); border-radius:8px; padding:11px 13px 8px;
+    backdrop-filter:blur(22px) saturate(1.4); -webkit-backdrop-filter:blur(22px) saturate(1.4); box-shadow:0 10px 28px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); }
+  #circuit svg { display:block; width:100%; height:auto; }
+  #circuit .ckt-note { font-size:10.5px; color:rgba(255,255,255,.55); margin-top:2px; }
+  .gl-overlay { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center; background:rgba(6,8,12,.72); }
+  .gl-overlay.show { display:flex; }
+  .gl-box { max-width:380px; background:rgba(10,14,22,.85); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:16px 18px; box-shadow:0 10px 28px rgba(0,0,0,.6); }
+  .gl-box p { font-size:12px; line-height:1.5; color:rgba(255,255,255,.75); margin-top:6px; }
+  .hint { position:absolute; left:35px; top:118px; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:.1em; color:rgba(180,180,180,.45); text-transform:uppercase; pointer-events:none; z-index:5; }
+  html.embed .hint { display:none; }
+  @media (max-width:920px) { .es-rail { position:static; width:auto; margin:12px; } #circuit { position:static; width:auto; margin:12px; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div class="es-title">
+  <div class="es-title__name">Rowing Generator Bench</div>
+  <div class="es-title__mode" id="mode">Load: capacitor · idle</div>
+  <div class="es-title__scope">RCSA · Advisor bench · placeholder constants</div>
+</div>
+<div class="hint">drag · orbit &nbsp;|&nbsp; wheel · zoom &nbsp;|&nbsp; drawn with exaggerated spool + pulleys</div>
+
+<div class="es-rail" id="rail">
+  <div class="es-panel" id="panel">
+    <div class="es-section">
+      <div class="es-section-label">Rower</div>
+      <div class="es-btns">
+        <button class="es-btn on" id="rowBtn">Row</button>
+        <button class="es-btn" id="stopBtn">Stop</button>
+        <button class="es-btn" id="resetBtn">Reset</button>
+      </div>
+      <label class="es-input-label">Time scale</label>
+      <select class="es-select" id="timeScale"><option value="1" selected>1× real time</option><option value="0.5">0.5× slow</option><option value="0.25">0.25× slower</option><option value="10">10× fast</option><option value="60">60× (a minute a second)</option></select>
+      <label class="es-input-label"><span>Effort (F<sub>max</sub>)</span><b id="effV">100%</b></label>
+      <input class="es-range" type="range" id="effort" min="50" max="150" step="5" value="100">
+    </div>
+    <div class="es-section">
+      <div class="es-section-label">Drive</div>
+      <label class="es-input-label"><span>Gear ratio G</span><b id="gV">5.0</b></label>
+      <input class="es-range" type="range" id="gear" min="1" max="15" step="0.5" value="5">
+      <label class="es-input-label"><span>Flywheel J<sub>fly</sub></span><b id="jV">3.0e-4 kg·m²</b></label>
+      <input class="es-range" type="range" id="jfly" min="0" max="10" step="0.5" value="3">
+    </div>
+    <div class="es-section">
+      <div class="es-section-label">Load</div>
+      <select class="es-select" id="load">
+        <option value="open">Open circuit</option>
+        <option value="R">Resistor R_L</option>
+        <option value="C" selected>Diode → capacitor</option>
+        <option value="batt">Charge controller → battery</option>
+      </select>
+      <div id="grpR"><label class="es-input-label"><span>Load resistance R<sub>L</sub></span><b id="rlV">2.0 Ω</b></label>
+        <input class="es-range" type="range" id="rl" min="0.5" max="20" step="0.5" value="2"></div>
+      <div id="grpC"><button class="es-btn" id="dischargeBtn" style="margin-bottom:9px">Discharge capacitor</button></div>
+      <div id="grpB"><label class="es-input-label"><span>Battery</span></label>
+        <select class="es-select" id="battery">
+          <option value="li1s">Phone cell · Li-ion 3.85 V 4 Ah (15 Wh)</option>
+          <option value="sla12" selected>Sealed lead-acid 12 V 1.2 Ah (14 Wh)</option>
+          <option value="li3s">Li-ion pack 3S 11.1 V 2.2 Ah (24 Wh)</option>
+          <option value="sla7">Sealed lead-acid 12 V 7 Ah (84 Wh)</option>
+          <option value="car">Car battery 12 V 50 Ah (600 Wh)</option>
+        </select>
+        <label class="es-input-label"><span>Starting charge</span><b id="socV">50%</b></label>
+        <input class="es-range" type="range" id="soc0" min="0" max="100" step="1" value="50">
+        <label class="es-input-label"><span>Controller input R<sub>in</sub></span><b id="rinV">4.0 Ω</b></label>
+        <input class="es-range" type="range" id="rin" min="0.5" max="20" step="0.5" value="4">
+        <label class="es-chk-row"><input type="checkbox" id="track" checked><span>Track R<sub>in</sub>* = n²k²v<sub>max</sub>/F<sub>max</sub> + R<sub>w</sub></span></label></div>
+    </div>
+    <div class="es-section">
+      <div class="es-section-label">Instruments</div>
+      <div class="chips" id="chips"></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="es-section" id="plotSection">
+      <div class="es-section-label">Live plots · last 6 s</div>
+      <div id="plots"></div>
+    </div>
+  </div>
+  <div class="info-panel" id="info">
+    <div class="ip-label">Overview</div>
+    <p>An auto-rower pulls the handle (force–velocity line F = F<sub>max</sub>(1 − v/v<sub>max</sub>)). The rope turns the spool; the one-way clutch (amber when locked) drives the belt and the motor; the flywheel coasts through the recovery while the recoil spring rewinds the rope. Every motion is the realistic plant of <i>sim/rowing_plant.py</i>, on the placeholder constants.</p>
+    <div class="ip-eq"><div class="ip-eq-title">Transmission</div>
+      <div class="formula">ω = n v, &nbsp; F = nτ + F<sub>s</sub><span class="n">n = G/r while the clutch is engaged</span></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Motor as generator</div>
+      <div class="formula">e = kω, &nbsp; τ<sub>e</sub> = k i, &nbsp; i = (e − v<sub>load</sub>)/R<sub>w</sub></div></div>
+    <div class="ip-eq"><div class="ip-eq-title">Best load power</div>
+      <div class="formula">P<sub>L</sub> = P<sub>h</sub> − P<sub>h</sub>²/P<sub>sc</sub><span class="n">P<sub>sc</sub> = (kω<sub>rated</sub>)²/R<sub>w</sub> · derivation §12</span></div></div>
+  </div>
+</div>
+
+<div id="circuit">
+  <div class="ip-label" id="cktTitle">Load circuit</div>
+  <svg id="cktSvg" viewBox="0 0 460 150"></svg>
+  <div class="ckt-note" id="cktNote"></div>
+</div>
+
+<script type="module" src="./src/main.js" onerror="__benchModuleFail()"></script>
+</body>
+</html>
