@@ -5,7 +5,8 @@
 // half-circle lens and measure the refraction angle in the same range/increments. Then they put the half-circle on the
 // opposite side of the normal axis and measure the critical angle." The data sheet is the manual's (the notebook).
 // Alignment is the student's judgement (Cole): the guide asks them to confirm it, and never measures it, so whatever they
-// set up is what their data carry. A record step completes when its notebook cell holds a number (any number).
+// set up is what their data carry. A record step completes when its notebook cell holds a number (any number); every
+// bench step waits for its button (Cole 2026-10-14).
 //
 // ctx: { M (the ray table's api), S (its state), T (the traced ray the readouts follow), nb(path) (a notebook cell's
 //        text: "t.t1.3.r", "c.thc"), filled(path) }
@@ -34,34 +35,42 @@ export const PROC_212 = {
   ],
   steps: [
     // ------------------------------------------------ calibrate the light source
-    { id: "far", phase: "cal", title: "Slide the light source back along the rail: the farther, the better",
+    // every bench step is the student's to confirm (Cole 2026-10-14: "A confirmation, not an automation"): the button is
+    // live once the step's prerequisite holds, and the camera moves only when it is pressed, never in the middle of a drag.
+    // Order (Cole): the table at 0 before the slit plate is lined up, and the plate lined up before the mask goes on.
+    { id: "far", phase: "cal", kind: "confirm", title: "Slide the light source back along the rail: the farther, the better",
       why: "The filament is not a point: the farther it is from the slit, the narrower and straighter the ray.",
       watch: "Drag the light source along its rail. Read its distance from the slit on the rail scale: at least 10 cm.",
-      view: "source", target: (c) => ({ obj: c.M.src.hBack }), done: (c) => c.S.src.d >= 0.1 - 1e-9 },
+      confirm: "It is far enough back", ready: (c) => c.S.src.d >= 0.1 - 1e-9, notReady: "At least 10 cm from the slit (the rail scale).",
+      view: "source", target: (c) => ({ obj: c.M.src.hBack }) },
     { id: "filament", phase: "cal", kind: "confirm", title: "Turn the filament until it stands vertical",
       why: "Turned, the filament looks wider from the slit, so the ray is wider and fuzzier.",
       watch: "Turn the knob on top of the light source (drag around it, or scroll). Watch the filament in the window, and the ray on the table.",
       confirm: "The filament is vertical", view: "source", target: (c) => ({ obj: c.M.src.srcKnob }) },
-    { id: "mask", phase: "cal", title: "Put the slit mask on the slit plate",
-      why: "The slit plate has five slits; the mask lets one ray through.",
-      watch: "Click the slit mask lying beside the holder.", view: "source", target: (c) => ({ obj: c.M.src.maskFlat }),
-      done: (c) => c.S.src.mask !== null },
-    { id: "oneRay", phase: "cal", title: "Slide the mask until only one ray gets through",
-      why: "One ray, from the centre slit: as you put it on, the mask lets the next slit through.", watch: "Drag the mask across the slit plate (or scroll over it).",
-      view: "overview", target: (c) => ({ obj: c.M.src.maskR }), done: (c) => c.M.labBeams(1).length === 1 && c.M.centreRay()?.off === 0 },
-    { id: "zero", phase: "cal", title: "Turn the table to 0°",
-      why: "At 0° the NORMAL line points at the light source.", watch: "Drag the table around, or scroll over it (0.5° a notch).",
-      view: "protractor", target: (c) => ({ obj: c.M.knob }), done: atZero },
-    { id: "straight", phase: "cal", kind: "confirm", title: "Slide the slit plate until the ray runs along the NORMAL line, through the centre",
+    { id: "zero", phase: "cal", kind: "confirm", title: "Turn the table to 0°",
+      why: "At 0° the NORMAL line points at the light source: the line you will line the ray up on.", watch: "Drag the table around, or scroll over it (0.5° a notch).",
+      confirm: "The table is at 0°", ready: atZero, notReady: "Turn the table until it reads 0°.",
+      view: "protractor", target: (c) => ({ obj: c.M.knob }) },
+    { id: "straight", phase: "cal", kind: "confirm", title: "Slide the slit plate until the middle ray runs along the NORMAL line, through the centre",
       why: "A ray off the centre, or tilted, shifts every angle you read: a systematic error in all your data.",
-      watch: "Grab the slit plate by an end, where it sticks out past the mask, and drag it across (or scroll over the end: 0.1 mm a notch). Follow the ray across the whole table.",
-      confirm: "The ray runs along NORMAL", ready: (c) => atZero(c) && !c.S.placed && c.M.labBeams(1).length === 1,
-      notReady: "The table must be empty, at 0°, with one ray.", view: "protractor", target: (c) => ({ obj: c.M.src.plate, off: [0, 0, 0.029] }) },   // an end: the mask covers the middle
+      watch: "Five rays come through the five slits: line up the middle one. Grab the slit plate by an end and drag it across (or scroll over the end: 0.1 mm a notch). Follow the ray across the whole table.",
+      confirm: "The middle ray runs along NORMAL", ready: (c) => atZero(c) && !c.S.placed,
+      notReady: "The table must be empty and at 0°.", view: "protractor", target: (c) => ({ obj: c.M.src.plate, off: [0, 0, 0.029] }) },
+    { id: "mask", phase: "cal", kind: "confirm", title: "Put the slit mask on the slit plate",
+      why: "The slit plate has five slits; the mask lets one ray through.",
+      watch: "Click the slit mask lying beside the holder.", confirm: "The mask is on", ready: (c) => c.S.src.mask !== null,
+      notReady: "Click the mask to put it on.", view: "source", target: (c) => ({ obj: c.M.src.maskFlat }) },
+    { id: "oneRay", phase: "cal", kind: "confirm", title: "Slide the mask until only the middle ray gets through",
+      why: "One ray, from the centre slit, the one you lined up: as you put it on, the mask lets the next slit through.",
+      watch: "Drag the mask across the slit plate (or scroll over it). Check the ray still runs along NORMAL.",
+      confirm: "Only the middle ray is left", ready: (c) => c.M.labBeams(1).length === 1, notReady: "Slide the mask until exactly one ray gets through.",
+      view: "overview", target: (c) => ({ obj: c.M.src.maskR }) },
     // ------------------------------------------------ reflection (Table 1)
-    { id: "mirror", phase: "refl", title: "Set the plane mirror on the COMPONENT line, centred on the cross",
+    { id: "mirror", phase: "refl", kind: "confirm", title: "Set the plane mirror on the COMPONENT line, centred on the cross",
       why: "Its face on the COMPONENT line puts the NORMAL line at right angles to it, through the centre.",
       watch: "Click the plane mirror in the mirror tray, then click on the cross to set it down: it comes square to the lines. Drag it to slide it.",
-      view: "overview", target: (c) => ({ obj: c.M.slotOf("mirror") }), done: (c) => c.S.placed && c.S.block === "mirror" },
+      confirm: "The mirror is on the cross", ready: (c) => c.S.placed && c.S.block === "mirror", notReady: "Set the mirror down on the table.",
+      view: "overview", target: (c) => (c.S.placed && c.S.block === "mirror" ? { obj: c.M.block } : { obj: c.M.slotOf("mirror") }) },
     { id: "mirror0", phase: "refl", kind: "confirm", title: "Check the mirror at 0°: the ray should come straight back on itself",
       why: "If it doesn't, the mirror's face is not square to the ray: every reflection angle would be off.",
       watch: "Turn or slide the mirror if needed (scroll to turn it; , and . turn it 0.1°).",
@@ -69,11 +78,12 @@ export const PROC_212 = {
       notReady: "The mirror on the table and the table at 0°.", view: "protractor", target: (c) => ({ obj: c.M.block }) },
     ...rows("t1", "refl", ["i", "r"], "reflection angle"),
     // ------------------------------------------------ refraction (Table 2)
-    { id: "lens", phase: "refr", title: "Swap the mirror for the acrylic half-circle: flat face on the COMPONENT line, toward the light, centred",
+    { id: "lens", phase: "refr", kind: "confirm", title: "Swap the mirror for the acrylic half-circle: flat face on the COMPONENT line, toward the light, centred",
       why: "The ray meets the flat face at the centre, bends inside, and leaves the curved face along a radius, unbent.",
       watch: "Click the acrylic half-circle in the block tray (the mirror goes back), then click on the cross to set it down: it comes square to the lines, flat face toward the light. Drag it to slide it.",
-      view: "overview", target: (c) => ({ obj: c.M.slotOf("acrylic") }),
-      done: (c) => c.S.placed && c.S.block === "acrylic" && Math.abs(wrap(c.S.pose.psi)) < 45 * D2R },
+      confirm: "The half-circle is on the cross", ready: (c) => c.S.placed && c.S.block === "acrylic" && Math.abs(wrap(c.S.pose.psi)) < 45 * D2R,
+      notReady: "Set the half-circle down on the table, flat face toward the light.",
+      view: "overview", target: (c) => (c.S.placed && c.S.block === "acrylic" ? { obj: c.M.block } : { obj: c.M.slotOf("acrylic") }) },
     { id: "lens0", phase: "refr", kind: "confirm", title: "Check the half-circle at 0°: the ray should go straight through, unbent",
       why: "At 0° a ray on the centre meets both faces square. If it bends, the half-circle is off the centre or turned.",
       watch: "Slide or turn the half-circle if needed.", confirm: "It goes straight through",
@@ -81,10 +91,11 @@ export const PROC_212 = {
       view: "protractor", target: (c) => ({ obj: c.M.block }) },
     ...rows("t2", "refr", ["phi", "php"], "refraction angle"),
     // ------------------------------------------------ critical angle
-    { id: "flip", phase: "crit", title: "Turn the half-circle around, so the light enters its curved side",
+    { id: "flip", phase: "crit", kind: "confirm", title: "Turn the half-circle around, so the light enters its curved side",
       why: "Now the light goes from acrylic to air at the flat face: past the critical angle, none of it gets out.",
       watch: "Press F with the half-circle on the table to turn it half round (or pick it up and turn it).",
-      view: "protractor", target: (c) => ({ obj: c.M.block }), done: (c) => c.S.placed && c.S.block === "acrylic" && c.T && c.T.from === "curved" },
+      confirm: "The light enters the curved side", ready: (c) => c.S.placed && c.S.block === "acrylic" && c.T && c.T.from === "curved",
+      notReady: "Turn the half-circle round (F).", view: "protractor", target: (c) => ({ obj: c.M.block }) },
     { id: "thc", phase: "crit", title: "Turn the table slowly until the ray leaving the flat face just disappears, and record that angle",
       why: "At the critical angle the refracted ray grazes the face, and fades out.",
       watch: "Read the incident angle where the incoming ray crosses the degree ring, from the NORMAL line. Type it as the measured critical angle.",
