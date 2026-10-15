@@ -60,7 +60,7 @@ export const PROC_212 = {
     // ------------------------------------------------ reflection (Table 1)
     { id: "mirror", phase: "refl", title: "Set the plane mirror on the COMPONENT line, centred on the cross",
       why: "Its face on the COMPONENT line puts the NORMAL line at right angles to it, through the centre.",
-      watch: "Click the plane mirror in the mirror tray, then click on the platform to set it down. Drag it to slide it; scroll to turn it.",
+      watch: "Click the plane mirror in the mirror tray, then click on the cross to set it down: it comes square to the lines. Drag it to slide it.",
       view: "overview", target: (c) => ({ obj: c.M.slotOf("mirror") }), done: (c) => c.S.placed && c.S.block === "mirror" },
     { id: "mirror0", phase: "refl", kind: "confirm", title: "Check the mirror at 0°: the ray should come straight back on itself",
       why: "If it doesn't, the mirror's face is not square to the ray: every reflection angle would be off.",
@@ -71,7 +71,7 @@ export const PROC_212 = {
     // ------------------------------------------------ refraction (Table 2)
     { id: "lens", phase: "refr", title: "Swap the mirror for the acrylic half-circle: flat face on the COMPONENT line, toward the light, centred",
       why: "The ray meets the flat face at the centre, bends inside, and leaves the curved face along a radius, unbent.",
-      watch: "Click the acrylic half-circle in the block tray (the mirror goes back), then set it down. Scroll to turn it so the flat face faces the light source.",
+      watch: "Click the acrylic half-circle in the block tray (the mirror goes back), then click on the cross to set it down: it comes square to the lines, flat face toward the light. Drag it to slide it.",
       view: "overview", target: (c) => ({ obj: c.M.slotOf("acrylic") }),
       done: (c) => c.S.placed && c.S.block === "acrylic" && Math.abs(wrap(c.S.pose.psi)) < 45 * D2R },
     { id: "lens0", phase: "refr", kind: "confirm", title: "Check the half-circle at 0°: the ray should go straight through, unbent",
