@@ -12,7 +12,6 @@
 //        text: "t.t1.3.r", "c.thc"), filled(path) }
 const D2R = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
-const atZero = (c) => Math.abs(c.S.phi) < 0.05;
 const ANGLES = [0, 10, 20, 30, 40, 50, 60, 70, 80];
 
 const rows = (table, phase, keys, what) => ANGLES.map((a, k) => ({
@@ -35,7 +34,8 @@ export const PROC_212 = {
   ],
   steps: [
     // ------------------------------------------------ calibrate the light source
-    // every bench step is the student's to confirm (Cole 2026-10-14: "A confirmation, not an automation"): the button is
+    // how close to 0 the table is, how straight the ray is, how square the part sits: all the student's judgement, never a
+    // gate (Cole 2026-10-24: "even I cannot get it to land perfectly at 0"). every bench step is the student's to confirm (Cole 2026-10-14: "A confirmation, not an automation"): the button is
     // live once the step's prerequisite holds, and the camera moves only when it is pressed, never in the middle of a drag.
     // Order (Cole): the table at 0 before the slit plate is lined up, and the plate lined up before the mask goes on.
     { id: "far", phase: "cal", kind: "confirm", title: "Slide the light source back along the rail: the farther, the better",
@@ -48,14 +48,14 @@ export const PROC_212 = {
       watch: "Turn the knob on top of the light source (drag around it, or scroll). Watch the filament in the window, and the ray on the table.",
       confirm: "The filament is vertical", view: "source", target: (c) => ({ obj: c.M.src.srcKnob }) },
     { id: "zero", phase: "cal", kind: "confirm", title: "Turn the table to 0°",
-      why: "At 0° the NORMAL line points at the light source: the line you will line the ray up on.", watch: "Drag the table around, or scroll over it (0.5° a notch).",
-      confirm: "The table is at 0°", ready: atZero, notReady: "Turn the table until it reads 0°.",
+      why: "At 0° the NORMAL line points at the light source: the line you will line the ray up on. However close you get, what is left over is a systematic error in every angle you read.",
+      watch: "Drag the table around, or scroll over its knob (0.5° a notch). Read the degree ring (the readout under Readings shows it too).",
+      confirm: "The table is at 0°",
       view: "protractor", target: (c) => ({ obj: c.M.knob }) },
     { id: "straight", phase: "cal", kind: "confirm", title: "Slide the slit plate until the middle ray runs along the NORMAL line, through the centre",
       why: "A ray off the centre, or tilted, shifts every angle you read: a systematic error in all your data.",
       watch: "Five rays come through the five slits: line up the middle one. Grab the slit plate by an end and drag it across (or scroll over the end: 0.1 mm a notch). Follow the ray across the whole table.",
-      confirm: "The middle ray runs along NORMAL", ready: (c) => atZero(c) && !c.S.placed,
-      notReady: "The table must be empty and at 0°.", view: "protractor", target: (c) => ({ obj: c.M.src.plate, off: [0, 0, 0.029] }) },
+      confirm: "The middle ray runs along NORMAL", ready: (c) => !c.S.placed, notReady: "The table must be empty.", view: "protractor", target: (c) => ({ obj: c.M.src.plate, off: [0, 0, 0.029] }) },
     { id: "mask", phase: "cal", kind: "confirm", title: "Put the slit mask on the slit plate",
       why: "The slit plate has five slits; the mask lets one ray through.",
       watch: "Click the slit mask lying beside the holder.", confirm: "The mask is on", ready: (c) => c.S.src.mask !== null,
@@ -68,26 +68,25 @@ export const PROC_212 = {
     // ------------------------------------------------ reflection (Table 1)
     { id: "mirror", phase: "refl", kind: "confirm", title: "Set the plane mirror on the COMPONENT line, centred on the cross",
       why: "Its face on the COMPONENT line puts the NORMAL line at right angles to it, through the centre.",
-      watch: "Click the plane mirror in the mirror tray, then click on the cross to set it down: it comes square to the lines. Drag it to slide it.",
+      watch: "Click the plane mirror in the mirror tray, then click on the cross to set it down: it comes square to the lines. Scroll over it to turn it (in the hand 0.5° a notch; on the table 0.1°), drag it to slide it.",
       confirm: "The mirror is on the cross", ready: (c) => c.S.placed && c.S.block === "mirror", notReady: "Set the mirror down on the table.",
       view: "overview", target: (c) => (c.S.placed && c.S.block === "mirror" ? { obj: c.M.block } : { obj: c.M.slotOf("mirror") }) },
     { id: "mirror0", phase: "refl", kind: "confirm", title: "Check the mirror at 0°: the ray should come straight back on itself",
       why: "If it doesn't, the mirror's face is not square to the ray: every reflection angle would be off.",
-      watch: "Turn or slide the mirror if needed (scroll to turn it; , and . turn it 0.1°).",
-      confirm: "It comes straight back", ready: (c) => atZero(c) && c.S.placed && c.S.block === "mirror",
-      notReady: "The mirror on the table and the table at 0°.", view: "protractor", target: (c) => ({ obj: c.M.block }) },
+      watch: "Turn or slide the mirror if needed: scroll over it to turn it (0.1° a notch, Shift 1°), drag it to slide it.",
+      confirm: "It comes straight back", ready: (c) => c.S.placed && c.S.block === "mirror", notReady: "The mirror must be on the table.", view: "protractor", target: (c) => ({ obj: c.M.block }) },
     ...rows("t1", "refl", ["i", "r"], "reflection angle"),
     // ------------------------------------------------ refraction (Table 2)
     { id: "lens", phase: "refr", kind: "confirm", title: "Swap the mirror for the acrylic half-circle: flat face on the COMPONENT line, toward the light, centred",
       why: "The ray meets the flat face at the centre, bends inside, and leaves the curved face along a radius, unbent.",
-      watch: "Click the acrylic half-circle in the block tray (the mirror goes back), then click on the cross to set it down: it comes square to the lines, flat face toward the light. Drag it to slide it.",
+      watch: "Click the acrylic half-circle in the block tray (the mirror goes back), then click on the cross to set it down: it comes square to the lines, flat face toward the light. Scroll over it to turn it, drag it to slide it.",
       confirm: "The half-circle is on the cross", ready: (c) => c.S.placed && c.S.block === "acrylic" && Math.abs(wrap(c.S.pose.psi)) < 45 * D2R,
       notReady: "Set the half-circle down on the table, flat face toward the light.",
       view: "overview", target: (c) => (c.S.placed && c.S.block === "acrylic" ? { obj: c.M.block } : { obj: c.M.slotOf("acrylic") }) },
     { id: "lens0", phase: "refr", kind: "confirm", title: "Check the half-circle at 0°: the ray should go straight through, unbent",
       why: "At 0° a ray on the centre meets both faces square. If it bends, the half-circle is off the centre or turned.",
-      watch: "Slide or turn the half-circle if needed.", confirm: "It goes straight through",
-      ready: (c) => atZero(c) && c.S.placed && c.S.block === "acrylic", notReady: "The half-circle on the table and the table at 0°.",
+      watch: "Slide or turn the half-circle if needed: scroll over it to turn it (0.1° a notch, Shift 1°), drag it to slide it.", confirm: "It goes straight through",
+      ready: (c) => c.S.placed && c.S.block === "acrylic", notReady: "The half-circle must be on the table.",
       view: "protractor", target: (c) => ({ obj: c.M.block }) },
     ...rows("t2", "refr", ["phi", "php"], "refraction angle"),
     // ------------------------------------------------ critical angle

@@ -178,6 +178,11 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   // the block: flat face on the turntable's diameter, curved side away from the light at 0 deg
   const block = new THREE.Mesh(blockGeometry("acrylic"), blockMaterial("acrylic")); block.position.y = DISC_Y + 0.0005; block.renderOrder = 2;   // curved side +x: away from the light at 0 deg
   block.userData.sharedLook = true; turn.add(block);
+  // the grab pad: an unseen disc a little larger than the part, so the wheel and a drag over the part work on the PART (a
+  // thin mirror is hard to hit, and the table under it took the wheel). It rides with the part; the table still turns by
+  // its rim, its knob and the disc outside the pad.
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(R_BLOCK + 0.008, R_BLOCK + 0.008, 0.024, 40), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, transparent: true, opacity: 0 }));
+  pad.position.y = 0.006; pad.userData.pickOnly = true; block.add(pad);
   // ray box: lamp housing with a slit, fixed, aimed at the centre
   const rb = new THREE.Group(); rb.position.set(BOX_X, TABLE_Y, C0.z); group.add(rb);
   const housing = box(0.11, 0.06, 0.07, MATERIALS.black); housing.position.set(-0.055, 0.03, 0); rb.add(housing);
@@ -290,12 +295,10 @@ export function createSnellModule({ $, clamp, setText, camera }) {
   function mountBlock(id) { setPart(id); S.pose = { x: 0, z: 0, psi: 0 }; S.placed = true; S.held = null; traySlots(); }
   function clearTable() { S.placed = false; S.held = null; traySlots(); }
   // hand placement: pick a part up from its tray (whatever was on the table goes back). It comes into the hand square to
-  // the table's lines, its face on the COMPONENT line toward the light, whatever angle the table is at, and it seats
-  // square when set down within SEAT of a line, as on the outline printed on the table (Cole 2026-10-14: at step 18 it
-  // came off the tray 100 deg off with the table at 80, and 0.5 deg a notch could not bring it round). Where it sits is
-  // still by hand; F turns it half round; , and . turn it 0.1 deg.
-  const SEAT = 10 * D2R;
-  const seat = (a) => { const sq = Math.round(a / (Math.PI / 2)) * (Math.PI / 2); return Math.abs(a - sq) <= SEAT ? wrapR(sq) : a; };
+  // the table's lines, its face on the COMPONENT line toward the light, whatever angle the table is at (Cole 2026-10-14:
+  // it used to keep its tray turn, 100 deg off). It is set down as it is held: no snap (Cole 2026-10-24: the student must
+  // be able to turn it, e.g. square to a ray that is not quite on 0). In the hand the wheel turns it 0.5 deg (Shift 5);
+  // on the table 0.1 deg (Shift 1) over its grab pad; , and . 0.1 deg; F half a turn.
   function pickUp(id) { setPart(id); S.placed = false; S.held = id; S.hand = { x: 0, z: 0.5, psi: 0, off: true }; traySlots(); }
   const wrapR = (a) => Math.atan2(Math.sin(a), Math.cos(a));
   const toTable = (p) => { const v = turn.worldToLocal(p.clone()); return { x: v.x, z: v.z }; };
@@ -308,10 +311,10 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     drop(p) {
       if (!p) return; const q = toTable(p);
       if (!onDisc(q)) { S.held = null; traySlots(); return; }                   // set down off the platform: it goes back in its tray
-      S.pose = { x: q.x, z: q.z, psi: seat(S.hand.psi) }; S.placed = true; S.held = null; traySlots();
+      S.pose = { x: q.x, z: q.z, psi: S.hand.psi }; S.placed = true; S.held = null; traySlots();
     },
     turn(sign, shift) { S.hand.psi = wrapR(S.hand.psi + sign * (shift ? 5 : 0.5) * D2R); },
-    describe: () => `${BLOCKS.find((B) => B.id === S.held).tag}<br>click on the platform to set it down (off it: back to the tray)<br>it seats square to the lines · F half a turn · scroll to turn it (Shift: 5°)`,
+    describe: () => `${BLOCKS.find((B) => B.id === S.held).tag}<br>click on the platform to set it down (off it: back to the tray)<br>it comes square to the lines · scroll to turn it 0.5° (Shift 5°) · F half a turn`,
   };
   // slide the placed part: it keeps the offset between the cursor and its reference point from the moment it was grabbed
   let grabOff = { x: 0, z: 0 };
@@ -719,8 +722,8 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     { id: "snell:part", name: "Part on the table", objects: [block], kind: "plane", planeY: discY,
       grab: (p) => { const q = toTable(p); grabOff = { x: S.pose.x - q.x, z: S.pose.z - q.z }; },
       moveTo: (p) => { const q = toTable(p); nudge(q.x + grabOff.x - S.pose.x, q.z + grabOff.z - S.pose.z, 0); },
-      turn: (sign, shift) => nudge(0, 0, sign * (shift ? 5 : 0.5) * D2R),
-      describe: () => `${BLOCKS.find((B) => B.id === S.block).tag}<br>drag to slide it · scroll to turn it 0.5° (Shift 5°) · F half a turn<br>arrow keys 0.2 mm · , and . turn 0.1°` },
+      turn: (sign, shift) => nudge(0, 0, sign * (shift ? 1 : 0.1) * D2R),   // on the table: fine (Cole 2026-10-24)
+      describe: () => `${BLOCKS.find((B) => B.id === S.block).tag}<br>drag to slide it · scroll to turn it 0.1° (Shift 1°) · F half a turn<br>arrow keys 0.2 mm · , and . turn 0.1°` },
     { id: "snell:table", name: "Protractor table", objects: [disc, rim, knob], centre: turn, kind: "rotary", wheelStep: 0.5 * D2R,
       rotate: (d) => setPhi(S.phi - d / D2R), describe: () => `Table turned to <b>${S.phi.toFixed(1)}°</b><br>drag the table around, or scroll (0.5° a notch)` },
     // the lab source (hidden in explore mode, so not pickable there)
@@ -780,7 +783,7 @@ export function createSnellModule({ $, clamp, setText, camera }) {
     if (T.empty) {
       const held = S.held && BLOCKS.find((B) => B.id === S.held).tag;
       setText({ chips: `<div class="chip c-x">table = <b>${S.phi.toFixed(1)}°</b></div>`,
-        status: held ? `Holding the <b>${held}</b>. Click on the cross to set it down: it seats square to the lines (F turns it half round).`
+        status: held ? `Holding the <b>${held}</b>. Click on the cross to set it down: it comes square to the lines; scroll to turn it (F half round).`
           : "The table is empty. Click the D-shaped lens or the mirror in its tray to pick it up, then set it on the platform.",
         mode: held ? "placing the " + held : "empty table" });
       return;
