@@ -5,7 +5,8 @@
 // only whether the arithmetic follows. The conclusions are typed too, and checked against the fit and the entries.
 //
 // A sheet = { id, title, subtitle, tables, graph, conclusions }.
-//   table  = { id, caption, rows: n | [labels], cols: [{ key, head, unit, text?, init?, derive? }], singles?: [...] }
+//   table  = { id, caption, rows: n | [labels], cols: [{ key, head, unit, text?, init?, derive?, auto? }], singles?: [...] }
+//   auto: n -> the column is computed, not typed: fillAuto writes derive()[0] to n places (blank while its inputs are)
 //   derive(row, S) / derive(S, fit) -> null (inputs missing) or an array of acceptable values (one per honest route:
 //            e.g. d = lambda/sin(theta) from the typed theta OR from the typed sin(theta))
 // The state S = { t: { tableId: [ { key: "typed text" } ] }, c: { key: "typed text" }, meta: { name, section, date } }.
@@ -105,8 +106,9 @@ export const SHEETS = {
       { id: "t2", caption: "Table 2: Refraction Data", rows: 9, cols: [
         { key: "phi", head: "Incident Angle <i>φ</i>", unit: "Degrees" },
         { key: "php", head: "Refraction Angle <i>φ′</i>", unit: "Degrees" },
-        { key: "sphi", head: "sin <i>φ</i>", unit: "−", derive: (r) => v(r, "phi") !== null ? [sinD(v(r, "phi"))] : null },
-        { key: "sphp", head: "sin <i>φ′</i>", unit: "−", derive: (r) => v(r, "php") !== null ? [sinD(v(r, "php"))] : null }] },
+        // auto (Cole 2026-10-24): the sines fill in from the student's own angles, to 4 places
+        { key: "sphi", head: "sin <i>φ</i>", unit: "−", auto: 4, derive: (r) => v(r, "phi") !== null ? [sinD(v(r, "phi"))] : null },
+        { key: "sphp", head: "sin <i>φ′</i>", unit: "−", auto: 4, derive: (r) => v(r, "php") !== null ? [sinD(v(r, "php"))] : null }] },
     ],
     // the manual's graph: sin(phi) against sin(phi'); its slope is n_g
     graph: { title: "Sinφ as a Function of Sinφ'", x: "Sinφ'", y: "Sinφ", xSym: "Sinφ'", ySym: "Sinφ",
@@ -184,6 +186,13 @@ export function blank(id) {
   return S;
 }
 
+// the computed columns (auto): written from the row's own entries; blank while those are missing. Returns S.
+export function fillAuto(id, S) {
+  for (const T of SHEETS[id].tables) for (const C of T.cols) if (C.auto !== undefined)
+    (S.t[T.id] || []).forEach((r) => { const d = C.derive(r, S); r[C.key] = d && Number.isFinite(d[0]) ? d[0].toFixed(C.auto) : ""; });
+  return S;
+}
+
 // the fit of the sheet's graph (null below two points)
 export const fitOf = (id, S) => linfit(SHEETS[id].graph.points(S));
 
@@ -193,7 +202,7 @@ export function audit(id, S) {
   for (const T of sh.tables) {
     (S.t[T.id] || []).forEach((r, i) => {
       for (const C of T.cols) {
-        const s = r[C.key]; if (C.text || s === undefined || String(s).trim() === "") continue;
+        const s = r[C.key]; if (C.text || C.auto !== undefined || s === undefined || String(s).trim() === "") continue;   // auto: not the student's
         if (Number.isNaN(num(s))) { out.push({ where: `${T.id}.${i}.${C.key}`, ok: false, bad: "not a number" }); continue; }
         if (C.derive) { const a = agrees(s, C.derive(r, S)); if (a !== null) out.push({ where: `${T.id}.${i}.${C.key}`, ok: a }); }
       }

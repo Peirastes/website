@@ -100,13 +100,9 @@ export const PROC_212 = {
       watch: "Read the incident angle where the incoming ray crosses the degree ring, from the NORMAL line. Type it as the measured critical angle.",
       view: "protractor", notebook: true, target: () => ({ cell: "c.thc" }), done: (c) => c.filled("c.thc") },
     // ------------------------------------------------ analysis (the notebook)
-    { id: "sines", phase: "an", title: "Work out sin φ and sin φ′ for every row of Table 2",
-      why: "The graph is sin φ against sin φ′: by Snell's law a straight line with slope <i>n</i><sub>g</sub>.",
-      watch: "A ✓ means the value follows from your own entries.", notebook: true, target: () => ({ cell: "t.t2.1.sphi" }),
-      cells: () => ANGLES.flatMap((a, k) => [`t.t2.${k}.sphi`, `t.t2.${k}.sphp`]),
-      done: (c) => ANGLES.every((a, k) => c.filled(`t.t2.${k}.sphi`) && c.filled(`t.t2.${k}.sphp`)) },
+    // (the sines fill in by themselves from the angles: Cole 2026-10-24, so no step for them)
     { id: "ng1", phase: "an", title: "Work out <i>n</i><sub>g</sub> from your critical angle",
-      why: "<i>n</i><sub>g</sub> = 1 / sin <i>θ</i><sub>c</sub> (air on the other side).", notebook: true, target: () => ({ cell: "c.ng1" }), done: (c) => c.filled("c.ng1") },
+      why: "<i>n</i><sub>g</sub> = 1 / sin <i>θ</i><sub>c</sub> (air on the other side). The sines in Table 2, and the graph, fill in from your angles.", notebook: true, target: () => ({ cell: "c.ng1" }), done: (c) => c.filled("c.ng1") },
     { id: "ng2", phase: "an", title: "Read the slope of the graph: that is <i>n</i><sub>g</sub>",
       why: "Snell's law with air <i>n</i> ≈ 1: sin φ = <i>n</i><sub>g</sub> sin φ′.", watch: "The graph and its trendline are below the tables.",
       notebook: true, target: () => ({ cell: "c.ng2" }), done: (c) => c.filled("c.ng2") },

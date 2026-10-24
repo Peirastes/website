@@ -6,7 +6,7 @@
 // student's own entries and the fit? Saved in this browser only; CSV download and a printable sheet.
 // Sheets, fit and checks: ../../physics/labsheet.mjs (tested on Cole's keys).
 import * as THREE from "three";
-import { SHEETS, SHEET_OF_STATION, blank, fitOf, audit, fitLabel, toCSV, num } from "../physics/labsheet.mjs";
+import { SHEETS, SHEET_OF_STATION, blank, fitOf, audit, fitLabel, toCSV, num, fillAuto } from "../physics/labsheet.mjs";
 import { TABLE_Y, MATERIALS } from "./bench.js";
 
 const STORE = "olv2-notebook-v1";
@@ -21,9 +21,9 @@ export function createNotebook({ stations, onLayout = () => {} }) {
   if (!store || typeof store !== "object" || Array.isArray(store)) store = {};   // a damaged saved value: start clean
   const stateOf = (id) => {
     const b = blank(id), s = store[id];
-    if (!s) return (store[id] = b);
+    if (!s) return (store[id] = fillAuto(id, b));
     for (const T of SHEETS[id].tables) b.t[T.id] = b.t[T.id].map((r, i) => ({ ...r, ...((s.t && s.t[T.id] && s.t[T.id][i]) || {}) }));   // a saved sheet keeps its shape if the sheet grows
-    return (store[id] = { t: b.t, c: { ...(s.c || {}) }, meta: { ...b.meta, ...(s.meta || {}) } });
+    return (store[id] = fillAuto(id, { t: b.t, c: { ...(s.c || {}) }, meta: { ...b.meta, ...(s.meta || {}) } }));   // a sheet saved before a column went auto fills too
   };
   let saveT = 0;
   const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify(store)); } catch {} }, 250); };
@@ -57,7 +57,8 @@ export function createNotebook({ stations, onLayout = () => {} }) {
   const page = el.querySelector("#nbPage");
   let cur = null, curStation = null, canvas = null, fitBox = null;
 
-  const cell = (where, val, cls = "", ph = "") => `<input class="nb-in ${cls}" data-w="${where}" value="${esc(val)}" placeholder="${ph}" inputmode="${cls.includes("nb-txt") ? "text" : "decimal"}" autocomplete="off" spellcheck="false">`;
+  // a computed (auto) cell is read-only and out of the Tab order: it fills in from the row's own entries
+  const cell = (where, val, cls = "", ph = "") => `<input class="nb-in ${cls}" data-w="${where}" value="${esc(val)}" placeholder="${ph}" inputmode="${cls.includes("nb-txt") ? "text" : "decimal"}" autocomplete="off" spellcheck="false"${cls.includes("nb-auto") ? ' readonly tabindex="-1" title="Fills in from your angles"' : ""}>`;
   function render() {
     const sh = SHEETS[cur], S = stateOf(cur);
     el.querySelector("#nbName").textContent = `Lab notebook · Exp ${cur}`;
@@ -68,7 +69,7 @@ export function createNotebook({ stations, onLayout = () => {} }) {
       h += `<table class="nb-tab"><thead><tr>${lead !== null ? `<th>${lead}</th>` : ""}${T.cols.map((C) => `<th${C.text ? ' style="width:15%"' : ""}>${C.head}${C.unit ? `<br><span class="u">(${C.unit === "−" ? "−" : C.unit})</span>` : ""}</th>`).join("")}</tr></thead><tbody>`;
       S.t[T.id].forEach((r, i) => {
         h += `<tr>${lead !== null ? `<td class="nb-lead">${Array.isArray(T.rows) ? T.rows[i] : i + 1}</td>` : ""}` +
-          T.cols.map((C) => `<td data-c="${T.id}.${i}.${C.key}"${C.derive ? ' class="der"' : ""}>${cell(`t.${T.id}.${i}.${C.key}`, r[C.key] ?? "", C.text ? "nb-txt" : "")}</td>`).join("") + "</tr>";
+          T.cols.map((C) => `<td data-c="${T.id}.${i}.${C.key}"${C.auto !== undefined ? ' class="auto"' : C.derive ? ' class="der"' : ""}>${cell(`t.${T.id}.${i}.${C.key}`, r[C.key] ?? "", C.text ? "nb-txt" : C.auto !== undefined ? "nb-auto" : "")}</td>`).join("") + "</tr>";
       });
       h += `</tbody></table><div class="nb-cap">${T.caption}</div>`;
       if (T.singles) h += `<div class="nb-singles">${T.singles.map((G) => `<label data-c="c.${G.key}" class="der"><span>${G.label}</span>${cell(`c.${G.key}`, S.c[G.key] ?? "")}<span class="u">${G.unit || ""}</span></label>`).join("")}</div>`;
@@ -76,7 +77,7 @@ export function createNotebook({ stations, onLayout = () => {} }) {
     h += `<div class="nb-sec">Graph</div><canvas class="nb-graph" id="nbGraph"></canvas><div class="nb-fit" id="nbFit"></div>`;
     h += `<div class="nb-sec">Conclusions</div><div class="nb-concl">${sh.conclusions.map((G) => `<label data-c="c.${G.key}"${G.derive ? ' class="der"' : ""}><span>${G.label}</span>${cell(`c.${G.key}`, S.c[G.key] ?? "")}<span class="u">${G.unit || ""}</span></label>`).join("")}</div>`;
     h += `<div class="nb-namebox"><label>Name ${cell("m.name", S.meta.name, "nb-txt")}</label><label>Lab section ${cell("m.section", S.meta.section, "nb-txt")}</label><label>Date ${cell("m.date", S.meta.date, "nb-txt")}</label></div>
-      <div class="nb-foot">Type every reading and every calculated value, as on the paper sheet. A <span class="nb-ok">✓</span> means a calculated entry follows from your own entries (or the graph's fit); a <span class="nb-bad">!</span> means it does not: check the arithmetic. Neither says whether a reading is right. Saved in this browser only.</div>`;
+      <div class="nb-foot">Type every reading and every calculated value, as on the paper sheet (a shaded column fills in by itself). A <span class="nb-ok">✓</span> means a calculated entry follows from your own entries (or the graph's fit); a <span class="nb-bad">!</span> means it does not: check the arithmetic. Neither says whether a reading is right. Saved in this browser only.</div>`;
     page.innerHTML = h;
     canvas = page.querySelector("#nbGraph"); fitBox = page.querySelector("#nbFit");
     refresh();
@@ -106,6 +107,7 @@ export function createNotebook({ stations, onLayout = () => {} }) {
     const w = e.target.dataset && e.target.dataset.w; if (!w) return;
     const S = stateOf(cur), [kind, a, b, k] = w.split(".");
     if (kind === "t") S.t[a][+b][k] = e.target.value; else if (kind === "c") S.c[a] = e.target.value; else if (kind === "m") S.meta[a] = e.target.value;
+    if (kind === "t") { fillAuto(cur, S); page.querySelectorAll("input.nb-auto").forEach((x) => { const [, ta, tb, tk] = x.dataset.w.split("."); x.value = S.t[ta][+tb][tk] ?? ""; }); }
     save(); refresh();
   });
   // Enter moves down a column (as on paper, a column at a time); Esc closes
@@ -114,7 +116,7 @@ export function createNotebook({ stations, onLayout = () => {} }) {
     if (e.key === "Enter" && e.target.dataset.w) {
       e.preventDefault(); const w = e.target.dataset.w.split(".");
       const next = w[0] === "t" && page.querySelector(`[data-w="t.${w[1]}.${+w[2] + 1}.${w[3]}"]`);
-      const all = [...page.querySelectorAll("input.nb-in")]; (next || all[all.indexOf(e.target) + 1] || e.target).focus();
+      const all = [...page.querySelectorAll("input.nb-in:not([readonly])")]; (next || all[all.indexOf(e.target) + 1] || e.target).focus();
     }
   });
   el.querySelector("#nbClose").addEventListener("click", () => close());

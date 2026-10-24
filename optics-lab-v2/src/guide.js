@@ -41,6 +41,8 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
     else if (a === "close") stop();
   });
 
+  // the card keeps one height through a step: the not-ready note is hidden, not removed, when the button goes live (Cole
+  // 2026-10-24: the note came and went as the mask slid in step 6, the card's height changed, and the camera re-fitted)
   function render(ctx) {
     const s = step(), n = P.steps.length;
     const pi = s ? P.phases.findIndex((ph) => ph.id === s.phase) : P.phases.length;      // phases before it: done
@@ -52,7 +54,7 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
       const ready = s.kind === "confirm" ? (s.ready ? s.ready(ctx) : true) : true;
       body = `<div class="g-step">Step ${i + 1} of ${n}</div><div class="g-title">${s.title}</div>
         <div class="g-why">${s.why}</div>${s.watch ? `<div class="g-watch">${s.watch}</div>` : ""}
-        ${s.kind === "confirm" ? (ready ? "" : `<div class="g-note">${s.notReady || ""}</div>`) : ""}
+        ${s.kind === "confirm" && s.notReady ? `<div class="g-note"${ready ? ' style="visibility:hidden"' : ""}>${s.notReady}</div>` : ""}
         ${revisit && !undone && s.kind !== "confirm" && s.done(ctx) ? `<div class="g-note">Already done. Change it to redo this step, or Skip to go on.</div>` : ""}
         <div class="g-btns"><button class="es-btn" data-g="back"${i === 0 ? " disabled" : ""}>Back</button>
         ${s.kind === "confirm" ? `<button class="es-btn g-ok" data-g="confirm"${ready ? "" : " disabled"}>${s.confirm || "Confirm"}</button>` : ""}
