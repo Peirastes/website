@@ -39,13 +39,18 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
   const R_EDGE = 3.8, R_CENTRE = 0.3;                       // object radii (cm) read out as the arrow's "tip" and "base" (light box)
   const rTip = () => Math.abs(yOff() + k() * R_EDGE), rBase = () => Math.abs(yOff() + k() * R_CENTRE);   // ... for the object as it sits
   const GAP = 4.0;                                          // carriers cannot come closer than this (cm)
-  const lensOf = (id) => LENSES.find((L) => L.id === id);
+  // the empty holder (Cole 2026-10-24, Exp 213: the lab starts with every lens in the tray): a bare ring of the same
+  // aperture. Treated as a "lens" of f = 1e9 cm with no aberration: the screen shows each object point as the ring's
+  // shadow, D (1 + s/d_o) across, around the chief-ray projection: a dim, unfocused wash, as on the real bench
+  const NONE = { id: "", f: 1e9, tag: "empty holder", none: true };
+  const lensOf = (id) => LENSES.find((L) => L.id === id) || NONE;
+  const kindOf = (L) => (L.none ? "empty lens holder" : `${L.f > 0 ? "converging" : "diverging"} lens, f = ${L.tag}`);
   const LIMITS = { obj: () => [0, S.lens - GAP], lens: () => [S.far ? 0 : S.obj + GAP, S.screen - GAP], screen: () => [S.lens + GAP, 100] };
   function setPos(id, v) { const [a, b] = LIMITS[id](); S[id] = Math.round(clamp(v, a, b) * 100) / 100; }
   const st = () => benchState({ xObj: xObj(), xLens: S.lens, xScreen: S.screen, f: lensOf(S.lensId).f, D: S.D, hO: H_OBJ * k() });
   // blur (cm) on the screen for an object point at radius r: the lens model lives in physics/lens.mjs
   function blurFn() {
-    const f = lensOf(S.lensId).f, dO = S.lens - xObj(), s = S.screen - S.lens, ideal = S.ideal;
+    const f = lensOf(S.lensId).f, dO = S.lens - xObj(), s = S.screen - S.lens, ideal = S.ideal || lensOf(S.lensId).none;   // no glass: no aberration
     const D = S.D, fn = (r) => blurAt(D, f, dO, s, r, ideal);
     fn.uniform = ideal; fn.D = D; fn.zone = ideal ? null : (r) => zoneMap(D, f, dO, s, r, false);
     fn.ideal = ideal; fn.f = f; fn.A = saCoefficient(f, dO); fn.n = N_GLASS;      // what the GPU painter needs
@@ -54,12 +59,12 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
   }
   let mountedMesh = null;
   function mount(id) {
-    S.lensId = id; $("lensSel").value = id;
-    if (mountedMesh) { P.glassMount.remove(mountedMesh); mountedMesh.geometry.dispose(); }
-    mountedMesh = makeLens(lensOf(id).f); mountedMesh.userData.sharedLook = true; P.glassMount.add(mountedMesh);
+    S.lensId = id || ""; $("lensSel").value = S.lensId;
+    if (mountedMesh) { P.glassMount.remove(mountedMesh); mountedMesh.geometry.dispose(); mountedMesh = null; }
+    if (S.lensId) { mountedMesh = makeLens(lensOf(id).f); mountedMesh.userData.sharedLook = true; P.glassMount.add(mountedMesh); }
     for (const t of P.traySlots) t.lensMesh.visible = t.L.id !== id;   // the mounted lens leaves its slot empty
   }
-  $("lensSel").innerHTML = LENSES.map((L) => `<option value="${L.id}">f = ${L.tag} ${L.f > 0 ? "conv." : "div."}</option>`).join("");
+  $("lensSel").innerHTML = LENSES.map((L) => `<option value="${L.id}">f = ${L.tag} ${L.f > 0 ? "conv." : "div."}</option>`).join("") + '<option value="">none (empty holder)</option>';
   mount(S.lensId);
 
   // ---------------------------------------------------------------- EXTENDED FEATURE: iris diaphragm
@@ -103,7 +108,7 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
     { id: "object", name: "Light box (object)", objects: [P.object], kind: "slide", axis: new THREE.Vector3(1, 0, 0), worldPerUnit: 0.01,
       get: () => S.obj, set: (v) => setPos("obj", v), describe: describePos("obj", "illuminated arrow, tip 4.0 cm above the axis") },
     { id: "lens", name: "Lens holder", objects: [P.lens], kind: "slide", axis: new THREE.Vector3(1, 0, 0), worldPerUnit: 0.01,
-      get: () => S.lens, set: (v) => setPos("lens", v), describe: () => describePos("lens", `${lensOf(S.lensId).f > 0 ? "converging" : "diverging"} lens, f = ${lensOf(S.lensId).tag}`)() },
+      get: () => S.lens, set: (v) => setPos("lens", v), describe: () => describePos("lens", kindOf(lensOf(S.lensId)))() },
     { id: "screen", name: "Screen", objects: [P.screen], kind: "slide", axis: new THREE.Vector3(1, 0, 0), worldPerUnit: 0.01,
       get: () => S.screen, set: (v) => setPos("screen", v), describe: describePos("screen", "white card") },
     // Exp 213: the light box's height knob (5 mm a turn; a wheel notch 0.1 mm, Shift 1 mm)
@@ -149,7 +154,7 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
     const s = st(), bf = blurFn(), L = lensOf(S.lensId), h = S.lab;
     const c = (cls, sym, val, hide = false) => `<div class="chip ${cls}${hide ? " hide" : ""}">${sym} = <b>${val}</b></div>`;
     const rc = (name, x) => `<div class="chip c-x" title="rail reading, cm">${name} <b>${x.toFixed(1)}</b></div>`;
-    const chips = c("c-f", "<i>f</i>", `${L.f > 0 ? "+" : "−"}${Math.abs(L.f).toFixed(1)} cm`) + c("c-p", "<i>d</i><sub>o</sub>", `${s.dO.toFixed(1)} cm`, h) + c("c-p", "<i>s</i>", `${s.s.toFixed(1)} cm`, h) +
+    const chips = (L.none ? c("c-f", "lens", "none (empty holder)") : c("c-f", "<i>f</i>", `${L.f > 0 ? "+" : "−"}${Math.abs(L.f).toFixed(1)} cm`, h)) +   // hidden in the lab: Table 1 measures it c("c-p", "<i>d</i><sub>o</sub>", `${s.dO.toFixed(1)} cm`, h) + c("c-p", "<i>s</i>", `${s.s.toFixed(1)} cm`, h) +
       c("c-t", "<i>d</i><sub>i</sub>", `${fmt(s.dI)} cm`, h) + c("c-t", "<i>M</i>", Number.isFinite(s.M) ? s.M.toFixed(2) : "∞", h) +
       (S.iris ? c("c-f", "<i>D</i>", `${S.D.toFixed(2)} cm · f/${(Math.abs(L.f) / S.D).toFixed(1)}`) : "") +
       c("c-e", "<i>h</i><sub>i</sub>", `${fmt(s.hI)} cm`, h) + c("c-g", "<i>b</i> base", `${fmt(bf(rBase()), 2)} cm`, h) + c("c-g", "<i>b</i> tip", `${fmt(bf(rTip()), 2)} cm`, h) +
@@ -157,7 +162,8 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
     let msg;
     const farNote = S.far && s.real && Number.isFinite(s.dI) ? ` <b>Distant object</b> ${(s.dO / 100).toFixed(2)} m away: the image forms at d<sub>i</sub> = ${s.dI.toFixed(2)} cm, ${((s.dI / L.f - 1) * 100).toFixed(1)} % beyond f. That is the error in taking f ≈ d<sub>i</sub>.` : "";
     const offNote = !S.far && S.y0 !== 0 && Number.isFinite(s.M) ? ` The arrow's base sits ${(Math.abs(S.y0) * 10).toFixed(1)} mm ${S.y0 > 0 ? "above" : "below"} the axis, so its image's base reads ${(s.M * S.y0).toFixed(2)} cm on the ruler, not 0.` : "";
-    if (h) msg = "Computed values hidden.";
+    if (L.none) msg = "The lens holder is empty: the light box's light spreads across the screen, with nothing to focus it. Click a lens in the tray to mount it.";
+    else if (h) msg = "Computed values hidden.";
     else if (!Number.isFinite(s.dI)) msg = "Object at the focal point: the light leaves the lens parallel and the image is at infinity. Nothing focuses on the screen.";
     else if (!s.real) msg = `<b>Virtual image</b> ${Math.abs(s.dI).toFixed(1)} cm on the light-box side of the lens: no screen position can show it. Look back through the lens instead.`;
     else if (S.ideal) msg = s.blur < SHARP ? `<b>Sharp.</b> The screen sits at the image: s = d<sub>i</sub>. Inverted, ${Math.abs(s.M) >= 1 ? "magnified" : "reduced"} ×${Math.abs(s.M).toFixed(2)}.`
@@ -173,9 +179,9 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
         : `Blurred (b = ${bc.toFixed(2)} cm base, ${be.toFixed(2)} cm tip). Best focus: base at <b>${(S.lens + B.c.s).toFixed(1)} cm</b>, tip at <b>${(S.lens + B.e.s).toFixed(1)} cm</b> on the rail.`;
       focusWord = cOk && eOk ? " · best focus" : cOk ? " · base best" : eOk ? " · tip best" : " · image blurred";
     }
-    if (!h) msg += farNote + offNote;
+    if (!h && !L.none) msg += farNote + offNote;
     setText({ rail: (S.far ? '<div class="chip c-x" title="the object: a lit arrow on the far wall">object <b>far wall</b></div>' : rc("box", S.obj)) + rc("lens", S.lens) + rc("screen", S.screen), chips, status: msg,
-      mode: `${L.f > 0 ? "converging" : "diverging"} f = ${L.tag}` + (h ? " · lab" : !Number.isFinite(s.dI) ? " · image at infinity" : !s.real ? " · virtual image"
+      mode: (L.none ? "empty lens holder" : `${L.f > 0 ? "converging" : "diverging"} f = ${L.tag}`) + (h ? " · lab" : L.none ? "" : !Number.isFinite(s.dI) ? " · image at infinity" : !s.real ? " · virtual image"
         : S.ideal ? (s.blur < SHARP ? " · image sharp" : " · image blurred") : focusWord) });
   }
 
@@ -193,10 +199,15 @@ export function createLensModule({ renderer, stations, $, clamp, setText }) {
   }
   const rayS = () => ({ ...S, obj: xObj(), y0: yOff(), k: k() });     // the object as the rays see it
   function warm() { rays.update(rayS(), lensOf(S.lensId).f, S.D, st(), S.lab, null); screenImg.draw(st(), blurFn()); }
-  function reset() { Object.assign(S, DEFAULTS); S.y0 = S.lab ? LAB_Y0 : 0; setFar(false); mount(S.lensId); setIris(false); }
+  function reset() { Object.assign(S, DEFAULTS); S.y0 = S.lab ? LAB_Y0 : 0; setFar(false); mount(S.lab ? "" : S.lensId); setIris(false); }
   // Exp 213: switching lab mode ON sets the arrow LAB_Y0 off the axis (the student finds it from the ruler and turns the
-  // knob); switching it off leaves the arrow where the student put it
-  function setLab(on) { if (on && !S.lab) S.y0 = LAB_Y0; S.lab = on; for (const id of ["tRays", "tCone", "tFocal", "tGhost"]) $(id).disabled = on; }
+  // knob); switching it off leaves the arrow where the student put it;
+  // and the lens holder starts EMPTY, every lens in the tray (Cole 2026-10-24); Free mode (a demonstration) mounts the +15
+  function setLab(on) {
+    if (on && !S.lab) { S.y0 = LAB_Y0; mount(""); }
+    if (!on && S.lab && !S.lensId) mount(DEFAULTS.lensId);
+    S.lab = on; for (const id of ["tRays", "tCone", "tFocal", "tGhost"]) $(id).disabled = on;
+  }
 
   return {
     id: "lens", name: "Thin lens", group: "Geometric optics", scope: "Geometric optics · Thin lenses",

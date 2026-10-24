@@ -66,7 +66,7 @@ const v = (row, k) => { const x = num(row && row[k]); return Number.isFinite(x) 
 const c = (S, k) => { const x = num(S.c && S.c[k]); return Number.isFinite(x) ? x : null; };
 const colVals = (S, t, k) => (S.t[t] || []).map((r) => v(r, k)).filter((x) => x !== null);
 
-// the two m columns and their % diff (Exp 213 Tables 2 and 3)
+// the two m columns and their % diff (Exp 213 Tables 2 and 3); computed (auto, Cole 2026-10-24), as is Table 3's f
 const M_COLS = [
   { key: "do", head: "Object Distance <i>d</i><sub>0</sub>", unit: "cm" },
   { key: "di", head: "Image Distance <i>d<sub>i</sub></i>", unit: "cm" },
@@ -74,9 +74,9 @@ const M_COLS = [
 const M_TAIL = [
   { key: "ho", head: "Object Height <i>h</i><sub>0</sub>", unit: "cm", init: "4" },
   { key: "hi", head: "Image Height <i>h<sub>i</sub></i>", unit: "cm" },
-  { key: "m1", head: "<i>m</i> = <i>h<sub>i</sub></i>/<i>h</i><sub>0</sub>", derive: (r) => all(v(r, "hi"), v(r, "ho")) && v(r, "ho") !== 0 ? [v(r, "hi") / v(r, "ho")] : null },
-  { key: "m2", head: "<i>m</i> = −<i>d<sub>i</sub></i>/<i>d</i><sub>0</sub>", derive: (r) => all(v(r, "di"), v(r, "do")) && v(r, "do") !== 0 ? [-v(r, "di") / v(r, "do")] : null },
-  { key: "pd", head: "% Diff in <i>m</i>", unit: "%", derive: (r) => {
+  { key: "m1", head: "<i>m</i> = <i>h<sub>i</sub></i>/<i>h</i><sub>0</sub>", auto: 3, derive: (r) => all(v(r, "hi"), v(r, "ho")) && v(r, "ho") !== 0 ? [v(r, "hi") / v(r, "ho")] : null },
+  { key: "m2", head: "<i>m</i> = −<i>d<sub>i</sub></i>/<i>d</i><sub>0</sub>", auto: 3, derive: (r) => all(v(r, "di"), v(r, "do")) && v(r, "do") !== 0 ? [-v(r, "di") / v(r, "do")] : null },
+  { key: "pd", head: "% Diff in <i>m</i>", unit: "%", auto: 2, derive: (r) => {
     const out = [];
     if (all(v(r, "m1"), v(r, "m2"))) out.push(pctDiff(v(r, "m1"), v(r, "m2")));
     if (all(v(r, "hi"), v(r, "ho"), v(r, "di"), v(r, "do"))) out.push(pctDiff(v(r, "hi") / v(r, "ho"), -v(r, "di") / v(r, "do")));
@@ -134,7 +134,7 @@ export const SHEETS = {
         { key: "f", head: "Focal Length, <i>f</i>", unit: "cm" }] },
       { id: "t2", caption: "Table 2: Converging Lens #1 Optical Bench Data", rows: 5, trial: true, cols: [...M_COLS, ...M_TAIL] },
       { id: "t3", caption: "Table 3: Converging Lens #2 Optical Bench Data", rows: 5, trial: true, cols: [...M_COLS,
-        { key: "f", head: "Focal Length, <i>f</i>, using Eq. (1)", unit: "cm", derive: (r) => all(v(r, "do"), v(r, "di")) && v(r, "do") + v(r, "di") !== 0 ? [v(r, "do") * v(r, "di") / (v(r, "do") + v(r, "di"))] : null },
+        { key: "f", head: "Focal Length, <i>f</i>, using Eq. (1)", unit: "cm", auto: 2, derive: (r) => all(v(r, "do"), v(r, "di")) && v(r, "do") + v(r, "di") !== 0 ? [v(r, "do") * v(r, "di") / (v(r, "do") + v(r, "di"))] : null },
         ...M_TAIL],
         singles: [
           { key: "fbar", label: "<i>f̄</i> =", unit: "cm", derive: (S) => { const f = colVals(S, "t3", "f"); return f.length ? [mean(f)] : null; } },
@@ -148,8 +148,12 @@ export const SHEETS = {
       { key: "slope", label: "Slope of 1/<i>d<sub>i</sub></i> vs 1/<i>d</i><sub>0</sub>", derive: (S, fit) => (fit ? [fit.slope] : null), fromFit: true },
       { key: "pe", label: "% error of the slope against −1", unit: "%", derive: (S) => c(S, "slope") !== null ? [pctErr(c(S, "slope"), -1)] : null },
       { key: "f1", label: "<i>f</i><sub>1</sub> = 1/(intercept)", unit: "cm", derive: (S, fit) => (fit && fit.intercept ? [1 / fit.intercept, 1 / Number(coef(fit.intercept))] : null), fromFit: true },
-      { key: "pd1", label: "% diff of <i>f</i><sub>1</sub> (graph vs Table 1)", unit: "%", derive: (S) => { const a = c(S, "f1"), b = v((S.t.t1 || [])[0], "f"); return all(a, b) ? [pctDiff(a, b)] : null; } },
-      { key: "pd2", label: "% diff of <i>f</i><sub>2</sub> (<i>f̄</i> vs Table 1)", unit: "%", derive: (S) => { const a = c(S, "fbar"), b = v((S.t.t1 || [])[1], "f"); return all(a, b) ? [pctDiff(a, b)] : null; } },
+      // each f as typed, or carried at full precision from where it came from (1/intercept of the fit; the mean of the
+      // f column), as 212's % diff: both are honest routes (2026-10-24)
+      { key: "pd1", label: "% diff of <i>f</i><sub>1</sub> (graph vs Table 1)", unit: "%", derive: (S, fit) => { const a = c(S, "f1"), b = v((S.t.t1 || [])[0], "f"); if (!all(a, b)) return null;
+        const out = [pctDiff(a, b)]; if (fit && fit.intercept) out.push(pctDiff(1 / fit.intercept, b), pctDiff(1 / Number(coef(fit.intercept)), b)); return out; } },   // ... and from the label's intercept, as f1 itself
+      { key: "pd2", label: "% diff of <i>f</i><sub>2</sub> (<i>f̄</i> vs Table 1)", unit: "%", derive: (S) => { const a = c(S, "fbar"), b = v((S.t.t1 || [])[1], "f"); if (!all(a, b)) return null;
+        const out = [pctDiff(a, b)], f = colVals(S, "t3", "f"); if (f.length) out.push(pctDiff(mean(f), b)); return out; } },
     ],
   },
   214: {

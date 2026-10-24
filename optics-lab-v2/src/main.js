@@ -27,6 +27,7 @@ import { createSpecModule } from "./modules/spec.js";
 import { createNotebook } from "./notebook.js";
 import { createGuide } from "./guide.js";
 import { PROC_212 } from "./guide212.js";
+import { PROC_213 } from "./guide213.js";
 
 const $ = (id) => document.getElementById(id);
 const stage = $("stage");
@@ -268,8 +269,8 @@ $("resetBtn").addEventListener("click", () => current.reset());
 $("tFree").checked = !lab; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
 $("tFree").addEventListener("change", (e) => { lab = !e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
   if (!lab && guide.isActive()) { const keep = guideAuto; guide.stop(); guideAuto = keep; } autoGuide(); });
-// ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212 for now)
-const GUIDES = { snell: PROC_212 };
+// ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212, 213)
+const GUIDES = { snell: PROC_212, lens: PROC_213 };
 let guideProc = null;
 const screenXY = (obj, off = [0, 0, 0]) => { const v = obj.localToWorld(new THREE.Vector3(...off)).project(camera), R = renderer.domElement.getBoundingClientRect();
   return v.z > 1 ? null : [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height]; };
@@ -281,7 +282,7 @@ function autoGuide() { if (guideAuto && lab && !inRoom && !guide.isActive() && G
 function startGuide(P) { guideProc = P; guideAuto = true; guide.start(P, guideCtx); $("guideBtn").classList.add("on"); }
 // what a step's predicates see: the bench's api and state, the ray the readouts follow, and the notebook's cells
 function guideCtx() {
-  const M = modOf(guideProc.module).api, W = M.debug() && M.debug().wls, T = W && W.length ? W[Math.floor(W.length / 2)] : null, st = notebook.state(guideProc.id);
+  const M = modOf(guideProc.module).api, W = M.debug && M.debug() && M.debug().wls, T = W && W.length ? W[Math.floor(W.length / 2)] : null, st = notebook.state(guideProc.id);   // T: the ray table's traced ray (212 only)
   const nb = (path) => { const [k, a, b, c] = path.split("."); return k === "t" ? st.t[a]?.[+b]?.[c] : k === "c" ? st.c[a] : st.meta?.[a]; };
   const filled = (path) => { const v = nb(path), t = v === undefined || v === null ? "" : String(v).trim().replace(/[−–]/g, "-"); return t !== "" && /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(t); };
   return { M, S: M.S, T, nb, filled };

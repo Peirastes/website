@@ -58,7 +58,7 @@ export function createNotebook({ stations, onLayout = () => {} }) {
   let cur = null, curStation = null, canvas = null, fitBox = null;
 
   // a computed (auto) cell is read-only and out of the Tab order: it fills in from the row's own entries
-  const cell = (where, val, cls = "", ph = "") => `<input class="nb-in ${cls}" data-w="${where}" value="${esc(val)}" placeholder="${ph}" inputmode="${cls.includes("nb-txt") ? "text" : "decimal"}" autocomplete="off" spellcheck="false"${cls.includes("nb-auto") ? ' readonly tabindex="-1" title="Fills in from your angles"' : ""}>`;
+  const cell = (where, val, cls = "", ph = "") => `<input class="nb-in ${cls}" data-w="${where}" value="${esc(val)}" placeholder="${ph}" inputmode="${cls.includes("nb-txt") ? "text" : "decimal"}" autocomplete="off" spellcheck="false"${cls.includes("nb-auto") ? ' readonly tabindex="-1" title="Fills in from your readings"' : ""}>`;
   function render() {
     const sh = SHEETS[cur], S = stateOf(cur);
     el.querySelector("#nbName").textContent = `Lab notebook · Exp ${cur}`;

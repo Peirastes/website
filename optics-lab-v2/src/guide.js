@@ -87,14 +87,15 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
     render(ctx);
     // the card sits at the bottom, right of the notebook when it is open
     card.style.left = Math.max(window.innerWidth <= 520 ? 16 : 35, notebook.right() + 16) + "px";   // the Rankine stepper's 35 px; right of an open notebook
-    // the target: a ring on a 3D part, or an outline on a notebook cell
+    // the target: a ring on a 3D part, an outline on a notebook cell
     const t = s && s.target ? s.target(ctx) : null;
     if (t && t.obj) {
       const xy = screenPoint(t.obj, t.off || [0, 0, 0]);
       const onScreen = xy && xy[0] > 0 && xy[1] > 0 && xy[0] < innerWidth && xy[1] < innerHeight;
       ring.style.display = onScreen ? "block" : "none"; if (onScreen) { ring.style.left = xy[0] + "px"; ring.style.top = xy[1] + "px"; }
     } else ring.style.display = "none";
-    const cell = t && t.cell && notebook.isOpen() ? notebook.el.querySelector(`[data-w="${t.cell}"]`) : null;
+    // or an outline on a control in the panel (t.el: a selector; Exp 213's Distant object switch)
+    const cell = t && t.cell && notebook.isOpen() ? notebook.el.querySelector(`[data-w="${t.cell}"]`) : t && t.el ? document.querySelector(t.el) : null;
     if (cell !== lastCell) { clearCell(); if (cell) { cell.classList.add("guide-target"); lastCell = cell; } }
   }
   return { start, stop, update, isActive, index: () => i, step, confirm: () => { confirmed = true; }, skip: () => enter(i + 1), back: () => enter(i - 1, true), el: card };
