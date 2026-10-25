@@ -58,6 +58,11 @@ button:hover { border-color: var(--muted); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 #runBtn { background: var(--bright); border-color: var(--bright); color: #fff; min-width: 220px; user-select: none; -webkit-user-select: none; touch-action: none; }
 #runBtn.on { filter: brightness(1.12); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bright) 30%, transparent); }
+/* Touch screens: holding the run button holds the touch, so nothing else can be tapped while the motor runs. "Keep
+   running" latches pin 9 HIGH instead (2026-10-24, Cole: "a toggle button for phones so the diode can switch while running"). */
+.touch-only { display: none; }
+@media (hover: none) and (pointer: coarse) { .touch-only { display: inline-block; } .desk-only { display: none; } }
+#latchBtn[aria-pressed="true"] { background: var(--bright); border-color: var(--bright); color: #fff; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 7px 11px; font-size: .85rem; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
@@ -113,9 +118,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); ou
         <div class="legend"><span><i style="background:var(--bright)"></i>CH2 motor current (0.25 A/div)</span><span><i style="background:var(--loop)"></i>diode current</span><span><i style="background:var(--muted)"></i>pin 9</span></div>
         <div class="controls">
           <button id="runBtn" type="button" aria-pressed="false">Hold to run (pin 9 HIGH)</button>
+          <button id="latchBtn" class="touch-only" type="button" aria-pressed="false">Keep running</button>
           <button id="resetBtn" type="button">Reset</button>
         </div>
-        <div class="note">Spacebar also runs the motor. The scope shows peak-detect columns, so a microsecond spike still appears as a line on the 0.4 s/div view.</div>
+        <div class="note"><span class="desk-only">Spacebar also runs the motor.</span><span class="touch-only">Keep running latches the motor on, so you can change the diode or pin 9 while it runs; tap it again to stop.</span> The scope shows peak-detect columns, so a microsecond spike still appears as a line on the 0.4 s/div view.</div>
       </section>
 
       <section class="panel" aria-label="Turn-off capture">
@@ -590,11 +596,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); ou
       enter: () => setVdiv(2), met: () => st.flags.coast },
     { tab: "PWM", ref: "analogWrite()", title: "PWM makes it hundreds of kicks a second",
       text: "analogWrite() on pin 9 switches the transistor at about 490 Hz on an Uno, as in Part 2, and every off edge is a turn-off like the one you captured. With the diode, current keeps flowing through the loop during each off interval, so the motor gets smooth current and runs at a speed set by the duty cycle. Without it, every pulse ends in a breakdown past the 40 V rating, 490 times a second.",
-      eq: "P = ½ L I² · f", task: "Choose analogWrite at 50 %, run with the diode for a second, then switch the diode to None while still running and watch “kick power” and “kicks over 40 V”.",
+      eq: "P = ½ L I² · f", task: "Choose analogWrite at 50 %, run with the diode for a second, then switch the diode to None while still running (hold the spacebar, or tap Keep running on a phone) and watch “kick power” and “kicks over 40 V”.",
       enter: () => setVdiv(20), met: () => st.flags.pwm },
     { tab: "Reversed", ref: "Common wiring error", title: "Put it in backwards",
       text: "Installed backward, the diode points from +9 V straight into the collector. As soon as the transistor turns on, the diode and the transistor connect the supply almost directly to ground. The bench supply could deliver far more, but the 2N2222 only passes about 0.43 A, so it comes out of saturation with about 8 V across it: over 3 W in a part rated 625 mW. It overheats within seconds, and the motor barely moves. A reversed diode also does nothing at turn-off, so the spike is back. And while the motor coasts, its back-EMF now forward-biases the diode, which shorts the motor and brakes it hard: CH2 goes negative as the motor drives current backward through the loop.",
-      eq: "+9 V → diode → collector → 2N2222 → ground", task: "Set the diode to Reversed and press run briefly. Watch “2N2222 heat” and the red path. Then run the motor up with the diode Correct, switch to Reversed, and release: compare how fast it stops.",
+      eq: "+9 V → diode → collector → 2N2222 → ground", task: "Set the diode to Reversed and press run briefly. Watch “2N2222 heat” and the red path. Then run the motor up with the diode Correct, switch to Reversed while it runs (spacebar, or Keep running on a phone), and let it coast: compare how fast it stops.",
       met: () => st.flags.rev },
     { tab: "On the bench", ref: "Checklist", title: "Wiring it for real",
       text: "Check orientation before power: the stripe marks the cathode, which goes to the motor lead tied to +9 V; the anode goes to the collector. Put the diode right at the motor terminals, not at the far end of the wires. Pick a diode rated above the supply voltage and for at least the motor current; the 1N4007 in the parts list (or the kit's 1N4001) is fine for this motor, and a Schottky such as a 1N5819 switches faster for PWM. Keep the 1 kΩ base resistor: the base-emitter junction is a diode to ground, so without it pin 9 would try to source far more than its 20 mA recommended current (40 mA absolute maximum). Ready-made motor drivers (L298, TB6612) include these diodes, which is one reason they exist.",
@@ -633,18 +639,23 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); ou
   $("inLoad").oninput = e => { st.load = e.target.value / 1000; $("oLoad").textContent = `${e.target.value} mN·m`; };
   $("prevBtn").onclick = () => goStep(st.step - 1);
   $("nextBtn").onclick = () => goStep(st.step + 1);
-  $("resetBtn").onclick = () => { st.run = false; resetState(); capDirty = true; setRun(false); };
+  $("resetBtn").onclick = () => { st.run = false; resetState(); capDirty = true; setLatch(false); };
 
   const runBtn = $("runBtn");
   function setRun(on) { st.run = on; runBtn.classList.toggle("on", on); runBtn.setAttribute("aria-pressed", String(on)); runBtn.textContent = on ? "Running (pin 9 HIGH)" : "Hold to run (pin 9 HIGH)"; }
+  let latched = false;
+  const latchBtn = $("latchBtn");
+  function setLatch(on) { latched = on; latchBtn.setAttribute("aria-pressed", String(on)); latchBtn.textContent = on ? "Stop" : "Keep running"; setRun(on); }
+  latchBtn.onclick = () => setLatch(!latched);
+  const letGo = () => setRun(latched);           // releasing the hold button or the spacebar stops the motor unless latched
   runBtn.addEventListener("pointerdown", e => { e.preventDefault(); try { runBtn.setPointerCapture(e.pointerId); } catch (_) {} setRun(true); });
-  ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => runBtn.addEventListener(ev, () => setRun(false)));
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => runBtn.addEventListener(ev, letGo));
   runBtn.addEventListener("contextmenu", e => e.preventDefault());
   runBtn.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (!e.repeat) setRun(true); } });
-  runBtn.addEventListener("keyup", e => { if (e.key === "Enter") setRun(false); });
+  runBtn.addEventListener("keyup", e => { if (e.key === "Enter") letGo(); });
   window.addEventListener("keydown", e => { if (e.code === "Space" && !(e.target instanceof HTMLInputElement)) { e.preventDefault(); if (!e.repeat) setRun(true); } });
-  window.addEventListener("keyup", e => { if (e.code === "Space") setRun(false); });
-  window.addEventListener("blur", () => setRun(false));
+  window.addEventListener("keyup", e => { if (e.code === "Space") letGo(); });
+  window.addEventListener("blur", () => setLatch(false));   // leaving the page stops the motor, latched or not
 
   // ---------- loop ----------
   let last = performance.now(), frame = 0;
