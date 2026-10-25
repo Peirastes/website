@@ -1,0 +1,673 @@
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>Flyback Diode Bench</title><meta name="claude:viewport-fit-sides" content="cover"><!-- Source: the ENGR 1121 course folder, Flyback Diode Bench.html. Edit there, then re-wrap with web/wrap_doc.py. --></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: bench instrument, sibling of the Lab 105 page. The oscilloscope is the hero (rolling view + a
+   single-shot capture of each turn-off edge); the schematic with live current and the controls sit beside it.
+   Matched to the Lab 106 bench (2026-10-24): 2N2222 driven from pin 9 through 1 kOhm, 9 V supply, 1N4007. */
+:root {
+  --bg: #f3f5f4;
+  --panel: #ffffff;
+  --ink: #18201d;
+  --muted: #5d6a65;
+  --line: #d7dedb;
+  --plot-bg: #fbfcfb;
+  --grid: #e5ebe8;
+  --signal: #0f7c8c;      /* CH1 collector voltage */
+  --bright: #d26a12;      /* CH2 motor current */
+  --danger: #b0323a;      /* avalanche, ratings */
+  --loop: #6b4fb8;        /* diode / freewheel current */
+  --good: #1f8a4c;
+  --code-bg: #f6f8f7;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --panel: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --line: #2b3632;
+    --plot-bg: #141b18; --grid: #222c28; --signal: #3fc4d4; --bright: #f29a45; --danger: #ef6b72;
+    --loop: #a993ef; --good: #52c785; --code-bg: #131a17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --panel: #18201d; --ink: #e6ece9; --muted: #9aa8a2; --line: #2b3632;
+  --plot-bg: #141b18; --grid: #222c28; --signal: #3fc4d4; --bright: #f29a45; --danger: #ef6b72;
+  --loop: #a993ef; --good: #52c785; --code-bg: #131a17; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 40px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; }
+h1 { font: 700 clamp(1.6rem, 3vw, 2.2rem)/1.1 var(--font-display); margin: 0; text-wrap: balance; letter-spacing: .01em; }
+.sub { color: var(--muted); font-size: .95rem; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 16px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; display: grid; gap: 8px; }
+.label { font: 600 .72rem/1 var(--font-body); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+canvas { width: 100%; display: block; border-radius: 6px; background: var(--plot-bg); touch-action: none; }
+#cvV { height: 230px; } #cvI { height: 120px; } #cvCap { height: 230px; } #cvCirc { height: 300px; background: transparent; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font: .8rem var(--font-mono); color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: 600 .92rem var(--font-body); border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 9px 14px; cursor: pointer; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+#runBtn { background: var(--bright); border-color: var(--bright); color: #fff; min-width: 220px; user-select: none; -webkit-user-select: none; touch-action: none; }
+#runBtn.on { filter: brightness(1.12); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bright) 30%, transparent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 7px 11px; font-size: .85rem; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.seg.diode button[data-d="rev"][aria-pressed="true"] { background: var(--danger); color: #fff; }
+.reads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 16px; font: .85rem var(--font-mono); font-variant-numeric: tabular-nums; }
+.reads div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 2px 0; }
+.reads b { font-weight: 500; }
+.reads .warn b { color: var(--danger); }
+@media (max-width: 420px) { .reads { grid-template-columns: minmax(0, 1fr); } }
+.status { font: .85rem/1.45 var(--font-mono); color: var(--muted); min-height: 2.9em; }
+.status .bad { color: var(--danger); font-weight: 500; }
+.status .ok { color: var(--good); font-weight: 500; }
+.sl { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 5.6em; gap: 8px; align-items: center; font: .85rem var(--font-mono); }
+.sl input { width: 100%; }
+.sl output { text-align: right; font-variant-numeric: tabular-nums; }
+.sl[aria-disabled="true"] { opacity: .45; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font: .85rem var(--font-mono); }
+.steps { display: grid; gap: 10px; }
+.stepnav { display: flex; flex-wrap: wrap; gap: 6px; }
+.stepnav button { padding: 6px 10px; font: 600 .8rem var(--font-mono); }
+.stepnav button[aria-current="step"] { background: var(--signal); border-color: var(--signal); color: #fff; }
+.stepnav button.done { border-color: var(--good); color: var(--good); }
+.stepnav button.done[aria-current="step"] { color: #fff; }
+.step h2 { font: 600 1.3rem/1.2 var(--font-display); margin: 4px 0 2px; text-wrap: balance; }
+.step .ref { font: .78rem var(--font-mono); color: var(--muted); }
+.step p { margin: 6px 0 0; max-width: 66ch; }
+.step .eq { font: .9rem var(--font-mono); background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; display: inline-block; margin-top: 8px; }
+.step .task { margin-top: 10px; padding: 8px 10px; border-left: 3px solid var(--signal); background: var(--code-bg); border-radius: 0 6px 6px 0; max-width: 66ch; }
+.step .task.met { border-left-color: var(--good); }
+.navrow { display: flex; justify-content: space-between; gap: 10px; }
+.note { font-size: .82rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Flyback Diode Bench</h1>
+    <div class="sub">Lab 106 &middot; DC motor at 9 V &middot; 2N2222 on Arduino pin 9 through 1 k&Omega; &middot; what the diode catches, and what it doesn't</div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-label="Oscilloscope">
+        <div class="head">
+          <div class="label">Scope &middot; rolling 4 s &middot; 0.4 s/div</div>
+          <span class="seg" role="group" aria-label="CH1 volts per division">
+            <button type="button" data-vdiv="2" aria-pressed="false">CH1 2 V/div</button>
+            <button type="button" data-vdiv="20" aria-pressed="true">20 V/div</button>
+          </span>
+        </div>
+        <canvas id="cvV" aria-label="Collector voltage over time"></canvas>
+        <div class="legend"><span><i style="background:var(--signal)"></i>CH1 collector voltage V<sub>CE</sub></span><span><i style="background:var(--danger)"></i>40 V rating (V<sub>CEO</sub>)</span></div>
+        <canvas id="cvI" aria-label="Motor current, diode current and gate over time"></canvas>
+        <div class="legend"><span><i style="background:var(--bright)"></i>CH2 motor current (0.25 A/div)</span><span><i style="background:var(--loop)"></i>diode current</span><span><i style="background:var(--muted)"></i>pin 9</span></div>
+        <div class="controls">
+          <button id="runBtn" type="button" aria-pressed="false">Hold to run (pin 9 HIGH)</button>
+          <button id="resetBtn" type="button">Reset</button>
+        </div>
+        <div class="note">Spacebar also runs the motor. The scope shows peak-detect columns, so a microsecond spike still appears as a line on the 0.4 s/div view.</div>
+      </section>
+
+      <section class="panel" aria-label="Turn-off capture">
+        <div class="head">
+          <div class="label">Single-shot capture &middot; last turn-off edge</div>
+          <span class="seg" role="group" aria-label="Capture timebase">
+            <button type="button" data-tb="zoom" aria-pressed="true">2 &micro;s/div</button>
+            <button type="button" data-tb="long" aria-pressed="false">100 &micro;s/div</button>
+          </span>
+        </div>
+        <canvas id="cvCap" aria-label="Collector voltage and motor current around the last turn-off"></canvas>
+        <div class="legend"><span><i style="background:var(--signal)"></i>V<sub>CE</sub></span><span><i style="background:var(--bright)"></i>winding current</span><span><i style="background:var(--loop)"></i>diode current</span></div>
+        <div class="status" id="capStatus" aria-live="polite">Run the motor, then release the button. The scope triggers on pin 9 falling and freezes the edge here.</div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-label="Circuit">
+        <div class="label">Circuit &middot; current flow</div>
+        <canvas id="cvCirc" role="img" aria-label="Schematic: 9 V supply, motor from +9 V to the 2N2222 collector, flyback diode across the motor, emitter to ground, base driven from pin 9 through 1 kilohm"></canvas>
+        <div class="reads" aria-live="off">
+          <div><span>supply</span><b id="rVs">9.0 V</b></div>
+          <div><span>V<sub>CE</sub></span><b id="rVd">9.0 V</b></div>
+          <div><span>motor I</span><b id="rI">0.00 A</b></div>
+          <div><span>diode I</span><b id="rId">0.00 A</b></div>
+          <div><span>speed</span><b id="rW">0 rpm</b></div>
+          <div><span>back-EMF Kω</span><b id="rE">0.0 V</b></div>
+          <div id="rowPk"><span>last peak V<sub>CE</sub></span><b id="rPk">&ndash;</b></div>
+          <div id="rowEsw"><span>last kick energy</span><b id="rEsw">&ndash;</b></div>
+          <div id="rowOver"><span>kicks over 40 V</span><b id="rOver">0</b></div>
+          <div id="rowPw"><span>kick power (1 s)</span><b id="rPw">0 W</b></div>
+          <div id="rowPq"><span>2N2222 heat</span><b id="rPq">0 W</b></div>
+          <div id="rowIc"><span>I<sub>C</sub> limit &beta;I<sub>B</sub></span><b id="rIc">0.43 A</b></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Bench controls">
+        <div class="label">Bench</div>
+        <div class="row">
+          <span>Flyback diode</span>
+          <span class="seg diode" role="group" aria-label="Flyback diode">
+            <button type="button" data-d="none" aria-pressed="true">None</button>
+            <button type="button" data-d="ok" aria-pressed="false">Correct</button>
+            <button type="button" data-d="rev" aria-pressed="false">Reversed</button>
+          </span>
+        </div>
+        <div class="row">
+          <span>Pin 9</span>
+          <span class="seg" role="group" aria-label="Pin 9 drive">
+            <button type="button" data-pwm="0" aria-pressed="true">digitalWrite</button>
+            <button type="button" data-pwm="1" aria-pressed="false">analogWrite 490 Hz</button>
+          </span>
+        </div>
+        <div class="sl" id="slDuty" aria-disabled="true"><label for="inDuty">duty</label><input id="inDuty" type="range" min="10" max="90" step="5" value="50" disabled><output id="oDuty">50 %</output></div>
+        <div class="sl"><label for="inLoad">load torque</label><input id="inLoad" type="range" min="0" max="30" step="1" value="0"><output id="oLoad">0 mN&middot;m</output></div>
+        <div class="note">2N2222: pin 9 (5 V) through 1 k&Omega; gives I<sub>B</sub> &asymp; 4.3 mA, so with h<sub>FE</sub> &asymp; 100 it passes at most about 0.43 A. V<sub>CE(sat)</sub> 0.3 V at 150 mA, 1 V at 500 mA; storage 225 ns, fall 60 ns; V<sub>CEO</sub> 40 V; 625 mW (datasheet values). Assumed, with no datasheet for the kit motor: R = 4 &Omega;, L = 2 mH, K = 0.02 V&middot;s/rad (no-load about 4000 rpm at 9 V); the collector breaks down at 60 V (between V<sub>CEO</sub> 40 V and V<sub>CBO</sub> 75 V); 20 pF at the collector.</div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel steps" aria-label="Guide">
+    <div class="stepnav" id="stepnav"></div>
+    <div class="step" id="step"></div>
+    <div class="navrow">
+      <button id="prevBtn" type="button">&larr; Back</button>
+      <button id="nextBtn" type="button">Next step &rarr;</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  // ---------- physical model ----------
+  // Lab 106 bench (2026-10-24): 9 V supply, the motor from +9 V to the collector of a 2N2222, emitter to ground, base
+  // from pin 9 through 1 kOhm. 2N2222A datasheet: VCE(sat) 0.3 V at 150 mA and 1 V at 500 mA, ts 225 ns, tf 60 ns,
+  // VCEO 40 V, VCBO 75 V, PD 625 mW (TO-92). ASSUMED (no source): the motor's R, L, K (kept from the first version),
+  // hFE ~ 100 at these currents, breakdown at 60 V with the base held low through 1 kOhm, 20 pF at the collector.
+  const P = { V0: 9, R: 4, L: 2e-3, K: 0.02, J: 2e-5, b: 2e-6, Tf: 2e-3,
+              VCEO: 40, VBR: 60, C: 20e-12, RP: 10e3, TS: 225e-9, TF: 60e-9, FPWM: 490,
+              IB: (5 - 0.7) / 1000, BETA: 100, PD: 0.625 };
+  const ICMAX = P.BETA * P.IB;                                    // ~0.43 A: all the collector current the base drive allows
+  const Z0 = Math.sqrt(P.L / P.C);
+  const DT = 20e-6;                  // main integration step (s)
+  const BIN = 0.004, NB = 1000;      // 4 s rolling window
+  const vf = i => Math.min(1.1, 0.6 + 0.12 * Math.max(0, i)); // 1N4007-ish forward drop
+  const vcesat = i => i <= 0.15 ? 0.1 + i * (0.2 / 0.15) : 0.3 + (i - 0.15) * 2;   // through the datasheet's 0.3 V / 1 V points
+
+  const st = {};
+  function resetState() {
+    Object.assign(st, {
+      t: 0, i: 0, w: 0, run: st.run || false, gate: false, gatePrev: false,
+      Vs: P.V0, vd: P.V0, id: 0, ish: 0, pq: 0, pqAvg: 0, active: false,
+      bins: new Array(NB).fill(null), head: 0, cur: null, binT: 0,
+      cap: null, capWall: -1e9, lastPeak: null, lastEsw: null, over: 0, kicks: [],
+      flash: null, phaseA: 0, phaseB: 0, phaseC: 0, coastT: 0, ranT: 0, pwmT: 0, hotT: 0,
+    });
+  }
+  Object.assign(st, { diode: "none", pwm: false, duty: 0.5, load: 0, vdiv: 20, tb: "zoom",
+                      step: 0, done: new Set(), flags: {} });
+  resetState();
+
+  // ---------- DOM ----------
+  const $ = id => document.getElementById(id);
+  let C = {};
+  const readTokens = () => { const s = getComputedStyle(document.documentElement);
+    ["bg","panel","ink","muted","line","plot-bg","grid","signal","bright","danger","loop","good"].forEach(k => C[k] = s.getPropertyValue("--" + k).trim()); };
+  readTokens();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", readTokens);
+  new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  function fit(cv) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    return [ctx, w, h];
+  }
+
+  // ---------- turn-off capture: fine-step circuit solve around the edge ----------
+  // The 2N2222 as a current sink: for ts it still carries everything the base allows, then its capability falls to zero
+  // over tf. While it can carry more than the winding pushes in, it sits saturated (a conductance at VCE(sat)). The
+  // collector node: C dv/dt = winding - transistor - diode (Correct) + diode (Reversed, from the supply) - breakdown - probe.
+  function capture(i0, E, mode) {
+    const { L, R, C: Cd, RP, VBR, TS, TF, V0 } = P;
+    const GD = 1 / 0.05, GAV = 1 / 0.3, Vs = V0;
+    const iTot = mode === "rev" ? ICMAX : i0;                       // reversed: the diode's short fills the transistor
+    const v00 = mode === "rev" ? Vs - vf(ICMAX - i0) : (i0 >= ICMAX - 1e-6 ? Math.max(vcesat(i0), Vs - i0 * R - E) : vcesat(i0));
+    const Gsat = Math.max(iTot, 1e-3) / Math.max(v00, 0.05);
+    let t = -2e-6, i = i0, v = v00, peak = v, Esw = 0, k = 0;
+    const zoom = [], long = []; let lb = null;
+    const act = { sat: true, d: false, av: false, rs: mode === "rev" };
+    while (t < 1e-3) {
+      const dt = t < 40e-6 ? 2e-9 : 2e-7;
+      const cap = t < TS ? ICMAX : ICMAX * Math.max(0, 1 - (t - TS) / TF);   // what the transistor can still carry
+      i += ((Vs - v) - i * R - E) / L * dt;           // winding (uses the old collector voltage)
+      let vn = v;
+      for (let it = 0; it < 6; it++) {                 // active-set solve for the clamps
+        let n = Cd * v / dt + i, d = Cd / dt + 1 / RP;
+        if (act.sat) d += Gsat; else n -= cap;
+        if (act.d) { n += GD * (Vs + 0.6); d += GD; }
+        if (act.rs) { n += GD * (Vs - 0.6); d += GD; }
+        if (act.av) { n += GAV * VBR; d += GAV; }
+        vn = Math.max(0, n / d);
+        const nsat = Gsat * vn < cap, nd = mode === "ok" && vn > Vs + 0.6, nav = vn > VBR, nrs = mode === "rev" && vn < Vs - 0.6;
+        if (nsat === act.sat && nd === act.d && nav === act.av && nrs === act.rs) break;
+        act.sat = nsat; act.d = nd; act.av = nav; act.rs = nrs;
+      }
+      v = vn;
+      const isink = Math.min(cap, Gsat * v), iav = v > VBR ? GAV * (v - VBR) : 0;
+      const idc = mode === "ok" && v > Vs + 0.6 ? GD * (v - Vs - 0.6) : 0;
+      if (t >= 0) Esw += v * (isink + iav) * dt;
+      if (v > peak) peak = v;
+      if (t < 18.5e-6 && (k++ % 10 === 0)) zoom.push([t, v, i, idc]);
+      const bi = Math.floor(t / 1e-6);
+      if (!lb || lb.k !== bi) { if (lb) long.push(lb); lb = { k: bi, t, vmin: v, vmax: v, i, id: idc }; }
+      else { lb.vmin = Math.min(lb.vmin, v); lb.vmax = Math.max(lb.vmax, v); lb.i = i; lb.id = Math.max(lb.id, idc); }
+      t += dt;
+    }
+    if (lb) long.push(lb);
+    return { zoom, long, peak, Esw, i0, E, mode };
+  }
+
+  function quickKick(i0, E, mode) {
+    if (mode === "ok") return { peak: P.V0 + vf(i0), Esw: 0 };
+    const raw = (P.V0 - E) + i0 * Z0;
+    if (raw < P.VBR) return { peak: raw, Esw: 0 };
+    return { peak: P.VBR + 0.3 * i0, Esw: 0.5 * P.L * i0 * i0 * P.VBR / (P.VBR - (P.V0 - E)) };
+  }
+
+  function turnOff() {
+    const i0 = st.i, E = P.K * st.w, mode = st.diode;
+    if (i0 < 0.005) return;
+    const now = performance.now();
+    let k;
+    if (now - st.capWall > 300) {
+      k = capture(i0, E, mode); st.cap = k; st.capWall = now; capDirty = true;
+      if (mode === "none" && k.peak > P.VCEO) st.flags.capNone = true;
+      if (mode === "none" && k.peak > P.VCEO && i0 > 0.3) st.flags.capHigh = true;
+      if (mode === "ok") st.flags.capOk = true;
+    } else k = quickKick(i0, E, mode);
+    st.lastPeak = k.peak; st.lastEsw = k.Esw;
+    if (k.peak > P.VCEO) st.over++;
+    st.kicks.push([st.t, k.Esw]);
+    if (st.cur) st.cur.vmax = Math.max(st.cur.vmax, k.peak);
+    st.flash = { kind: mode === "ok" ? "loop" : (k.peak > P.VCEO ? "aval" : "sw"), until: now + 900 };
+  }
+
+  // ---------- main step ----------
+  function simStep(dt) {
+    const T = 1 / P.FPWM;
+    const gate = st.run && (!st.pwm || ((st.t % T) < st.duty * T));
+    if (!gate && st.gatePrev) turnOff();
+    st.gatePrev = gate; st.gate = gate;
+    const E = P.K * st.w;
+    let Vs = P.V0, vd, id = 0, ish = 0, pq = 0, active = false;
+    if (gate) {
+      if (st.diode === "rev") {
+        // the reversed diode runs +9 V straight into the collector: the transistor takes all its base drive allows,
+        // comes out of saturation, and the collector sits one diode drop below the supply
+        vd = Vs - vf(Math.max(0, ICMAX - st.i));
+        st.i += (((Vs - vd) - st.i * P.R - E) / P.L) * dt; if (st.i < 0) st.i = 0;
+        ish = Math.max(0, ICMAX - st.i); active = true;
+      } else {
+        st.i += (((Vs - vcesat(st.i)) - st.i * P.R - E) / P.L) * dt; if (st.i < 0) st.i = 0;
+        if (st.i > ICMAX) { st.i = ICMAX; active = true; }              // out of base drive: the active region
+        vd = active ? Math.max(vcesat(st.i), Vs - st.i * P.R - E) : vcesat(st.i);
+      }
+      pq = vd * (st.i + ish);
+    } else {
+      if (st.diode === "ok" && st.i > 0) {
+        const f = vf(st.i); vd = Vs + f; id = st.i;
+        st.i += ((-f - st.i * P.R - E) / P.L) * dt; if (st.i < 0) st.i = 0;
+      } else if (st.diode === "rev" && (E > 0.6 || st.i < 0)) {
+        // reversed diode is forward-biased by the coasting motor's own back-EMF: a short across the generator
+        if (st.i > 0) st.i = 0;
+        const f = vf(-st.i);
+        st.i += ((f - st.i * P.R - E) / P.L) * dt; if (st.i > 0) st.i = 0;
+        vd = Vs - vf(-st.i); id = -st.i;
+      } else { st.i = 0; vd = Vs - E; }
+    }
+    const Tm = P.K * st.i, Tc = P.Tf + st.load;
+    if (st.w > 1e-6) { st.w += ((Tm - P.b * st.w - Tc) / P.J) * dt; if (st.w < 0) st.w = 0; }
+    else if (Tm > Tc) st.w += ((Tm - Tc) / P.J) * dt;
+    st.Vs = Vs; st.vd = vd; st.id = id; st.ish = ish; st.pq = pq; st.active = active;
+    st.pqAvg += (pq - st.pqAvg) * Math.min(1, dt / 0.25);              // the transistor's heating, over ~0.25 s
+    st.t += dt;
+    // peak-detect binning
+    if (!st.cur) st.cur = { vmin: vd, vmax: vd, imin: st.i, imax: st.i, id: id, g1: gate, g0: !gate };
+    const c = st.cur;
+    c.vmin = Math.min(c.vmin, vd); c.vmax = Math.max(c.vmax, vd); c.imin = Math.min(c.imin, st.i); c.imax = Math.max(c.imax, st.i);
+    c.id = Math.max(c.id, id); c.g1 = c.g1 || gate; c.g0 = c.g0 || !gate;
+    st.binT += dt;
+    if (st.binT >= BIN) { st.bins[st.head] = c; st.head = (st.head + 1) % NB; st.cur = null; st.binT -= BIN; }
+    // step flags
+    if (gate && st.w > 300) st.ranT += dt;
+    if (!st.run && st.i === 0 && st.w > 150) st.coastT += dt; else if (st.run) st.coastT = 0;
+    if (st.ranT > 0.6) st.flags.ran = true;
+    if (st.coastT > 0.8) st.flags.coast = true;
+    if (st.pwm && st.run && st.diode === "ok") st.pwmT += dt;
+    if (st.pwmT > 1) st.flags.pwm = true;
+    if (gate && st.diode === "rev") st.flags.rev = true;
+    if (st.pqAvg > P.PD) st.hotT += dt; else st.hotT = 0;
+    if (st.hotT > 0.5 && st.diode !== "rev") st.flags.hot = true;
+  }
+
+  // ---------- drawing helpers ----------
+  function grid(ctx, w, h, nx, ny) {
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.beginPath();
+    for (let k = 1; k < nx; k++) { const x = Math.round(k * w / nx) + .5; ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+    for (let k = 1; k < ny; k++) { const y = Math.round(k * h / ny) + .5; ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    ctx.stroke();
+  }
+  function txt(ctx, s, x, y, col, align = "left", size = 11) {
+    ctx.fillStyle = col; ctx.font = `${size}px "IBM Plex Mono", ui-monospace, monospace`; ctx.textAlign = align; ctx.fillText(s, x, y);
+  }
+  function hline(ctx, y, w, col, dash) { ctx.save(); ctx.strokeStyle = col; ctx.setLineDash(dash || [5, 4]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); ctx.restore(); }
+
+  function orderedBins() { const out = []; for (let k = 0; k < NB; k++) out.push(st.bins[(st.head + k) % NB]); return out; }
+
+  function drawScopeV() {
+    const [ctx, w, h] = fit($("cvV")); grid(ctx, w, h, 10, 8);
+    const pxPerV = (h / 8) / st.vdiv, y0 = h - h / 8;
+    const Y = v => y0 - v * pxPerV;
+    hline(ctx, Math.round(y0) + .5, w, C.muted, [2, 3]);
+    txt(ctx, "0 V", 4, y0 - 4, C.muted);
+    if (Y(P.VCEO) > 0) { hline(ctx, Y(P.VCEO), w, C.danger); txt(ctx, "40 V rating (VCEO)", 4, Y(P.VCEO) - 4, C.danger); }
+    hline(ctx, Y(P.V0), w, C.muted); txt(ctx, "+9 V", w - 4, Y(P.V0) - 4, C.muted, "right");
+    const bins = orderedBins(), bw = w / NB;
+    ctx.strokeStyle = C.signal; ctx.lineWidth = 1.6; ctx.beginPath(); let clipMax = 0, clipX = 0;
+    bins.forEach((b, k) => {
+      if (!b) return; const x = k * bw;
+      const top = Y(b.vmax), bot = Y(b.vmin);
+      ctx.moveTo(x, Math.max(1, Math.min(h, bot)) ); ctx.lineTo(x + bw, Math.max(1, Math.min(h, top)));
+      ctx.lineTo(x + bw, Math.max(1, Math.min(h, bot)));
+      if (top < 0 && b.vmax > clipMax) { clipMax = b.vmax; clipX = x; }
+    });
+    ctx.stroke();
+    if (clipMax > 0) { txt(ctx, `▲ ${clipMax.toFixed(0)} V off screen`, Math.min(w - 4, Math.max(4, clipX)), 14, C.danger, clipX > w / 2 ? "right" : "left"); }
+    txt(ctx, `${st.vdiv} V/div`, w - 4, h - 6, C.muted, "right");
+  }
+
+  function drawScopeI() {
+    const [ctx, w, h] = fit($("cvI")); grid(ctx, w, h, 10, 4);
+    const gTop = 6, gH = 12, base = h - 4, top = gTop + gH + 8;
+    const Y = i => Math.max(top - 6, Math.min(h - 1, base - (i + 0.25) / 1 * (base - top)));   // clipped to the plot (a braking current runs off it)
+    const bins = orderedBins(), bw = w / NB;
+    // gate strip
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1.2; ctx.beginPath();
+    bins.forEach((b, k) => { if (!b) return; const x = k * bw;
+      if (b.g1 && b.g0) { ctx.moveTo(x, gTop); ctx.lineTo(x, gTop + gH); ctx.moveTo(x, gTop); ctx.lineTo(x + bw, gTop); ctx.moveTo(x, gTop + gH); ctx.lineTo(x + bw, gTop + gH); }
+      else { const y = b.g1 ? gTop : gTop + gH; ctx.moveTo(x, y); ctx.lineTo(x + bw, y); } });
+    ctx.stroke();
+    txt(ctx, "pin 9", w - 4, gTop + gH - 1, C.muted, "right", 10);
+    // diode current
+    ctx.strokeStyle = C.loop; ctx.lineWidth = 1.4; ctx.beginPath();
+    bins.forEach((b, k) => { if (!b || b.id < 0.005) return; const x = k * bw + bw / 2; ctx.moveTo(x, Y(0)); ctx.lineTo(x, Y(b.id)); });
+    ctx.stroke();
+    // motor current
+    ctx.strokeStyle = C.bright; ctx.lineWidth = 1.6; ctx.beginPath();
+    bins.forEach((b, k) => { if (!b) return; const x = k * bw; ctx.moveTo(x, Y(b.imin)); ctx.lineTo(x + bw, Y(b.imax)); ctx.lineTo(x + bw, Y(b.imin)); });
+    ctx.stroke();
+    hline(ctx, Math.round(Y(0)) + .5, w, C.muted, [2, 3]); txt(ctx, "0.75 A", 4, Y(0.75) + 10, C.muted); txt(ctx, "0 A", 4, Y(0) - 3, C.muted);
+    hline(ctx, Y(ICMAX), w, C.muted, [1, 4]); txt(ctx, "βI_B", w - 4, Y(ICMAX) - 3, C.muted, "right", 10);
+    txt(ctx, "0.4 s/div", w - 4, h - 6, C.muted, "right");
+  }
+
+  let capDirty = true;
+  function niceDiv(range, opts) { for (const d of opts) if (d * 7 >= range) return d; return opts[opts.length - 1]; }
+  function drawCapture() {
+    const [ctx, w, h] = fit($("cvCap")); grid(ctx, w, h, 10, 8);
+    const k = st.cap;
+    if (!k) { txt(ctx, "waiting for pin 9 to fall…", w / 2, h / 2, C.muted, "center", 12); return; }
+    const zoom = st.tb === "zoom";
+    const t0 = zoom ? -2e-6 : -100e-6, span = zoom ? 20e-6 : 1e-3;
+    const X = t => (t - t0) / span * w;
+    const vdiv = niceDiv(Math.max(11, k.peak * 1.05), [2, 5, 10, 20, 50]);
+    const idiv = niceDiv(k.i0 * 1.15, [0.05, 0.1, 0.2, 0.5, 1]);
+    const y0 = h - h / 8, dv = h / 8;
+    const Yv = v => y0 - v / vdiv * dv, Yi = i => y0 - i / idiv * dv;
+    hline(ctx, Math.round(y0) + .5, w, C.muted, [2, 3]);
+    if (Yv(P.VCEO) > 2) { hline(ctx, Yv(P.VCEO), w, C.danger); txt(ctx, "40 V rating (VCEO)", w - 4, Yv(P.VCEO) - 4, C.danger, "right"); }
+    hline(ctx, Yv(P.V0), w, C.muted); txt(ctx, "+9 V", w - 4, Yv(P.V0) + 13, C.muted, "right");
+    // trigger marker
+    ctx.save(); ctx.strokeStyle = C.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), h); ctx.stroke(); ctx.restore();
+    txt(ctx, "T", X(0) + 3, 12, C.muted);
+    const line = (pts, col, f, lw = 1.7) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); pts.forEach((p, j) => { const x = X(p[0]), y = f(p); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); };
+    if (zoom) {
+      const pre = [[t0, k.zoom[0][1], k.i0, 0], ...k.zoom];
+      line(pre, C.loop, p => Yi(p[3]), 1.4);
+      line(pre, C.bright, p => Yi(p[2]));
+      line(pre, C.signal, p => Yv(p[1]));
+    } else {
+      const L = k.long, v0 = L[0].vmin;
+      line([[t0, 0, 0, 0], [0, 0, 0, 0], ...L.map(b => [b.t, 0, 0, b.id])], C.loop, p => Yi(p[3]), 1.4);
+      line([[t0, 0, k.i0], ...L.map(b => [b.t, 0, b.i])], C.bright, p => Yi(p[2]));
+      ctx.strokeStyle = C.signal; ctx.lineWidth = 1.7; ctx.beginPath(); ctx.moveTo(X(t0), Yv(v0)); ctx.lineTo(X(0), Yv(v0));
+      L.forEach(b => { const x = X(b.t); ctx.lineTo(x, Yv(b.vmax)); ctx.lineTo(x, Yv(b.vmin)); }); ctx.stroke();
+    }
+    txt(ctx, `${zoom ? "2 µs" : "100 µs"}/div · ${vdiv} V/div · ${idiv} A/div`, 4, h - 6, C.muted);
+  }
+
+  function capStatusText() {
+    const k = st.cap; if (!k) return null;
+    const half = 0.5 * P.L * k.i0 * k.i0 * 1e6;
+    const head = `Interrupted ${k.i0.toFixed(2)} A, stored ½LI² = ${fmtE(half)}. `;
+    if (k.mode === "ok") return head + `<span class="ok">Peak V<sub>CE</sub> ${k.peak.toFixed(1)} V</span>: one diode drop above the supply. The current circulates through the diode and dies out in about L/R = 0.5 ms.`;
+    if (k.peak > P.VCEO) return head + `<span class="bad">Peak V<sub>CE</sub> ${k.peak.toFixed(0)} V</span>: past the 2N2222's 40 V rating; the collector broke down and the transistor absorbed ${fmtE(k.Esw * 1e6)}. It has no avalanche rating: it may survive this, or fail on it.${k.mode === "rev" ? " A reversed diode points the wrong way to catch it." : ""}`;
+    return head + `Peak V<sub>CE</sub> ${k.peak.toFixed(0)} V, then ringing between the winding and the collector capacitance.`;
+  }
+  const fmtE = uj => uj >= 1000 ? `${(uj / 1000).toFixed(2)} mJ` : `${uj.toFixed(uj < 10 ? 1 : 0)} µJ`;
+
+  // ---------- schematic ----------
+  const PA = [[60,115],[60,50],[180,50],[180,250],[60,250],[60,185]];          // supply -> motor -> FET -> gnd
+  const PB = [[180,50],[180,170],[300,170],[300,50],[180,50]];                  // freewheel loop
+  const PC = [[60,115],[60,50],[300,50],[300,170],[180,170],[180,250],[60,250],[60,185]]; // reversed-diode short
+  function polyLen(pts) { let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0]-pts[k-1][0], pts[k][1]-pts[k-1][1]); return L; }
+  function pointAt(pts, d) { for (let k = 1; k < pts.length; k++) { const s = Math.hypot(pts[k][0]-pts[k-1][0], pts[k][1]-pts[k-1][1]); if (d <= s) { const f = d / s; return [pts[k-1][0] + f*(pts[k][0]-pts[k-1][0]), pts[k-1][1] + f*(pts[k][1]-pts[k-1][1])]; } d -= s; } return pts[pts.length-1]; }
+
+  function drawCircuit(dtWall) {
+    const [ctx, w, h] = fit($("cvCirc"));
+    const s = Math.min(w / 380, h / 290), ox = (w - 380 * s) / 2 + 10 * s, oy = (h - 290 * s) / 2;
+    const T = (x, y) => [ox + x * s, oy + y * s];
+    const seg = (pts, col, lw, dash) => { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.lineJoin = "round"; ctx.setLineDash(dash || []); ctx.beginPath(); pts.forEach((p, k) => { const [x, y] = T(p[0], p[1]); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore(); };
+    const now = performance.now();
+    const fl = st.flash && st.flash.until > now ? st.flash : null;
+    const fa = fl ? Math.min(1, (fl.until - now) / 400) : 0;
+    const iA = st.gate ? st.i : 0, iB = st.id, iC = st.ish;
+    // highlight glows
+    const glow = (pts, col, a) => { ctx.save(); ctx.globalAlpha = a; seg(pts, col, 9 * s); ctx.restore(); };
+    if (iA > 0.01) glow(PA, C.bright, 0.18);
+    if (iC > 0) glow(PC, C.danger, 0.25);
+    if (fl && fl.kind === "loop") glow(PB, C.loop, 0.35 * fa);
+    // wires
+    const wc = C.muted, lw = 2 * s;
+    seg([[60,115],[60,50],[180,50]], wc, lw); seg([[60,185],[60,250],[180,250]], wc, lw);
+    seg([[180,50],[180,84]], wc, lw); seg([[180,136],[180,190]], wc, lw); seg([[180,220],[180,250]], wc, lw);
+    if (st.diode === "none") { seg([[180,50],[300,50],[300,170],[180,170]], wc, 1.2 * s, [4, 5]); }
+    else { seg([[180,50],[300,50],[300,94]], wc, lw); seg([[300,126],[300,170],[180,170]], wc, lw); }
+    // supply
+    { const [x, y] = T(36, 115); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5 * s; ctx.strokeRect(x, y, 48 * s, 70 * s);
+      const sag = st.Vs < P.V0 - 0.5; txt(ctx, `${st.Vs.toFixed(1)} V`, T(60,0)[0], T(0,147)[1], sag ? C.danger : C.ink, "center", 12 * s);
+      txt(ctx, "bench", T(60,0)[0], T(0,164)[1], C.muted, "center", 10 * s);
+      txt(ctx, "+", T(70,0)[0], T(0,128)[1], C.muted, "center", 11 * s); }
+    // motor
+    { const [x, y] = T(180, 110); ctx.beginPath(); ctx.arc(x, y, 26 * s, 0, Math.PI * 2); ctx.fillStyle = C["plot-bg"]; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6 * s; ctx.stroke();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(st.rot || 0); ctx.strokeStyle = C.muted; ctx.lineWidth = 1.2 * s; ctx.beginPath(); ctx.moveTo(-15 * s, 0); ctx.lineTo(15 * s, 0); ctx.stroke(); ctx.restore();
+      txt(ctx, "M", x, y + 5 * s, C.ink, "center", 15 * s);
+      txt(ctx, `E = ${(P.K * st.w).toFixed(1)} V`, x - 32 * s, y + 4 * s, C.muted, "right", 10 * s); }
+    // diode
+    if (st.diode !== "none") {
+      const up = st.diode === "ok", [x, y] = T(300, 110), a = 15 * s;
+      const tip = up ? -a : a, base = -tip;
+      ctx.beginPath(); ctx.moveTo(x - a, y + base); ctx.lineTo(x + a, y + base); ctx.lineTo(x, y + tip); ctx.closePath();
+      ctx.fillStyle = st.diode === "rev" ? C.danger : (iB > 0.005 || (fl && fl.kind === "loop") ? C.loop : C.ink); ctx.fill();
+      ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 2.4 * s; ctx.beginPath(); ctx.moveTo(x - a, y + tip); ctx.lineTo(x + a, y + tip); ctx.stroke();
+      txt(ctx, "1N4007", x + 20 * s, y + 4 * s, C.muted, "left", 10 * s);
+      txt(ctx, "stripe", x + 20 * s, y + tip + 4 * s, C.muted, "left", 9 * s);
+    } else txt(ctx, "no diode", T(306, 0)[0], T(0, 114)[1], C.muted, "left", 10 * s);
+    // 2N2222 (NPN): base from pin 9 through 1 kOhm, collector up to the motor, emitter (arrow out) down to ground
+    { const red = fl && fl.kind === "aval" && fa > 0, hot = st.gate && st.pqAvg > P.PD; const col = red || hot ? C.danger : C.ink;
+      seg([[166,193],[166,217]], col, 2.6 * s); seg([[166,199],[180,190]], col, 2 * s); seg([[166,211],[180,220]], col, 2 * s);
+      { const [ax, ay] = T(180, 220), u = [14 / 16.6, 9 / 16.6], a = 6 * s; ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(ax, ay);
+        ctx.lineTo(ax - a * u[0] + a * 0.5 * u[1], ay - a * u[1] - a * 0.5 * u[0]); ctx.lineTo(ax - a * u[0] - a * 0.5 * u[1], ay - a * u[1] + a * 0.5 * u[0]); ctx.closePath(); ctx.fill(); }
+      const gc = st.gate ? C.signal : C.muted;
+      seg([[96,205],[118,205]], gc, 1.6 * s); seg([[146,205],[166,205]], gc, 1.6 * s);
+      seg([[118,205],[121,200],[125,210],[129,200],[133,210],[137,200],[141,210],[144,205],[146,205]], gc, 1.4 * s);
+      txt(ctx, "1 kΩ", T(132,0)[0], T(0,196)[1], C.muted, "center", 9 * s);
+      txt(ctx, "pin 9", T(92,0)[0], T(0,209)[1], gc, "right", 10 * s);
+      txt(ctx, red ? "BREAKDOWN" : hot ? `${st.pqAvg.toFixed(1)} W HOT` : "2N2222", T(190,0)[0], T(0,236)[1], red || hot ? C.danger : C.muted, "left", 10 * s);
+      if (red || hot) { ctx.save(); ctx.globalAlpha = (red ? 0.25 * fa : 0.2); ctx.fillStyle = C.danger; const [x, y] = T(172, 205); ctx.beginPath(); ctx.arc(x, y, 22 * s, 0, 7); ctx.fill(); ctx.restore(); } }
+    // ground + collector probe
+    { const [x, y] = T(120, 250); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5 * s; ctx.beginPath();
+      ctx.moveTo(x, y); ctx.lineTo(x, y + 8 * s); ctx.moveTo(x - 10 * s, y + 8 * s); ctx.lineTo(x + 10 * s, y + 8 * s);
+      ctx.moveTo(x - 6 * s, y + 12 * s); ctx.lineTo(x + 6 * s, y + 12 * s); ctx.moveTo(x - 2 * s, y + 16 * s); ctx.lineTo(x + 2 * s, y + 16 * s); ctx.stroke(); }
+    { const [x, y] = T(180, 170); ctx.fillStyle = C.signal; ctx.beginPath(); ctx.arc(x, y, 4 * s, 0, 7); ctx.fill();
+      txt(ctx, `collector ${st.vd.toFixed(1)} V`, x + 10 * s, y + 16 * s, C.signal, "left", 10 * s); }
+    txt(ctx, "+9 V", T(120, 0)[0], T(0, 43)[1], C.muted, "center", 10 * s);
+    // current dots
+    const dots = (pts, I, key, col) => {
+      if (I < 0.01) return; const L = polyLen(pts), sp = 16;
+      st[key] = (st[key] + dtWall * (25 + 70 * Math.sqrt(Math.min(I, 3)))) % sp;
+      ctx.fillStyle = col;
+      for (let d = st[key]; d < L; d += sp) { const [px, py] = pointAt(pts, d); if (Math.hypot(px - 180, py - 110) < 27 || (px === 60 && py > 115 && py < 185)) continue; const [x, y] = T(px, py); ctx.beginPath(); ctx.arc(x, y, 2.4 * s, 0, 7); ctx.fill(); }
+    };
+    dots(PA, iA, "phaseA", C.bright);
+    dots(st.diode === "rev" ? [...PB].reverse() : PB, iB > 0.01 ? iB : (fl && fl.kind === "loop" ? 0.4 * fa : 0), "phaseB", C.loop);
+    dots(PC, iC, "phaseC", C.danger);
+  }
+
+  // ---------- readouts ----------
+  function readouts() {
+    const r = (id, s) => { const el = $(id); if (el.textContent !== s) el.textContent = s; };
+    r("rVs", `${st.Vs.toFixed(1)} V`); r("rVd", `${st.vd.toFixed(1)} V`); r("rI", `${st.i.toFixed(2)} A`);
+    r("rId", `${(st.id + st.ish).toFixed(2)} A`); r("rW", `${Math.round(st.w * 60 / (2 * Math.PI))} rpm`); r("rE", `${(P.K * st.w).toFixed(1)} V`);
+    r("rPk", st.lastPeak == null ? "–" : `${st.lastPeak.toFixed(st.lastPeak < 20 ? 1 : 0)} V`);
+    r("rEsw", st.lastEsw == null ? "–" : fmtE(st.lastEsw * 1e6));
+    r("rOver", String(st.over));
+    st.kicks = st.kicks.filter(k => st.t - k[0] < 1);
+    const pw = st.kicks.reduce((a, k) => a + k[1], 0);
+    r("rPw", pw < 0.001 ? "0 W" : `${pw < 0.1 ? (pw * 1000).toFixed(1) + " mW" : pw.toFixed(2) + " W"}`);
+    $("rowPk").classList.toggle("warn", st.lastPeak != null && st.lastPeak > P.VCEO);
+    $("rowOver").classList.toggle("warn", st.over > 0);
+    $("rowPw").classList.toggle("warn", pw > 0.05);
+    r("rPq", st.pqAvg < 0.001 ? "0 W" : st.pqAvg < 0.1 ? `${(st.pqAvg * 1000).toFixed(0)} mW` : `${st.pqAvg.toFixed(2)} W`);
+    $("rowPq").classList.toggle("warn", st.pqAvg > P.PD);
+    r("rIc", `${ICMAX.toFixed(2)} A`); $("rowIc").classList.toggle("warn", st.gate && st.active);
+    $("rowEsw").classList.toggle("warn", (st.lastEsw || 0) > 1e-6);
+  }
+
+  // ---------- guide ----------
+  const STEPS = [
+    { tab: "Run", ref: "Turn-on", title: "Run the motor",
+      text: "Holding the button drives pin 9 HIGH. About 4.3 mA flows into the 2N2222's base through the 1 kΩ resistor, the transistor saturates, and the motor sits across nearly the full 9 V. At standstill only the 4 Ω winding would limit the current, to more than 2 A, but the transistor can only pass about h<sub>FE</sub> × I<sub>B</sub> ≈ 0.43 A, so that is where it starts. As the rotor speeds up it generates a back-EMF, E = Kω, that opposes the supply, and the current falls to what friction and load need.",
+      eq: "I = (9 V − Kω) / R,  at most h_FE · I_B", task: "Hold the button (or spacebar) until the speed levels off near 4000 rpm. Watch CH2 sit at the βI_B line, then fall and settle.",
+      met: () => st.flags.ran },
+    { tab: "No diode", ref: "Turn-off, unprotected", title: "Let go with no diode",
+      text: "The winding is an inductor. It stores energy ½LI² and resists any sudden change in current. When the transistor turns off, that current has nowhere to go but into the tens of picofarads at the collector, so the collector voltage climbs as fast as it must to keep the current flowing. Unchecked it would reach hundreds of volts. The 2N2222 is rated 40 V collector to emitter, and past that its collector junction breaks down and conducts; here that happens near 60 V. Unlike a power MOSFET, a 2N2222 has no avalanche rating: it may survive a few small kicks, or fail on the first.",
+      eq: "V = L · dI/dt", task: "With the diode set to None, run the motor and release. Read the peak on the 2 µs/div capture, and compare it with the 40 V rating line.",
+      enter: () => { setDiode("none"); setVdiv(20); setTb("zoom"); }, met: () => st.flags.capNone },
+    { tab: "Load", ref: "Energy per kick, and the base-drive limit", title: "Load it down",
+      text: "The kick grows with the current you interrupt, and the stored energy grows with its square, so a loaded motor makes every turn-off harder on the transistor. Load it further and you meet a second limit: the base drive. The 2N2222 can only pass about 0.43 A from a 1 kΩ base resistor, so a stalled or heavily loaded motor pulls it out of saturation. The motor stalls, the collector rises toward the supply, and the transistor dissipates several watts against a 625 mW rating.",
+      eq: "E = ½ L I²,   P = V_CE · I_C", task: "Set the load to about 4 mN·m, run, release, and compare “last kick energy” with step 2. Then set about 10 mN·m and hold the button: watch the motor stall and “2N2222 heat”.",
+      enter: () => setDiode("none"), met: () => st.flags.capHigh && st.flags.hot },
+    { tab: "Diode", ref: "Turn-off, protected", title: "Add the flyback diode",
+      text: "The diode sits across the motor with its stripe (cathode) on the +9 V side, as in Figure 6.2. While the motor runs it is reverse-biased and carries nothing. At turn-off the collector only has to rise one diode drop above the supply before the diode conducts, so the winding current circulates around the motor-diode loop. The winding resistance and the diode drop spend the stored energy in about half a millisecond.",
+      eq: "V_CE,peak ≈ 9 V + 0.7 V", task: "Set the load back to 0 and the diode to Correct, run and release. Then switch the capture to 100 µs/div and watch the purple diode current carry the winding current down to zero.",
+      met: () => st.flags.capOk },
+    { tab: "Back-EMF", ref: "Two different voltages", title: "The spike and the back-EMF",
+      text: "The Lab 106 instructions, like many references, call this spike back-EMF. Strictly, there are two different voltages here. The spike is L·dI/dt from the winding's inductance, and it lasts microseconds. Back-EMF in the strict sense is E = Kω, the voltage the spinning motor generates, and it lasts as long as the rotor turns. While the motor coasts, the collector sits at 9 V − E, below the supply, so the diode stays reverse-biased the whole time. The diode catches the inductive spike; it never blocks the rotation's E = Kω.",
+      eq: "V_collector = 9 V − Kω  (coasting)", task: "With CH1 at 2 V/div, run to full speed and release. Watch the collector start near 0.7 V and climb back toward 9 V as the motor slows, with no diode current.",
+      enter: () => setVdiv(2), met: () => st.flags.coast },
+    { tab: "PWM", ref: "analogWrite()", title: "PWM makes it hundreds of kicks a second",
+      text: "analogWrite() on pin 9 switches the transistor at about 490 Hz on an Uno, as in Part 2, and every off edge is a turn-off like the one you captured. With the diode, current keeps flowing through the loop during each off interval, so the motor gets smooth current and runs at a speed set by the duty cycle. Without it, every pulse ends in a breakdown past the 40 V rating, 490 times a second.",
+      eq: "P = ½ L I² · f", task: "Choose analogWrite at 50 %, run with the diode for a second, then switch the diode to None while still running and watch “kick power” and “kicks over 40 V”.",
+      enter: () => setVdiv(20), met: () => st.flags.pwm },
+    { tab: "Reversed", ref: "Common wiring error", title: "Put it in backwards",
+      text: "Installed backward, the diode points from +9 V straight into the collector. As soon as the transistor turns on, the diode and the transistor connect the supply almost directly to ground. The bench supply could deliver far more, but the 2N2222 only passes about 0.43 A, so it comes out of saturation with about 8 V across it: over 3 W in a part rated 625 mW. It overheats within seconds, and the motor barely moves. A reversed diode also does nothing at turn-off, so the spike is back. And while the motor coasts, its back-EMF now forward-biases the diode, which shorts the motor and brakes it hard: CH2 goes negative as the motor drives current backward through the loop.",
+      eq: "+9 V → diode → collector → 2N2222 → ground", task: "Set the diode to Reversed and press run briefly. Watch “2N2222 heat” and the red path. Then run the motor up with the diode Correct, switch to Reversed, and release: compare how fast it stops.",
+      met: () => st.flags.rev },
+    { tab: "On the bench", ref: "Checklist", title: "Wiring it for real",
+      text: "Check orientation before power: the stripe marks the cathode, which goes to the motor lead tied to +9 V; the anode goes to the collector. Put the diode right at the motor terminals, not at the far end of the wires. Pick a diode rated above the supply voltage and for at least the motor current; the 1N4007 in the parts list (or the kit's 1N4001) is fine for this motor, and a Schottky such as a 1N5819 switches faster for PWM. Keep the 1 kΩ base resistor: the base-emitter junction is a diode to ground, so without it pin 9 would try to source far more than its 20 mA recommended current (40 mA absolute maximum). Ready-made motor drivers (L298, TB6612) include these diodes, which is one reason they exist.",
+      task: "Recap: no diode means the transistor takes ½LI² at every turn-off, past its 40 V rating; the diode clamps the collector one drop above the supply; the 1 kΩ base resistor caps the current near 0.43 A; back-EMF from rotation is a separate, slower voltage the diode ignores.",
+      met: () => true },
+  ];
+
+  function renderSteps() {
+    const nav = $("stepnav"); nav.innerHTML = "";
+    STEPS.forEach((s, k) => { const b = document.createElement("button"); b.type = "button"; b.textContent = `${k + 1} ${s.tab}`;
+      if (k === st.step) b.setAttribute("aria-current", "step"); if (st.done.has(k)) b.classList.add("done");
+      b.onclick = () => goStep(k); nav.appendChild(b); });
+    const s = STEPS[st.step];
+    $("step").innerHTML = `<div class="ref">Step ${st.step + 1} of ${STEPS.length} &middot; ${s.ref}</div><h2>${s.title}</h2><p>${s.text}</p>${s.eq ? `<div class="eq">${s.eq}</div>` : ""}<div class="task" id="task">${s.task}</div>`;
+    $("prevBtn").disabled = st.step === 0; $("nextBtn").disabled = st.step === STEPS.length - 1;
+  }
+  function goStep(k) { st.step = Math.max(0, Math.min(STEPS.length - 1, k)); STEPS[st.step].enter?.(); renderSteps(); }
+  function checkStep() {
+    const s = STEPS[st.step], met = !!s.met();
+    const el = $("task"); if (el && el.classList.contains("met") !== met) el.classList.toggle("met", met);
+    if (met && !st.done.has(st.step)) { st.done.add(st.step); const b = $("stepnav").children[st.step]; b && b.classList.add("done"); }
+  }
+
+  // ---------- controls ----------
+  function pressSeg(sel, attr, val) { document.querySelectorAll(sel).forEach(b => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val)))); }
+  function setDiode(d) { st.diode = d; st.flash = null; pressSeg("[data-d]", "d", d); }   // no afterglow of the last loop on a changed circuit
+  function setVdiv(v) { st.vdiv = v; pressSeg("[data-vdiv]", "vdiv", v); }
+  function setTb(t) { st.tb = t; pressSeg("[data-tb]", "tb", t); capDirty = true; }
+  document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => setDiode(b.dataset.d));
+  document.querySelectorAll("[data-vdiv]").forEach(b => b.onclick = () => setVdiv(+b.dataset.vdiv));
+  document.querySelectorAll("[data-tb]").forEach(b => b.onclick = () => setTb(b.dataset.tb));
+  document.querySelectorAll("[data-pwm]").forEach(b => b.onclick = () => {
+    st.pwm = b.dataset.pwm === "1"; pressSeg("[data-pwm]", "pwm", b.dataset.pwm);
+    $("inDuty").disabled = !st.pwm; $("slDuty").setAttribute("aria-disabled", String(!st.pwm)); st.pwmT = 0; });
+  $("inDuty").oninput = e => { st.duty = e.target.value / 100; $("oDuty").textContent = `${e.target.value} %`; };
+  $("inLoad").oninput = e => { st.load = e.target.value / 1000; $("oLoad").textContent = `${e.target.value} mN·m`; };
+  $("prevBtn").onclick = () => goStep(st.step - 1);
+  $("nextBtn").onclick = () => goStep(st.step + 1);
+  $("resetBtn").onclick = () => { st.run = false; resetState(); capDirty = true; setRun(false); };
+
+  const runBtn = $("runBtn");
+  function setRun(on) { st.run = on; runBtn.classList.toggle("on", on); runBtn.setAttribute("aria-pressed", String(on)); runBtn.textContent = on ? "Running (pin 9 HIGH)" : "Hold to run (pin 9 HIGH)"; }
+  runBtn.addEventListener("pointerdown", e => { e.preventDefault(); try { runBtn.setPointerCapture(e.pointerId); } catch (_) {} setRun(true); });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => runBtn.addEventListener(ev, () => setRun(false)));
+  runBtn.addEventListener("contextmenu", e => e.preventDefault());
+  runBtn.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (!e.repeat) setRun(true); } });
+  runBtn.addEventListener("keyup", e => { if (e.key === "Enter") setRun(false); });
+  window.addEventListener("keydown", e => { if (e.code === "Space" && !(e.target instanceof HTMLInputElement)) { e.preventDefault(); if (!e.repeat) setRun(true); } });
+  window.addEventListener("keyup", e => { if (e.code === "Space") setRun(false); });
+  window.addEventListener("blur", () => setRun(false));
+
+  // ---------- loop ----------
+  let last = performance.now(), frame = 0;
+  function loop(now) {
+    const dtw = Math.min(0.05, (now - last) / 1000); last = now;
+    const n = Math.round(dtw / DT); for (let k = 0; k < n; k++) simStep(DT);
+    st.rot = ((st.rot || 0) + st.w * dtw * 0.02) % (Math.PI * 2);
+    drawScopeV(); drawScopeI(); drawCircuit(dtw);
+    if (capDirty) { drawCapture(); const t = capStatusText(); if (t) $("capStatus").innerHTML = t; capDirty = false; }
+    if (++frame % 6 === 0) { readouts(); checkStep(); }
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener("resize", () => { capDirty = true; });
+  new MutationObserver(() => { capDirty = true; }).observe(document.documentElement, { attributes: true });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { capDirty = true; });
+
+  // open on a realistic state: a no-diode, no-load turn-off at 9 V already captured (about 0.14 A, E about 8.1 V)
+  (function seed() {
+    st.cap = capture(0.14, 8.1, "none"); st.lastPeak = st.cap.peak; st.lastEsw = st.cap.Esw;
+  })();
+  renderSteps(); readouts();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
