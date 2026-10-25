@@ -115,6 +115,7 @@ export function createSpecModule({ $, clamp, setText }) {
 
   // ---------------------------------------------------------------- state
   const DEFAULTS = { phi: 0.8, tube: "helium" };
+  const LAB_PHI = 25;   // in the lab the telescope starts off to the side: finding the straight-through image is a step (Cole 2026-10-24)
   const S = { ...DEFAULTS, lab: false };
   const setArm = (deg) => { S.phi = clamp(deg, -SPEC.armMax, SPEC.armMax); };
   $("tubeSel").innerHTML = TUBES.map((t) => `<option value="${t}">${SOURCES[t].name}</option>`).join("");
@@ -214,15 +215,15 @@ export function createSpecModule({ $, clamp, setText }) {
     const col = tubeColour(); for (const m of [tubeGlow.material, slit.material]) m.emissive.setRGB(col[0], col[1], col[2]);
     drawEye();
   }
-  function reset() { Object.assign(S, DEFAULTS); $("tubeSel").value = S.tube; }
-  function setLab(on) { S.lab = on; }
+  function reset() { Object.assign(S, DEFAULTS, S.lab ? { phi: LAB_PHI } : {}); $("tubeSel").value = S.tube; }
+  function setLab(on) { if (on && !S.lab) S.phi = LAB_PHI; if (!on && S.lab) S.phi = DEFAULTS.phi; S.lab = on; }
 
   return {
     id: "spec", name: "Spectrometer (Exp 214)", group: "Wave optics", scope: "Wave optics · Grating spectrometer",
     station: "spec", root: group, views, viewNames, defaultView: "overview", registry, labels, panel: "spec",
     frame, text, warm: frame, reset, setLab, key: onKey,
     focus: [[plate, "vernier"], [circle, "vernier"], [gGlass, "grating"], [gtable, "grating"], [lBox, "lamp"], [cTube, "telescope"]],
-    api: { S, setArm, group, vern, reading: () => reading(S.phi), shown: () => shown, onCross, arm, pivot, plate, circle, Y_S, R_S, drawEye,
+    api: { S, LAB_PHI, setArm, group, vern, reading: () => reading(S.phi), shown: () => shown, onCross, arm, pivot, plate, circle, Y_S, R_S, drawEye,
       setTube: (t) => { S.tube = t; $("tubeSel").value = t; } },
   };
 }

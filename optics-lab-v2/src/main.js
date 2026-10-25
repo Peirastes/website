@@ -28,6 +28,7 @@ import { createNotebook } from "./notebook.js";
 import { createGuide } from "./guide.js";
 import { PROC_212 } from "./guide212.js";
 import { PROC_213 } from "./guide213.js";
+import { PROC_214 } from "./guide214.js";
 
 const $ = (id) => document.getElementById(id);
 const stage = $("stage");
@@ -269,15 +270,23 @@ $("resetBtn").addEventListener("click", () => current.reset());
 $("tFree").checked = !lab; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
 $("tFree").addEventListener("change", (e) => { lab = !e.target.checked; document.body.classList.toggle("lab", lab); for (const m of MODULES) m.setLab?.(lab);
   if (!lab && guide.isActive()) { const keep = guideAuto; guide.stop(); guideAuto = keep; } autoGuide(); });
-// ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212, 213)
-const GUIDES = { snell: PROC_212, lens: PROC_213 };
+// ---------------------------------------------------------------- the Guide: a lab's procedure, step by step (Exp 212, 213, 214)
+const GUIDES = { snell: PROC_212, lens: PROC_213, spec: PROC_214 };
 let guideProc = null;
 const screenXY = (obj, off = [0, 0, 0]) => { const v = obj.localToWorld(new THREE.Vector3(...off)).project(camera), R = renderer.domElement.getBoundingClientRect();
   return v.z > 1 ? null : [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height]; };
 // the lab's instructions ARE the guide (Cole 2026-10-14): at a station with a guide, in the lab, the card opens by itself;
 // closed (its x or the Guide button), it stays closed until Guide is pressed again
 let guideAuto = true;
-const guide = createGuide({ $, flyTo, screenPoint: screenXY, notebook, onExit: () => { guideProc = null; guideAuto = false; $("guideBtn").classList.remove("on"); } });
+// the spectrometer's eyepiece shares the lower left with the card: it stands on top of the card, or beside it when that
+// would run off the top of the window (the enlarged eyepiece on a short screen)
+function placeEye(card) {
+  const e = $("eyeBox"); if (!card) { e.style.left = e.style.bottom = ""; return; }
+  const left = parseFloat(card.style.left) || 35, bottom = 60 + card.offsetHeight + 12, h = e.offsetHeight || 250;
+  if (bottom + h + 8 <= window.innerHeight) { e.style.left = left + "px"; e.style.bottom = bottom + "px"; }
+  else { e.style.left = left + card.offsetWidth + 16 + "px"; e.style.bottom = "58px"; }
+}
+const guide = createGuide({ $, flyTo, screenPoint: screenXY, notebook, place: placeEye, onExit: () => { guideProc = null; guideAuto = false; $("guideBtn").classList.remove("on"); } });
 function autoGuide() { if (guideAuto && lab && !inRoom && !guide.isActive() && GUIDES[current.id]) startGuide(GUIDES[current.id]); }
 function startGuide(P) { guideProc = P; guideAuto = true; guide.start(P, guideCtx); $("guideBtn").classList.add("on"); }
 // what a step's predicates see: the bench's api and state, the ray the readouts follow, and the notebook's cells

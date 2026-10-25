@@ -10,7 +10,7 @@
 //          done(ctx), target?(ctx) -> { obj, off } (a 3D part) | { cell: "t.t1.3.r" } (a notebook cell) | null,
 //          notebook?: true (open the lab notebook on this step), cells?(ctx) -> [cell paths] (a record step's own cells;
 //          default: its target cell) }
-export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
+export function createGuide({ $, flyTo, screenPoint, notebook, onExit, place }) {
   const card = document.createElement("div"); card.id = "guide"; document.body.appendChild(card);
   const ring = document.createElement("div"); ring.id = "guideRing"; document.body.appendChild(ring);
   // revisit: a step returned to with Back. If it is already done it waits (Skip goes on) instead of jumping straight back
@@ -29,7 +29,7 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
   }
   function start(proc, ctx) { P = proc; ctxFn = ctx; enter(0); setShown(true); }
   function stop() { P = null; setShown(false); clearCell(); onExit?.(); }
-  function setShown(on) { shown = on && !!P; card.style.display = shown ? "block" : "none"; if (!shown) { ring.style.display = "none"; clearCell(); } }
+  function setShown(on) { shown = on && !!P; card.style.display = shown ? "block" : "none"; if (!shown) { ring.style.display = "none"; clearCell(); place?.(null); } }
   function clearCell() { if (lastCell) lastCell.classList.remove("guide-target"); lastCell = null; }
 
   card.addEventListener("click", (e) => {
@@ -87,6 +87,7 @@ export function createGuide({ $, flyTo, screenPoint, notebook, onExit }) {
     render(ctx);
     // the card sits at the bottom, right of the notebook when it is open
     card.style.left = Math.max(window.innerWidth <= 520 ? 16 : 35, notebook.right() + 16) + "px";   // the Rankine stepper's 35 px; right of an open notebook
+    place?.(card);                                                       // anything else at the lower left moves clear of it (the spectrometer's eyepiece)
     // the target: a ring on a 3D part, an outline on a notebook cell
     const t = s && s.target ? s.target(ctx) : null;
     if (t && t.obj) {

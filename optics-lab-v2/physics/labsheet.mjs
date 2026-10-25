@@ -82,14 +82,14 @@ const M_TAIL = [
     if (all(v(r, "hi"), v(r, "ho"), v(r, "di"), v(r, "do"))) out.push(pctDiff(v(r, "hi") / v(r, "ho"), -v(r, "di") / v(r, "do")));
     return out.length ? out : null; } },
 ];
-// Exp 214: theta_R, theta_L, theta from the readings (|reading - theta0|, then the mean)
+// Exp 214: theta_R, theta_L, theta from the readings (|reading - theta0|, then the mean); computed (auto, Cole 2026-10-24)
 const T_COLS = [
   { key: "th0", head: "<i>θ</i><sub>0</sub>", unit: "°" },
   { key: "t1R", head: "<i>θ</i><sub>1,R</sub>", unit: "°" },
-  { key: "thR", head: "<i>θ<sub>R</sub></i> = |<i>θ</i><sub>1,R</sub> − <i>θ</i><sub>0</sub>|", unit: "°", derive: (r) => all(v(r, "t1R"), v(r, "th0")) ? [Math.abs(v(r, "t1R") - v(r, "th0"))] : null },
+  { key: "thR", auto: 1, head: "<i>θ<sub>R</sub></i> = |<i>θ</i><sub>1,R</sub> − <i>θ</i><sub>0</sub>|", unit: "°", derive: (r) => all(v(r, "t1R"), v(r, "th0")) ? [Math.abs(v(r, "t1R") - v(r, "th0"))] : null },
   { key: "t1L", head: "<i>θ</i><sub>1,L</sub>", unit: "°" },
-  { key: "thL", head: "<i>θ<sub>L</sub></i> = |<i>θ</i><sub>1,L</sub> − <i>θ</i><sub>0</sub>|", unit: "°", derive: (r) => all(v(r, "t1L"), v(r, "th0")) ? [Math.abs(v(r, "t1L") - v(r, "th0"))] : null },
-  { key: "th", head: "<i>θ</i> = (<i>θ<sub>R</sub></i> + <i>θ<sub>L</sub></i>)/2", unit: "°", derive: (r) => {
+  { key: "thL", auto: 1, head: "<i>θ<sub>L</sub></i> = |<i>θ</i><sub>1,L</sub> − <i>θ</i><sub>0</sub>|", unit: "°", derive: (r) => all(v(r, "t1L"), v(r, "th0")) ? [Math.abs(v(r, "t1L") - v(r, "th0"))] : null },
+  { key: "th", auto: 2, head: "<i>θ</i> = (<i>θ<sub>R</sub></i> + <i>θ<sub>L</sub></i>)/2", unit: "°", derive: (r) => {
     const out = [];
     if (all(v(r, "thR"), v(r, "thL"))) out.push((v(r, "thR") + v(r, "thL")) / 2);
     if (all(v(r, "t1R"), v(r, "t1L"), v(r, "th0"))) out.push((Math.abs(v(r, "t1R") - v(r, "th0")) + Math.abs(v(r, "t1L") - v(r, "th0"))) / 2);
@@ -160,14 +160,14 @@ export const SHEETS = {
     id: "214", station: "spec", title: "Experiment 214", subtitle: "The Diffraction Grating",
     tables: [
       { id: "t3", caption: `Table 3. Spectrometer Calibration Data (helium, <i>λ</i> = ${HE_LINE} nm)`, rows: 1, cols: [...T_COLS,
-        { key: "sth", head: "sin <i>θ</i>", unit: "−", derive: (r) => v(r, "th") !== null ? [sinD(v(r, "th"))] : null },
-        { key: "d", head: "<i>d</i> = <i>λ</i>/sin <i>θ</i>", unit: "nm", derive: (r) => {
+        { key: "sth", auto: 4, head: "sin <i>θ</i>", unit: "−", derive: (r) => v(r, "th") !== null ? [sinD(v(r, "th"))] : null },
+        { key: "d", head: "<i>d</i> = <i>λ</i>/sin <i>θ</i>", unit: "nm", auto: 1, derive: (r) => {
           const out = []; if (v(r, "th")) out.push(HE_LINE / sinD(v(r, "th"))); if (v(r, "sth")) out.push(HE_LINE / v(r, "sth")); return out.length ? out : null; } }] },
       { id: "t4", caption: "Table 4. Hydrogen Spectrum Data", rows: 4, cols: [
         { key: "col", head: "", text: true, init: ["Red", "Green", "Blue-Violet", "Violet"] },
         { key: "n", head: "<i>n</i>", unit: "−", init: ["3", "4", "5", "6"] },
         ...T_COLS,
-        { key: "lam", head: "<i>λ</i> = <i>d</i> sin <i>θ</i>", unit: "nm", derive: (r, S) => { const d = v((S.t.t3 || [])[0], "d"); return all(d, v(r, "th")) ? [d * sinD(v(r, "th"))] : null; } }] },
+        { key: "lam", head: "<i>λ</i> = <i>d</i> sin <i>θ</i>", unit: "nm", auto: 1, derive: (r, S) => { const d = v((S.t.t3 || [])[0], "d"); return all(d, v(r, "th")) ? [d * sinD(v(r, "th"))] : null; } }] },
     ],
     // #13: 1/lambda against 1/n^2; the slope is -R
     graph: { title: "Inverse Wavelength as a Function of Inverse of Balmer Number Squared", x: "Inverse of Balmer Number Squared, 1/n^2", y: "Inverse Wavelength, 1/λ (nm^-1)", xSym: "/n²", ySym: "1/λ",
