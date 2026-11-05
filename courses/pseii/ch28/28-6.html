@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 28 sections"><h4><a href="index.html">Ch 28 &middot; Magnetic Fields</a></h4><ol><li class=""><a href="28-0.html"><b>28.0</b><span>A Force Unlike Any Other</span></a></li><li class=""><a href="28-1.html"><b>28.1</b><span>The Magnetic Field</span></a></li><li class=""><a href="28-2.html"><b>28.2</b><span>The Lorentz Force — Motion in Magnetic Fields</span></a></li><li class=""><a href="28-3.html"><b>28.3</b><span>Force on a Current-Carrying Conductor</span></a></li><li class=""><a href="28-4.html"><b>28.4</b><span>Torque on a Current Loop and the Magnetic Dipole</span></a></li><li class=""><a href="28-5.html"><b>28.5</b><span>Sources of Magnetic Fields — The Biot-Savart Law</span></a></li><li class="here"><a href="28-6.html"><b>28.6</b><span>Ampère’s Law</span></a><ul><li><a href="#the-magnetic-analog-of-gausss-law">The Magnetic Analog of Gauss’s Law</a></li><li><a href="#the-infinite-wire-revisited">The Infinite Wire (Revisited)</a></li><li><a href="#the-solenoid">The Solenoid</a></li></ul></li><li class=""><a href="28-7.html"><b>28.7</b><span>Magnetic Flux and Gauss’s Law for Magnetism</span></a></li><li class=""><a href="28-8.html"><b>28.8</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 28 overview</a><a href="/courses/pseii/ch28.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 28 sections"><h4><a href="index.html">Ch 28 &middot; Magnetic Fields</a></h4><ol><li class=""><a href="28-0.html"><b>28.0</b><span>A Force That Steers</span></a></li><li class=""><a href="28-1.html"><b>28.1</b><span>The Magnetic Field</span></a></li><li class=""><a href="28-2.html"><b>28.2</b><span>The Force on a Moving Charge</span></a></li><li class=""><a href="28-3.html"><b>28.3</b><span>The Force on a Wire</span></a></li><li class=""><a href="28-4.html"><b>28.4</b><span>Torque on a Current Loop</span></a></li><li class=""><a href="28-5.html"><b>28.5</b><span>Sources of the Field: The Biot–Savart Law</span></a></li><li class="here"><a href="28-6.html"><b>28.6</b><span>Ampère’s Law</span></a><ul><li><a href="#the-shortcut-from-chapter-31">The Shortcut, from Chapter 31</a></li><li><a href="#the-solenoid">The Solenoid</a></li></ul></li><li class=""><a href="28-7.html"><b>28.7</b><span>Magnetic Flux and Gauss’s Law for Magnetism</span></a></li><li class=""><a href="28-8.html"><b>28.8</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 28 overview</a><a href="/courses/pseii/ch28.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -305,56 +316,63 @@
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 28</a><span class="sep">/</span><span>Section 28.6</span></div><div class="strip" aria-label="Sections"><a class="done" href="28-0.html" title="28.0 A Force Unlike Any Other"><i></i>28.0</a><a class="done" href="28-1.html" title="28.1 The Magnetic Field"><i></i>28.1</a><a class="done" href="28-2.html" title="28.2 The Lorentz Force — Motion in Magnetic Fields"><i></i>28.2</a><a class="done" href="28-3.html" title="28.3 Force on a Current-Carrying Conductor"><i></i>28.3</a><a class="done" href="28-4.html" title="28.4 Torque on a Current Loop and the Magnetic Dipole"><i></i>28.4</a><a class="done" href="28-5.html" title="28.5 Sources of Magnetic Fields — The Biot-Savart Law"><i></i>28.5</a><a class="here" href="28-6.html" title="28.6 Ampère’s Law"><i></i>28.6</a><a class="" href="28-7.html" title="28.7 Magnetic Flux and Gauss’s Law for Magnetism"><i></i>28.7</a><a class="" href="28-8.html" title="28.8 Summary"><i></i>28.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 28.6 &middot; 7 of 9</summary><ol><li class=""><a href="28-0.html">28.0 &nbsp;A Force Unlike Any Other</a></li><li class=""><a href="28-1.html">28.1 &nbsp;The Magnetic Field</a></li><li class=""><a href="28-2.html">28.2 &nbsp;The Lorentz Force — Motion in Magnetic Fields</a></li><li class=""><a href="28-3.html">28.3 &nbsp;Force on a Current-Carrying Conductor</a></li><li class=""><a href="28-4.html">28.4 &nbsp;Torque on a Current Loop and the Magnetic Dipole</a></li><li class=""><a href="28-5.html">28.5 &nbsp;Sources of Magnetic Fields — The Biot-Savart Law</a></li><li class="here"><a href="28-6.html">28.6 &nbsp;Ampère’s Law</a></li><li class=""><a href="28-7.html">28.7 &nbsp;Magnetic Flux and Gauss’s Law for Magnetism</a></li><li class=""><a href="28-8.html">28.8 &nbsp;Summary</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 28</a><span class="sep">/</span><span>Section 28.6</span></div><div class="strip" aria-label="Sections"><a class="done" href="28-0.html" title="28.0 A Force That Steers"><i></i>28.0</a><a class="done" href="28-1.html" title="28.1 The Magnetic Field"><i></i>28.1</a><a class="done" href="28-2.html" title="28.2 The Force on a Moving Charge"><i></i>28.2</a><a class="done" href="28-3.html" title="28.3 The Force on a Wire"><i></i>28.3</a><a class="done" href="28-4.html" title="28.4 Torque on a Current Loop"><i></i>28.4</a><a class="done" href="28-5.html" title="28.5 Sources of the Field: The Biot–Savart Law"><i></i>28.5</a><a class="here" href="28-6.html" title="28.6 Ampère’s Law"><i></i>28.6</a><a class="" href="28-7.html" title="28.7 Magnetic Flux and Gauss’s Law for Magnetism"><i></i>28.7</a><a class="" href="28-8.html" title="28.8 Summary"><i></i>28.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 28.6 &middot; 7 of 9</summary><ol><li class=""><a href="28-0.html">28.0 &nbsp;A Force That Steers</a></li><li class=""><a href="28-1.html">28.1 &nbsp;The Magnetic Field</a></li><li class=""><a href="28-2.html">28.2 &nbsp;The Force on a Moving Charge</a></li><li class=""><a href="28-3.html">28.3 &nbsp;The Force on a Wire</a></li><li class=""><a href="28-4.html">28.4 &nbsp;Torque on a Current Loop</a></li><li class=""><a href="28-5.html">28.5 &nbsp;Sources of the Field: The Biot–Savart Law</a></li><li class="here"><a href="28-6.html">28.6 &nbsp;Ampère’s Law</a></li><li class=""><a href="28-7.html">28.7 &nbsp;Magnetic Flux and Gauss’s Law for Magnetism</a></li><li class=""><a href="28-8.html">28.8 &nbsp;Summary</a></li></ol></details>
 
-<h3 id="the-magnetic-analog-of-gausss-law">The Magnetic Analog of Gauss’s Law</h3>
-<p>In Chapter 23, Gauss’s Law provided a powerful shortcut for calculating <span class="math inline">\(\vec{E}\)</span> when symmetry cooperated. The magnetic analog is <strong>Ampère’s Law</strong>:</p>
-<p><span class="math display">\[\boxed{\oint\vec{B}\cdot d\vec{\ell} = \mu_0 I_\text{enc}}\]</span></p>
-<p>The line integral of <span class="math inline">\(\vec{B}\)</span> around any closed <strong>Amperian loop</strong> equals <span class="math inline">\(\mu_0\)</span> times the net current threading the loop. Like Gauss’s Law, always <em>true</em> but only <em>useful</em> when symmetry makes <span class="math inline">\(|\vec{B}|\)</span> constant on the path.</p>
+<h3 id="the-shortcut-from-chapter-31">The Shortcut, from Chapter 31</h3>
+<p>Chapter 31 stated law (4), the Ampère–Maxwell law:</p>
+<p><span class="math display">\[\oint\vec B\cdot d\vec\ell = \mu_0 I_\text{enc} + \mu_0\varepsilon_0\frac{d\Phi_E}{dt}\]</span></p>
+<p>For <strong>steady</strong> currents nothing is changing, so the second term is zero and what remains is <strong>Ampère’s law</strong>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\oint\vec B\cdot d\vec\ell = \mu_0 I_\text{enc}\;}\]</span></p>
+</div>
+<p>The circulation of <span class="math inline">\(\vec B\)</span> around any closed loop equals <span class="math inline">\(\mu_0\)</span> times the current through the loop. It plays the part Gauss’s law played for <span class="math inline">\(\vec E\)</span> in Chapter 23: always true, and <strong>useful</strong> only when symmetry makes <span class="math inline">\(B\)</span> constant along a loop we can draw.</p>
+<div class="connection">
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>Gauss’s Law (Ch 23)</th>
-<th>Ampère’s Law (Ch 28)</th>
+<th></th>
+<th>Gauss’s law (Ch 23)</th>
+<th>Ampère’s law (this chapter)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Integral type</td>
-<td>Surface (<span class="math inline">\(\oint\vec{E}\cdot d\vec{A}\)</span>)</td>
-<td>Line (<span class="math inline">\(\oint\vec{B}\cdot d\vec{\ell}\)</span>)</td>
+<td>Measures</td>
+<td>flux out of a closed <strong>surface</strong></td>
+<td>circulation around a closed <strong>loop</strong></td>
 </tr>
 <tr class="even">
-<td>Encloses</td>
-<td>Charge <span class="math inline">\(Q_\text{enc}\)</span></td>
-<td>Current <span class="math inline">\(I_\text{enc}\)</span></td>
+<td>Counts</td>
+<td>charge enclosed, <span class="math inline">\(Q_\text{enc}\)</span></td>
+<td>current through, <span class="math inline">\(I_\text{enc}\)</span></td>
 </tr>
 <tr class="odd">
 <td>Constant</td>
-<td><span class="math inline">\(\varepsilon_0\)</span> (permittivity)</td>
-<td><span class="math inline">\(\mu_0\)</span> (permeability)</td>
+<td><span class="math inline">\(1/\varepsilon_0\)</span></td>
+<td><span class="math inline">\(\mu_0\)</span></td>
 </tr>
 <tr class="even">
 <td>Useful when</td>
-<td>Symmetry <span class="math inline">\(\rightarrow\)</span> <span class="math inline">\(E\)</span> constant on surface</td>
-<td>Symmetry <span class="math inline">\(\rightarrow\)</span> <span class="math inline">\(B\)</span> constant on path</td>
+<td><span class="math inline">\(E\)</span> is constant over the surface</td>
+<td><span class="math inline">\(B\)</span> is constant along the loop</td>
 </tr>
 </tbody>
 </table>
-<h3 id="the-infinite-wire-revisited">The Infinite Wire (Revisited)</h3>
-<p>A circular Amperian loop of radius <span class="math inline">\(r\)</span> centered on the wire. By symmetry, <span class="math inline">\(\vec{B}\)</span> is tangent and constant: <span class="math inline">\(B(2\pi r) = \mu_0 I\)</span>, giving <span class="math inline">\(B = \mu_0 I/(2\pi r)\)</span>. Confirms Biot-Savart in one line — the elegance of Ampère’s Law is that symmetry does the heavy lifting.</p>
+</div>
+<p><strong>The long wire again.</strong> Take a circle of radius <span class="math inline">\(r\)</span> around the wire. By symmetry <span class="math inline">\(\vec B\)</span> runs along the circle with the same size everywhere on it, so the circulation is <span class="math inline">\(B(2\pi r)\)</span>, and <span class="math inline">\(B(2\pi r) = \mu_0 I\)</span> gives <span class="math inline">\(B = \mu_0 I/2\pi r\)</span> in one line, the same as the Biot–Savart integral of §28.5.</p>
 <h3 id="the-solenoid">The Solenoid</h3>
-<p>A <strong>solenoid</strong> is a tightly wound coil, long compared to its diameter, producing a nearly uniform interior field and negligible exterior field. Choose a rectangular Amperian loop: one side of length <span class="math inline">\(L\)</span> inside (parallel to axis), one outside (<span class="math inline">\(B \approx 0\)</span>), two perpendicular sides (<span class="math inline">\(\vec{B}\perp d\vec{\ell}\)</span>). Only the inside side contributes:</p>
-<p><span class="math display">\[BL = \mu_0(nL)I \qquad \Longrightarrow \qquad \boxed{B = \mu_0 nI} \qquad \text{(inside an ideal solenoid)}\]</span></p>
-<p>where <span class="math inline">\(n = N/L_\text{total}\)</span> is the number of turns per unit length.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_7_solenoid.png" alt="Figure 28.7: Cross-section of a solenoid showing interior field (uniform, parallel to axis), exterior field (\approx 0), and the rectangular Amperian loop" loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 28.7: Cross-section of a solenoid showing interior field (uniform, parallel to axis), exterior field (\approx 0), and the rectangular Amperian loop</figcaption></figure>
-<p>The field depends only on <span class="math inline">\(n\)</span> and <span class="math inline">\(I\)</span> — not on position, radius, or length. The solenoid is the magnetic analog of the parallel-plate capacitor:</p>
+<p>A <strong>solenoid</strong> is a long, tightly wound coil, with <span class="math inline">\(n\)</span> turns per unit length. Inside, the fields of all the turns add along the axis; outside, the contributions from the near and far sides of each turn nearly cancel, and for a long solenoid the outside field is close to zero.</p>
+<p><strong>Step 1 — choose the loop.</strong> A rectangle with one side of length <span class="math inline">\(\ell\)</span> inside, parallel to the axis, and one side outside (Figure 28.12).</p>
+<p><strong>Step 2 — the circulation.</strong> Inside, <span class="math inline">\(\vec B\)</span> runs along the side: <span class="math inline">\(B\ell\)</span>. Outside, <span class="math inline">\(B \approx 0\)</span>. On the two short sides, <span class="math inline">\(\vec B\)</span> inside is perpendicular to the path, and outside it is zero: nothing.</p>
+<p><span class="math display">\[\oint\vec B\cdot d\vec\ell = B\ell\]</span></p>
+<p><strong>Step 3 — the current through the loop.</strong> <span class="math inline">\(n\ell\)</span> turns pass through it, each carrying <span class="math inline">\(I\)</span>: <span class="math inline">\(I_\text{enc} = n\ell I\)</span>.</p>
+<p><strong>Step 4 — Ampère’s law.</strong> <span class="math inline">\(B\ell = \mu_0 n\ell I\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B = \mu_0 nI \qquad \text{(inside a long solenoid)}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_12_solenoid.png" alt="Figure 28.12: A solenoid cut along its axis. Dots are turns carrying current out of the page and crosses are turns carrying it into the page. Inside, the field is uniform and runs along the axis; outside it is nearly zero. The dashed rectangle is the Ampère loop, with one side of length \ell inside." loading="lazy" style="max-width:min(5.4in,100%)" /><figcaption>Figure 28.12: A solenoid cut along its axis. Dots are turns carrying current out of the page and crosses are turns carrying it into the page. Inside, the field is uniform and runs along the axis; outside it is nearly zero. The dashed rectangle is the Ampère loop, with one side of length <span class="math inline">\(\ell\)</span> inside.</figcaption></figure>
+<p>The inside field does not depend on where you are inside, on the radius, or on the solenoid’s length; only on how tightly it is wound and the current. <strong>The solenoid is the magnetic parallel-plate capacitor.</strong></p>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -362,28 +380,38 @@
 </colgroup>
 <thead>
 <tr class="header">
-<th>Parallel-Plate Capacitor (Ch 25)</th>
-<th>Ideal Solenoid (Ch 28)</th>
+<th>Parallel-plate capacitor (Ch 25)</th>
+<th>Long solenoid</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Uniform <span class="math inline">\(E = \sigma/\varepsilon_0\)</span> inside</td>
-<td>Uniform <span class="math inline">\(B = \mu_0 nI\)</span> inside</td>
+<td>uniform <span class="math inline">\(E = \sigma/\varepsilon_0\)</span> between the plates</td>
+<td>uniform <span class="math inline">\(B = \mu_0 nI\)</span> inside</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(E = 0\)</span> outside</td>
-<td><span class="math inline">\(B = 0\)</span> outside</td>
+<td><span class="math inline">\(E \approx 0\)</span> outside</td>
+<td><span class="math inline">\(B \approx 0\)</span> outside</td>
 </tr>
 <tr class="odd">
-<td>Energy density <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td>Energy density <span class="math inline">\(u_B = B^2/(2\mu_0)\)</span></td>
+<td>energy density <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span></td>
+<td>energy density <span class="math inline">\(u_B = B^2/2\mu_0\)</span> (Ch 29)</td>
 </tr>
 </tbody>
 </table>
-<p>A <strong>toroid</strong> (solenoid bent into a doughnut) has <span class="math inline">\(B = \mu_0 NI/(2\pi r)\)</span> inside — varying with <span class="math inline">\(r\)</span>, stronger near the inner wall — and <span class="math inline">\(B = 0\)</span> outside.</p>
-<p><em>*Personal note: The formula <span class="math inline">\(B = \mu_0 nI\)</span> is the design equation for every MRI machine, particle accelerator, and electromagnetic relay. Need more field? Add more turns per meter or increase the current.</em></p>
-<nav class="secnav"><a class="prev" href="28-5.html"><span class="lab">&larr; Previous section</span><span class="tt">28.5 &nbsp;Sources of Magnetic Fields — The Biot-Savart Law</span></a><a class="next" href="28-7.html"><span class="lab">Next section &rarr;</span><span class="tt">28.7 &nbsp;Magnetic Flux and Gauss’s Law for Magnetism</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch28.html">Whole chapter on one page</a></p>
+</div>
+<section id="example-the-field-inside-a-solenoid" class="example">
+<h3>Example: The Field Inside a Solenoid</h3>
+<p>A solenoid has <span class="math inline">\(n\)</span> turns per meter and carries current <span class="math inline">\(I\)</span>. Find the field inside for <span class="math inline">\(n = 1500\)</span> turns/m and <span class="math inline">\(I = 4.00\)</span> A.</p>
+<p><em>Why it matters:</em> the winding and the current are what an engineer chooses; the uniform field inside is what the device is for. This is the design equation for MRI magnets, relays and the electromagnets in a door lock.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(B = \mu_0 nI\)</span>.</p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B = (4\pi\times10^{-7})(1500)(4.00) = 7.54\times10^{-3}\ \text{T} = 7.54\ \text{mT}\;}\]</span></p>
+</div>
+<p>About 150 times Earth’s field, from a few amperes. An MRI magnet reaches <span class="math inline">\(1.5\)</span> T with superconducting wire, which carries hundreds of amperes with no resistance.</p>
+</section>
+<nav class="secnav"><a class="prev" href="28-5.html"><span class="lab">&larr; Previous section</span><span class="tt">28.5 &nbsp;Sources of the Field: The Biot–Savart Law</span></a><a class="next" href="28-7.html"><span class="lab">Next section &rarr;</span><span class="tt">28.7 &nbsp;Magnetic Flux and Gauss’s Law for Magnetism</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch28.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>

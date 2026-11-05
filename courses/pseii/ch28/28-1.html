@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 28 sections"><h4><a href="index.html">Ch 28 &middot; Magnetic Fields</a></h4><ol><li class=""><a href="28-0.html"><b>28.0</b><span>A Force Unlike Any Other</span></a></li><li class="here"><a href="28-1.html"><b>28.1</b><span>The Magnetic Field</span></a><ul><li><a href="#electric-field-vs.-magnetic-field">Electric Field vs. Magnetic Field</a></li></ul></li><li class=""><a href="28-2.html"><b>28.2</b><span>The Lorentz Force — Motion in Magnetic Fields</span></a></li><li class=""><a href="28-3.html"><b>28.3</b><span>Force on a Current-Carrying Conductor</span></a></li><li class=""><a href="28-4.html"><b>28.4</b><span>Torque on a Current Loop and the Magnetic Dipole</span></a></li><li class=""><a href="28-5.html"><b>28.5</b><span>Sources of Magnetic Fields — The Biot-Savart Law</span></a></li><li class=""><a href="28-6.html"><b>28.6</b><span>Ampère’s Law</span></a></li><li class=""><a href="28-7.html"><b>28.7</b><span>Magnetic Flux and Gauss’s Law for Magnetism</span></a></li><li class=""><a href="28-8.html"><b>28.8</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 28 overview</a><a href="/courses/pseii/ch28.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 28 sections"><h4><a href="index.html">Ch 28 &middot; Magnetic Fields</a></h4><ol><li class=""><a href="28-0.html"><b>28.0</b><span>A Force That Steers</span></a></li><li class="here"><a href="28-1.html"><b>28.1</b><span>The Magnetic Field</span></a><ul><li><a href="#measuring-a-field-that-ignores-charges-at-rest">Measuring a Field That Ignores Charges at Rest</a></li><li><a href="#electric-field-and-magnetic-field">Electric Field and Magnetic Field</a></li></ul></li><li class=""><a href="28-2.html"><b>28.2</b><span>The Force on a Moving Charge</span></a></li><li class=""><a href="28-3.html"><b>28.3</b><span>The Force on a Wire</span></a></li><li class=""><a href="28-4.html"><b>28.4</b><span>Torque on a Current Loop</span></a></li><li class=""><a href="28-5.html"><b>28.5</b><span>Sources of the Field: The Biot–Savart Law</span></a></li><li class=""><a href="28-6.html"><b>28.6</b><span>Ampère’s Law</span></a></li><li class=""><a href="28-7.html"><b>28.7</b><span>Magnetic Flux and Gauss’s Law for Magnetism</span></a></li><li class=""><a href="28-8.html"><b>28.8</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 28 overview</a><a href="/courses/pseii/ch28.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -305,10 +316,17 @@
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 28</a><span class="sep">/</span><span>Section 28.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="28-0.html" title="28.0 A Force Unlike Any Other"><i></i>28.0</a><a class="here" href="28-1.html" title="28.1 The Magnetic Field"><i></i>28.1</a><a class="" href="28-2.html" title="28.2 The Lorentz Force — Motion in Magnetic Fields"><i></i>28.2</a><a class="" href="28-3.html" title="28.3 Force on a Current-Carrying Conductor"><i></i>28.3</a><a class="" href="28-4.html" title="28.4 Torque on a Current Loop and the Magnetic Dipole"><i></i>28.4</a><a class="" href="28-5.html" title="28.5 Sources of Magnetic Fields — The Biot-Savart Law"><i></i>28.5</a><a class="" href="28-6.html" title="28.6 Ampère’s Law"><i></i>28.6</a><a class="" href="28-7.html" title="28.7 Magnetic Flux and Gauss’s Law for Magnetism"><i></i>28.7</a><a class="" href="28-8.html" title="28.8 Summary"><i></i>28.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 28.1 &middot; 2 of 9</summary><ol><li class=""><a href="28-0.html">28.0 &nbsp;A Force Unlike Any Other</a></li><li class="here"><a href="28-1.html">28.1 &nbsp;The Magnetic Field</a></li><li class=""><a href="28-2.html">28.2 &nbsp;The Lorentz Force — Motion in Magnetic Fields</a></li><li class=""><a href="28-3.html">28.3 &nbsp;Force on a Current-Carrying Conductor</a></li><li class=""><a href="28-4.html">28.4 &nbsp;Torque on a Current Loop and the Magnetic Dipole</a></li><li class=""><a href="28-5.html">28.5 &nbsp;Sources of Magnetic Fields — The Biot-Savart Law</a></li><li class=""><a href="28-6.html">28.6 &nbsp;Ampère’s Law</a></li><li class=""><a href="28-7.html">28.7 &nbsp;Magnetic Flux and Gauss’s Law for Magnetism</a></li><li class=""><a href="28-8.html">28.8 &nbsp;Summary</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 28</a><span class="sep">/</span><span>Section 28.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="28-0.html" title="28.0 A Force That Steers"><i></i>28.0</a><a class="here" href="28-1.html" title="28.1 The Magnetic Field"><i></i>28.1</a><a class="" href="28-2.html" title="28.2 The Force on a Moving Charge"><i></i>28.2</a><a class="" href="28-3.html" title="28.3 The Force on a Wire"><i></i>28.3</a><a class="" href="28-4.html" title="28.4 Torque on a Current Loop"><i></i>28.4</a><a class="" href="28-5.html" title="28.5 Sources of the Field: The Biot–Savart Law"><i></i>28.5</a><a class="" href="28-6.html" title="28.6 Ampère’s Law"><i></i>28.6</a><a class="" href="28-7.html" title="28.7 Magnetic Flux and Gauss’s Law for Magnetism"><i></i>28.7</a><a class="" href="28-8.html" title="28.8 Summary"><i></i>28.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 28.1 &middot; 2 of 9</summary><ol><li class=""><a href="28-0.html">28.0 &nbsp;A Force That Steers</a></li><li class="here"><a href="28-1.html">28.1 &nbsp;The Magnetic Field</a></li><li class=""><a href="28-2.html">28.2 &nbsp;The Force on a Moving Charge</a></li><li class=""><a href="28-3.html">28.3 &nbsp;The Force on a Wire</a></li><li class=""><a href="28-4.html">28.4 &nbsp;Torque on a Current Loop</a></li><li class=""><a href="28-5.html">28.5 &nbsp;Sources of the Field: The Biot–Savart Law</a></li><li class=""><a href="28-6.html">28.6 &nbsp;Ampère’s Law</a></li><li class=""><a href="28-7.html">28.7 &nbsp;Magnetic Flux and Gauss’s Law for Magnetism</a></li><li class=""><a href="28-8.html">28.8 &nbsp;Summary</a></li></ol></details>
 
-<p>In Chapter 22, we defined the electric field <span class="math inline">\(\vec{E}\)</span> by placing a test charge at rest and measuring the force. The <strong>magnetic field</strong> <span class="math inline">\(\vec{B}\)</span> requires a subtler procedure: a stationary charge feels <em>no</em> magnetic force. We must fire a moving charge through the region and observe the deflection. The field is whatever explains that deflection via the force law developed in Section 28.2.</p>
-<p>The SI unit is the <strong>tesla</strong> (T): <span class="math inline">\(1\ \text{T} = 1\ \text{N}/(\text{A}\cdot\text{m})\)</span>.</p>
+<h3 id="measuring-a-field-that-ignores-charges-at-rest">Measuring a Field That Ignores Charges at Rest</h3>
+<p>Chapter 22 defined <span class="math inline">\(\vec E\)</span> by holding a test charge still and measuring the force on it: <span class="math inline">\(\vec E = \vec F/q\)</span>. Near a magnet that test fails. A charge at rest feels no magnetic force at all. The magnetic field has to be measured with a <strong>moving</strong> charge, and firing test charges through a region in different directions turns up three facts:</p>
+<ol type="1">
+<li>There is one direction (and its reverse) along which a moving charge feels <strong>no</strong> force. That line is the direction of <span class="math inline">\(\vec B\)</span>.</li>
+<li>Moving at an angle <span class="math inline">\(\theta\)</span> to that line, the charge feels a force proportional to <span class="math inline">\(|q|\)</span>, to <span class="math inline">\(v\)</span>, and to <span class="math inline">\(\sin\theta\)</span>, largest at <span class="math inline">\(\theta = 90°\)</span>.</li>
+<li>The force is always <strong>perpendicular</strong> both to the velocity and to the field’s line.</li>
+</ol>
+<p>The <strong>magnitude</strong> of the field is the largest force per unit charge per unit speed, <span class="math inline">\(B = F_\text{max}/(|q|v)\)</span>. Its SI unit is the <strong>tesla</strong> (T); from the definition,</p>
+<p><span class="math display">\[1\ \text{T} = 1\ \frac{\text{N}}{\text{C}\cdot\text{m/s}} = 1\ \frac{\text{N}}{\text{A}\cdot\text{m}}\]</span></p>
 <table>
 <thead>
 <tr class="header">
@@ -322,22 +340,22 @@
 <td><span class="math inline">\(50\ \mu\text{T}\)</span></td>
 </tr>
 <tr class="even">
-<td>Refrigerator magnet</td>
+<td>Refrigerator magnet, at its face</td>
 <td><span class="math inline">\(5\ \text{mT}\)</span></td>
 </tr>
 <tr class="odd">
-<td>MRI machine</td>
+<td>MRI scanner</td>
 <td><span class="math inline">\(1.5\)</span>–<span class="math inline">\(3\ \text{T}\)</span></td>
 </tr>
 <tr class="even">
-<td>Strongest lab magnets</td>
+<td>Strongest steady laboratory magnets</td>
 <td><span class="math inline">\(\sim 45\ \text{T}\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>Earth’s field is remarkably weak — about 100,000 times weaker than an MRI magnet — yet strong enough to align a compass needle. This tells you something about how sensitive magnetized materials can be.</p>
-<h3 id="electric-field-vs.-magnetic-field">Electric Field vs. Magnetic Field</h3>
-<p>The most important conceptual distinction in this chapter:</p>
+<p>A tesla is a large field. An MRI magnet is tens of thousands of times stronger than Earth’s field, which is still enough to turn a compass needle.</p>
+<h3 id="electric-field-and-magnetic-field">Electric Field and Magnetic Field</h3>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -347,46 +365,47 @@
 <thead>
 <tr class="header">
 <th>Property</th>
-<th>Electric Field <span class="math inline">\(\vec{E}\)</span> (Ch 22)</th>
-<th>Magnetic Field <span class="math inline">\(\vec{B}\)</span> (Ch 28)</th>
+<th>Electric field <span class="math inline">\(\vec E\)</span> (Ch 22)</th>
+<th>Magnetic field <span class="math inline">\(\vec B\)</span> (this chapter)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Source</td>
-<td>Stationary or moving charge</td>
-<td>Moving charge / current</td>
+<td>Made by</td>
+<td>any charge</td>
+<td>moving charge: currents and magnets</td>
 </tr>
 <tr class="even">
-<td>Force on charge <span class="math inline">\(q\)</span></td>
-<td><span class="math inline">\(\vec{F} = q\vec{E}\)</span> (along <span class="math inline">\(\vec{E}\)</span>)</td>
-<td><span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span> (<span class="math inline">\(\perp\)</span> to <span class="math inline">\(\vec{v}\)</span> and <span class="math inline">\(\vec{B}\)</span>)</td>
+<td>Force on a charge</td>
+<td><span class="math inline">\(\vec F = q\vec E\)</span>, along <span class="math inline">\(\vec E\)</span></td>
+<td><span class="math inline">\(\vec F = q\vec v\times\vec B\)</span>, perpendicular to <span class="math inline">\(\vec v\)</span> and <span class="math inline">\(\vec B\)</span> (§28.2)</td>
 </tr>
 <tr class="odd">
-<td>Force on stationary charge?</td>
-<td>Yes</td>
-<td>No</td>
+<td>Force on a charge at rest?</td>
+<td>yes</td>
+<td>no</td>
 </tr>
 <tr class="even">
-<td>Does work on charge?</td>
-<td>Yes</td>
-<td>No (<span class="math inline">\(\vec{F}\perp\vec{v}\)</span> always)</td>
+<td>Does work on the charge?</td>
+<td>yes</td>
+<td><strong>no</strong> (§28.2)</td>
 </tr>
 <tr class="odd">
 <td>Field lines</td>
-<td>Begin on <span class="math inline">\(+\)</span>, end on <span class="math inline">\(-\)</span></td>
-<td>Always closed loops</td>
+<td>begin on <span class="math inline">\(+\)</span>, end on <span class="math inline">\(-\)</span></td>
+<td>close on themselves</td>
 </tr>
 <tr class="even">
-<td>Gauss’s Law</td>
-<td><span class="math inline">\(\oint \vec{E}\cdot d\vec{A} = Q_\text{enc}/\varepsilon_0\)</span></td>
-<td><span class="math inline">\(\oint \vec{B}\cdot d\vec{A} = 0\)</span></td>
+<td>Flux out of a closed surface</td>
+<td><span class="math inline">\(Q_\text{enc}/\varepsilon_0\)</span> (Ch 23)</td>
+<td>always <span class="math inline">\(0\)</span> (§28.7)</td>
 </tr>
 </tbody>
 </table>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_1_e_vs_b_field_lines.png" alt="Figure 28.1: Left — electric field lines radiate from a point charge (begin on +, end on -). Right — magnetic field lines form closed loops around a current-carrying wire (no beginning or end)." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 28.1: Left — electric field lines radiate from a point charge (begin on +, end on -). Right — magnetic field lines form closed loops around a current-carrying wire (no beginning or end).</figcaption></figure>
-<p>Electric field lines begin on positive charges and terminate on negative charges. <strong>Magnetic field lines form closed loops.</strong> There are no magnetic charges — no “magnetic monopoles” — from which field lines could originate. This asymmetry is encoded in Gauss’s Law for magnetism (Section 28.7): <span class="math inline">\(\oint \vec{B}\cdot d\vec{A} = 0\)</span>.</p>
-<nav class="secnav"><a class="prev" href="28-0.html"><span class="lab">&larr; Previous section</span><span class="tt">28.0 &nbsp;A Force Unlike Any Other</span></a><a class="next" href="28-2.html"><span class="lab">Next section &rarr;</span><span class="tt">28.2 &nbsp;The Lorentz Force — Motion in Magnetic Fields</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch28.html">Whole chapter on one page</a></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_01_e_vs_b.png" alt="Figure 28.1: (a) Electric field lines of a point charge begin on the charge and run outward. (b) Magnetic field lines around a long wire carrying current out of the page are closed circles, with no beginning and no end." loading="lazy" style="max-width:min(5.6in,100%)" /><figcaption>Figure 28.1: (a) Electric field lines of a point charge begin on the charge and run outward. (b) Magnetic field lines around a long wire carrying current out of the page are closed circles, with no beginning and no end.</figcaption></figure>
+<p>The last row is the deepest difference. Electric field lines start and stop on charges. Magnetic field lines never stop, because there is no magnetic charge for them to stop on. §28.7 writes that fact as Chapter 31’s law (2).</p>
+<nav class="secnav"><a class="prev" href="28-0.html"><span class="lab">&larr; Previous section</span><span class="tt">28.0 &nbsp;A Force That Steers</span></a><a class="next" href="28-2.html"><span class="lab">Next section &rarr;</span><span class="tt">28.2 &nbsp;The Force on a Moving Charge</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch28.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>

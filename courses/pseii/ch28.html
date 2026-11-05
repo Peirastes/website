@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -105,14 +114,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +149,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +168,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -158,12 +194,28 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -185,18 +237,25 @@
         <a class="chapter-back" href="/courses/pseii.html">&larr; PSE II Course</a>
         <div class="content-body">
 
-<h2 id="a-force-unlike-any-other">28.0 — A Force Unlike Any Other</h2>
-<p>Every force we have studied so far — gravitational, electric, elastic — acts along a line connecting the interacting objects. This chapter introduces a force that breaks that pattern entirely. The <strong>magnetic force</strong> acts <em>perpendicular</em> to a charged particle’s motion — it bends trajectories without changing speed.</p>
-<p>The story begins with the Chinese polymath <strong>Shen Kuo</strong> (1031–1095), who described the magnetic compass and its use for navigation in 1088. The mathematical explanation arrived only in 1820, when <strong>Hans Christian Ørsted</strong> (1777–1851) noticed during a lecture that a current-carrying wire deflected a nearby compass needle — electricity and magnetism were connected. Within months, <strong>Jean-Baptiste Biot</strong> and <strong>Félix Savart</strong> had quantified the magnetic field of a wire, and <strong>André-Marie Ampère</strong> showed that current-carrying wires exert forces on each other.</p>
+<h2 id="a-force-that-steers">28.0 — A Force That Steers</h2>
+<p>Every force in this course so far has pushed along a line: gravity and the electric force point along the line between two objects, and a spring pushes along its own length. The magnetic force breaks the pattern. It acts on a charge only while the charge is <strong>moving</strong>, and it pushes <strong>sideways</strong>, at right angles to the motion. It steers a charge without ever speeding it up or slowing it down.</p>
+<p>The compass came first. <strong>Shen Kuo</strong> (1031–1095) described the magnetic needle and its use in navigation in 1088. The link to electricity waited until 1820, when <strong>Hans Christian Ørsted</strong> (1777–1851) saw a compass needle swing beside a wire carrying current during a lecture. Within months <strong>Jean-Baptiste Biot</strong> and <strong>Félix Savart</strong> had measured the field around a wire, and <strong>André-Marie Ampère</strong> had shown that two wires carrying current push or pull on each other.</p>
 <blockquote>
-<p>“I was almost in doubt about the thing; however, I remember that I thought the effect was so evident that it would be inexplicable to interrupt the lecture to investigate more closely.” — Hans Christian Ørsted, 1820</p>
+<p>“From the preceding facts we may likewise infer that this conflict performs circles … it is the nature of a circle that the motions in opposite parts should have an opposite direction.” — Hans Christian Ørsted, <em>Experiments on the Effect of a Current of Electricity on the Magnetic Needle</em>, 1820</p>
 </blockquote>
-<p>You have already seen in Chapter 31 that light is an electromagnetic wave traveling at <span class="math inline">\(c = 1/\sqrt{\mu_0\varepsilon_0}\)</span>. This chapter explains the “magnetic” half of that story — where <span class="math inline">\(\vec{B}\)</span> comes from, what it does, and why <span class="math inline">\(\mu_0\)</span> appears in the speed of light.</p>
-<p><em>*Personal note: Ørsted’s discovery is one of the great “accidental” moments in physics. But it was accidental only in timing — he had been searching for a connection between electricity and magnetism for years. The prepared mind recognizes what the unprepared mind overlooks.</em></p>
+<p>Chapter 31 used the magnetic field mostly as the partner that keeps a light wave moving, and it borrowed two facts about it: <span class="math inline">\(\vec B\)</span> is a vector field, and it has a flux. This chapter takes <span class="math inline">\(\vec B\)</span> on its own terms in two halves. §28.1–28.4 ask what a given field <strong>does</strong> to a moving charge, a wire and a loop. §28.5–28.7 ask where a field <strong>comes from</strong>, which is the static half of Chapter 31’s law (4), and they end with the force between two currents that fixes the value of <span class="math inline">\(\mu_0\)</span>.</p>
+<p><em>*Personal note: Ørsted’s discovery is usually told as an accident. It was an accident only in its timing; he had been looking for a link between electricity and magnetism for years, and he knew what he was seeing when the needle moved.</em></p>
 <hr />
 <h2 id="the-magnetic-field">28.1 — The Magnetic Field</h2>
-<p>In Chapter 22, we defined the electric field <span class="math inline">\(\vec{E}\)</span> by placing a test charge at rest and measuring the force. The <strong>magnetic field</strong> <span class="math inline">\(\vec{B}\)</span> requires a subtler procedure: a stationary charge feels <em>no</em> magnetic force. We must fire a moving charge through the region and observe the deflection. The field is whatever explains that deflection via the force law developed in Section 28.2.</p>
-<p>The SI unit is the <strong>tesla</strong> (T): <span class="math inline">\(1\ \text{T} = 1\ \text{N}/(\text{A}\cdot\text{m})\)</span>.</p>
+<h3 id="measuring-a-field-that-ignores-charges-at-rest">Measuring a Field That Ignores Charges at Rest</h3>
+<p>Chapter 22 defined <span class="math inline">\(\vec E\)</span> by holding a test charge still and measuring the force on it: <span class="math inline">\(\vec E = \vec F/q\)</span>. Near a magnet that test fails. A charge at rest feels no magnetic force at all. The magnetic field has to be measured with a <strong>moving</strong> charge, and firing test charges through a region in different directions turns up three facts:</p>
+<ol type="1">
+<li>There is one direction (and its reverse) along which a moving charge feels <strong>no</strong> force. That line is the direction of <span class="math inline">\(\vec B\)</span>.</li>
+<li>Moving at an angle <span class="math inline">\(\theta\)</span> to that line, the charge feels a force proportional to <span class="math inline">\(|q|\)</span>, to <span class="math inline">\(v\)</span>, and to <span class="math inline">\(\sin\theta\)</span>, largest at <span class="math inline">\(\theta = 90°\)</span>.</li>
+<li>The force is always <strong>perpendicular</strong> both to the velocity and to the field’s line.</li>
+</ol>
+<p>The <strong>magnitude</strong> of the field is the largest force per unit charge per unit speed, <span class="math inline">\(B = F_\text{max}/(|q|v)\)</span>. Its SI unit is the <strong>tesla</strong> (T); from the definition,</p>
+<p><span class="math display">\[1\ \text{T} = 1\ \frac{\text{N}}{\text{C}\cdot\text{m/s}} = 1\ \frac{\text{N}}{\text{A}\cdot\text{m}}\]</span></p>
 <table>
 <thead>
 <tr class="header">
@@ -210,22 +269,22 @@
 <td><span class="math inline">\(50\ \mu\text{T}\)</span></td>
 </tr>
 <tr class="even">
-<td>Refrigerator magnet</td>
+<td>Refrigerator magnet, at its face</td>
 <td><span class="math inline">\(5\ \text{mT}\)</span></td>
 </tr>
 <tr class="odd">
-<td>MRI machine</td>
+<td>MRI scanner</td>
 <td><span class="math inline">\(1.5\)</span>–<span class="math inline">\(3\ \text{T}\)</span></td>
 </tr>
 <tr class="even">
-<td>Strongest lab magnets</td>
+<td>Strongest steady laboratory magnets</td>
 <td><span class="math inline">\(\sim 45\ \text{T}\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>Earth’s field is remarkably weak — about 100,000 times weaker than an MRI magnet — yet strong enough to align a compass needle. This tells you something about how sensitive magnetized materials can be.</p>
-<h3 id="electric-field-vs.-magnetic-field">Electric Field vs. Magnetic Field</h3>
-<p>The most important conceptual distinction in this chapter:</p>
+<p>A tesla is a large field. An MRI magnet is tens of thousands of times stronger than Earth’s field, which is still enough to turn a compass needle.</p>
+<h3 id="electric-field-and-magnetic-field">Electric Field and Magnetic Field</h3>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -235,150 +294,242 @@
 <thead>
 <tr class="header">
 <th>Property</th>
-<th>Electric Field <span class="math inline">\(\vec{E}\)</span> (Ch 22)</th>
-<th>Magnetic Field <span class="math inline">\(\vec{B}\)</span> (Ch 28)</th>
+<th>Electric field <span class="math inline">\(\vec E\)</span> (Ch 22)</th>
+<th>Magnetic field <span class="math inline">\(\vec B\)</span> (this chapter)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Source</td>
-<td>Stationary or moving charge</td>
-<td>Moving charge / current</td>
+<td>Made by</td>
+<td>any charge</td>
+<td>moving charge: currents and magnets</td>
 </tr>
 <tr class="even">
-<td>Force on charge <span class="math inline">\(q\)</span></td>
-<td><span class="math inline">\(\vec{F} = q\vec{E}\)</span> (along <span class="math inline">\(\vec{E}\)</span>)</td>
-<td><span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span> (<span class="math inline">\(\perp\)</span> to <span class="math inline">\(\vec{v}\)</span> and <span class="math inline">\(\vec{B}\)</span>)</td>
+<td>Force on a charge</td>
+<td><span class="math inline">\(\vec F = q\vec E\)</span>, along <span class="math inline">\(\vec E\)</span></td>
+<td><span class="math inline">\(\vec F = q\vec v\times\vec B\)</span>, perpendicular to <span class="math inline">\(\vec v\)</span> and <span class="math inline">\(\vec B\)</span> (§28.2)</td>
 </tr>
 <tr class="odd">
-<td>Force on stationary charge?</td>
-<td>Yes</td>
-<td>No</td>
+<td>Force on a charge at rest?</td>
+<td>yes</td>
+<td>no</td>
 </tr>
 <tr class="even">
-<td>Does work on charge?</td>
-<td>Yes</td>
-<td>No (<span class="math inline">\(\vec{F}\perp\vec{v}\)</span> always)</td>
+<td>Does work on the charge?</td>
+<td>yes</td>
+<td><strong>no</strong> (§28.2)</td>
 </tr>
 <tr class="odd">
 <td>Field lines</td>
-<td>Begin on <span class="math inline">\(+\)</span>, end on <span class="math inline">\(-\)</span></td>
-<td>Always closed loops</td>
+<td>begin on <span class="math inline">\(+\)</span>, end on <span class="math inline">\(-\)</span></td>
+<td>close on themselves</td>
 </tr>
 <tr class="even">
-<td>Gauss’s Law</td>
-<td><span class="math inline">\(\oint \vec{E}\cdot d\vec{A} = Q_\text{enc}/\varepsilon_0\)</span></td>
-<td><span class="math inline">\(\oint \vec{B}\cdot d\vec{A} = 0\)</span></td>
+<td>Flux out of a closed surface</td>
+<td><span class="math inline">\(Q_\text{enc}/\varepsilon_0\)</span> (Ch 23)</td>
+<td>always <span class="math inline">\(0\)</span> (§28.7)</td>
 </tr>
 </tbody>
 </table>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_1_e_vs_b_field_lines.png" alt="Figure 28.1: Left — electric field lines radiate from a point charge (begin on +, end on -). Right — magnetic field lines form closed loops around a current-carrying wire (no beginning or end)." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 28.1: Left — electric field lines radiate from a point charge (begin on +, end on -). Right — magnetic field lines form closed loops around a current-carrying wire (no beginning or end).</figcaption></figure>
-<p>Electric field lines begin on positive charges and terminate on negative charges. <strong>Magnetic field lines form closed loops.</strong> There are no magnetic charges — no “magnetic monopoles” — from which field lines could originate. This asymmetry is encoded in Gauss’s Law for magnetism (Section 28.7): <span class="math inline">\(\oint \vec{B}\cdot d\vec{A} = 0\)</span>.</p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_01_e_vs_b.png" alt="Figure 28.1: (a) Electric field lines of a point charge begin on the charge and run outward. (b) Magnetic field lines around a long wire carrying current out of the page are closed circles, with no beginning and no end." loading="lazy" style="max-width:min(5.6in,100%)" /><figcaption>Figure 28.1: (a) Electric field lines of a point charge begin on the charge and run outward. (b) Magnetic field lines around a long wire carrying current out of the page are closed circles, with no beginning and no end.</figcaption></figure>
+<p>The last row is the deepest difference. Electric field lines start and stop on charges. Magnetic field lines never stop, because there is no magnetic charge for them to stop on. §28.7 writes that fact as Chapter 31’s law (2).</p>
 <hr />
-<h2 id="the-lorentz-force-motion-in-magnetic-fields">28.2 — The Lorentz Force — Motion in Magnetic Fields</h2>
-<h3 id="the-magnetic-force-on-a-moving-charge">The Magnetic Force on a Moving Charge</h3>
-<p>A particle with charge <span class="math inline">\(q\)</span> moving with velocity <span class="math inline">\(\vec{v}\)</span> in a magnetic field <span class="math inline">\(\vec{B}\)</span> experiences a force:</p>
-<p><span class="math display">\[\boxed{\vec{F} = q\vec{v}\times\vec{B}}\]</span></p>
-<p>This is the magnetic component of the <strong>Lorentz force</strong>. (The full Lorentz force, <span class="math inline">\(\vec{F} = q\vec{E} + q\vec{v}\times\vec{B}\)</span>, includes both electric and magnetic contributions.) The magnitude is <span class="math inline">\(F = |q|vB\sin\theta\)</span>, where <span class="math inline">\(\theta\)</span> is the angle between <span class="math inline">\(\vec{v}\)</span> and <span class="math inline">\(\vec{B}\)</span>. The direction follows the <strong>right-hand rule</strong>: point fingers along <span class="math inline">\(\vec{v}\)</span>, curl toward <span class="math inline">\(\vec{B}\)</span>, and your thumb gives <span class="math inline">\(\vec{F}\)</span> for a positive charge. Three critical observations:</p>
-<ol type="1">
-<li><strong><span class="math inline">\(\vec{v}\parallel\vec{B}\)</span></strong> (<span class="math inline">\(\theta = 0°\)</span> or <span class="math inline">\(180°\)</span>): <span class="math inline">\(F = 0\)</span>. A charge moving along the field feels no force.</li>
-<li><strong><span class="math inline">\(\vec{v}\perp\vec{B}\)</span></strong> (<span class="math inline">\(\theta = 90°\)</span>): <span class="math inline">\(F = |q|vB\)</span>, the maximum force.</li>
-<li><strong>Always:</strong> <span class="math inline">\(\vec{F}\perp\vec{v}\)</span>. The magnetic force does <strong>no work</strong>: <span class="math inline">\(W = \int\vec{F}\cdot\vec{v}\,dt = 0\)</span>.</li>
-</ol>
-<p>The third point is profound. The magnetic force changes the <em>direction</em> of motion but never the <em>speed</em> or kinetic energy. Compare this to Chapter 22: a charged particle in uniform <span class="math inline">\(\vec{E}\)</span> experienced constant acceleration <span class="math inline">\(\rightarrow\)</span> parabolic trajectory. Here, constant deflection <span class="math inline">\(\perp\)</span> to velocity <span class="math inline">\(\rightarrow\)</span> circular trajectory. One changes speed; the other changes direction.</p>
-<h3 id="circular-motion-in-a-uniform-magnetic-field">Circular Motion in a Uniform Magnetic Field</h3>
-<p>Consider a positive charge <span class="math inline">\(q\)</span> moving with speed <span class="math inline">\(v\)</span> perpendicular to a uniform <span class="math inline">\(\vec{B}\)</span> (into the page). At every instant, <span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span> points toward the center of curvature — it is a centripetal force. Setting magnetic force equal to centripetal force:</p>
-<p><span class="math display">\[|q|vB = \frac{mv^2}{r} \qquad \Longrightarrow \qquad \boxed{r = \frac{mv}{|q|B}}\]</span></p>
-<p>This is the <strong>cyclotron radius</strong>. Faster particles orbit in larger circles; stronger fields produce tighter orbits. The <strong>cyclotron frequency</strong> follows from <span class="math inline">\(v = 2\pi r f\)</span>:</p>
-<p><span class="math display">\[\boxed{f = \frac{|q|B}{2\pi m}} \qquad T = \frac{1}{f} = \frac{2\pi m}{|q|B}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_2_circular_orbit.png" alt="Figure 28.2: A positive charge moving perpendicular to a uniform magnetic field (into page) follows a circular path. The magnetic force points radially inward at every point." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 28.2: A positive charge moving perpendicular to a uniform magnetic field (into page) follows a circular path. The magnetic force points radially inward at every point.</figcaption></figure>
-<p>The frequency is <em>independent of speed</em>. A fast particle orbits in a larger circle but covers it faster — the two effects cancel exactly. This is why the <strong>cyclotron</strong> works: particles of a given <span class="math inline">\(q/m\)</span> all orbit at the same frequency, so a single oscillating electric field can accelerate them repeatedly. When <span class="math inline">\(\vec{v}\)</span> has a component parallel to <span class="math inline">\(\vec{B}\)</span>, the parallel component is unaffected while the perpendicular component drives circular motion, producing a <strong>helix</strong> — the mechanism behind the aurora borealis. The Lorentz force also deflects charge carriers sideways inside a conductor, producing a transverse voltage called the <strong>Hall effect</strong>, used to measure <span class="math inline">\(B\)</span> fields.</p>
-<h3 id="example-proton-in-a-magnetic-field">Example: Proton in a Magnetic Field</h3>
-<p>A proton (<span class="math inline">\(m = 1.67\times10^{-27}\ \text{kg}\)</span>, <span class="math inline">\(q = 1.60\times10^{-19}\ \text{C}\)</span>) moves at <span class="math inline">\(v = 8.0\times10^{6}\ \text{m/s}\)</span> perpendicular to <span class="math inline">\(B = 0.30\ \text{T}\)</span>.</p>
-<p><strong>(A)</strong> <span class="math inline">\(r = mv/(|q|B) = (1.67\times10^{-27})(8.0\times10^{6})/[(1.60\times10^{-19})(0.30)] = \boxed{0.28\ \text{m}}\)</span></p>
-<p><strong>(B)</strong> <span class="math inline">\(f = |q|B/(2\pi m) = (1.60\times10^{-19})(0.30)/[2\pi(1.67\times10^{-27})] = \boxed{4.6\ \text{MHz}}\)</span></p>
-<p><strong>(C)</strong> <span class="math inline">\(T = 1/f = \boxed{0.22\ \mu\text{s}}\)</span></p>
-<p><strong>Interpretation:</strong> The proton completes nearly 5 million orbits per second in a circle roughly the size of a basketball. Doubling the speed would double the radius but leave the frequency unchanged — faster particles simply take wider paths at the same rate.</p>
+<h2 id="the-force-on-a-moving-charge">28.2 — The Force on a Moving Charge</h2>
+<h3 id="the-force-law">The Force Law</h3>
+<p>The three measurements of §28.1 are summarized by one vector product, the magnetic part of the <strong>Lorentz force</strong>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec F = q\,\vec v\times\vec B, \qquad F = |q|\,vB\sin\theta\;}\]</span></p>
+</div>
+<p>This is a law read from experiment, not derived; the cross product is the mathematical object that has exactly the three properties measured. (The full Lorentz force adds the electric part: <span class="math inline">\(\vec F = q\vec E + q\vec v\times\vec B\)</span>.)</p>
+<p><strong>Direction.</strong> Point the fingers of the right hand along <span class="math inline">\(\vec v\)</span> and curl them toward <span class="math inline">\(\vec B\)</span>; the thumb gives <span class="math inline">\(\vec v\times\vec B\)</span>. That is the force on a <strong>positive</strong> charge. For a <strong>negative</strong> charge, <span class="math inline">\(q &lt; 0\)</span> flips the vector: the force is opposite the thumb. An electron and a proton fired the same way through the same field are pushed in opposite directions (Figure 28.2).</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_02_rhr.png" alt="Figure 28.2: The right-hand rule. With \vec v to the right and \vec B into the page, \vec v\times\vec B points up, so the force on a positive charge is up and the force on a negative charge is down." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 28.2: The right-hand rule. With <span class="math inline">\(\vec v\)</span> to the right and <span class="math inline">\(\vec B\)</span> into the page, <span class="math inline">\(\vec v\times\vec B\)</span> points up, so the force on a positive charge is up and the force on a negative charge is down.</figcaption></figure>
+<div class="check">
+<p><strong>Check the force law.</strong></p>
+<ul>
+<li><strong>Charge at rest.</strong> <span class="math inline">\(v = 0\)</span> gives <span class="math inline">\(F = 0\)</span>, as measured.</li>
+<li><strong>Along the field.</strong> <span class="math inline">\(\theta = 0°\)</span> or <span class="math inline">\(180°\)</span> gives <span class="math inline">\(\sin\theta = 0\)</span>, so <span class="math inline">\(F = 0\)</span>: a charge moving along <span class="math inline">\(\vec B\)</span> is untouched.</li>
+<li><strong>No work.</strong> <span class="math inline">\(\vec F\)</span> is perpendicular to <span class="math inline">\(\vec v\)</span> at every instant, so the power <span class="math inline">\(\vec F\cdot\vec v\)</span> is zero and so is the work. <strong>A magnetic force never changes a charge’s speed or kinetic energy</strong>; it changes only the direction of motion.</li>
+</ul>
+</div>
+<h3 id="circular-orbits">Circular Orbits</h3>
+<p>Take a charge moving perpendicular to a uniform field. The force has constant size <span class="math inline">\(|q|vB\)</span> (the speed never changes) and always points at right angles to the velocity, which is exactly the condition for uniform circular motion (Figure 28.3).</p>
+<p><strong>Step 1 — the force is the centripetal force.</strong></p>
+<p><span class="math display">\[|q|vB = \frac{mv^2}{r}\]</span></p>
+<p><strong>Step 2 — solve for the radius.</strong></p>
+<p><span class="math display">\[r = \frac{mv}{|q|B}\]</span></p>
+<p><strong>Step 3 — the time for one orbit.</strong> One lap is <span class="math inline">\(2\pi r\)</span> at speed <span class="math inline">\(v\)</span>:</p>
+<p><span class="math display">\[T = \frac{2\pi r}{v} = \frac{2\pi m}{|q|B}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;r = \frac{mv}{|q|B}, \qquad T = \frac{2\pi m}{|q|B}, \qquad f = \frac{1}{T} = \frac{|q|B}{2\pi m}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_03_orbit.png" alt="Figure 28.3: A positive charge moving perpendicular to a uniform field into the page. The force q\vec v\times\vec B points to the center at every point, so the charge circles counterclockwise at constant speed. A negative charge circles clockwise." loading="lazy" style="max-width:min(3.6in,100%)" /><figcaption>Figure 28.3: A positive charge moving perpendicular to a uniform field into the page. The force <span class="math inline">\(q\vec v\times\vec B\)</span> points to the center at every point, so the charge circles counterclockwise at constant speed. A negative charge circles clockwise.</figcaption></figure>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong>Stronger field, tighter circle.</strong> <span class="math inline">\(r \propto 1/B\)</span>; as <span class="math inline">\(B \to 0\)</span>, <span class="math inline">\(r \to \infty\)</span> and the path straightens out.</li>
+<li><strong>Faster charge, wider circle.</strong> <span class="math inline">\(r \propto v\)</span>.</li>
+<li><strong>The period does not depend on the speed.</strong> A faster charge travels a larger circle in exactly the same time. This is why a <strong>cyclotron</strong> works: all particles with the same <span class="math inline">\(q/m\)</span> come around in step, so one oscillating voltage can push each of them once per lap.</li>
+</ul>
+</div>
+<p><strong>A velocity with a component along <span class="math inline">\(\vec B\)</span>.</strong> Split <span class="math inline">\(\vec v\)</span> into a part along <span class="math inline">\(\vec B\)</span> and a part across it. The part along <span class="math inline">\(\vec B\)</span> feels no force (the check above), so it carries on unchanged, while the part across <span class="math inline">\(\vec B\)</span> drives the circle. Together they make a <strong>helix</strong>. Charged particles from the Sun spiral this way along Earth’s field lines into the polar atmosphere, and the aurora is where they hit.</p>
+<section id="example-from-an-accelerating-voltage-to-an-orbit" class="example">
+<h3>Example: From an Accelerating Voltage to an Orbit</h3>
+<p>A proton starts from rest, is accelerated through a potential difference <span class="math inline">\(\Delta V\)</span>, and enters a uniform field <span class="math inline">\(B\)</span> at right angles. Find its speed, the radius of its orbit and its period. Then find the radius for an electron accelerated through the same <span class="math inline">\(\Delta V\)</span>. Use <span class="math inline">\(\Delta V = 2.00\)</span> kV and <span class="math inline">\(B = 0.100\)</span> T.</p>
+<p><em>Why it matters:</em> the voltage and the field are the two knobs on the bench; the radius is where the beam lands. Every mass spectrometer and particle beamline is designed from this chain.</p>
+<p><strong>Step 1 — speed from energy (Chapter 24).</strong> The field does work <span class="math inline">\(q\Delta V\)</span> on the charge, all of it kinetic energy:</p>
+<p><span class="math display">\[|q|\Delta V = \tfrac12 mv^2 \qquad\Longrightarrow\qquad v = \sqrt{\frac{2|q|\Delta V}{m}}\]</span></p>
+<p><strong>Step 2 — radius and period.</strong></p>
+<p><span class="math display">\[r = \frac{mv}{|q|B} = \frac{1}{B}\sqrt{\frac{2m\Delta V}{|q|}}, \qquad T = \frac{2\pi m}{|q|B}\]</span></p>
+<p>At the same <span class="math inline">\(\Delta V\)</span> and <span class="math inline">\(B\)</span>, <span class="math inline">\(r \propto \sqrt{m/|q|}\)</span>.</p>
+<p><strong>Step 3 — numbers.</strong> <span class="math inline">\(m_p = 1.67\times10^{-27}\)</span> kg, <span class="math inline">\(e = 1.60\times10^{-19}\)</span> C, <span class="math inline">\(m_e = 9.11\times10^{-31}\)</span> kg:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;v = \sqrt{\frac{2(1.60\times10^{-19})(2.00\times10^{3})}{1.67\times10^{-27}}} = 6.19\times10^{5}\ \text{m/s}, \qquad r = \frac{(1.67\times10^{-27})(6.19\times10^{5})}{(1.60\times10^{-19})(0.100)} = 6.46\ \text{cm}\;}\]</span> <span class="math display">\[\boxed{\;T = \frac{2\pi(1.67\times10^{-27})}{(1.60\times10^{-19})(0.100)} = 0.656\ \mu\text{s}, \qquad r_e = r\sqrt{\frac{m_e}{m_p}} = (6.46\ \text{cm})(0.0234) = 1.51\ \text{mm}\;}\]</span></p>
+</div>
+<p>The electron, about 1800 times lighter, curls in a circle 43 times smaller, and the <strong>opposite</strong> way round, because its charge is negative. Doubling <span class="math inline">\(\Delta V\)</span> would widen the proton’s circle by <span class="math inline">\(\sqrt2\)</span> and leave its period unchanged.</p>
+</section>
+<h3 id="crossed-fields-selecting-one-speed">Crossed Fields: Selecting One Speed</h3>
+<p>Put a uniform <span class="math inline">\(\vec E\)</span> and a uniform <span class="math inline">\(\vec B\)</span> at right angles to each other and to a beam (Figure 28.4, left). For a positive charge moving right, with <span class="math inline">\(\vec E\)</span> down and <span class="math inline">\(\vec B\)</span> into the page, the electric force <span class="math inline">\(q\vec E\)</span> points down and the magnetic force <span class="math inline">\(q\vec v\times\vec B\)</span> points up.</p>
+<p><strong>Step 1 — balance the two forces.</strong></p>
+<p><span class="math display">\[qE = qvB\]</span></p>
+<p><strong>Step 2 — solve for the speed.</strong> The charge, the mass and even the sign cancel:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;v = \frac{E}{B}\;}\]</span></p>
+</div>
+<p>Only particles at this one speed go straight through. A faster one feels the larger magnetic force and is bent one way; a slower one is bent the other way. The device is a <strong>velocity selector</strong>, a filter that hands the next stage a beam of one known speed.</p>
+<p><strong>The same balance inside a conductor</strong> is the <strong>Hall effect</strong>. In a strip carrying current across a field, the magnetic force pushes the moving carriers toward one edge. Charge piles up there until its electric field <span class="math inline">\(E_H\)</span> balances the magnetic push, <span class="math inline">\(qE_H = qv_dB\)</span>. The voltage across a strip of width <span class="math inline">\(w\)</span> is then <span class="math inline">\(V_H = E_Hw = v_dBw\)</span>, proportional to <span class="math inline">\(B\)</span>, which is how a <strong>Hall probe</strong> (and the compass in a phone) measures a magnetic field.</p>
+<section id="example-a-mass-spectrometer" class="example">
+<h3>Example: A Mass Spectrometer</h3>
+<p>Singly ionized carbon atoms, <span class="math inline">\(^{12}\)</span>C<span class="math inline">\(^+\)</span> and <span class="math inline">\(^{13}\)</span>C<span class="math inline">\(^+\)</span>, leave a velocity selector with <span class="math inline">\(E = 8.00\times10^4\)</span> V/m and <span class="math inline">\(B_1 = 0.320\)</span> T. They pass through a slit into a region of field <span class="math inline">\(B_2 = 0.300\)</span> T alone, travel half a circle, and land on a detector (Figure 28.4). Find where each isotope lands, measured from the slit. Use <span class="math inline">\(1\ \text{u} = 1.66\times10^{-27}\)</span> kg.</p>
+<p><em>Why it matters:</em> the landing spot is what you can see; the mass is what you want. This is how isotope ratios are counted for carbon dating, and how a drug or a pollutant is identified from its molecules.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_04_mass_spectrometer.png" alt="Figure 28.4: A mass spectrometer. The velocity selector (crossed \vec E and \vec B_1) passes only ions with v = E/B_1. In the field \vec B_2 alone, each ion travels a half circle of radius r = mv/qB_2 and lands a distance 2r from the slit, so the heavier isotope lands farther out." loading="lazy" style="max-width:min(5.6in,100%)" /><figcaption>Figure 28.4: A mass spectrometer. The velocity selector (crossed <span class="math inline">\(\vec E\)</span> and <span class="math inline">\(\vec B_1\)</span>) passes only ions with <span class="math inline">\(v = E/B_1\)</span>. In the field <span class="math inline">\(\vec B_2\)</span> alone, each ion travels a half circle of radius <span class="math inline">\(r = mv/qB_2\)</span> and lands a distance <span class="math inline">\(2r\)</span> from the slit, so the heavier isotope lands farther out.</figcaption></figure>
+<p><strong>Step 1 — the speed.</strong> From the selector, <span class="math inline">\(v = E/B_1\)</span>, the same for both isotopes.</p>
+<p><strong>Step 2 — the landing distance.</strong> A half circle puts the ion down at the far end of a diameter:</p>
+<p><span class="math display">\[x = 2r = \frac{2mv}{qB_2} = \frac{2mE}{qB_1B_2}\]</span></p>
+<p>With <span class="math inline">\(v\)</span> fixed, <span class="math inline">\(x \propto m\)</span>: the landing spot is a direct reading of the mass.</p>
+<p><strong>Step 3 — numbers.</strong> <span class="math inline">\(v = (8.00\times10^4)/(0.320) = 2.50\times10^5\)</span> m/s; <span class="math inline">\(m_{12} = 12(1.66\times10^{-27}) = 1.992\times10^{-26}\)</span> kg and <span class="math inline">\(m_{13} = 2.158\times10^{-26}\)</span> kg:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;x_{12} = \frac{2(1.992\times10^{-26})(2.50\times10^{5})}{(1.60\times10^{-19})(0.300)} = 20.8\ \text{cm}, \qquad x_{13} = \frac{2(2.158\times10^{-26})(2.50\times10^{5})}{(1.60\times10^{-19})(0.300)} = 22.5\ \text{cm}\;}\]</span></p>
+</div>
+<p>The two isotopes land <span class="math inline">\(1.7\)</span> cm apart, easily resolved. One mass unit shifts the landing spot by <span class="math inline">\(1.7\)</span> cm everywhere on this detector, because <span class="math inline">\(x\)</span> is linear in <span class="math inline">\(m\)</span>.</p>
+</section>
 <hr />
-<h2 id="force-on-a-current-carrying-conductor">28.3 — Force on a Current-Carrying Conductor</h2>
-<h3 id="from-single-charge-to-bulk-current">From Single Charge to Bulk Current</h3>
-<p>A current-carrying wire in a magnetic field experiences a force because each mobile carrier inside feels <span class="math inline">\(q\vec{v}_d\times\vec{B}\)</span>. Consider a segment <span class="math inline">\(d\vec{\ell}\)</span> carrying current <span class="math inline">\(I\)</span>. The number of carriers is <span class="math inline">\(nA\,d\ell\)</span> (carrier density <span class="math inline">\(n\)</span>, cross-sectional area <span class="math inline">\(A\)</span>); each feels force <span class="math inline">\(q\vec{v}_d\times\vec{B}\)</span>. The total force is proportional to <span class="math inline">\(nAqv_d\)</span> — which, from Chapter 26, equals <span class="math inline">\(I\)</span>. So:</p>
-<p><span class="math display">\[\boxed{d\vec{F} = I\,d\vec{\ell}\times\vec{B}}\]</span></p>
-<p>For a straight wire of length <span class="math inline">\(L\)</span> in a uniform field:</p>
-<p><span class="math display">\[\boxed{\vec{F} = I\vec{L}\times\vec{B}} \qquad F = BIL\sin\theta\]</span></p>
-<p>This is not a new law — it is <span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span> applied to <span class="math inline">\(\sim 10^{23}\)</span> carriers simultaneously.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_3_wire_force.png" alt="Figure 28.3: A straight current-carrying wire in a uniform magnetic field experiences a force perpendicular to both the current direction and the field" loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 28.3: A straight current-carrying wire in a uniform magnetic field experiences a force perpendicular to both the current direction and the field</figcaption></figure>
-<h3 id="example-force-on-a-wire">Example: Force on a Wire</h3>
-<p>A wire of length <span class="math inline">\(L = 0.50\ \text{m}\)</span> carries <span class="math inline">\(I = 2.0\ \text{A}\)</span> in the <span class="math inline">\(+x\)</span> direction. <span class="math inline">\(\vec{B} = 0.080\,\hat{z}\ \text{T}\)</span>.</p>
-<p><span class="math display">\[\vec{F} = I\vec{L}\times\vec{B} = (2.0)(0.50)\,\hat{x}\times(0.080)\,\hat{z}\]</span></p>
-<p>Since <span class="math inline">\(\hat{x}\times\hat{z} = -\hat{y}\)</span>: <span class="math inline">\(\vec{F} = \boxed{-0.080\,\hat{y}\ \text{N}}\)</span></p>
-<p>About the weight of a single sheet of paper — but the same physics drives industrial electric motors producing thousands of horsepower.</p>
+<h2 id="the-force-on-a-wire">28.3 — The Force on a Wire</h2>
+<h3 id="from-one-charge-to-a-current">From One Charge to a Current</h3>
+<p>A wire carrying current in a magnetic field is pushed sideways, because every moving carrier inside it is. Add up the forces on all of them.</p>
+<p><strong>Step 1 — count the carriers.</strong> A straight segment of length <span class="math inline">\(L\)</span> and cross-section <span class="math inline">\(A\)</span>, with <span class="math inline">\(n\)</span> carriers per unit volume, holds <span class="math inline">\(nAL\)</span> carriers, each of charge <span class="math inline">\(q\)</span> drifting at <span class="math inline">\(\vec v_d\)</span>.</p>
+<p><strong>Step 2 — add their forces.</strong> Each feels <span class="math inline">\(q\vec v_d\times\vec B\)</span>, all in the same direction:</p>
+<p><span class="math display">\[\vec F = (nAL)\,q\,\vec v_d\times\vec B\]</span></p>
+<p><strong>Step 3 — recognize the current (Chapter 26).</strong> <span class="math inline">\(nqv_dA = I\)</span>. Let <span class="math inline">\(\vec L\)</span> be a vector of length <span class="math inline">\(L\)</span> along the current:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec F = I\vec L\times\vec B, \qquad F = ILB\sin\theta\;}\]</span></p>
+</div>
+<p>Nothing new has been assumed: this is <span class="math inline">\(q\vec v\times\vec B\)</span> summed over about <span class="math inline">\(10^{23}\)</span> carriers. The right-hand rule now runs with the fingers along the current. For a wire bent into a curve, the same result holds for each short piece, <span class="math inline">\(d\vec F = I\,d\vec\ell\times\vec B\)</span>. <strong>For a coil of <span class="math inline">\(N\)</span> turns</strong>, <span class="math inline">\(N\)</span> segments of length <span class="math inline">\(L\)</span> lie side by side carrying the same current, so the force on that side of the coil is <span class="math inline">\(N\)</span> times as large: <span class="math inline">\(F = NILB\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_05_wire_force.png" alt="Figure 28.5: A straight wire carrying current I to the right through a field into the page. Each carrier drifting along the wire feels q\vec v_d\times\vec B, and together they push the wire up with F = ILB." loading="lazy" style="max-width:min(4.6in,100%)" /><figcaption>Figure 28.5: A straight wire carrying current <span class="math inline">\(I\)</span> to the right through a field into the page. Each carrier drifting along the wire feels <span class="math inline">\(q\vec v_d\times\vec B\)</span>, and together they push the wire up with <span class="math inline">\(F = ILB\)</span>.</figcaption></figure>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong>Wire along the field.</strong> <span class="math inline">\(\theta = 0\)</span> gives <span class="math inline">\(F = 0\)</span>.</li>
+<li><strong>Reverse the current.</strong> <span class="math inline">\(\vec L \to -\vec L\)</span> reverses the force. A wire in a field carrying alternating current shakes back and forth, which is how a loudspeaker cone is driven.</li>
+<li><strong>Sign of the carriers.</strong> Electrons drift opposite to <span class="math inline">\(I\)</span> with <span class="math inline">\(q &lt; 0\)</span>; the two sign flips cancel, so the force depends only on the direction of <span class="math inline">\(I\)</span>.</li>
+</ul>
+</div>
+<section id="example-weighing-a-magnetic-field" class="example">
+<h3>Example: Weighing a Magnetic Field</h3>
+<p>A current balance hangs a rectangular coil of <span class="math inline">\(N\)</span> turns from one arm of a balance. Only the bottom side of the coil, of length <span class="math inline">\(L\)</span>, sits in the uniform field to be measured, which points into the page (Figure 28.6). With no current the balance is level. With current <span class="math inline">\(I\)</span> the bottom side is pulled down, and a mass <span class="math inline">\(m\)</span> added to the other pan restores the balance. Find <span class="math inline">\(B\)</span> for <span class="math inline">\(N = 20\)</span>, <span class="math inline">\(L = 4.00\)</span> cm, <span class="math inline">\(I = 1.50\)</span> A and <span class="math inline">\(m = 2.45\)</span> g.</p>
+<p><em>Why it matters:</em> a ruler, an ammeter and a known mass give the field, with no field meter needed. Run backward (a known field, a measured current), the same balance is how the kilogram has been realized since 2019, in the Kibble balance.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_06_current_balance.png" alt="Figure 28.6: A current balance. The coil’s bottom side, length L, is in the field into the page; its two vertical sides carry opposite currents and feel equal and opposite sideways forces that cancel. The downward force NILB on the bottom side is balanced by the weight mg added to the left pan." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 28.6: A current balance. The coil’s bottom side, length <span class="math inline">\(L\)</span>, is in the field into the page; its two vertical sides carry opposite currents and feel equal and opposite sideways forces that cancel. The downward force <span class="math inline">\(NILB\)</span> on the bottom side is balanced by the weight <span class="math inline">\(mg\)</span> added to the left pan.</figcaption></figure>
+<p><strong>Step 1 — which forces matter.</strong> The two vertical sides carry current in opposite directions, so their forces are equal and opposite and cancel. The top side is outside the field. Only the bottom side counts: <span class="math inline">\(N\)</span> segments of length <span class="math inline">\(L\)</span>, current across the field, force <span class="math inline">\(NILB\)</span> straight down.</p>
+<p><strong>Step 2 — balance.</strong> The arms are equal, so the added weight equals the magnetic force:</p>
+<p><span class="math display">\[NILB = mg \qquad\Longrightarrow\qquad B = \frac{mg}{NIL}\]</span></p>
+<p><strong>Step 3 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B = \frac{(2.45\times10^{-3}\ \text{kg})(9.80\ \text{m/s}^2)}{(20)(1.50\ \text{A})(0.0400\ \text{m})} = \frac{0.0240\ \text{N}}{1.20\ \text{A}\cdot\text{m}} = 0.0200\ \text{T} = 20.0\ \text{mT}\;}\]</span></p>
+</div>
+<p>The force being weighed is <span class="math inline">\(0.024\)</span> N, the weight of a small paper clip. The 20 turns multiply it twentyfold; with a single turn the balance would need <span class="math inline">\(0.12\)</span> g, hard to measure.</p>
+</section>
 <hr />
-<h2 id="torque-on-a-current-loop-and-the-magnetic-dipole">28.4 — Torque on a Current Loop and the Magnetic Dipole</h2>
-<h3 id="the-rectangular-loop-in-a-uniform-field">The Rectangular Loop in a Uniform Field</h3>
-<p>Consider a rectangular loop (width <span class="math inline">\(a\)</span>, height <span class="math inline">\(b\)</span>, area <span class="math inline">\(A = ab\)</span>) carrying current <span class="math inline">\(I\)</span> in uniform <span class="math inline">\(\vec{B}\)</span>. Using <span class="math inline">\(\vec{F} = I\vec{L}\times\vec{B}\)</span> on each side: sides parallel to <span class="math inline">\(\vec{B}\)</span> feel zero force; sides perpendicular feel equal and opposite forces (<span class="math inline">\(F = BIb\)</span>), forming a <strong>couple</strong> — zero net force, nonzero torque. When the loop’s normal <span class="math inline">\(\hat{n}\)</span> makes angle <span class="math inline">\(\theta\)</span> with <span class="math inline">\(\vec{B}\)</span>, the torque is <span class="math inline">\(\tau = BIA\sin\theta\)</span>. For <span class="math inline">\(N\)</span> turns:</p>
-<p><span class="math display">\[\boxed{\tau = NIAB\sin\theta}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_4_torque_loop.png" alt="Figure 28.4: A rectangular current loop in a uniform magnetic field. Forces on the perpendicular sides form a couple, producing torque that aligns the loop’s normal with the field." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 28.4: A rectangular current loop in a uniform magnetic field. Forces on the perpendicular sides form a couple, producing torque that aligns the loop’s normal with the field.</figcaption></figure>
+<h2 id="torque-on-a-current-loop">28.4 — Torque on a Current Loop</h2>
+<h3 id="four-sides-two-forces-one-torque">Four Sides, Two Forces, One Torque</h3>
+<p>Bend the wire into a rectangular loop, sides <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span>, carrying current <span class="math inline">\(I\)</span> in a uniform field. The loop is free to turn about an axis through its center, parallel to the sides of length <span class="math inline">\(b\)</span> and perpendicular to <span class="math inline">\(\vec B\)</span>. Let <span class="math inline">\(\hat n\)</span> be the loop’s normal, given by the right-hand rule (curl the fingers with the current, thumb along <span class="math inline">\(\hat n\)</span>), at angle <span class="math inline">\(\theta\)</span> to <span class="math inline">\(\vec B\)</span> (Figure 28.7).</p>
+<p><strong>Step 1 — the two sides of length <span class="math inline">\(a\)</span>.</strong> Their currents are opposite, so their forces are equal and opposite, and both lie along the axis, on the same line. They cancel and produce no torque.</p>
+<p><strong>Step 2 — the two sides of length <span class="math inline">\(b\)</span>.</strong> Each is perpendicular to <span class="math inline">\(\vec B\)</span>, so each feels <span class="math inline">\(F = IbB\)</span>. The currents are opposite, so the forces are opposite: zero net force, but they act on opposite sides of the axis.</p>
+<p><strong>Step 3 — the moment arm.</strong> Each side of length <span class="math inline">\(b\)</span> is a distance <span class="math inline">\(a/2\)</span> from the axis. The forces are perpendicular to <span class="math inline">\(\vec B\)</span>, and the line from the axis to each side is perpendicular to <span class="math inline">\(\hat n\)</span>, so the moment arm of each force is <span class="math inline">\((a/2)\sin\theta\)</span>.</p>
+<p><strong>Step 4 — add the two torques.</strong> They turn the loop the same way:</p>
+<p><span class="math display">\[\tau = 2\,(IbB)\left(\frac{a}{2}\sin\theta\right) = IabB\sin\theta = IAB\sin\theta\]</span></p>
+<p>with <span class="math inline">\(A = ab\)</span> the loop’s area. <span class="math inline">\(N\)</span> turns multiply it by <span class="math inline">\(N\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_07_torque_loop.png" alt="Figure 28.7: Torque on a current loop. (a) The loop seen face on, with the axis of rotation dashed. (b) The same loop seen along the axis. The sides of length b carry current out of and into the page and feel forces F = IbB, up and down. Each acts with moment arm (a/2)\sin\theta, where \theta is the angle between the normal \hat n and \vec B." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 28.7: Torque on a current loop. (a) The loop seen face on, with the axis of rotation dashed. (b) The same loop seen along the axis. The sides of length <span class="math inline">\(b\)</span> carry current out of and into the page and feel forces <span class="math inline">\(F = IbB\)</span>, up and down. Each acts with moment arm <span class="math inline">\((a/2)\sin\theta\)</span>, where <span class="math inline">\(\theta\)</span> is the angle between the normal <span class="math inline">\(\hat n\)</span> and <span class="math inline">\(\vec B\)</span>.</figcaption></figure>
 <h3 id="the-magnetic-dipole-moment">The Magnetic Dipole Moment</h3>
-<p>We define the <strong>magnetic dipole moment</strong>: <span class="math inline">\(\boxed{\vec{\mu} = NIA\hat{n}}\)</span>, where <span class="math inline">\(\hat{n}\)</span> follows the right-hand rule (curl fingers with current, thumb = <span class="math inline">\(\hat{n}\)</span>). The SI unit is A·m². The torque and <strong>potential energy</strong> take elegant vector forms:</p>
-<p><span class="math display">\[\boxed{\vec{\tau} = \vec{\mu}\times\vec{B}} \qquad \boxed{U = -\vec{\mu}\cdot\vec{B} = -\mu B\cos\theta}\]</span></p>
-<p>Stable equilibrium at <span class="math inline">\(\theta = 0\)</span> (<span class="math inline">\(\vec{\mu}\parallel\vec{B}\)</span>, minimum <span class="math inline">\(U\)</span>); unstable at <span class="math inline">\(\theta = 180°\)</span>.</p>
-<h3 id="the-grand-analogy-electric-dipole-meets-magnetic-dipole">The Grand Analogy — Electric Dipole Meets Magnetic Dipole</h3>
-<p>Every formula has an exact structural counterpart:</p>
+<p>Everything about the loop that matters enters as one vector, the <strong>magnetic dipole moment</strong>, <span class="math inline">\(\vec\mu = NIA\,\hat n\)</span> (unit A·m²). In terms of it the torque is a cross product. The energy follows as it did for the electric dipole in Chapter 25. The torque <span class="math inline">\(\mu B\sin\theta\)</span> always turns <span class="math inline">\(\hat n\)</span> toward <span class="math inline">\(\vec B\)</span>, so as the loop turns from <span class="math inline">\(\theta = 90°\)</span> (chosen as <span class="math inline">\(U = 0\)</span>) to <span class="math inline">\(\theta\)</span>, the field does work <span class="math inline">\(W = \int_{90°}^{\theta}(-\mu B\sin\theta&#39;)\,d\theta&#39; = \mu B\cos\theta\)</span>, and <span class="math inline">\(U = -W\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\vec\mu = NIA\,\hat n, \qquad \vec\tau = \vec\mu\times\vec B, \qquad U = -\vec\mu\cdot\vec B = -\mu B\cos\theta\;}\]</span></p>
+</div>
+<div class="connection">
+<p><strong>Chapter 25 promised this.</strong> The electric dipole <span class="math inline">\(\vec p = q\vec d\)</span> in a field <span class="math inline">\(\vec E\)</span> had <span class="math inline">\(\vec\tau = \vec p\times\vec E\)</span> and <span class="math inline">\(U = -\vec p\cdot\vec E\)</span>. Same mathematics, different letters:</p>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>Electric Dipole <span class="math inline">\(\vec{p}\)</span> (Ch 25)</th>
-<th>Magnetic Dipole <span class="math inline">\(\vec{\mu}\)</span> (Ch 28)</th>
+<th></th>
+<th>Electric dipole (Ch 25)</th>
+<th>Magnetic dipole (this chapter)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Definition</td>
-<td><span class="math inline">\(\vec{p} = q\vec{d}\)</span></td>
-<td><span class="math inline">\(\vec{\mu} = NIA\hat{n}\)</span></td>
+<td>Moment</td>
+<td><span class="math inline">\(\vec p = q\vec d\)</span></td>
+<td><span class="math inline">\(\vec\mu = NIA\,\hat n\)</span></td>
 </tr>
 <tr class="even">
-<td>Torque in field</td>
-<td><span class="math inline">\(\vec{\tau} = \vec{p}\times\vec{E}\)</span></td>
-<td><span class="math inline">\(\vec{\tau} = \vec{\mu}\times\vec{B}\)</span></td>
+<td>Torque</td>
+<td><span class="math inline">\(\vec\tau = \vec p\times\vec E\)</span></td>
+<td><span class="math inline">\(\vec\tau = \vec\mu\times\vec B\)</span></td>
 </tr>
 <tr class="odd">
-<td>Potential energy</td>
-<td><span class="math inline">\(U = -\vec{p}\cdot\vec{E}\)</span></td>
-<td><span class="math inline">\(U = -\vec{\mu}\cdot\vec{B}\)</span></td>
+<td>Energy</td>
+<td><span class="math inline">\(U = -\vec p\cdot\vec E\)</span></td>
+<td><span class="math inline">\(U = -\vec\mu\cdot\vec B\)</span></td>
 </tr>
 <tr class="even">
-<td>Stable equilibrium</td>
-<td><span class="math inline">\(\vec{p}\parallel\vec{E}\)</span></td>
-<td><span class="math inline">\(\vec{\mu}\parallel\vec{B}\)</span></td>
-</tr>
-<tr class="odd">
-<td>Physical origin</td>
-<td>Charge separation</td>
-<td>Current loop</td>
+<td>Stable</td>
+<td><span class="math inline">\(\vec p\)</span> along <span class="math inline">\(\vec E\)</span></td>
+<td><span class="math inline">\(\vec\mu\)</span> along <span class="math inline">\(\vec B\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>The loop acts like a compass needle: <span class="math inline">\(\vec{\mu}\)</span> aligns with <span class="math inline">\(\vec{B}\)</span> at equilibrium. A bar magnet’s field arises from aligned atomic magnetic dipole moments — each atom is a tiny current loop. A <strong>DC motor</strong> exploits this: a current loop on an axle with a <strong>commutator</strong> (split ring reversing current every half-turn) ensures continuous rotation. Every motor from a hair dryer to a Tesla is this physics at scale.</p>
-<h3 id="example-torque-on-a-coil">Example: Torque on a Coil</h3>
-<p>A 200-turn square coil (side <span class="math inline">\(\ell = 5.0\ \text{cm}\)</span>) carries <span class="math inline">\(I = 0.80\ \text{A}\)</span> in a field <span class="math inline">\(B = 0.35\ \text{T}\)</span>.</p>
-<p><strong>(A)</strong> <span class="math inline">\(\mu = NIA = (200)(0.80)(0.050)^2 = \boxed{0.40\ \text{A}\cdot\text{m}^2}\)</span></p>
-<p><strong>(B)</strong> <span class="math inline">\(\tau_\text{max} = \mu B = (0.40)(0.35) = \boxed{0.14\ \text{N}\cdot\text{m}}\)</span></p>
-<p><strong>(C)</strong> <span class="math inline">\(U_{90°} = 0\)</span>; <span class="math inline">\(U_{0°} = -\mu B = \boxed{-0.14\ \text{J}}\)</span>. The coil releases 0.14 J swinging from 90° to alignment — this is what drives a motor shaft each quarter-turn.</p>
+</div>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong><span class="math inline">\(\hat n\)</span> along <span class="math inline">\(\vec B\)</span></strong> (<span class="math inline">\(\theta = 0\)</span>): <span class="math inline">\(\tau = 0\)</span> and <span class="math inline">\(U = -\mu B\)</span> is a minimum. The loop rests there, like a compass needle pointing north.</li>
+<li><strong><span class="math inline">\(\hat n\)</span> opposite <span class="math inline">\(\vec B\)</span></strong> (<span class="math inline">\(\theta = 180°\)</span>): <span class="math inline">\(\tau = 0\)</span> again, but <span class="math inline">\(U\)</span> is a maximum, an unstable balance.</li>
+<li><strong><span class="math inline">\(\theta = 90°\)</span></strong>: the torque is largest, <span class="math inline">\(\tau = NIAB\)</span>.</li>
+</ul>
+</div>
+<p>A <strong>DC motor</strong> is this loop on an axle. Left alone it would swing to <span class="math inline">\(\theta = 0\)</span> and stop; a split-ring <strong>commutator</strong> reverses the current every half turn, so the torque keeps pointing the same way round and the loop keeps turning. A bar magnet behaves like a loop because each of its atoms carries a tiny magnetic moment, and in a magnet they are lined up.</p>
+<section id="example-the-galvanometer" class="example">
+<h3>Example: The Galvanometer</h3>
+<p>An analog meter’s movement is a coil of <span class="math inline">\(N\)</span> turns and area <span class="math inline">\(A\)</span> that turns between curved pole pieces around a fixed iron core (Figure 28.8). The curved gap makes the field point radially, so wherever the coil turns, its plane lies along <span class="math inline">\(\vec B\)</span> and <span class="math inline">\(\theta = 90°\)</span>. A hairspring resists with torque <span class="math inline">\(\kappa\phi\)</span> at deflection <span class="math inline">\(\phi\)</span>. Find the deflection for a current <span class="math inline">\(I\)</span>, and the current that swings the needle a full <span class="math inline">\(90°\)</span>, for <span class="math inline">\(N = 100\)</span>, a coil <span class="math inline">\(2.00\)</span> cm by <span class="math inline">\(1.50\)</span> cm, <span class="math inline">\(B = 0.200\)</span> T and <span class="math inline">\(\kappa = 2.00\times10^{-7}\)</span> N·m/rad.</p>
+<p><em>Why it matters:</em> the needle angle is what you read; the current is what you want. This is the movement inside the analog ammeters and voltmeters of Chapter 27, which are a galvanometer with a resistor in parallel or in series.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_08_galvanometer.png" alt="Figure 28.8: A galvanometer seen from above. Curved pole pieces and a fixed iron core make the field radial in the gap, so the coil’s sides always move across \vec B. The magnetic torque NIAB is balanced by the hairspring’s \kappa\phi." loading="lazy" style="max-width:min(4.4in,100%)" /><figcaption>Figure 28.8: A galvanometer seen from above. Curved pole pieces and a fixed iron core make the field radial in the gap, so the coil’s sides always move across <span class="math inline">\(\vec B\)</span>. The magnetic torque <span class="math inline">\(NIAB\)</span> is balanced by the hairspring’s <span class="math inline">\(\kappa\phi\)</span>.</figcaption></figure>
+<p><strong>Step 1 — balance the torques.</strong> With <span class="math inline">\(\theta = 90°\)</span> at every angle,</p>
+<p><span class="math display">\[NIAB = \kappa\phi \qquad\Longrightarrow\qquad \phi = \frac{NAB}{\kappa}\,I\]</span></p>
+<p>The deflection is <strong>proportional to the current</strong>, so the scale is evenly spaced. That is what the radial field buys; in a uniform field the torque would fall off as <span class="math inline">\(\sin\theta\)</span> and the scale would crowd at one end.</p>
+<p><strong>Step 2 — full scale.</strong> <span class="math inline">\(\phi = 90.0° = \pi/2\)</span> rad and <span class="math inline">\(A = (0.0200)(0.0150) = 3.00\times10^{-4}\)</span> m²:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I_\text{fs} = \frac{\kappa\phi}{NAB} = \frac{(2.00\times10^{-7})(\pi/2)}{(100)(3.00\times10^{-4})(0.200)} = \frac{3.14\times10^{-7}}{6.00\times10^{-3}} = 5.24\times10^{-5}\ \text{A} = 52.4\ \mu\text{A}\;}\]</span></p>
+</div>
+<p>A movement this sensitive reads at most about <span class="math inline">\(50\ \mu\)</span>A. To read 5 A as an ammeter, Chapter 27’s shunt resistor carries all but one part in <span class="math inline">\(10^5\)</span> of the current around it.</p>
+</section>
 <hr />
-<h2 id="sources-of-magnetic-fields-the-biot-savart-law">28.5 — Sources of Magnetic Fields — The Biot-Savart Law</h2>
-<h3 id="every-current-creates-a-magnetic-field">Every Current Creates a Magnetic Field</h3>
-<p>Sections 28.2–28.4 answered: <em>given <span class="math inline">\(\vec{B}\)</span>, what force does it exert?</em> We now ask the complementary question: <em>given a current, what <span class="math inline">\(\vec{B}\)</span> does it create?</em> The answer was established by <strong>Biot</strong> and <strong>Savart</strong> in 1820. The <strong>Biot-Savart Law</strong> gives the infinitesimal field at point P due to a current element <span class="math inline">\(I\,d\vec{\ell}\)</span>:</p>
-<p><span class="math display">\[\boxed{d\vec{B} = \frac{\mu_0}{4\pi}\frac{I\,d\vec{\ell}\times\hat{r}}{r^2}}\]</span></p>
-<p>where <span class="math inline">\(\mu_0 = 4\pi\times10^{-7}\ \text{T}\cdot\text{m/A}\)</span> is the <strong>permeability of free space</strong>, <span class="math inline">\(d\vec{\ell}\)</span> points along the current, <span class="math inline">\(\hat{r}\)</span> points from element to field point, and <span class="math inline">\(r\)</span> is the distance. Total field: <span class="math inline">\(\vec{B} = \int d\vec{B}\)</span>.</p>
-<h3 id="structural-parallel-biot-savart-and-coulomb">Structural Parallel — Biot-Savart and Coulomb</h3>
+<h2 id="sources-of-the-field-the-biotsavart-law">28.5 — Sources of the Field: The Biot–Savart Law</h2>
+<h3 id="the-magnetic-coulombs-law">The Magnetic Coulomb’s Law</h3>
+<p>§28.2–28.4 took the field as given. Ørsted’s needle says currents make it. Biot and Savart measured the field of each short piece of a current, and the result has the shape of Coulomb’s law for a piece of charge (Chapter 22). A current element <span class="math inline">\(I\,d\vec\ell\)</span> makes, at a point a distance <span class="math inline">\(r\)</span> away in the direction <span class="math inline">\(\hat r\)</span>,</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;d\vec B = \frac{\mu_0}{4\pi}\,\frac{I\,d\vec\ell\times\hat r}{r^2}\;}\]</span></p>
+</div>
+<p>where <span class="math inline">\(\mu_0 = 4\pi\times10^{-7}\ \text{T}\cdot\text{m/A}\)</span> is the permeability of free space from Chapter 31. Like Coulomb’s law, it is read from experiment, and the total field is the sum <span class="math inline">\(\vec B = \int d\vec B\)</span> over the whole current.</p>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -387,100 +538,174 @@
 </colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>Coulomb’s Law (Ch 22)</th>
-<th>Biot-Savart Law (Ch 28)</th>
+<th></th>
+<th>Coulomb (Ch 22)</th>
+<th>Biot–Savart (this chapter)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Source</td>
-<td>Point charge <span class="math inline">\(dq\)</span></td>
-<td>Current element <span class="math inline">\(I\,d\vec{\ell}\)</span></td>
+<td>charge <span class="math inline">\(dq\)</span></td>
+<td>current element <span class="math inline">\(I\,d\vec\ell\)</span></td>
 </tr>
 <tr class="even">
 <td>Field</td>
-<td><span class="math inline">\(d\vec{E} = k_e\,dq\,\hat{r}/r^2\)</span></td>
-<td><span class="math inline">\(d\vec{B} = (\mu_0/4\pi)\,I\,d\vec{\ell}\times\hat{r}/r^2\)</span></td>
+<td><span class="math inline">\(d\vec E = k\,\dfrac{dq}{r^2}\,\hat r\)</span></td>
+<td><span class="math inline">\(d\vec B = \dfrac{\mu_0}{4\pi}\,\dfrac{I\,d\vec\ell\times\hat r}{r^2}\)</span></td>
 </tr>
 <tr class="odd">
-<td>Direction</td>
-<td>Along <span class="math inline">\(\hat{r}\)</span> (radial)</td>
-<td><span class="math inline">\(\perp\)</span> to both <span class="math inline">\(d\vec{\ell}\)</span> and <span class="math inline">\(\hat{r}\)</span></td>
+<td>Falls off as</td>
+<td><span class="math inline">\(1/r^2\)</span></td>
+<td><span class="math inline">\(1/r^2\)</span></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(1/r^2\)</span> dependence</td>
-<td>Yes</td>
-<td>Yes</td>
+<td>Direction</td>
+<td>along <span class="math inline">\(\hat r\)</span>, away from the source</td>
+<td><strong>perpendicular</strong> to both <span class="math inline">\(d\vec\ell\)</span> and <span class="math inline">\(\hat r\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>The key difference: <span class="math inline">\(\vec{E}\)</span> points radially outward; <span class="math inline">\(\vec{B}\)</span> <em>circulates</em> around the wire. This is why magnetic field lines form loops rather than radiating outward.</p>
-<h3 id="field-of-an-infinite-straight-wire">Field of an Infinite Straight Wire</h3>
-<p>Integrating the Biot-Savart Law along an infinite wire (the same integration-along-a-line technique used for charged rods in Chapter 23):</p>
-<p><span class="math display">\[\boxed{B = \frac{\mu_0 I}{2\pi r}}\]</span></p>
-<p>The field circulates around the wire in closed circles, with direction given by the right-hand rule: thumb along current, fingers curl in the direction of <span class="math inline">\(\vec{B}\)</span>.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_5_biot_savart_wire.png" alt="Figure 28.5: The magnetic field of a long straight wire circulates in closed loops. At distance r, B = \mu_0 I/(2\pi r)." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 28.5: The magnetic field of a long straight wire circulates in closed loops. At distance r, B = \mu_0 I/(2\pi r).</figcaption></figure>
-<p>The <span class="math inline">\(1/r\)</span> dependence — not <span class="math inline">\(1/r^2\)</span> — matches the electric field of an infinite line charge (<span class="math inline">\(E = \lambda/2\pi\varepsilon_0 r\)</span> from Ch 23). The slower falloff reflects the 1D source geometry: every point along the infinite wire contributes.</p>
-<h3 id="field-on-the-axis-of-a-circular-loop">Field on the Axis of a Circular Loop</h3>
-<p>For a loop of radius <span class="math inline">\(R\)</span> carrying current <span class="math inline">\(I\)</span>, the on-axis field at distance <span class="math inline">\(x\)</span> from center:</p>
-<p><span class="math display">\[\boxed{B = \frac{\mu_0 I R^2}{2(R^2 + x^2)^{3/2}}}\]</span></p>
-<p><figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_6_circular_loop_field.png" alt="Figure 28.6a: On-axis field of a circular current loop, showing B(x) decreasing with distance" loading="lazy" style="max-width:min(48.0%,100%)" /><figcaption>Figure 28.6a: On-axis field of a circular current loop, showing B(x) decreasing with distance</figcaption></figure> <figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_6_circular_loop_field_3d.png" alt="Figure 28.6b: 3D field lines threading through the loop and closing back outside" loading="lazy" style="max-width:min(48.0%,100%)" /><figcaption>Figure 28.6b: 3D field lines threading through the loop and closing back outside</figcaption></figure></p>
-<p>Figure 28.6: Magnetic field of a circular current loop. Left: On-axis field. Right: Field lines — every line is a closed curve.</p>
-<p><strong>Limiting cases:</strong> At the center (<span class="math inline">\(x = 0\)</span>): <span class="math inline">\(B = \mu_0 I/(2R)\)</span> — the maximum on-axis value. Far from the loop (<span class="math inline">\(x \gg R\)</span>): <span class="math inline">\(B \approx \mu_0 IR^2/(2x^3) \propto 1/x^3\)</span> — the <strong>dipole falloff</strong>, the same <span class="math inline">\(1/r^3\)</span> dependence we found for the electric field far from an electric dipole in Chapter 22. The current loop IS a magnetic dipole.</p>
-<h3 id="example-fields-from-a-coil-and-a-wire">Example: Fields from a Coil and a Wire</h3>
-<p><strong>(A)</strong> A 50-turn coil (<span class="math inline">\(R = 0.10\ \text{m}\)</span>, <span class="math inline">\(I = 2.0\ \text{A}\)</span>). At center: <span class="math inline">\(B = N\mu_0 I/(2R) = (50)(4\pi\times10^{-7})(2.0)/(0.20) = \boxed{0.63\ \text{mT}}\)</span> — about 12× Earth’s field. A modest coil already dominates the local magnetic environment.</p>
-<p><strong>(B)</strong> A long wire (<span class="math inline">\(I = 5.0\ \text{A}\)</span>) at <span class="math inline">\(r = 0.10\ \text{m}\)</span>: <span class="math inline">\(B = \mu_0 I/(2\pi r) = \boxed{10\ \mu\text{T}}\)</span> — comparable to Earth’s field. At <span class="math inline">\(r = 0.050\ \text{m}\)</span>, <span class="math inline">\(B = 20\ \mu\text{T}\)</span>. The <span class="math inline">\(1/r\)</span> dependence is linear, not quadratic.</p>
+</div>
+<p>The last row is why <span class="math inline">\(\vec E\)</span> points away from a charge while <span class="math inline">\(\vec B\)</span> <strong>circles</strong> a current.</p>
+<h3 id="the-field-of-a-long-straight-wire">The Field of a Long Straight Wire</h3>
+<p>The calculation is the one Chapter 22 used for the field beside a charged rod, with the cross product in place of the components.</p>
+<p><strong>Step 1 — set up.</strong> Put the wire along the <span class="math inline">\(y\)</span>-axis carrying <span class="math inline">\(I\)</span> upward, and the field point <span class="math inline">\(P\)</span> a distance <span class="math inline">\(a\)</span> to its right (Figure 28.9b). An element <span class="math inline">\(dy\)</span> at height <span class="math inline">\(y\)</span> is a distance <span class="math inline">\(r = \sqrt{y^2 + a^2}\)</span> from <span class="math inline">\(P\)</span>.</p>
+<p><strong>Step 2 — direction.</strong> For every element, <span class="math inline">\(d\vec\ell\times\hat r\)</span> points the same way, into the page at <span class="math inline">\(P\)</span>, so the magnitudes simply add.</p>
+<p><strong>Step 3 — magnitude of one piece.</strong> <span class="math inline">\(|d\vec\ell\times\hat r| = dy\,\sin\phi\)</span>, where <span class="math inline">\(\phi\)</span> is the angle between the wire and <span class="math inline">\(\hat r\)</span>, and <span class="math inline">\(\sin\phi = a/r\)</span>:</p>
+<p><span class="math display">\[dB = \frac{\mu_0 I}{4\pi}\,\frac{a\,dy}{(y^2 + a^2)^{3/2}}\]</span></p>
+<p><strong>Step 4 — integrate over the whole wire.</strong> With <span class="math inline">\(\int_{-\infty}^{\infty} dy/(y^2 + a^2)^{3/2} = 2/a^2\)</span> (the same table integral as the charged rod),</p>
+<p><span class="math display">\[B = \frac{\mu_0 I}{4\pi}\,a\cdot\frac{2}{a^2}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B = \frac{\mu_0 I}{2\pi r}\;}\]</span></p>
+</div>
+<p>writing <span class="math inline">\(r\)</span> again for the distance from the wire. <strong>Direction:</strong> the field lines are circles around the wire. Point the right thumb along the current and the fingers curl the way <span class="math inline">\(\vec B\)</span> goes (Figure 28.9a).</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_09_wire_field.png" alt="Figure 28.9: (a) The field of a long wire carrying current out of the page: circles centered on the wire, counterclockwise, weaker farther out. (b) The Biot–Savart setup: an element dy at height y, a distance r from the point P, which is a from the wire." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 28.9: (a) The field of a long wire carrying current out of the page: circles centered on the wire, counterclockwise, weaker farther out. (b) The Biot–Savart setup: an element <span class="math inline">\(dy\)</span> at height <span class="math inline">\(y\)</span>, a distance <span class="math inline">\(r\)</span> from the point <span class="math inline">\(P\)</span>, which is <span class="math inline">\(a\)</span> from the wire.</figcaption></figure>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>Far away.</strong> <span class="math inline">\(B \to 0\)</span> as <span class="math inline">\(r \to \infty\)</span>, but only as <span class="math inline">\(1/r\)</span>, slower than a point source’s <span class="math inline">\(1/r^2\)</span>. It matches the infinite line of charge, <span class="math inline">\(E = \lambda/2\pi\varepsilon_0 r\)</span> (Chapter 23): a long source falls off more slowly because there is always more of it nearby.</li>
+<li><strong>More current, more field.</strong> <span class="math inline">\(B \propto I\)</span>.</li>
+<li><strong>Units.</strong> <span class="math inline">\(\text{T}\cdot\text{m/A}\times\text{A}/\text{m} = \text{T}\)</span>.</li>
+</ul>
+</div>
+<h3 id="the-field-at-the-center-of-a-loop">The Field at the Center of a Loop</h3>
+<p>A loop of radius <span class="math inline">\(R\)</span> is the easiest Biot–Savart sum of all, because every element is in the same position relative to the center (Figure 28.10).</p>
+<p><strong>Step 1 — geometry.</strong> Every element is a distance <span class="math inline">\(R\)</span> from the center, and every <span class="math inline">\(d\vec\ell\)</span> is perpendicular to the <span class="math inline">\(\hat r\)</span> pointing at the center, so <span class="math inline">\(|d\vec\ell\times\hat r| = d\ell\)</span>.</p>
+<p><strong>Step 2 — direction.</strong> Every element’s field at the center points the same way, along the loop’s axis (the right-hand rule: fingers with the current, thumb along <span class="math inline">\(\vec B\)</span> at the center).</p>
+<p><strong>Step 3 — add.</strong> The pieces add straight up to the loop’s length <span class="math inline">\(2\pi R\)</span>:</p>
+<p><span class="math display">\[B = \frac{\mu_0 I}{4\pi R^2}\oint d\ell = \frac{\mu_0 I}{4\pi R^2}(2\pi R)\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B_\text{center} = \frac{\mu_0 I}{2R} \qquad (N \text{ turns: } N\mu_0I/2R)\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_10_loop_center.png" alt="Figure 28.10: At the center of a circular loop, every element d\vec\ell is perpendicular to \hat r and a distance R away, so every element’s field at the center points the same way, out of the page for a counterclockwise current." loading="lazy" style="max-width:min(3in,100%)" /><figcaption>Figure 28.10: At the center of a circular loop, every element <span class="math inline">\(d\vec\ell\)</span> is perpendicular to <span class="math inline">\(\hat r\)</span> and a distance <span class="math inline">\(R\)</span> away, so every element’s field at the center points the same way, out of the page for a counterclockwise current.</figcaption></figure>
+<p>Far from the loop along its axis the field falls off as <span class="math inline">\(1/x^3\)</span>, the same as the electric field far from an electric dipole (Chapter 22); this is stated, not derived here. A current loop <strong>is</strong> a magnetic dipole, the source of the <span class="math inline">\(\vec\mu\)</span> of §28.4.</p>
+<section id="example-a-coil-and-a-wire" class="example">
+<h3>Example: A Coil and a Wire</h3>
+<p><strong>(a)</strong> A flat coil of <span class="math inline">\(N\)</span> turns and radius <span class="math inline">\(R\)</span> carries current <span class="math inline">\(I\)</span>. Find the field at its center for <span class="math inline">\(N = 50\)</span>, <span class="math inline">\(R = 10.0\)</span> cm, <span class="math inline">\(I = 2.00\)</span> A, and compare it with Earth’s field. <strong>(b)</strong> Find the field <span class="math inline">\(10.0\)</span> cm from a long wire carrying <span class="math inline">\(5.00\)</span> A.</p>
+<p><em>Why it matters:</em> the current, the turns and the radius are all set on the bench; the field at the center is what the coil delivers. A pair of coils like this is how a laboratory makes a known field, or cancels Earth’s.</p>
+<p><strong>Step 1 — symbols.</strong></p>
+<p><span class="math display">\[B_\text{coil} = \frac{N\mu_0 I}{2R}, \qquad B_\text{wire} = \frac{\mu_0 I}{2\pi r}\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B_\text{coil} = \frac{(50)(4\pi\times10^{-7})(2.00)}{2(0.100)} = 0.628\ \text{mT} \approx 13\,B_\text{Earth}, \qquad B_\text{wire} = \frac{(4\pi\times10^{-7})(5.00)}{2\pi(0.100)} = 10.0\ \mu\text{T}\;}\]</span></p>
+</div>
+<p>The modest coil overwhelms Earth’s <span class="math inline">\(50\ \mu\)</span>T at its center. The wire’s field is a fifth of Earth’s at 10 cm and would equal it at 2 cm; this is why a compass held near a wire carrying a few amperes swings.</p>
+</section>
+<h3 id="two-wires-superposition-and-the-force-between-currents">Two Wires: Superposition and the Force Between Currents</h3>
+<p>Magnetic fields add as vectors, just as electric fields did (Chapter 22). Two long parallel wires a distance <span class="math inline">\(d\)</span> apart, with currents <span class="math inline">\(I_1\)</span> and <span class="math inline">\(I_2\)</span>, each make the circular field of a single wire, and the field at any point is the vector sum. <strong>Run the right-hand rule once for each wire, then add</strong> (Figure 28.11a).</p>
+<p>Each wire also sits in the other’s field and carries current across it, so each feels a force. Look at wire 2.</p>
+<p><strong>Step 1 — the field wire 1 makes at wire 2.</strong> A distance <span class="math inline">\(d\)</span> away,</p>
+<p><span class="math display">\[B_1 = \frac{\mu_0 I_1}{2\pi d}\]</span></p>
+<p>perpendicular to the plane of the wires.</p>
+<p><strong>Step 2 — the force on a length <span class="math inline">\(L\)</span> of wire 2</strong> (§28.3). The current <span class="math inline">\(I_2\)</span> runs perpendicular to <span class="math inline">\(\vec B_1\)</span>:</p>
+<p><span class="math display">\[F_{\text{on }2} = I_2LB_1 = \frac{\mu_0 I_1I_2L}{2\pi d}\]</span></p>
+<p><strong>Step 3 — direction.</strong> Both currents out of the page: wire 1’s field at wire 2 (on its right) points up the page, and <span class="math inline">\(I_2\vec L\times\vec B_1\)</span> = (out) × (up) points <strong>toward wire 1</strong>. Parallel currents <strong>attract</strong>. Reverse <span class="math inline">\(I_2\)</span> and the force reverses: antiparallel currents <strong>repel</strong> (Figure 28.11b).</p>
+<p><strong>Step 4 — the force on wire 1.</strong> Run the same steps with the labels swapped: <span class="math inline">\(F_{\text{on }1} = I_1LB_2 = I_1L\,\mu_0I_2/(2\pi d)\)</span>, the <strong>same</strong> size, pointing toward wire 2.</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\frac{F}{L} = \frac{\mu_0 I_1 I_2}{2\pi d} \qquad \text{parallel currents attract, antiparallel repel}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_11_two_wires.png" alt="Figure 28.11: Two long wires seen end on. (a) Antiparallel currents: between the wires both fields point the same way and add. (b) The forces: parallel currents pull together and antiparallel currents push apart, with equal and opposite forces on the two wires." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 28.11: Two long wires seen end on. (a) Antiparallel currents: between the wires both fields point the same way and add. (b) The forces: parallel currents pull together and antiparallel currents push apart, with equal and opposite forces on the two wires.</figcaption></figure>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>Newton’s third law, even with unequal currents.</strong> The formula is symmetric in <span class="math inline">\(I_1\)</span> and <span class="math inline">\(I_2\)</span>: the force on wire 1 equals the force on wire 2 in size and is opposite in direction, however different the currents. A wire carrying ten times the current does <strong>not</strong> pull ten times harder; it makes ten times the field, which acts on the other wire’s smaller current.</li>
+<li><strong>One current turned off.</strong> As <span class="math inline">\(I_2 \to 0\)</span>, both forces go to zero together. Wire 1’s field at wire 2, <span class="math inline">\(\mu_0I_1/2\pi d\)</span>, does not change; there is simply no current in wire 2 for it to push on.</li>
+<li><strong>Far apart.</strong> <span class="math inline">\(d \to \infty\)</span> gives <span class="math inline">\(F \to 0\)</span>, falling as <span class="math inline">\(1/d\)</span>.</li>
+</ul>
+</div>
+<p><strong>This is where <span class="math inline">\(\mu_0\)</span> comes from.</strong> Until 2019 the ampere was <em>defined</em> by this force: one ampere is the current that, in two long parallel wires one meter apart, gives a force of exactly <span class="math inline">\(2\times10^{-7}\)</span> N per meter of wire. Put <span class="math inline">\(I_1 = I_2 = 1\)</span> A and <span class="math inline">\(d = 1\)</span> m into the result and it says <span class="math inline">\(\mu_0/2\pi = 2\times10^{-7}\)</span>, so <span class="math inline">\(\mu_0 = 4\pi\times10^{-7}\)</span> T·m/A exactly. That is the “force between currents” Chapter 31 credited for the speed of light. (Since 2019 the ampere is fixed through the electron’s charge instead, and <span class="math inline">\(\mu_0\)</span> is measured; it still agrees with <span class="math inline">\(4\pi\times10^{-7}\)</span> to one part in <span class="math inline">\(10^{10}\)</span>.)</p>
+<section id="example-two-wires-carrying-opposite-currents" class="example">
+<h3>Example: Two Wires Carrying Opposite Currents</h3>
+<p>Two long parallel wires <span class="math inline">\(d\)</span> apart carry <span class="math inline">\(I_1\)</span> and <span class="math inline">\(I_2\)</span> in opposite directions. Find the field at the midpoint and the force per unit length on each wire, for <span class="math inline">\(d = 10.0\)</span> cm, <span class="math inline">\(I_1 = 3.00\)</span> A and <span class="math inline">\(I_2 = 5.00\)</span> A.</p>
+<p><em>Why it matters:</em> the currents and the spacing are set; the field between the wires and the force on them are what the design has to live with. In a power substation the busbars carry about 20 kA, 10 cm apart. The formula gives <span class="math inline">\(800\)</span> N on every meter during a short circuit, and that is why the bars are bolted down.</p>
+<p><strong>Step 1 — the field at the midpoint.</strong> Each wire is <span class="math inline">\(d/2\)</span> away. Seen end on, with <span class="math inline">\(I_1\)</span> out of the page on the left and <span class="math inline">\(I_2\)</span> into the page on the right, the right-hand rule gives <strong>both</strong> fields pointing up the page between the wires (Figure 28.11a), so the magnitudes add:</p>
+<p><span class="math display">\[B_\text{mid} = \frac{\mu_0 I_1}{2\pi(d/2)} + \frac{\mu_0 I_2}{2\pi(d/2)} = \frac{\mu_0(I_1 + I_2)}{\pi d}\]</span></p>
+<p><strong>Step 2 — the force.</strong> From the result above, opposite currents repel:</p>
+<p><span class="math display">\[\frac{F}{L} = \frac{\mu_0 I_1 I_2}{2\pi d}\]</span></p>
+<p><strong>Step 3 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B_\text{mid} = \frac{(4\pi\times10^{-7})(3.00 + 5.00)}{\pi(0.100)} = 32.0\ \mu\text{T, up the page}\;}\]</span> <span class="math display">\[\boxed{\;\frac{F}{L} = \frac{(4\pi\times10^{-7})(3.00)(5.00)}{2\pi(0.100)} = 3.00\times10^{-5}\ \text{N/m, pushing the wires apart}\;}\]</span></p>
+</div>
+<p>The two wires feel the same <span class="math inline">\(30\ \mu\)</span>N per meter, although one carries two-thirds more current than the other. With parallel currents the fields at the midpoint would oppose, giving <span class="math inline">\(8.0\ \mu\)</span>T, and the wires would attract.</p>
+</section>
 <hr />
 <h2 id="ampères-law">28.6 — Ampère’s Law</h2>
-<h3 id="the-magnetic-analog-of-gausss-law">The Magnetic Analog of Gauss’s Law</h3>
-<p>In Chapter 23, Gauss’s Law provided a powerful shortcut for calculating <span class="math inline">\(\vec{E}\)</span> when symmetry cooperated. The magnetic analog is <strong>Ampère’s Law</strong>:</p>
-<p><span class="math display">\[\boxed{\oint\vec{B}\cdot d\vec{\ell} = \mu_0 I_\text{enc}}\]</span></p>
-<p>The line integral of <span class="math inline">\(\vec{B}\)</span> around any closed <strong>Amperian loop</strong> equals <span class="math inline">\(\mu_0\)</span> times the net current threading the loop. Like Gauss’s Law, always <em>true</em> but only <em>useful</em> when symmetry makes <span class="math inline">\(|\vec{B}|\)</span> constant on the path.</p>
+<h3 id="the-shortcut-from-chapter-31">The Shortcut, from Chapter 31</h3>
+<p>Chapter 31 stated law (4), the Ampère–Maxwell law:</p>
+<p><span class="math display">\[\oint\vec B\cdot d\vec\ell = \mu_0 I_\text{enc} + \mu_0\varepsilon_0\frac{d\Phi_E}{dt}\]</span></p>
+<p>For <strong>steady</strong> currents nothing is changing, so the second term is zero and what remains is <strong>Ampère’s law</strong>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\oint\vec B\cdot d\vec\ell = \mu_0 I_\text{enc}\;}\]</span></p>
+</div>
+<p>The circulation of <span class="math inline">\(\vec B\)</span> around any closed loop equals <span class="math inline">\(\mu_0\)</span> times the current through the loop. It plays the part Gauss’s law played for <span class="math inline">\(\vec E\)</span> in Chapter 23: always true, and <strong>useful</strong> only when symmetry makes <span class="math inline">\(B\)</span> constant along a loop we can draw.</p>
+<div class="connection">
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>Gauss’s Law (Ch 23)</th>
-<th>Ampère’s Law (Ch 28)</th>
+<th></th>
+<th>Gauss’s law (Ch 23)</th>
+<th>Ampère’s law (this chapter)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Integral type</td>
-<td>Surface (<span class="math inline">\(\oint\vec{E}\cdot d\vec{A}\)</span>)</td>
-<td>Line (<span class="math inline">\(\oint\vec{B}\cdot d\vec{\ell}\)</span>)</td>
+<td>Measures</td>
+<td>flux out of a closed <strong>surface</strong></td>
+<td>circulation around a closed <strong>loop</strong></td>
 </tr>
 <tr class="even">
-<td>Encloses</td>
-<td>Charge <span class="math inline">\(Q_\text{enc}\)</span></td>
-<td>Current <span class="math inline">\(I_\text{enc}\)</span></td>
+<td>Counts</td>
+<td>charge enclosed, <span class="math inline">\(Q_\text{enc}\)</span></td>
+<td>current through, <span class="math inline">\(I_\text{enc}\)</span></td>
 </tr>
 <tr class="odd">
 <td>Constant</td>
-<td><span class="math inline">\(\varepsilon_0\)</span> (permittivity)</td>
-<td><span class="math inline">\(\mu_0\)</span> (permeability)</td>
+<td><span class="math inline">\(1/\varepsilon_0\)</span></td>
+<td><span class="math inline">\(\mu_0\)</span></td>
 </tr>
 <tr class="even">
 <td>Useful when</td>
-<td>Symmetry <span class="math inline">\(\rightarrow\)</span> <span class="math inline">\(E\)</span> constant on surface</td>
-<td>Symmetry <span class="math inline">\(\rightarrow\)</span> <span class="math inline">\(B\)</span> constant on path</td>
+<td><span class="math inline">\(E\)</span> is constant over the surface</td>
+<td><span class="math inline">\(B\)</span> is constant along the loop</td>
 </tr>
 </tbody>
 </table>
-<h3 id="the-infinite-wire-revisited">The Infinite Wire (Revisited)</h3>
-<p>A circular Amperian loop of radius <span class="math inline">\(r\)</span> centered on the wire. By symmetry, <span class="math inline">\(\vec{B}\)</span> is tangent and constant: <span class="math inline">\(B(2\pi r) = \mu_0 I\)</span>, giving <span class="math inline">\(B = \mu_0 I/(2\pi r)\)</span>. Confirms Biot-Savart in one line — the elegance of Ampère’s Law is that symmetry does the heavy lifting.</p>
+</div>
+<p><strong>The long wire again.</strong> Take a circle of radius <span class="math inline">\(r\)</span> around the wire. By symmetry <span class="math inline">\(\vec B\)</span> runs along the circle with the same size everywhere on it, so the circulation is <span class="math inline">\(B(2\pi r)\)</span>, and <span class="math inline">\(B(2\pi r) = \mu_0 I\)</span> gives <span class="math inline">\(B = \mu_0 I/2\pi r\)</span> in one line, the same as the Biot–Savart integral of §28.5.</p>
 <h3 id="the-solenoid">The Solenoid</h3>
-<p>A <strong>solenoid</strong> is a tightly wound coil, long compared to its diameter, producing a nearly uniform interior field and negligible exterior field. Choose a rectangular Amperian loop: one side of length <span class="math inline">\(L\)</span> inside (parallel to axis), one outside (<span class="math inline">\(B \approx 0\)</span>), two perpendicular sides (<span class="math inline">\(\vec{B}\perp d\vec{\ell}\)</span>). Only the inside side contributes:</p>
-<p><span class="math display">\[BL = \mu_0(nL)I \qquad \Longrightarrow \qquad \boxed{B = \mu_0 nI} \qquad \text{(inside an ideal solenoid)}\]</span></p>
-<p>where <span class="math inline">\(n = N/L_\text{total}\)</span> is the number of turns per unit length.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_7_solenoid.png" alt="Figure 28.7: Cross-section of a solenoid showing interior field (uniform, parallel to axis), exterior field (\approx 0), and the rectangular Amperian loop" loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 28.7: Cross-section of a solenoid showing interior field (uniform, parallel to axis), exterior field (\approx 0), and the rectangular Amperian loop</figcaption></figure>
-<p>The field depends only on <span class="math inline">\(n\)</span> and <span class="math inline">\(I\)</span> — not on position, radius, or length. The solenoid is the magnetic analog of the parallel-plate capacitor:</p>
+<p>A <strong>solenoid</strong> is a long, tightly wound coil, with <span class="math inline">\(n\)</span> turns per unit length. Inside, the fields of all the turns add along the axis; outside, the contributions from the near and far sides of each turn nearly cancel, and for a long solenoid the outside field is close to zero.</p>
+<p><strong>Step 1 — choose the loop.</strong> A rectangle with one side of length <span class="math inline">\(\ell\)</span> inside, parallel to the axis, and one side outside (Figure 28.12).</p>
+<p><strong>Step 2 — the circulation.</strong> Inside, <span class="math inline">\(\vec B\)</span> runs along the side: <span class="math inline">\(B\ell\)</span>. Outside, <span class="math inline">\(B \approx 0\)</span>. On the two short sides, <span class="math inline">\(\vec B\)</span> inside is perpendicular to the path, and outside it is zero: nothing.</p>
+<p><span class="math display">\[\oint\vec B\cdot d\vec\ell = B\ell\]</span></p>
+<p><strong>Step 3 — the current through the loop.</strong> <span class="math inline">\(n\ell\)</span> turns pass through it, each carrying <span class="math inline">\(I\)</span>: <span class="math inline">\(I_\text{enc} = n\ell I\)</span>.</p>
+<p><strong>Step 4 — Ampère’s law.</strong> <span class="math inline">\(B\ell = \mu_0 n\ell I\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B = \mu_0 nI \qquad \text{(inside a long solenoid)}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_12_solenoid.png" alt="Figure 28.12: A solenoid cut along its axis. Dots are turns carrying current out of the page and crosses are turns carrying it into the page. Inside, the field is uniform and runs along the axis; outside it is nearly zero. The dashed rectangle is the Ampère loop, with one side of length \ell inside." loading="lazy" style="max-width:min(5.4in,100%)" /><figcaption>Figure 28.12: A solenoid cut along its axis. Dots are turns carrying current out of the page and crosses are turns carrying it into the page. Inside, the field is uniform and runs along the axis; outside it is nearly zero. The dashed rectangle is the Ampère loop, with one side of length <span class="math inline">\(\ell\)</span> inside.</figcaption></figure>
+<p>The inside field does not depend on where you are inside, on the radius, or on the solenoid’s length; only on how tightly it is wound and the current. <strong>The solenoid is the magnetic parallel-plate capacitor.</strong></p>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 50%" />
@@ -488,72 +713,78 @@
 </colgroup>
 <thead>
 <tr class="header">
-<th>Parallel-Plate Capacitor (Ch 25)</th>
-<th>Ideal Solenoid (Ch 28)</th>
+<th>Parallel-plate capacitor (Ch 25)</th>
+<th>Long solenoid</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Uniform <span class="math inline">\(E = \sigma/\varepsilon_0\)</span> inside</td>
-<td>Uniform <span class="math inline">\(B = \mu_0 nI\)</span> inside</td>
+<td>uniform <span class="math inline">\(E = \sigma/\varepsilon_0\)</span> between the plates</td>
+<td>uniform <span class="math inline">\(B = \mu_0 nI\)</span> inside</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(E = 0\)</span> outside</td>
-<td><span class="math inline">\(B = 0\)</span> outside</td>
+<td><span class="math inline">\(E \approx 0\)</span> outside</td>
+<td><span class="math inline">\(B \approx 0\)</span> outside</td>
 </tr>
 <tr class="odd">
-<td>Energy density <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td>Energy density <span class="math inline">\(u_B = B^2/(2\mu_0)\)</span></td>
+<td>energy density <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span></td>
+<td>energy density <span class="math inline">\(u_B = B^2/2\mu_0\)</span> (Ch 29)</td>
 </tr>
 </tbody>
 </table>
-<p>A <strong>toroid</strong> (solenoid bent into a doughnut) has <span class="math inline">\(B = \mu_0 NI/(2\pi r)\)</span> inside — varying with <span class="math inline">\(r\)</span>, stronger near the inner wall — and <span class="math inline">\(B = 0\)</span> outside.</p>
-<p><em>*Personal note: The formula <span class="math inline">\(B = \mu_0 nI\)</span> is the design equation for every MRI machine, particle accelerator, and electromagnetic relay. Need more field? Add more turns per meter or increase the current.</em></p>
+</div>
+<section id="example-the-field-inside-a-solenoid" class="example">
+<h3>Example: The Field Inside a Solenoid</h3>
+<p>A solenoid has <span class="math inline">\(n\)</span> turns per meter and carries current <span class="math inline">\(I\)</span>. Find the field inside for <span class="math inline">\(n = 1500\)</span> turns/m and <span class="math inline">\(I = 4.00\)</span> A.</p>
+<p><em>Why it matters:</em> the winding and the current are what an engineer chooses; the uniform field inside is what the device is for. This is the design equation for MRI magnets, relays and the electromagnets in a door lock.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(B = \mu_0 nI\)</span>.</p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;B = (4\pi\times10^{-7})(1500)(4.00) = 7.54\times10^{-3}\ \text{T} = 7.54\ \text{mT}\;}\]</span></p>
+</div>
+<p>About 150 times Earth’s field, from a few amperes. An MRI magnet reaches <span class="math inline">\(1.5\)</span> T with superconducting wire, which carries hundreds of amperes with no resistance.</p>
+</section>
 <hr />
 <h2 id="magnetic-flux-and-gausss-law-for-magnetism">28.7 — Magnetic Flux and Gauss’s Law for Magnetism</h2>
 <h3 id="magnetic-flux">Magnetic Flux</h3>
-<p>By analogy with electric flux (Ch 23), we define <strong>magnetic flux</strong>:</p>
-<p><span class="math display">\[\boxed{\Phi_B = \int\vec{B}\cdot d\vec{A}} \qquad \text{For uniform } B: \quad \Phi_B = BA\cos\theta\]</span></p>
-<p>The SI unit is the <strong>weber</strong> (Wb): <span class="math inline">\(1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2\)</span>.</p>
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Electric Flux (Ch 23)</th>
-<th>Magnetic Flux (Ch 28)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(\Phi_E = \int\vec{E}\cdot d\vec{A}\)</span></td>
-<td><span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A}\)</span></td>
-</tr>
-<tr class="even">
-<td>Through closed surface: <span class="math inline">\(Q_\text{enc}/\varepsilon_0\)</span> (can be <span class="math inline">\(\neq 0\)</span>)</td>
-<td>Through closed surface: always <span class="math inline">\(= 0\)</span></td>
-</tr>
-</tbody>
-</table>
+<p>Chapter 31 defined the magnetic flux the same way Chapter 23 defined the electric flux. For a uniform field through a flat area <span class="math inline">\(A\)</span> whose normal makes angle <span class="math inline">\(\theta\)</span> with <span class="math inline">\(\vec B\)</span>,</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = \int\vec B\cdot d\vec A = BA\cos\theta \quad\text{(uniform } \vec B\text{)}, \qquad 1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2\;}\]</span></p>
+</div>
+<p>For a coil of <span class="math inline">\(N\)</span> turns, the same flux passes through each turn, and the total <span class="math inline">\(N\Phi_B\)</span> is called the <strong>flux linkage</strong>. Flux counts only the area where the field actually is.</p>
+<section id="example-flux-through-a-solenoid-and-through-a-coil-halfway-in" class="example">
+<h3>Example: Flux Through a Solenoid, and Through a Coil Halfway In</h3>
+<p><strong>(a)</strong> The solenoid of §28.6 (<span class="math inline">\(B = 7.54\)</span> mT) has radius <span class="math inline">\(R = 2.50\)</span> cm and length <span class="math inline">\(0.400\)</span> m. Find the flux through one turn and the flux linkage of the whole solenoid. <strong>(b)</strong> A square loop of side <span class="math inline">\(\ell\)</span> is pushed into a region of uniform field <span class="math inline">\(B\)</span>, perpendicular to the loop, so that a length <span class="math inline">\(x\)</span> of it is inside (Figure 28.13). Find the flux through it for <span class="math inline">\(\ell = 20.0\)</span> cm, <span class="math inline">\(B = 0.300\)</span> T and <span class="math inline">\(x = 5.00\)</span> cm.</p>
+<p><em>Why it matters:</em> the field and the geometry are known; the flux is the single number that Chapter 29’s law watches. When it changes, a current appears.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_13_partial_flux.png" alt="Figure 28.13: A square loop of side \ell partway into a region of uniform field into the page. Only the shaded part, of width x, is in the field, so the flux is B\ell x." loading="lazy" style="max-width:min(4.6in,100%)" /><figcaption>Figure 28.13: A square loop of side <span class="math inline">\(\ell\)</span> partway into a region of uniform field into the page. Only the shaded part, of width <span class="math inline">\(x\)</span>, is in the field, so the flux is <span class="math inline">\(B\ell x\)</span>.</figcaption></figure>
+<p><strong>Step 1 — symbols.</strong> For the solenoid, the field fills the cross-section <span class="math inline">\(\pi R^2\)</span> and there are <span class="math inline">\(N = n\ell_s\)</span> turns. For the loop, only the area <span class="math inline">\(\ell x\)</span> is in the field:</p>
+<p><span class="math display">\[\Phi_\text{turn} = B\pi R^2, \qquad N\Phi = n\ell_s\,B\pi R^2; \qquad \Phi_\text{loop} = B\ell x\]</span></p>
+<p><strong>Step 2 — numbers.</strong> <span class="math inline">\(N = (1500)(0.400) = 600\)</span> turns:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_\text{turn} = (7.54\times10^{-3})\,\pi(0.0250)^2 = 14.8\ \mu\text{Wb}, \qquad N\Phi = (600)(14.8\ \mu\text{Wb}) = 8.88\ \text{mWb}\;}\]</span> <span class="math display">\[\boxed{\;\Phi_\text{loop} = (0.300)(0.200)(0.0500) = 3.00\times10^{-3}\ \text{Wb} = 3.00\ \text{mWb}\;}\]</span></p>
+</div>
+<p>The loop’s flux grows in proportion to how far it is in. If it moves at speed <span class="math inline">\(v\)</span>, <span class="math inline">\(x\)</span> grows by <span class="math inline">\(v\)</span> every second and the flux by <span class="math inline">\(B\ell v\)</span> every second; Chapter 29 is about what that rate does.</p>
+</section>
 <h3 id="gausss-law-for-magnetism">Gauss’s Law for Magnetism</h3>
-<p><span class="math display">\[\boxed{\oint\vec{B}\cdot d\vec{A} = 0}\]</span></p>
-<p>The net magnetic flux through any closed surface is always zero — every field line that enters must exit. This is <strong>Gauss’s Law for magnetism</strong>, one of Maxwell’s four equations. Cut a bar magnet in half <span class="math inline">\(\rightarrow\)</span> two complete magnets, each with N and S poles. You can never isolate a single pole. Field lines inside the magnet run from S to N, closing the loops that run N to S outside.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28_8_gauss_law_magnetism.png" alt="Figure 28.8: Bar magnet with closed field lines. A Gaussian surface enclosing one end shows equal entering and exiting flux — net flux = 0." loading="lazy" style="max-width:min(3.5in,100%)" /><figcaption>Figure 28.8: Bar magnet with closed field lines. A Gaussian surface enclosing one end shows equal entering and exiting flux — net flux = 0.</figcaption></figure>
-<p>This is the simplest of Maxwell’s four equations — and arguably the most profound. If a magnetic monopole were ever discovered, this equation would need a nonzero right-hand side, and Maxwell’s equations would become perfectly symmetric. The search continues.</p>
+<p>Every magnetic field line closes on itself. Wrap any closed surface around anything, and every line that enters must leave somewhere, so the net flux out is zero. This is Chapter 31’s law (2):</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\oint\vec B\cdot d\vec A = 0\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch28_figures/fig_28v2_14_bar_magnet.png" alt="Figure 28.14: The field of a bar magnet. Outside, the lines run from N to S; inside the magnet, they run from S back to N and close. A closed surface around one pole (dashed) has as much flux leaving as entering." loading="lazy" style="max-width:min(4.4in,100%)" /><figcaption>Figure 28.14: The field of a bar magnet. Outside, the lines run from N to S; inside the magnet, they run from S back to N and close. A closed surface around one pole (dashed) has as much flux leaving as entering.</figcaption></figure>
+<p>Its meaning is that <strong>there are no magnetic charges.</strong> Cut a bar magnet in half and you get two smaller magnets, each with a north and a south pole, never a lone pole. Compare Gauss’s law for <span class="math inline">\(\vec E\)</span> (Chapter 23), where the flux out of a closed surface counts the charge inside. If a single magnetic pole is ever found, law (2) will need a right-hand side; searches since the 1930s have not found one.</p>
 <hr />
 <h2 id="summary">28.8 — Summary</h2>
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
-<li><p>The <strong>magnetic field</strong> <span class="math inline">\(\vec{B}\)</span> exerts a force on moving charges but not on stationary ones. SI unit: tesla (T).</p></li>
-<li><p>The <strong>magnetic force</strong> <span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span> is always <span class="math inline">\(\perp\)</span> to <span class="math inline">\(\vec{v}\)</span> — it does no work, changing direction but never speed.</p></li>
-<li><p>A charge moving <span class="math inline">\(\perp\)</span> to <span class="math inline">\(\vec{B}\)</span> follows a <strong>circular orbit</strong> with <span class="math inline">\(r = mv/(|q|B)\)</span> and frequency <span class="math inline">\(f = |q|B/(2\pi m)\)</span>, independent of speed.</p></li>
-<li><p>The <strong>force on a wire</strong> is <span class="math inline">\(\vec{F} = I\vec{L}\times\vec{B}\)</span>, with magnitude <span class="math inline">\(F = BIL\sin\theta\)</span>.</p></li>
-<li><p>A current loop has <strong>magnetic dipole moment</strong> <span class="math inline">\(\vec{\mu} = NIA\hat{n}\)</span>. Torque: <span class="math inline">\(\vec{\tau} = \vec{\mu}\times\vec{B}\)</span>; energy: <span class="math inline">\(U = -\vec{\mu}\cdot\vec{B}\)</span> — structurally identical to the electric dipole (Ch 25).</p></li>
-<li><p>The <strong>Biot-Savart Law</strong> gives the field of a current element. Infinite wire: <span class="math inline">\(B = \mu_0 I/(2\pi r)\)</span>.</p></li>
-<li><p><strong>Ampère’s Law</strong>: <span class="math inline">\(\oint\vec{B}\cdot d\vec{\ell} = \mu_0 I_\text{enc}\)</span>. Inside an ideal solenoid: <span class="math inline">\(B = \mu_0 nI\)</span>.</p></li>
-<li><p><strong>Gauss’s Law for magnetism</strong>: <span class="math inline">\(\oint\vec{B}\cdot d\vec{A} = 0\)</span> — magnetic field lines always form closed loops.</p></li>
+<li><strong>The field.</strong> <span class="math inline">\(\vec B\)</span> pushes on moving charge only. Its direction is the line along which a moving charge feels no force; <span class="math inline">\(B = F_\text{max}/|q|v\)</span>, in teslas.</li>
+<li><strong>The force on a charge</strong> is <span class="math inline">\(\vec F = q\vec v\times\vec B\)</span>, perpendicular to the motion. It does no work. A charge moving across a uniform field circles with <span class="math inline">\(r = mv/|q|B\)</span> and a period <span class="math inline">\(2\pi m/|q|B\)</span> that does not depend on its speed. Negative charges circle the other way.</li>
+<li><strong>Crossed fields</strong> pass only <span class="math inline">\(v = E/B\)</span> (the velocity selector). After one, a field alone sorts ions by mass (the mass spectrometer).</li>
+<li><strong>The force on a wire</strong> is <span class="math inline">\(I\vec L\times\vec B\)</span>, the force on its carriers added up; <span class="math inline">\(N\)</span> turns side by side give <span class="math inline">\(NILB\)</span>.</li>
+<li><strong>A loop</strong> feels a torque <span class="math inline">\(\vec\tau = \vec\mu\times\vec B\)</span> with <span class="math inline">\(\vec\mu = NIA\hat n\)</span>, and has energy <span class="math inline">\(U = -\vec\mu\cdot\vec B\)</span>, the electric-dipole results of Chapter 25 with new letters.</li>
+<li><strong>Currents make the field.</strong> Biot–Savart gives <span class="math inline">\(\mu_0I/2\pi r\)</span> beside a long wire and <span class="math inline">\(\mu_0I/2R\)</span> at the center of a loop; fields add as vectors.</li>
+<li><strong>Two currents</strong> push on each other with <span class="math inline">\(F/L = \mu_0I_1I_2/2\pi d\)</span>: parallel attract, antiparallel repel, equal and opposite even when the currents differ. This force fixed <span class="math inline">\(\mu_0\)</span>.</li>
+<li><strong>Ampère’s law</strong>, the steady-current part of Chapter 31’s law (4), gives the wire in one line and <span class="math inline">\(B = \mu_0nI\)</span> inside a solenoid.</li>
+<li><strong>Flux and law (2).</strong> <span class="math inline">\(\Phi_B = BA\cos\theta\)</span>; through any closed surface the flux is zero, because there are no magnetic charges.</li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
@@ -569,135 +800,141 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td>Magnetic force (charge)</td>
-<td><span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span>; <span class="math inline">\(F = \lvert q\rvert vB\sin\theta\)</span></td>
+<td>Force on a moving charge</td>
+<td><span class="math inline">\(\vec F = q\vec v\times\vec B\)</span>; <span class="math inline">\(F = \lvert q\rvert vB\sin\theta\)</span></td>
 </tr>
 <tr class="even">
-<td>Cyclotron radius</td>
-<td><span class="math inline">\(r = mv/(\lvert q\rvert B)\)</span></td>
+<td>Circular orbit</td>
+<td><span class="math inline">\(r = mv/\lvert q\rvert B\)</span>; <span class="math inline">\(T = 2\pi m/\lvert q\rvert B\)</span></td>
 </tr>
 <tr class="odd">
-<td>Cyclotron frequency</td>
-<td><span class="math inline">\(f = \lvert q\rvert B/(2\pi m)\)</span></td>
+<td>Velocity selector</td>
+<td><span class="math inline">\(v = E/B\)</span></td>
 </tr>
 <tr class="even">
-<td>Force on wire</td>
-<td><span class="math inline">\(\vec{F} = I\vec{L}\times\vec{B}\)</span>; <span class="math inline">\(F = BIL\sin\theta\)</span></td>
+<td>Force on a wire</td>
+<td><span class="math inline">\(\vec F = I\vec L\times\vec B\)</span>; <span class="math inline">\(N\)</span> turns: <span class="math inline">\(F = NILB\)</span></td>
 </tr>
 <tr class="odd">
 <td>Magnetic dipole moment</td>
-<td><span class="math inline">\(\vec{\mu} = NIA\hat{n}\)</span></td>
+<td><span class="math inline">\(\vec\mu = NIA\,\hat n\)</span></td>
 </tr>
 <tr class="even">
-<td>Torque on dipole</td>
-<td><span class="math inline">\(\vec{\tau} = \vec{\mu}\times\vec{B}\)</span>; <span class="math inline">\(\tau = \mu B\sin\theta\)</span></td>
+<td>Torque and energy</td>
+<td><span class="math inline">\(\vec\tau = \vec\mu\times\vec B\)</span>; <span class="math inline">\(U = -\vec\mu\cdot\vec B\)</span></td>
 </tr>
 <tr class="odd">
-<td>Dipole potential energy</td>
-<td><span class="math inline">\(U = -\vec{\mu}\cdot\vec{B}\)</span></td>
+<td>Biot–Savart law</td>
+<td><span class="math inline">\(d\vec B = (\mu_0/4\pi)\,I\,d\vec\ell\times\hat r/r^2\)</span></td>
 </tr>
 <tr class="even">
-<td>Biot-Savart Law</td>
-<td><span class="math inline">\(d\vec{B} = (\mu_0/4\pi)(I\,d\vec{\ell}\times\hat{r})/r^2\)</span></td>
+<td>Long straight wire</td>
+<td><span class="math inline">\(B = \mu_0I/2\pi r\)</span></td>
 </tr>
 <tr class="odd">
-<td>Infinite straight wire</td>
-<td><span class="math inline">\(B = \mu_0 I/(2\pi r)\)</span></td>
+<td>Center of a loop</td>
+<td><span class="math inline">\(B = N\mu_0I/2R\)</span></td>
 </tr>
 <tr class="even">
-<td>Center of circular loop</td>
-<td><span class="math inline">\(B = \mu_0 I/(2R)\)</span></td>
+<td>Force between parallel wires</td>
+<td><span class="math inline">\(F/L = \mu_0I_1I_2/2\pi d\)</span></td>
 </tr>
 <tr class="odd">
-<td>Axis of circular loop</td>
-<td><span class="math inline">\(B = \mu_0 IR^2/[2(R^2+x^2)^{3/2}]\)</span></td>
+<td>Ampère’s law</td>
+<td><span class="math inline">\(\oint\vec B\cdot d\vec\ell = \mu_0I_\text{enc}\)</span></td>
 </tr>
 <tr class="even">
-<td>Ampère’s Law</td>
-<td><span class="math inline">\(\oint\vec{B}\cdot d\vec{\ell} = \mu_0 I_\text{enc}\)</span></td>
+<td>Long solenoid</td>
+<td><span class="math inline">\(B = \mu_0nI\)</span></td>
 </tr>
 <tr class="odd">
-<td>Solenoid field</td>
-<td><span class="math inline">\(B = \mu_0 nI\)</span></td>
-</tr>
-<tr class="even">
 <td>Magnetic flux</td>
-<td><span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A}\)</span></td>
-</tr>
-<tr class="odd">
-<td>Gauss’s Law (magnetism)</td>
-<td><span class="math inline">\(\oint\vec{B}\cdot d\vec{A} = 0\)</span></td>
+<td><span class="math inline">\(\Phi_B = \int\vec B\cdot d\vec A\)</span>; uniform: <span class="math inline">\(BA\cos\theta\)</span></td>
 </tr>
 <tr class="even">
+<td>Gauss’s law for magnetism</td>
+<td><span class="math inline">\(\oint\vec B\cdot d\vec A = 0\)</span></td>
+</tr>
+<tr class="odd">
 <td>Permeability of free space</td>
-<td><span class="math inline">\(\mu_0 = 4\pi\times10^{-7}\ \text{T}\cdot\text{m/A}\)</span></td>
+<td><span class="math inline">\(\mu_0 = 4\pi\times10^{-7}\)</span> T·m/A</td>
 </tr>
 </tbody>
 </table>
-<h3 id="connections-electrostatics-ch-2225-leftrightarrow-magnetic-fields-ch-28">Connections: Electrostatics (Ch 22–25) <span class="math inline">\(\leftrightarrow\)</span> Magnetic Fields (Ch 28)</h3>
+<section id="connections-to-earlier-chapters" class="connection">
+<h3>Connections to Earlier Chapters</h3>
 <table>
 <colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
+<col style="width: 69%" />
+<col style="width: 30%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th>Electrostatics (Ch 22–25)</th>
-<th>Magnetic Fields (Ch 28)</th>
+<th>Earlier result</th>
+<th>Ch 28</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Source: charge <span class="math inline">\(q\)</span></td>
-<td>Source: moving charge / current <span class="math inline">\(I\)</span></td>
+<td><span class="math inline">\(\vec E = \vec F/q\)</span> with a charge at rest (Ch 22)</td>
+<td><span class="math inline">\(B = F_\text{max}/\lvert q\rvert v\)</span>, with a moving charge</td>
 </tr>
 <tr class="even">
-<td>Field: <span class="math inline">\(\vec{E} = k_e q\hat{r}/r^2\)</span></td>
-<td>Field: <span class="math inline">\(d\vec{B} = (\mu_0/4\pi)I\,d\vec{\ell}\times\hat{r}/r^2\)</span></td>
+<td><span class="math inline">\(\lvert q\rvert\Delta V = \tfrac12mv^2\)</span> (Ch 24)</td>
+<td>the speed that sets the orbit’s radius</td>
 </tr>
 <tr class="odd">
-<td>Force: <span class="math inline">\(\vec{F} = q\vec{E}\)</span> (along <span class="math inline">\(\vec{E}\)</span>)</td>
-<td>Force: <span class="math inline">\(\vec{F} = q\vec{v}\times\vec{B}\)</span> (perpendicular)</td>
+<td><span class="math inline">\(\vec\tau = \vec p\times\vec E\)</span>, <span class="math inline">\(U = -\vec p\cdot\vec E\)</span> (Ch 25)</td>
+<td><span class="math inline">\(\vec\tau = \vec\mu\times\vec B\)</span>, <span class="math inline">\(U = -\vec\mu\cdot\vec B\)</span></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(\vec{E}\)</span> does work on charges</td>
-<td><span class="math inline">\(\vec{B}\)</span> does NO work on charges</td>
+<td><span class="math inline">\(I = nqv_dA\)</span> (Ch 26)</td>
+<td><span class="math inline">\(q\vec v_d\times\vec B\)</span> summed: <span class="math inline">\(\vec F = I\vec L\times\vec B\)</span></td>
 </tr>
 <tr class="odd">
-<td>Gauss: <span class="math inline">\(\oint\vec{E}\cdot d\vec{A} = Q/\varepsilon_0\)</span></td>
-<td>Ampère: <span class="math inline">\(\oint\vec{B}\cdot d\vec{\ell} = \mu_0 I_\text{enc}\)</span></td>
+<td>Analog ammeters and voltmeters (Ch 27)</td>
+<td>the galvanometer movement inside them</td>
 </tr>
 <tr class="even">
-<td>Capacitor: <span class="math inline">\(E = \sigma/\varepsilon_0\)</span> (uniform)</td>
-<td>Solenoid: <span class="math inline">\(B = \mu_0 nI\)</span> (uniform)</td>
+<td>Coulomb’s law; the charged rod (Ch 22)</td>
+<td>Biot–Savart; the long wire</td>
 </tr>
 <tr class="odd">
-<td>Energy density: <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td>Energy density: <span class="math inline">\(u_B = B^2/(2\mu_0)\)</span></td>
+<td>Line charge <span class="math inline">\(E = \lambda/2\pi\varepsilon_0r\)</span> (Ch 23)</td>
+<td>long wire <span class="math inline">\(B = \mu_0I/2\pi r\)</span></td>
 </tr>
 <tr class="even">
-<td>Electric dipole: <span class="math inline">\(\vec{p} = q\vec{d}\)</span></td>
-<td>Magnetic dipole: <span class="math inline">\(\vec{\mu} = NIA\hat{n}\)</span></td>
+<td>Gauss’s law (Ch 23)</td>
+<td>Ampère’s law, with symmetry</td>
 </tr>
 <tr class="odd">
-<td>Dipole torque: <span class="math inline">\(\vec{\tau} = \vec{p}\times\vec{E}\)</span></td>
-<td>Dipole torque: <span class="math inline">\(\vec{\tau} = \vec{\mu}\times\vec{B}\)</span></td>
-</tr>
-<tr class="even">
-<td>Dipole energy: <span class="math inline">\(U = -\vec{p}\cdot\vec{E}\)</span></td>
-<td>Dipole energy: <span class="math inline">\(U = -\vec{\mu}\cdot\vec{B}\)</span></td>
-</tr>
-<tr class="odd">
-<td>Monopoles exist (<span class="math inline">\(\pm q\)</span>)</td>
-<td>No monopoles: <span class="math inline">\(\oint\vec{B}\cdot d\vec{A} = 0\)</span></td>
+<td>Laws (2) and (4) stated; <span class="math inline">\(\mu_0\)</span> from the force between currents (Ch 31)</td>
+<td>both earned here; the force between wires</td>
 </tr>
 </tbody>
 </table>
-<hr />
+</section>
+<h3 id="used-here-developed-later">Used Here, Developed Later</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Result</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><span class="math inline">\(u_B = B^2/2\mu_0\)</span></td>
+<td>Ch 29</td>
+</tr>
+<tr class="even">
+<td>The <span class="math inline">\(1/x^3\)</span> field far along a loop’s axis</td>
+<td>stated only</td>
+</tr>
+</tbody>
+</table>
 <h2 id="looking-ahead">Looking Ahead</h2>
-<p>In Chapter 29, we discover what happens when magnetic fields <em>change with time</em>. <strong>Faraday’s Law</strong> tells us that a changing magnetic flux through a loop induces an EMF — voltage appears without any battery. This is the principle behind every generator, transformer, and wireless charging pad. Combined with Ampère’s Law and Maxwell’s displacement current (which you encountered in Chapter 31), Faraday’s Law closes the circle: changing <span class="math inline">\(\vec{B}\)</span> creates <span class="math inline">\(\vec{E}\)</span>, and changing <span class="math inline">\(\vec{E}\)</span> creates <span class="math inline">\(\vec{B}\)</span>. That mutual creation is the mechanism of electromagnetic waves — and the reason light exists.</p>
-<p>Chapter 29 also introduces <strong>inductors</strong>, <strong>RL circuits</strong>, and <strong>LC oscillations</strong> — circuits that oscillate at <span class="math inline">\(\omega = 1/\sqrt{LC}\)</span>, converting energy between electric and magnetic fields in the same way EM waves convert energy between <span class="math inline">\(\vec{E}\)</span> and <span class="math inline">\(\vec{B}\)</span> in free space.</p>
-<p><em>*In this chapter, we treated magnetic fields as static — created by steady currents and acting on moving charges. But the deepest physics lives in the dynamics: fields that change, propagate, and carry energy across empty space at the speed of light. Faraday’s Law is the door to that world.</em></p>
+<p>Every field in this chapter was steady: steady currents, fixed magnets, flux that never changed. Chapter 29 lets the flux change. Faraday found in 1831 that a changing magnetic flux through a loop drives a current around it with no battery anywhere: Chapter 31’s law (3), now from the experiment. A rod sliding across a field, a magnet pushed into a coil and the coil of §28.7 sliding into its field region all do it, and Lenz’s law fixes the direction of the current. Chapter 29 is the last chapter of the course. It also turns Faraday’s law on a coil’s own current to find the energy stored in a magnetic field, and it closes by setting all four field laws side by side, each now resting on a chapter of its own.</p>
 
         </div>
       </div>
