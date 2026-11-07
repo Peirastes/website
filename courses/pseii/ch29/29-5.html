@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 29 sections"><h4><a href="index.html">Ch 29 &middot; Electromagnetic Induction</a></h4><ol><li class=""><a href="29-0.html"><b>29.0</b><span>The Discovery That Changed Everything</span></a></li><li class=""><a href="29-1.html"><b>29.1</b><span>Magnetic Flux</span></a></li><li class=""><a href="29-2.html"><b>29.2</b><span>Faraday’s Law of Induction</span></a></li><li class=""><a href="29-3.html"><b>29.3</b><span>Lenz’s Law</span></a></li><li class=""><a href="29-4.html"><b>29.4</b><span>Motional EMF</span></a></li><li class="here"><a href="29-5.html"><b>29.5</b><span>Inductance</span></a><ul><li><a href="#self-inductance">Self-Inductance</a></li><li><a href="#inductance-of-a-solenoid">Inductance of a Solenoid</a></li><li><a href="#the-grand-analogy-inductor-vs.-capacitor">The Grand Analogy — Inductor vs. Capacitor</a></li><li><a href="#example-inductance-of-a-solenoid">Example: Inductance of a Solenoid</a></li><li><a href="#example-self-induced-emf">Example: Self-Induced EMF</a></li><li><a href="#mutual-inductance">Mutual Inductance</a></li></ul></li><li class=""><a href="29-6.html"><b>29.6</b><span>RL Circuits</span></a></li><li class=""><a href="29-7.html"><b>29.7</b><span>Summary</span></a></li><li class=""><a href="29-8.html"><b>29.8</b><span>Looking Back: Maxwell’s Equations Assembled</span></a></li></ol><div class="foot"><a href="index.html">Chapter 29 overview</a><a href="/courses/pseii/ch29.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 29 sections"><h4><a href="index.html">Ch 29 &middot; Electromagnetic Induction</a></h4><ol><li class=""><a href="29-0.html"><b>29.0</b><span>Only Change Matters</span></a></li><li class=""><a href="29-1.html"><b>29.1</b><span>Magnetic Flux</span></a></li><li class=""><a href="29-2.html"><b>29.2</b><span>Faraday’s Law</span></a></li><li class=""><a href="29-3.html"><b>29.3</b><span>Lenz’s Law</span></a></li><li class=""><a href="29-4.html"><b>29.4</b><span>Motional EMF</span></a></li><li class="here"><a href="29-5.html"><b>29.5</b><span>Inductance</span></a><ul><li><a href="#faradays-law-applied-to-a-coils-own-flux">Faraday’s Law Applied to a Coil’s Own Flux</a></li><li><a href="#the-inductance-of-a-solenoid">The Inductance of a Solenoid</a></li><li><a href="#mutual-inductance-and-the-transformer">Mutual Inductance and the Transformer</a></li></ul></li><li class=""><a href="29-6.html"><b>29.6</b><span>RL Circuits</span></a></li><li class=""><a href="29-7.html"><b>29.7</b><span>The Speed of Light from Laws (3) and (4)</span></a></li><li class=""><a href="29-8.html"><b>29.8</b><span>Maxwell’s Four Laws, Assembled</span></a></li><li class=""><a href="29-9.html"><b>29.9</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 29 overview</a><a href="/courses/pseii/ch29.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -305,104 +316,129 @@
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 29</a><span class="sep">/</span><span>Section 29.5</span></div><div class="strip" aria-label="Sections"><a class="done" href="29-0.html" title="29.0 The Discovery That Changed Everything"><i></i>29.0</a><a class="done" href="29-1.html" title="29.1 Magnetic Flux"><i></i>29.1</a><a class="done" href="29-2.html" title="29.2 Faraday’s Law of Induction"><i></i>29.2</a><a class="done" href="29-3.html" title="29.3 Lenz’s Law"><i></i>29.3</a><a class="done" href="29-4.html" title="29.4 Motional EMF"><i></i>29.4</a><a class="here" href="29-5.html" title="29.5 Inductance"><i></i>29.5</a><a class="" href="29-6.html" title="29.6 RL Circuits"><i></i>29.6</a><a class="" href="29-7.html" title="29.7 Summary"><i></i>29.7</a><a class="" href="29-8.html" title="29.8 Looking Back: Maxwell’s Equations Assembled"><i></i>29.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 29.5 &middot; 6 of 9</summary><ol><li class=""><a href="29-0.html">29.0 &nbsp;The Discovery That Changed Everything</a></li><li class=""><a href="29-1.html">29.1 &nbsp;Magnetic Flux</a></li><li class=""><a href="29-2.html">29.2 &nbsp;Faraday’s Law of Induction</a></li><li class=""><a href="29-3.html">29.3 &nbsp;Lenz’s Law</a></li><li class=""><a href="29-4.html">29.4 &nbsp;Motional EMF</a></li><li class="here"><a href="29-5.html">29.5 &nbsp;Inductance</a></li><li class=""><a href="29-6.html">29.6 &nbsp;RL Circuits</a></li><li class=""><a href="29-7.html">29.7 &nbsp;Summary</a></li><li class=""><a href="29-8.html">29.8 &nbsp;Looking Back: Maxwell’s Equations Assembled</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 29</a><span class="sep">/</span><span>Section 29.5</span></div><div class="strip" aria-label="Sections"><a class="done" href="29-0.html" title="29.0 Only Change Matters"><i></i>29.0</a><a class="done" href="29-1.html" title="29.1 Magnetic Flux"><i></i>29.1</a><a class="done" href="29-2.html" title="29.2 Faraday’s Law"><i></i>29.2</a><a class="done" href="29-3.html" title="29.3 Lenz’s Law"><i></i>29.3</a><a class="done" href="29-4.html" title="29.4 Motional EMF"><i></i>29.4</a><a class="here" href="29-5.html" title="29.5 Inductance"><i></i>29.5</a><a class="" href="29-6.html" title="29.6 RL Circuits"><i></i>29.6</a><a class="" href="29-7.html" title="29.7 The Speed of Light from Laws (3) and (4)"><i></i>29.7</a><a class="" href="29-8.html" title="29.8 Maxwell’s Four Laws, Assembled"><i></i>29.8</a><a class="" href="29-9.html" title="29.9 Summary"><i></i>29.9</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 29.5 &middot; 6 of 10</summary><ol><li class=""><a href="29-0.html">29.0 &nbsp;Only Change Matters</a></li><li class=""><a href="29-1.html">29.1 &nbsp;Magnetic Flux</a></li><li class=""><a href="29-2.html">29.2 &nbsp;Faraday’s Law</a></li><li class=""><a href="29-3.html">29.3 &nbsp;Lenz’s Law</a></li><li class=""><a href="29-4.html">29.4 &nbsp;Motional EMF</a></li><li class="here"><a href="29-5.html">29.5 &nbsp;Inductance</a></li><li class=""><a href="29-6.html">29.6 &nbsp;RL Circuits</a></li><li class=""><a href="29-7.html">29.7 &nbsp;The Speed of Light from Laws (3) and (4)</a></li><li class=""><a href="29-8.html">29.8 &nbsp;Maxwell’s Four Laws, Assembled</a></li><li class=""><a href="29-9.html">29.9 &nbsp;Summary</a></li></ol></details>
 
-<h3 id="self-inductance">Self-Inductance</h3>
-<p>Any current-carrying loop creates a magnetic field, and that field produces a flux through the loop itself. If the current changes, the self-flux changes, and by Faraday’s Law, an EMF is induced in the loop. This phenomenon is called <strong>self-induction</strong>, and the proportionality constant between flux linkage and current is the <strong>self-inductance</strong> (or simply <strong>inductance</strong>) <span class="math inline">\(L\)</span>:</p>
-<p><span class="math display">\[\boxed{L = \frac{N\Phi_B}{I}}\]</span></p>
-<p>The SI unit is the <strong>henry</strong> (H), named after Joseph Henry:</p>
-<p><span class="math display">\[1\ \text{H} = 1\ \frac{\text{Wb}}{\text{A}} = 1\ \frac{\text{V}\cdot\text{s}}{\text{A}}\]</span></p>
-<p>The self-induced EMF is:</p>
-<p><span class="math display">\[\boxed{\mathcal{E}_L = -L\frac{dI}{dt}}\]</span></p>
-<p>The negative sign (Lenz’s Law again) means the induced EMF opposes the change in current. When current is increasing (<span class="math inline">\(dI/dt &gt; 0\)</span>), the inductor opposes the increase. When current is decreasing (<span class="math inline">\(dI/dt &lt; 0\)</span>), the inductor opposes the decrease. An inductor resists <em>any change</em> in current — it has electromagnetic inertia.</p>
-<h3 id="inductance-of-a-solenoid">Inductance of a Solenoid</h3>
-<p>The solenoid is the archetype inductor, just as the parallel-plate capacitor is the archetype capacitor. For a solenoid with <span class="math inline">\(N\)</span> turns, length <span class="math inline">\(\ell\)</span>, cross-sectional area <span class="math inline">\(A\)</span>, and turns per unit length <span class="math inline">\(n = N/\ell\)</span>:</p>
-<p>The field inside is <span class="math inline">\(B = \mu_0 nI\)</span> (from Chapter 28). The flux through each turn is <span class="math inline">\(\Phi_B = BA = \mu_0 nIA\)</span>. The total flux linkage is <span class="math inline">\(N\Phi_B = (n\ell)(\mu_0 nIA) = \mu_0 n^2\ell A I\)</span>. Therefore:</p>
-<p><span class="math display">\[\boxed{L = \mu_0 n^2 \ell A = \mu_0 n^2 V}\]</span></p>
-<p>where <span class="math inline">\(V = \ell A\)</span> is the volume of the solenoid. This can also be written as:</p>
-<p><span class="math display">\[L = \frac{\mu_0 N^2 A}{\ell}\]</span></p>
-<h3 id="the-grand-analogy-inductor-vs.-capacitor">The Grand Analogy — Inductor vs. Capacitor</h3>
-<p>This parallel is remarkable and worth studying carefully:</p>
+<h3 id="faradays-law-applied-to-a-coils-own-flux">Faraday’s Law Applied to a Coil’s Own Flux</h3>
+<p>A coil carrying current makes a field, and that field passes through the coil’s own turns. Change the current and the coil’s own flux changes, so Faraday’s law induces an EMF in the coil itself.</p>
+<p><strong>Step 1 — the flux linkage is proportional to the current.</strong> Every field a current makes is proportional to it (Chapter 28; for a solenoid, <span class="math inline">\(B = \mu_0 nI\)</span>), so <span class="math inline">\(N\Phi_B \propto I\)</span>. The constant of proportionality depends only on the coil’s shape. Call it the <strong>inductance</strong>:</p>
+<p><span class="math display">\[L = \frac{N\Phi_B}{I} \qquad (1\ \text{henry} = 1\ \text{H} = 1\ \text{Wb/A} = 1\ \text{V}\cdot\text{s/A})\]</span></p>
+<p><strong>Step 2 — Faraday’s law.</strong> With <span class="math inline">\(N\Phi_B = LI\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;L = \frac{N\Phi_B}{I}, \qquad \mathcal E_L = -\frac{d(N\Phi_B)}{dt} = -L\,\frac{dI}{dt}\;}\]</span></p>
+</div>
+<p>By Lenz’s law the self-induced EMF opposes the change in current: it pushes back while the current rises, and pushes forward while it falls.</p>
+<p><strong>An inductor is a flywheel for current.</strong> A flywheel resists any change in how fast it spins; once spinning it keeps going, and starting or stopping it takes effort. An inductor does the same to the current through it. A steady current costs the inductor nothing (<span class="math inline">\(dI/dt = 0\)</span>, no EMF); it is the <em>change</em> that meets resistance.</p>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
+<th>Flywheel</th>
+<th>Inductor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>rotational inertia</td>
+<td>inductance <span class="math inline">\(L\)</span></td>
+</tr>
+<tr class="even">
+<td>angular speed <span class="math inline">\(\omega\)</span></td>
+<td>current <span class="math inline">\(I\)</span></td>
+</tr>
+<tr class="odd">
+<td>torque needed <span class="math inline">\(\propto d\omega/dt\)</span></td>
+<td>EMF needed <span class="math inline">\(= L\,dI/dt\)</span></td>
+</tr>
+<tr class="even">
+<td>keeps spinning once started</td>
+<td>keeps the current flowing once started</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-inductance-of-a-solenoid">The Inductance of a Solenoid</h3>
+<p>A solenoid of length <span class="math inline">\(\ell\)</span>, cross-section <span class="math inline">\(A\)</span> and <span class="math inline">\(n\)</span> turns per meter (<span class="math inline">\(N = n\ell\)</span> turns in all):</p>
+<p><strong>Step 1 — the field and the flux per turn.</strong> <span class="math inline">\(B = \mu_0 nI\)</span> (§28.6), so each turn holds <span class="math inline">\(\Phi_B = \mu_0 nIA\)</span>.</p>
+<p><strong>Step 2 — the flux linkage.</strong> <span class="math inline">\(N\Phi_B = (n\ell)(\mu_0 nIA) = \mu_0 n^2\ell A\,I\)</span>.</p>
+<p><strong>Step 3 — divide by <span class="math inline">\(I\)</span>.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;L = \mu_0 n^2\ell A\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>No current in the answer.</strong> <span class="math inline">\(L\)</span> depends on the coil’s shape alone, as <span class="math inline">\(C\)</span> depends on the capacitor’s shape alone (<span class="math inline">\(C = \varepsilon_0 A/d\)</span>, Chapter 25).</li>
+<li><strong><span class="math inline">\(n^2\)</span>.</strong> Doubling the turns per meter doubles the field <em>and</em> doubles the number of turns it threads: four times the inductance.</li>
+<li><strong>Units.</strong> <span class="math inline">\(\mu_0 n^2\ell A\)</span>: <span class="math inline">\(\frac{\text{T}\cdot\text{m}}{\text{A}}\cdot\frac{1}{\text{m}^2}\cdot\text{m}\cdot\text{m}^2 = \frac{\text{T}\cdot\text{m}^2}{\text{A}} = \text{Wb/A} = \text{H}\)</span>.</li>
+</ul>
+</div>
+<section id="example-a-lab-inductor" class="example">
+<h3>Example: A Lab Inductor</h3>
+<p>A solenoid has <span class="math inline">\(N\)</span> turns on a length <span class="math inline">\(\ell\)</span> with radius <span class="math inline">\(r\)</span>. Find its inductance, and the EMF across it when the current changes at a rate <span class="math inline">\(dI/dt\)</span>, for <span class="math inline">\(N = 500\)</span>, <span class="math inline">\(\ell = 0.250\)</span> m, <span class="math inline">\(r = 2.00\)</span> cm, <span class="math inline">\(dI/dt = 200\)</span> A/s.</p>
+<p><em>Why it matters:</em> a ruler and a turn count give the inductance before the coil is ever powered, the same design move as <span class="math inline">\(C = \varepsilon_0 A/d\)</span>. The EMF it makes when the current changes is what the rest of the circuit feels.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(n = N/\ell\)</span> and <span class="math inline">\(A = \pi r^2\)</span>:</p>
+<p><span class="math display">\[L = \mu_0\left(\frac{N}{\ell}\right)^2\ell\,\pi r^2 = \frac{\mu_0N^2\pi r^2}{\ell}, \qquad |\mathcal E_L| = L\,\frac{dI}{dt}\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;L = \frac{(4\pi\times10^{-7})(500)^2\,\pi(0.0200\ \text{m})^2}{0.250\ \text{m}} = 1.58\ \text{mH}, \qquad |\mathcal E_L| = (1.58\times10^{-3}\ \text{H})(200\ \text{A/s}) = 0.316\ \text{V}\;}\]</span></p>
+</div>
+<p>Millihenrys are typical of electronics; a slow change in current barely registers.</p>
+</section>
+<section id="example-switching-off-an-inductive-load" class="example">
+<h3>Example: Switching Off an Inductive Load</h3>
+<p>A relay coil with <span class="math inline">\(L = 50.0\)</span> mH and winding resistance <span class="math inline">\(R = 2.00\ \Omega\)</span> runs from a <span class="math inline">\(6.00\)</span> V supply. A switch opens and stops the current in <span class="math inline">\(\Delta t = 0.100\)</span> ms. Estimate the EMF across the coil.</p>
+<p><em>Why it matters:</em> the inductance, the current and the switching time are known; the voltage across the opening contacts is what is wanted. That voltage is why every relay and motor driver carries a <strong>flyback diode</strong> across the coil, giving the current a closed path to die away gradually (§29.6 finds how fast). A car’s ignition coil does the opposite on purpose: it interrupts its current to make the spark.</p>
+<p><strong>Step 1 — the steady current.</strong> <span class="math inline">\(I = \mathcal E/R\)</span>, since a steady current meets no opposition from <span class="math inline">\(L\)</span>.</p>
+<p><strong>Step 2 — the kick.</strong> The current falls from <span class="math inline">\(I\)</span> to zero in <span class="math inline">\(\Delta t\)</span>, so on average</p>
+<p><span class="math display">\[|\mathcal E_L| = L\,\frac{\Delta I}{\Delta t} = \frac{L\,(\mathcal E/R)}{\Delta t}\]</span></p>
+<p><strong>Step 3 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I = \frac{6.00\ \text{V}}{2.00\ \Omega} = 3.00\ \text{A}, \qquad |\mathcal E_L| = (0.0500\ \text{H})\,\frac{3.00\ \text{A}}{1.00\times10^{-4}\ \text{s}} = 1500\ \text{V}\;}\]</span></p>
+</div>
+<p>Two hundred fifty times the supply voltage. The flywheel will not stop on a dime: the coil makes whatever EMF it takes to keep the current going, and here that EMF jumps the gap of the opening switch as a spark.</p>
+</section>
+<h3 id="mutual-inductance-and-the-transformer">Mutual Inductance and the Transformer</h3>
+<p>When two coils share flux, a changing current in one induces an EMF in the other: <span class="math inline">\(\mathcal E_2 = -M\,dI_1/dt\)</span>, where the <strong>mutual inductance</strong> <span class="math inline">\(M\)</span> depends on the coils’ shapes and placement.</p>
+<p>A <strong>transformer</strong> winds two coils on one iron core, which carries the same flux <span class="math inline">\(\Phi_B\)</span> through every turn of both. Faraday’s law on each coil:</p>
+<p><span class="math display">\[\mathcal E_1 = -N_1\frac{d\Phi_B}{dt}, \qquad \mathcal E_2 = -N_2\frac{d\Phi_B}{dt} \qquad\Longrightarrow\qquad \frac{\mathcal E_2}{\mathcal E_1} = \frac{N_2}{N_1}\]</span></p>
+<p>The voltage steps by the turns ratio — but only for a <em>changing</em> current, which is why the grid runs on alternating current. Stepping up to high voltage for transmission lowers the current, and the <span class="math inline">\(I^2R\)</span> lost in the lines falls with its square.</p>
+<div class="connection">
+<p><strong>The inductor is the capacitor’s partner.</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
 <th>Capacitor (Ch 25)</th>
 <th>Inductor (Ch 29)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Stores energy in</td>
-<td>Electric field</td>
-<td>Magnetic field</td>
-</tr>
-<tr class="even">
-<td>Defining relation</td>
+<td>Defined by</td>
 <td><span class="math inline">\(C = Q/\Delta V\)</span></td>
 <td><span class="math inline">\(L = N\Phi_B/I\)</span></td>
 </tr>
+<tr class="even">
+<td>Ideal shape</td>
+<td><span class="math inline">\(C = \varepsilon_0A/d\)</span></td>
+<td><span class="math inline">\(L = \mu_0n^2\ell A\)</span></td>
+</tr>
 <tr class="odd">
-<td>Geometry (ideal)</td>
-<td><span class="math inline">\(C = \varepsilon_0 A/d\)</span> (parallel plates)</td>
-<td><span class="math inline">\(L = \mu_0 n^2\ell A\)</span> (solenoid)</td>
+<td>Stores energy in</td>
+<td>the electric field</td>
+<td>the magnetic field (§29.6)</td>
 </tr>
 <tr class="even">
-<td>Energy stored</td>
-<td><span class="math inline">\(U_E = \frac{1}{2}C(\Delta V)^2 = \frac{1}{2}\frac{Q^2}{C}\)</span></td>
-<td><span class="math inline">\(U_B = \frac{1}{2}LI^2\)</span></td>
+<td>Resists a change in</td>
+<td>its voltage</td>
+<td>its current</td>
 </tr>
 <tr class="odd">
-<td>Energy density</td>
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td><span class="math inline">\(u_B = \frac{1}{2}\frac{B^2}{\mu_0}\)</span></td>
-</tr>
-<tr class="even">
-<td>Opposes changes in</td>
-<td>Voltage (holds <span class="math inline">\(\Delta V\)</span> constant)</td>
-<td>Current (holds <span class="math inline">\(I\)</span> constant)</td>
-</tr>
-<tr class="odd">
-<td>In DC steady state</td>
-<td>Open circuit (<span class="math inline">\(I = 0\)</span>)</td>
-<td>Short circuit (<span class="math inline">\(\Delta V = 0\)</span>)</td>
-</tr>
-<tr class="even">
-<td>Characteristic equation</td>
-<td><span class="math inline">\(I = C\,d(\Delta V)/dt\)</span></td>
-<td><span class="math inline">\(\mathcal{E} = -L\,dI/dt\)</span></td>
-</tr>
-<tr class="odd">
-<td>SI unit</td>
-<td>Farad (F) = C/V</td>
-<td>Henry (H) = V<span class="math inline">\(\cdot\)</span>s/A</td>
+<td>In a steady DC circuit</td>
+<td>an open switch</td>
+<td>a plain wire</td>
 </tr>
 </tbody>
 </table>
-<p>Both devices store energy in fields. The capacitor stores energy in the electric field between its plates; the inductor stores energy in the magnetic field inside its coils. The duality runs deep: every capacitor equation has an inductor counterpart with <span class="math inline">\(Q \leftrightarrow \Phi_B\)</span>, <span class="math inline">\(\Delta V \leftrightarrow I\)</span>, <span class="math inline">\(C \leftrightarrow L\)</span>, and <span class="math inline">\(\varepsilon_0 \leftrightarrow \mu_0\)</span>.</p>
-<h3 id="example-inductance-of-a-solenoid">Example: Inductance of a Solenoid</h3>
-<p>A solenoid has <span class="math inline">\(N = 500\)</span> turns, length <span class="math inline">\(\ell = 0.25\ \text{m}\)</span>, and radius <span class="math inline">\(r = 0.020\ \text{m}\)</span>.</p>
-<p><strong>Turns per unit length:</strong> <span class="math inline">\(n = N/\ell = 500/0.25 = 2000\ \text{turns/m}\)</span></p>
-<p><strong>Cross-sectional area:</strong> <span class="math inline">\(A = \pi r^2 = \pi(0.020)^2 = 1.26\times10^{-3}\ \text{m}^2\)</span></p>
-<p><strong>Inductance:</strong></p>
-<p><span class="math display">\[L = \mu_0 n^2\ell A = (4\pi\times10^{-7})(2000)^2(0.25)(1.26\times10^{-3}) = \boxed{1.58\ \text{mH}}\]</span></p>
-<p>This is a typical laboratory inductor. Millihenrys are common in electronics; henrys are rare and require very large coils.</p>
-<h3 id="example-self-induced-emf">Example: Self-Induced EMF</h3>
-<p>The solenoid above carries current that changes at <span class="math inline">\(dI/dt = 200\ \text{A/s}\)</span>.</p>
-<p><span class="math display">\[|\mathcal{E}_L| = L\frac{dI}{dt} = (1.58\times10^{-3})(200) = \boxed{0.316\ \text{V}}\]</span></p>
-<p>This “back-EMF” opposes the current change. In a circuit with a 12 V battery, this is a modest effect. But if you try to interrupt a large current through an inductor very quickly (<span class="math inline">\(dI/dt \to\)</span> very large), the back-EMF can be enormous — this is why opening a switch on an inductive circuit produces a spark. The inductor “fights” the sudden current drop by producing whatever voltage is needed to maintain current flow, even if that means arcing across the switch gap.</p>
-<h3 id="mutual-inductance">Mutual Inductance</h3>
-<p>When two coils are near each other, a changing current in one induces an EMF in the other. The <strong>mutual inductance</strong> <span class="math inline">\(M\)</span> quantifies this coupling:</p>
-<p><span class="math display">\[\mathcal{E}_2 = -M\frac{dI_1}{dt} \qquad \text{and} \qquad \mathcal{E}_1 = -M\frac{dI_2}{dt}\]</span></p>
-<p>where:</p>
-<p><span class="math display">\[\boxed{M = \frac{N_2\Phi_{12}}{I_1} = \frac{N_1\Phi_{21}}{I_2}}\]</span></p>
-<p>Here <span class="math inline">\(\Phi_{12}\)</span> is the flux through coil 2 due to the current in coil 1. A remarkable theorem (the Neumann formula) guarantees that <span class="math inline">\(M\)</span> is the same regardless of which coil is the source and which is the receiver.</p>
-<p><strong>The transformer</strong> is the most important application: two coils wound on a shared iron core with <span class="math inline">\(M\)</span> close to its theoretical maximum. From Chapter 31, the voltage ratio equals the turns ratio: <span class="math inline">\(V_2/V_1 = N_2/N_1\)</span>. Transformers are why we can transmit electrical power over long distances — stepping up to high voltage for transmission (low <span class="math inline">\(I^2R\)</span> losses) and stepping down for safe household use.</p>
+</div>
 <nav class="secnav"><a class="prev" href="29-4.html"><span class="lab">&larr; Previous section</span><span class="tt">29.4 &nbsp;Motional EMF</span></a><a class="next" href="29-6.html"><span class="lab">Next section &rarr;</span><span class="tt">29.6 &nbsp;RL Circuits</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch29.html">Whole chapter on one page</a></p>
         </div>
       </div>

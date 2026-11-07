@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -105,14 +114,27 @@
       .page-hero__inner{max-width:none !important;padding:0 !important}
       .page-hero__title{color:#111 !important;font-size:19pt !important}
       .page-hero__subtitle{color:#444 !important;font-size:10.5pt !important}
-      .content-body{font-size:10.5pt;line-height:1.45;color:#111 !important}
-      .content-body h2{color:#111 !important;font-size:13pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
+      /* PRINT TYPE SCALE — keep it monotonic and keep it proportional to the
+         screen contract (screen: h2 2.10x, h3 1.20x, h4 1.05x of body).
+         Print does not need the screen's 2.1x on h2, but it does need the
+         LEVELS to stay distinguishable and in order:
+             body 10 · h4 10.5 (1.05) · h3 12 (1.20) · h2 14.5 (1.45)
+         Scaled down one notch from 11pt on 2026-08-11 (Cole: proportions right,
+         everything still too large to fit much on a page). The RATIOS are the
+         locked part; the base size is the knob. line-height is a ratio, so it
+         scales with the base and needs no separate change.
+         h4 MUST be declared here. It was previously left out, so it kept its
+         screen 1.05rem = 12.6pt and rendered LARGER than the h3 above it —
+         a sub-sub-head louder than its parent, in every chapter using ####. */
+      .content-body{font-size:10pt;line-height:1.55;color:#111 !important}
+      .content-body h2{color:#111 !important;font-size:14.5pt !important;margin:1.5em 0 .7em;padding-bottom:.3rem;border-bottom:1px solid #999 !important;
         break-after:avoid;page-break-after:avoid}
-      .content-body h3{color:#222 !important;font-size:11.5pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h3{color:#222 !important;font-size:12pt !important;break-after:avoid;page-break-after:avoid}
+      .content-body h4{color:#333 !important;font-size:10.5pt !important;break-after:avoid;page-break-after:avoid}
       /* the theme sets size/leading on .content-body p (more specific than .content-body),
          so print density MUST be set at that selector or the screen values win */
       .content-body p,.content-body li,.content-body td,.content-body th{
-        color:#111 !important;font-size:11pt !important;line-height:1.6 !important;orphans:3;widows:3}
+        color:#111 !important;font-size:10pt !important;line-height:1.55 !important;orphans:3;widows:3}
       .content-body p{margin-bottom:.55rem !important}
       .content-body ul,.content-body ol{margin-bottom:.55rem !important}
       /* block spacing is what actually drives page count once type matches */
@@ -127,6 +149,15 @@
       .content-body th{color:#111 !important;background:#eee}
       .content-body th,.content-body td{border:1px solid #999 !important}
       .content-body table,.chap-fig,.fig-ph,figure,blockquote{break-inside:avoid;page-break-inside:avoid}
+      /* Lists: these are short (3-5 items) throughout, and splitting one strands
+         orphan bullets at the top of the next page with nothing to attach them
+         to — worse when a new section heading follows immediately. A list taller
+         than a page cannot honour this and breaks normally. The :has() rule
+         keeps the lead-in sentence with the list it introduces. */
+      .content-body ul,.content-body ol{break-inside:avoid;page-break-inside:avoid}
+      .content-body li{break-inside:avoid;page-break-inside:avoid}
+      .content-body p:has(+ ul),.content-body p:has(+ ol){break-after:avoid;page-break-after:avoid}
+      /* semantic-block fragmentation is decided in ONE place, further down */
       .content-body blockquote{color:#333 !important;border-left:2px solid #999 !important}
       /* Anchor figures to the TEXT measure, not the full container. Without this they cap at
          78% of the 6.9in content box (=5.38in) while paragraphs run 5.54in, so every figure
@@ -137,7 +168,12 @@
          style="max-width:min(Xin,100%)", and an !important rule here would clobber it and
          flatten every figure to one size. Cap the FIGURE, let the source set each image. */
       .chap-fig img{padding:0 !important;border-radius:0}
-      .chap-fig figcaption{color:#444 !important;font-size:9pt}
+      /* Caption: the screen rule caps it at 52ch and centres it, which inside a
+         5.5in figure block wraps every caption to three narrow lines and wastes
+         a third of the figure's vertical budget. In print let it use the full
+         block width and set it tight — most captions then fit on one or two. */
+      .chap-fig figcaption{color:#444 !important;font-size:8.5pt;line-height:1.3 !important;
+        max-width:none !important;margin-left:0 !important;margin-right:0 !important}
       .fig-ph{border:1px dashed #999 !important;background:none !important}
       .fig-ph__tag,.fig-ph__cap{color:#444 !important}
       a{color:#111 !important;text-decoration:none}
@@ -158,12 +194,28 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
-      /* a check or a result must never straddle a page break; a long example may */
+      /* Fragmentation is decided HERE and nowhere else — check for an existing
+         break-inside rule before adding another; a later one silently wins.
+         .check/.result are small and must never straddle a break.
+         .example stays `auto` DELIBERATELY, and the cost of changing it is
+         measured: forcing avoid kept the Ch 23 cavity example whole (+1 page)
+         but pushed a mid-size Ch 22 example wholesale to the next page, taking
+         that chapter 21 -> 24 pages and leaving a 7.5in blank at the foot of
+         p13. `avoid` is all-or-nothing: a block shorter than a page but longer
+         than the space remaining gets moved entire, and the gap it leaves is
+         worse than the split it prevents. */
       .check,.result{break-inside:avoid;page-break-inside:avoid}
-      .example{break-inside:auto}
+      .example,.connection{break-inside:auto}
+      /* Per-block opt-in: mark a block `::: {.example .keep}` in the markdown
+         when THAT block must not straddle a break. Author-controlled and local,
+         so one stubborn example never costs every other chapter three pages.
+         Use sparingly and only on blocks that comfortably fit a page. */
+      .keep{break-inside:avoid !important;page-break-inside:avoid !important}
     }
   </style>
 </head>
@@ -185,42 +237,31 @@
         <a class="chapter-back" href="/courses/pseii.html">&larr; PSE II Course</a>
         <div class="content-body">
 
-<h2 id="the-discovery-that-changed-everything">29.0 — The Discovery That Changed Everything</h2>
-<p>In Chapters 22–25, we saw that stationary charges create electric fields. In Chapter 28, we saw that steady currents create magnetic fields. But the deepest question in electromagnetism was still unanswered: <em>can a magnetic field create an electric current?</em></p>
-<p>The answer came in 1831, and it came from a man with almost no formal mathematical training. <strong>Michael Faraday</strong> (1791–1867) was the son of a blacksmith who had been apprenticed to a bookbinder at age 14. He educated himself by reading the books he was binding, attended public lectures by Sir Humphry Davy at the Royal Institution, and eventually became Davy’s laboratory assistant. Within two decades, he had made more experimental discoveries than perhaps any other scientist in history.</p>
+<h2 id="only-change-matters">29.0 — Only Change Matters</h2>
+<p>Chapter 28 found that currents make magnetic fields. The question that ran the other way waited a decade for an answer: <em>can a magnetic field make a current?</em></p>
+<p><strong>Michael Faraday</strong> (1791–1867), a blacksmith’s son apprenticed to a bookbinder at fourteen, educated himself from the books he bound and became Humphry Davy’s laboratory assistant at the Royal Institution. He knew from Ørsted (1820) that a current deflects a compass, and he spent ten years trying to reverse the effect. On 29 August 1831 he succeeded. Pushing a bar magnet into a coil sent a brief pulse through a galvanometer; pulling it out sent a pulse the other way; and with the magnet sitting still inside the coil, nothing flowed at all.</p>
 <blockquote>
 <p>“Nothing is too wonderful to be true, if it be consistent with the laws of nature.” — Michael Faraday, 1849</p>
 </blockquote>
-<p>Faraday knew from Oersted’s 1820 discovery (Chapter 28) that electric currents produce magnetic fields. He spent <em>ten years</em> trying to reverse the process — to produce electric current from a magnetic field. On August 29, 1831, he finally succeeded: by thrusting a bar magnet into a coil of wire, he observed a brief pulse of current in a galvanometer. When he pulled the magnet out, current flowed in the opposite direction. When the magnet was stationary — even sitting inside the coil — no current flowed.</p>
-<p>The key insight was not that a magnetic field produces current, but that a <em>changing</em> magnetic field produces current. Static fields, no matter how strong, produce nothing. It is the <em>change</em> that matters.</p>
-<p>Independently and almost simultaneously, <strong>Joseph Henry</strong> (1797–1878) in the United States discovered the same phenomenon. Henry had actually observed induction a year earlier but had not published. The law bears Faraday’s name because he published first and developed the concept more thoroughly.</p>
-<p><em>*Personal note: Faraday’s discovery is arguably the most consequential experiment in the history of technology. Every electrical generator, every transformer, every induction cooktop, every wireless charging pad, every electric guitar pickup — all trace directly to August 29, 1831. The modern electrical grid exists because of this principle.</em></p>
+<p>A magnetic field makes no current. A <em>changing</em> one does. <strong>Joseph Henry</strong> (1797–1878) in Albany found the same effect at about the same time; Faraday published first. The unit of inductance (§29.5) carries Henry’s name.</p>
+<p><em>*A note on order: in this course Chapter 29 is the last chapter. Chapter 31 already stated Faraday’s law as law (3) of §31.1; this chapter supplies the experiment behind it, and it settles two results Chapter 31 used without derivation — the magnetic energy density <span class="math inline">\(u_B\)</span> (§29.6) and the speed of light from laws (3) and (4) (§29.7).</em></p>
 <hr />
 <h2 id="magnetic-flux">29.1 — Magnetic Flux</h2>
-<h3 id="why-flux">Why Flux?</h3>
-<p>Before we can state Faraday’s Law precisely, we need a quantity that captures “how much magnetic field passes through a loop.” We encountered this idea briefly in Chapter 28 (Section 28.7) when discussing Gauss’s Law for magnetism. Now we develop it as a working tool.</p>
-<p>Recall from Chapter 23 that we defined <strong>electric flux</strong> <span class="math inline">\(\Phi_E = \int\vec{E}\cdot d\vec{A}\)</span> to quantify how much electric field threads through a surface. The magnetic analog is identical in structure.</p>
-<h3 id="definition">Definition</h3>
-<p>The <strong>magnetic flux</strong> through a surface is:</p>
-<p><span class="math display">\[\boxed{\Phi_B = \int\vec{B}\cdot d\vec{A} = \int B\cos\theta\,dA}\]</span></p>
-<p>where <span class="math inline">\(\theta\)</span> is the angle between the magnetic field <span class="math inline">\(\vec{B}\)</span> and the area element <span class="math inline">\(d\vec{A}\)</span> (the outward normal to the surface). The SI unit is the <strong>weber</strong> (Wb):</p>
-<p><span class="math display">\[1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2\]</span></p>
-<p>For a uniform field passing through a flat surface of area <span class="math inline">\(A\)</span>:</p>
-<p><span class="math display">\[\boxed{\Phi_B = BA\cos\theta}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_1_magnetic_flux.png" alt="Figure 29.1: Magnetic flux through a flat loop. When the field is perpendicular to the loop plane (\theta = 0), flux is maximum. When the field is parallel to the loop plane (\theta = 90°), flux is zero." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 29.1: Magnetic flux through a flat loop. When the field is perpendicular to the loop plane (\theta = 0), flux is maximum. When the field is parallel to the loop plane (\theta = 90°), flux is zero.</figcaption></figure>
-<h3 id="physical-interpretation">Physical Interpretation</h3>
-<p>Think of magnetic flux as the number of field lines threading through the loop. More precisely:</p>
+<h3 id="flux-through-a-loop">Flux Through a Loop</h3>
+<p>Section 31.1 defined the magnetic flux through a surface exactly as Chapter 23 defined the electric flux, and §28.7 showed that the flux out of any <em>closed</em> surface is zero. Faraday’s law uses the flux through an <em>open</em> surface bounded by a loop of wire:</p>
+<p><span class="math display">\[\Phi_B = \int \vec B \cdot d\vec A\]</span></p>
+<p>The direction of <span class="math inline">\(d\vec A\)</span> is the surface’s normal <span class="math inline">\(\hat n\)</span>, tied to a chosen direction around the loop by the right-hand rule (§31.1). For a uniform field through a flat loop of area <span class="math inline">\(A\)</span>, with <span class="math inline">\(\theta\)</span> the angle between <span class="math inline">\(\vec B\)</span> and <span class="math inline">\(\hat n\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = BA\cos\theta \qquad (1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2)\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_1_magnetic_flux.png" alt="Figure 29.1: Magnetic flux through a flat loop. Face-on (\theta = 0) the loop catches the most field; tilted, the flux is BA\cos\theta; edge-on (\theta = 90°) the field slides past and the flux is zero." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.1: Magnetic flux through a flat loop. Face-on (<span class="math inline">\(\theta = 0\)</span>) the loop catches the most field; tilted, the flux is <span class="math inline">\(BA\cos\theta\)</span>; edge-on (<span class="math inline">\(\theta = 90°\)</span>) the field slides past and the flux is zero.</figcaption></figure>
 <ul>
-<li><strong><span class="math inline">\(\theta = 0°\)</span></strong> (<span class="math inline">\(\vec{B}\perp\)</span> loop plane, <span class="math inline">\(\vec{B}\parallel\hat{n}\)</span>): <span class="math inline">\(\Phi_B = BA\)</span> — maximum flux. The loop “catches” all the field lines.</li>
-<li><strong><span class="math inline">\(\theta = 90°\)</span></strong> (<span class="math inline">\(\vec{B}\parallel\)</span> loop plane, <span class="math inline">\(\vec{B}\perp\hat{n}\)</span>): <span class="math inline">\(\Phi_B = 0\)</span> — no flux. The field lines slide along the surface without piercing it.</li>
-<li><strong><span class="math inline">\(\theta = 180°\)</span></strong>: <span class="math inline">\(\Phi_B = -BA\)</span> — maximum negative flux. The field lines thread through in the opposite sense.</li>
+<li><strong><span class="math inline">\(\theta = 0\)</span>:</strong> <span class="math inline">\(\Phi_B = BA\)</span>, the most the loop can hold.</li>
+<li><strong><span class="math inline">\(\theta = 90°\)</span>:</strong> <span class="math inline">\(\Phi_B = 0\)</span>. The field lines run along the surface without piercing it.</li>
+<li><strong><span class="math inline">\(\theta = 180°\)</span>:</strong> <span class="math inline">\(\Phi_B = -BA\)</span>. The same field threads the loop the other way, relative to the chosen <span class="math inline">\(\hat n\)</span>.</li>
 </ul>
-<p>The sign of the flux depends on which side of the surface we call “positive” (i.e., the direction of <span class="math inline">\(\hat{n}\)</span>). For a closed surface, we use the outward normal by convention, and Gauss’s Law for magnetism guarantees <span class="math inline">\(\oint\vec{B}\cdot d\vec{A} = 0\)</span>. For an open surface bounded by a loop (which is what Faraday’s Law uses), the direction of <span class="math inline">\(\hat{n}\)</span> is linked to the sense of traversal around the loop by the right-hand rule.</p>
-<h3 id="flux-through-a-coil-of-n-turns">Flux Through a Coil of <span class="math inline">\(N\)</span> Turns</h3>
-<p>If a coil has <span class="math inline">\(N\)</span> identical turns, each turn intercepts approximately the same flux <span class="math inline">\(\Phi_B\)</span>. The total flux linkage is:</p>
-<p><span class="math display">\[N\Phi_B\]</span></p>
-<p>This quantity appears directly in Faraday’s Law and in the definition of inductance (Section 29.5).</p>
-<h3 id="electric-flux-vs.-magnetic-flux">Electric Flux vs. Magnetic Flux</h3>
+<p>A coil of <span class="math inline">\(N\)</span> identical turns catches the flux <span class="math inline">\(\Phi_B\)</span> in each turn. The total, <span class="math inline">\(N\Phi_B\)</span>, is the <strong>flux linkage</strong>; it is the quantity Faraday’s law and inductance (§29.5) both use.</p>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -229,98 +270,117 @@
 </colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>Electric Flux (Ch 23)</th>
-<th>Magnetic Flux (Ch 28–29)</th>
+<th></th>
+<th>Electric flux (Ch 23)</th>
+<th>Magnetic flux (Ch 28–29)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Definition</td>
-<td><span class="math inline">\(\Phi_E = \int\vec{E}\cdot d\vec{A}\)</span></td>
-<td><span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A}\)</span></td>
+<td><span class="math inline">\(\Phi_E = \int\vec E\cdot d\vec A\)</span></td>
+<td><span class="math inline">\(\Phi_B = \int\vec B\cdot d\vec A\)</span></td>
 </tr>
 <tr class="even">
-<td>Units</td>
-<td>N<span class="math inline">\(\cdot\)</span>m<span class="math inline">\(^2\)</span>/C (or V<span class="math inline">\(\cdot\)</span>m)</td>
-<td>Wb = T<span class="math inline">\(\cdot\)</span>m<span class="math inline">\(^2\)</span></td>
+<td>Out of a closed surface</td>
+<td><span class="math inline">\(Q_\text{enc}/\varepsilon_0\)</span></td>
+<td><span class="math inline">\(0\)</span> (§28.7)</td>
 </tr>
 <tr class="odd">
-<td>Through closed surface</td>
-<td><span class="math inline">\(\Phi_E = Q_\text{enc}/\varepsilon_0\)</span> (can be <span class="math inline">\(\neq 0\)</span>)</td>
-<td><span class="math inline">\(\Phi_B = 0\)</span> (always)</td>
-</tr>
-<tr class="even">
-<td>Physical meaning</td>
-<td>Net field lines leaving enclosed charge</td>
-<td>Field lines threading through a surface</td>
-</tr>
-<tr class="odd">
-<td>Role in Maxwell’s equations</td>
-<td>Gauss’s Law</td>
-<td>Gauss’s Law for magnetism; Faraday’s Law</td>
+<td>Through a loop, changing</td>
+<td>drives a circulating <span class="math inline">\(\vec B\)</span> (§31.2)</td>
+<td>drives a circulating <span class="math inline">\(\vec E\)</span> (§29.2)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="example-flux-through-a-tilted-loop">Example: Flux Through a Tilted Loop</h3>
-<p>A circular loop of radius <span class="math inline">\(r = 0.10\ \text{m}\)</span> is placed in a uniform magnetic field <span class="math inline">\(B = 0.50\ \text{T}\)</span>. The normal to the loop makes an angle <span class="math inline">\(\theta = 30°\)</span> with <span class="math inline">\(\vec{B}\)</span>.</p>
-<p><strong>Area:</strong> <span class="math inline">\(A = \pi r^2 = \pi(0.10)^2 = 3.14\times10^{-2}\ \text{m}^2\)</span></p>
-<p><strong>Flux:</strong> <span class="math inline">\(\Phi_B = BA\cos\theta = (0.50)(3.14\times10^{-2})\cos 30° = \boxed{1.36\times10^{-2}\ \text{Wb} = 13.6\ \text{mWb}}\)</span></p>
-<p>If the loop is rotated to <span class="math inline">\(\theta = 0°\)</span> (face-on): <span class="math inline">\(\Phi_B = 15.7\ \text{mWb}\)</span>. If tilted to <span class="math inline">\(\theta = 90°\)</span> (edge-on): <span class="math inline">\(\Phi_B = 0\)</span>. The flux varies smoothly between these extremes as the loop rotates — and that variation is exactly what drives an electric generator.</p>
-<h3 id="example-flux-through-a-solenoid-loop">Example: Flux Through a Solenoid Loop</h3>
-<p>A circular loop of radius <span class="math inline">\(r_\text{loop} = 0.15\ \text{m}\)</span> surrounds a solenoid of radius <span class="math inline">\(r_\text{sol} = 0.050\ \text{m}\)</span>, <span class="math inline">\(n = 1000\ \text{turns/m}\)</span>, <span class="math inline">\(I = 3.0\ \text{A}\)</span>. The loop and solenoid share the same axis.</p>
-<p><strong>Key insight:</strong> The field inside the solenoid is <span class="math inline">\(B = \mu_0 nI = (4\pi\times10^{-7})(1000)(3.0) = 3.77\times10^{-3}\ \text{T}\)</span>, but the field is confined to the solenoid’s cross-section (<span class="math inline">\(B \approx 0\)</span> outside). The flux through the loop uses the <em>solenoid’s</em> area, not the loop’s area:</p>
-<p><span class="math display">\[\Phi_B = B(\pi r_\text{sol}^2) = (3.77\times10^{-3})\pi(0.050)^2 = \boxed{2.96\times10^{-5}\ \text{Wb} = 29.6\ \mu\text{Wb}}\]</span></p>
-<p>Making the surrounding loop larger does not increase the flux — the extra area is in a region where <span class="math inline">\(B = 0\)</span>. This is a common conceptual trap: <strong>flux depends on where the field is, not just the area of the loop.</strong></p>
+</div>
+<section id="example-flux-through-a-tilted-loop" class="example">
+<h3>Example: Flux Through a Tilted Loop</h3>
+<p>A circular loop of radius <span class="math inline">\(r\)</span> sits in a uniform field <span class="math inline">\(B\)</span>, its normal at <span class="math inline">\(\theta\)</span> to the field. Find the flux for <span class="math inline">\(r = 0.100\)</span> m, <span class="math inline">\(B = 0.500\)</span> T, <span class="math inline">\(\theta = 30.0°\)</span>.</p>
+<p><em>Why it matters:</em> the field and the loop’s tilt are what can be measured; the flux is the one number Faraday’s law needs. Turned through a full circle, the flux swings from its face-on value to minus that value, and that swing is the generator of §29.2.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(A = \pi r^2\)</span>, so</p>
+<p><span class="math display">\[\Phi_B = B\pi r^2\cos\theta\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = (0.500\ \text{T})\,\pi(0.100\ \text{m})^2\cos 30.0° = 1.36\times10^{-2}\ \text{Wb} = 13.6\ \text{mWb}\;}\]</span></p>
+</div>
+<p>Face-on the same loop holds <span class="math inline">\(15.7\)</span> mWb; edge-on, zero.</p>
+</section>
+<section id="example-a-loop-around-a-solenoid" class="example">
+<h3>Example: A Loop Around a Solenoid</h3>
+<p>A long solenoid of radius <span class="math inline">\(r_s\)</span> with <span class="math inline">\(n\)</span> turns per meter carries current <span class="math inline">\(I\)</span>. A circular loop of radius <span class="math inline">\(r_\ell &gt; r_s\)</span> surrounds it on the same axis. Find the flux through the loop for <span class="math inline">\(r_s = 5.00\)</span> cm, <span class="math inline">\(n = 1000\)</span> turns/m, <span class="math inline">\(I = 3.00\)</span> A, <span class="math inline">\(r_\ell = 15.0\)</span> cm.</p>
+<p><em>Why it matters:</em> the solenoid’s winding and current are set on the bench; the flux through the outer loop is what a pickup coil reads. Flux is counted where the field is, which is why a pickup coil does not need to fit snugly.</p>
+<p><strong>Step 1 — where the field is.</strong> Inside the solenoid <span class="math inline">\(B = \mu_0 nI\)</span> (§28.6); outside, <span class="math inline">\(B \approx 0\)</span>. Only the solenoid’s cross-section carries flux, so the loop’s own area does not appear:</p>
+<p><span class="math display">\[\Phi_B = \mu_0 nI\,\pi r_s^2\]</span></p>
+<p><strong>Step 2 — numbers.</strong> <span class="math inline">\(B = (4\pi\times10^{-7})(1000)(3.00) = 3.77\)</span> mT, and</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = (3.77\times10^{-3}\ \text{T})\,\pi(0.0500\ \text{m})^2 = 2.96\times10^{-5}\ \text{Wb} = 29.6\ \mu\text{Wb}\;}\]</span></p>
+</div>
+<p><span class="math inline">\(r_\ell\)</span> never entered. A loop of radius 15 cm or 1.5 m holds the same flux.</p>
+</section>
 <hr />
-<h2 id="faradays-law-of-induction">29.2 — Faraday’s Law of Induction</h2>
-<h3 id="the-law">The Law</h3>
-<p>Faraday’s experiments revealed a precise quantitative relationship: the EMF induced in a loop is equal to the <em>negative rate of change</em> of the magnetic flux through the loop. For a coil of <span class="math inline">\(N\)</span> turns:</p>
-<p><span class="math display">\[\boxed{\mathcal{E} = -N\frac{d\Phi_B}{dt}}\]</span></p>
-<p>This is <strong>Faraday’s Law of Induction</strong> — the third of Maxwell’s four equations (after Gauss’s Law and Gauss’s Law for magnetism from earlier chapters). The negative sign encodes Lenz’s Law (Section 29.3) and ensures conservation of energy.</p>
-<p>For a single loop (<span class="math inline">\(N = 1\)</span>):</p>
-<p><span class="math display">\[\mathcal{E} = -\frac{d\Phi_B}{dt}\]</span></p>
-<h3 id="what-can-change">What Can Change?</h3>
-<p>Since <span class="math inline">\(\Phi_B = BA\cos\theta\)</span>, the flux can change if any of the three factors change:</p>
+<h2 id="faradays-law">29.2 — Faraday’s Law</h2>
+<h3 id="from-the-experiment">From the Experiment</h3>
+<p>Faraday’s measurements, and Henry’s, fix three things about the EMF induced in a coil. It is proportional to how <strong>fast</strong> the flux changes, not to the flux itself. It is proportional to the number of <strong>turns</strong> <span class="math inline">\(N\)</span>, since each turn adds its own EMF in series. And it <strong>opposes</strong> the change that drives it — the minus sign, which §29.3 takes up.</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\mathcal E = -N\,\frac{d\Phi_B}{dt}\;}\]</span></p>
+</div>
+<p>This is <strong>Faraday’s law of induction</strong>. It is found by experiment, as Coulomb’s law was; nothing earlier in the course produces it.</p>
+<h3 id="three-ways-to-change-the-flux">Three Ways to Change the Flux</h3>
+<p><span class="math inline">\(\Phi_B = BA\cos\theta\)</span> changes if any one of its three factors changes (Figure 29.2). The law does not care which.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_2_flux_change_methods.png" alt="Figure 29.2: Three ways to change the flux through a loop: (a) change the field B, (b) change the area A, (c) change the angle \theta by turning the loop." loading="lazy" style="max-width:min(6.2in,100%)" /><figcaption>Figure 29.2: Three ways to change the flux through a loop: (a) change the field <span class="math inline">\(B\)</span>, (b) change the area <span class="math inline">\(A\)</span>, (c) change the angle <span class="math inline">\(\theta\)</span> by turning the loop.</figcaption></figure>
 <ol type="1">
-<li><strong>The field magnitude <span class="math inline">\(B\)</span> changes</strong> — e.g., turning up the current in a nearby electromagnet</li>
-<li><strong>The area <span class="math inline">\(A\)</span> changes</strong> — e.g., stretching or compressing the loop</li>
-<li><strong>The angle <span class="math inline">\(\theta\)</span> changes</strong> — e.g., rotating the loop in a fixed field (this is how generators work)</li>
+<li><strong>Change <span class="math inline">\(B\)</span></strong> — ramp the current in a nearby electromagnet (the wireless charger below).</li>
+<li><strong>Change <span class="math inline">\(A\)</span></strong> — slide one side of a circuit (the rail, §29.4).</li>
+<li><strong>Change <span class="math inline">\(\theta\)</span></strong> — turn the loop in a steady field (the generator, below).</li>
 </ol>
-<p>All three produce induced EMF. The physics does not care <em>why</em> the flux changes — only <em>that</em> it changes, and how fast.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_2_flux_change_methods.png" alt="Figure 29.2: Three ways to change magnetic flux through a loop: (a) changing B, (b) changing A, (c) changing the angle between B and the area normal." loading="lazy" style="max-width:min(5.5in,100%)" /><figcaption>Figure 29.2: Three ways to change magnetic flux through a loop: (a) changing B, (b) changing A, (c) changing the angle between B and the area normal.</figcaption></figure>
-<h3 id="the-emf-is-not-localized-and-the-maxwell-form-of-faradays-law">The EMF Is Not Localized — and the Maxwell Form of Faraday’s Law</h3>
-<p>An induced EMF is fundamentally different from a battery EMF. A battery has a definite location — the EMF appears across its terminals. An induced EMF is distributed around the entire loop. There is no single point where the “voltage” lives. This is a profound distinction: Faraday’s Law tells us that a changing magnetic field creates an <em>electric field that circulates in closed loops</em>. This induced electric field is <strong>non-conservative</strong> — its line integral around a closed path is nonzero.</p>
-<p>Writing <span class="math inline">\(\mathcal{E} = \oint\vec{E}\cdot d\vec{\ell}\)</span> (the work per unit charge done by the electric field around the loop) and substituting into Faraday’s Law gives the <strong>field form</strong> of the law:</p>
-<p><span class="math display">\[\boxed{\oint\vec{E}\cdot d\vec{\ell} = -\frac{d\Phi_B}{dt}}\]</span></p>
-<p>This is <strong>Faraday’s Law as Maxwell wrote it</strong> — the third of Maxwell’s four equations. The two forms are the same statement in different dress:</p>
+<h3 id="the-field-form-law-3">The Field Form: Law (3)</h3>
+<p>The EMF around a circuit is the work per unit charge done going once around it (Chapter 26), which is the circulation of <span class="math inline">\(\vec E\)</span>. For one loop, Faraday’s law reads</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\oint\vec E\cdot d\vec\ell = -\frac{d\Phi_B}{dt}\;}\]</span></p>
+</div>
+<p>This is law (3) of §31.1. Compare Chapter 24, where <span class="math inline">\(\oint\vec E\cdot d\vec\ell = 0\)</span> for the field of static charges. A changing magnetic flux makes an electric field whose circulation is <em>not</em> zero — a field that loops around and has no potential, so “the voltage between two points” depends on the path taken. That is why an induced EMF has no terminals: it is spread around the whole loop.</p>
+<div class="check">
+<p><strong>Check the result.</strong></p>
 <ul>
-<li><strong>Circuit form</strong> <span class="math inline">\(\mathcal{E} = -N\,d\Phi_B/dt\)</span> — what you use to compute EMFs in loops and coils.</li>
-<li><strong>Field form</strong> <span class="math inline">\(\oint\vec{E}\cdot d\vec{\ell} = -d\Phi_B/dt\)</span> — the fundamental statement about how electric and magnetic fields are coupled in spacetime.</li>
+<li><strong>Steady flux.</strong> <span class="math inline">\(d\Phi_B/dt = 0\)</span> gives <span class="math inline">\(\mathcal E = 0\)</span>, however large the field: the magnet sitting still in Faraday’s coil.</li>
+<li><strong>Units.</strong> <span class="math inline">\(\text{Wb/s} = \text{T}\cdot\text{m}^2/\text{s}\)</span>. With <span class="math inline">\(\text{T} = \text{N}/(\text{A}\cdot\text{m})\)</span> (Chapter 28), this is <span class="math inline">\(\text{N}\cdot\text{m}/(\text{A}\cdot\text{s}) = \text{J/C} = \text{V}\)</span>.</li>
+<li><strong>Turns.</strong> <span class="math inline">\(N\)</span> identical turns in series give <span class="math inline">\(N\)</span> times one turn’s EMF, the rule for batteries in series (Chapter 27).</li>
 </ul>
-<p>Compare the field form to the electrostatic field from Chapter 22, where <span class="math inline">\(\oint\vec{E}\cdot d\vec{\ell} = 0\)</span> always. The electric field induced by a changing magnetic field is a genuinely new kind of electric field — it circulates rather than radiating from charges.</p>
-<p><em>*Personal note: This is the moment where the neat separation of “electrostatics” and “magnetostatics” breaks down. Changing magnetic fields create electric fields; we will see in Chapter 31 that changing electric fields create magnetic fields. The two fields are coupled — they are aspects of a single electromagnetic field.</em></p>
-<h3 id="example-emf-from-a-changing-field">Example: EMF from a Changing Field</h3>
-<p>A circular loop of radius <span class="math inline">\(r = 0.080\ \text{m}\)</span> (<span class="math inline">\(N = 1\)</span>) lies in a region where the magnetic field is uniform and perpendicular to the loop. The field increases linearly from <span class="math inline">\(B_i = 0.20\ \text{T}\)</span> to <span class="math inline">\(B_f = 0.80\ \text{T}\)</span> over <span class="math inline">\(\Delta t = 0.50\ \text{s}\)</span>.</p>
-<p><strong>Flux at any time:</strong> <span class="math inline">\(\Phi_B = BA = B\pi r^2\)</span></p>
-<p><strong>Rate of change:</strong> <span class="math inline">\(d\Phi_B/dt = (dB/dt)\pi r^2 = \left(\frac{0.80 - 0.20}{0.50}\right)\pi(0.080)^2 = (1.20)(2.01\times10^{-2})\)</span></p>
-<p><span class="math display">\[|\mathcal{E}| = \frac{d\Phi_B}{dt} = \boxed{2.41\times10^{-2}\ \text{V} = 24.1\ \text{mV}}\]</span></p>
-<p>If the loop has resistance <span class="math inline">\(R = 0.50\ \Omega\)</span>, the induced current is <span class="math inline">\(I = |\mathcal{E}|/R = 48.2\ \text{mA}\)</span>. The direction is determined by Lenz’s Law (next section).</p>
-<h3 id="example-emf-in-a-rotating-coil-the-generator">Example: EMF in a Rotating Coil (The Generator)</h3>
-<p>A rectangular coil with <span class="math inline">\(N = 100\)</span> turns, area <span class="math inline">\(A = 0.020\ \text{m}^2\)</span>, rotates at angular velocity <span class="math inline">\(\omega = 120\pi\ \text{rad/s}\)</span> (3600 rpm) in a uniform field <span class="math inline">\(B = 0.50\ \text{T}\)</span>.</p>
-<p><strong>Flux:</strong> <span class="math inline">\(\Phi_B = BA\cos(\omega t)\)</span></p>
-<p><strong>Induced EMF:</strong></p>
-<p><span class="math display">\[\mathcal{E} = -N\frac{d\Phi_B}{dt} = -N\frac{d}{dt}[BA\cos(\omega t)] = NBA\omega\sin(\omega t)\]</span></p>
-<p><span class="math display">\[\boxed{\mathcal{E}(t) = \mathcal{E}_0\sin(\omega t)}\]</span></p>
-<p>where the peak EMF is:</p>
-<p><span class="math display">\[\mathcal{E}_0 = NBA\omega = (100)(0.50)(0.020)(120\pi) = \boxed{377\ \text{V}}\]</span></p>
-<p>This is an <strong>AC generator</strong> — the fundamental device that produces alternating current. The frequency is <span class="math inline">\(f = \omega/(2\pi) = 60\ \text{Hz}\)</span>, standard North American line frequency. A rotating coil in a magnetic field naturally produces a sinusoidal voltage. This is not a design choice — it is a consequence of Faraday’s Law and the cosine dependence of flux on angle.</p>
-<p><strong>Limiting cases:</strong></p>
+</div>
+<section id="example-a-field-that-ramps-up" class="example">
+<h3>Example: A Field That Ramps Up</h3>
+<p>A single circular loop of radius <span class="math inline">\(r\)</span> and resistance <span class="math inline">\(R\)</span> lies perpendicular to a uniform field that rises steadily from <span class="math inline">\(B_i\)</span> to <span class="math inline">\(B_f\)</span> in a time <span class="math inline">\(\Delta t\)</span>. Find the induced EMF and current for <span class="math inline">\(r = 8.00\)</span> cm, <span class="math inline">\(R = 0.500\ \Omega\)</span>, <span class="math inline">\(B_i = 0.200\)</span> T, <span class="math inline">\(B_f = 0.800\)</span> T, <span class="math inline">\(\Delta t = 0.500\)</span> s.</p>
+<p><em>Why it matters:</em> the pad’s changing field and the phone’s coil are what can be measured; the EMF and current delivered to the phone are what is wanted. This is a wireless charging pad: power across a gap, with no contacts.</p>
+<p><strong>Step 1 — symbols.</strong> Only <span class="math inline">\(B\)</span> changes, so <span class="math inline">\(d\Phi_B/dt = \pi r^2\,dB/dt\)</span>, with <span class="math inline">\(dB/dt = (B_f - B_i)/\Delta t\)</span>:</p>
+<p><span class="math display">\[|\mathcal E| = \pi r^2\,\frac{B_f - B_i}{\Delta t}, \qquad I = \frac{|\mathcal E|}{R}\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;|\mathcal E| = \pi(0.0800\ \text{m})^2\,\frac{0.600\ \text{T}}{0.500\ \text{s}} = 24.1\ \text{mV}, \qquad I = \frac{24.1\ \text{mV}}{0.500\ \Omega} = 48.2\ \text{mA}\;}\]</span></p>
+</div>
+<p>The direction comes from Lenz’s law (§29.3).</p>
+</section>
+<section id="example-the-generator" class="example">
+<h3>Example: The Generator</h3>
+<p>A coil of <span class="math inline">\(N\)</span> turns and area <span class="math inline">\(A\)</span> turns at angular speed <span class="math inline">\(\omega\)</span> in a uniform field <span class="math inline">\(B\)</span>. Find the EMF as a function of time, and its peak, for <span class="math inline">\(N = 100\)</span>, <span class="math inline">\(A = 0.0200\ \text{m}^2\)</span>, <span class="math inline">\(B = 0.500\)</span> T, <span class="math inline">\(\omega = 120\pi\)</span> rad/s (60 Hz).</p>
+<p><em>Why it matters:</em> the turns, the field, the area and the turning rate are what a builder controls; the peak EMF is what comes out. The sinusoid of household power is not a design choice; it is what a turning coil makes.</p>
+<p><strong>Step 1 — the flux.</strong> The angle grows as <span class="math inline">\(\theta = \omega t\)</span>:</p>
+<p><span class="math display">\[\Phi_B = BA\cos\omega t\]</span></p>
+<p><strong>Step 2 — differentiate.</strong> The derivative of <span class="math inline">\(\cos\omega t\)</span> is <span class="math inline">\(-\omega\sin\omega t\)</span>:</p>
+<p><span class="math display">\[\mathcal E = -N\frac{d\Phi_B}{dt} = NBA\omega\sin\omega t = \mathcal E_0\sin\omega t\]</span></p>
+<p><strong>Step 3 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\mathcal E_0 = NBA\omega = (100)(0.500\ \text{T})(0.0200\ \text{m}^2)(120\pi\ \text{s}^{-1}) = 377\ \text{V}\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
 <ul>
-<li>At <span class="math inline">\(\omega t = 0\)</span> (loop face-on to <span class="math inline">\(\vec{B}\)</span>): Flux is maximum but <span class="math inline">\(d\Phi_B/dt = 0\)</span>, so <span class="math inline">\(\mathcal{E} = 0\)</span>. Maximum flux does <em>not</em> mean maximum EMF.</li>
-<li>At <span class="math inline">\(\omega t = \pi/2\)</span> (loop edge-on to <span class="math inline">\(\vec{B}\)</span>): Flux is zero but changing fastest, so <span class="math inline">\(\mathcal{E} = \mathcal{E}_0\)</span>. The EMF is maximum precisely when the flux is zero.</li>
+<li><strong>Face-on (<span class="math inline">\(\omega t = 0\)</span>).</strong> The flux is largest but momentarily not changing, so <span class="math inline">\(\mathcal E = 0\)</span>. Most flux is not most EMF.</li>
+<li><strong>Edge-on (<span class="math inline">\(\omega t = \pi/2\)</span>).</strong> The flux is zero but changing fastest, so <span class="math inline">\(\mathcal E = \mathcal E_0\)</span>.</li>
+<li><strong>Faster turning.</strong> <span class="math inline">\(\mathcal E_0 \propto \omega\)</span>: spin it twice as fast and the peak doubles, along with the frequency.</li>
 </ul>
-<p>This 90-degree phase shift between flux and EMF is characteristic of all sinusoidal induction. It is analogous to position and velocity in simple harmonic motion: position is maximum when velocity is zero, and vice versa.</p>
+</div>
+</section>
 <hr />
 <div class="sim-block">
   <div class="sim-lead">Interactive &middot; Induction Lab</div>
@@ -334,320 +394,405 @@
   <p class="sim-print">Interactive &mdash; not reproducible in print. Open at <strong>peirastes.com/induction-lab/induction_lab.html</strong></p>
 </div>
 <h2 id="lenzs-law">29.3 — Lenz’s Law</h2>
-<h3 id="the-direction-of-the-induced-current">The Direction of the Induced Current</h3>
-<p>Faraday’s Law gives us the <em>magnitude</em> of the induced EMF. <strong>Lenz’s Law</strong> gives us the <em>direction</em>:</p>
+<h3 id="the-direction">The Direction</h3>
+<p>Faraday’s law gives the size of the EMF. The minus sign gives its direction:</p>
 <blockquote>
-<p><strong>Lenz’s Law:</strong> The induced current flows in a direction such that its own magnetic field <em>opposes</em> the change in flux that caused it.</p>
+<p><strong>Lenz’s law:</strong> the induced current flows in the direction whose own magnetic field <em>opposes the change</em> in flux that produced it.</p>
 </blockquote>
-<p>This is what the negative sign in Faraday’s Law encodes. It is not an independent law — it is a consequence of energy conservation applied to electromagnetic induction.</p>
 <h3 id="why-it-must-be-so">Why It Must Be So</h3>
-<p>Imagine Lenz’s Law were reversed — that the induced current <em>reinforced</em> the flux change. Then:</p>
+<p>Suppose the induced current <em>reinforced</em> the change instead. A small increase in flux would drive a current whose field increased the flux further, which would drive more current, and so on: a current and field growing without limit from a nudge, with nothing paying for the energy. Opposition is the only direction consistent with energy conservation. Whoever changes the flux has to push against the induced current, and that work is the electrical energy that appears.</p>
+<h3 id="a-recipe">A Recipe</h3>
 <ol type="1">
-<li>Increasing flux would induce current that <em>increases</em> flux further.</li>
-<li>That further increase would induce <em>more</em> current.</li>
-<li>The process would run away, producing infinite current and infinite magnetic field from an initial perturbation.</li>
+<li>Find the direction of the external <span class="math inline">\(\vec B\)</span> through the loop.</li>
+<li>Decide whether the flux is <strong>increasing</strong> or <strong>decreasing</strong>.</li>
+<li>The induced field <strong>opposes the change</strong>: against the external field if the flux is increasing, along it if decreasing.</li>
+<li>Use the right-hand rule (§28.4) to find the current that makes that induced field.</li>
 </ol>
-<p>This would violate conservation of energy. Lenz’s Law is nature’s way of ensuring that you cannot get something for nothing — the induced current always <em>resists</em> the change, requiring an external agent to do work to maintain the changing flux.</p>
-<h3 id="applying-lenzs-law-a-recipe">Applying Lenz’s Law — A Recipe</h3>
-<ol type="1">
-<li><strong>Determine the direction of <span class="math inline">\(\vec{B}\)</span> through the loop.</strong></li>
-<li><strong>Determine whether <span class="math inline">\(\Phi_B\)</span> is increasing or decreasing.</strong></li>
-<li><strong>The induced <span class="math inline">\(\vec{B}_\text{induced}\)</span> opposes the change:</strong>
-<ul>
-<li>If <span class="math inline">\(\Phi_B\)</span> is increasing: <span class="math inline">\(\vec{B}_\text{induced}\)</span> opposes the external <span class="math inline">\(\vec{B}\)</span> (points opposite).</li>
-<li>If <span class="math inline">\(\Phi_B\)</span> is decreasing: <span class="math inline">\(\vec{B}_\text{induced}\)</span> supports the external <span class="math inline">\(\vec{B}\)</span> (points same direction).</li>
-</ul></li>
-<li><strong>Use the right-hand rule</strong> to find the current direction that produces <span class="math inline">\(\vec{B}_\text{induced}\)</span>.</li>
-</ol>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_3_lenz_law.png" alt="Figure 29.3: Lenz’s Law illustrated. (a) A magnet approaches a loop — increasing flux induces current whose field opposes the approaching magnet. (b) A magnet recedes — decreasing flux induces current whose field attracts the retreating magnet." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 29.3: Lenz’s Law illustrated. (a) A magnet approaches a loop — increasing flux induces current whose field opposes the approaching magnet. (b) A magnet recedes — decreasing flux induces current whose field attracts the retreating magnet.</figcaption></figure>
-<h3 id="the-bar-magnet-and-the-loop">The Bar Magnet and the Loop</h3>
-<p>When you push the north pole of a bar magnet toward a conducting loop:</p>
-<ul>
-<li>External <span class="math inline">\(\vec{B}\)</span> points into the loop (away from the north pole toward the loop).</li>
-<li><span class="math inline">\(\Phi_B\)</span> is increasing.</li>
-<li>The induced current must create a field that <em>opposes</em> the increase — so <span class="math inline">\(\vec{B}_\text{induced}\)</span> points back toward the magnet (out of the loop on the magnet side).</li>
-<li>By the right-hand rule, the induced current flows counterclockwise (as seen from the magnet).</li>
-<li>The loop acts like a magnet with its north pole facing the approaching north pole — <strong>it repels the incoming magnet</strong>.</li>
-</ul>
-<p>When you pull the magnet away:</p>
-<ul>
-<li><span class="math inline">\(\Phi_B\)</span> is decreasing.</li>
-<li>The induced current reverses, now creating a field that supports the disappearing flux.</li>
-<li>The loop attracts the retreating magnet — <strong>it resists the departure</strong>.</li>
-</ul>
-<p>In both cases, the loop fights the change. You must do work to push the magnet in <em>and</em> to pull it out. That work is converted into the electrical energy of the induced current, which is ultimately dissipated as heat in the loop’s resistance. Energy is conserved.</p>
-<h3 id="example-lenzs-law-with-a-solenoid">Example: Lenz’s Law with a Solenoid</h3>
-<p>A loop of wire surrounds a solenoid. The current in the solenoid is increasing, so the field inside the solenoid (and the flux through the loop) is increasing.</p>
-<p><strong>By Lenz’s Law:</strong> The induced current in the loop must oppose the increasing flux. The solenoid’s field points (say) to the right through the loop. The induced current must create a field pointing to the left through the loop. By the right-hand rule, the induced current flows clockwise (as viewed from the right).</p>
-<p><strong>Physical check:</strong> If you were holding the loop, you would feel a slight tug resisting the solenoid’s increasing field. To maintain the increasing current in the solenoid, the power supply must do extra work — some of its energy goes into driving the induced current in the surrounding loop.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_3_lenz_law.png" alt="Figure 29.3: Lenz’s law, the loop seen edge-on. (a) The north pole approaches: the flux to the right increases, the induced field points back at the magnet, and the loop repels it. (b) The magnet recedes: the flux decreases, the induced field points along the magnet’s, and the loop attracts it." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.3: Lenz’s law, the loop seen edge-on. (a) The north pole approaches: the flux to the right increases, the induced field points back at the magnet, and the loop repels it. (b) The magnet recedes: the flux decreases, the induced field points along the magnet’s, and the loop attracts it.</figcaption></figure>
+<p><strong>The bar magnet and the loop.</strong> Push a north pole toward a loop (Figure 29.3a). The magnet’s field through the loop points away from the pole and is increasing, so the induced field points back toward the magnet. Seen from the magnet, the induced current runs counterclockwise, and the loop’s near face is a north pole: <strong>the loop repels the incoming magnet.</strong> Pull the magnet away (Figure 29.3b) and everything reverses: the loop attracts it and resists the departure. Either way you push against the loop, in and out, and that work is what the induced current turns into heat in the wire.</p>
+<section id="example-a-loop-around-a-solenoid-current-rising" class="example">
+<h3>Example: A Loop Around a Solenoid, Current Rising</h3>
+<p>A loop surrounds a solenoid whose field points to the right through the loop. The solenoid’s current is increasing. Find the direction of the induced current.</p>
+<p><em>Why it matters:</em> the solenoid’s field and whether its current is rising are known; the direction of the outer loop’s current is what is wanted. The supply driving the solenoid feels that current, since some of its work now goes into the outer loop. Every transformer (§29.5) works by this coupling.</p>
+<p><strong>Step 1 — the change.</strong> The flux to the right is increasing.</p>
+<p><strong>Step 2 — the induced field.</strong> It opposes the increase, so it points to the <strong>left</strong> inside the loop.</p>
+<p><strong>Step 3 — the current.</strong> A field to the left needs a current that runs <strong>clockwise as seen from the right</strong> (right-hand rule: thumb to the left, fingers curl clockwise for an observer looking from the right).</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\text{clockwise, seen from the right}\;}\]</span></p>
+</div>
+</section>
 <hr />
 <h2 id="motional-emf">29.4 — Motional EMF</h2>
-<h3 id="a-conductor-moving-through-a-magnetic-field">A Conductor Moving Through a Magnetic Field</h3>
-<p>There is a beautifully intuitive way to understand Faraday’s Law that does not require any calculus of flux: consider the force on charges in a conductor that moves through a magnetic field.</p>
-<p>A straight conductor of length <span class="math inline">\(L\)</span> moves with velocity <span class="math inline">\(\vec{v}\)</span> perpendicular to a uniform magnetic field <span class="math inline">\(\vec{B}\)</span> (say, <span class="math inline">\(\vec{B}\)</span> points into the page). The free electrons inside the conductor experience a magnetic force:</p>
-<p><span class="math display">\[\vec{F} = q\vec{v}\times\vec{B}\]</span></p>
-<p>This force pushes electrons toward one end of the conductor, leaving the other end positive. Charge accumulates until the electric field from the separated charges exactly balances the magnetic force:</p>
-<p><span class="math display">\[qE = qvB \qquad \Longrightarrow \qquad E = vB\]</span></p>
-<p>The potential difference between the ends is:</p>
-<p><span class="math display">\[\boxed{\mathcal{E} = BLv}\]</span></p>
-<p>This is the <strong>motional EMF</strong> — a voltage that appears across a conductor simply because it moves through a magnetic field. No battery, no changing external field — just motion.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_4_motional_emf.png" alt="Figure 29.4: A conducting rod of length L moves with velocity v through a uniform magnetic field B (into page). The magnetic force separates charges, creating a potential difference \mathcal{E} = BLv between the ends." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 29.4: A conducting rod of length L moves with velocity v through a uniform magnetic field B (into page). The magnetic force separates charges, creating a potential difference \mathcal{E} = BLv between the ends.</figcaption></figure>
-<h3 id="the-sliding-rail-problem">The Sliding Rail Problem</h3>
-<p>The most important application: a conducting rod slides at constant velocity <span class="math inline">\(v\)</span> along parallel rails separated by distance <span class="math inline">\(L\)</span>, connected by a resistor <span class="math inline">\(R\)</span> at one end, all in a uniform field <span class="math inline">\(\vec{B}\)</span> (into the page).</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_5_sliding_rail.png" alt="Figure 29.5: A conducting rod sliding on rails in a uniform magnetic field, forming a closed circuit with a resistor. The increasing area produces a changing flux and an induced current." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 29.5: A conducting rod sliding on rails in a uniform magnetic field, forming a closed circuit with a resistor. The increasing area produces a changing flux and an induced current.</figcaption></figure>
-<p>As the rod moves, the area of the closed circuit increases: <span class="math inline">\(A = Lx\)</span>, where <span class="math inline">\(x\)</span> is the rod’s position. The flux is <span class="math inline">\(\Phi_B = BLx\)</span>, and:</p>
-<p><span class="math display">\[\mathcal{E} = -\frac{d\Phi_B}{dt} = -BL\frac{dx}{dt} = -BLv\]</span></p>
-<p>The magnitude of the induced EMF is <span class="math inline">\(|\mathcal{E}| = BLv\)</span>, confirming our force-based derivation. The induced current is:</p>
-<p><span class="math display">\[I = \frac{|\mathcal{E}|}{R} = \frac{BLv}{R}\]</span></p>
-<p>By Lenz’s Law, the current flows counterclockwise (to oppose the increasing flux into the page). This current-carrying rod in the magnetic field experiences a braking force:</p>
-<p><span class="math display">\[F = BIL = \frac{B^2L^2v}{R}\]</span></p>
-<p>This force opposes the motion. To maintain constant velocity, an external agent must apply an equal force, doing work at rate:</p>
-<p><span class="math display">\[P_\text{external} = Fv = \frac{B^2L^2v^2}{R}\]</span></p>
-<p>The power dissipated in the resistor is:</p>
-<p><span class="math display">\[P_R = I^2R = \frac{B^2L^2v^2}{R}\]</span></p>
-<p>They are equal: <strong>all the mechanical work done by the external agent is converted to electrical energy dissipated as heat in the resistor.</strong> Energy conservation is satisfied exactly.</p>
-<p><em>*Personal note: This is the physics of regenerative braking. When an electric car decelerates, the wheels drive a generator backward through the magnetic field. The braking force (which slows the car) does work that charges the battery instead of heating brake pads. The sliding rail is the same thing, stripped to its essence.</em></p>
-<h3 id="example-motional-emf-on-sliding-rails">Example: Motional EMF on Sliding Rails</h3>
-<p>A rod slides at <span class="math inline">\(v = 5.0\ \text{m/s}\)</span> on rails separated by <span class="math inline">\(L = 0.40\ \text{m}\)</span> in a field <span class="math inline">\(B = 0.80\ \text{T}\)</span>. The resistance is <span class="math inline">\(R = 2.0\ \Omega\)</span>.</p>
-<p><strong>(A) Induced EMF:</strong></p>
-<p><span class="math display">\[|\mathcal{E}| = BLv = (0.80)(0.40)(5.0) = \boxed{1.6\ \text{V}}\]</span></p>
-<p><strong>(B) Induced current:</strong></p>
-<p><span class="math display">\[I = |\mathcal{E}|/R = 1.6/2.0 = \boxed{0.80\ \text{A}}\]</span></p>
-<p><strong>(C) Force required to maintain constant velocity:</strong></p>
-<p><span class="math display">\[F = BIL = (0.80)(0.80)(0.40) = \boxed{0.256\ \text{N}}\]</span></p>
-<p><strong>(D) Power balance:</strong></p>
-<p><span class="math display">\[P_\text{mech} = Fv = (0.256)(5.0) = 1.28\ \text{W}\]</span></p>
-<p><span class="math display">\[P_R = I^2R = (0.80)^2(2.0) = 1.28\ \text{W} \quad \checkmark\]</span></p>
+<h3 id="where-the-emf-comes-from-qvec-vtimesvec-b">Where the EMF Comes From: <span class="math inline">\(q\vec v\times\vec B\)</span></h3>
+<p>Faraday’s law covers a conductor that <em>moves</em> through a steady field, and here Chapter 28 says why.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_4_motional_emf.png" alt="Figure 29.4: A rod of length L moving at \vec v through a field into the page. The magnetic force pushes positive charge to the top end; the separated charge sets up \vec E_\text{ind} inside the rod until the two forces balance." loading="lazy" style="max-width:min(3.6in,100%)" /><figcaption>Figure 29.4: A rod of length <span class="math inline">\(L\)</span> moving at <span class="math inline">\(\vec v\)</span> through a field into the page. The magnetic force pushes positive charge to the top end; the separated charge sets up <span class="math inline">\(\vec E_\text{ind}\)</span> inside the rod until the two forces balance.</figcaption></figure>
+<p><strong>Step 1 — the force on the rod’s charges.</strong> A rod of length <span class="math inline">\(L\)</span> moves at <span class="math inline">\(\vec v\)</span> perpendicular to <span class="math inline">\(\vec B\)</span> (Figure 29.4). Every charge in it moves with it and feels <span class="math inline">\(q\vec v\times\vec B\)</span> (§28.2), along the rod: with <span class="math inline">\(\vec v\)</span> to the right and <span class="math inline">\(\vec B\)</span> into the page, positive charge is pushed <strong>up</strong>.</p>
+<p><strong>Step 2 — charge piles up until the forces balance.</strong> The top end turns positive and the bottom negative. Their electric field pushes back, and the separation stops when</p>
+<p><span class="math display">\[qE = qvB \qquad\Longrightarrow\qquad E = vB\]</span></p>
+<p><strong>Step 3 — the potential difference.</strong> A uniform field <span class="math inline">\(E\)</span> along a length <span class="math inline">\(L\)</span> gives <span class="math inline">\(\Delta V = EL\)</span> (Chapter 24):</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\mathcal E = BLv\;}\]</span></p>
+</div>
+<p>This is the <strong>motional EMF</strong>: no battery and no changing field, only a conductor moving through a steady one.</p>
+<h3 id="the-rail-two-routes-agree">The Rail: Two Routes Agree</h3>
+<p>A rod slides at constant speed <span class="math inline">\(v\)</span> along two rails a distance <span class="math inline">\(L\)</span> apart, joined at one end through a resistor <span class="math inline">\(R\)</span>, in a uniform field into the page (Figure 29.5).</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_5_sliding_rail.png" alt="Figure 29.5: A rod sliding on rails in a field into the page. The enclosed area grows, the induced current runs counterclockwise (up the rod), and the field pushes back on the rod with F = ILB." loading="lazy" style="max-width:min(5in,100%)" /><figcaption>Figure 29.5: A rod sliding on rails in a field into the page. The enclosed area grows, the induced current runs counterclockwise (up the rod), and the field pushes back on the rod with <span class="math inline">\(F = ILB\)</span>.</figcaption></figure>
+<p><strong>Step 1 — the flux.</strong> With the rod a distance <span class="math inline">\(x\)</span> from the resistor, the circuit encloses <span class="math inline">\(A = Lx\)</span>:</p>
+<p><span class="math display">\[\Phi_B = BLx\]</span></p>
+<p><strong>Step 2 — Faraday’s law.</strong> Only <span class="math inline">\(x\)</span> changes, at <span class="math inline">\(dx/dt = v\)</span>:</p>
+<p><span class="math display">\[|\mathcal E| = \frac{d\Phi_B}{dt} = BLv\]</span></p>
+<p>the same as the force route. One law, two pictures.</p>
+<p><strong>Step 3 — the current and its direction.</strong> <span class="math inline">\(I = BLv/R\)</span>. The flux into the page is increasing, so the induced field points out of the page, and the current runs <strong>counterclockwise</strong> — up the rod, as Step 1 of the force route found.</p>
+<p><strong>Step 4 — the braking force.</strong> The rod now carries <span class="math inline">\(I\)</span> across <span class="math inline">\(\vec B\)</span>, so it feels <span class="math inline">\(F = ILB\)</span> (§28.3). Its direction, <span class="math inline">\(I\vec L\times\vec B\)</span> with the current up and the field into the page, is <strong>to the left</strong>: against the motion, as Lenz’s law requires.</p>
+<p><span class="math display">\[F = ILB = \frac{B^2L^2v}{R}\]</span></p>
+<p><strong>Step 5 — who pays.</strong> To keep <span class="math inline">\(v\)</span> constant, an agent must push with <span class="math inline">\(F\)</span>, supplying power <span class="math inline">\(Fv\)</span>. The resistor turns electrical energy into heat at <span class="math inline">\(I^2R\)</span>:</p>
+<p><span class="math display">\[Fv = \frac{B^2L^2v^2}{R}, \qquad I^2R = \left(\frac{BLv}{R}\right)^2 R = \frac{B^2L^2v^2}{R}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\mathcal E = BLv, \qquad I = \frac{BLv}{R}, \qquad F = \frac{B^2L^2v}{R}, \qquad Fv = I^2R\;}\]</span></p>
+</div>
+<p>Every joule the agent supplies ends up as heat in the resistor. The speed is constant, so none of it goes into kinetic energy.</p>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong><span class="math inline">\(v \to 0\)</span>.</strong> No EMF, no current, no force: a resting rod is just a wire.</li>
+<li><strong><span class="math inline">\(R \to \infty\)</span> (the circuit is broken).</strong> The EMF <span class="math inline">\(BLv\)</span> is still there across the rod’s ends, but no current flows and the rod slides freely.</li>
+<li><strong>Reverse <span class="math inline">\(\vec B\)</span>.</strong> The current reverses <em>and</em> the field reverses, so <span class="math inline">\(F \propto B^2\)</span> is unchanged: the force still opposes the motion.</li>
+<li><strong>Faster.</strong> <span class="math inline">\(F \propto v\)</span> and the power <span class="math inline">\(\propto v^2\)</span>: twice the speed, twice the force, four times the power.</li>
+</ul>
+</div>
+<section id="example-rod-on-rails" class="example">
+<h3>Example: Rod on Rails</h3>
+<p>Find the EMF, the current, the force needed to keep the rod moving, and the power balance, for <span class="math inline">\(v = 5.00\)</span> m/s, <span class="math inline">\(L = 0.400\)</span> m, <span class="math inline">\(B = 0.800\)</span> T, <span class="math inline">\(R = 2.00\ \Omega\)</span>.</p>
+<p><em>Why it matters:</em> the speed, the field and the rod’s length are measurable; the braking force and the power recovered are what is wanted. This is regenerative braking stripped to its parts. Because <span class="math inline">\(F \propto v\)</span>, the braking is strong at speed and fades as the car slows, which is why an electric car still carries friction brakes for the last few meters.</p>
+<p><strong>Step 1 — symbols.</strong> From the boxed results above: <span class="math inline">\(\mathcal E = BLv\)</span>, <span class="math inline">\(I = \mathcal E/R\)</span>, <span class="math inline">\(F = ILB\)</span>, and <span class="math inline">\(Fv\)</span> against <span class="math inline">\(I^2R\)</span>.</p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\begin{aligned}
+\mathcal E &amp;= (0.800\ \text{T})(0.400\ \text{m})(5.00\ \text{m/s}) = 1.60\ \text{V}, \qquad
+I = \frac{1.60\ \text{V}}{2.00\ \Omega} = 0.800\ \text{A}\\
+F &amp;= (0.800\ \text{A})(0.400\ \text{m})(0.800\ \text{T}) = 0.256\ \text{N}\\
+Fv &amp;= (0.256\ \text{N})(5.00\ \text{m/s}) = 1.28\ \text{W} = (0.800\ \text{A})^2(2.00\ \Omega) = I^2R
+\end{aligned}\;}\]</span></p>
+</div>
+</section>
+<h3 id="a-loop-crossing-a-field-region">A Loop Crossing a Field Region</h3>
+<p>A closed loop that moves <em>through</em> a region of field, rather than sliding on rails, shows when induction happens and when it does not. A square loop of side <span class="math inline">\(\ell\)</span> and resistance <span class="math inline">\(R\)</span> moves at constant <span class="math inline">\(v\)</span> through a region of uniform field out of the page, of width <span class="math inline">\(D &gt; \ell\)</span> (Figure 29.6).</p>
+<p><em>Why it matters:</em> the loop’s speed and the width of the field region are set; when the loop is braked, and how hard, is what is wanted. A roller coaster’s magnetic brakes are copper fins on the cars passing between rows of magnets, so the braking can be placed exactly, with nothing touching.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_9_loop_crossing.png" alt="Figure 29.6: A square loop crossing a region of field out of the page. The flux through the loop (middle) rises while the loop enters, holds steady while it is fully inside, and falls while it leaves. The current (bottom) flows only while the flux changes: clockwise entering, counterclockwise leaving, zero in between." loading="lazy" style="max-width:min(5.6in,100%)" /><figcaption>Figure 29.6: A square loop crossing a region of field out of the page. The flux through the loop (middle) rises while the loop enters, holds steady while it is fully inside, and falls while it leaves. The current (bottom) flows only while the flux changes: clockwise entering, counterclockwise leaving, zero in between.</figcaption></figure>
+<p><strong>Step 1 — entering.</strong> With the leading edge a distance <span class="math inline">\(x &lt; \ell\)</span> into the region, the field fills an area <span class="math inline">\(\ell x\)</span> of the loop: <span class="math inline">\(\Phi_B = B\ell x\)</span>, rising at <span class="math inline">\(B\ell v\)</span>.</p>
+<p><span class="math display">\[|\mathcal E| = B\ell v, \qquad I = \frac{B\ell v}{R}\]</span></p>
+<p>The flux out of the page is increasing, so the induced field points into the page: the current runs <strong>clockwise</strong>.</p>
+<p><strong>Step 2 — fully inside.</strong> The whole loop is in the field: <span class="math inline">\(\Phi_B = B\ell^2\)</span>, which is not changing. <strong>No EMF, no current.</strong> In the force picture, both vertical sides now move through the field and each has an EMF <span class="math inline">\(B\ell v\)</span>, but the two push charge the same way in space — so around the loop they oppose, and cancel.</p>
+<p><strong>Step 3 — leaving.</strong> The flux falls at <span class="math inline">\(B\ell v\)</span>, so the EMF has the same size and the current runs the other way, <strong>counterclockwise</strong>.</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;|\mathcal E| = NB\ell v \ \ \text{entering or leaving}, \qquad \mathcal E = 0 \ \ \text{fully inside or fully outside}\;}\]</span></p>
+</div>
+<p>A coil of <span class="math inline">\(N\)</span> turns has <span class="math inline">\(N\)</span> such loops in series, hence the <span class="math inline">\(N\)</span>. The side in the field then carries <span class="math inline">\(NI\)</span> across it, and the force on that side is <span class="math inline">\(NI\ell B\)</span>.</p>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>The force always opposes the motion.</strong> Entering, the current is clockwise and the side in the field is the leading one; leaving, the current reverses but the side in the field is now the trailing one. Both flips together leave the force pointing backward — Lenz’s law each time.</li>
+<li><strong>Inside, the loop coasts.</strong> No current means no magnetic force. Uniform field alone does not slow the loop; only <em>changing flux</em> does.</li>
+<li><strong>Reverse the field.</strong> Every current direction reverses; the sizes do not.</li>
+</ul>
+</div>
 <h3 id="eddy-currents">Eddy Currents</h3>
-<p>When a bulk conductor (not just a thin wire) moves through a nonuniform magnetic field, the changing flux induces circulating currents throughout the conductor called <strong>eddy currents</strong>. These currents:</p>
+<p>A solid sheet of metal moving through a field is a crowd of loops at once. The changing flux drives swirling <strong>eddy currents</strong> in the metal (Figure 29.7), each obeying Lenz’s law. They push back on the motion and heat the metal as <span class="math inline">\(I^2R\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_6_eddy_currents.png" alt="Figure 29.7: A metal plate moving to the right through a region of field into the page. Where the plate enters the field, the induced current swirls counterclockwise; where it leaves, clockwise. Both produce a force against the motion." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 29.7: A metal plate moving to the right through a region of field into the page. Where the plate enters the field, the induced current swirls counterclockwise; where it leaves, clockwise. Both produce a force against the motion.</figcaption></figure>
 <ul>
-<li>Flow in closed loops within the conductor</li>
-<li>Obey Lenz’s Law: they create fields opposing the flux change</li>
-<li>Produce a braking force that opposes the relative motion</li>
-<li>Dissipate energy as <span class="math inline">\(I^2R\)</span> heating in the conductor</li>
+<li><strong>Magnetic braking:</strong> a strong magnet dropped down a copper pipe falls slowly, with no contact.</li>
+<li><strong>Induction cooktops:</strong> a rapidly alternating field drives eddy currents in the pan, which heats; the glass top does not.</li>
+<li><strong>Metal detectors:</strong> eddy currents in a buried object change the field of the detector’s coil.</li>
 </ul>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_6_eddy_currents.png" alt="Figure 29.6: Eddy currents in a conducting plate moving through a localized magnetic field region. The swirling currents produce a braking force." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 29.6: Eddy currents in a conducting plate moving through a localized magnetic field region. The swirling currents produce a braking force.</figcaption></figure>
-<p><strong>Applications:</strong></p>
-<ul>
-<li><strong>Magnetic braking:</strong> Drop a strong magnet through a copper tube — the magnet falls slowly because eddy currents create an upward force. No friction, no contact, no wear.</li>
-<li><strong>Induction cooktops:</strong> A rapidly alternating magnetic field induces eddy currents in the steel pot. The pot heats from <span class="math inline">\(I^2R\)</span> losses while the cooktop surface stays cool.</li>
-<li><strong>Metal detectors:</strong> A coil produces an alternating field; eddy currents in a metal object alter the field pattern, which the detector senses.</li>
-</ul>
-<h3 id="example-the-falling-magnet">Example: The Falling Magnet</h3>
-<p>A small neodymium magnet (mass <span class="math inline">\(m = 5.0\ \text{g}\)</span>) is dropped through a vertical copper pipe. It reaches a terminal velocity of <span class="math inline">\(v_t = 0.10\ \text{m/s}\)</span> (compared to free-fall speed after the same distance, which would be several m/s).</p>
-<p>At terminal velocity, the magnetic braking force equals gravity:</p>
-<p><span class="math display">\[F_\text{brake} = mg = (0.005)(9.8) = 0.049\ \text{N}\]</span></p>
-<p>The power dissipated as heat in the copper pipe walls is:</p>
-<p><span class="math display">\[P = F_\text{brake}\cdot v_t = (0.049)(0.10) = \boxed{4.9\ \text{mW}}\]</span></p>
-<p>The gravitational potential energy of the magnet is being converted entirely into ohmic heating of the copper pipe — through electromagnetic induction with no physical contact between magnet and pipe.</p>
+<section id="example-a-magnet-falling-through-a-copper-pipe" class="example">
+<h3>Example: A Magnet Falling Through a Copper Pipe</h3>
+<p>A magnet of mass <span class="math inline">\(m\)</span> falls down a vertical copper pipe at a steady terminal speed <span class="math inline">\(v_t\)</span>. Find the power dissipated in the pipe for <span class="math inline">\(m = 5.00\)</span> g, <span class="math inline">\(v_t = 0.100\)</span> m/s.</p>
+<p><em>Why it matters:</em> the mass and the terminal speed are easy to measure with a ruler and a stopwatch; the heating power in the pipe is not. The rail’s energy balance, <span class="math inline">\(Fv = I^2R\)</span>, turns one into the other.</p>
+<p><strong>Step 1 — symbols.</strong> At terminal speed the magnetic drag balances gravity, <span class="math inline">\(F = mg\)</span>, and the drag does work on the magnet at the rate <span class="math inline">\(Fv_t\)</span>. The magnet’s kinetic energy is not changing, so all of it goes into the pipe:</p>
+<p><span class="math display">\[P = mg\,v_t\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;P = (0.00500\ \text{kg})(9.80\ \text{m/s}^2)(0.100\ \text{m/s}) = 4.90\ \text{mW}\;}\]</span></p>
+</div>
+</section>
 <hr />
 <h2 id="inductance">29.5 — Inductance</h2>
-<h3 id="self-inductance">Self-Inductance</h3>
-<p>Any current-carrying loop creates a magnetic field, and that field produces a flux through the loop itself. If the current changes, the self-flux changes, and by Faraday’s Law, an EMF is induced in the loop. This phenomenon is called <strong>self-induction</strong>, and the proportionality constant between flux linkage and current is the <strong>self-inductance</strong> (or simply <strong>inductance</strong>) <span class="math inline">\(L\)</span>:</p>
-<p><span class="math display">\[\boxed{L = \frac{N\Phi_B}{I}}\]</span></p>
-<p>The SI unit is the <strong>henry</strong> (H), named after Joseph Henry:</p>
-<p><span class="math display">\[1\ \text{H} = 1\ \frac{\text{Wb}}{\text{A}} = 1\ \frac{\text{V}\cdot\text{s}}{\text{A}}\]</span></p>
-<p>The self-induced EMF is:</p>
-<p><span class="math display">\[\boxed{\mathcal{E}_L = -L\frac{dI}{dt}}\]</span></p>
-<p>The negative sign (Lenz’s Law again) means the induced EMF opposes the change in current. When current is increasing (<span class="math inline">\(dI/dt &gt; 0\)</span>), the inductor opposes the increase. When current is decreasing (<span class="math inline">\(dI/dt &lt; 0\)</span>), the inductor opposes the decrease. An inductor resists <em>any change</em> in current — it has electromagnetic inertia.</p>
-<h3 id="inductance-of-a-solenoid">Inductance of a Solenoid</h3>
-<p>The solenoid is the archetype inductor, just as the parallel-plate capacitor is the archetype capacitor. For a solenoid with <span class="math inline">\(N\)</span> turns, length <span class="math inline">\(\ell\)</span>, cross-sectional area <span class="math inline">\(A\)</span>, and turns per unit length <span class="math inline">\(n = N/\ell\)</span>:</p>
-<p>The field inside is <span class="math inline">\(B = \mu_0 nI\)</span> (from Chapter 28). The flux through each turn is <span class="math inline">\(\Phi_B = BA = \mu_0 nIA\)</span>. The total flux linkage is <span class="math inline">\(N\Phi_B = (n\ell)(\mu_0 nIA) = \mu_0 n^2\ell A I\)</span>. Therefore:</p>
-<p><span class="math display">\[\boxed{L = \mu_0 n^2 \ell A = \mu_0 n^2 V}\]</span></p>
-<p>where <span class="math inline">\(V = \ell A\)</span> is the volume of the solenoid. This can also be written as:</p>
-<p><span class="math display">\[L = \frac{\mu_0 N^2 A}{\ell}\]</span></p>
-<h3 id="the-grand-analogy-inductor-vs.-capacitor">The Grand Analogy — Inductor vs. Capacitor</h3>
-<p>This parallel is remarkable and worth studying carefully:</p>
+<h3 id="faradays-law-applied-to-a-coils-own-flux">Faraday’s Law Applied to a Coil’s Own Flux</h3>
+<p>A coil carrying current makes a field, and that field passes through the coil’s own turns. Change the current and the coil’s own flux changes, so Faraday’s law induces an EMF in the coil itself.</p>
+<p><strong>Step 1 — the flux linkage is proportional to the current.</strong> Every field a current makes is proportional to it (Chapter 28; for a solenoid, <span class="math inline">\(B = \mu_0 nI\)</span>), so <span class="math inline">\(N\Phi_B \propto I\)</span>. The constant of proportionality depends only on the coil’s shape. Call it the <strong>inductance</strong>:</p>
+<p><span class="math display">\[L = \frac{N\Phi_B}{I} \qquad (1\ \text{henry} = 1\ \text{H} = 1\ \text{Wb/A} = 1\ \text{V}\cdot\text{s/A})\]</span></p>
+<p><strong>Step 2 — Faraday’s law.</strong> With <span class="math inline">\(N\Phi_B = LI\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;L = \frac{N\Phi_B}{I}, \qquad \mathcal E_L = -\frac{d(N\Phi_B)}{dt} = -L\,\frac{dI}{dt}\;}\]</span></p>
+</div>
+<p>By Lenz’s law the self-induced EMF opposes the change in current: it pushes back while the current rises, and pushes forward while it falls.</p>
+<p><strong>An inductor is a flywheel for current.</strong> A flywheel resists any change in how fast it spins; once spinning it keeps going, and starting or stopping it takes effort. An inductor does the same to the current through it. A steady current costs the inductor nothing (<span class="math inline">\(dI/dt = 0\)</span>, no EMF); it is the <em>change</em> that meets resistance.</p>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
+<th>Flywheel</th>
+<th>Inductor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>rotational inertia</td>
+<td>inductance <span class="math inline">\(L\)</span></td>
+</tr>
+<tr class="even">
+<td>angular speed <span class="math inline">\(\omega\)</span></td>
+<td>current <span class="math inline">\(I\)</span></td>
+</tr>
+<tr class="odd">
+<td>torque needed <span class="math inline">\(\propto d\omega/dt\)</span></td>
+<td>EMF needed <span class="math inline">\(= L\,dI/dt\)</span></td>
+</tr>
+<tr class="even">
+<td>keeps spinning once started</td>
+<td>keeps the current flowing once started</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-inductance-of-a-solenoid">The Inductance of a Solenoid</h3>
+<p>A solenoid of length <span class="math inline">\(\ell\)</span>, cross-section <span class="math inline">\(A\)</span> and <span class="math inline">\(n\)</span> turns per meter (<span class="math inline">\(N = n\ell\)</span> turns in all):</p>
+<p><strong>Step 1 — the field and the flux per turn.</strong> <span class="math inline">\(B = \mu_0 nI\)</span> (§28.6), so each turn holds <span class="math inline">\(\Phi_B = \mu_0 nIA\)</span>.</p>
+<p><strong>Step 2 — the flux linkage.</strong> <span class="math inline">\(N\Phi_B = (n\ell)(\mu_0 nIA) = \mu_0 n^2\ell A\,I\)</span>.</p>
+<p><strong>Step 3 — divide by <span class="math inline">\(I\)</span>.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;L = \mu_0 n^2\ell A\;}\]</span></p>
+</div>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>No current in the answer.</strong> <span class="math inline">\(L\)</span> depends on the coil’s shape alone, as <span class="math inline">\(C\)</span> depends on the capacitor’s shape alone (<span class="math inline">\(C = \varepsilon_0 A/d\)</span>, Chapter 25).</li>
+<li><strong><span class="math inline">\(n^2\)</span>.</strong> Doubling the turns per meter doubles the field <em>and</em> doubles the number of turns it threads: four times the inductance.</li>
+<li><strong>Units.</strong> <span class="math inline">\(\mu_0 n^2\ell A\)</span>: <span class="math inline">\(\frac{\text{T}\cdot\text{m}}{\text{A}}\cdot\frac{1}{\text{m}^2}\cdot\text{m}\cdot\text{m}^2 = \frac{\text{T}\cdot\text{m}^2}{\text{A}} = \text{Wb/A} = \text{H}\)</span>.</li>
+</ul>
+</div>
+<section id="example-a-lab-inductor" class="example">
+<h3>Example: A Lab Inductor</h3>
+<p>A solenoid has <span class="math inline">\(N\)</span> turns on a length <span class="math inline">\(\ell\)</span> with radius <span class="math inline">\(r\)</span>. Find its inductance, and the EMF across it when the current changes at a rate <span class="math inline">\(dI/dt\)</span>, for <span class="math inline">\(N = 500\)</span>, <span class="math inline">\(\ell = 0.250\)</span> m, <span class="math inline">\(r = 2.00\)</span> cm, <span class="math inline">\(dI/dt = 200\)</span> A/s.</p>
+<p><em>Why it matters:</em> a ruler and a turn count give the inductance before the coil is ever powered, the same design move as <span class="math inline">\(C = \varepsilon_0 A/d\)</span>. The EMF it makes when the current changes is what the rest of the circuit feels.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(n = N/\ell\)</span> and <span class="math inline">\(A = \pi r^2\)</span>:</p>
+<p><span class="math display">\[L = \mu_0\left(\frac{N}{\ell}\right)^2\ell\,\pi r^2 = \frac{\mu_0N^2\pi r^2}{\ell}, \qquad |\mathcal E_L| = L\,\frac{dI}{dt}\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;L = \frac{(4\pi\times10^{-7})(500)^2\,\pi(0.0200\ \text{m})^2}{0.250\ \text{m}} = 1.58\ \text{mH}, \qquad |\mathcal E_L| = (1.58\times10^{-3}\ \text{H})(200\ \text{A/s}) = 0.316\ \text{V}\;}\]</span></p>
+</div>
+<p>Millihenrys are typical of electronics; a slow change in current barely registers.</p>
+</section>
+<section id="example-switching-off-an-inductive-load" class="example">
+<h3>Example: Switching Off an Inductive Load</h3>
+<p>A relay coil with <span class="math inline">\(L = 50.0\)</span> mH and winding resistance <span class="math inline">\(R = 2.00\ \Omega\)</span> runs from a <span class="math inline">\(6.00\)</span> V supply. A switch opens and stops the current in <span class="math inline">\(\Delta t = 0.100\)</span> ms. Estimate the EMF across the coil.</p>
+<p><em>Why it matters:</em> the inductance, the current and the switching time are known; the voltage across the opening contacts is what is wanted. That voltage is why every relay and motor driver carries a <strong>flyback diode</strong> across the coil, giving the current a closed path to die away gradually (§29.6 finds how fast). A car’s ignition coil does the opposite on purpose: it interrupts its current to make the spark.</p>
+<p><strong>Step 1 — the steady current.</strong> <span class="math inline">\(I = \mathcal E/R\)</span>, since a steady current meets no opposition from <span class="math inline">\(L\)</span>.</p>
+<p><strong>Step 2 — the kick.</strong> The current falls from <span class="math inline">\(I\)</span> to zero in <span class="math inline">\(\Delta t\)</span>, so on average</p>
+<p><span class="math display">\[|\mathcal E_L| = L\,\frac{\Delta I}{\Delta t} = \frac{L\,(\mathcal E/R)}{\Delta t}\]</span></p>
+<p><strong>Step 3 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I = \frac{6.00\ \text{V}}{2.00\ \Omega} = 3.00\ \text{A}, \qquad |\mathcal E_L| = (0.0500\ \text{H})\,\frac{3.00\ \text{A}}{1.00\times10^{-4}\ \text{s}} = 1500\ \text{V}\;}\]</span></p>
+</div>
+<p>Two hundred fifty times the supply voltage. The flywheel will not stop on a dime: the coil makes whatever EMF it takes to keep the current going, and here that EMF jumps the gap of the opening switch as a spark.</p>
+</section>
+<h3 id="mutual-inductance-and-the-transformer">Mutual Inductance and the Transformer</h3>
+<p>When two coils share flux, a changing current in one induces an EMF in the other: <span class="math inline">\(\mathcal E_2 = -M\,dI_1/dt\)</span>, where the <strong>mutual inductance</strong> <span class="math inline">\(M\)</span> depends on the coils’ shapes and placement.</p>
+<p>A <strong>transformer</strong> winds two coils on one iron core, which carries the same flux <span class="math inline">\(\Phi_B\)</span> through every turn of both. Faraday’s law on each coil:</p>
+<p><span class="math display">\[\mathcal E_1 = -N_1\frac{d\Phi_B}{dt}, \qquad \mathcal E_2 = -N_2\frac{d\Phi_B}{dt} \qquad\Longrightarrow\qquad \frac{\mathcal E_2}{\mathcal E_1} = \frac{N_2}{N_1}\]</span></p>
+<p>The voltage steps by the turns ratio — but only for a <em>changing</em> current, which is why the grid runs on alternating current. Stepping up to high voltage for transmission lowers the current, and the <span class="math inline">\(I^2R\)</span> lost in the lines falls with its square.</p>
+<div class="connection">
+<p><strong>The inductor is the capacitor’s partner.</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
 <th>Capacitor (Ch 25)</th>
 <th>Inductor (Ch 29)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Stores energy in</td>
-<td>Electric field</td>
-<td>Magnetic field</td>
-</tr>
-<tr class="even">
-<td>Defining relation</td>
+<td>Defined by</td>
 <td><span class="math inline">\(C = Q/\Delta V\)</span></td>
 <td><span class="math inline">\(L = N\Phi_B/I\)</span></td>
 </tr>
+<tr class="even">
+<td>Ideal shape</td>
+<td><span class="math inline">\(C = \varepsilon_0A/d\)</span></td>
+<td><span class="math inline">\(L = \mu_0n^2\ell A\)</span></td>
+</tr>
 <tr class="odd">
-<td>Geometry (ideal)</td>
-<td><span class="math inline">\(C = \varepsilon_0 A/d\)</span> (parallel plates)</td>
-<td><span class="math inline">\(L = \mu_0 n^2\ell A\)</span> (solenoid)</td>
+<td>Stores energy in</td>
+<td>the electric field</td>
+<td>the magnetic field (§29.6)</td>
 </tr>
 <tr class="even">
-<td>Energy stored</td>
-<td><span class="math inline">\(U_E = \frac{1}{2}C(\Delta V)^2 = \frac{1}{2}\frac{Q^2}{C}\)</span></td>
-<td><span class="math inline">\(U_B = \frac{1}{2}LI^2\)</span></td>
+<td>Resists a change in</td>
+<td>its voltage</td>
+<td>its current</td>
 </tr>
 <tr class="odd">
-<td>Energy density</td>
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td><span class="math inline">\(u_B = \frac{1}{2}\frac{B^2}{\mu_0}\)</span></td>
-</tr>
-<tr class="even">
-<td>Opposes changes in</td>
-<td>Voltage (holds <span class="math inline">\(\Delta V\)</span> constant)</td>
-<td>Current (holds <span class="math inline">\(I\)</span> constant)</td>
-</tr>
-<tr class="odd">
-<td>In DC steady state</td>
-<td>Open circuit (<span class="math inline">\(I = 0\)</span>)</td>
-<td>Short circuit (<span class="math inline">\(\Delta V = 0\)</span>)</td>
-</tr>
-<tr class="even">
-<td>Characteristic equation</td>
-<td><span class="math inline">\(I = C\,d(\Delta V)/dt\)</span></td>
-<td><span class="math inline">\(\mathcal{E} = -L\,dI/dt\)</span></td>
-</tr>
-<tr class="odd">
-<td>SI unit</td>
-<td>Farad (F) = C/V</td>
-<td>Henry (H) = V<span class="math inline">\(\cdot\)</span>s/A</td>
+<td>In a steady DC circuit</td>
+<td>an open switch</td>
+<td>a plain wire</td>
 </tr>
 </tbody>
 </table>
-<p>Both devices store energy in fields. The capacitor stores energy in the electric field between its plates; the inductor stores energy in the magnetic field inside its coils. The duality runs deep: every capacitor equation has an inductor counterpart with <span class="math inline">\(Q \leftrightarrow \Phi_B\)</span>, <span class="math inline">\(\Delta V \leftrightarrow I\)</span>, <span class="math inline">\(C \leftrightarrow L\)</span>, and <span class="math inline">\(\varepsilon_0 \leftrightarrow \mu_0\)</span>.</p>
-<h3 id="example-inductance-of-a-solenoid">Example: Inductance of a Solenoid</h3>
-<p>A solenoid has <span class="math inline">\(N = 500\)</span> turns, length <span class="math inline">\(\ell = 0.25\ \text{m}\)</span>, and radius <span class="math inline">\(r = 0.020\ \text{m}\)</span>.</p>
-<p><strong>Turns per unit length:</strong> <span class="math inline">\(n = N/\ell = 500/0.25 = 2000\ \text{turns/m}\)</span></p>
-<p><strong>Cross-sectional area:</strong> <span class="math inline">\(A = \pi r^2 = \pi(0.020)^2 = 1.26\times10^{-3}\ \text{m}^2\)</span></p>
-<p><strong>Inductance:</strong></p>
-<p><span class="math display">\[L = \mu_0 n^2\ell A = (4\pi\times10^{-7})(2000)^2(0.25)(1.26\times10^{-3}) = \boxed{1.58\ \text{mH}}\]</span></p>
-<p>This is a typical laboratory inductor. Millihenrys are common in electronics; henrys are rare and require very large coils.</p>
-<h3 id="example-self-induced-emf">Example: Self-Induced EMF</h3>
-<p>The solenoid above carries current that changes at <span class="math inline">\(dI/dt = 200\ \text{A/s}\)</span>.</p>
-<p><span class="math display">\[|\mathcal{E}_L| = L\frac{dI}{dt} = (1.58\times10^{-3})(200) = \boxed{0.316\ \text{V}}\]</span></p>
-<p>This “back-EMF” opposes the current change. In a circuit with a 12 V battery, this is a modest effect. But if you try to interrupt a large current through an inductor very quickly (<span class="math inline">\(dI/dt \to\)</span> very large), the back-EMF can be enormous — this is why opening a switch on an inductive circuit produces a spark. The inductor “fights” the sudden current drop by producing whatever voltage is needed to maintain current flow, even if that means arcing across the switch gap.</p>
-<h3 id="mutual-inductance">Mutual Inductance</h3>
-<p>When two coils are near each other, a changing current in one induces an EMF in the other. The <strong>mutual inductance</strong> <span class="math inline">\(M\)</span> quantifies this coupling:</p>
-<p><span class="math display">\[\mathcal{E}_2 = -M\frac{dI_1}{dt} \qquad \text{and} \qquad \mathcal{E}_1 = -M\frac{dI_2}{dt}\]</span></p>
-<p>where:</p>
-<p><span class="math display">\[\boxed{M = \frac{N_2\Phi_{12}}{I_1} = \frac{N_1\Phi_{21}}{I_2}}\]</span></p>
-<p>Here <span class="math inline">\(\Phi_{12}\)</span> is the flux through coil 2 due to the current in coil 1. A remarkable theorem (the Neumann formula) guarantees that <span class="math inline">\(M\)</span> is the same regardless of which coil is the source and which is the receiver.</p>
-<p><strong>The transformer</strong> is the most important application: two coils wound on a shared iron core with <span class="math inline">\(M\)</span> close to its theoretical maximum. From Chapter 31, the voltage ratio equals the turns ratio: <span class="math inline">\(V_2/V_1 = N_2/N_1\)</span>. Transformers are why we can transmit electrical power over long distances — stepping up to high voltage for transmission (low <span class="math inline">\(I^2R\)</span> losses) and stepping down for safe household use.</p>
+</div>
 <hr />
 <h2 id="rl-circuits">29.6 — RL Circuits</h2>
-<h3 id="a-new-kind-of-transient">A New Kind of Transient</h3>
-<p>In Chapter 27, we studied <strong>RC circuits</strong> — a resistor and capacitor sharing a loop, producing exponential charging and discharging. Now we study <strong>RL circuits</strong> — a resistor and inductor sharing a loop. The mathematics is nearly identical, but the physics has a beautiful mirror symmetry.</p>
-<p>In an RC circuit, the <em>capacitor</em> opposes changes in <em>voltage</em>. In an RL circuit, the <em>inductor</em> opposes changes in <em>current</em>.</p>
-<h3 id="current-growth-in-an-rl-circuit">Current Growth in an RL Circuit</h3>
-<p>Consider a battery <span class="math inline">\(\mathcal{E}\)</span>, a resistor <span class="math inline">\(R\)</span>, and an inductor <span class="math inline">\(L\)</span> in series. At <span class="math inline">\(t = 0\)</span>, we close the switch.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_7_rl_circuit.png" alt="Figure 29.7: An RL circuit with battery, switch, resistor, and inductor. After the switch closes, current grows exponentially toward its steady-state value." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 29.7: An RL circuit with battery, switch, resistor, and inductor. After the switch closes, current grows exponentially toward its steady-state value.</figcaption></figure>
-<p><strong>At <span class="math inline">\(t = 0\)</span>:</strong> No current flows (<span class="math inline">\(I = 0\)</span>). The inductor opposes the sudden appearance of current, so the entire battery voltage appears across the inductor: <span class="math inline">\(\mathcal{E}_L = \mathcal{E}\)</span>. The voltage across the resistor is <span class="math inline">\(V_R = 0\)</span>. The inductor initially acts like an <strong>open circuit</strong>.</p>
-<p><strong>As <span class="math inline">\(t\)</span> increases:</strong> Current begins to flow, slowly at first (because the inductor resists the change). As current grows, <span class="math inline">\(V_R = IR\)</span> increases and <span class="math inline">\(\mathcal{E}_L = \mathcal{E} - IR\)</span> decreases. The inductor’s opposition weakens because <span class="math inline">\(dI/dt\)</span> is getting smaller.</p>
-<p><strong>As <span class="math inline">\(t \to \infty\)</span>:</strong> Current reaches its steady-state value <span class="math inline">\(I_\text{max} = \mathcal{E}/R\)</span>. The inductor carries constant current (<span class="math inline">\(dI/dt = 0\)</span>), so <span class="math inline">\(\mathcal{E}_L = 0\)</span>. The inductor acts like a <strong>short circuit</strong> (just a wire). All the battery voltage appears across the resistor.</p>
-<p>Applying the loop rule at any time <span class="math inline">\(t\)</span>:</p>
-<p><span class="math display">\[\mathcal{E} - IR - L\frac{dI}{dt} = 0\]</span></p>
-<p>This is a first-order linear ODE. Its solution (verified by substitution) is:</p>
-<p><span class="math display">\[\boxed{I(t) = \frac{\mathcal{E}}{R}\left(1 - e^{-t/\tau_L}\right) = I_\text{max}\left(1 - e^{-t/\tau_L}\right)}\]</span></p>
-<p>where the <strong>RL time constant</strong> is:</p>
-<p><span class="math display">\[\boxed{\tau_L = \frac{L}{R}}\]</span></p>
-<p>The voltage across the inductor decays exponentially:</p>
-<p><span class="math display">\[\mathcal{E}_L(t) = \mathcal{E}\,e^{-t/\tau_L}\]</span></p>
-<h3 id="current-decay-in-an-rl-circuit">Current Decay in an RL Circuit</h3>
-<p>Now suppose steady-state current <span class="math inline">\(I_0 = \mathcal{E}/R\)</span> flows, and we suddenly remove the battery (shorting the RL loop). The inductor opposes the disappearance of current. The loop rule gives <span class="math inline">\(L\,dI/dt + IR = 0\)</span>, with solution:</p>
-<p><span class="math display">\[\boxed{I(t) = I_0\,e^{-t/\tau_L}}\]</span></p>
-<p>The current decays exponentially with the same time constant <span class="math inline">\(\tau_L = L/R\)</span>.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_8_rl_curves.png" alt="Figure 29.8: Current vs. time in an RL circuit. Left: current growth (switch closed at t = 0). Right: current decay (battery removed at t = 0). Both use time constant \tau_L = L/R." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.8: Current vs. time in an RL circuit. Left: current growth (switch closed at t = 0). Right: current decay (battery removed at t = 0). Both use time constant \tau_L = L/R.</figcaption></figure>
-<h3 id="the-time-constant-dimensional-analysis">The Time Constant: Dimensional Analysis</h3>
-<p><span class="math display">\[[\tau_L] = \frac{[L]}{[R]} = \frac{\text{H}}{\Omega} = \frac{\text{V}\cdot\text{s/A}}{\text{V/A}} = \text{s} \quad \checkmark\]</span></p>
-<p>Compare to the RC time constant: <span class="math inline">\(\tau_{RC} = RC\)</span> with <span class="math inline">\([\Omega][\text{F}] = \text{s}\)</span>. Both are products (or quotients) of the two circuit elements, yielding time.</p>
-<p><em>*Personal note: The dimensional analysis reveals the physics. In an RC circuit, large <span class="math inline">\(R\)</span> means slow charging (current trickles) and large <span class="math inline">\(C\)</span> means lots of charge to move — both increase the time. In an RL circuit, large <span class="math inline">\(L\)</span> means strong opposition to current change (electromagnetic inertia), increasing the time, while large <span class="math inline">\(R\)</span> means the “friction” is high, which actually speeds up the approach to equilibrium — hence <span class="math inline">\(L/R\)</span>, not <span class="math inline">\(LR\)</span>.</em></p>
-<h3 id="the-grand-comparison-rc-vs.-rl-circuits">The Grand Comparison — RC vs. RL Circuits</h3>
-<p>This is the capstone comparison table for this section. Every entry in the RC column has a mirror image in the RL column:</p>
+<h3 id="current-growth">Current Growth</h3>
+<p>A battery <span class="math inline">\(\mathcal E\)</span>, a resistor <span class="math inline">\(R\)</span> and an inductor <span class="math inline">\(L\)</span> are in series. At <span class="math inline">\(t = 0\)</span> the switch closes (Figure 29.8).</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_7_rl_circuit.png" alt="Figure 29.8: An RL circuit — battery, switch, resistor and inductor in one loop." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 29.8: An RL circuit — battery, switch, resistor and inductor in one loop.</figcaption></figure>
+<p><strong>Step 1 — the loop rule at time <span class="math inline">\(t\)</span>.</strong> Going around with the current, the resistor drops <span class="math inline">\(IR\)</span> and the inductor, opposing the rising current, drops <span class="math inline">\(L\,dI/dt\)</span>:</p>
+<p><span class="math display">\[\mathcal E - IR - L\,\frac{dI}{dt} = 0\]</span></p>
+<p><strong>Step 2 — the bridging step: it is Chapter 27’s equation.</strong> Rearranged, the RC charging equation of §27.4 and this one have the same shape:</p>
+<p><span class="math display">\[\text{RC:}\quad \frac{dq}{dt} = \frac{C\mathcal E - q}{RC}, \qquad\qquad \text{RL:}\quad \frac{dI}{dt} = \frac{\mathcal E/R - I}{L/R}\]</span></p>
+<p><em>Each says: the quantity climbs toward a final value at a rate proportional to how far it still has to go.</em> The final value is <span class="math inline">\(C\mathcal E\)</span> for the charge and <span class="math inline">\(\mathcal E/R\)</span> for the current; the time scale is <span class="math inline">\(RC\)</span> in one and <span class="math inline">\(L/R\)</span> in the other.</p>
+<p><strong>Step 3 — the same equation has the same solution.</strong> Section 27.4 solved the first (Steps 3–5 there). Replace <span class="math inline">\(q \to I\)</span>, <span class="math inline">\(C\mathcal E \to \mathcal E/R\)</span> and <span class="math inline">\(RC \to L/R\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I(t) = \frac{\mathcal E}{R}\left(1 - e^{-t/\tau}\right), \qquad \tau = \frac{L}{R}\;}\]</span></p>
+</div>
+<p><strong>Step 4 — the inductor’s EMF.</strong> Differentiate: <span class="math inline">\(L\,dI/dt = \mathcal E\,e^{-t/\tau}\)</span>. At the start the whole battery EMF sits across the inductor; it fades as the current builds.</p>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong>At <span class="math inline">\(t = 0\)</span>:</strong> <span class="math inline">\(I = 0\)</span> and the whole EMF is across <span class="math inline">\(L\)</span>. <strong>An inductor meeting a sudden voltage acts like an open switch</strong> — the reverse of an uncharged capacitor, which acts like a wire.</li>
+<li><strong>As <span class="math inline">\(t \to \infty\)</span>:</strong> <span class="math inline">\(I \to \mathcal E/R\)</span> and <span class="math inline">\(L\,dI/dt \to 0\)</span>. <strong>A steady-state inductor is a plain wire.</strong></li>
+<li><strong>Larger <span class="math inline">\(L\)</span> is slower;</strong> more flywheel. <strong>Larger <span class="math inline">\(R\)</span> is <em>faster</em></strong> — the reverse of RC. A larger <span class="math inline">\(R\)</span> sets a smaller final current <span class="math inline">\(\mathcal E/R\)</span>, so there is less current to build.</li>
+<li><strong>Units.</strong> <span class="math inline">\(\text{H}/\Omega = (\text{V}\cdot\text{s/A})/(\text{V/A}) = \text{s}\)</span>.</li>
+</ul>
+</div>
+<h3 id="current-decay">Current Decay</h3>
+<p>With a steady current <span class="math inline">\(I_0\)</span> flowing, the battery is switched out and the coil is left closed through <span class="math inline">\(R\)</span>. The loop rule is <span class="math inline">\(L\,dI/dt + IR = 0\)</span>, the RL partner of RC discharge (§27.4), with the same answer:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I(t) = I_0\,e^{-t/\tau}, \qquad \tau = \frac{L}{R}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_8_rl_curves.png" alt="Figure 29.9: Current in an RL circuit. Left: growth after the switch closes. Right: decay after the battery is removed. Both run on the time constant \tau = L/R." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.9: Current in an RL circuit. Left: growth after the switch closes. Right: decay after the battery is removed. Both run on the time constant <span class="math inline">\(\tau = L/R\)</span>.</figcaption></figure>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>RC Circuit (Ch 27)</th>
-<th>RL Circuit (Ch 29)</th>
+<th></th>
+<th>RC (Ch 27)</th>
+<th>RL (Ch 29)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Energy storage</td>
-<td><span class="math inline">\(U = \frac{1}{2}C(\Delta V)^2\)</span></td>
-<td><span class="math inline">\(U = \frac{1}{2}LI^2\)</span></td>
+<td>What climbs</td>
+<td>charge <span class="math inline">\(q\)</span></td>
+<td>current <span class="math inline">\(I\)</span></td>
 </tr>
 <tr class="even">
+<td>Final value</td>
+<td><span class="math inline">\(C\mathcal E\)</span></td>
+<td><span class="math inline">\(\mathcal E/R\)</span></td>
+</tr>
+<tr class="odd">
 <td>Time constant</td>
-<td><span class="math inline">\(\tau = RC\)</span></td>
-<td><span class="math inline">\(\tau = L/R\)</span></td>
-</tr>
-<tr class="odd">
-<td>Growth equation</td>
-<td><span class="math inline">\(q(t) = Q_\text{max}(1-e^{-t/\tau})\)</span></td>
-<td><span class="math inline">\(I(t) = I_\text{max}(1-e^{-t/\tau})\)</span></td>
+<td><span class="math inline">\(RC\)</span></td>
+<td><span class="math inline">\(L/R\)</span></td>
 </tr>
 <tr class="even">
-<td>Decay equation</td>
-<td><span class="math inline">\(q(t) = Q_0\,e^{-t/\tau}\)</span></td>
-<td><span class="math inline">\(I(t) = I_0\,e^{-t/\tau}\)</span></td>
+<td>Element at <span class="math inline">\(t = 0\)</span></td>
+<td>a wire</td>
+<td>an open switch</td>
 </tr>
 <tr class="odd">
-<td>What grows/decays</td>
-<td>Charge <span class="math inline">\(q\)</span> (or voltage <span class="math inline">\(\Delta V_C\)</span>)</td>
-<td>Current <span class="math inline">\(I\)</span></td>
+<td>Element at <span class="math inline">\(t \to \infty\)</span></td>
+<td>an open switch</td>
+<td>a wire</td>
 </tr>
 <tr class="even">
-<td>What decays/grows</td>
-<td>Current <span class="math inline">\(I\)</span></td>
-<td>Voltage <span class="math inline">\(\mathcal{E}_L\)</span></td>
-</tr>
-<tr class="odd">
-<td>Element at <span class="math inline">\(t = 0\)</span> acts like</td>
-<td>Short circuit (<span class="math inline">\(\Delta V_C = 0\)</span>)</td>
-<td>Open circuit (<span class="math inline">\(I = 0\)</span>)</td>
-</tr>
-<tr class="even">
-<td>Element at <span class="math inline">\(t = \infty\)</span> acts like</td>
-<td>Open circuit (<span class="math inline">\(I = 0\)</span>)</td>
-<td>Short circuit (<span class="math inline">\(\Delta V_L = 0\)</span>)</td>
-</tr>
-<tr class="odd">
-<td>Increasing <span class="math inline">\(R\)</span>…</td>
-<td>Increases <span class="math inline">\(\tau\)</span> (slower)</td>
-<td>Decreases <span class="math inline">\(\tau\)</span> (faster)</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(R\)</span> role</td>
-<td>Limits current flow</td>
-<td>Dissipates stored energy</td>
-</tr>
-<tr class="odd">
-<td>Differential equation</td>
-<td><span class="math inline">\(\mathcal{E} - q/C - IR = 0\)</span></td>
-<td><span class="math inline">\(\mathcal{E} - IR - L\,dI/dt = 0\)</span></td>
+<td>Larger <span class="math inline">\(R\)</span></td>
+<td>slower</td>
+<td>faster</td>
 </tr>
 </tbody>
 </table>
-<p>The physical reason for the inverted role of <span class="math inline">\(R\)</span>: In the RC circuit, the resistor is the bottleneck — it limits how fast charge can flow onto the capacitor. In the RL circuit, the inductor is the bottleneck — it limits how fast current can build. The resistor in the RL circuit is the “destination” that dissipates the stored magnetic energy during decay. Higher <span class="math inline">\(R\)</span> means faster energy dissipation, hence <em>shorter</em> time constant.</p>
 <h3 id="energy-stored-in-an-inductor">Energy Stored in an Inductor</h3>
-<p>Work must be done against the back-EMF to establish current in an inductor. The instantaneous power delivered to the inductor is <span class="math inline">\(P = \mathcal{E}_L I = LI\,dI/dt\)</span>. Integrating from <span class="math inline">\(I = 0\)</span> to <span class="math inline">\(I\)</span>:</p>
-<p><span class="math display">\[\boxed{U_B = \frac{1}{2}LI^2}\]</span></p>
-<p>This energy is stored in the magnetic field inside the inductor. For a solenoid with <span class="math inline">\(B = \mu_0 nI\)</span> and volume <span class="math inline">\(V = \ell A\)</span>:</p>
-<p><span class="math display">\[U_B = \frac{1}{2}LI^2 = \frac{1}{2}(\mu_0 n^2 \ell A)I^2 = \frac{B^2}{2\mu_0}\cdot(\ell A)\]</span></p>
-<p>The <strong>magnetic energy density</strong> is:</p>
-<p><span class="math display">\[\boxed{u_B = \frac{B^2}{2\mu_0}}\]</span></p>
-<p>Compare this to the electric energy density <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span> from Chapter 25. The structural parallel is exact:</p>
+<p><strong>Step 1 — the power to push current against the inductor.</strong> While the current rises, the inductor’s EMF <span class="math inline">\(L\,dI/dt\)</span> opposes it, and the circuit must deliver power <span class="math inline">\(P = I \cdot L\,dI/dt\)</span> to keep it rising.</p>
+<p><strong>Step 2 — the work for each small step in current.</strong> In time <span class="math inline">\(dt\)</span> the current rises by <span class="math inline">\(dI\)</span>, and the work done is</p>
+<p><span class="math display">\[dW = P\,dt = LI\,dI\]</span></p>
+<p><strong>Step 3 — add up the steps: a triangle.</strong> <span class="math inline">\(LI\)</span> plotted against <span class="math inline">\(I\)</span> is a straight line through the origin (Figure 29.10), so the total work from zero to <span class="math inline">\(I\)</span> is the area of a triangle, half the enclosing rectangle — exactly the argument of Chapter 25, where <span class="math inline">\(\Delta V = q/C\)</span> against <span class="math inline">\(q\)</span> gave <span class="math inline">\(\tfrac12C(\Delta V)^2\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_11_inductor_energy.png" alt="Figure 29.10: The flux linkage LI rises in proportion to the current. Each step dI costs dW = LI\,dI, a thin strip; the total is the triangle, \tfrac12LI^2." loading="lazy" style="max-width:min(3.4in,100%)" /><figcaption>Figure 29.10: The flux linkage <span class="math inline">\(LI\)</span> rises in proportion to the current. Each step <span class="math inline">\(dI\)</span> costs <span class="math inline">\(dW = LI\,dI\)</span>, a thin strip; the total is the triangle, <span class="math inline">\(\tfrac12LI^2\)</span>.</figcaption></figure>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U_B = \tfrac12 LI^2\;}\]</span></p>
+</div>
+<p>The energy is stored, not lost: when the current falls, the inductor gives it back. It is the flywheel’s <span class="math inline">\(\tfrac12(\text{inertia})\,\omega^2\)</span>, the spring’s <span class="math inline">\(\tfrac12kx^2\)</span>, and the capacitor’s <span class="math inline">\(\tfrac12C(\Delta V)^2\)</span>.</p>
+<h3 id="where-the-energy-lives-u_b">Where the Energy Lives: <span class="math inline">\(u_B\)</span></h3>
+<p>Section 31.5 used the magnetic energy density <span class="math inline">\(u_B = B^2/2\mu_0\)</span> as stated. The solenoid derives it, as the parallel-plate capacitor derived <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> in Chapter 25.</p>
+<p><strong>Step 1 — write <span class="math inline">\(U_B\)</span> in terms of the field.</strong> For a solenoid, <span class="math inline">\(L = \mu_0 n^2\ell A\)</span> and <span class="math inline">\(B = \mu_0 nI\)</span>, so <span class="math inline">\(I = B/\mu_0 n\)</span>:</p>
+<p><span class="math display">\[U_B = \tfrac12(\mu_0 n^2\ell A)\left(\frac{B}{\mu_0 n}\right)^2 = \frac{B^2}{2\mu_0}\,(\ell A)\]</span></p>
+<p><strong>Step 2 — divide by the volume.</strong> The field is uniform inside the solenoid and negligible outside, so the energy fills the volume <span class="math inline">\(\ell A\)</span> evenly:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;u_B = \frac{B^2}{2\mu_0}\;}\]</span></p>
+</div>
+<p>Back in §31.5, this with <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> and <span class="math inline">\(E = cB\)</span> showed that a light wave carries exactly half its energy in each field. That step now rests on a derivation.</p>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>Units.</strong> <span class="math inline">\(\frac{\text{T}^2}{\text{T}\cdot\text{m/A}} = \frac{\text{T}\cdot\text{A}}{\text{m}} = \frac{\text{N}}{\text{A}\cdot\text{m}}\cdot\frac{\text{A}}{\text{m}} = \frac{\text{N}}{\text{m}^2} = \frac{\text{J}}{\text{m}^3}\)</span>.</li>
+<li><strong>Two routes, one number.</strong> The lab inductor of §29.5 at 3.00 A has <span class="math inline">\(B = \mu_0(2000)(3.00) = 7.54\)</span> mT, <span class="math inline">\(u_B = 22.6\ \text{J/m}^3\)</span>, and a volume <span class="math inline">\(\ell A = 3.14\times10^{-4}\ \text{m}^3\)</span>, so <span class="math inline">\(U_B = 7.11\)</span> mJ — the same as <span class="math inline">\(\tfrac12LI^2 = \tfrac12(1.58\ \text{mH})(3.00\ \text{A})^2\)</span>.</li>
+</ul>
+</div>
+<section id="example-energy-in-an-rl-circuit" class="example">
+<h3>Example: Energy in an RL Circuit</h3>
+<p><span class="math inline">\(\mathcal E = 24.0\)</span> V, <span class="math inline">\(R = 8.00\ \Omega\)</span>, <span class="math inline">\(L = 4.00\)</span> H; the switch closes at <span class="math inline">\(t = 0\)</span>. Find the time constant, the final current, the current at <span class="math inline">\(t = \tau\)</span>, the energy stored at steady state, and the power in <span class="math inline">\(R\)</span> at <span class="math inline">\(t = \tau\)</span>.</p>
+<p><em>Why it matters:</em> <span class="math inline">\(L\)</span> and <span class="math inline">\(R\)</span> are measurable; the response time is what is designed for. Because a larger <span class="math inline">\(R\)</span> makes <span class="math inline">\(\tau\)</span> shorter, a solenoid valve that must snap open fast is often driven at a higher voltage through a series resistor: the same final current, reached sooner.</p>
+<p><strong>Step 1 — symbols.</strong></p>
+<p><span class="math display">\[\tau = \frac{L}{R}, \quad I_\text{max} = \frac{\mathcal E}{R}, \quad I(\tau) = I_\text{max}(1 - e^{-1}), \quad U_B = \tfrac12LI_\text{max}^2, \quad P_R = I(\tau)^2R\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\begin{aligned}
+\tau &amp;= \frac{4.00\ \text{H}}{8.00\ \Omega} = 0.500\ \text{s}, \qquad I_\text{max} = \frac{24.0\ \text{V}}{8.00\ \Omega} = 3.00\ \text{A}, \qquad I(\tau) = (3.00\ \text{A})(0.632) = 1.90\ \text{A}\\
+U_B &amp;= \tfrac12(4.00\ \text{H})(3.00\ \text{A})^2 = 18.0\ \text{J}, \qquad P_R = (1.90\ \text{A})^2(8.00\ \Omega) = 28.8\ \text{W}
+\end{aligned}\;}\]</span></p>
+</div>
+<p>At steady state the resistor takes the battery’s full <span class="math inline">\(72.0\)</span> W, and the inductor holds its 18.0 J without taking any more.</p>
+</section>
+<section id="example-the-relay-coil-revisited" class="example">
+<h3>Example: The Relay Coil, Revisited</h3>
+<p>Return to the relay coil of §29.5 (<span class="math inline">\(L = 50.0\)</span> mH, <span class="math inline">\(R = 2.00\ \Omega\)</span>, <span class="math inline">\(I = 3.00\)</span> A). With a flyback diode, the current dies away through the coil’s own resistance. Find the time constant and the energy the coil must get rid of.</p>
+<p><em>Why it matters:</em> <span class="math inline">\(L\)</span> and <span class="math inline">\(I\)</span> fix how much energy the coil holds; the diode or the switch decides how fast it comes out, and the rate is what does the damage.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(\tau = L/R\)</span> and <span class="math inline">\(U_B = \tfrac12LI^2\)</span>.</p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\tau = \frac{0.0500\ \text{H}}{2.00\ \Omega} = 25.0\ \text{ms}, \qquad U_B = \tfrac12(0.0500\ \text{H})(3.00\ \text{A})^2 = 0.225\ \text{J}\;}\]</span></p>
+</div>
+<p>The energy is the same either way; the time is not. Released over about <span class="math inline">\(25\)</span> ms through the diode, <span class="math inline">\(0.225\)</span> J is roughly 9 W for a moment, which a small diode handles. Forced out in the switch’s <span class="math inline">\(0.100\)</span> ms, it is about 2 kW, delivered as the spark.</p>
+</section>
+<hr />
+<h2 id="the-speed-of-light-from-laws-3-and-4">29.7 — The Speed of Light from Laws (3) and (4)</h2>
+<p>Section 31.3 stated that laws (3) and (4), applied to a front of field moving into empty space, fix its speed at <span class="math inline">\(c = 1/\sqrt{\mu_0\varepsilon_0}\)</span> and fix <span class="math inline">\(E = cB\)</span>. With Faraday’s law in hand, the derivation takes one loop for each law.</p>
+<p><em>Why it matters:</em> the two constants are measured on a lab bench: <span class="math inline">\(\varepsilon_0\)</span> from a capacitor (Chapter 25) and <span class="math inline">\(\mu_0\)</span> from the force between two wires (§28.5). The speed of light is what comes out. No optics go in, which is how Maxwell, in 1862, concluded that light is an electromagnetic wave.</p>
+<p><strong>The setup.</strong> A flat front moves in the <span class="math inline">\(+x\)</span> direction at an unknown speed <span class="math inline">\(v\)</span>. Behind it, there is a uniform <span class="math inline">\(\vec E\)</span> along <span class="math inline">\(y\)</span> and a uniform <span class="math inline">\(\vec B\)</span> along <span class="math inline">\(z\)</span>; ahead of it, no field yet. There are no charges and no currents anywhere (Figure 29.11).</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_10_moving_front.png" alt="Figure 29.11: A front of field moving to the right at speed v, with field behind it and none ahead. (a) A loop in the x–y plane straddling the front: the magnetic flux through it grows as the front advances, and only the side behind the front has \vec E along it. (b) A loop in the x–z plane: the electric flux grows, and only the side behind the front has \vec B along it. In time dt the front sweeps the hatched strip, of width v\,dt." loading="lazy" style="max-width:min(6.4in,100%)" /><figcaption>Figure 29.11: A front of field moving to the right at speed <span class="math inline">\(v\)</span>, with field behind it and none ahead. (a) A loop in the <span class="math inline">\(x\)</span>–<span class="math inline">\(y\)</span> plane straddling the front: the magnetic flux through it grows as the front advances, and only the side behind the front has <span class="math inline">\(\vec E\)</span> along it. (b) A loop in the <span class="math inline">\(x\)</span>–<span class="math inline">\(z\)</span> plane: the electric flux grows, and only the side behind the front has <span class="math inline">\(\vec B\)</span> along it. In time <span class="math inline">\(dt\)</span> the front sweeps the hatched strip, of width <span class="math inline">\(v\,dt\)</span>.</figcaption></figure>
+<p><strong>Step 1 — law (3), the flux.</strong> Take a rectangular loop of height <span class="math inline">\(h\)</span> in the <span class="math inline">\(x\)</span>–<span class="math inline">\(y\)</span> plane, straddling the front (Figure 29.11a). In time <span class="math inline">\(dt\)</span> the front advances <span class="math inline">\(v\,dt\)</span>, adding an area <span class="math inline">\(hv\,dt\)</span> of field <span class="math inline">\(B\)</span> inside the loop:</p>
+<p><span class="math display">\[\frac{d\Phi_B}{dt} = Bhv\]</span></p>
+<p><strong>Step 2 — law (3), the circulation.</strong> Along the loop’s top and bottom, <span class="math inline">\(\vec E\)</span> is perpendicular to the path and contributes nothing. The side ahead of the front has no field. Only the side behind it, of length <span class="math inline">\(h\)</span>, counts:</p>
+<p><span class="math display">\[\oint\vec E\cdot d\vec\ell = Eh\]</span></p>
+<p><strong>Step 3 — law (3) gives the first relation.</strong> Setting the two equal (sizes only):</p>
+<p><span class="math display">\[Eh = Bhv \qquad\Longrightarrow\qquad E = vB\]</span></p>
+<p><strong>Step 4 — law (4) gives the second.</strong> Repeat with a loop of height <span class="math inline">\(h\)</span> in the <span class="math inline">\(x\)</span>–<span class="math inline">\(z\)</span> plane (Figure 29.11b). There is no current, so only Maxwell’s term is left. The electric flux grows at <span class="math inline">\(Ehv\)</span>; the circulation of <span class="math inline">\(\vec B\)</span> is <span class="math inline">\(Bh\)</span>:</p>
+<p><span class="math display">\[Bh = \mu_0\varepsilon_0\,Ehv \qquad\Longrightarrow\qquad B = \mu_0\varepsilon_0\,vE\]</span></p>
+<p><strong>Step 5 — combine.</strong> Substitute the second into the first:</p>
+<p><span class="math display">\[E = v\,(\mu_0\varepsilon_0\,vE) \qquad\Longrightarrow\qquad v^2 = \frac{1}{\mu_0\varepsilon_0}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;v = \frac{1}{\sqrt{\mu_0\varepsilon_0}} = \frac{1}{\sqrt{(4\pi\times10^{-7})(8.854\times10^{-12})}} = 2.998\times10^8\ \text{m/s} = c, \qquad E = cB\;}\]</span></p>
+</div>
+<p><em>*Steps 3 and 4 used sizes only. Keeping the signs of laws (3) and (4) — each loop’s direction tied to its normal by the right-hand rule — gives the third result of §31.3, travel along <span class="math inline">\(\vec E\times\vec B\)</span>; that bookkeeping is not repeated here.</em></p>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>One speed only.</strong> <span class="math inline">\(E = vB\)</span> and <span class="math inline">\(B = \mu_0\varepsilon_0vE\)</span> can hold together with <span class="math inline">\(E \neq 0\)</span> only if <span class="math inline">\(v^2 = 1/\mu_0\varepsilon_0\)</span>. At any other speed the two laws contradict each other, and there is no front.</li>
+<li><strong>No charges, no currents.</strong> Nothing in Steps 1–5 refers to a source. Once started, the pair of fields carries itself.</li>
+<li><strong>No wave shape.</strong> The front could be the leading edge of any pattern; the sinusoid of §31.4 is one choice, and every shape moves at the same <span class="math inline">\(c\)</span>.</li>
+<li><strong><span class="math inline">\(E = cB\)</span></strong> is the <span class="math inline">\(E_0 = cB_0\)</span> of §31.4.</li>
+</ul>
+</div>
+<hr />
+<h2 id="maxwells-four-laws-assembled">29.8 — Maxwell’s Four Laws, Assembled</h2>
+<p>With Faraday’s law, every piece of classical electromagnetism has a chapter behind it:</p>
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -656,71 +801,55 @@
 </colgroup>
 <thead>
 <tr class="header">
-<th>Energy Density</th>
-<th>Electric (Ch 25)</th>
-<th>Magnetic (Ch 29)</th>
+<th>Law</th>
+<th>Integral form</th>
+<th>Where it comes from</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Expression</td>
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td><span class="math inline">\(u_B = \frac{B^2}{2\mu_0} = \frac{1}{2}\mu_0 H^2\)</span></td>
+<td><strong>(1) Gauss</strong></td>
+<td><span class="math inline">\(\oint\vec E\cdot d\vec A = Q_\text{enc}/\varepsilon_0\)</span></td>
+<td>Ch 23</td>
 </tr>
 <tr class="even">
-<td>Stored in</td>
-<td>Capacitor (parallel plates)</td>
-<td>Inductor (solenoid)</td>
+<td><strong>(2) Gauss, magnetic</strong></td>
+<td><span class="math inline">\(\oint\vec B\cdot d\vec A = 0\)</span></td>
+<td>Ch 28 (§28.7)</td>
 </tr>
 <tr class="odd">
-<td>Field source</td>
-<td>Charge separation</td>
-<td>Current</td>
+<td><strong>(3) Faraday</strong></td>
+<td><span class="math inline">\(\oint\vec E\cdot d\vec\ell = -\,d\Phi_B/dt\)</span></td>
+<td>Ch 29 (§29.2), stated in §31.1</td>
 </tr>
 <tr class="even">
-<td>Constant</td>
-<td><span class="math inline">\(\varepsilon_0\)</span> (permittivity)</td>
-<td><span class="math inline">\(\mu_0\)</span> (permeability)</td>
+<td><strong>(4) Ampère–Maxwell</strong></td>
+<td><span class="math inline">\(\oint\vec B\cdot d\vec\ell = \mu_0I_\text{enc} + \mu_0\varepsilon_0\,d\Phi_E/dt\)</span></td>
+<td>Ch 28 (§28.6) + Ch 31 (§31.2)</td>
 </tr>
 </tbody>
 </table>
-<p>In an electromagnetic wave (Chapter 31), the energy is shared equally between <span class="math inline">\(\vec{E}\)</span> and <span class="math inline">\(\vec{B}\)</span>: <span class="math inline">\(u_E = u_B\)</span> at every point. This equipartition is not a coincidence — it is a consequence of Maxwell’s equations.</p>
-<h3 id="example-energy-in-an-rl-circuit">Example: Energy in an RL Circuit</h3>
-<p><span class="math inline">\(\mathcal{E} = 24.0\ \text{V}\)</span>, <span class="math inline">\(R = 8.0\ \Omega\)</span>, <span class="math inline">\(L = 4.0\ \text{H}\)</span>.</p>
-<p><strong>(A) Time constant:</strong></p>
-<p><span class="math display">\[\tau = L/R = 4.0/8.0 = \boxed{0.50\ \text{s}}\]</span></p>
-<p><strong>(B) Steady-state current:</strong></p>
-<p><span class="math display">\[I_\text{max} = \mathcal{E}/R = 24.0/8.0 = \boxed{3.0\ \text{A}}\]</span></p>
-<p><strong>(C) Current at <span class="math inline">\(t = \tau\)</span>:</strong></p>
-<p><span class="math display">\[I(\tau) = 3.0(1 - e^{-1}) = 3.0(0.632) = \boxed{1.90\ \text{A}}\]</span></p>
-<p><strong>(D) Energy stored at steady state:</strong></p>
-<p><span class="math display">\[U_B = \frac{1}{2}LI_\text{max}^2 = \frac{1}{2}(4.0)(3.0)^2 = \boxed{18.0\ \text{J}}\]</span></p>
-<p><strong>(E) Power dissipated in <span class="math inline">\(R\)</span> at <span class="math inline">\(t = \tau\)</span>:</strong></p>
-<p><span class="math display">\[P_R = I^2 R = (1.90)^2(8.0) = \boxed{28.8\ \text{W}}\]</span></p>
-<p>Compare: at <span class="math inline">\(t = 0\)</span>, <span class="math inline">\(P_R = 0\)</span> (no current yet). At <span class="math inline">\(t = \infty\)</span>, <span class="math inline">\(P_R = I_\text{max}^2 R = 72\ \text{W}\)</span> (all battery power to resistor). The inductor stores no additional energy in steady state.</p>
-<h3 id="example-back-emf-in-a-motor">Example: Back-EMF in a Motor</h3>
-<p>A DC motor has inductance <span class="math inline">\(L = 50\ \text{mH}\)</span> and winding resistance <span class="math inline">\(R = 2.0\ \Omega\)</span>. When running at full speed, it draws <span class="math inline">\(I = 3.0\ \text{A}\)</span> from a <span class="math inline">\(12\ \text{V}\)</span> supply. When the motor is suddenly switched off, the current must drop from 3.0 A to 0 A.</p>
-<p><strong>(A) Time constant for current decay:</strong></p>
-<p><span class="math display">\[\tau = L/R = 0.050/2.0 = \boxed{25\ \text{ms}}\]</span></p>
-<p><strong>(B) If an engineer tries to interrupt the current in <span class="math inline">\(\Delta t = 0.10\ \text{ms}\)</span> (by opening a switch):</strong></p>
-<p><span class="math display">\[|\mathcal{E}_L| = L\frac{\Delta I}{\Delta t} = (0.050)\frac{3.0}{1.0\times10^{-4}} = \boxed{1500\ \text{V}}\]</span></p>
-<p>This is 125 times the supply voltage! The inductor generates whatever voltage is necessary to maintain current flow. In practice, this voltage arcs across the switch contacts, eroding them and creating electromagnetic interference. This is why inductive circuits always include a <strong>flyback diode</strong> or <strong>snubber circuit</strong> to provide a safe current path during switching. The inductor’s stored energy (<span class="math inline">\(U = \frac{1}{2}LI^2 = 0.225\ \text{J}\)</span>) must go somewhere — the diode lets it dissipate gradually instead of catastrophically.</p>
+<p>Laws (1) and (2) say where fields come from: electric field lines start on charge, and magnetic field lines never start at all. Laws (3) and (4) say how the two fields make each other when something changes — and §29.7 showed that those two alone, with no charge or current anywhere, carry a front of field across empty space at <span class="math inline">\(c\)</span>. The light of Chapters 30 and 31 is in these four lines.</p>
 <hr />
-<h2 id="summary">29.7 — Summary</h2>
+<h2 id="summary">29.9 — Summary</h2>
 <h3 id="key-concepts">Key Concepts</h3>
 <ol type="1">
-<li><p><strong>Magnetic flux</strong> <span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A} = BA\cos\theta\)</span> measures how much magnetic field threads through a surface. SI unit: weber (Wb = T<span class="math inline">\(\cdot\)</span>m<span class="math inline">\(^2\)</span>).</p></li>
-<li><p><strong>Faraday’s Law of Induction</strong>: A changing magnetic flux through a loop induces an EMF: <span class="math inline">\(\mathcal{E} = -N\,d\Phi_B/dt\)</span>. The EMF is proportional to the <em>rate</em> of flux change, not to the flux itself.</p></li>
-<li><p><strong>Lenz’s Law</strong>: The induced current opposes the change in flux that caused it. This is a consequence of energy conservation and is encoded in the negative sign of Faraday’s Law.</p></li>
-<li><p><strong>Motional EMF</strong>: A conductor of length <span class="math inline">\(L\)</span> moving at speed <span class="math inline">\(v\)</span> through a field <span class="math inline">\(B\)</span> develops <span class="math inline">\(\mathcal{E} = BLv\)</span>. This is Faraday’s Law applied to a changing-area circuit.</p></li>
-<li><p><strong>Eddy currents</strong> are induced circulating currents in bulk conductors exposed to changing magnetic flux. They produce braking forces (magnetic braking) and resistive heating.</p></li>
-<li><p><strong>Self-inductance</strong> <span class="math inline">\(L = N\Phi_B/I\)</span> characterizes a coil’s ability to oppose changes in its own current. For a solenoid: <span class="math inline">\(L = \mu_0 n^2\ell A\)</span>. SI unit: henry (H).</p></li>
-<li><p><strong>Mutual inductance</strong> <span class="math inline">\(M\)</span> couples two coils: <span class="math inline">\(\mathcal{E}_2 = -M\,dI_1/dt\)</span>. It is the basis of the transformer.</p></li>
-<li><p><strong>RL circuits</strong> have time constant <span class="math inline">\(\tau = L/R\)</span>. Current grows as <span class="math inline">\(I_\text{max}(1 - e^{-t/\tau})\)</span> and decays as <span class="math inline">\(I_0\,e^{-t/\tau}\)</span> — the exact mirror of RC circuits with the roles of voltage and current exchanged.</p></li>
-<li><p><strong>Energy stored in an inductor</strong>: <span class="math inline">\(U_B = \frac{1}{2}LI^2\)</span>. The <strong>magnetic energy density</strong> is <span class="math inline">\(u_B = B^2/(2\mu_0)\)</span>, the magnetic counterpart of <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span>.</p></li>
+<li><strong>Magnetic flux</strong> <span class="math inline">\(\Phi_B = BA\cos\theta\)</span> measures the field threading a loop; it counts only where the field is. <span class="math inline">\(N\Phi_B\)</span> is the flux linkage.</li>
+<li><strong>Faraday’s law:</strong> a changing flux induces <span class="math inline">\(\mathcal E = -N\,d\Phi_B/dt\)</span>. Only change matters — a change in <span class="math inline">\(B\)</span>, in area, or in angle. In field form it is law (3): the induced <span class="math inline">\(\vec E\)</span> circulates and has no potential.</li>
+<li><strong>Lenz’s law:</strong> the induced current opposes the change that made it. The minus sign is energy conservation; whoever changes the flux does the work.</li>
+<li><strong>Motional EMF</strong> <span class="math inline">\(\mathcal E = BLv\)</span> comes from <span class="math inline">\(q\vec v\times\vec B\)</span> on the moving conductor’s charges, and agrees with Faraday’s law. On the rail, <span class="math inline">\(F = B^2L^2v/R\)</span> opposes the motion and <span class="math inline">\(Fv = I^2R\)</span>.</li>
+<li><strong>A loop crossing a field region</strong> carries current only while entering or leaving, in opposite directions; fully inside, the flux is steady and there is none.</li>
+<li><strong>Inductance</strong> <span class="math inline">\(L = N\Phi_B/I\)</span> is Faraday’s law applied to a coil’s own flux: <span class="math inline">\(\mathcal E_L = -L\,dI/dt\)</span>. For a solenoid <span class="math inline">\(L = \mu_0n^2\ell A\)</span>. An inductor is a flywheel for current.</li>
+<li><strong>RL circuits</strong> obey RC’s equation with <span class="math inline">\(q \to I\)</span> and <span class="math inline">\(RC \to L/R\)</span>: the current climbs as <span class="math inline">\((\mathcal E/R)(1 - e^{-t/\tau})\)</span> and decays as <span class="math inline">\(I_0e^{-t/\tau}\)</span>, with <span class="math inline">\(\tau = L/R\)</span>.</li>
+<li><strong>Energy:</strong> <span class="math inline">\(U_B = \tfrac12LI^2\)</span>, from the triangle under <span class="math inline">\(LI\)</span>; in the field, <span class="math inline">\(u_B = B^2/2\mu_0\)</span>.</li>
+<li><strong>The speed of light</strong> follows from laws (3) and (4) applied to a moving front: <span class="math inline">\(c = 1/\sqrt{\mu_0\varepsilon_0}\)</span> and <span class="math inline">\(E = cB\)</span>.</li>
 </ol>
 <h3 id="key-equations">Key Equations</h3>
 <table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
 <thead>
 <tr class="header">
 <th>Quantity</th>
@@ -729,256 +858,94 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td>Magnetic flux</td>
-<td><span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A} = BA\cos\theta\)</span></td>
+<td>Magnetic flux (uniform <span class="math inline">\(B\)</span>, flat loop)</td>
+<td><span class="math inline">\(\Phi_B = BA\cos\theta\)</span></td>
 </tr>
 <tr class="even">
-<td>Faraday’s Law</td>
-<td><span class="math inline">\(\mathcal{E} = -N\,d\Phi_B/dt\)</span></td>
+<td>Faraday’s law</td>
+<td><span class="math inline">\(\mathcal E = -N\,d\Phi_B/dt\)</span>; <span class="math inline">\(\ \oint\vec E\cdot d\vec\ell = -d\Phi_B/dt\)</span></td>
 </tr>
 <tr class="odd">
-<td>Motional EMF</td>
-<td><span class="math inline">\(\mathcal{E} = BLv\)</span></td>
+<td>Generator</td>
+<td><span class="math inline">\(\mathcal E = NBA\omega\sin\omega t\)</span></td>
 </tr>
 <tr class="even">
-<td>Self-inductance</td>
-<td><span class="math inline">\(L = N\Phi_B/I\)</span></td>
+<td>Motional EMF</td>
+<td><span class="math inline">\(\mathcal E = BLv\)</span></td>
+</tr>
+<tr class="odd">
+<td>Rail</td>
+<td><span class="math inline">\(I = BLv/R\)</span>, <span class="math inline">\(\ F = B^2L^2v/R\)</span>, <span class="math inline">\(\ Fv = I^2R\)</span></td>
+</tr>
+<tr class="even">
+<td>Inductance; self-induced EMF</td>
+<td><span class="math inline">\(L = N\Phi_B/I\)</span>; <span class="math inline">\(\ \mathcal E_L = -L\,dI/dt\)</span></td>
 </tr>
 <tr class="odd">
 <td>Solenoid inductance</td>
-<td><span class="math inline">\(L = \mu_0 n^2\ell A = \mu_0 N^2 A/\ell\)</span></td>
+<td><span class="math inline">\(L = \mu_0n^2\ell A\)</span></td>
 </tr>
 <tr class="even">
-<td>Self-induced EMF</td>
-<td><span class="math inline">\(\mathcal{E}_L = -L\,dI/dt\)</span></td>
+<td>Transformer</td>
+<td><span class="math inline">\(\mathcal E_2/\mathcal E_1 = N_2/N_1\)</span></td>
 </tr>
 <tr class="odd">
-<td>Mutual inductance</td>
-<td><span class="math inline">\(\mathcal{E}_2 = -M\,dI_1/dt\)</span></td>
+<td>RL growth / decay</td>
+<td><span class="math inline">\(I = (\mathcal E/R)(1 - e^{-t/\tau})\)</span>; <span class="math inline">\(\ I = I_0e^{-t/\tau}\)</span>; <span class="math inline">\(\ \tau = L/R\)</span></td>
 </tr>
 <tr class="even">
-<td>RL time constant</td>
-<td><span class="math inline">\(\tau = L/R\)</span></td>
+<td>Energy in an inductor; energy density</td>
+<td><span class="math inline">\(U_B = \tfrac12LI^2\)</span>; <span class="math inline">\(\ u_B = B^2/2\mu_0\)</span></td>
 </tr>
 <tr class="odd">
-<td>RL growth</td>
-<td><span class="math inline">\(I(t) = (\mathcal{E}/R)(1 - e^{-t/\tau})\)</span></td>
-</tr>
-<tr class="even">
-<td>RL decay</td>
-<td><span class="math inline">\(I(t) = I_0\,e^{-t/\tau}\)</span></td>
-</tr>
-<tr class="odd">
-<td>Energy in inductor</td>
-<td><span class="math inline">\(U_B = \frac{1}{2}LI^2\)</span></td>
-</tr>
-<tr class="even">
-<td>Magnetic energy density</td>
-<td><span class="math inline">\(u_B = B^2/(2\mu_0)\)</span></td>
+<td>Speed of light</td>
+<td><span class="math inline">\(c = 1/\sqrt{\mu_0\varepsilon_0}\)</span>, <span class="math inline">\(\ E = cB\)</span></td>
 </tr>
 </tbody>
 </table>
-<h3 id="connections-magnetic-fields-ch-28-leftrightarrow-electromagnetic-induction-ch-29">Connections: Magnetic Fields (Ch 28) <span class="math inline">\(\leftrightarrow\)</span> Electromagnetic Induction (Ch 29)</h3>
+<section id="connections-to-earlier-chapters" class="connection">
+<h3>Connections to Earlier Chapters</h3>
 <table>
 <colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
+<col style="width: 69%" />
+<col style="width: 30%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th>Magnetic Fields (Ch 28)</th>
-<th>Electromagnetic Induction (Ch 29)</th>
+<th>Earlier result</th>
+<th>Ch 29</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Steady currents create <span class="math inline">\(\vec{B}\)</span></td>
-<td><em>Changing</em> <span class="math inline">\(\vec{B}\)</span> creates <span class="math inline">\(\mathcal{E}\)</span> (and <span class="math inline">\(\vec{E}\)</span>)</td>
+<td><span class="math inline">\(\oint\vec E\cdot d\vec\ell = 0\)</span> for static charges (Ch 24)</td>
+<td>nonzero when <span class="math inline">\(\Phi_B\)</span> changes: law (3)</td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(\vec{B}\)</span> exerts force on moving charges</td>
-<td>Changing <span class="math inline">\(\Phi_B\)</span> drives current without a battery</td>
+<td><span class="math inline">\(\tfrac12C(\Delta V)^2\)</span> as a triangle; <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> (Ch 25)</td>
+<td><span class="math inline">\(\tfrac12LI^2\)</span> as a triangle; <span class="math inline">\(u_B = B^2/2\mu_0\)</span></td>
 </tr>
 <tr class="odd">
-<td>Magnetic flux: <span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A}\)</span></td>
-<td>Faraday: <span class="math inline">\(\mathcal{E} = -d\Phi_B/dt\)</span></td>
+<td>EMF as work per unit charge around a circuit (Ch 26)</td>
+<td>the circulation of the induced <span class="math inline">\(\vec E\)</span></td>
 </tr>
 <tr class="even">
-<td>Solenoid: <span class="math inline">\(B = \mu_0 nI\)</span> (uniform field)</td>
-<td>Solenoid inductor: <span class="math inline">\(L = \mu_0 n^2\ell A\)</span></td>
+<td>RC charging and discharging, <span class="math inline">\(\tau = RC\)</span> (Ch 27)</td>
+<td>RL growth and decay, <span class="math inline">\(\tau = L/R\)</span></td>
 </tr>
 <tr class="odd">
-<td>Energy density: <span class="math inline">\(u_B = B^2/(2\mu_0)\)</span></td>
-<td>Energy stored: <span class="math inline">\(U_B = \frac{1}{2}LI^2\)</span></td>
+<td><span class="math inline">\(q\vec v\times\vec B\)</span>; <span class="math inline">\(F = ILB\)</span>; <span class="math inline">\(B = \mu_0nI\)</span> (Ch 28)</td>
+<td>motional EMF; the braking force; solenoid <span class="math inline">\(L\)</span></td>
 </tr>
 <tr class="even">
-<td>Force on wire: <span class="math inline">\(F = BIL\)</span></td>
-<td>Motional EMF: <span class="math inline">\(\mathcal{E} = BLv\)</span></td>
-</tr>
-<tr class="odd">
-<td>Gauss (magnetism): <span class="math inline">\(\oint\vec{B}\cdot d\vec{A} = 0\)</span></td>
-<td>Faraday: <span class="math inline">\(\oint\vec{E}\cdot d\vec{\ell} = -d\Phi_B/dt\)</span></td>
+<td>Law (3) stated; <span class="math inline">\(u_B\)</span> and <span class="math inline">\(c\)</span> used as stated (Ch 31)</td>
+<td>law (3) from experiment; <span class="math inline">\(u_B\)</span> and <span class="math inline">\(c\)</span> derived</td>
 </tr>
 </tbody>
 </table>
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Capacitors / RC Circuits (Ch 25, 27)</th>
-<th>Inductors / RL Circuits (Ch 29)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(C = Q/\Delta V\)</span></td>
-<td><span class="math inline">\(L = N\Phi_B/I\)</span></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(C = \varepsilon_0 A/d\)</span> (parallel plate)</td>
-<td><span class="math inline">\(L = \mu_0 n^2\ell A\)</span> (solenoid)</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(U_E = \frac{1}{2}C(\Delta V)^2\)</span></td>
-<td><span class="math inline">\(U_B = \frac{1}{2}LI^2\)</span></td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td><span class="math inline">\(u_B = B^2/(2\mu_0)\)</span></td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\tau_{RC} = RC\)</span></td>
-<td><span class="math inline">\(\tau_{RL} = L/R\)</span></td>
-</tr>
-<tr class="even">
-<td>Charging: <span class="math inline">\(q = Q_\text{max}(1-e^{-t/\tau})\)</span></td>
-<td>Growth: <span class="math inline">\(I = I_\text{max}(1-e^{-t/\tau})\)</span></td>
-</tr>
-<tr class="odd">
-<td>Discharging: <span class="math inline">\(q = Q_0\,e^{-t/\tau}\)</span></td>
-<td>Decay: <span class="math inline">\(I = I_0\,e^{-t/\tau}\)</span></td>
-</tr>
-<tr class="even">
-<td>At <span class="math inline">\(t=0\)</span>: short circuit</td>
-<td>At <span class="math inline">\(t=0\)</span>: open circuit</td>
-</tr>
-<tr class="odd">
-<td>At <span class="math inline">\(t=\infty\)</span>: open circuit</td>
-<td>At <span class="math inline">\(t=\infty\)</span>: short circuit</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="looking-back-maxwells-equations-assembled">29.8 — Looking Back: Maxwell’s Equations Assembled</h2>
-<p>Faraday’s Law is the last new equation we need. For the first time, you can write all of classical electromagnetism on a single page. Here are <strong>Maxwell’s four equations</strong> in integral form, with the chapter where each piece entered our story:</p>
-<p><span class="math display">\[\begin{array}{rl}
-\text{(1) Gauss&#39;s Law for } \vec{E}: &amp; \displaystyle\oint\vec{E}\cdot d\vec{A} = \frac{Q_\text{enc}}{\varepsilon_0} \\[0.6em]
-\text{(2) Gauss&#39;s Law for } \vec{B}: &amp; \displaystyle\oint\vec{B}\cdot d\vec{A} = 0 \\[0.6em]
-\text{(3) Faraday&#39;s Law:} &amp; \displaystyle\oint\vec{E}\cdot d\vec{\ell} = -\frac{d\Phi_B}{dt} \\[0.6em]
-\text{(4) Amp\`ere-Maxwell Law:} &amp; \displaystyle\oint\vec{B}\cdot d\vec{\ell} = \mu_0 I_\text{enc} + \mu_0\varepsilon_0\frac{d\Phi_E}{dt}
-\end{array}\]</span></p>
-<h3 id="chapter-provenance">Chapter Provenance</h3>
-<table>
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Equation</th>
-<th>What It Says</th>
-<th>First Encountered</th>
-<th>Completed In</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>(1) Gauss for <span class="math inline">\(\vec{E}\)</span></td>
-<td>Electric flux through a closed surface = <span class="math inline">\(Q_\text{enc}/\varepsilon_0\)</span></td>
-<td>Ch 23</td>
-<td>Ch 23</td>
-</tr>
-<tr class="even">
-<td>(2) Gauss for <span class="math inline">\(\vec{B}\)</span></td>
-<td>Net magnetic flux through any closed surface is zero (no monopoles)</td>
-<td>Ch 28 §28.7</td>
-<td>Ch 28 §28.7</td>
-</tr>
-<tr class="odd">
-<td>(3) Faraday’s Law</td>
-<td>Changing magnetic flux drives a circulating electric field</td>
-<td>Ch 29 §29.2</td>
-<td><strong>Ch 29 §29.2</strong> (this chapter)</td>
-</tr>
-<tr class="even">
-<td>(4) Ampère-Maxwell Law</td>
-<td>Currents <em>and</em> changing electric flux drive a circulating magnetic field</td>
-<td>Ch 28 §28.6 (static part)</td>
-<td>Ch 31 (displacement current)</td>
-</tr>
-</tbody>
-</table>
-<h3 id="the-unifying-grammar">The Unifying Grammar</h3>
-<p>Notice the shared vocabulary. Every one of the four equations is built from the same primitives:</p>
-<ul>
-<li><strong>Closed integrals</strong> — <span class="math inline">\(\oint\)</span> over a surface (Eqs 1–2) or a loop (Eqs 3–4).</li>
-<li><strong>Flux</strong> — <span class="math inline">\(\Phi_E = \int\vec{E}\cdot d\vec{A}\)</span> or <span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A}\)</span>. Three of the four equations are statements about flux.</li>
-<li><strong>Rate of change</strong> — <span class="math inline">\(d\Phi/dt\)</span> couples the two fields in Eqs 3 and 4. This coupling is what makes electromagnetic waves possible.</li>
-</ul>
-<p>Eqs 1 and 2 are <strong>static</strong> statements: where the fields come from (charges) and where they don’t (no magnetic monopoles). Eqs 3 and 4 are <strong>dynamic</strong> statements: how the fields interconvert when things change. Every phenomenon in classical E&amp;M — from a balloon sticking to a wall to the light from a distant star — is hidden inside these four lines.</p>
-<h3 id="what-each-chapter-bought-you">What Each Chapter Bought You</h3>
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Chapter</th>
-<th>Maxwell Contribution</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Ch 22</td>
-<td>Coulomb’s law → motivates <span class="math inline">\(\vec{E}\)</span> as a field</td>
-</tr>
-<tr class="even">
-<td>Ch 23</td>
-<td><strong>Gauss’s Law for <span class="math inline">\(\vec{E}\)</span></strong> (Eq 1), electric flux <span class="math inline">\(\Phi_E\)</span></td>
-</tr>
-<tr class="odd">
-<td>Ch 24–25</td>
-<td>Potential, capacitance, energy density <span class="math inline">\(u_E\)</span> (sidecar — not a Maxwell equation, but needed for EM-wave energy)</td>
-</tr>
-<tr class="even">
-<td>Ch 26–27</td>
-<td>Current <span class="math inline">\(I\)</span> and steady circuits (needed for Eq 4 RHS)</td>
-</tr>
-<tr class="odd">
-<td>Ch 28</td>
-<td><span class="math inline">\(\vec{B}\)</span> from currents; <strong>Gauss for <span class="math inline">\(\vec{B}\)</span></strong> (Eq 2); Ampère’s Law static form (Eq 4 partial)</td>
-</tr>
-<tr class="even">
-<td><strong>Ch 29</strong></td>
-<td><strong>Faraday’s Law</strong> (Eq 3); magnetic energy density <span class="math inline">\(u_B\)</span>; inductance as Faraday applied to self-flux</td>
-</tr>
-<tr class="odd">
-<td>Ch 31</td>
-<td><strong>Displacement current</strong> completes Eq 4; EM waves follow directly</td>
-</tr>
-</tbody>
-</table>
-<p><em>*Personal note: The four equations above are arguably the most beautiful result in classical physics. Feynman remarked that if all human knowledge were destroyed and only one sentence could be passed to the next generation, the sentence with the most information in the fewest words would be some form of “all things are made of atoms.” Maxwell’s equations come a close second — four lines that encode the behavior of light, the structure of atoms, every wire in every device you own, and the radiation crossing the universe. Now that you have all four, the rest of Chapter 31 will feel less like new material and more like consequences.</em></p>
-<hr />
-<h2 id="looking-ahead">Looking Ahead</h2>
-<p>In Chapter 30, we turn from fields and circuits to <strong>light itself</strong>. Geometric optics — reflection, refraction, lenses, and mirrors — describes how light behaves when it encounters objects much larger than its wavelength. Wave optics — interference and diffraction — reveals what happens when light encounters structures comparable to its wavelength. Both regimes trace back to Maxwell’s equations, which unify the electric and magnetic phenomena we have been building across Chapters 22–29.</p>
-<p><em>*Faraday’s Law is the third of Maxwell’s four equations. Together with Gauss’s Law, Gauss’s Law for magnetism, and Ampere’s Law (with Maxwell’s displacement current correction from Chapter 31), these four equations describe all of classical electromagnetism. Everything — from the static cling on a balloon to the light from a distant star — follows from them. What started with Coulomb’s single point charge in Chapter 22 has now grown into one of the most complete and beautiful theories in all of physics.</em></p>
+</section>
+<h2 id="looking-back">Looking Back</h2>
+<p>The course opened in Chapter 22 with Coulomb’s law: two charges at rest, one force between them. It closes with four field laws that hold everything since — the fields of charges (Chapters 22–25), the circuits that move charge (Chapters 26–27), the magnetic fields of moving charge (Chapter 28), and the induction of this chapter. Run two of those laws against each other in empty space and they produce light (§29.7), which is where Chapters 30 and 31 began. Every generator, transformer, motor, radio and fiber-optic link is an application of the four lines in §29.8.</p>
 
         </div>
       </div>

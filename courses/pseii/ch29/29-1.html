@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 29 sections"><h4><a href="index.html">Ch 29 &middot; Electromagnetic Induction</a></h4><ol><li class=""><a href="29-0.html"><b>29.0</b><span>The Discovery That Changed Everything</span></a></li><li class="here"><a href="29-1.html"><b>29.1</b><span>Magnetic Flux</span></a><ul><li><a href="#why-flux">Why Flux?</a></li><li><a href="#definition">Definition</a></li><li><a href="#physical-interpretation">Physical Interpretation</a></li><li><a href="#flux-through-a-coil-of-n-turns">Flux Through a Coil of \(N\) Turns</a></li><li><a href="#electric-flux-vs.-magnetic-flux">Electric Flux vs. Magnetic Flux</a></li><li><a href="#example-flux-through-a-tilted-loop">Example: Flux Through a Tilted Loop</a></li><li><a href="#example-flux-through-a-solenoid-loop">Example: Flux Through a Solenoid Loop</a></li></ul></li><li class=""><a href="29-2.html"><b>29.2</b><span>Faraday’s Law of Induction</span></a></li><li class=""><a href="29-3.html"><b>29.3</b><span>Lenz’s Law</span></a></li><li class=""><a href="29-4.html"><b>29.4</b><span>Motional EMF</span></a></li><li class=""><a href="29-5.html"><b>29.5</b><span>Inductance</span></a></li><li class=""><a href="29-6.html"><b>29.6</b><span>RL Circuits</span></a></li><li class=""><a href="29-7.html"><b>29.7</b><span>Summary</span></a></li><li class=""><a href="29-8.html"><b>29.8</b><span>Looking Back: Maxwell’s Equations Assembled</span></a></li></ol><div class="foot"><a href="index.html">Chapter 29 overview</a><a href="/courses/pseii/ch29.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 29 sections"><h4><a href="index.html">Ch 29 &middot; Electromagnetic Induction</a></h4><ol><li class=""><a href="29-0.html"><b>29.0</b><span>Only Change Matters</span></a></li><li class="here"><a href="29-1.html"><b>29.1</b><span>Magnetic Flux</span></a><ul><li><a href="#flux-through-a-loop">Flux Through a Loop</a></li></ul></li><li class=""><a href="29-2.html"><b>29.2</b><span>Faraday’s Law</span></a></li><li class=""><a href="29-3.html"><b>29.3</b><span>Lenz’s Law</span></a></li><li class=""><a href="29-4.html"><b>29.4</b><span>Motional EMF</span></a></li><li class=""><a href="29-5.html"><b>29.5</b><span>Inductance</span></a></li><li class=""><a href="29-6.html"><b>29.6</b><span>RL Circuits</span></a></li><li class=""><a href="29-7.html"><b>29.7</b><span>The Speed of Light from Laws (3) and (4)</span></a></li><li class=""><a href="29-8.html"><b>29.8</b><span>Maxwell’s Four Laws, Assembled</span></a></li><li class=""><a href="29-9.html"><b>29.9</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 29 overview</a><a href="/courses/pseii/ch29.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -305,32 +316,23 @@
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 29</a><span class="sep">/</span><span>Section 29.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="29-0.html" title="29.0 The Discovery That Changed Everything"><i></i>29.0</a><a class="here" href="29-1.html" title="29.1 Magnetic Flux"><i></i>29.1</a><a class="" href="29-2.html" title="29.2 Faraday’s Law of Induction"><i></i>29.2</a><a class="" href="29-3.html" title="29.3 Lenz’s Law"><i></i>29.3</a><a class="" href="29-4.html" title="29.4 Motional EMF"><i></i>29.4</a><a class="" href="29-5.html" title="29.5 Inductance"><i></i>29.5</a><a class="" href="29-6.html" title="29.6 RL Circuits"><i></i>29.6</a><a class="" href="29-7.html" title="29.7 Summary"><i></i>29.7</a><a class="" href="29-8.html" title="29.8 Looking Back: Maxwell’s Equations Assembled"><i></i>29.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 29.1 &middot; 2 of 9</summary><ol><li class=""><a href="29-0.html">29.0 &nbsp;The Discovery That Changed Everything</a></li><li class="here"><a href="29-1.html">29.1 &nbsp;Magnetic Flux</a></li><li class=""><a href="29-2.html">29.2 &nbsp;Faraday’s Law of Induction</a></li><li class=""><a href="29-3.html">29.3 &nbsp;Lenz’s Law</a></li><li class=""><a href="29-4.html">29.4 &nbsp;Motional EMF</a></li><li class=""><a href="29-5.html">29.5 &nbsp;Inductance</a></li><li class=""><a href="29-6.html">29.6 &nbsp;RL Circuits</a></li><li class=""><a href="29-7.html">29.7 &nbsp;Summary</a></li><li class=""><a href="29-8.html">29.8 &nbsp;Looking Back: Maxwell’s Equations Assembled</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 29</a><span class="sep">/</span><span>Section 29.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="29-0.html" title="29.0 Only Change Matters"><i></i>29.0</a><a class="here" href="29-1.html" title="29.1 Magnetic Flux"><i></i>29.1</a><a class="" href="29-2.html" title="29.2 Faraday’s Law"><i></i>29.2</a><a class="" href="29-3.html" title="29.3 Lenz’s Law"><i></i>29.3</a><a class="" href="29-4.html" title="29.4 Motional EMF"><i></i>29.4</a><a class="" href="29-5.html" title="29.5 Inductance"><i></i>29.5</a><a class="" href="29-6.html" title="29.6 RL Circuits"><i></i>29.6</a><a class="" href="29-7.html" title="29.7 The Speed of Light from Laws (3) and (4)"><i></i>29.7</a><a class="" href="29-8.html" title="29.8 Maxwell’s Four Laws, Assembled"><i></i>29.8</a><a class="" href="29-9.html" title="29.9 Summary"><i></i>29.9</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 29.1 &middot; 2 of 10</summary><ol><li class=""><a href="29-0.html">29.0 &nbsp;Only Change Matters</a></li><li class="here"><a href="29-1.html">29.1 &nbsp;Magnetic Flux</a></li><li class=""><a href="29-2.html">29.2 &nbsp;Faraday’s Law</a></li><li class=""><a href="29-3.html">29.3 &nbsp;Lenz’s Law</a></li><li class=""><a href="29-4.html">29.4 &nbsp;Motional EMF</a></li><li class=""><a href="29-5.html">29.5 &nbsp;Inductance</a></li><li class=""><a href="29-6.html">29.6 &nbsp;RL Circuits</a></li><li class=""><a href="29-7.html">29.7 &nbsp;The Speed of Light from Laws (3) and (4)</a></li><li class=""><a href="29-8.html">29.8 &nbsp;Maxwell’s Four Laws, Assembled</a></li><li class=""><a href="29-9.html">29.9 &nbsp;Summary</a></li></ol></details>
 
-<h3 id="why-flux">Why Flux?</h3>
-<p>Before we can state Faraday’s Law precisely, we need a quantity that captures “how much magnetic field passes through a loop.” We encountered this idea briefly in Chapter 28 (Section 28.7) when discussing Gauss’s Law for magnetism. Now we develop it as a working tool.</p>
-<p>Recall from Chapter 23 that we defined <strong>electric flux</strong> <span class="math inline">\(\Phi_E = \int\vec{E}\cdot d\vec{A}\)</span> to quantify how much electric field threads through a surface. The magnetic analog is identical in structure.</p>
-<h3 id="definition">Definition</h3>
-<p>The <strong>magnetic flux</strong> through a surface is:</p>
-<p><span class="math display">\[\boxed{\Phi_B = \int\vec{B}\cdot d\vec{A} = \int B\cos\theta\,dA}\]</span></p>
-<p>where <span class="math inline">\(\theta\)</span> is the angle between the magnetic field <span class="math inline">\(\vec{B}\)</span> and the area element <span class="math inline">\(d\vec{A}\)</span> (the outward normal to the surface). The SI unit is the <strong>weber</strong> (Wb):</p>
-<p><span class="math display">\[1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2\]</span></p>
-<p>For a uniform field passing through a flat surface of area <span class="math inline">\(A\)</span>:</p>
-<p><span class="math display">\[\boxed{\Phi_B = BA\cos\theta}\]</span></p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_1_magnetic_flux.png" alt="Figure 29.1: Magnetic flux through a flat loop. When the field is perpendicular to the loop plane (\theta = 0), flux is maximum. When the field is parallel to the loop plane (\theta = 90°), flux is zero." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 29.1: Magnetic flux through a flat loop. When the field is perpendicular to the loop plane (\theta = 0), flux is maximum. When the field is parallel to the loop plane (\theta = 90°), flux is zero.</figcaption></figure>
-<h3 id="physical-interpretation">Physical Interpretation</h3>
-<p>Think of magnetic flux as the number of field lines threading through the loop. More precisely:</p>
+<h3 id="flux-through-a-loop">Flux Through a Loop</h3>
+<p>Section 31.1 defined the magnetic flux through a surface exactly as Chapter 23 defined the electric flux, and §28.7 showed that the flux out of any <em>closed</em> surface is zero. Faraday’s law uses the flux through an <em>open</em> surface bounded by a loop of wire:</p>
+<p><span class="math display">\[\Phi_B = \int \vec B \cdot d\vec A\]</span></p>
+<p>The direction of <span class="math inline">\(d\vec A\)</span> is the surface’s normal <span class="math inline">\(\hat n\)</span>, tied to a chosen direction around the loop by the right-hand rule (§31.1). For a uniform field through a flat loop of area <span class="math inline">\(A\)</span>, with <span class="math inline">\(\theta\)</span> the angle between <span class="math inline">\(\vec B\)</span> and <span class="math inline">\(\hat n\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = BA\cos\theta \qquad (1\ \text{Wb} = 1\ \text{T}\cdot\text{m}^2)\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_1_magnetic_flux.png" alt="Figure 29.1: Magnetic flux through a flat loop. Face-on (\theta = 0) the loop catches the most field; tilted, the flux is BA\cos\theta; edge-on (\theta = 90°) the field slides past and the flux is zero." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.1: Magnetic flux through a flat loop. Face-on (<span class="math inline">\(\theta = 0\)</span>) the loop catches the most field; tilted, the flux is <span class="math inline">\(BA\cos\theta\)</span>; edge-on (<span class="math inline">\(\theta = 90°\)</span>) the field slides past and the flux is zero.</figcaption></figure>
 <ul>
-<li><strong><span class="math inline">\(\theta = 0°\)</span></strong> (<span class="math inline">\(\vec{B}\perp\)</span> loop plane, <span class="math inline">\(\vec{B}\parallel\hat{n}\)</span>): <span class="math inline">\(\Phi_B = BA\)</span> — maximum flux. The loop “catches” all the field lines.</li>
-<li><strong><span class="math inline">\(\theta = 90°\)</span></strong> (<span class="math inline">\(\vec{B}\parallel\)</span> loop plane, <span class="math inline">\(\vec{B}\perp\hat{n}\)</span>): <span class="math inline">\(\Phi_B = 0\)</span> — no flux. The field lines slide along the surface without piercing it.</li>
-<li><strong><span class="math inline">\(\theta = 180°\)</span></strong>: <span class="math inline">\(\Phi_B = -BA\)</span> — maximum negative flux. The field lines thread through in the opposite sense.</li>
+<li><strong><span class="math inline">\(\theta = 0\)</span>:</strong> <span class="math inline">\(\Phi_B = BA\)</span>, the most the loop can hold.</li>
+<li><strong><span class="math inline">\(\theta = 90°\)</span>:</strong> <span class="math inline">\(\Phi_B = 0\)</span>. The field lines run along the surface without piercing it.</li>
+<li><strong><span class="math inline">\(\theta = 180°\)</span>:</strong> <span class="math inline">\(\Phi_B = -BA\)</span>. The same field threads the loop the other way, relative to the chosen <span class="math inline">\(\hat n\)</span>.</li>
 </ul>
-<p>The sign of the flux depends on which side of the surface we call “positive” (i.e., the direction of <span class="math inline">\(\hat{n}\)</span>). For a closed surface, we use the outward normal by convention, and Gauss’s Law for magnetism guarantees <span class="math inline">\(\oint\vec{B}\cdot d\vec{A} = 0\)</span>. For an open surface bounded by a loop (which is what Faraday’s Law uses), the direction of <span class="math inline">\(\hat{n}\)</span> is linked to the sense of traversal around the loop by the right-hand rule.</p>
-<h3 id="flux-through-a-coil-of-n-turns">Flux Through a Coil of <span class="math inline">\(N\)</span> Turns</h3>
-<p>If a coil has <span class="math inline">\(N\)</span> identical turns, each turn intercepts approximately the same flux <span class="math inline">\(\Phi_B\)</span>. The total flux linkage is:</p>
-<p><span class="math display">\[N\Phi_B\]</span></p>
-<p>This quantity appears directly in Faraday’s Law and in the definition of inductance (Section 29.5).</p>
-<h3 id="electric-flux-vs.-magnetic-flux">Electric Flux vs. Magnetic Flux</h3>
+<p>A coil of <span class="math inline">\(N\)</span> identical turns catches the flux <span class="math inline">\(\Phi_B\)</span> in each turn. The total, <span class="math inline">\(N\Phi_B\)</span>, is the <strong>flux linkage</strong>; it is the quantity Faraday’s law and inductance (§29.5) both use.</p>
+<div class="connection">
 <table>
 <colgroup>
 <col style="width: 33%" />
@@ -339,50 +341,55 @@
 </colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>Electric Flux (Ch 23)</th>
-<th>Magnetic Flux (Ch 28–29)</th>
+<th></th>
+<th>Electric flux (Ch 23)</th>
+<th>Magnetic flux (Ch 28–29)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Definition</td>
-<td><span class="math inline">\(\Phi_E = \int\vec{E}\cdot d\vec{A}\)</span></td>
-<td><span class="math inline">\(\Phi_B = \int\vec{B}\cdot d\vec{A}\)</span></td>
+<td><span class="math inline">\(\Phi_E = \int\vec E\cdot d\vec A\)</span></td>
+<td><span class="math inline">\(\Phi_B = \int\vec B\cdot d\vec A\)</span></td>
 </tr>
 <tr class="even">
-<td>Units</td>
-<td>N<span class="math inline">\(\cdot\)</span>m<span class="math inline">\(^2\)</span>/C (or V<span class="math inline">\(\cdot\)</span>m)</td>
-<td>Wb = T<span class="math inline">\(\cdot\)</span>m<span class="math inline">\(^2\)</span></td>
+<td>Out of a closed surface</td>
+<td><span class="math inline">\(Q_\text{enc}/\varepsilon_0\)</span></td>
+<td><span class="math inline">\(0\)</span> (§28.7)</td>
 </tr>
 <tr class="odd">
-<td>Through closed surface</td>
-<td><span class="math inline">\(\Phi_E = Q_\text{enc}/\varepsilon_0\)</span> (can be <span class="math inline">\(\neq 0\)</span>)</td>
-<td><span class="math inline">\(\Phi_B = 0\)</span> (always)</td>
-</tr>
-<tr class="even">
-<td>Physical meaning</td>
-<td>Net field lines leaving enclosed charge</td>
-<td>Field lines threading through a surface</td>
-</tr>
-<tr class="odd">
-<td>Role in Maxwell’s equations</td>
-<td>Gauss’s Law</td>
-<td>Gauss’s Law for magnetism; Faraday’s Law</td>
+<td>Through a loop, changing</td>
+<td>drives a circulating <span class="math inline">\(\vec B\)</span> (§31.2)</td>
+<td>drives a circulating <span class="math inline">\(\vec E\)</span> (§29.2)</td>
 </tr>
 </tbody>
 </table>
-<h3 id="example-flux-through-a-tilted-loop">Example: Flux Through a Tilted Loop</h3>
-<p>A circular loop of radius <span class="math inline">\(r = 0.10\ \text{m}\)</span> is placed in a uniform magnetic field <span class="math inline">\(B = 0.50\ \text{T}\)</span>. The normal to the loop makes an angle <span class="math inline">\(\theta = 30°\)</span> with <span class="math inline">\(\vec{B}\)</span>.</p>
-<p><strong>Area:</strong> <span class="math inline">\(A = \pi r^2 = \pi(0.10)^2 = 3.14\times10^{-2}\ \text{m}^2\)</span></p>
-<p><strong>Flux:</strong> <span class="math inline">\(\Phi_B = BA\cos\theta = (0.50)(3.14\times10^{-2})\cos 30° = \boxed{1.36\times10^{-2}\ \text{Wb} = 13.6\ \text{mWb}}\)</span></p>
-<p>If the loop is rotated to <span class="math inline">\(\theta = 0°\)</span> (face-on): <span class="math inline">\(\Phi_B = 15.7\ \text{mWb}\)</span>. If tilted to <span class="math inline">\(\theta = 90°\)</span> (edge-on): <span class="math inline">\(\Phi_B = 0\)</span>. The flux varies smoothly between these extremes as the loop rotates — and that variation is exactly what drives an electric generator.</p>
-<h3 id="example-flux-through-a-solenoid-loop">Example: Flux Through a Solenoid Loop</h3>
-<p>A circular loop of radius <span class="math inline">\(r_\text{loop} = 0.15\ \text{m}\)</span> surrounds a solenoid of radius <span class="math inline">\(r_\text{sol} = 0.050\ \text{m}\)</span>, <span class="math inline">\(n = 1000\ \text{turns/m}\)</span>, <span class="math inline">\(I = 3.0\ \text{A}\)</span>. The loop and solenoid share the same axis.</p>
-<p><strong>Key insight:</strong> The field inside the solenoid is <span class="math inline">\(B = \mu_0 nI = (4\pi\times10^{-7})(1000)(3.0) = 3.77\times10^{-3}\ \text{T}\)</span>, but the field is confined to the solenoid’s cross-section (<span class="math inline">\(B \approx 0\)</span> outside). The flux through the loop uses the <em>solenoid’s</em> area, not the loop’s area:</p>
-<p><span class="math display">\[\Phi_B = B(\pi r_\text{sol}^2) = (3.77\times10^{-3})\pi(0.050)^2 = \boxed{2.96\times10^{-5}\ \text{Wb} = 29.6\ \mu\text{Wb}}\]</span></p>
-<p>Making the surrounding loop larger does not increase the flux — the extra area is in a region where <span class="math inline">\(B = 0\)</span>. This is a common conceptual trap: <strong>flux depends on where the field is, not just the area of the loop.</strong></p>
-<nav class="secnav"><a class="prev" href="29-0.html"><span class="lab">&larr; Previous section</span><span class="tt">29.0 &nbsp;The Discovery That Changed Everything</span></a><a class="next" href="29-2.html"><span class="lab">Next section &rarr;</span><span class="tt">29.2 &nbsp;Faraday’s Law of Induction</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch29.html">Whole chapter on one page</a></p>
+</div>
+<section id="example-flux-through-a-tilted-loop" class="example">
+<h3>Example: Flux Through a Tilted Loop</h3>
+<p>A circular loop of radius <span class="math inline">\(r\)</span> sits in a uniform field <span class="math inline">\(B\)</span>, its normal at <span class="math inline">\(\theta\)</span> to the field. Find the flux for <span class="math inline">\(r = 0.100\)</span> m, <span class="math inline">\(B = 0.500\)</span> T, <span class="math inline">\(\theta = 30.0°\)</span>.</p>
+<p><em>Why it matters:</em> the field and the loop’s tilt are what can be measured; the flux is the one number Faraday’s law needs. Turned through a full circle, the flux swings from its face-on value to minus that value, and that swing is the generator of §29.2.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(A = \pi r^2\)</span>, so</p>
+<p><span class="math display">\[\Phi_B = B\pi r^2\cos\theta\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = (0.500\ \text{T})\,\pi(0.100\ \text{m})^2\cos 30.0° = 1.36\times10^{-2}\ \text{Wb} = 13.6\ \text{mWb}\;}\]</span></p>
+</div>
+<p>Face-on the same loop holds <span class="math inline">\(15.7\)</span> mWb; edge-on, zero.</p>
+</section>
+<section id="example-a-loop-around-a-solenoid" class="example">
+<h3>Example: A Loop Around a Solenoid</h3>
+<p>A long solenoid of radius <span class="math inline">\(r_s\)</span> with <span class="math inline">\(n\)</span> turns per meter carries current <span class="math inline">\(I\)</span>. A circular loop of radius <span class="math inline">\(r_\ell &gt; r_s\)</span> surrounds it on the same axis. Find the flux through the loop for <span class="math inline">\(r_s = 5.00\)</span> cm, <span class="math inline">\(n = 1000\)</span> turns/m, <span class="math inline">\(I = 3.00\)</span> A, <span class="math inline">\(r_\ell = 15.0\)</span> cm.</p>
+<p><em>Why it matters:</em> the solenoid’s winding and current are set on the bench; the flux through the outer loop is what a pickup coil reads. Flux is counted where the field is, which is why a pickup coil does not need to fit snugly.</p>
+<p><strong>Step 1 — where the field is.</strong> Inside the solenoid <span class="math inline">\(B = \mu_0 nI\)</span> (§28.6); outside, <span class="math inline">\(B \approx 0\)</span>. Only the solenoid’s cross-section carries flux, so the loop’s own area does not appear:</p>
+<p><span class="math display">\[\Phi_B = \mu_0 nI\,\pi r_s^2\]</span></p>
+<p><strong>Step 2 — numbers.</strong> <span class="math inline">\(B = (4\pi\times10^{-7})(1000)(3.00) = 3.77\)</span> mT, and</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\Phi_B = (3.77\times10^{-3}\ \text{T})\,\pi(0.0500\ \text{m})^2 = 2.96\times10^{-5}\ \text{Wb} = 29.6\ \mu\text{Wb}\;}\]</span></p>
+</div>
+<p><span class="math inline">\(r_\ell\)</span> never entered. A loop of radius 15 cm or 1.5 m holds the same flux.</p>
+</section>
+<nav class="secnav"><a class="prev" href="29-0.html"><span class="lab">&larr; Previous section</span><span class="tt">29.0 &nbsp;Only Change Matters</span></a><a class="next" href="29-2.html"><span class="lab">Next section &rarr;</span><span class="tt">29.2 &nbsp;Faraday’s Law</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch29.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>

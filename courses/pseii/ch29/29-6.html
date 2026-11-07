@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,7 +303,7 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 29 sections"><h4><a href="index.html">Ch 29 &middot; Electromagnetic Induction</a></h4><ol><li class=""><a href="29-0.html"><b>29.0</b><span>The Discovery That Changed Everything</span></a></li><li class=""><a href="29-1.html"><b>29.1</b><span>Magnetic Flux</span></a></li><li class=""><a href="29-2.html"><b>29.2</b><span>Faraday’s Law of Induction</span></a></li><li class=""><a href="29-3.html"><b>29.3</b><span>Lenz’s Law</span></a></li><li class=""><a href="29-4.html"><b>29.4</b><span>Motional EMF</span></a></li><li class=""><a href="29-5.html"><b>29.5</b><span>Inductance</span></a></li><li class="here"><a href="29-6.html"><b>29.6</b><span>RL Circuits</span></a><ul><li><a href="#a-new-kind-of-transient">A New Kind of Transient</a></li><li><a href="#current-growth-in-an-rl-circuit">Current Growth in an RL Circuit</a></li><li><a href="#current-decay-in-an-rl-circuit">Current Decay in an RL Circuit</a></li><li><a href="#the-time-constant-dimensional-analysis">The Time Constant: Dimensional Analysis</a></li><li><a href="#the-grand-comparison-rc-vs.-rl-circuits">The Grand Comparison — RC vs. RL Circuits</a></li><li><a href="#energy-stored-in-an-inductor">Energy Stored in an Inductor</a></li><li><a href="#example-energy-in-an-rl-circuit">Example: Energy in an RL Circuit</a></li><li><a href="#example-back-emf-in-a-motor">Example: Back-EMF in a Motor</a></li></ul></li><li class=""><a href="29-7.html"><b>29.7</b><span>Summary</span></a></li><li class=""><a href="29-8.html"><b>29.8</b><span>Looking Back: Maxwell’s Equations Assembled</span></a></li></ol><div class="foot"><a href="index.html">Chapter 29 overview</a><a href="/courses/pseii/ch29.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 29 sections"><h4><a href="index.html">Ch 29 &middot; Electromagnetic Induction</a></h4><ol><li class=""><a href="29-0.html"><b>29.0</b><span>Only Change Matters</span></a></li><li class=""><a href="29-1.html"><b>29.1</b><span>Magnetic Flux</span></a></li><li class=""><a href="29-2.html"><b>29.2</b><span>Faraday’s Law</span></a></li><li class=""><a href="29-3.html"><b>29.3</b><span>Lenz’s Law</span></a></li><li class=""><a href="29-4.html"><b>29.4</b><span>Motional EMF</span></a></li><li class=""><a href="29-5.html"><b>29.5</b><span>Inductance</span></a></li><li class="here"><a href="29-6.html"><b>29.6</b><span>RL Circuits</span></a><ul><li><a href="#current-growth">Current Growth</a></li><li><a href="#current-decay">Current Decay</a></li><li><a href="#energy-stored-in-an-inductor">Energy Stored in an Inductor</a></li><li><a href="#where-the-energy-lives-u_b">Where the Energy Lives: \(u_B\)</a></li></ul></li><li class=""><a href="29-7.html"><b>29.7</b><span>The Speed of Light from Laws (3) and (4)</span></a></li><li class=""><a href="29-8.html"><b>29.8</b><span>Maxwell’s Four Laws, Assembled</span></a></li><li class=""><a href="29-9.html"><b>29.9</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 29 overview</a><a href="/courses/pseii/ch29.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
@@ -305,174 +316,130 @@
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 29</a><span class="sep">/</span><span>Section 29.6</span></div><div class="strip" aria-label="Sections"><a class="done" href="29-0.html" title="29.0 The Discovery That Changed Everything"><i></i>29.0</a><a class="done" href="29-1.html" title="29.1 Magnetic Flux"><i></i>29.1</a><a class="done" href="29-2.html" title="29.2 Faraday’s Law of Induction"><i></i>29.2</a><a class="done" href="29-3.html" title="29.3 Lenz’s Law"><i></i>29.3</a><a class="done" href="29-4.html" title="29.4 Motional EMF"><i></i>29.4</a><a class="done" href="29-5.html" title="29.5 Inductance"><i></i>29.5</a><a class="here" href="29-6.html" title="29.6 RL Circuits"><i></i>29.6</a><a class="" href="29-7.html" title="29.7 Summary"><i></i>29.7</a><a class="" href="29-8.html" title="29.8 Looking Back: Maxwell’s Equations Assembled"><i></i>29.8</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 29.6 &middot; 7 of 9</summary><ol><li class=""><a href="29-0.html">29.0 &nbsp;The Discovery That Changed Everything</a></li><li class=""><a href="29-1.html">29.1 &nbsp;Magnetic Flux</a></li><li class=""><a href="29-2.html">29.2 &nbsp;Faraday’s Law of Induction</a></li><li class=""><a href="29-3.html">29.3 &nbsp;Lenz’s Law</a></li><li class=""><a href="29-4.html">29.4 &nbsp;Motional EMF</a></li><li class=""><a href="29-5.html">29.5 &nbsp;Inductance</a></li><li class="here"><a href="29-6.html">29.6 &nbsp;RL Circuits</a></li><li class=""><a href="29-7.html">29.7 &nbsp;Summary</a></li><li class=""><a href="29-8.html">29.8 &nbsp;Looking Back: Maxwell’s Equations Assembled</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 29</a><span class="sep">/</span><span>Section 29.6</span></div><div class="strip" aria-label="Sections"><a class="done" href="29-0.html" title="29.0 Only Change Matters"><i></i>29.0</a><a class="done" href="29-1.html" title="29.1 Magnetic Flux"><i></i>29.1</a><a class="done" href="29-2.html" title="29.2 Faraday’s Law"><i></i>29.2</a><a class="done" href="29-3.html" title="29.3 Lenz’s Law"><i></i>29.3</a><a class="done" href="29-4.html" title="29.4 Motional EMF"><i></i>29.4</a><a class="done" href="29-5.html" title="29.5 Inductance"><i></i>29.5</a><a class="here" href="29-6.html" title="29.6 RL Circuits"><i></i>29.6</a><a class="" href="29-7.html" title="29.7 The Speed of Light from Laws (3) and (4)"><i></i>29.7</a><a class="" href="29-8.html" title="29.8 Maxwell’s Four Laws, Assembled"><i></i>29.8</a><a class="" href="29-9.html" title="29.9 Summary"><i></i>29.9</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 29.6 &middot; 7 of 10</summary><ol><li class=""><a href="29-0.html">29.0 &nbsp;Only Change Matters</a></li><li class=""><a href="29-1.html">29.1 &nbsp;Magnetic Flux</a></li><li class=""><a href="29-2.html">29.2 &nbsp;Faraday’s Law</a></li><li class=""><a href="29-3.html">29.3 &nbsp;Lenz’s Law</a></li><li class=""><a href="29-4.html">29.4 &nbsp;Motional EMF</a></li><li class=""><a href="29-5.html">29.5 &nbsp;Inductance</a></li><li class="here"><a href="29-6.html">29.6 &nbsp;RL Circuits</a></li><li class=""><a href="29-7.html">29.7 &nbsp;The Speed of Light from Laws (3) and (4)</a></li><li class=""><a href="29-8.html">29.8 &nbsp;Maxwell’s Four Laws, Assembled</a></li><li class=""><a href="29-9.html">29.9 &nbsp;Summary</a></li></ol></details>
 
-<h3 id="a-new-kind-of-transient">A New Kind of Transient</h3>
-<p>In Chapter 27, we studied <strong>RC circuits</strong> — a resistor and capacitor sharing a loop, producing exponential charging and discharging. Now we study <strong>RL circuits</strong> — a resistor and inductor sharing a loop. The mathematics is nearly identical, but the physics has a beautiful mirror symmetry.</p>
-<p>In an RC circuit, the <em>capacitor</em> opposes changes in <em>voltage</em>. In an RL circuit, the <em>inductor</em> opposes changes in <em>current</em>.</p>
-<h3 id="current-growth-in-an-rl-circuit">Current Growth in an RL Circuit</h3>
-<p>Consider a battery <span class="math inline">\(\mathcal{E}\)</span>, a resistor <span class="math inline">\(R\)</span>, and an inductor <span class="math inline">\(L\)</span> in series. At <span class="math inline">\(t = 0\)</span>, we close the switch.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_7_rl_circuit.png" alt="Figure 29.7: An RL circuit with battery, switch, resistor, and inductor. After the switch closes, current grows exponentially toward its steady-state value." loading="lazy" style="max-width:min(4.5in,100%)" /><figcaption>Figure 29.7: An RL circuit with battery, switch, resistor, and inductor. After the switch closes, current grows exponentially toward its steady-state value.</figcaption></figure>
-<p><strong>At <span class="math inline">\(t = 0\)</span>:</strong> No current flows (<span class="math inline">\(I = 0\)</span>). The inductor opposes the sudden appearance of current, so the entire battery voltage appears across the inductor: <span class="math inline">\(\mathcal{E}_L = \mathcal{E}\)</span>. The voltage across the resistor is <span class="math inline">\(V_R = 0\)</span>. The inductor initially acts like an <strong>open circuit</strong>.</p>
-<p><strong>As <span class="math inline">\(t\)</span> increases:</strong> Current begins to flow, slowly at first (because the inductor resists the change). As current grows, <span class="math inline">\(V_R = IR\)</span> increases and <span class="math inline">\(\mathcal{E}_L = \mathcal{E} - IR\)</span> decreases. The inductor’s opposition weakens because <span class="math inline">\(dI/dt\)</span> is getting smaller.</p>
-<p><strong>As <span class="math inline">\(t \to \infty\)</span>:</strong> Current reaches its steady-state value <span class="math inline">\(I_\text{max} = \mathcal{E}/R\)</span>. The inductor carries constant current (<span class="math inline">\(dI/dt = 0\)</span>), so <span class="math inline">\(\mathcal{E}_L = 0\)</span>. The inductor acts like a <strong>short circuit</strong> (just a wire). All the battery voltage appears across the resistor.</p>
-<p>Applying the loop rule at any time <span class="math inline">\(t\)</span>:</p>
-<p><span class="math display">\[\mathcal{E} - IR - L\frac{dI}{dt} = 0\]</span></p>
-<p>This is a first-order linear ODE. Its solution (verified by substitution) is:</p>
-<p><span class="math display">\[\boxed{I(t) = \frac{\mathcal{E}}{R}\left(1 - e^{-t/\tau_L}\right) = I_\text{max}\left(1 - e^{-t/\tau_L}\right)}\]</span></p>
-<p>where the <strong>RL time constant</strong> is:</p>
-<p><span class="math display">\[\boxed{\tau_L = \frac{L}{R}}\]</span></p>
-<p>The voltage across the inductor decays exponentially:</p>
-<p><span class="math display">\[\mathcal{E}_L(t) = \mathcal{E}\,e^{-t/\tau_L}\]</span></p>
-<h3 id="current-decay-in-an-rl-circuit">Current Decay in an RL Circuit</h3>
-<p>Now suppose steady-state current <span class="math inline">\(I_0 = \mathcal{E}/R\)</span> flows, and we suddenly remove the battery (shorting the RL loop). The inductor opposes the disappearance of current. The loop rule gives <span class="math inline">\(L\,dI/dt + IR = 0\)</span>, with solution:</p>
-<p><span class="math display">\[\boxed{I(t) = I_0\,e^{-t/\tau_L}}\]</span></p>
-<p>The current decays exponentially with the same time constant <span class="math inline">\(\tau_L = L/R\)</span>.</p>
-<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_8_rl_curves.png" alt="Figure 29.8: Current vs. time in an RL circuit. Left: current growth (switch closed at t = 0). Right: current decay (battery removed at t = 0). Both use time constant \tau_L = L/R." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.8: Current vs. time in an RL circuit. Left: current growth (switch closed at t = 0). Right: current decay (battery removed at t = 0). Both use time constant \tau_L = L/R.</figcaption></figure>
-<h3 id="the-time-constant-dimensional-analysis">The Time Constant: Dimensional Analysis</h3>
-<p><span class="math display">\[[\tau_L] = \frac{[L]}{[R]} = \frac{\text{H}}{\Omega} = \frac{\text{V}\cdot\text{s/A}}{\text{V/A}} = \text{s} \quad \checkmark\]</span></p>
-<p>Compare to the RC time constant: <span class="math inline">\(\tau_{RC} = RC\)</span> with <span class="math inline">\([\Omega][\text{F}] = \text{s}\)</span>. Both are products (or quotients) of the two circuit elements, yielding time.</p>
-<p><em>*Personal note: The dimensional analysis reveals the physics. In an RC circuit, large <span class="math inline">\(R\)</span> means slow charging (current trickles) and large <span class="math inline">\(C\)</span> means lots of charge to move — both increase the time. In an RL circuit, large <span class="math inline">\(L\)</span> means strong opposition to current change (electromagnetic inertia), increasing the time, while large <span class="math inline">\(R\)</span> means the “friction” is high, which actually speeds up the approach to equilibrium — hence <span class="math inline">\(L/R\)</span>, not <span class="math inline">\(LR\)</span>.</em></p>
-<h3 id="the-grand-comparison-rc-vs.-rl-circuits">The Grand Comparison — RC vs. RL Circuits</h3>
-<p>This is the capstone comparison table for this section. Every entry in the RC column has a mirror image in the RL column:</p>
+<h3 id="current-growth">Current Growth</h3>
+<p>A battery <span class="math inline">\(\mathcal E\)</span>, a resistor <span class="math inline">\(R\)</span> and an inductor <span class="math inline">\(L\)</span> are in series. At <span class="math inline">\(t = 0\)</span> the switch closes (Figure 29.8).</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_7_rl_circuit.png" alt="Figure 29.8: An RL circuit — battery, switch, resistor and inductor in one loop." loading="lazy" style="max-width:min(4in,100%)" /><figcaption>Figure 29.8: An RL circuit — battery, switch, resistor and inductor in one loop.</figcaption></figure>
+<p><strong>Step 1 — the loop rule at time <span class="math inline">\(t\)</span>.</strong> Going around with the current, the resistor drops <span class="math inline">\(IR\)</span> and the inductor, opposing the rising current, drops <span class="math inline">\(L\,dI/dt\)</span>:</p>
+<p><span class="math display">\[\mathcal E - IR - L\,\frac{dI}{dt} = 0\]</span></p>
+<p><strong>Step 2 — the bridging step: it is Chapter 27’s equation.</strong> Rearranged, the RC charging equation of §27.4 and this one have the same shape:</p>
+<p><span class="math display">\[\text{RC:}\quad \frac{dq}{dt} = \frac{C\mathcal E - q}{RC}, \qquad\qquad \text{RL:}\quad \frac{dI}{dt} = \frac{\mathcal E/R - I}{L/R}\]</span></p>
+<p><em>Each says: the quantity climbs toward a final value at a rate proportional to how far it still has to go.</em> The final value is <span class="math inline">\(C\mathcal E\)</span> for the charge and <span class="math inline">\(\mathcal E/R\)</span> for the current; the time scale is <span class="math inline">\(RC\)</span> in one and <span class="math inline">\(L/R\)</span> in the other.</p>
+<p><strong>Step 3 — the same equation has the same solution.</strong> Section 27.4 solved the first (Steps 3–5 there). Replace <span class="math inline">\(q \to I\)</span>, <span class="math inline">\(C\mathcal E \to \mathcal E/R\)</span> and <span class="math inline">\(RC \to L/R\)</span>:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I(t) = \frac{\mathcal E}{R}\left(1 - e^{-t/\tau}\right), \qquad \tau = \frac{L}{R}\;}\]</span></p>
+</div>
+<p><strong>Step 4 — the inductor’s EMF.</strong> Differentiate: <span class="math inline">\(L\,dI/dt = \mathcal E\,e^{-t/\tau}\)</span>. At the start the whole battery EMF sits across the inductor; it fades as the current builds.</p>
+<div class="check">
+<p><strong>Check the limits.</strong></p>
+<ul>
+<li><strong>At <span class="math inline">\(t = 0\)</span>:</strong> <span class="math inline">\(I = 0\)</span> and the whole EMF is across <span class="math inline">\(L\)</span>. <strong>An inductor meeting a sudden voltage acts like an open switch</strong> — the reverse of an uncharged capacitor, which acts like a wire.</li>
+<li><strong>As <span class="math inline">\(t \to \infty\)</span>:</strong> <span class="math inline">\(I \to \mathcal E/R\)</span> and <span class="math inline">\(L\,dI/dt \to 0\)</span>. <strong>A steady-state inductor is a plain wire.</strong></li>
+<li><strong>Larger <span class="math inline">\(L\)</span> is slower;</strong> more flywheel. <strong>Larger <span class="math inline">\(R\)</span> is <em>faster</em></strong> — the reverse of RC. A larger <span class="math inline">\(R\)</span> sets a smaller final current <span class="math inline">\(\mathcal E/R\)</span>, so there is less current to build.</li>
+<li><strong>Units.</strong> <span class="math inline">\(\text{H}/\Omega = (\text{V}\cdot\text{s/A})/(\text{V/A}) = \text{s}\)</span>.</li>
+</ul>
+</div>
+<h3 id="current-decay">Current Decay</h3>
+<p>With a steady current <span class="math inline">\(I_0\)</span> flowing, the battery is switched out and the coil is left closed through <span class="math inline">\(R\)</span>. The loop rule is <span class="math inline">\(L\,dI/dt + IR = 0\)</span>, the RL partner of RC discharge (§27.4), with the same answer:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;I(t) = I_0\,e^{-t/\tau}, \qquad \tau = \frac{L}{R}\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_8_rl_curves.png" alt="Figure 29.9: Current in an RL circuit. Left: growth after the switch closes. Right: decay after the battery is removed. Both run on the time constant \tau = L/R." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 29.9: Current in an RL circuit. Left: growth after the switch closes. Right: decay after the battery is removed. Both run on the time constant <span class="math inline">\(\tau = L/R\)</span>.</figcaption></figure>
 <table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
 <thead>
 <tr class="header">
-<th>Property</th>
-<th>RC Circuit (Ch 27)</th>
-<th>RL Circuit (Ch 29)</th>
+<th></th>
+<th>RC (Ch 27)</th>
+<th>RL (Ch 29)</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Energy storage</td>
-<td><span class="math inline">\(U = \frac{1}{2}C(\Delta V)^2\)</span></td>
-<td><span class="math inline">\(U = \frac{1}{2}LI^2\)</span></td>
+<td>What climbs</td>
+<td>charge <span class="math inline">\(q\)</span></td>
+<td>current <span class="math inline">\(I\)</span></td>
 </tr>
 <tr class="even">
+<td>Final value</td>
+<td><span class="math inline">\(C\mathcal E\)</span></td>
+<td><span class="math inline">\(\mathcal E/R\)</span></td>
+</tr>
+<tr class="odd">
 <td>Time constant</td>
-<td><span class="math inline">\(\tau = RC\)</span></td>
-<td><span class="math inline">\(\tau = L/R\)</span></td>
-</tr>
-<tr class="odd">
-<td>Growth equation</td>
-<td><span class="math inline">\(q(t) = Q_\text{max}(1-e^{-t/\tau})\)</span></td>
-<td><span class="math inline">\(I(t) = I_\text{max}(1-e^{-t/\tau})\)</span></td>
+<td><span class="math inline">\(RC\)</span></td>
+<td><span class="math inline">\(L/R\)</span></td>
 </tr>
 <tr class="even">
-<td>Decay equation</td>
-<td><span class="math inline">\(q(t) = Q_0\,e^{-t/\tau}\)</span></td>
-<td><span class="math inline">\(I(t) = I_0\,e^{-t/\tau}\)</span></td>
+<td>Element at <span class="math inline">\(t = 0\)</span></td>
+<td>a wire</td>
+<td>an open switch</td>
 </tr>
 <tr class="odd">
-<td>What grows/decays</td>
-<td>Charge <span class="math inline">\(q\)</span> (or voltage <span class="math inline">\(\Delta V_C\)</span>)</td>
-<td>Current <span class="math inline">\(I\)</span></td>
+<td>Element at <span class="math inline">\(t \to \infty\)</span></td>
+<td>an open switch</td>
+<td>a wire</td>
 </tr>
 <tr class="even">
-<td>What decays/grows</td>
-<td>Current <span class="math inline">\(I\)</span></td>
-<td>Voltage <span class="math inline">\(\mathcal{E}_L\)</span></td>
-</tr>
-<tr class="odd">
-<td>Element at <span class="math inline">\(t = 0\)</span> acts like</td>
-<td>Short circuit (<span class="math inline">\(\Delta V_C = 0\)</span>)</td>
-<td>Open circuit (<span class="math inline">\(I = 0\)</span>)</td>
-</tr>
-<tr class="even">
-<td>Element at <span class="math inline">\(t = \infty\)</span> acts like</td>
-<td>Open circuit (<span class="math inline">\(I = 0\)</span>)</td>
-<td>Short circuit (<span class="math inline">\(\Delta V_L = 0\)</span>)</td>
-</tr>
-<tr class="odd">
-<td>Increasing <span class="math inline">\(R\)</span>…</td>
-<td>Increases <span class="math inline">\(\tau\)</span> (slower)</td>
-<td>Decreases <span class="math inline">\(\tau\)</span> (faster)</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(R\)</span> role</td>
-<td>Limits current flow</td>
-<td>Dissipates stored energy</td>
-</tr>
-<tr class="odd">
-<td>Differential equation</td>
-<td><span class="math inline">\(\mathcal{E} - q/C - IR = 0\)</span></td>
-<td><span class="math inline">\(\mathcal{E} - IR - L\,dI/dt = 0\)</span></td>
+<td>Larger <span class="math inline">\(R\)</span></td>
+<td>slower</td>
+<td>faster</td>
 </tr>
 </tbody>
 </table>
-<p>The physical reason for the inverted role of <span class="math inline">\(R\)</span>: In the RC circuit, the resistor is the bottleneck — it limits how fast charge can flow onto the capacitor. In the RL circuit, the inductor is the bottleneck — it limits how fast current can build. The resistor in the RL circuit is the “destination” that dissipates the stored magnetic energy during decay. Higher <span class="math inline">\(R\)</span> means faster energy dissipation, hence <em>shorter</em> time constant.</p>
 <h3 id="energy-stored-in-an-inductor">Energy Stored in an Inductor</h3>
-<p>Work must be done against the back-EMF to establish current in an inductor. The instantaneous power delivered to the inductor is <span class="math inline">\(P = \mathcal{E}_L I = LI\,dI/dt\)</span>. Integrating from <span class="math inline">\(I = 0\)</span> to <span class="math inline">\(I\)</span>:</p>
-<p><span class="math display">\[\boxed{U_B = \frac{1}{2}LI^2}\]</span></p>
-<p>This energy is stored in the magnetic field inside the inductor. For a solenoid with <span class="math inline">\(B = \mu_0 nI\)</span> and volume <span class="math inline">\(V = \ell A\)</span>:</p>
-<p><span class="math display">\[U_B = \frac{1}{2}LI^2 = \frac{1}{2}(\mu_0 n^2 \ell A)I^2 = \frac{B^2}{2\mu_0}\cdot(\ell A)\]</span></p>
-<p>The <strong>magnetic energy density</strong> is:</p>
-<p><span class="math display">\[\boxed{u_B = \frac{B^2}{2\mu_0}}\]</span></p>
-<p>Compare this to the electric energy density <span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span> from Chapter 25. The structural parallel is exact:</p>
-<table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Energy Density</th>
-<th>Electric (Ch 25)</th>
-<th>Magnetic (Ch 29)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Expression</td>
-<td><span class="math inline">\(u_E = \frac{1}{2}\varepsilon_0 E^2\)</span></td>
-<td><span class="math inline">\(u_B = \frac{B^2}{2\mu_0} = \frac{1}{2}\mu_0 H^2\)</span></td>
-</tr>
-<tr class="even">
-<td>Stored in</td>
-<td>Capacitor (parallel plates)</td>
-<td>Inductor (solenoid)</td>
-</tr>
-<tr class="odd">
-<td>Field source</td>
-<td>Charge separation</td>
-<td>Current</td>
-</tr>
-<tr class="even">
-<td>Constant</td>
-<td><span class="math inline">\(\varepsilon_0\)</span> (permittivity)</td>
-<td><span class="math inline">\(\mu_0\)</span> (permeability)</td>
-</tr>
-</tbody>
-</table>
-<p>In an electromagnetic wave (Chapter 31), the energy is shared equally between <span class="math inline">\(\vec{E}\)</span> and <span class="math inline">\(\vec{B}\)</span>: <span class="math inline">\(u_E = u_B\)</span> at every point. This equipartition is not a coincidence — it is a consequence of Maxwell’s equations.</p>
-<h3 id="example-energy-in-an-rl-circuit">Example: Energy in an RL Circuit</h3>
-<p><span class="math inline">\(\mathcal{E} = 24.0\ \text{V}\)</span>, <span class="math inline">\(R = 8.0\ \Omega\)</span>, <span class="math inline">\(L = 4.0\ \text{H}\)</span>.</p>
-<p><strong>(A) Time constant:</strong></p>
-<p><span class="math display">\[\tau = L/R = 4.0/8.0 = \boxed{0.50\ \text{s}}\]</span></p>
-<p><strong>(B) Steady-state current:</strong></p>
-<p><span class="math display">\[I_\text{max} = \mathcal{E}/R = 24.0/8.0 = \boxed{3.0\ \text{A}}\]</span></p>
-<p><strong>(C) Current at <span class="math inline">\(t = \tau\)</span>:</strong></p>
-<p><span class="math display">\[I(\tau) = 3.0(1 - e^{-1}) = 3.0(0.632) = \boxed{1.90\ \text{A}}\]</span></p>
-<p><strong>(D) Energy stored at steady state:</strong></p>
-<p><span class="math display">\[U_B = \frac{1}{2}LI_\text{max}^2 = \frac{1}{2}(4.0)(3.0)^2 = \boxed{18.0\ \text{J}}\]</span></p>
-<p><strong>(E) Power dissipated in <span class="math inline">\(R\)</span> at <span class="math inline">\(t = \tau\)</span>:</strong></p>
-<p><span class="math display">\[P_R = I^2 R = (1.90)^2(8.0) = \boxed{28.8\ \text{W}}\]</span></p>
-<p>Compare: at <span class="math inline">\(t = 0\)</span>, <span class="math inline">\(P_R = 0\)</span> (no current yet). At <span class="math inline">\(t = \infty\)</span>, <span class="math inline">\(P_R = I_\text{max}^2 R = 72\ \text{W}\)</span> (all battery power to resistor). The inductor stores no additional energy in steady state.</p>
-<h3 id="example-back-emf-in-a-motor">Example: Back-EMF in a Motor</h3>
-<p>A DC motor has inductance <span class="math inline">\(L = 50\ \text{mH}\)</span> and winding resistance <span class="math inline">\(R = 2.0\ \Omega\)</span>. When running at full speed, it draws <span class="math inline">\(I = 3.0\ \text{A}\)</span> from a <span class="math inline">\(12\ \text{V}\)</span> supply. When the motor is suddenly switched off, the current must drop from 3.0 A to 0 A.</p>
-<p><strong>(A) Time constant for current decay:</strong></p>
-<p><span class="math display">\[\tau = L/R = 0.050/2.0 = \boxed{25\ \text{ms}}\]</span></p>
-<p><strong>(B) If an engineer tries to interrupt the current in <span class="math inline">\(\Delta t = 0.10\ \text{ms}\)</span> (by opening a switch):</strong></p>
-<p><span class="math display">\[|\mathcal{E}_L| = L\frac{\Delta I}{\Delta t} = (0.050)\frac{3.0}{1.0\times10^{-4}} = \boxed{1500\ \text{V}}\]</span></p>
-<p>This is 125 times the supply voltage! The inductor generates whatever voltage is necessary to maintain current flow. In practice, this voltage arcs across the switch contacts, eroding them and creating electromagnetic interference. This is why inductive circuits always include a <strong>flyback diode</strong> or <strong>snubber circuit</strong> to provide a safe current path during switching. The inductor’s stored energy (<span class="math inline">\(U = \frac{1}{2}LI^2 = 0.225\ \text{J}\)</span>) must go somewhere — the diode lets it dissipate gradually instead of catastrophically.</p>
-<nav class="secnav"><a class="prev" href="29-5.html"><span class="lab">&larr; Previous section</span><span class="tt">29.5 &nbsp;Inductance</span></a><a class="next" href="29-7.html"><span class="lab">Next section &rarr;</span><span class="tt">29.7 &nbsp;Summary</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch29.html">Whole chapter on one page</a></p>
+<p><strong>Step 1 — the power to push current against the inductor.</strong> While the current rises, the inductor’s EMF <span class="math inline">\(L\,dI/dt\)</span> opposes it, and the circuit must deliver power <span class="math inline">\(P = I \cdot L\,dI/dt\)</span> to keep it rising.</p>
+<p><strong>Step 2 — the work for each small step in current.</strong> In time <span class="math inline">\(dt\)</span> the current rises by <span class="math inline">\(dI\)</span>, and the work done is</p>
+<p><span class="math display">\[dW = P\,dt = LI\,dI\]</span></p>
+<p><strong>Step 3 — add up the steps: a triangle.</strong> <span class="math inline">\(LI\)</span> plotted against <span class="math inline">\(I\)</span> is a straight line through the origin (Figure 29.10), so the total work from zero to <span class="math inline">\(I\)</span> is the area of a triangle, half the enclosing rectangle — exactly the argument of Chapter 25, where <span class="math inline">\(\Delta V = q/C\)</span> against <span class="math inline">\(q\)</span> gave <span class="math inline">\(\tfrac12C(\Delta V)^2\)</span>.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch29_figures/fig_29_11_inductor_energy.png" alt="Figure 29.10: The flux linkage LI rises in proportion to the current. Each step dI costs dW = LI\,dI, a thin strip; the total is the triangle, \tfrac12LI^2." loading="lazy" style="max-width:min(3.4in,100%)" /><figcaption>Figure 29.10: The flux linkage <span class="math inline">\(LI\)</span> rises in proportion to the current. Each step <span class="math inline">\(dI\)</span> costs <span class="math inline">\(dW = LI\,dI\)</span>, a thin strip; the total is the triangle, <span class="math inline">\(\tfrac12LI^2\)</span>.</figcaption></figure>
+<div class="result">
+<p><span class="math display">\[\boxed{\;U_B = \tfrac12 LI^2\;}\]</span></p>
+</div>
+<p>The energy is stored, not lost: when the current falls, the inductor gives it back. It is the flywheel’s <span class="math inline">\(\tfrac12(\text{inertia})\,\omega^2\)</span>, the spring’s <span class="math inline">\(\tfrac12kx^2\)</span>, and the capacitor’s <span class="math inline">\(\tfrac12C(\Delta V)^2\)</span>.</p>
+<h3 id="where-the-energy-lives-u_b">Where the Energy Lives: <span class="math inline">\(u_B\)</span></h3>
+<p>Section 31.5 used the magnetic energy density <span class="math inline">\(u_B = B^2/2\mu_0\)</span> as stated. The solenoid derives it, as the parallel-plate capacitor derived <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> in Chapter 25.</p>
+<p><strong>Step 1 — write <span class="math inline">\(U_B\)</span> in terms of the field.</strong> For a solenoid, <span class="math inline">\(L = \mu_0 n^2\ell A\)</span> and <span class="math inline">\(B = \mu_0 nI\)</span>, so <span class="math inline">\(I = B/\mu_0 n\)</span>:</p>
+<p><span class="math display">\[U_B = \tfrac12(\mu_0 n^2\ell A)\left(\frac{B}{\mu_0 n}\right)^2 = \frac{B^2}{2\mu_0}\,(\ell A)\]</span></p>
+<p><strong>Step 2 — divide by the volume.</strong> The field is uniform inside the solenoid and negligible outside, so the energy fills the volume <span class="math inline">\(\ell A\)</span> evenly:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;u_B = \frac{B^2}{2\mu_0}\;}\]</span></p>
+</div>
+<p>Back in §31.5, this with <span class="math inline">\(u_E = \tfrac12\varepsilon_0E^2\)</span> and <span class="math inline">\(E = cB\)</span> showed that a light wave carries exactly half its energy in each field. That step now rests on a derivation.</p>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>Units.</strong> <span class="math inline">\(\frac{\text{T}^2}{\text{T}\cdot\text{m/A}} = \frac{\text{T}\cdot\text{A}}{\text{m}} = \frac{\text{N}}{\text{A}\cdot\text{m}}\cdot\frac{\text{A}}{\text{m}} = \frac{\text{N}}{\text{m}^2} = \frac{\text{J}}{\text{m}^3}\)</span>.</li>
+<li><strong>Two routes, one number.</strong> The lab inductor of §29.5 at 3.00 A has <span class="math inline">\(B = \mu_0(2000)(3.00) = 7.54\)</span> mT, <span class="math inline">\(u_B = 22.6\ \text{J/m}^3\)</span>, and a volume <span class="math inline">\(\ell A = 3.14\times10^{-4}\ \text{m}^3\)</span>, so <span class="math inline">\(U_B = 7.11\)</span> mJ — the same as <span class="math inline">\(\tfrac12LI^2 = \tfrac12(1.58\ \text{mH})(3.00\ \text{A})^2\)</span>.</li>
+</ul>
+</div>
+<section id="example-energy-in-an-rl-circuit" class="example">
+<h3>Example: Energy in an RL Circuit</h3>
+<p><span class="math inline">\(\mathcal E = 24.0\)</span> V, <span class="math inline">\(R = 8.00\ \Omega\)</span>, <span class="math inline">\(L = 4.00\)</span> H; the switch closes at <span class="math inline">\(t = 0\)</span>. Find the time constant, the final current, the current at <span class="math inline">\(t = \tau\)</span>, the energy stored at steady state, and the power in <span class="math inline">\(R\)</span> at <span class="math inline">\(t = \tau\)</span>.</p>
+<p><em>Why it matters:</em> <span class="math inline">\(L\)</span> and <span class="math inline">\(R\)</span> are measurable; the response time is what is designed for. Because a larger <span class="math inline">\(R\)</span> makes <span class="math inline">\(\tau\)</span> shorter, a solenoid valve that must snap open fast is often driven at a higher voltage through a series resistor: the same final current, reached sooner.</p>
+<p><strong>Step 1 — symbols.</strong></p>
+<p><span class="math display">\[\tau = \frac{L}{R}, \quad I_\text{max} = \frac{\mathcal E}{R}, \quad I(\tau) = I_\text{max}(1 - e^{-1}), \quad U_B = \tfrac12LI_\text{max}^2, \quad P_R = I(\tau)^2R\]</span></p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\begin{aligned}
+\tau &amp;= \frac{4.00\ \text{H}}{8.00\ \Omega} = 0.500\ \text{s}, \qquad I_\text{max} = \frac{24.0\ \text{V}}{8.00\ \Omega} = 3.00\ \text{A}, \qquad I(\tau) = (3.00\ \text{A})(0.632) = 1.90\ \text{A}\\
+U_B &amp;= \tfrac12(4.00\ \text{H})(3.00\ \text{A})^2 = 18.0\ \text{J}, \qquad P_R = (1.90\ \text{A})^2(8.00\ \Omega) = 28.8\ \text{W}
+\end{aligned}\;}\]</span></p>
+</div>
+<p>At steady state the resistor takes the battery’s full <span class="math inline">\(72.0\)</span> W, and the inductor holds its 18.0 J without taking any more.</p>
+</section>
+<section id="example-the-relay-coil-revisited" class="example">
+<h3>Example: The Relay Coil, Revisited</h3>
+<p>Return to the relay coil of §29.5 (<span class="math inline">\(L = 50.0\)</span> mH, <span class="math inline">\(R = 2.00\ \Omega\)</span>, <span class="math inline">\(I = 3.00\)</span> A). With a flyback diode, the current dies away through the coil’s own resistance. Find the time constant and the energy the coil must get rid of.</p>
+<p><em>Why it matters:</em> <span class="math inline">\(L\)</span> and <span class="math inline">\(I\)</span> fix how much energy the coil holds; the diode or the switch decides how fast it comes out, and the rate is what does the damage.</p>
+<p><strong>Step 1 — symbols.</strong> <span class="math inline">\(\tau = L/R\)</span> and <span class="math inline">\(U_B = \tfrac12LI^2\)</span>.</p>
+<p><strong>Step 2 — numbers.</strong></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\tau = \frac{0.0500\ \text{H}}{2.00\ \Omega} = 25.0\ \text{ms}, \qquad U_B = \tfrac12(0.0500\ \text{H})(3.00\ \text{A})^2 = 0.225\ \text{J}\;}\]</span></p>
+</div>
+<p>The energy is the same either way; the time is not. Released over about <span class="math inline">\(25\)</span> ms through the diode, <span class="math inline">\(0.225\)</span> J is roughly 9 W for a moment, which a small diode handles. Forced out in the switch’s <span class="math inline">\(0.100\)</span> ms, it is about 2 kW, delivered as the spark.</p>
+</section>
+<nav class="secnav"><a class="prev" href="29-5.html"><span class="lab">&larr; Previous section</span><span class="tt">29.5 &nbsp;Inductance</span></a><a class="next" href="29-7.html"><span class="lab">Next section &rarr;</span><span class="tt">29.7 &nbsp;The Speed of Light from Laws (3) and (4)</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch29.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>
