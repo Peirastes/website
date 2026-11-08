@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chapter 31 &mdash; Energy Transport: The Poynting Vector &middot; PSE II</title>
-  <meta name="description" content="PSE II Chapter 31 — Energy Transport: The Poynting Vector.">
-  <meta property="og:title" content="Chapter 31 — Energy Transport: The Poynting Vector · PSE II">
+  <title>Chapter 31 &mdash; Sinusoidal Electromagnetic Waves &middot; PSE II</title>
+  <meta name="description" content="PSE II Chapter 31 — Sinusoidal Electromagnetic Waves.">
+  <meta property="og:title" content="Chapter 31 — Sinusoidal Electromagnetic Waves · PSE II">
   <meta property="og:type" content="article">
   <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,44 +303,58 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 31 sections"><h4><a href="index.html">Ch 31 &middot; Electromagnetic Waves &amp; Radiation</a></h4><ol><li class=""><a href="31-0.html"><b>31.0</b><span>The Greatest Prediction in Physics</span></a></li><li class=""><a href="31-1.html"><b>31.1</b><span>Maxwell’s Equations</span></a></li><li class=""><a href="31-2.html"><b>31.2</b><span>The Displacement Current</span></a></li><li class=""><a href="31-3.html"><b>31.3</b><span>Electromagnetic Waves</span></a></li><li class="here"><a href="31-4.html"><b>31.4</b><span>Energy Transport: The Poynting Vector</span></a><ul><li><a href="#example-intensity-of-sunlight">Example: Intensity of Sunlight</a></li><li><a href="#example-a-radio-station">Example: A Radio Station</a></li></ul></li><li class=""><a href="31-5.html"><b>31.5</b><span>The Electromagnetic Spectrum</span></a></li><li class=""><a href="31-6.html"><b>31.6</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 31 overview</a><a href="/courses/pseii/ch31.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 31 sections"><h4><a href="index.html">Ch 31 &middot; Electromagnetic Waves</a></h4><ol><li class=""><a href="31-0.html"><b>31.0</b><span>What Light Is Made Of</span></a></li><li class=""><a href="31-1.html"><b>31.1</b><span>Four Field Laws</span></a></li><li class=""><a href="31-2.html"><b>31.2</b><span>The Displacement Current</span></a></li><li class=""><a href="31-3.html"><b>31.3</b><span>A Wave from the Field Laws</span></a></li><li class="here"><a href="31-4.html"><b>31.4</b><span>Sinusoidal Electromagnetic Waves</span></a><ul><li><a href="#the-wave-functions">The Wave Functions</a></li><li><a href="#in-a-transparent-material">In a Transparent Material</a></li></ul></li><li class=""><a href="31-5.html"><b>31.5</b><span>Energy and Intensity</span></a></li><li class=""><a href="31-6.html"><b>31.6</b><span>The Electromagnetic Spectrum</span></a></li><li class=""><a href="31-7.html"><b>31.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 31 overview</a><a href="/courses/pseii/ch31.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
         <div class="page-hero__eyebrow">PSE II &middot; Chapter 31 &middot; Section 31.4</div>
-        <h1 class="page-hero__title">Energy Transport: The Poynting Vector</h1>
-        <p class="page-hero__subtitle">Chapter 31 &middot; Electromagnetic Waves &amp; Radiation</p>
+        <h1 class="page-hero__title">Sinusoidal Electromagnetic Waves</h1>
+        <p class="page-hero__subtitle">Chapter 31 &middot; Electromagnetic Waves</p>
       </div>
     </header>
     <article class="page-body">
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 31</a><span class="sep">/</span><span>Section 31.4</span></div><div class="strip" aria-label="Sections"><a class="done" href="31-0.html" title="31.0 The Greatest Prediction in Physics"><i></i>31.0</a><a class="done" href="31-1.html" title="31.1 Maxwell’s Equations"><i></i>31.1</a><a class="done" href="31-2.html" title="31.2 The Displacement Current"><i></i>31.2</a><a class="done" href="31-3.html" title="31.3 Electromagnetic Waves"><i></i>31.3</a><a class="here" href="31-4.html" title="31.4 Energy Transport: The Poynting Vector"><i></i>31.4</a><a class="" href="31-5.html" title="31.5 The Electromagnetic Spectrum"><i></i>31.5</a><a class="" href="31-6.html" title="31.6 Summary"><i></i>31.6</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 31.4 &middot; 5 of 7</summary><ol><li class=""><a href="31-0.html">31.0 &nbsp;The Greatest Prediction in Physics</a></li><li class=""><a href="31-1.html">31.1 &nbsp;Maxwell’s Equations</a></li><li class=""><a href="31-2.html">31.2 &nbsp;The Displacement Current</a></li><li class=""><a href="31-3.html">31.3 &nbsp;Electromagnetic Waves</a></li><li class="here"><a href="31-4.html">31.4 &nbsp;Energy Transport: The Poynting Vector</a></li><li class=""><a href="31-5.html">31.5 &nbsp;The Electromagnetic Spectrum</a></li><li class=""><a href="31-6.html">31.6 &nbsp;Summary</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 31</a><span class="sep">/</span><span>Section 31.4</span></div><div class="strip" aria-label="Sections"><a class="done" href="31-0.html" title="31.0 What Light Is Made Of"><i></i>31.0</a><a class="done" href="31-1.html" title="31.1 Four Field Laws"><i></i>31.1</a><a class="done" href="31-2.html" title="31.2 The Displacement Current"><i></i>31.2</a><a class="done" href="31-3.html" title="31.3 A Wave from the Field Laws"><i></i>31.3</a><a class="here" href="31-4.html" title="31.4 Sinusoidal Electromagnetic Waves"><i></i>31.4</a><a class="" href="31-5.html" title="31.5 Energy and Intensity"><i></i>31.5</a><a class="" href="31-6.html" title="31.6 The Electromagnetic Spectrum"><i></i>31.6</a><a class="" href="31-7.html" title="31.7 Summary"><i></i>31.7</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 31.4 &middot; 5 of 8</summary><ol><li class=""><a href="31-0.html">31.0 &nbsp;What Light Is Made Of</a></li><li class=""><a href="31-1.html">31.1 &nbsp;Four Field Laws</a></li><li class=""><a href="31-2.html">31.2 &nbsp;The Displacement Current</a></li><li class=""><a href="31-3.html">31.3 &nbsp;A Wave from the Field Laws</a></li><li class="here"><a href="31-4.html">31.4 &nbsp;Sinusoidal Electromagnetic Waves</a></li><li class=""><a href="31-5.html">31.5 &nbsp;Energy and Intensity</a></li><li class=""><a href="31-6.html">31.6 &nbsp;The Electromagnetic Spectrum</a></li><li class=""><a href="31-7.html">31.7 &nbsp;Summary</a></li></ol></details>
 
-<p>Electromagnetic waves carry energy. The rate of energy transport per unit area is described by the <strong>Poynting vector</strong>:</p>
-<p><span class="math display">\[\boxed{\vec{S} = \frac{1}{\mu_0} \vec{E} \times \vec{B}}\]</span></p>
-<p>The direction of <span class="math inline">\(\vec{S}\)</span> is the direction of wave propagation (perpendicular to both <span class="math inline">\(\vec{E}\)</span> and <span class="math inline">\(\vec{B}\)</span>), and its magnitude gives the <strong>intensity</strong> — the power per unit area (W/m²).</p>
-<p>Since <span class="math inline">\(E\)</span> and <span class="math inline">\(B\)</span> oscillate sinusoidally, the time-averaged intensity is:</p>
-<p><span class="math display">\[\boxed{I = S_\text{avg} = \frac{E_0 B_0}{2\mu_0} = \frac{c\varepsilon_0 E_0^2}{2} = \frac{c B_0^2}{2\mu_0}}\]</span></p>
-<p>where <span class="math inline">\(E_0\)</span> and <span class="math inline">\(B_0\)</span> are the maximum field amplitudes. The three equivalent forms follow from <span class="math inline">\(E_0 = cB_0\)</span> and <span class="math inline">\(c = 1/\sqrt{\mu_0\varepsilon_0}\)</span>.</p>
-<h3 id="example-intensity-of-sunlight">Example: Intensity of Sunlight</h3>
-<p>The average intensity of sunlight at Earth’s surface is approximately <span class="math inline">\(I = 1400\ \text{W/m}^2\)</span>. What is the maximum electric field strength?</p>
-<p><span class="math display">\[E_0 = \sqrt{\frac{2I}{c\varepsilon_0}} = \sqrt{\frac{2(1400)}{(3.00 \times 10^8)(8.854 \times 10^{-12})}} = \sqrt{\frac{2800}{2.656 \times 10^{-3}}} = \sqrt{1.054 \times 10^{6}}\]</span></p>
-<p><span class="math display">\[\boxed{E_0 = 1030\ \text{V/m}}\]</span></p>
-<p>And the corresponding magnetic field:</p>
-<p><span class="math display">\[B_0 = \frac{E_0}{c} = \frac{1030}{3.00 \times 10^8} = 3.42 \times 10^{-6}\ \text{T} = 3.42\ \mu\text{T}\]</span></p>
-<p>The electric field of sunlight is about 1 kV/m — comparable to the field near a charged capacitor. The magnetic field is only a few microtesla — far weaker than Earth’s magnetic field (~50 μT). This illustrates why the electric field dominates most light-matter interactions.</p>
-<h3 id="example-a-radio-station">Example: A Radio Station</h3>
-<p>A radio station broadcasts at <span class="math inline">\(P = 50.0\ \text{kW}\)</span>. Assuming the signal radiates uniformly in all directions, find the electric field amplitude at a distance of <span class="math inline">\(r = 10.0\ \text{km}\)</span>.</p>
-<p>The power spreads over the surface of a sphere:</p>
-<p><span class="math display">\[I = \frac{P}{4\pi r^2} = \frac{5.00 \times 10^4}{4\pi (1.00 \times 10^4)^2} = \frac{5.00 \times 10^4}{1.257 \times 10^9} = 3.98 \times 10^{-5}\ \text{W/m}^2\]</span></p>
-<p>Then:</p>
-<p><span class="math display">\[E_0 = \sqrt{\frac{2I}{c\varepsilon_0}} = \sqrt{\frac{2(3.98 \times 10^{-5})}{(3.00 \times 10^8)(8.854 \times 10^{-12})}} = \sqrt{\frac{7.96 \times 10^{-5}}{2.656 \times 10^{-3}}} = \sqrt{0.02996}\]</span></p>
-<p><span class="math display">\[\boxed{E_0 = 0.173\ \text{V/m}}\]</span></p>
-<p>Compare this to the sunlight result: 1030 V/m at Earth’s surface versus 0.173 V/m from a powerful radio station at 10 km. Sunlight is about 6000× stronger — yet your radio antenna picks up the station just fine, because the receiver is tuned to amplify a specific frequency via resonance.</p>
-<p><em>*Personal note: The intensity falls off as <span class="math inline">\(1/r^2\)</span> from the source — the same inverse-square law that governs Coulomb’s force (Chapter 22). Energy spreads over the surface of an expanding sphere (<span class="math inline">\(A = 4\pi r^2\)</span>), so the power per unit area decreases as the square of the distance. The same geometry, the same mathematics, the same physics.</em></p>
-<nav class="secnav"><a class="prev" href="31-3.html"><span class="lab">&larr; Previous section</span><span class="tt">31.3 &nbsp;Electromagnetic Waves</span></a><a class="next" href="31-5.html"><span class="lab">Next section &rarr;</span><span class="tt">31.5 &nbsp;The Electromagnetic Spectrum</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch31.html">Whole chapter on one page</a></p>
+<h3 id="the-wave-functions">The Wave Functions</h3>
+<p>What sets the pattern is the source. A charge that oscillates at frequency <span class="math inline">\(f\)</span> — the electrons in an antenna, driven by an AC current — sends out fields that oscillate at the same <span class="math inline">\(f\)</span>. <em>*That accelerating charges radiate is a result of the field laws that this course does not derive.</em> Far from the source the wave is, to a very good approximation, a <strong>plane wave</strong>: for travel in <span class="math inline">\(+x\)</span> with <span class="math inline">\(\vec E\)</span> along <span class="math inline">\(y\)</span>,</p>
+<p><span class="math display">\[E_y(x,t) = E_0 \sin(kx - \omega t), \qquad B_z(x,t) = B_0 \sin(kx - \omega t)\]</span></p>
+<p><span class="math inline">\(k = 2\pi/\lambda\)</span> and <span class="math inline">\(\omega = 2\pi f\)</span> are the wavenumber and angular frequency of PSE-I Ch 16, and <span class="math inline">\(E_0\)</span>, <span class="math inline">\(B_0\)</span> are the <strong>amplitudes</strong>. The pattern moves at <span class="math inline">\(\omega/k = f\lambda\)</span>, which §31.3 fixed:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;c = f\lambda, \qquad E_0 = cB_0\;}\]</span></p>
+</div>
+<figure class="chap-fig"><img src="/courses/pseii/ch31_figures/fig_31v2_03_em_wave.png" alt="Figure 31.3: A sinusoidal electromagnetic wave at one instant. \vec E (solid) oscillates along \pm y and \vec B (dashed) along \pm z, in phase, both perpendicular to the direction of travel +x, which is the direction of \vec E \times \vec B. The distance from crest to crest is \lambda." loading="lazy" style="max-width:min(5.6in,100%)" /><figcaption>Figure 31.3: A sinusoidal electromagnetic wave at one instant. <span class="math inline">\(\vec E\)</span> (solid) oscillates along <span class="math inline">\(\pm y\)</span> and <span class="math inline">\(\vec B\)</span> (dashed) along <span class="math inline">\(\pm z\)</span>, in phase, both perpendicular to the direction of travel <span class="math inline">\(+x\)</span>, which is the direction of <span class="math inline">\(\vec E \times \vec B\)</span>. The distance from crest to crest is <span class="math inline">\(\lambda\)</span>.</figcaption></figure>
+<p>Because <span class="math inline">\(E = cB\)</span> at every point and instant, the two fields are <strong>in phase</strong>: they reach their maxima and pass through zero together. The wave is <strong>transverse</strong>: both fields are perpendicular to the direction of travel. And at every point <span class="math inline">\(\vec E \times \vec B\)</span> points along <span class="math inline">\(+x\)</span>: when <span class="math inline">\(E_y\)</span> goes negative, <span class="math inline">\(B_z\)</span> goes negative with it, and <span class="math inline">\((-\hat y)\times(-\hat z) = +\hat x\)</span>.</p>
+<p>The direction along which <span class="math inline">\(\vec E\)</span> oscillates is the wave’s <strong>polarization</strong>. The wave above is polarized along <span class="math inline">\(y\)</span>. Sunlight and lamplight are mixtures of all polarization directions; a polarizing filter passes one.</p>
+<h3 id="in-a-transparent-material">In a Transparent Material</h3>
+<p>Chapter 30 described light in glass or water by the index <span class="math inline">\(n\)</span>: the speed drops to <span class="math inline">\(v = c/n\)</span>, the frequency stays the source’s, and the wavelength shrinks to <span class="math inline">\(\lambda_n = \lambda/n\)</span> (§30.6). The field picture describes what the material’s charges are doing.</p>
+<p>The wave’s <span class="math inline">\(\vec E\)</span> pushes the electrons in the glass back and forth. They are <strong>driven oscillators</strong> (PSE-I §15.6): once a driven oscillator settles, it moves at the <em>driving</em> frequency, not at a frequency of its own. So the electrons oscillate at <span class="math inline">\(f\)</span>, and like the electrons in an antenna they radiate at <span class="math inline">\(f\)</span>. The wave inside the material is the incoming wave plus the waves those electrons send out, all at <span class="math inline">\(f\)</span>. The frequency is set by the source; the speed is set by the material. <em>*That this sum travels more slowly than <span class="math inline">\(c\)</span> is stated here, not derived.</em> Writing <span class="math inline">\(v = f\lambda\)</span> on each side, <span class="math inline">\(c = f\lambda\)</span> in vacuum and <span class="math inline">\(c/n = f\lambda_n\)</span> in the material, and dividing:</p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;f_\text{material} = f, \qquad v = \frac{c}{n}, \qquad \lambda_n = \frac{\lambda}{n}\;}\]</span></p>
+</div>
+<p>Written as <span class="math inline">\(\lambda_n = v \cdot \frac{1}{f}\)</span>, the result has the same shape as Ohm’s law written as <span class="math inline">\(I = V/R\)</span>. A behavior is the product of an <strong>intrinsic</strong> response and an <strong>extrinsic</strong> drive. In Ohm’s law the resistor’s conductance <span class="math inline">\(1/R\)</span> is intrinsic, the potential difference <span class="math inline">\(V\)</span> across it is imposed from outside, and the current is what results. Here the material’s speed <span class="math inline">\(v\)</span> is intrinsic, the source’s period <span class="math inline">\(1/f\)</span> is imposed from outside, and the wavelength is what results: the distance the material lets the wave travel in one period of the source. The product form also has a limit. A shorter wavelength, seen on its own, cannot say whether the source sped up or the material slowed the wave down. It takes a second measurement, the frequency, to separate the two.</p>
+<div class="check">
+<p><strong>Check the result.</strong></p>
+<ul>
+<li><strong>Vacuum.</strong> At <span class="math inline">\(n = 1\)</span>, <span class="math inline">\(v = c\)</span> and <span class="math inline">\(\lambda_n = \lambda\)</span>: nothing changes.</li>
+<li><strong>Color.</strong> The eye responds to the frequency. Red helium–neon light, <span class="math inline">\(\lambda = 633\)</span> nm, has <span class="math inline">\(\lambda_n = 633/1.33 = 476\)</span> nm in water, which is a blue <em>vacuum</em> wavelength. It is still <span class="math inline">\(4.74 \times 10^{14}\)</span> Hz, so it still looks red underwater.</li>
+</ul>
+</div>
+<section id="example-an-fm-broadcast" class="example">
+<h3>Example: An FM Broadcast</h3>
+<p>An FM station broadcasts at <span class="math inline">\(f = 98.7\)</span> MHz. At a car’s antenna the electric field amplitude is <span class="math inline">\(E_0 = 0.0500\)</span> V/m. Find the wavelength and the magnetic field amplitude.</p>
+<p><strong>Step 1 — the wavelength.</strong></p>
+<p><span class="math display">\[\lambda = \frac{c}{f} = \frac{3.00\times10^8}{98.7\times10^6} = 3.04\ \text{m}\]</span></p>
+<p><strong>Step 2 — the magnetic amplitude.</strong></p>
+<p><span class="math display">\[B_0 = \frac{E_0}{c} = \frac{0.0500}{3.00\times10^8} = 1.67\times10^{-10}\ \text{T}\]</span></p>
+<div class="result">
+<p><span class="math display">\[\boxed{\;\lambda = 3.04\ \text{m}, \qquad B_0 = 1.67\times10^{-10}\ \text{T}\;}\]</span></p>
+</div>
+<p><strong>Plausibility.</strong> A common car whip antenna is about 0.75 m long, a quarter of this wavelength, which is the length at which a simple antenna responds best. A <span class="math inline">\(B_0\)</span> of <span class="math inline">\(10^{-10}\)</span> T is a few millionths of Earth’s field; the receiver works because it responds to the oscillation at 98.7 MHz, not to the size of the field.</p>
+</section>
+<nav class="secnav"><a class="prev" href="31-3.html"><span class="lab">&larr; Previous section</span><span class="tt">31.3 &nbsp;A Wave from the Field Laws</span></a><a class="next" href="31-5.html"><span class="lab">Next section &rarr;</span><span class="tt">31.5 &nbsp;Energy and Intensity</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch31.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>

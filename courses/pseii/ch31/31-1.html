@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chapter 31 &mdash; Maxwell’s Equations &middot; PSE II</title>
-  <meta name="description" content="PSE II Chapter 31 — Maxwell’s Equations.">
-  <meta property="og:title" content="Chapter 31 — Maxwell’s Equations · PSE II">
+  <title>Chapter 31 &mdash; Four Field Laws &middot; PSE II</title>
+  <meta name="description" content="PSE II Chapter 31 — Four Field Laws.">
+  <meta property="og:title" content="Chapter 31 — Four Field Laws · PSE II">
   <meta property="og:type" content="article">
   <meta property="og:image" content="https://peirastes.com/images/PeirastesBanner.jpg">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -75,6 +75,15 @@
     .result{border-left-color:transparent;background:none;padding-left:0;text-align:center}
     /* checks nested inside an example shouldn't double the indent */
     .example .check{margin-left:-.2rem}
+    /* collapsible derivation: a raw <details class="derive"> in the markdown. WEB ONLY in effect —
+       closed by default here; pandoc drops the tags in a docx build (the inner text would remain). */
+    details.derive{margin:1.5rem 0;padding:.05rem 0 .05rem 1.1rem;border-left:2px solid rgba(64,232,208,.5);
+      background:rgba(64,232,208,.03);border-radius:0 4px 4px 0}
+    details.derive > summary{cursor:pointer;color:#40e8d0;font-weight:600;padding:.5rem 0;list-style:none}
+    details.derive > summary::-webkit-details-marker{display:none}
+    details.derive > summary::before{content:"▸ "}
+    details.derive[open] > summary::before{content:"▾ "}
+    details.derive[open]{padding-bottom:.4rem}
     /* ---------- PRINT: the D2L artifact ----------
        Same source, same renderer, paginated. The web edition is upstream; the PDF is a view of
        it, not a parallel build. Chrome/theme drop out, the sim degrades to a URL pointer. */
@@ -185,6 +194,8 @@
       .example h3{color:#6d4700 !important;margin-top:.1rem !important}
       .connection{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
       .connection h3{color:#095454 !important;margin-top:.1rem !important}
+      details.derive{border-left-color:#0b6b6b !important;background:rgba(11,107,107,.045) !important}
+      details.derive > summary{color:#095454 !important}
       .check{border-left-color:#4a3f8a !important;background:rgba(74,63,138,.045) !important}
       .result{text-align:center;background:none !important;border:0 !important;
         padding:0 !important;margin:.6rem 0 !important}
@@ -292,73 +303,83 @@
   <a class="chrome-wordmark" href="/"><h1>PEIRASTES</h1></a>
   <div class="profile"><div class="profile__mark">P</div><div class="profile__meta"><span class="profile__name">Peirastes</span><span class="profile__sub">Visitor</span></div></div>
   <div class="hints"><span class="hint"><kbd>Esc</kbd> Home</span></div>
-  <nav class="toc" aria-label="Chapter 31 sections"><h4><a href="index.html">Ch 31 &middot; Electromagnetic Waves &amp; Radiation</a></h4><ol><li class=""><a href="31-0.html"><b>31.0</b><span>The Greatest Prediction in Physics</span></a></li><li class="here"><a href="31-1.html"><b>31.1</b><span>Maxwell’s Equations</span></a><ul><li><a href="#the-symmetry">The Symmetry</a></li></ul></li><li class=""><a href="31-2.html"><b>31.2</b><span>The Displacement Current</span></a></li><li class=""><a href="31-3.html"><b>31.3</b><span>Electromagnetic Waves</span></a></li><li class=""><a href="31-4.html"><b>31.4</b><span>Energy Transport: The Poynting Vector</span></a></li><li class=""><a href="31-5.html"><b>31.5</b><span>The Electromagnetic Spectrum</span></a></li><li class=""><a href="31-6.html"><b>31.6</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 31 overview</a><a href="/courses/pseii/ch31.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
+  <nav class="toc" aria-label="Chapter 31 sections"><h4><a href="index.html">Ch 31 &middot; Electromagnetic Waves</a></h4><ol><li class=""><a href="31-0.html"><b>31.0</b><span>What Light Is Made Of</span></a></li><li class="here"><a href="31-1.html"><b>31.1</b><span>Four Field Laws</span></a><ul><li><a href="#a-second-field">A Second Field</a></li><li><a href="#flux-and-circulation">Flux and Circulation</a></li><li><a href="#the-four-laws">The Four Laws</a></li></ul></li><li class=""><a href="31-2.html"><b>31.2</b><span>The Displacement Current</span></a></li><li class=""><a href="31-3.html"><b>31.3</b><span>A Wave from the Field Laws</span></a></li><li class=""><a href="31-4.html"><b>31.4</b><span>Sinusoidal Electromagnetic Waves</span></a></li><li class=""><a href="31-5.html"><b>31.5</b><span>Energy and Intensity</span></a></li><li class=""><a href="31-6.html"><b>31.6</b><span>The Electromagnetic Spectrum</span></a></li><li class=""><a href="31-7.html"><b>31.7</b><span>Summary</span></a></li></ol><div class="foot"><a href="index.html">Chapter 31 overview</a><a href="/courses/pseii/ch31.html">Whole chapter on one page</a><a href="/courses/pseii.html">PSE II course home</a></div></nav>
   <main class="page">
     <header class="page-hero page-hero--compact">
       <div class="page-hero__inner">
         <div class="page-hero__eyebrow">PSE II &middot; Chapter 31 &middot; Section 31.1</div>
-        <h1 class="page-hero__title">Maxwell’s Equations</h1>
-        <p class="page-hero__subtitle">Chapter 31 &middot; Electromagnetic Waves &amp; Radiation</p>
+        <h1 class="page-hero__title">Four Field Laws</h1>
+        <p class="page-hero__subtitle">Chapter 31 &middot; Electromagnetic Waves</p>
       </div>
     </header>
     <article class="page-body">
       <div class="page-body__inner">
         
         <div class="content-body">
-<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 31</a><span class="sep">/</span><span>Section 31.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="31-0.html" title="31.0 The Greatest Prediction in Physics"><i></i>31.0</a><a class="here" href="31-1.html" title="31.1 Maxwell’s Equations"><i></i>31.1</a><a class="" href="31-2.html" title="31.2 The Displacement Current"><i></i>31.2</a><a class="" href="31-3.html" title="31.3 Electromagnetic Waves"><i></i>31.3</a><a class="" href="31-4.html" title="31.4 Energy Transport: The Poynting Vector"><i></i>31.4</a><a class="" href="31-5.html" title="31.5 The Electromagnetic Spectrum"><i></i>31.5</a><a class="" href="31-6.html" title="31.6 Summary"><i></i>31.6</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 31.1 &middot; 2 of 7</summary><ol><li class=""><a href="31-0.html">31.0 &nbsp;The Greatest Prediction in Physics</a></li><li class="here"><a href="31-1.html">31.1 &nbsp;Maxwell’s Equations</a></li><li class=""><a href="31-2.html">31.2 &nbsp;The Displacement Current</a></li><li class=""><a href="31-3.html">31.3 &nbsp;Electromagnetic Waves</a></li><li class=""><a href="31-4.html">31.4 &nbsp;Energy Transport: The Poynting Vector</a></li><li class=""><a href="31-5.html">31.5 &nbsp;The Electromagnetic Spectrum</a></li><li class=""><a href="31-6.html">31.6 &nbsp;Summary</a></li></ol></details>
+<div class="crumbs"><a href="/courses/pseii.html">PSE II</a><span class="sep">/</span><a href="index.html">Chapter 31</a><span class="sep">/</span><span>Section 31.1</span></div><div class="strip" aria-label="Sections"><a class="done" href="31-0.html" title="31.0 What Light Is Made Of"><i></i>31.0</a><a class="here" href="31-1.html" title="31.1 Four Field Laws"><i></i>31.1</a><a class="" href="31-2.html" title="31.2 The Displacement Current"><i></i>31.2</a><a class="" href="31-3.html" title="31.3 A Wave from the Field Laws"><i></i>31.3</a><a class="" href="31-4.html" title="31.4 Sinusoidal Electromagnetic Waves"><i></i>31.4</a><a class="" href="31-5.html" title="31.5 Energy and Intensity"><i></i>31.5</a><a class="" href="31-6.html" title="31.6 The Electromagnetic Spectrum"><i></i>31.6</a><a class="" href="31-7.html" title="31.7 Summary"><i></i>31.7</a></div><details class="toc-mobile"><summary>In this chapter &middot; Section 31.1 &middot; 2 of 8</summary><ol><li class=""><a href="31-0.html">31.0 &nbsp;What Light Is Made Of</a></li><li class="here"><a href="31-1.html">31.1 &nbsp;Four Field Laws</a></li><li class=""><a href="31-2.html">31.2 &nbsp;The Displacement Current</a></li><li class=""><a href="31-3.html">31.3 &nbsp;A Wave from the Field Laws</a></li><li class=""><a href="31-4.html">31.4 &nbsp;Sinusoidal Electromagnetic Waves</a></li><li class=""><a href="31-5.html">31.5 &nbsp;Energy and Intensity</a></li><li class=""><a href="31-6.html">31.6 &nbsp;The Electromagnetic Spectrum</a></li><li class=""><a href="31-7.html">31.7 &nbsp;Summary</a></li></ol></details>
 
-<p>The four equations that govern all electromagnetic phenomena are:</p>
-<p><strong>1. Gauss’s Law for Electricity</strong> (Ch 23):</p>
-<p><span class="math display">\[\oint \vec{E} \cdot d\vec{A} = \frac{Q_\text{enc}}{\varepsilon_0}\]</span></p>
-<p>Electric flux through a closed surface equals the enclosed charge divided by <span class="math inline">\(\varepsilon_0\)</span>. Field lines begin on positive charges and end on negative charges.</p>
-<p><strong>2. Gauss’s Law for Magnetism:</strong></p>
-<p><span class="math display">\[\oint \vec{B} \cdot d\vec{A} = 0\]</span></p>
-<p>Magnetic flux through any closed surface is zero. Field lines form continuous loops — no magnetic monopoles exist.</p>
-<p><strong>3. Faraday’s Law</strong> (Ch 29):</p>
-<p><span class="math display">\[\oint \vec{E} \cdot d\vec{s} = -\frac{d\Phi_B}{dt}\]</span></p>
-<p>A changing magnetic flux induces a circulating electric field. The minus sign (Lenz’s law) ensures the induced field opposes the change.</p>
-<p><strong>4. Ampère-Maxwell Law:</strong></p>
-<p><span class="math display">\[\oint \vec{B} \cdot d\vec{s} = \mu_0 I_\text{enc} + \mu_0 \varepsilon_0 \frac{d\Phi_E}{dt}\]</span></p>
-<p>A circulating magnetic field is produced by current <em>and</em> by a changing electric flux. The second term — the <strong>displacement current</strong> <span class="math inline">\(I_d = \varepsilon_0 \, d\Phi_E/dt\)</span> — is Maxwell’s addition. It completes the symmetry: a changing <span class="math inline">\(\vec{B}\)</span> creates <span class="math inline">\(\vec{E}\)</span> (Faraday), and a changing <span class="math inline">\(\vec{E}\)</span> creates <span class="math inline">\(\vec{B}\)</span> (Maxwell).</p>
-<h3 id="the-symmetry">The Symmetry</h3>
+<h3 id="a-second-field">A Second Field</h3>
+<p>Chapters 22–27 needed one field, <span class="math inline">\(\vec E\)</span>, produced by charges. There is a second, the <strong>magnetic field</strong> <span class="math inline">\(\vec B\)</span>, produced by <em>moving</em> charges — currents and magnets. Its SI unit is the <strong>tesla</strong> (T). Earth’s magnetic field at the surface is about <span class="math inline">\(50\ \mu\text{T}\)</span>; a refrigerator magnet is around <span class="math inline">\(5 \times 10^{-3}\)</span> T near its face. Chapter 28 gives the force <span class="math inline">\(\vec B\)</span> exerts and the fields that currents make. This chapter needs only two facts: <span class="math inline">\(\vec B\)</span> is a vector field like <span class="math inline">\(\vec E\)</span>, and it has a flux.</p>
+<h3 id="flux-and-circulation">Flux and Circulation</h3>
+<p>Two measurements of a vector field run through all four laws (Figure 31.1).</p>
+<p><strong>Flux</strong> through a surface (Chapter 23): split the surface into small patches <span class="math inline">\(d\vec A\)</span>, each pointing along the patch’s normal, and add up the component of the field through each:</p>
+<p><span class="math display">\[\Phi_E = \int \vec E \cdot d\vec A, \qquad \Phi_B = \int \vec B \cdot d\vec A\]</span></p>
+<p><span class="math inline">\(\Phi_B\)</span> is defined exactly as <span class="math inline">\(\Phi_E\)</span> was; its unit is <span class="math inline">\(\text{T}\cdot\text{m}^2\)</span>, also called the weber (Wb). For a uniform field perpendicular to a flat area <span class="math inline">\(A\)</span>, <span class="math inline">\(\Phi_B = BA\)</span>.</p>
+<p><strong>Circulation</strong> around a closed loop: split the loop into small steps <span class="math inline">\(d\vec\ell\)</span> and add up the component of the field <em>along</em> each step, <span class="math inline">\(\oint \vec E \cdot d\vec\ell\)</span>. Chapter 24 met this sum without the name: for the field of static charges, <span class="math inline">\(\int \vec E \cdot d\vec\ell\)</span> between two points is <span class="math inline">\(-\Delta V\)</span> and does not depend on the path, so around any closed loop it is zero. The direction a loop is traversed and the normal of the surface it bounds are tied together by the <strong>right-hand rule</strong>: curl the fingers of the right hand along the traversal, and the thumb gives the normal.</p>
+<figure class="chap-fig"><img src="/courses/pseii/ch31_figures/fig_31v2_07_flux_circulation.png" alt="Figure 31.1: The two measurements of a vector field. (a) Flux: cut the surface into patches d\vec A, each along the patch’s normal, and add the component of \vec E through each, E\,dA\cos\theta. (b) Circulation: cut the loop into steps d\vec\ell and add the component of \vec E along each. Curl the right hand’s fingers along the traversal and the thumb gives the normal of the surface the loop bounds." loading="lazy" style="max-width:min(6in,100%)" /><figcaption>Figure 31.1: The two measurements of a vector field. (a) Flux: cut the surface into patches <span class="math inline">\(d\vec A\)</span>, each along the patch’s normal, and add the component of <span class="math inline">\(\vec E\)</span> through each, <span class="math inline">\(E\,dA\cos\theta\)</span>. (b) Circulation: cut the loop into steps <span class="math inline">\(d\vec\ell\)</span> and add the component of <span class="math inline">\(\vec E\)</span> along each. Curl the right hand’s fingers along the traversal and the thumb gives the normal of the surface the loop bounds.</figcaption></figure>
+<h3 id="the-four-laws">The Four Laws</h3>
+<p>Each law sets either a flux out of a closed surface or a circulation around a loop. The <strong>integral form</strong> states it for a surface or loop of any size. The <strong>vector form</strong> states the same law at a single point, by shrinking the surface or loop down to nothing:</p>
+<ul>
+<li><strong>Divergence</strong>, <span class="math inline">\(\nabla\cdot\vec E\)</span>: the flux out of a tiny closed surface, divided by the volume it encloses. “Flux out per unit volume.”</li>
+<li><strong>Curl</strong>, <span class="math inline">\(\nabla\times\vec E\)</span>: its component along a direction <span class="math inline">\(\hat n\)</span> is the circulation around a tiny loop with normal <span class="math inline">\(\hat n\)</span>, divided by the loop’s area. “Circulation per unit area.”</li>
+</ul>
+<p>The charge and current then appear per unit volume and per unit area: <span class="math inline">\(\rho\)</span> is the <strong>charge density</strong> (C/m³) and <span class="math inline">\(\vec J\)</span> the <strong>current density</strong> (A/m²).</p>
 <table>
 <colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
 </colgroup>
 <thead>
 <tr class="header">
-<th></th>
-<th>Electric</th>
-<th>Magnetic</th>
+<th>Law</th>
+<th>Integral form</th>
+<th>Vector form</th>
+<th>In words</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Source</strong></td>
-<td>Charges (<span class="math inline">\(Q\)</span>)</td>
-<td>Moving charges / currents (<span class="math inline">\(I\)</span>)</td>
+<td><strong>(1) Gauss</strong></td>
+<td><span class="math inline">\(\oint \vec E \cdot d\vec A = \dfrac{Q_\text{enc}}{\varepsilon_0}\)</span></td>
+<td><span class="math inline">\(\nabla\cdot\vec E = \dfrac{\rho}{\varepsilon_0}\)</span></td>
+<td>Electric flux out of a closed surface counts the charge inside.</td>
 </tr>
 <tr class="even">
-<td><strong>Flux law</strong></td>
-<td><span class="math inline">\(\oint \vec{E} \cdot d\vec{A} = Q/\varepsilon_0\)</span></td>
-<td><span class="math inline">\(\oint \vec{B} \cdot d\vec{A} = 0\)</span></td>
+<td><strong>(2) Gauss, magnetic</strong></td>
+<td><span class="math inline">\(\oint \vec B \cdot d\vec A = 0\)</span></td>
+<td><span class="math inline">\(\nabla\cdot\vec B = 0\)</span></td>
+<td>No magnetic charge: <span class="math inline">\(\vec B\)</span> lines close on themselves.</td>
 </tr>
 <tr class="odd">
-<td><strong>Circulation law</strong></td>
-<td><span class="math inline">\(\oint \vec{E} \cdot d\vec{s} = -d\Phi_B/dt\)</span></td>
-<td><span class="math inline">\(\oint \vec{B} \cdot d\vec{s} = \mu_0 I + \mu_0\varepsilon_0 \, d\Phi_E/dt\)</span></td>
+<td><strong>(3) Faraday</strong></td>
+<td><span class="math inline">\(\oint \vec E \cdot d\vec\ell = -\dfrac{d\Phi_B}{dt}\)</span></td>
+<td><span class="math inline">\(\nabla\times\vec E = -\dfrac{\partial\vec B}{\partial t}\)</span></td>
+<td>A changing magnetic flux makes a circulating <span class="math inline">\(\vec E\)</span>.</td>
 </tr>
 <tr class="even">
-<td><strong>What creates it</strong></td>
-<td>Charges <em>or</em> changing <span class="math inline">\(\vec{B}\)</span></td>
-<td>Currents <em>or</em> changing <span class="math inline">\(\vec{E}\)</span></td>
+<td><strong>(4) Ampère–Maxwell</strong></td>
+<td><span class="math inline">\(\oint \vec B \cdot d\vec\ell = \mu_0 I_\text{enc} + \mu_0\varepsilon_0\dfrac{d\Phi_E}{dt}\)</span></td>
+<td><span class="math inline">\(\nabla\times\vec B = \mu_0\vec J + \mu_0\varepsilon_0\dfrac{\partial\vec E}{\partial t}\)</span></td>
+<td>A current, or a changing electric flux, makes a circulating <span class="math inline">\(\vec B\)</span>.</td>
 </tr>
 </tbody>
 </table>
-<p>The near-perfect symmetry between the third and fourth equations is what makes electromagnetic waves possible: a changing <span class="math inline">\(\vec{E}\)</span> creates <span class="math inline">\(\vec{B}\)</span>, which in turn changes and creates more <span class="math inline">\(\vec{E}\)</span>, which creates more <span class="math inline">\(\vec{B}\)</span> — an endless, self-sustaining oscillation that propagates through space.</p>
-<nav class="secnav"><a class="prev" href="31-0.html"><span class="lab">&larr; Previous section</span><span class="tt">31.0 &nbsp;The Greatest Prediction in Physics</span></a><a class="next" href="31-2.html"><span class="lab">Next section &rarr;</span><span class="tt">31.2 &nbsp;The Displacement Current</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch31.html">Whole chapter on one page</a></p>
+<p><em>*The vector form is here so you can read it when you meet it in later courses; this course and its exams work with the integral form only.</em></p>
+<p>Law (1) is yours from Chapter 23. Law (3) contains the static result of Chapter 24 as the special case of a magnetic flux that is not changing; the circulation of <span class="math inline">\(\vec E\)</span> around a circuit is the EMF of Chapter 26, so Faraday’s law says a changing magnetic flux drives a current with no battery, which is how every generator works. In law (4), <span class="math inline">\(\mu_0 = 4\pi \times 10^{-7}\ \text{T}\cdot\text{m/A}\)</span> is the <strong>permeability of free space</strong>, the magnetic counterpart of <span class="math inline">\(\varepsilon_0\)</span>. Its first term alone is <strong>Ampère’s law</strong>; the second is Maxwell’s addition, which §31.2 derives. <em>*Laws (2)–(4) are stated here; Chapters 28 and 29 develop them.</em></p>
+<p>The fourth column holds the point of the chapter. A changing <span class="math inline">\(\vec B\)</span> makes an <span class="math inline">\(\vec E\)</span>, and a changing <span class="math inline">\(\vec E\)</span> makes a <span class="math inline">\(\vec B\)</span>. Each field can keep the other going with no charge or current anywhere nearby.</p>
+<nav class="secnav"><a class="prev" href="31-0.html"><span class="lab">&larr; Previous section</span><span class="tt">31.0 &nbsp;What Light Is Made Of</span></a><a class="next" href="31-2.html"><span class="lab">Next section &rarr;</span><span class="tt">31.2 &nbsp;The Displacement Current</span></a></nav><p class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next section</p><p class="whole">Prefer one long page for printing or searching? <a href="/courses/pseii/ch31.html">Whole chapter on one page</a></p>
         </div>
       </div>
     </article>
