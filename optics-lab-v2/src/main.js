@@ -355,7 +355,7 @@ setTimeout(() => setPerf(perfMode, lowGpu ? "after a GPU problem" : ""), 0);
 // ---------------------------------------------------------------- loop
 const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 const clock = new THREE.Clock();
-let textT = 0, frames = 0;
+let textT = 0, frames = 0, demoTick = null;
 // ---- profiler (as the Rankine viewer): ?perf=1 shows FPS + a per-section ms split (EMA); ?perf=2 also calls
 // gl.finish() so GPU time lands in "render". Startup times (to first frame, to first readouts) are kept too.
 const PERF = +(new URLSearchParams(location.search).get("perf") || 0), T0 = performance.now();
@@ -373,6 +373,7 @@ function frame() {
   const dt = Math.min(0.1, clock.getDelta());
   if (perf.on) perfT = performance.now();
   if (!inRoom) current.frame(dt); mark("module");      // the room view runs no station: every table holds its last state
+  if (demoTick) demoTick(dt);                           // ?demo=spectra only (demo_spectra.js); null otherwise
   if (fly) {
     fly.t = Math.min(1, fly.t + dt / (fly.dur || 0.9)); const k = ease(fly.t);
     camera.position.lerpVectors(fly.p0, fly.p1, k); orbit.target.lerpVectors(fly.t0, fly.t1, k);
@@ -426,6 +427,11 @@ window.__bench = { notebook, guide, scene, camera, renderer, orbit, P: lensApi.P
   // window coordinates of a point given in a part's local frame
   screenPoint: (obj, off = [0, 0, 0]) => { const v = obj.localToWorld(new THREE.Vector3(...off)).project(camera), R = renderer.domElement.getBoundingClientRect();
     return [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height]; } };
+
+// ?demo=spectra: the class demo "grating -> emission spectra" on the wave bench (demo_spectra.js, 2026-11-15). Loaded only
+// with the flag, so the labs are unchanged without it.
+if (new URLSearchParams(location.search).get("demo") === "spectra")
+  import("./demo_spectra.js").then((m) => m.startSpectraDemo({ scene, camera, renderer, stations, $, modOf, setModule, flyTo, focusOf, setTick: (f) => { demoTick = f; } }));
 
 // ?bench=1: the lab-PC benchmark runs a fixed tour and shows its frame rates (benchrun.js; R3)
 if (new URLSearchParams(location.search).has("bench")) import("./benchrun.js").then((m) => m.runBench(window.__bench));
