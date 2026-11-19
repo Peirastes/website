@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Radiating Charge Lab — PSE-II</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" onload="window._katexReady=true;window.renderEq&&window.renderEq()"></script>
+<style>
+/* Shell, chrome, rail, slider and readout vocabulary from the canon (capacitor_lab.html = clone parent; sliders from optics-lab). */
+:root{
+  --gold:#ffae20;--gold-soft:rgba(255,174,32,.72);--gold-faint:rgba(255,174,32,.28);--gold-glow:rgba(255,174,32,.45);
+  --cyan:#7dd6ff;--cyan-soft:rgba(125,214,255,.65);--cyan-faint:rgba(125,214,255,.22);--cyan-glow:rgba(125,214,255,.30);
+  --red:#e05040;--void:#06080c;
+  --glass-bg:rgba(10,14,22,.42);--glass-border:rgba(255,255,255,.10);--glass-blur:blur(22px) saturate(1.4);
+  --glass-shadow:0 10px 28px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.06);
+  --card-bg:rgba(6,10,18,.55);--card-border:rgba(255,255,255,.07);
+  --text:#e8e8e8;--text-dim:#8a8a8a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:radial-gradient(ellipse at 45% 40%,#0a0e16 0%,#06080c 55%,#04060a 100%);color:var(--text);font-family:'Inter',system-ui,sans-serif;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+#world{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+.cin-grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.04;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/></svg>");mix-blend-mode:overlay}
+
+/* ── cinematic chrome ── */
+.cin-flank{position:fixed;top:max(1.6rem,env(safe-area-inset-top,0px) + .6rem);z-index:100;display:flex;flex-direction:column;gap:.4rem;opacity:0;transform:translateY(-8px);animation:cin-fi 700ms ease 250ms forwards}
+.cin-flank--left{left:max(1.6rem,env(safe-area-inset-left,0px) + .6rem);align-items:flex-start}
+.cin-wordmark{font-family:'Cinzel',serif;font-size:.78rem;font-weight:600;letter-spacing:.28em;color:var(--gold-soft);text-decoration:none;text-shadow:0 0 8px var(--gold-glow);line-height:1}
+.cin-version{font-family:'Inter',sans-serif;font-size:.56rem;font-weight:500;color:rgba(125,214,255,.55);letter-spacing:.2em;text-transform:uppercase}
+.cin-title{position:fixed;top:max(1.6rem,env(safe-area-inset-top,0px) + .6rem);left:50%;transform:translateX(-50%);text-align:center;z-index:100;pointer-events:none;opacity:0;animation:cin-fic 700ms ease 350ms forwards}
+.cin-title__name{font-family:'Orbitron',sans-serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:.24em;text-transform:uppercase;text-shadow:0 0 14px var(--gold-glow),0 0 32px rgba(255,174,32,.18);margin-bottom:4px;line-height:1}
+.cin-title__sub{font-family:'Inter',sans-serif;font-size:9px;font-weight:500;color:var(--cyan-soft);letter-spacing:.22em;text-transform:uppercase}
+.cin-tick{position:fixed;width:16px;height:16px;z-index:99;pointer-events:none;opacity:0;animation:cin-fi 800ms ease 600ms forwards}
+.cin-tick::before,.cin-tick::after{content:'';position:absolute;background:rgba(125,214,255,.45)}
+.cin-tick--tl{top:.9rem;left:.9rem}.cin-tick--tr{top:.9rem;right:.9rem}.cin-tick--bl{bottom:.9rem;left:.9rem}.cin-tick--br{bottom:.9rem;right:.9rem}
+.cin-tick--tl::before{top:0;left:0;width:12px;height:1px}.cin-tick--tl::after{top:0;left:0;width:1px;height:12px}
+.cin-tick--tr::before{top:0;right:0;width:12px;height:1px}.cin-tick--tr::after{top:0;right:0;width:1px;height:12px}
+.cin-tick--bl::before{bottom:0;left:0;width:12px;height:1px}.cin-tick--bl::after{bottom:0;left:0;width:1px;height:12px}
+.cin-tick--br::before{bottom:0;right:0;width:12px;height:1px}.cin-tick--br::after{bottom:0;right:0;width:1px;height:12px}
+.cin-hints{position:fixed;bottom:max(1.6rem,env(safe-area-inset-bottom,0px) + .6rem);right:calc(1.6rem + 16px);z-index:100;display:flex;gap:.35rem;font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.1em;color:rgba(180,180,180,.45);text-transform:uppercase;opacity:0;animation:cin-fi 800ms ease 750ms forwards}
+.cin-hints kbd{background:rgba(125,214,255,.06);border:1px solid var(--cyan-faint);border-radius:2px;padding:1px 5px;margin-right:.3rem;color:var(--cyan);font-size:.58rem}
+@keyframes cin-fi{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes cin-fic{0%{opacity:0;transform:translate(-50%,-8px)}100%{opacity:1;transform:translate(-50%,0)}}
+
+/* ── layout: the world is the full-bleed canvas; title, readouts and rail float over it ── */
+.main-grid{position:fixed;top:5.5rem;left:1.6rem;right:1.6rem;bottom:1.6rem;z-index:5;pointer-events:none;animation:appfade 1100ms ease 200ms backwards}
+.main-grid > *{pointer-events:auto}
+@keyframes appfade{0%{opacity:0}100%{opacity:1}}
+.app-title{position:absolute;top:6px;left:9px;pointer-events:none}
+.app-title::before,.cin-title::before{content:'';position:absolute;inset:-28px -46px;z-index:-1;background:radial-gradient(ellipse at 50% 50%,rgba(6,8,12,.92) 35%,rgba(6,8,12,0) 72%)}
+.app-title__name{font-family:'Orbitron',sans-serif;font-size:23px;font-weight:700;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;text-shadow:0 0 14px var(--gold-glow),0 0 34px rgba(255,174,32,.18);line-height:1}
+.app-title__mode{font-family:'Orbitron',sans-serif;font-size:11.5px;font-weight:600;color:var(--cyan);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 8px var(--cyan-glow);margin-top:7px}
+.app-title__scope{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--text-dim);letter-spacing:.18em;text-transform:uppercase;margin-top:5px}
+
+.cap-rail{position:absolute;top:16px;right:16px;max-height:calc(100% - 32px);width:300px;display:flex;flex-direction:column;gap:8px;z-index:10}
+.control-panel{position:relative;width:100%;flex:0 1 auto;min-height:0;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:8px;box-shadow:var(--glass-shadow);padding:16px;overflow-y:auto;flex:0 0 auto}
+.info-frame{flex:0 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1px solid var(--glass-border);border-radius:8px;box-shadow:var(--glass-shadow);padding:13px 15px 14px}
+.info-frame > *{flex-shrink:0}
+.mode-desc{padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--glass-border)}
+.md-title{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.16em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow);margin-bottom:6px}
+.md-text{font-family:'Inter',sans-serif;font-size:12.5px;line-height:1.5;color:rgba(230,230,230,.78)}
+.md-text b{color:#fff;font-weight:600}
+.eq-card{padding:1px 0 2px;text-align:center;overflow-x:auto;overflow-y:hidden}
+.eq-l{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);text-shadow:0 0 6px var(--gold-glow);margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--gold-faint);text-align:left}
+.eq-card .katex{font-size:16px}.eq-card .katex-display{margin:0;overflow:visible}
+.keyrow{font-family:'Inter',sans-serif;font-size:11px;color:rgba(230,230,230,.7);display:flex;align-items:center;gap:8px;margin:4px 0}
+.keyrow i{flex:0 0 22px;height:0;border-top:2.5px solid;font-style:normal}
+.keyrow i.dot{flex:0 0 10px;height:10px;border:none;border-radius:50%}
+.keyrow i.sq{flex:0 0 12px;height:12px;border:none;border-radius:2px}
+.keysec{margin-top:10px}
+
+/* the guided-step panel (capacitor #gP vocabulary) */
+#gP{background:rgba(255,174,32,.05);border:1px solid var(--gold-faint);border-radius:6px;padding:11px 12px;margin-bottom:10px}
+.gp-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.gp-t{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.14em}
+.gp-s{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim)}
+.gp-head{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#fff;line-height:1.35}
+.gp-nav{display:flex;gap:4px;margin-top:10px}
+.gp-btn{flex:1 1 0;white-space:nowrap;font-family:'Orbitron',sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.08em;padding:5px 2px;border-radius:3px;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(8,12,18,.6);color:rgba(220,220,220,.6);transition:all .12s}
+.gp-btn:hover:not(:disabled){color:var(--cyan);border-color:var(--cyan-faint);text-shadow:0 0 6px var(--cyan-glow)}
+.gp-btn:disabled{opacity:.35;cursor:default}
+.seg{display:flex;gap:5px;margin-bottom:10px}
+.seg-btn{flex:1;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:600;letter-spacing:.1em;padding:6px 2px;border-radius:4px;cursor:pointer;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(20,26,36,.78),rgba(8,12,18,.88));color:rgba(220,220,220,.55);transition:all .14s}
+.seg-btn:hover{color:var(--cyan);border-color:var(--cyan-faint)}
+.seg-btn.on{border-color:var(--gold-faint);color:var(--gold);text-shadow:0 0 6px var(--gold-glow);background:linear-gradient(180deg,rgba(255,174,32,.18),rgba(160,104,32,.08))}
+.section-label{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 0 6px var(--gold-glow);display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.section-label small{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:.04em;text-shadow:none;font-weight:400}
+
+/* sliders — recessed channel + amber-thumbed nub (optics-lab) */
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.slider-row .sl{font-family:'Inter',sans-serif;font-size:10.5px;color:var(--text-dim);letter-spacing:.04em;white-space:nowrap;min-width:78px;font-weight:500}
+.slider-row input[type=range]{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:4px;background:rgba(4,6,10,.85);border:1px solid rgba(255,174,32,.20);border-radius:2px;outline:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--gold);border:1px solid #ffd080;box-shadow:0 0 6px var(--gold-glow);cursor:pointer}
+.slider-row input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--gold);border:1px solid #ffd080;box-shadow:0 0 6px var(--gold-glow);cursor:pointer}
+.slider-row .sv{font-size:12px;color:var(--cyan);text-shadow:0 0 5px var(--cyan-glow);font-family:'Share Tech Mono',monospace;min-width:62px;text-align:left}
+.hint{font-family:'Share Tech Mono',monospace;font-size:9.5px;color:var(--text-dim);letter-spacing:.03em;margin:0 0 10px}
+
+/* readouts: bottom-left of the world, floating on the void at the canonical inset */
+.readout-band{position:absolute;left:9px;bottom:9px;display:flex;flex-direction:column;gap:6px}
+.readout-band .section-label{text-shadow:0 0 6px var(--gold-glow),0 0 3px #06080c,0 0 6px #06080c}
+.rgrid{display:grid;grid-template-columns:repeat(5,minmax(78px,1fr));gap:6px}
+.rcard{background:rgba(6,10,18,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--card-border);border-radius:4px;padding:8px 10px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.rk{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim)}
+.rv{font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--cyan);text-shadow:0 0 6px var(--cyan-glow)}
+.rs{font-family:'Share Tech Mono',monospace;font-size:10.5px;color:rgba(255,208,128,.8)}
+.gcard{background:rgba(6,10,18,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--card-border);border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5);padding:6px}
+.gcard canvas{display:block}
+
+html.embed .cin-flank,html.embed .cin-title,html.embed .cin-tick,html.embed .cin-grain,html.embed .cin-hints{display:none !important}
+html.embed .main-grid{top:1.6rem !important}
+.control-panel::-webkit-scrollbar,.info-frame::-webkit-scrollbar{width:8px}
+.control-panel::-webkit-scrollbar-track,.info-frame::-webkit-scrollbar-track{background:linear-gradient(90deg,rgba(0,0,0,.45) 0%,rgba(4,6,10,.65) 25%,rgba(4,6,10,.65) 75%,rgba(0,0,0,.45) 100%);border-radius:4px;box-shadow:inset 1px 0 3px rgba(0,0,0,.55),inset -1px 0 3px rgba(0,0,0,.55),inset 0 2px 4px rgba(0,0,0,.35);margin:4px 0}
+.control-panel::-webkit-scrollbar-thumb,.info-frame::-webkit-scrollbar-thumb{border-radius:4px;background:rgba(40,52,68,.6);border-left:1px solid rgba(125,214,255,.10);border-right:1px solid rgba(255,174,32,.22);border-top:1px solid rgba(255,255,255,.14);border-bottom:.5px solid rgba(0,0,0,.22)}
+@supports (-moz-appearance:none){.control-panel{scrollbar-width:thin;scrollbar-color:rgba(125,214,255,.45) rgba(4,6,10,.6)}}
+</style>
+<script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
+</head>
+<body>
+<canvas id="world"></canvas>
+<div class="cin-grain" aria-hidden="true"></div>
+<div class="cin-flank cin-flank--left"><span class="cin-wordmark">PEIRASTES</span><span class="cin-version">v3.5</span></div>
+<div class="cin-title"><div class="cin-title__name">Radiating Charge</div><div class="cin-title__sub">Kinks in the field · EM Waves · PSE-II</div></div>
+<div class="cin-tick cin-tick--tl"></div><div class="cin-tick cin-tick--tr"></div><div class="cin-tick cin-tick--bl"></div><div class="cin-tick cin-tick--br"></div>
+
+<div class="main-grid">
+  <div class="app-title">
+    <div class="app-title__name">Radiating Charge</div>
+    <div class="app-title__mode" id="modeLine"></div>
+    <div class="app-title__scope">PSE-II &bull; Ch 31 &bull; What is waving</div>
+  </div>
+
+  <div class="readout-band" id="rband"></div>
+
+  <div class="cap-rail" id="rail">
+    <div class="control-panel">
+      <div id="gP">
+        <div class="gp-hdr"><span class="gp-t" id="gpStep"></span><span class="gp-s" id="gpName"></span></div>
+        <div class="gp-head" id="gpHead"></div>
+        <div class="gp-nav"><button class="gp-btn" id="bBack">&#9664; BACK</button><button class="gp-btn" id="bNext">NEXT &#9654;</button><button class="gp-btn" id="bReplay">&#8634; REPLAY</button><button class="gp-btn" id="bPause">PAUSE</button></div>
+      </div>
+      <div class="seg" id="seg"></div>
+      <div class="section-label">Controls</div>
+      <div id="rowV"><div class="slider-row"><span class="sl">speed v</span><input type="range" id="vIn" min="0.05" max="0.6" step="0.01" value="0.2"><span class="sv" id="vVal"></span></div>
+        <div class="hint" id="vHint">kept below the speed of light c</div></div>
+      <div id="rowF"><div class="slider-row"><span class="sl">shake rate f</span><input type="range" id="fIn" min="0" max="1" step="0.01" value="0.5"><span class="sv" id="fVal"></span></div>
+        <div class="hint">higher f, shorter wavelength: &lambda; = c / f</div></div>
+    </div>
+    <div class="info-frame">
+      <div class="mode-desc"><div class="md-title">Overview</div><div class="md-text" id="ovText"></div></div>
+      <div class="eq-l" id="eqTitle"></div><div class="eq-card" id="eqBody"></div>
+      <div class="keysec"><div class="eq-l">Key</div><div id="key"></div></div>
+    </div>
+  </div>
+</div>
+<div class="cin-hints"><span><kbd>&larr;</kbd><kbd>&rarr;</kbd>Steps</span><span><kbd>Space</kbd>Pause</span><span><kbd>R</kbd>Replay</span></div>
+
+<script>
+"use strict";
+// PHYSICS-BEGIN
+// Units: c = 1. Lengths in screen units (the screen is 1000 units tall); times in the same units (light travels 1 per 1).
+// The charge moves along x only. Field = the exact Lienard-Wiechert field of a point charge (Gaussian units, q = 1):
+//   E = (n - b)(1 - b^2) / (k^3 R^2)              velocity part: falls as 1/R^2, stays with the charge
+//     + n x ((n - b) x a) / (k^3 R)               acceleration part: falls as 1/R, the radiation (the kink)
+//   k = 1 - n.b, everything evaluated at the retarded time t_r: |r - x(t_r)| = t - t_r.   B = n x E.
+const PHYS = (() => {
+  const rest = () => (t) => ({ X: 0, V: 0, A: 0 });
+  const steady = (v) => (t) => ({ X: v * t, V: v, A: 0 });
+  // at rest until t = 0, a steady push for a time tau up to speed v0, then coasting
+  const shove = (v0, tau) => { const a = v0 / tau; return (t) => t < 0 ? { X: 0, V: 0, A: 0 }
+    : t < tau ? { X: 0.5 * a * t * t, V: a * t, A: a } : { X: 0.5 * v0 * tau + v0 * (t - tau), V: v0, A: 0 }; };
+  // back and forth, top speed vmax, wavelength lam = c / f
+  const shake = (vmax, lam) => { const w = 2 * Math.PI / lam, A0 = vmax / w;
+    return (t) => ({ X: A0 * Math.sin(w * t), V: vmax * Math.cos(w * t), A: -vmax * w * Math.sin(w * t) }); };
+  function retard(T, x, y, t) {                 // Newton on g(tr) = t - tr - |r - x(tr)|, g' = -1 + n.v < 0
+    let s = T(t), tr = t - Math.hypot(x - s.X, y);
+    for (let i = 0; i < 60; i++) {
+      s = T(tr); const dx = x - s.X, R = Math.hypot(dx, y), g = t - tr - R;
+      if (Math.abs(g) < 1e-9) break;
+      tr -= g / (-1 + (dx / R) * s.V);
+    }
+    return tr;
+  }
+  function field(T, x, y, t, o = {}) {
+    const tr = retard(T, x, y, t), s = T(tr);
+    const Rx = x - s.X, R = Math.hypot(Rx, y), nx = Rx / R, ny = y / R, b = s.V, k = 1 - nx * b, k3 = k * k * k;
+    const ux = nx - b, uy = ny, cv = (1 - b * b) / (k3 * R * R), ca = 1 / (k3 * R), na = nx * s.A;
+    o.vx = ux * cv; o.vy = uy * cv;                       // velocity (Coulomb-like) part
+    o.ax = (ux * na - s.A * k) * ca; o.ay = uy * na * ca;  // acceleration part: (n-b)(n.a) - a (n.(n-b)), n.(n-b) = k
+    o.x = o.vx + o.ax; o.y = o.vy + o.ay;
+    o.bz = nx * o.ay - ny * o.ax;                         // the kink's B = n x E_acc: + out of the page
+    o.R = R; o.tr = tr; return o;
+  }
+  return { rest, steady, shove, shake, retard, field };
+})();
+// PHYSICS-END
+
+const cv = document.getElementById("world"), ctx = cv.getContext("2d");
+const $ = (id) => document.getElementById(id);
+const TAU = 18, CAP = 2.6, HOLD = 1.6, RATE = 115;     // shove duration; caption-first pause (s); end hold (s); c in units/s
+const COL = { line: "rgba(255,208,128,0.88)", news: "rgba(125,214,255,0.85)", charge: "#e05040", chargeTxt: "#ff9a8f", text: "rgba(232,232,232,0.92)", cyan: "#7dd6ff" };
+let W = 0, H = 0, K = 1, DPR = 1, Ww = 1000, UW = 0;   // UW = usable width (px): canvas left edge to the rail's left edge
+let vSet = 0.2, fSet = 0.5;
+const lamOf = (f) => 420 - 270 * f;                     // wavelength in screen units, f slider 0..1
+let si = 0, wall = 0, paused = false, last = performance.now();
+
+const SC = [
+  { name: "At Rest", v: 0.2, O: [0.5, 0.5], traj: () => PHYS.rest(), loop: false,
+    head: "A charge at rest: nothing leaves.",
+    body: () => `The lines are the electric field <b>E</b>, straight out from the charge in every direction. Nothing changes, so nothing travels outward and no energy leaves the charge.`,
+    eqT: "Coulomb field", eq: String.raw`E = \frac{1}{4\pi\varepsilon_0}\,\frac{q}{r^{2}}` },
+  { name: "Steady Motion", v: 0.5, O: [0.5, 0.5], traj: () => PHYS.steady(vSet), loop: true, steady: true,
+    head: "Steady motion: still nothing leaves.",
+    body: () => `Moving at a constant ${vSet.toFixed(2)}c, the lines still point straight at where the charge is <b>right now</b>. Walk alongside it and it is a charge at rest, so steady motion cannot send energy away either.`,
+    eqT: "Constant velocity", eq: String.raw`\vec v = \text{const}\;\Rightarrow\;\text{no radiation}` },
+  { name: "One Shove", v: 0.45, O: [0.4, 0.5], traj: () => PHYS.shove(vSet, TAU), loop: true, shell: true,
+    head: "One shove, then coast: a kink.",
+    body: () => `The charge gets a short shove (it <b>accelerates</b>), then coasts. News of the shove spreads outward at c (the dashed circles). Outside, the field has not heard yet and still points at the old spot. Inside, it points at the charge. In between, the lines bend sideways: <b>that kink is the radiation.</b>`,
+    eqT: "Kink (radiation) field", eq: String.raw`E_\text{rad} = \frac{q\,a\sin\theta}{4\pi\varepsilon_0\,c^{2}\,r}` },
+  { name: "Which Way", v: 0.05, O: [0.4, 0.5], traj: () => PHYS.shove(vSet, TAU), loop: true, shell: true, heat: "ring",
+    head: "The kink is strongest broadside to the shove.",
+    body: () => `Shading = strength of the kink's field. Largest at 90° to the shove, <b>zero straight ahead and behind</b> (it follows sin θ): an antenna sends nothing off its tip. At higher speeds the pattern leans forward (relativity); slide v up to see it.`,
+    eqT: "Kink (radiation) field", eq: String.raw`E_\text{rad} \propto \sin\theta, \quad \theta \text{ from the shove}` },
+  { name: "Why It Leaves", v: 0.45, O: [0.42, 0.42], traj: () => PHYS.shove(vSet, TAU), loop: true, shell: true, graph: true,
+    head: "Why the kink leaves and the Coulomb field stays.",
+    body: () => `The kink's field falls as 1/r, so E² falls as 1/r², and the sphere's area 4πr² cancels it: <b>the same energy crosses every sphere</b>, however far out. The Coulomb field falls as 1/r², so E² × area dies away: it stays with the charge. The graph is computed from the field on screen.`,
+    eqT: "Energy through a sphere", eq: String.raw`E_\text{rad}^{2}\,4\pi r^{2} = \text{const}, \quad E_\text{C}^{2}\,4\pi r^{2} \propto \frac{1}{r^{2}}` },
+  { name: "Shake It", v: 0.2, O: [0.5, 0.5], traj: () => PHYS.shake(vSet, lamOf(fSet)), loop: false, heat: "wave",
+    head: "Shake it at f: a wave of E and B.",
+    body: () => `Shaken back and forth, the charge sends out a kink with every shove: a train of them, a <b>wave</b> with wavelength λ = c / f. The kink carries a magnetic field <b>B</b> with it: ⊙ out of the page, ⊗ into it. Next, Chapter 28: what that B does to a moving charge.`,
+    eqT: "The wave", eq: String.raw`\lambda = \frac{c}{f}, \qquad B = \frac{E}{c}` },
+];
+
+// ---------- the timeline: caption first, then motion; looping scenes replay after a short hold ----------
+function cornerDist(O) { const ox = O[0] * UW / K, oy = O[1] * 1000; return Math.max(Math.hypot(ox, oy), Math.hypot(Ww - ox, oy), Math.hypot(ox, 1000 - oy), Math.hypot(Ww - ox, 1000 - oy)); }
+function span(S) {
+  if (S.steady) { const L = 0.33 * UW / K; return { t0: -L / vSet, t1: L / vSet, rate: 70 / vSet }; }
+  if (S.shell) return { t0: -40, t1: cornerDist(S.O) + 60, rate: RATE };
+  return { t0: 0, t1: Infinity, rate: RATE };
+}
+function simTime(S, w) {
+  const sp = span(S); if (w < CAP) return sp.t0;
+  const u = (w - CAP) * sp.rate;
+  if (!S.loop) return sp.t0 + u;
+  const len = sp.t1 - sp.t0, per = len + HOLD * sp.rate;
+  return sp.t0 + Math.min(u % per, len);
+}
+
+// ---------- canvas + world helpers ----------
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); K = H / 1000; Ww = W / K;
+  const r = $("rail").getBoundingClientRect(); UW = r.left > 200 && r.left < W ? r.left : W;   // usableCX: origin centres in the visible space
+}
+let OX = 0, OY = 0;
+const sx = (x) => (OX + x) * K, sy = (y) => (OY - y) * K;
+function label(txt, x, y, col, align = "left", size = 14) {   // unboxed, haloed so it reads over the lines; returns its box
+  ctx.font = `600 ${size}px Inter, system-ui, sans-serif`;
+  const w = ctx.measureText(txt).width;
+  let X = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+  X = Math.max(35, Math.min(UW - w - 12, X)); const Y = Math.max(150, Math.min(H - 40, y));
+  ctx.lineWidth = 4; ctx.strokeStyle = "rgba(6,8,12,0.92)"; ctx.lineJoin = "round"; ctx.strokeText(txt, X, Y);
+  ctx.fillStyle = col; ctx.fillText(txt, X, Y);
+  return [X - 3, Y - size, X + w + 3, Y + 5];
+}
+function arrow(x0, y0, x1, y1, col, wdt = 2.5) {
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wdt;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  const a = Math.atan2(y1 - y0, x1 - x0), h = 10;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - h * Math.cos(a - 0.4), y1 - h * Math.sin(a - 0.4));
+  ctx.lineTo(x1 - h * Math.cos(a + 0.4), y1 - h * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+}
+
+// ---------- field lines: start at the charge, follow E (midpoint steps), mirror across the line of motion ----------
+// The motion is along x, so the field is symmetric top/bottom: trace the upper half, draw it twice. The trace runs to
+// the FARTHER of the top and bottom edges, so the mirrored half reaches its edge too.
+const NL = 24, R0 = 7, DS = 2.5, MAXS = 2400;
+function traceLines(T, t) {
+  const c = T(t), out = [], f = {}, xm = -OX - 40, xM = Ww - OX + 40, yM = Math.max(OY, 1000 - OY) + 40;
+  for (let k = 0; k <= NL / 2; k++) {
+    const ph = (2 * Math.PI * k) / NL; let x = c.X + R0 * Math.cos(ph), y = R0 * Math.sin(ph); const pts = [x, y];
+    for (let i = 0; i < MAXS; i++) {
+      PHYS.field(T, x, y, t, f); let m = Math.hypot(f.x, f.y); const hx = x + 0.5 * DS * f.x / m, hy = y + 0.5 * DS * f.y / m;
+      PHYS.field(T, hx, hy, t, f); m = Math.hypot(f.x, f.y); x += DS * f.x / m; y += DS * f.y / m; pts.push(x, y);
+      if (x < xm || x > xM || Math.abs(y) > yM) break;
+    }
+    out.push({ k, pts });
+  }
+  return out;
+}
+// Shove steps: the lines are drawn from the exact field-line map, not stepped through the shell. Stepping across the thin
+// kink shell (huge, nearly sideways field) landed the outer half of a line up to ~7 degrees off, differently each frame:
+// the flicker. Exact pieces:
+//   inside the inner front  - the field of a charge coasting at v: straight lines from where it is NOW;
+//   outside the outer front - the field of the charge at rest at the old spot: straight lines from the old spot;
+//   which outer line a line joins is fixed by flux (Gauss): tan(theta_in) = gamma tan(theta_out) (moving lines crowd toward 90 deg).
+// Only the shell itself is traced (fine steps), and its last point is pinned to the exact outer start.
+// The OUTER angles are the fixed, evenly spaced ones (the field out there has not heard of the shove, so its lines must
+// not move); the launch angles at the charge follow from them. (Fixing the launch angles instead made the outer lines
+// jump the instant the shove began.)
+function shellLines(T, t) {
+  const c = T(t), v = t <= TAU ? c.V : vSet, g = 1 / Math.sqrt(1 - v * v), out = [], f = {}, far = 4000, ds = 0.6;
+  const ri = t - TAU, cI = T(TAU).X;
+  for (let k = 0; k <= NL / 2; k++) {
+    const th0 = (2 * Math.PI * k) / NL, ox = Math.cos(th0), oy = Math.sin(th0);
+    const th = Math.atan2(g * oy, ox), ux = Math.cos(th), uy = Math.sin(th);
+    if (t <= TAU) {                                     // still being shoved (a few frames): rest field outside r = t
+      out.push({ k, pts: t <= 0 ? [c.X + R0 * ux, R0 * uy, c.X + far * ux, far * uy] : [c.X + R0 * ux, R0 * uy, t * ox, t * oy, far * ox, far * oy] }); continue;
+    }
+    // inner straight piece: from the charge to the inner front (|P + s u - C| = ri)
+    const px = c.X - cI, b = px * ux, s = -b + Math.sqrt(b * b - (px * px - ri * ri));
+    let x = c.X + s * ux, y = s * uy; const pts = [c.X + R0 * ux, R0 * uy, x, y], i0 = pts.length;
+    // the shell, traced
+    for (let i = 0; i < 20000 && Math.hypot(x, y) < t; i++) {
+      PHYS.field(T, x, y, t, f); let m = Math.hypot(f.x, f.y); const hx = x + 0.5 * ds * f.x / m, hy = y + 0.5 * ds * f.y / m;
+      PHYS.field(T, hx, hy, t, f); m = Math.hypot(f.x, f.y); x += ds * f.x / m; y += ds * f.y / m;
+      if (i % 4 === 3) pts.push(x, y);
+    }
+    pts.push(x, y);
+    // pin the shell's end to the exact outer start, spreading the (small) correction along the shell
+    const ex = t * ox - x, ey = t * oy - y, n = (pts.length - i0) / 2;
+    for (let j = 0; j < n; j++) { const w = (j + 1) / n; pts[i0 + 2 * j] += w * ex; pts[i0 + 2 * j + 1] += w * ey; }
+    pts.push(far * ox, far * oy);                        // outer straight piece, from the old spot
+    out.push({ k, pts, err: Math.hypot(ex, ey) });
+  }
+  return out;
+}
+function drawLines(lines) {
+  ctx.strokeStyle = COL.line; ctx.lineWidth = 1.8; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(255,174,32,0.35)"; ctx.shadowBlur = 4;
+  for (const { k, pts } of lines) for (const sgn of (k === 0 || k === NL / 2) ? [1] : [1, -1]) {
+    ctx.beginPath(); ctx.moveTo(sx(pts[0]), sy(sgn * pts[1]));
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(sx(pts[i]), sy(sgn * pts[i + 1]));
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+}
+
+// ---------- shading: kink strength on the ring (Which Way) or the kink's B, signed (Shake It) ----------
+const hcv = document.createElement("canvas"), htx = hcv.getContext("2d");
+function drawHeat(S, T, t) {
+  const cell = S.heat === "wave" ? 8 : 6, gw = Math.ceil(W / cell), gh = Math.ceil(H / cell);
+  if (hcv.width !== gw || hcv.height !== gh) { hcv.width = gw; hcv.height = gh; }
+  const img = htx.createImageData(gw, gh), D = img.data, f = {}, vals = new Float32Array(gw * gh);
+  let mx = 1e-12, rOut = 0, rIn = 0, cIn = 0;
+  if (S.heat === "ring") { if (t <= 0) return; rOut = t; rIn = t - TAU; cIn = T(TAU).X; }
+  const w = 2 * Math.PI / lamOf(fSet), bref = (vSet * w) / 260;
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    const x = ((i + 0.5) * cell) / K - OX, y = OY - ((j + 0.5) * cell) / K;
+    if (S.heat === "ring") {
+      if (Math.hypot(x, y) > rOut + 6 || Math.hypot(x - cIn, y) < rIn - 6) continue;
+      PHYS.field(T, x, y, t, f); const a = Math.hypot(f.ax, f.ay) * f.R; vals[j * gw + i] = a; if (a > mx) mx = a;
+    } else {
+      if (Math.hypot(x - T(t).X, y) < 14) continue;
+      PHYS.field(T, x, y, t, f); vals[j * gw + i] = Math.tanh((f.bz * f.R) / (bref * 260));
+    }
+  }
+  for (let p = 0; p < gw * gh; p++) {
+    const v = vals[p]; let r = 0, g = 0, b = 0, a = 0;
+    if (S.heat === "ring") { const u = v / mx; r = 125; g = 214; b = 255; a = 230 * Math.min(1, 1.1 * u); }
+    else if (v > 0) { r = 255; g = 120; b = 70; a = 120 * v; } else { r = 70; g = 150; b = 255; a = -120 * v; }
+    D[4 * p] = r; D[4 * p + 1] = g; D[4 * p + 2] = b; D[4 * p + 3] = a;
+  }
+  htx.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(hcv, 0, 0, gw * cell, gh * cell);
+}
+function drawBMarks(T, t) {                             // ⊙ / ⊗ where the kink's B is strong
+  const f = {}, w = 2 * Math.PI / lamOf(fSet), bref = (vSet * w) / 260, step = 66;
+  for (let Y = 150; Y < H - 30; Y += step) for (let X = 40; X < UW - 20; X += step) {
+    const x = X / K - OX, y = OY - Y / K; if (Math.hypot(x - T(t).X, y) < 60) continue;
+    PHYS.field(T, x, y, t, f); const v = Math.tanh((f.bz * f.R) / (bref * 260)); if (Math.abs(v) < 0.45) continue;
+    ctx.strokeStyle = "rgba(232,232,232,0.75)"; ctx.fillStyle = "rgba(232,232,232,0.75)"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(X, Y, 6.5, 0, 2 * Math.PI); ctx.stroke();
+    if (v > 0) { ctx.beginPath(); ctx.arc(X, Y, 2, 0, 2 * Math.PI); ctx.fill(); }
+    else { ctx.beginPath(); ctx.moveTo(X - 4, Y - 4); ctx.lineTo(X + 4, Y + 4); ctx.moveTo(X + 4, Y - 4); ctx.lineTo(X - 4, Y + 4); ctx.stroke(); }
+  }
+}
+
+// ---------- the measured angle pattern (Which Way) and the energy-vs-r curves (Why It Leaves) ----------
+function kinkAt(T, th, r) {                             // |E_acc| x R on the mid-shove front, at angle th from the shove
+  const s = T(TAU / 2), f = {}; PHYS.field(T, s.X + r * Math.cos(th), r * Math.sin(th), TAU / 2 + r, f);
+  return Math.hypot(f.ax, f.ay) * f.R;
+}
+function angleTable(T, t) {
+  const r = Math.max(60, t - TAU / 2), ref = kinkAt(T, Math.PI / 2, r);
+  return [0, 45, 90, 135, 180].map((d) => ({ d, m: kinkAt(T, (d * Math.PI) / 180, r) / ref, s: Math.sin((d * Math.PI) / 180) }));
+}
+let energyCache = null;
+function energyCurves(T) {                              // E^2 x area over the sphere through the mid-shove front, vs r
+  const key = vSet.toFixed(3); if (energyCache && energyCache.key === key) return energyCache;
+  const s = T(TAU / 2), f = {}, pts = [], NT = 90;
+  for (let r = 40; r <= 1600; r += 10) {
+    let Ev = 0, Ea = 0;
+    for (let i = 0; i < NT; i++) {
+      const th = ((i + 0.5) * Math.PI) / NT, dA = 2 * Math.PI * r * r * Math.sin(th) * (Math.PI / NT);
+      PHYS.field(T, s.X + r * Math.cos(th), r * Math.sin(th), TAU / 2 + r, f);
+      Ev += (f.vx * f.vx + f.vy * f.vy) * dA; Ea += (f.ax * f.ax + f.ay * f.ay) * dA;
+    }
+    pts.push({ r, Ev, Ea });
+  }
+  const i0 = pts.findIndex((p) => p.r >= 80);
+  for (const p of pts) { p.ev = p.Ev / pts[i0].Ev; p.ea = p.Ea / pts[i0].Ea; }
+  return (energyCache = { key, pts });
+}
+function drawGraph(gv, T, t) {
+  const gw = 360, gh = 190, g = gv.getContext("2d");
+  if (gv.width !== gw * DPR) { gv.width = gw * DPR; gv.height = gh * DPR; gv.style.width = gw + "px"; gv.style.height = gh + "px"; }
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, gw, gh);
+  const L = 26, R = gw - 10, Tp = 12, B = gh - 26, rMax = 1000, x = (r) => L + ((r - 40) / (rMax - 40)) * (R - L), y = (v) => B - (v / 1.25) * (B - Tp);
+  g.strokeStyle = "rgba(255,255,255,0.12)"; g.lineWidth = 1; g.beginPath(); g.moveTo(L, Tp); g.lineTo(L, B); g.lineTo(R, B); g.stroke();
+  g.setLineDash([3, 4]); g.beginPath(); g.moveTo(L, y(1)); g.lineTo(R, y(1)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "#8a8a8a"; g.font = "10px 'Share Tech Mono', monospace"; g.fillText("1", L - 12, y(1) + 4); g.fillText("0", L - 12, B + 4);
+  g.fillText("distance r from the charge →", L + 70, gh - 8);
+  const { pts } = energyCurves(T), rNow = t - TAU / 2;
+  for (const [kv, col] of [["ea", "#7dd6ff"], ["ev", "#ffd080"]]) {
+    g.strokeStyle = col; g.lineWidth = 2.2; g.shadowColor = col; g.shadowBlur = 5; g.beginPath(); let on = false;
+    for (const p of pts) { if (p.r < 80 || p.r > Math.min(rMax, rNow)) continue; const X = x(p.r), Y = y(Math.min(1.25, p[kv])); on ? g.lineTo(X, Y) : g.moveTo(X, Y); on = true; }
+    g.stroke(); g.shadowBlur = 0;
+  }
+  g.font = "600 11.5px Inter, sans-serif";
+  if (rNow > 200) { g.fillStyle = "#7dd6ff"; g.fillText("kink: flat, it leaves", x(330), y(1) - 7); g.fillStyle = "#ffd080"; g.fillText("Coulomb part: falls as 1/r², stays", x(250), y(0.3)); }
+}
+
+// ---------- one frame ----------
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now; if (!paused) wall += dt;
+  render(); requestAnimationFrame(frame);
+}
+function render() {
+  const S = SC[si], T = S.traj(), t = simTime(S, wall);
+  OX = (S.O[0] * UW) / K; OY = S.O[1] * 1000;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, W, H);
+  const c = T(t);
+  if (S.heat) drawHeat(S, T, t);
+  if (S.shell && t > 0) {                                // the news of the shove: fronts from its start and its end, out at c
+    ctx.setLineDash([8, 7]); ctx.strokeStyle = COL.news; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(sx(0), sy(0), t * K, 0, 2 * Math.PI); ctx.stroke();
+    if (t > TAU) { ctx.beginPath(); ctx.arc(sx(T(TAU).X), sy(0), (t - TAU) * K, 0, 2 * Math.PI); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  const lines = S.shell ? shellLines(T, t) : traceLines(T, t); drawLines(lines);
+  if (S.heat === "wave") drawBMarks(T, t);
+  if (S.shell && t > 0) { ctx.strokeStyle = "rgba(224,80,64,0.8)"; ctx.setLineDash([3, 4]); ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(sx(0), sy(0), 8, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); }
+  // the charge
+  const g = ctx.createRadialGradient(sx(c.X) - 3, sy(0) - 3, 1, sx(c.X), sy(0), 11);
+  g.addColorStop(0, "#ffd0c8"); g.addColorStop(0.45, COL.charge); g.addColorStop(1, "#8a2418");
+  ctx.shadowColor = "rgba(224,80,64,0.7)"; ctx.shadowBlur = 12; ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(sx(c.X), sy(0), 10, 0, 2 * Math.PI); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = "#fff"; ctx.font = "700 14px Inter, sans-serif"; ctx.textAlign = "center"; ctx.fillText("+", sx(c.X), sy(0) + 5); ctx.textAlign = "left";
+  if ((S.steady || (S.shell && t > 0)) && c.V > 0.001) { const L = 40 + 140 * c.V; arrow(sx(c.X) + 14, sy(0) + 24, sx(c.X) + 14 + L, sy(0) + 24, COL.chargeTxt); }
+  // ---- labels ----
+  const lab = [];
+  lab.push(label("charge +q", sx(c.X) - 18, sy(0) - 16, COL.chargeTxt, "right"));
+  { const p = lines[2].pts; let d = 230, X = p[0], Y = p[1];
+    for (let i = 2; i < p.length; i += 2) { const L = Math.hypot(p[i] - p[i - 2], p[i + 1] - p[i - 1]); if (L >= d) { X = p[i - 2] + (p[i] - p[i - 2]) * d / L; Y = p[i - 1] + (p[i + 1] - p[i - 1]) * d / L; break; } d -= L; X = p[i]; Y = p[i + 1]; }
+    lab.push(label("electric field lines (E)", sx(X) + 12, sy(-Y) + 18, "#ffd080")); }
+  if (S.steady) label(`constant speed ${vSet.toFixed(2)}c`, sx(c.X) + 18, sy(0) + 48, COL.chargeTxt);
+  if (S.shell) {
+    if (t <= 0) label("about to be shoved →", sx(0) + 18, sy(0) + 48, COL.chargeTxt);
+    else if (t < TAU) label("shove (accelerating)", sx(c.X) + 18, sy(0) + 48, COL.chargeTxt);
+    else label("coasting at " + vSet.toFixed(2) + "c", sx(c.X) + 18, sy(0) + 48, COL.chargeTxt);
+    if (t > 0 && c.X > 40) lab.push(label("old spot", sx(0) - 12, sy(0) + 28, COL.chargeTxt, "right"));
+    if (t > 120) {
+      const rm = t - TAU / 2, X0 = T(TAU / 2).X;
+      for (const d of [72, 58, 44, 30, 18, 8]) { const a = (d * Math.PI) / 180, X = sx(X0 + rm * Math.cos(a)) + 12, Y = sy(rm * Math.sin(a)) - 8;
+        if (Y > 160 && X < UW - 300) { lab.push(label("kink = the radiation, moving out at c", X, Y, COL.cyan)); break; }
+        if (Y > 160 && X < UW - 20) { lab.push(label("kink = the radiation, moving out at c", X - 24, Y, COL.cyan, "right")); break; } }
+      const ao = (125 * Math.PI) / 180, ro = t + 90, px = sx(ro * Math.cos(ao)), py = sy(ro * Math.sin(ao));
+      if (py > 160 && px > 40) lab.push(label("not heard yet: lines point at the old spot", px, py, COL.text, "center"));
+      if (t - TAU > 260) { const ai = (40 * Math.PI) / 180, ri = (t - TAU) * 0.55, Xi = T(TAU).X;
+        const tx = "already heard: lines point at the charge", X = sx(Xi + ri * Math.cos(ai)); let Y = sy(ri * Math.sin(ai));
+        ctx.font = "600 14px Inter, sans-serif"; const wd = ctx.measureText(tx).width;
+        const hits = (Y) => lab.some((b) => X < b[2] && X + wd > b[0] && Y - 14 < b[3] && Y + 5 > b[1]);
+        for (let n = 0; n < 6 && hits(Y); n++) Y += 30;
+        if (!hits(Y)) label(tx, X, Y, COL.text); }
+    }
+  }
+  if (S.heat === "wave") {                               // a measured wavelength bracket, broadside, crest to crest
+    const lam = lamOf(fSet), f = {}, top = OY - 160 / K; let best = -1, yb = 0;
+    for (let y = 60; y < Math.min(60 + lam, top - lam); y += 1) { PHYS.field(T, c.X, y, t, f); if (f.bz * f.R > best) { best = f.bz * f.R; yb = y; } }
+    if (best > 0 && yb + lam < top) {
+      const X = sx(c.X) + 26; ctx.strokeStyle = "rgba(232,232,232,0.9)"; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(X - 6, sy(yb)); ctx.lineTo(X, sy(yb)); ctx.lineTo(X, sy(yb + lam)); ctx.lineTo(X - 6, sy(yb + lam)); ctx.stroke();
+      label("one wavelength λ = c / f", X + 8, (sy(yb) + sy(yb + lam)) / 2 + 5, COL.text);
+    }
+    label("shaken back and forth", sx(c.X) + 18, sy(0) + 40, COL.chargeTxt);
+  }
+  updateBand(S, T, t);
+}
+
+// ---------- readouts (bottom-left), rail, steps ----------
+let bandKind = "";
+function updateBand(S, T, t) {
+  const band = $("rband"), kind = S.heat === "ring" ? "angle" : S.graph ? "graph" : "";
+  if (kind !== bandKind) {
+    bandKind = kind;
+    band.innerHTML = kind === "angle" ? `<div class="section-label">Kink Pattern <small>measured on screen · scaled to 1 at 90°</small></div><div class="rgrid" id="agrid"></div>`
+      : kind === "graph" ? `<div class="section-label">Energy Through a Sphere <small>E² × 4πr², 1 = near the charge</small></div><div class="gcard"><canvas id="gv"></canvas></div>` : "";
+  }
+  if (kind === "angle") {
+    const rows = t > 60 ? angleTable(T, t) : null;
+    $("agrid").innerHTML = [0, 45, 90, 135, 180].map((d, i) => `<div class="rcard"><span class="rk">θ = ${d}°</span><span class="rv">${rows ? rows[i].m.toFixed(2) : "—"}</span><span class="rs">sin θ ${Math.sin(d * Math.PI / 180).toFixed(2)}</span></div>`).join("");
+  } else if (kind === "graph") drawGraph($("gv"), T, t);
+}
+function renderEq() {
+  const S = SC[si]; $("eqTitle").textContent = S.eqT;
+  if (window.katex) katex.render(S.eq, $("eqBody"), { displayMode: true, throwOnError: false }); else $("eqBody").textContent = "";
+}
+window.renderEq = renderEq;
+function keyHTML(S) {
+  const row = (sw, txt) => `<div class="keyrow">${sw}<span>${txt}</span></div>`;
+  let k = row(`<i style="border-color:#ffd080"></i>`, "electric field lines (E)") + row(`<i class="dot" style="background:#e05040"></i>`, "the charge");
+  if (S.shell) k += row(`<i style="border-color:#7dd6ff;border-top-style:dashed"></i>`, "news of the shove, spreading at c");
+  if (S.heat === "ring") k += row(`<i class="sq" style="background:rgba(125,214,255,.85)"></i>`, "kink strength (× distance, so only the angle shows)");
+  if (S.heat === "wave") k += row(`<i class="sq" style="background:rgba(255,120,70,.6)"></i>`, "⊙ B out of the page") + row(`<i class="sq" style="background:rgba(70,150,255,.6)"></i>`, "⊗ B into the page (shading × distance)");
+  return k;
+}
+function syncRail() {
+  const S = SC[si];
+  $("rowV").style.display = si >= 1 ? "" : "none"; $("rowF").style.display = S.heat === "wave" ? "" : "none";
+  $("vVal").textContent = vSet.toFixed(2) + " c"; $("vHint").textContent = S.heat === "wave" ? "top speed while shaking; kept below c" : "kept below the speed of light c";
+  $("fVal").textContent = "λ " + (lamOf(fSet) / 1000).toFixed(2) + " H";
+  $("ovText").innerHTML = S.body();
+}
+function setScene(i, w = 0) {
+  si = Math.max(0, Math.min(SC.length - 1, i)); wall = w; const S = SC[si]; vSet = S.v; $("vIn").value = S.v;
+  $("modeLine").textContent = `Step ${si + 1} · ${S.name}`;
+  $("gpStep").textContent = `STEP ${si + 1} / ${SC.length}`; $("gpName").textContent = S.name.toUpperCase(); $("gpHead").textContent = S.head;
+  $("bBack").disabled = si === 0; $("bNext").disabled = si === SC.length - 1;
+  [...$("seg").children].forEach((e, j) => e.classList.toggle("on", j === si));
+  $("key").innerHTML = keyHTML(S); renderEq(); syncRail(); bandKind = "x";
+}
+SC.forEach((S, j) => { const e = document.createElement("button"); e.className = "seg-btn"; e.textContent = j + 1; e.title = S.name; e.onclick = () => setScene(j); $("seg").appendChild(e); });
+$("bNext").onclick = () => setScene(si + 1); $("bBack").onclick = () => setScene(si - 1);
+$("bReplay").onclick = () => setScene(si); $("bPause").onclick = () => { paused = !paused; $("bPause").textContent = paused ? "PLAY" : "PAUSE"; };
+$("vIn").oninput = (e) => { vSet = +e.target.value; syncRail(); };
+$("fIn").oninput = (e) => { fSet = +e.target.value; syncRail(); };
+addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowRight" || e.key === "PageDown") setScene(si + 1);
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") setScene(si - 1);
+  else if (e.key === " ") { e.preventDefault(); $("bPause").click(); }
+  else if (e.key === "r" || e.key === "R") setScene(si);
+});
+addEventListener("resize", resize);
+resize(); setScene(0); requestAnimationFrame(() => { resize(); });
+window.__kink = { PHYS, go: (i, w) => { setScene(i, w); render(); }, setV: (v) => { vSet = v; $("vIn").value = v; syncRail(); }, setF: (f) => { fSet = f; $("fIn").value = f; syncRail(); },
+  pause: (p) => { paused = p; }, angleTable: () => angleTable(SC[si].traj(), simTime(SC[si], wall)), simTime: () => simTime(SC[si], wall),
+  shellLinesAt: (t) => { const S = SC[si]; OX = (S.O[0] * UW) / K; OY = S.O[1] * 1000; return shellLines(S.traj(), t).map((l) => ({ pts: l.pts, err: l.err })); },
+  shellErr: (t) => { const T = SC[si].traj(); return Math.max(...shellLines(T, t).map((l) => l.err || 0)); },
+  lineEnds: () => { const S = SC[si], T = S.traj(), t = simTime(S, wall); OX = (S.O[0] * UW) / K; OY = S.O[1] * 1000;
+    return traceLines(T, t).map(({ pts }) => [sy(pts[pts.length - 1]), sy(-pts[pts.length - 1]), sx(pts[pts.length - 2])]); }, dims: () => ({ W, H, UW }) };
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
